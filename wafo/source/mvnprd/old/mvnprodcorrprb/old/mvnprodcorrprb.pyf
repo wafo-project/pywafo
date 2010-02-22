@@ -1,0 +1,24 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+
+python module mvnprdcrprb ! in 
+    interface  ! in :mvnprdcrprb
+        subroutine pymvnprdcrprb(rho,a,b,n,abseps,releps,usebreakpoints,usesimpson,prb,abserr,ift) ! in :mvnprdcrprb:mvnprodcorrprb_interface.f
+            use mvnprodcorrprbmod,,only: mvnprodcorrprb
+            double precision dimension(n),intent(in),depend(n) :: rho
+            double precision dimension(n),intent(in),depend(n) :: a
+            double precision dimension(n),intent(in),depend(n) :: b
+            integer intent(in) :: n
+            double precision intent(in) :: abseps
+            double precision intent(in) :: releps
+            logical intent(in) :: usebreakpoints
+            logical intent(in) :: usesimpson
+            double precision intent(out) :: prb
+            double precision intent(out) :: abserr
+            integer intent(out) :: ift
+        end subroutine pymvnprdcrprb
+    end interface 
+end python module mvnprdcrprb
+
+! This file was auto-generated with f2py (version:2_5972).
+! See http://cens.ioc.ee/projects/f2py2e/

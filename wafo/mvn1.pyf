@@ -1,0 +1,129 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+
+python module mvn2 ! in 
+    interface  ! in :mvn2
+        subroutine mvnun(d,n,lower,upper,means,covar,maxpts,abseps,releps,value,inform) ! in :mvn2:mvndst.f
+            integer optional,check(len(lower)>=d),depend(lower) :: d=len(lower)
+            integer optional,check(shape(means,1)==n),depend(means) :: n=shape(means,1)
+            double precision dimension(d) :: lower
+            double precision dimension(d),depend(d) :: upper
+            double precision dimension(d,n),depend(d) :: means
+            double precision dimension(d,d),depend(d,d) :: covar
+            integer :: maxpts
+            double precision :: abseps
+            double precision :: releps
+            double precision :: value
+            integer :: inform
+        end subroutine mvnun
+        subroutine mvndst(n,lower,upper,infin,correl,maxpts,abseps,releps,error,value,inform) ! in :mvn2:mvndst.f
+            integer :: n
+            double precision dimension(*) :: lower
+            double precision dimension(*) :: upper
+            integer dimension(*) :: infin
+            double precision dimension(*) :: correl
+            integer :: maxpts
+            double precision :: abseps
+            double precision :: releps
+            double precision :: error
+            double precision :: value
+            integer :: inform
+            integer :: ivls
+            common /dkblck/ ivls
+        end subroutine mvndst
+        function mvndfn(n,w) ! in :mvn2:mvndst.f
+            integer :: n
+            double precision dimension(*) :: w
+            double precision dimension(*) :: upper
+            integer dimension(*) :: infin
+            integer :: infis
+            double precision :: e
+            double precision dimension(*) :: lower
+            double precision :: d
+            double precision dimension(*) :: correl
+            double precision :: mvndfn
+            double precision :: mvndnt
+            entry mvndnt(n,correl,lower,upper,infin,infis,d,e)
+        end function mvndfn
+        subroutine mvnlms(a,b,infin,lower,upper) ! in :mvn2:mvndst.f
+            double precision :: a
+            double precision :: b
+            integer :: infin
+            double precision :: lower
+            double precision :: upper
+        end subroutine mvnlms
+        subroutine covsrt(n,lower,upper,correl,infin,y,infis,a,b,cov,infi) ! in :mvn2:mvndst.f
+            integer :: n
+            double precision dimension(*) :: lower
+            double precision dimension(*) :: upper
+            double precision dimension(*) :: correl
+            integer dimension(*) :: infin
+            double precision dimension(*) :: y
+            integer :: infis
+            double precision dimension(*) :: a
+            double precision dimension(*) :: b
+            double precision dimension(*) :: cov
+            integer dimension(*) :: infi
+        end subroutine covsrt
+        subroutine dkswap(x,y) ! in :mvn2:mvndst.f
+            double precision :: x
+            double precision :: y
+        end subroutine dkswap
+        subroutine rcswp(p,q,a,b,infin,n,c) ! in :mvn2:mvndst.f
+            integer :: p
+            integer :: q
+            double precision dimension(*) :: a
+            double precision dimension(*) :: b
+            integer dimension(*) :: infin
+            integer :: n
+            double precision dimension(*) :: c
+        end subroutine rcswp
+        subroutine dkbvrc(ndim,minvls,maxvls,functn,abseps,releps,abserr,finest,inform) ! in :mvn2:mvndst.f
+            integer :: ndim
+            integer :: minvls
+            integer :: maxvls
+            external functn
+            double precision :: abseps
+            double precision :: releps
+            double precision :: abserr
+            double precision :: finest
+            integer :: inform
+        end subroutine dkbvrc
+        subroutine dksmrc(ndim,klim,sumkro,prime,vk,functn,x) ! in :mvn2:mvndst.f
+            integer :: ndim
+            integer :: klim
+            double precision :: sumkro
+            integer :: prime
+            double precision dimension(*) :: vk
+            external functn
+            double precision dimension(*) :: x
+        end subroutine dksmrc
+        function mvnphi(z) ! in :mvn2:mvndst.f
+            double precision :: z
+            double precision :: mvnphi
+        end function mvnphi
+        function phinvs(p) ! in :mvn2:mvndst.f
+            double precision :: p
+            double precision :: phinvs
+        end function phinvs
+        function bvnmvn(lower,upper,infin,correl) ! in :mvn2:mvndst.f
+            double precision dimension(*) :: lower
+            double precision dimension(*) :: upper
+            integer dimension(*) :: infin
+            double precision :: correl
+            double precision :: bvnmvn
+        end function bvnmvn
+        function bvu(sh,sk,r) ! in :mvn2:mvndst.f
+            double precision :: sh
+            double precision :: sk
+            double precision :: r
+            double precision :: bvu
+        end function bvu
+        function mvnuni() ! in :mvn2:mvndst.f
+            double precision :: mvnuni
+        end function mvnuni
+    end interface 
+end python module mvn2
+
+! This file was auto-generated with f2py (version:2_5972).
+! See http://cens.ioc.ee/projects/f2py2e/

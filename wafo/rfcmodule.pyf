@@ -1,0 +1,14 @@
+! File rfcmodule.pyf
+python module rfcmodule
+interface
+  subroutine findrfc(y1,hmin, ind, n,info) 
+    intent(c) findrfc              ! findrfc is a C function
+    intent(c)                     ! all findrfc arguments are considered as C based                                  
+    integer intent(hide), depend(y) :: n=len(y)
+	double precision dimension(n), intent(in) :: y1    ! input array 
+	double precision intent(in) :: hmin    
+    integer dimension(n), intent(out) :: ind         ! output array,
+	integer intent(out) :: info
+  end subroutine findrfc
+end interface
+end python module rfcmodule
