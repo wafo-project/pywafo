@@ -1,0 +1,21 @@
+      subroutine set_constants(method,xcscale,abseps,releps,coveps,
+     & maxpts,minpts,nit,xcutoff,Nc1c2)
+      use rindmod 
+      double precision :: xcscale,abseps,releps,coveps,xcutoff
+      integer method, maxpts, minpts, nit, Nc1c2
+Cf2py double precision, optional :: xcscale = 0.0D0
+Cf2py double precision, optional :: abseps = 0.01D0
+Cf2py double precision, optional :: releps = 0.01D0
+Cf2py double precision, optional :: coveps = 1.0D-10
+Cf2py double precision, optional :: xcutoff = 5.0D0
+
+Cf2py integer, optional :: method = 3
+Cf2py integer, optional :: minpts = 0
+Cf2py integer, optional :: maxpts = 40000
+Cf2py integer, optional :: nit = 1000
+Cf2py integer, optional :: Nc1c2 = 2
+
+      call setconstants(method,xcscale,abseps,releps,coveps,
+     &     maxpts,minpts,nit,xcutoff,Nc1c2)
+      return
+      end subroutine set_constants

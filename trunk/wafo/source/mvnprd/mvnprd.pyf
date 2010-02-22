@@ -1,0 +1,23 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+
+python module mvnprd ! in 
+    interface  ! in :mvnprd
+        subroutine mvnprd(a,b,bpd,eps,n,inf,ierc,hinc,prob,bound,ifault) ! in :mvnprd:mvnprd.f
+            double precision dimension(*) :: a
+            double precision dimension(*) :: b
+            double precision dimension(*) :: bpd
+            double precision :: eps
+            integer :: n
+            integer dimension(*) :: inf
+            integer :: ierc
+            double precision :: hinc
+            double precision :: prob
+            double precision :: bound
+            integer :: ifault
+        end subroutine mvnprd
+    end interface 
+end python module mvnprd
+
+! This file was auto-generated with f2py (version:2_5972).
+! See http://cens.ioc.ee/projects/f2py2e/

@@ -1,0 +1,39 @@
+<html>
+<body>
+<pre>
+<h1>Build Log</h1>
+<h3>
+--------------------Configuration: test_rindmod2007 - Win32 Debug--------------------
+</h3>
+<h3>Command Lines</h3>
+Creating temporary file "C:\DOCUME~1\pab2\LOCALS~1\Temp\RSP391.tmp" with contents
+[
+/check:bounds /compile_only /debug:full /nologo /traceback /warn:argument_checking /warn:nofileopt /module:"Debug/" /object:"Debug/" /pdbfile:"Debug/DF60.PDB" 
+"C:\pab\workspace\PYWAFO\src\wafo\src\rind2007\split\fimod.f"
+"C:\pab\workspace\PYWAFO\src\wafo\src\rind2007\split\test_rindmod2007.f"
+]
+Creating temporary file "C:\DOCUME~1\pab2\LOCALS~1\Temp\RSP392.tmp" with contents
+[
+kernel32.lib /nologo /subsystem:console /incremental:yes /pdb:"Debug/test_rindmod2007.pdb" /debug /machine:I386 /out:"Debug/test_rindmod2007.exe" /pdbtype:sept 
+.\Debug\erfcoremod.obj
+.\Debug\fimod.obj
+.\Debug\intmodule.obj
+.\Debug\jacobmod.obj
+.\Debug\rindmod2007.obj
+.\Debug\swapmod.obj
+.\Debug\test_rindmod2007.obj
+]
+Creating command line "link.exe @C:\DOCUME~1\pab2\LOCALS~1\Temp\RSP392.tmp"
+<h3>Output Window</h3>
+Compiling Fortran...
+C:\pab\workspace\PYWAFO\src\wafo\src\rind2007\split\fimod.f
+C:\pab\workspace\PYWAFO\src\wafo\src\rind2007\split\test_rindmod2007.f
+Linking...
+
+
+
+<h3>Results</h3>
+test_rindmod2007.exe - 0 error(s), 0 warning(s)
+</pre>
+</body>
+</html>

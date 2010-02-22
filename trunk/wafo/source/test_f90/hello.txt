@@ -1,0 +1,188 @@
+[f2py] Confused with fortran 90 modules
+
+Dede ded.espaze at laposte.net 
+Fri Oct 19 11:45:36 EEST 2007
+Previous message: [f2py] Confused with fortran 90 modules
+Next message: AW: [f2py] (no subject)
+Messages sorted by: [ date ] [ thread ] [ subject ] [ author ]
+Hi Peter,
+
+I had recently the same problem with the program of a friend. He
+had done a similar work but he was using reals. We succeeded to make
+it work by using only "real(kind=8)" on the Python side, that's why I
+have introduced a new file: hello_interface.f90. To reuse the Fortran
+subroutines, we wrote a conversion function, so I have changed a
+little types.f90. My files:
+
+types.f90
+!--------------------------!
+      module types
+        integer, parameter :: WP=4, intdim=selected_int_kind(8)
+      contains
+        function to_intdim(int_value)
+            integer(kind=8) :: int_value
+            integer(intdim) :: to_intdim
+            to_intdim = int_value
+        end function to_intdim
+      end module types
+!--------------------------!
+
+hello.f90
+!--------------------------!	
+	module hello
+        use types
+        contains
+            subroutine foo(a)
+              integer(intdim) :: a
+              print*, "Hello from Fortran!"
+              print*, "a=",a
+            end subroutine foo
+        end module hello
+!--------------------------!  
+
+hello_interface.f90
+!--------------------------!
+      module bindings
+      use types
+      use hello
+      contains
+        subroutine pyfoo(a)
+            integer(kind=8) :: a
+            call foo(to_intdim(a))
+        end subroutine pyfoo
+      end module bindings
+!--------------------------!
+
+For using the Fortran modules in Python, the code needs to be compiled
+with dynamic flags, so -fPIC is introduced:
+
+gfortran -fPIC -c types.f90
+gfortran -fPIC -c hello.f90
+
+The Python module needs to include the generated objects:
+
+f2py -m hello -c types.o hello.o hello_interface.f90 
+
+f2py -m hello -c types.o hello.o hello_interface.f90 --fcompiler=gnu95 --compiler=mingw32 -lmsvcr71
+
+Now you should have the module "hello.so", and I hope you will get in 
+a python session:
+
+# ipython
+.
+.
+In [1]: import hello
+
+In [2]: hello.bindings.pyfoo(4)
+ Hello from Fortran!
+ a=           4
+
+Thanks to Python, it is then easy to write a module that hide the f2py
+interface, so then by doing:
+
+import hello
+hello.foo(4)
+
+you directly get the work done.
+
+Cheers,
+
+Dede
+
+
+On Thu, 18 Oct 2007 01:08:07 -0600
+"Peter Schmitt" <pschmittml at gmail.com> wrote:
+
+> I'm fairly new to Fortran, and I'm just starting out with f2py... I
+> have a question which is best illustrated by example:
+> 
+> In fortran, I have a program that calls a module, such as:
+> 
+> hello.f90:
+> ! -----------------------------------------!
+> program hello
+>   use types
+> 
+>   call foo(5)
+> 
+>   contains
+>   subroutine foo (a)
+>     integer(intdim) :: a
+>     print*, "Hello from Fortran!"
+>     print*, "a=",a
+>   end subroutine foo
+> 
+> end program hello
+> ! -----------------------------------------!
+> 
+> types.f90
+> ! -----------------------------------------!
+> module types
+>   integer, parameter :: WP=4, intdim=selected_int_kind(8)
+> end module types
+> ! -----------------------------------------!
+> 
+> To build this program in plain old fortran, I issue the following
+> three commands to compile and link:
+> gfortran -c types.f90
+> gfortran -c hello.f90
+> gfortran types.o hello.o -o HELLO
+> 
+> 
+> Now if I want to call "foo(5)" in Python using f2py, I change
+> hello.f90 as follows:
+> 
+> hello.f90:
+> ! -----------------------------------------!
+> use types
+> 
+> subroutine foo (a)
+>   integer(intdim) :: a
+>   print*, "Hello from Fortran!"
+>   print*, "a=",a
+> end subroutine foo
+> ! -----------------------------------------!
+> 
+> Then compile types and hello
+> f2py2.5 --fcompiler=gfortran -c -m types types.f90
+> f2py2.5 --fcompiler=gfortran -c -m hello hello.f90
+> 
+> but I can't compile hello.f90.  I get the following error:
+> 
+> > Traceback (most recent call last):
+> >   File
+> > "/home/pschmitt/usr/local/lib/python2.5/site-packages/numpy/__init__.py",
+> > line 31, in <module>
+> >     from _import_tools import PackageLoader
+> >   File
+> > "/home/pschmitt/usr/local/lib/python2.5/site-packages/numpy/_import_tools.py",
+> > line 5, in <module>
+> >     from glob import glob
+> >   File "/usr/lib/python2.5/glob.py", line 4, in <module>
+> >     import fnmatch
+> >   File "/usr/lib/python2.5/fnmatch.py", line 13, in <module>
+> >     import re
+> >   File "/usr/lib/python2.5/re.py", line 276, in <module>
+> >     copy_reg.pickle(_pattern_type, _pickle, _compile)
+> > AttributeError: 'module' object has no attribute 'pickle'
+> > 'import site' failed; use -v for traceback
+> > Traceback (most recent call last):
+> >   File "/home/pschmitt/usr/local/bin/f2py2.5", line 3, in <module>
+> >     import os, sys
+> >   File "/usr/lib/python2.5/os.py", line 696, in <module>
+> >     import copy_reg as _copy_reg
+> >   File "/usr/lib/python2.5/copy_reg.py", line 7, in <module>
+> >     from types import ClassType as _ClassType
+> > ImportError: cannot import name ClassType
+> >
+> 
+> I'm having a hard time wrapping my head around f2py and f90
+> modules... can someone offer any help?
+> 
+> Thanks!
+> -Pete
+
+Previous message: [f2py] Confused with fortran 90 modules
+Next message: AW: [f2py] (no subject)
+Messages sorted by: [ date ] [ thread ] [ subject ] [ author ]
+More information about the f2py-users mailing list
