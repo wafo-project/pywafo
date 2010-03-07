@@ -1,0 +1,557 @@
+#-------------------------------------------------------------------------------
+# Name:        transform.models
+# Purpose:
+#
+# Author:      pab
+#
+# Created:     24.11.2008
+# Copyright:   (c) pab 2008
+# Licence:     <your licence>
+#-------------------------------------------------------------------------------
+#!/usr/bin/env python
+
+from scipy.optimize import brentq
+from scipy.integrate import trapz
+from numpy import (sqrt, atleast_1d, abs, imag, sign, where, cos, arccos, ceil,
+    expm1,log1p)
+import numpy as np
+import warnings
+
+__all__=['TrHermite','TrOchi']
+class TrCommon(object):
+    """
+    <generic> transformation model, g, from the moments of the process.
+
+    Information about the moments of the process can be obtained by site
+    specific data, laboratory measurements or by resort to theoretical models.
+
+    Assumption
+    ----------
+    The Gaussian process, Y, distributed N(0,1) is related to the
+    non-Gaussian process, X, by Y = g(X).
+
+    Methods
+    -------
+    dist2gauss : int (g(x)-xn)^2 dx  where int. limits is given by X. This
+           is a measure of departure from the Gaussian model.
+    dat2gauss : transform non-linear data to Gaussian scale
+    gauss2dat : transform Gaussian data to non-linear scale
+
+    Member variables
+    ----------------
+    mean, sigma, skew, kurt : real, scalar
+        mean, standard-deviation, skewness and kurtosis, respectively, of the
+        non-Gaussian process. Default mean=0, sigma=1, skew=0.16, kurt=3.04.
+        skew=kurt-3=0 for a Gaussian process.
+    """
+    def __init__(self,mean=0.0,var=1.0,skew=0.16,kurt=3.04,sigma=None,*args,**kwds):
+        if sigma is None:
+            sigma = sqrt(var)
+        self.mean = mean
+        self.sigma = sigma
+        self.skew = skew
+        self.kurt = kurt
+
+    def __call__(self,x):
+        return self._dat2gauss(x)
+
+    def  dist2gauss(self,x=None,xnmin=-5,xnmax=5,n=513):
+        """ Return a measure of departure from the Gaussian model.
+
+        Parameters
+        ----------
+        x : vector  (default sigma*linspace(xnmin,xnmax,n)+mean)
+        xnmin : real, scalar
+            minimum on normalized scale
+        xnmax : real, scalar
+            maximum on normalized scale
+        n : integer, scalar
+            number of evaluation points
+
+
+        Returns
+        -------
+        t0 = real, scalar
+            a measure of departure from the Gaussian model calculated as
+            trapz(xn,(xn-g(x))**2.) where int. limits is given by X.
+        """
+        if x is None:
+            xn = np.linspace(xnmin,xnmax,n)
+            x = self.sigma*xn+self.mean
+        else:
+            xn = (x-self.mean)/self.sigma
+
+        g = self._dat2gauss(x)
+        t0 = trapz(xn,(xn-g)**2.)
+        return t0
+
+    def gauss2dat(self,y):
+        """ Transforms Gaussian data, y, to non-linear scale.
+
+        Parameters
+        ----------
+        y : array-like
+            input vector with Gaussian data values.
+
+        Returns
+        -------
+        x : array-like
+            transformed data to a non-linear scale
+
+
+        See also
+        --------
+        dat2gauss
+        tranproc.
+        """
+        return self._gauss2dat(y)
+    def dat2gauss(self,x):
+        """ Transforms non-linear data, x, to Gaussian scale.
+
+        Parameters
+        ----------
+        x : array-like
+            input vector with non-linear data values.
+
+        Returns
+        -------
+        y : array-like
+            transformed data to a Gaussian scale
+
+        See also
+        --------
+        gauss2dat
+        tranproc.
+        """
+        return self._dat2gauss(x)
+
+class TrHermite(TrCommon):
+    __doc__ = TrCommon.__doc__.replace('<generic>','Hermite') + """
+    pardef : scalar, integer
+        1  Winterstein et. al. (1994) parametrization [1]_ (default)
+        2  Winterstein (1988) parametrization [2]_
+
+    Description
+    -----------
+    The hermite transformation model is monotonic cubic polynomial, calibrated
+    such that the first 4 moments of the transformed model G(y)=g^-1(y) match
+    the moments of the true process. The model is given as:
+
+        g(x) =  xn - c3(xn**2-1) - c4*(xn**3-3*xn)
+
+    for kurt<3 (hardening model) where
+        xn = (x-mean)/sigma
+        c3 = skew/6
+        c4 = (kurt-3)/24.
+
+    or
+        G(y) = mean + K*sigma*[ y + c3(y**2-1) + c4*(y**3-3*y) ]
+
+    for kurt>=3 (softening model) where
+        y  = g(x) = G**-1(x)
+        K  = 1/sqrt(1+2*c3^2+6*c4^2)
+        If pardef = 1 :
+            c3  = skew/6*(1-0.015*abs(skew)+0.3*skew^2)/(1+0.2*(kurt-3))
+            c4  = 0.1*((1+1.25*(kurt-3))^(1/3)-1)*c41
+            c41 = (1-1.43*skew^2/(kurt-3))^(1-0.1*(kurt)^0.8)
+        If pardef = 2 :
+            c3 = skew/(6*(1+6*c4))
+            c4 = [sqrt(1+1.5*(kurt-3))-1]/18
+
+
+    Example:
+    --------
+    # Simulate a Transformed Gaussian process:
+    Hm0=7;Tp=11;
+    S = jonswap([],[Hm0 Tp]);
+    g=hermitetr*Hm0/4;
+    ys = spec2sdat(S,15000);   % Simulated in the Gaussian world
+    xs = gaus2dat(ys,g);      % Transformed to the real world
+
+    See also  spec2skew, ochitr, lc2tr, dat2tr
+
+    References
+    ----------
+    .. [1] Winterstein, S.R, Ude, T.C. and Kleiven, G. (1994)
+           "Springing and slow drift responses:
+           predicted extremes and fatigue vs. simulation"
+           In Proc. 7th International behaviour of Offshore structures, (BOSS)
+           Vol. 3, pp.1-15
+    .. [2] Winterstein, S.R. (1988)
+           'Nonlinear vibration models for extremes and fatigue.'
+           J. Engng. Mech., ASCE, Vol 114, No 10, pp 1772-1790
+    """
+    def __init__(self,mean=0.0,var=1.0,skew=0.16,kurt=3.04,sigma=None,pardef=0):
+        if sigma==None:
+            sigma = sqrt(var)
+        self.sigma = sigma
+        self.skew = skew
+        self.kurt = kurt
+        self.mean = mean
+        self.pardef = pardef
+        self._c3 = None
+        self._c4 = None
+        self._forward = None
+        self._backward = None
+        self._x_limit = None
+        self.set_poly()
+
+    def _poly_par_from_stats(self):
+        skew = self.skew
+        ga2 = self.kurt-3.0
+        if ga2<=0:
+            self._c4 = ga2/24.
+            self._c3 = skew/6.
+        elif self.pardef==2:
+            #% Winterstein 1988 parametrization
+            if skew**2>8*(ga2+3.)/9.:
+                warnings.warn('Kurtosis too low compared to the skewness')
+
+            self._c4 = (sqrt(1.+1.5*ga2)-1.)/18.;
+            self._c3 = skew/(6.*(1+6.*c4))
+        else:
+            # Winterstein et. al. 1994 parametrization intended to
+            # apply for the range:  0 <= ga2 < 12 and 0<= skew^2 < 2*ga2/3
+            if skew**2>2*(ga2)/3:
+                warnings.warn('Kurtosis too low compared to the skewness')
+
+            if (ga2 < 0) or (12 < ga2):
+                warnings.warn('Kurtosis must be between 0 and 12')
+
+            self._c3 = skew/6*(1-0.015*abs(skew)+0.3*skew**2)/(1+0.2*ga2);
+            if ga2==0.:
+                self._c4=0.0;
+            else:
+                c41= (1.-1.43*skew**2./ga2)**(1.-0.1*(ga2+3.)**0.8);
+                self._c4 = 0.1*((1.+1.25*ga2)**(1./3.)-1.)*c41;
+
+        if not np.isfinite(self._c3) or not np.isfinite(self._c4):
+            raise ValueError('Unable to calculate the polynomial')
+    def set_poly(self):
+
+        if self._c3 is None:
+            self._poly_par_from_stats()
+        eps = np.finfo(float).eps
+        c3 = self._c3
+        c4 = self._c4
+        ma = self.mean
+        sa = self.sigma
+        if abs(c4)<sqrt(eps):
+            c4 = 0.0
+
+        #gdef = self.kurt-3.0
+        if self.kurt<3.0:
+            p = np.poly1d([-c4, -c3, 1.+3.*c4, c3]) # forward, g
+            self._forward = p
+            self._backward = None
+        else:
+            Km1 = np.sqrt(1.+2.*c3**2+6*c4**2);
+            p = np.poly1d(np.r_[c4, c3, 1.-3.*c4, -c3]/Km1)   # backward G
+            self._forward = None
+            self._backward = p
+
+        #% Check if it is a strictly increasing function.
+        dp = p.deriv(m=1) #% Derivative
+        r  = dp.r         #% Find roots of the derivative
+        r = r[where(abs(imag(r))<eps)] # Keep only real roots
+
+        if r.size>0:
+            # Compute where it is possible to invert the polynomial
+            if self.kurt<3.:
+                self._x_limit = r;
+            else:
+                self._x_limit = sa*p(r)+ma
+
+            txt1 = 'The polynomial is not a strictly increasing function.';
+            txt2 = 'The derivative of g(x) is infinite at x = %g' % self._x_limit
+            warnings.warn('%s \n %s ' % (txt1,txt2))
+        return
+    def check_forward(self,x):
+         if not (self._x_limit is None):
+            x00 = self._x_limit
+            txt2 = 'for the given interval x = [%g, %g]' % (x[0],x[-1])
+
+            if any(np.logical_and(x[0]<= x00, x00 <= x[-1])):
+                cdef = 1;
+            else:
+                cdef = sum( np.logical_xor(x00 <= x[0] , x00 <= x[-1]));
+
+            if np.mod(cdef,2):
+                errtxt = 'Unable to invert the polynomial \n %s' % txt2
+                raise ValueError(errtxt)
+            np.disp('However, successfully inverted the polynomial\n %s' % txt2)
+
+
+    def _dat2gauss(self,x):
+        x = np.atleast_1d(x)
+        self.check_forward(x)
+
+        xn = (x-self.mean)/self.sigma
+
+        if self._forward is None:
+            #% Inverting the polynomial
+            #%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            return self._poly_inv(self._backward,xn)
+        else:
+            return self._forward(xn)
+
+    def _gauss2dat(self,y):
+        y = np.atleast_1d(y)
+        #self.check_forward(y)
+
+        if self._backward is None:
+            #% Inverting the polynomial
+            #%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+            xn = self._poly_inv(self._forward,y)
+        else:
+            xn = self._backward(y)
+        return self.sigma*xn + self.mean
+    def _poly_inv(self,p,xn):
+
+        if p.order<2:
+            return xn
+        elif p.order==2:
+            # Quadratic: Solve a*u**2+b*u+c = xn
+            coefs = p.coeffs
+            a = coefs[0]
+            b = coefs[1]
+            c = coefs[2]-xn
+            t = 0.5*(b+sign(b)*sqrt(b**2-4*a*c))
+            #so1 = t/a # largest solution
+            so2 = -c/t # smallest solution
+            return so2
+        elif p.order==3:
+            # Solve
+            # K*(c4*u^3+c3*u^2+(1-3*c4)*u-c3) = xn = (x-ma)/sa
+            # -c4*xn^3-c3*xn^2+(1+3*c4)*xn+c3 = u
+            coefs = p.coeffs[1::]/p.coeffs[0]
+            a = coefs[0]
+            b = coefs[1]
+            c = coefs[2]-xn/p.coeffs[0]
+
+            x0 = a/3.
+            #% substitue xn = z-x0  and divide by c4 => z^3 + 3*p1*z+2*q0  = 0
+            p1 = b/3-x0**2
+            #p1 = (b-a**2/3)/3
+
+
+            #q0 = (c + x0*(2.*x0/3.-b))/2.
+            #q0 = x0**3 -a*b/6 +c/2
+            q0 = x0*(x0**2-b/2)+c/2
+##            # z^3+3*p1*z+2*q0=0
+
+##            c3 = self._c3
+##            c4 = self._c4
+##            b1 = 1./(3.*c4);
+##            #x0 = c3*b1 ;
+##            #% substitue u = z-x0  and divide by c4 => z^3 + 3*c*z+2*q0  = 0
+##            #p1  = b1-1.-x0**2.
+##            Km1 = np.sqrt(1.+2.*c3**2+6*c4**2);
+##            q0 = x0**3-1.5*b1*(x0+xn*Km1)
+            #q0 = x0**3-1.5*b1*(x0+xn)
+            if not (self._x_limit is None):  # % Three real roots
+                d = sqrt(-p1);
+                theta1   = arccos(-q0/d**3)/3;
+                th2      = np.r_[0, -2*pi/3, 2*pi/3];
+                x1       = abs(2*d*cos(theta1[ceil(len(xn)/2)] + th2)-x0);
+                ix = x1.argmin() #;   % choose the smallest solution
+                return 2.*d*cos(theta1 + th2[ix])-x0
+            else:                # %Only one real root exist
+                q1 = sqrt((q0)**2+p1**3);
+                #% Find the real root of the monic polynomial
+                A0 = (q1-q0)**(1./3.);
+                B0 = -(q1+q0)**(1./3.);
+                return A0+B0-x0;   #% real root
+                #%% The other complex roots are given by
+                #%x= -(A0+B0)/2+(A0-B0)*sqrt(3)/2-x0;
+                #%x=-(A0+B0)/2+(A0-B0)*sqrt(-3)/2-x0;
+
+
+class TrOchi(TrCommon):
+    __doc__ = TrCommon.__doc__.replace('<generic>','Ochi') + """
+
+    Description
+    -----------
+    The Ochi transformation model is a monotonic exponential function,
+    calibrated such that the first 3 moments of the transformed model
+    G(y)=g^-1(y) match the moments of the true  process. However, the
+    skewness is limited by ABS(SKEW)<2.82. According to Ochi it is
+    appropriate for a process with very strong non-linear characteristics.
+    The model is given as:
+        g(x) = ((1-exp(-gamma*(x-mean)/sigma))/gamma-mean2)/sigma2
+    where
+        gamma  = 1.28*a  for x>=mean
+                 3*a     otherwise
+        mean,
+        sigma  = standard deviation and mean, respectively, of the process.
+        mean2,
+        sigma2 = normalizing parameters in the transformed world, i.e., to
+                make the gaussian process in the transformed world is N(0,1).
+
+    The unknown parameters a, mean2 and sigma2 are found by solving the
+    following non-linear equations:
+
+        a*(sigma2^2+mean2^2)+mean2 = 0
+           sigma2^2-2*a^2*sigma2^4 = 1
+    2*a*sigma2^4*(3-8*a^2*sigma2^2) = skew
+
+    Note
+    ----
+    Transformation, g, does not have continous derivatives of 2'nd order or higher.
+
+    Example
+    -------
+    #Simulate a Transformed Gaussian process:
+    Hm0=7;Tp=11;
+    S = jonswap([],[Hm0 Tp]); [sk ku ma]=spec2skew(S);
+    g = ochitr([],[Hm0/4,sk,ma]); g2=[g(:,1), g(:,2)*Hm0/4];
+    ys = spec2sdat(S,15000);   % Simulated in the Gaussian world
+    xs = gaus2dat(ys,g2);      % Transformed to the real world
+
+    See also
+    --------
+    spec2skew, hermitetr, lc2tr, dat2tr
+
+    References
+    ----------
+    Ochi, M.K. and Ahn, K. (1994)
+    'Non-Gaussian probability distribution of coastal waves.'
+    In Proc. 24th Conf. Coastal Engng, Vol. 1, pp 482-496
+
+    Michel K. Ochi (1998),
+    "OCEAN WAVES, The stochastic approach",
+    OCEAN TECHNOLOGY series 6, Cambridge, pp 255-275.
+    """
+
+    def __init__(self,mean=0.0,var=1.0,skew=0.16,sigma=None):
+        if sigma is None:
+            sigma = sqrt(var)
+        self.mean = mean
+        self.sigma = sigma
+        self.skew = skew
+        self.phat = None
+        if abs(self.skew)>2.82842712474619:
+            raise ValueError('Skewness must be less than 2.82842')
+
+
+    def _par_from_stats(self):
+        skew = self.skew
+        ma = self.mean
+        sig1 = self.sigma
+
+        if skew==0:
+            self.phat = [0, 0, sig1, ma,1, 0];
+            return
+
+        #% Solve the equations to obtain the gamma parameters:
+        #%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        #%          a*(sig2^2+ma2^2)+ma2 = 0
+        #%           sig2^2-2*a^2*sig2^4 = E(y^2) % =1
+        #%   2*a*sig2^4*(3-8*a^2*sig2^2) = E(y^3) % = skew
+
+        #% Let x = [a sig2^2 ]
+        #% Set up the 2D non-linear equations for a and sig2^2:
+        #g1='[x(2)-2.*x(1).^2.*x(2).^2-P1, 2.*x(1).*x(2).^2.*(3-8.*x(1).^2.*x(2))-P2  ]';
+        #% Or solve the following 1D non-linear equation for sig2^2:
+        g2 = lambda x: -sqrt(abs(x-1)*2)*(3.*x-4*abs(x-1))+abs(skew)
+
+
+        a1 = 1. #; % Start interval where sig2^2 is located.
+        a2 = 2.
+
+        sig22 = brentq(g2,a1,a2) #% smallest solution for sig22
+        a  =   sign(skew)*sqrt(abs(sig22-1)/2/sig22**2);
+
+        sig2 = sqrt(sig22);
+
+        #% Solve the following 2nd order equation to obtain ma2
+        #%        a*(sig2^2+ma2^2)+ma2 = 0
+        my2 =  (-1.-sqrt(1.-4.*a**2*sig22))/a;  #% Largest mean
+        ma2 = a*sig22/my2 ;                  #% choose the smallest mean
+
+        gam_a = 1.28*a
+        gam_b = 3*a
+        # this is valid for processes with very strong
+        # nonlinear characteristics
+        self.phat = [gam_a, gam_b, sig1, ma, sig2, ma2];
+
+        return
+
+
+
+    def _dat2gauss(self,x):
+
+        if self.phat is None:
+            self._par_from_stats()
+
+        ga  =self.phat[0];
+        gb  = self.phat[1]
+        sigma  = self.phat[2]
+        ma  = self.phat[3]
+        sigma2 = self.phat[4]
+        ma2 = self.phat[5]
+
+
+
+
+        igp,=where(ma<=x);
+        igm,=where(x<ma);
+
+        xn = (x-ma)/sigma;
+        g = xn.copy()
+
+
+        if ga!=0:
+            np.put(g,igp,(-expm1(-ga*xn[igp]))/ga)
+
+        if gb!=0:
+            np.put(g,igm,(-expm1(-gb*xn[igm]))/gb)
+
+
+        return (g-ma2)/sigma2;
+
+    def _gauss2dat(self,yn):
+        if self.phat is None:
+            self._par_from_stats()
+
+        ga  =self.phat[0];
+        gb  = self.phat[1]
+        sigma  = self.phat[2]
+        ma  = self.phat[3]
+        sigma2 = self.phat[4]
+        ma2 = self.phat[5]
+
+        xn = sigma2*yn+ma2
+
+        igp,=where(0<=xn);
+        igm,=where(xn<0);
+
+        if ga!=0:
+            np.put(xn,igp,-log1p(-ga*xn[igp])/ga)
+
+        if gb!=0:
+            np.put(xn,igm,-log1p(-gb*xn[igm])/gb)
+
+
+        return  sigma*xn+ma
+
+
+if __name__=='__main__':
+    if False:
+        import doctest
+        doctest.testmod()
+    else:
+        import pylab
+        g = TrHermite(skew=0.1,kurt=3.01)
+        g.dist2gauss()
+        #g = TrOchi(skew=0.56)
+        x = np.linspace(-5,5)
+        y = g(x)
+        pylab.plot(np.abs(x-g.gauss2dat(y)))
+        #pylab.plot(x,y,x,x,':',g.gauss2dat(y),y,'r')
+
+        pylab.show()
+        np.disp('finito')
+
+
+

@@ -1,0 +1,27 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+
+python module erfcoremod ! in 
+    interface  ! in :erfcoremod
+        function derf(x) result (value) ! in :erfcoremod:erfcoremod.f
+            double precision intent(in) :: x
+            double precision :: value
+        end function derf
+        function derfc(x) result (value) ! in :erfcoremod:erfcoremod.f
+            double precision intent(in) :: x
+            double precision :: value
+        end function derfc
+        function derfcx(x) result (value) ! in :erfcoremod:erfcoremod.f
+            double precision intent(in) :: x
+            double precision :: value
+        end function derfcx
+        subroutine calerf(arg,result,jint) ! in :erfcoremod:erfcoremod.f
+            double precision intent(in) :: arg
+            double precision intent(inout) :: result
+            integer intent(in) :: jint
+        end subroutine calerf
+    end interface 
+end python module erfcoremod
+
+! This file was auto-generated with f2py (version:2_5972).
+! See http://cens.ioc.ee/projects/f2py2e/
