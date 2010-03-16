@@ -82,7 +82,7 @@ class TrCommon(object):
         t0 = trapz(xn,(xn-yn)**2.)
         return t0
 
-    def gauss2dat(self,y, *yi):
+    def gauss2dat(self, y, *yi):
         """
         Transforms Gaussian data, y, to non-linear scale.
 
@@ -153,12 +153,19 @@ class TrData(WafoData, TrCommon):
     >>> g.sigma
     array([ 5.])
     
+    >>> g = TrData(y,x,mean=1,sigma=5)
+    >>> g.mean
+    1
+    >>> g.sigma
+    5
+    
+    
     Check that the departure from a Gaussian model is zero
     >>> g.dist2gauss() < 1e-16
     True
     """
     def __init__(self, *args, **kwds):
-        WafoData.__init__(self, *args, **kwds)
+        super(TrData, self).__init__(*args, **kwds)
         self.labels.title = 'Transform'
         self.labels.ylab = 'g(x)'
         self.labels.xlab = 'x'

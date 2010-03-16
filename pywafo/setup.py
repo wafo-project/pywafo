@@ -17,6 +17,7 @@ python setup.py sdist bdist_wininst upload --show-response
 import os, sys
 
 sys.argv.append("develop")
+#sys.argv.append("install")
 DISTUTILS_DEBUG = True
 pkg_name = 'wafo'
 root_dir = os.path.join('src',pkg_name)
@@ -44,7 +45,9 @@ testscripts = [os.path.join(subtst, f) for subtst in subtests
                        f.endswith('.old') or f.endswith('.bak'))]
 datadir = 'data'
 datafiles = [os.path.join(datadir, f)   for f in os.listdir(os.path.join(root_dir, datadir))
-				if  not (f.endswith('.py') or f.endswith('test') )]
+				if  not (f.startswith('.') or f.endswith('~') or
+                       f.endswith('.old') or f.endswith('.bak') or 
+                       f.endswith('.py') or f.endswith('test') )]
 libs = [f   for f in os.listdir(os.path.join(root_dir)) if  f.endswith('.pyd') ]
 packagedata = testscripts + datafiles + libs #['c_library.pyd'] #,'disufq1.c','diffsumfunq.pyd','diffsumfunq.pyf','findrfc.c','rfc.pyd','rfc.pyf']
 

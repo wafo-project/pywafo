@@ -9,7 +9,7 @@
 # Licence:     LGPL
 #-------------------------------------------------------------------------------
 #!/usr/bin/env python
-#import numpy as np
+import numpy as np
 from scipy.special import gamma
 from numpy import pi, atleast_2d #@UnresolvedImport
 from misc import tranproc, trangood
@@ -112,29 +112,29 @@ class kde(object):
         if d != self.d:
             if d == 1 and m == self.d:
                 # points was passed in as a row vector
-                points = reshape(points, (self.d, 1))
+                points = np.reshape(points, (self.d, 1))
                 m = 1
             else:
                 msg = "points have dimension %s, dataset has dimension %s" % (d,
                     self.d)
                 raise ValueError(msg)
 
-        result = zeros((m,), points.dtype)
+        result = np.zeros((m,), points.dtype)
 
         if m >= self.n:
             # there are more points than data, so loop over data
             for i in range(self.n):
-                diff = self.dataset[:,i,newaxis] - points
-                tdiff = dot(self.inv_cov, diff)
-                energy = sum(diff*tdiff,axis=0)/2.0
-                result += exp(-energy)
+                diff = self.dataset[:,i, np.newaxis] - points
+                tdiff = np.dot(self.inv_cov, diff)
+                energy = np.sum(diff*tdiff,axis=0)/2.0
+                result += np.exp(-energy)
         else:
             # loop over points
             for i in range(m):
-                diff = self.dataset - points[:,i,newaxis]
-                tdiff = dot(self.inv_cov, diff)
+                diff = self.dataset - points[:,i,np.newaxis]
+                tdiff = np.dot(self.inv_cov, diff)
                 energy = sum(diff*tdiff,axis=0)/2.0
-                result[i] = sum(exp(-energy),axis=0)
+                result[i] = np.sum(np.exp(-energy),axis=0)
 
         result /= self._norm_factor
 

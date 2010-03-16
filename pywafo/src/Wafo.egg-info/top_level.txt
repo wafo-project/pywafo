@@ -1,5 +1,1 @@
-wafo\spectrum
-wafo\covariance
 wafo
-wafo\data
-wafo\transform
