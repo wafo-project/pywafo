@@ -1563,7 +1563,7 @@ def meshgrid(*xi, ** kwargs):
             return broadcast_arrays(*output)
 
 
-def ndgrid(*args, ** kwargs):
+def ndgrid(*args, **kwargs):
     """
     Same as calling meshgrid with indexing='ij' (see meshgrid for
     documentation).
@@ -1666,7 +1666,7 @@ def trangood(x, f, min_n=None, min_x=None, max_x=None, max_n=inf):
 
     return xo, fo
 
-def tranproc(x, f, x0, * xi):
+def tranproc(x, f, x0, *xi):
     """
     Transforms process X and up to four derivatives
           using the transformation f.
@@ -1779,7 +1779,7 @@ def tranproc(x, f, x0, * xi):
                     y.append(y4)
                     if N > 4:
                         warnings.warn('Transformation of derivatives of order>4 not supported.')
-    return y #0,y1,y2,y3,y4
+    return y #y0,y1,y2,y3,y4
 
 
 def test_common_shape():

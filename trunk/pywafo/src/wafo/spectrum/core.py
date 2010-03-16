@@ -16,16 +16,15 @@ from pylab import stineman_interp
 
 from dispersion_relation import w2k #, k2w
 from wafo.wafodata import WafoData, now
-from wafo.misc import sub_dict_select, nextpow2, discretize, JITImport
+from wafo.misc import sub_dict_select, nextpow2, discretize, JITImport, tranproc
 try:
     from wafo.gaussian import Rind
 except ImportError:
-    
     Rind = None
 try:
     from wafo import c_library
 except ImportError:
-    warnings.warn('Compile the c_libraray.pyd again!')
+    warnings.warn('Compile the c_library.pyd again!')
     c_library = None
     
 from wafo.transform import TrData
@@ -751,8 +750,7 @@ class SpecData1D(WafoData):
         tn = paramt[1]
         Ntime = paramt[2]
         t = linspace(0, tn / A, Ntime) #normalized times
-        Nstart = max(round(t0 / tn * (Ntime - 1)), 1)  #% index to starting point to
-                                             #% evaluate
+        Nstart = max(round(t0 / tn * (Ntime - 1)), 1)  #% index to starting point to evaluate
                                     
         dt = t[1] - t[0]
         nr = 2
@@ -1055,16 +1053,22 @@ class SpecData1D(WafoData):
         if spec.tr is not None:
             print('   Transforming data.')
             g = spec.tr
-            G = fliplr(g) #% the invers of g
             if derivative:
                 for i in range(cases):
-                    tmp = tranproc(hstack((x[:, i + 1], xder[:, i + 1])), G)
-                    x[:, i + 1] = tmp[:, 0]
-                    xder[:, i + 1] = tmp[:, 1]
-
+                    x[:, i + 1], xder[:, i + 1] = g.gauss2dat(x[:, i + 1], xder[:, i + 1])
             else:
                 for i in range(cases):
-                    x[:, i + 1] = tranproc(x[:, i + 1], G)
+                    x[:, i + 1] = g.gauss2dat(x[:, i + 1])
+#            G = fliplr(g) #% the invers of g
+#            if derivative:
+#                for i in range(cases):
+#                    tmp = tranproc(hstack((x[:, i + 1], xder[:, i + 1])), G)
+#                    x[:, i + 1] = tmp[:, 0]
+#                    xder[:, i + 1] = tmp[:, 1]
+#
+#            else:
+#                for i in range(cases):
+#                    x[:, i + 1] = tranproc(x[:, i + 1], G)
 
         if derivative:
             return x, xder

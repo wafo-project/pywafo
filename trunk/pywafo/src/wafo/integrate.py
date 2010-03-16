@@ -1300,7 +1300,7 @@ def quadgr(fun,a,b,abseps=1e-5):
     err = err + 2*np.finfo(Q).eps
     # Reverse direction
     if reverse:
-    	Q = -Q
+        Q = -Q
 
     return Q, err
 
