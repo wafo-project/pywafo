@@ -47,6 +47,7 @@ __all__ = ['TimeSeries', 'LevelCrossings', 'CyclePairs', 'TurningPoints',
 
 
 
+
 class LevelCrossings(WafoData):
     '''
     Container class for Level crossing data objects in WAFO
@@ -105,6 +106,7 @@ class LevelCrossings(WafoData):
         Example
         -------
         >>> import wafo.spectrum.models as sm
+        >>> from wafo.objects import mat2timeseries
         >>> Sj = sm.Jonswap(Hm0=7)
         >>> S = Sj.tospecdata()   #Make spectrum object from numerical values
         >>> alpha = S.characteristic('alpha')[0]
@@ -243,7 +245,7 @@ class LevelCrossings(WafoData):
             Smaller values gives smoother functions.
         param : 
             vector which defines the region of variation of the data X.
-                     (default [-5 5 513]).    
+                     (default [-5, 5, 513]).    
         monitor : bool
             if true monitor development of estimation
         linextrap : bool
@@ -259,9 +261,9 @@ class LevelCrossings(WafoData):
         ntr :  scalar integer
             Maximum length of empirical crossing intensity. The empirical 
             crossing intensity is interpolated linearly  before smoothing if the
-             length exceeds ntr. A reasonable NTR will significantly speed up the
-            estimation for long time series without loosing any accuracy. 
-            NTR should be chosen greater than PARAM(3). (default 1000)
+            length exceeds ntr. A reasonable NTR (eg. 1000) will significantly 
+            speed up the estimation for long time series without loosing any accuracy. 
+            NTR should be chosen greater than PARAM(3). (default inf)
             
         Returns
         -------
@@ -284,11 +286,12 @@ class LevelCrossings(WafoData):
         -------
         >>> import wafo.spectrum.models as sm
         >>> import wafo.transform.models as tm
+        >>> from wafo.objects import mat2timeseries
         >>> Hs = 7.0
         >>> Sj = sm.Jonswap(Hm0=Hs)
         >>> S = Sj.tospecdata()   #Make spectrum object from numerical values
-        >>> S.tr = tm.TrOchi(mean=0, skew=sk, kurt=0, sigma=Hs/4, ysigma=Hs/4)
-        >>> xs = S.sim(ns=2**13)
+        >>> S.tr = tm.TrOchi(mean=0, skew=0.16, kurt=0, sigma=Hs/4, ysigma=Hs/4)
+        >>> xs = S.sim(ns=2**16)
         >>> ts = mat2timeseries(xs)
         >>> tp = ts.turning_points()
         >>> mm = tp.cycle_pairs()
@@ -296,6 +299,17 @@ class LevelCrossings(WafoData):
         >>> g0, gemp = lc.trdata(monitor=True) # Monitor the development
         >>> g1, gemp = lc.trdata(gvar=0.5 ) # Equal weight on all points
         >>> g2, gemp = lc.trdata(gvar=[3.5, 0.5, 3.5])  # Less weight on the ends
+        >>> S.tr.dist2gauss()
+        5.9322684525265501
+        >>> np.round(gemp.dist2gauss())
+        6.0
+        >>> np.round(g0.dist2gauss())
+        4.0
+        >>> np.round(g1.dist2gauss())
+        4.0
+        >>> np.round(g2.dist2gauss())
+        4.0
+        
          hold on, trplot(g1,g)                          # Check the fit
          trplot(g2)
         
@@ -324,7 +338,7 @@ class LevelCrossings(WafoData):
             sigma = self.stdev
         
         opt = DotDict(chkder=True, plotflag=False, csm=0.9, gsm=.05,
-            param=(-5, 5, 513), delay=2, lin_extrap=True, ntr=1000, ne=7, cvar=1, gvar=1)
+            param=(-5, 5, 513), delay=2, lin_extrap=True, ntr=inf, ne=7, cvar=1, gvar=1)
         # If just 'defaults' passed in, return the default options in g
         
         opt.update(options)
@@ -341,13 +355,13 @@ class LevelCrossings(WafoData):
         else:
             Ner = 0
             lc1, lc2 = self.args, self.data        
-        ng = len(opt.gvar)
+        ng = len(atleast_1d(opt.gvar))
         if ng == 1:
             gvar = opt.gvar * ones(ncr)
         else:
             gvar = interp1d(linspace(0, 1, ng) , opt.gvar, kind='linear')( linspace(0, 1, ncr))  
         
-        ng = len(opt.cvar)
+        ng = len(atleast_1d(opt.cvar))
         if ng == 1:
             cvar = opt.cvar * ones(ncr)
         else:
@@ -369,7 +383,7 @@ class LevelCrossings(WafoData):
             cor2 = 0
         
     
-        lc22 = cumtrapz(lc2, lc1) + cor1
+        lc22 = hstack((0,cumtrapz(lc2, lc1) + cor1))
         lc22 = (lc22 + 0.5) / (lc22[-1] + cor2 + 1)
         lc11 = (lc1 - mean) / sigma
         
@@ -418,7 +432,7 @@ class LevelCrossings(WafoData):
         if opt.plotflag > 0:
             g.plot()
             g2.plot()
-            
+        g2.setplotter('step')
         return g, g2
 
 class CyclePairs(WafoData):
@@ -679,7 +693,7 @@ class TimeSeries(WafoData):
     --------
     >>> import wafo.data
     >>> x = wafo.data.sea()
-    >>> ts = mat2timeseries(x)
+    >>> ts = wafo.objects.mat2timeseries(x)
     >>> rf = ts.tocovdata(lag=150)
     >>> h = rf.plot()
 
@@ -688,7 +702,7 @@ class TimeSeries(WafoData):
         super(TimeSeries, self).__init__(*args, **kwds)
         self.name = 'WAFO TimeSeries Object'
         self.sensortypes = ['n', ]
-        self.position = zeros(3)
+        self.position = [zeros(3), ]
         somekeys = ['sensortypes', 'position']
         self.__dict__.update(sub_dict_select(kwds, somekeys))
 

@@ -7,3 +7,4 @@ import wafo.spectrum
 import wafo.transform
 import wafo.definitions
 import wafo.polynomial
+import wafo.stats
