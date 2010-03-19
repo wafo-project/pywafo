@@ -101,14 +101,14 @@ class Bunch(object):
     ''' Implement keyword argument initialization of class
 
     '''
-    def __init__(self, ** kwargs):
+    def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
     def keys(self):
         return self.__dict__.keys()
     def update(self, ** kwargs):
         self.__dict__.update(kwargs)
 
-def printf(format, * args):
+def printf(format, *args):
     sys.stdout.write(format % args)
 
 
@@ -135,7 +135,7 @@ def sub_dict_select(somedict, somekeys):
     return dict((k, somedict[k]) for k in somekeys if k in somedict)
 
 
-def parse_kwargs(options, ** kwargs):
+def parse_kwargs(options, **kwargs):
     ''' Update options dict from keyword arguments if the keyword exists in options
 
     Example
@@ -154,11 +154,11 @@ def parse_kwargs(options, ** kwargs):
         options.update(newopts)
     return options
 
-def testfun(*args, ** kwargs):
+def testfun(*args, **kwargs):
     opts = dict(opt1=1, opt2=2)
     if len(args) == 1 and len(kwargs) == 0 and type(args[0]) is str and args[0].startswith('default'):
         return opts
-    opts = parse_kwargs(opts, ** kwargs)
+    opts = parse_kwargs(opts, **kwargs)
     return opts
 
 def detrendma(x, L):
@@ -261,6 +261,9 @@ def ecross(t, f, ind, v):
     --------
     findcross
     '''
+    # Tested on: Python 2.5
+    # revised pab Feb2004
+    # By pab 18.06.2001
     return t[ind] + (v - f[ind]) * (t[ind + 1] - t[ind]) / (f[ind + 1] - f[ind])
 
 def _findcross(xn):

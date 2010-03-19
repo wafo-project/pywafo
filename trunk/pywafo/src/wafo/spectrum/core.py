@@ -1,4 +1,5 @@
 from __future__ import division
+from scipy.misc.ppimport import ppimport
 import warnings
 import numpy as np
 from numpy import (pi, inf, meshgrid, zeros, ones, where, nonzero, #@UnresolvedImport
@@ -32,6 +33,7 @@ from wafo.plotbackend import plotbackend
 
 
 # Trick to avoid error due to circular import
+#_WAFOCOV = ppimport('wafo.covariance')
 _WAFOCOV = JITImport('wafo.covariance')
 
 
@@ -366,7 +368,7 @@ class SpecData1D(WafoData):
             txt = '''Spectrum does not start at zero frequency/wave number.
             Correct it with resample, for example.'''
             raise ValueError(txt)
-        d_w = abs(diff(freq, n_f=2, axis=0))
+        d_w = abs(diff(freq, n=2, axis=0))
         if any(d_w > 1.0e-8):
             txt = '''Not equidistant frequencies/wave numbers in spectrum. 
             Correct it with resample, for example.'''
@@ -390,7 +392,7 @@ class SpecData1D(WafoData):
         if self.freqtype in 'k':
             lagtype = 'x'
         else:
-            lagtype = 'time'
+            lagtype = 't'
 
         d_t = spec.sampling_period()
         #normalize spec so that sum(specn)/(n_f-1)=acf(0)=var(X)
@@ -414,7 +416,7 @@ class SpecData1D(WafoData):
 
         if nr > 0:
             w = r_[w , zeros(nfft - 2 * n_f + 2) , -w[n_f - 1:0:-1] ]
-            fieldname = 'R' + lagtype * nr 
+            fieldname = 'R' + lagtype[0] * nr 
             for i in range(1, nr + 1):
                 rper = -1j * w * rper
                 d_acf = fft(rper, nfft).real / (2 * n_f - 2)
@@ -1481,7 +1483,109 @@ class SpecData1D(WafoData):
 ##            skew = sum((6*C2+8*E2).*E)/sa^3   % skewness
 ##            kurt = 3+48*sum((C2+E2).*E2)/sa^4 % kurtosis
         return output
-
+    def testgaussian(ns,test0=None, cases=100, method='nonlinear',**opt):
+        '''
+        TESTGAUSSIAN Test if a stochastic process is Gaussian.
+        
+         CALL:  test1 = testgaussian(S,[ns,Ns],test0,def,options);
+        
+         test1,
+            test0 = simulated and observed value of e(g)=int (g(u)-u)^2 du,
+                    respectively, where int limits is given by OPTIONS.PARAM. 
+                 
+              S   = spectral density structure 
+               ns = # of points simulated
+               cases = # of independent simulations (default  100)
+        
+           def    = 'nonlinear' : transform based on smoothed crossing intensity (default)
+                    'mnonlinear': transform based on smoothed marginal distribution
+          options = options structure defining how the estimation of the
+                    transformation is done. (default troptset('dat2tr'))
+        
+         TESTGAUSSIAN simulates  e(g(u)-u) = int (g(u)-u)^2 du  for Gaussian processes 
+         given the spectral density, S. The result is plotted if test0 is given.
+         This is useful for testing if the process X(t) is Gaussian.
+         If 95% of TEST1 is less than TEST0 then X(t) is not Gaussian at a 5% level.
+        
+         Example:
+         Hm0 = 7;
+         S0 = jonswap([],Hm0); g=ochitr([],[Hm0/4]); S=S0;
+         S.tr=g;S.tr(:,2)=g(:,2)*Hm0/4;
+         xs = spec2sdat(S,2^13);
+         [g0 t0] = dat2tr(xs);
+         t1 = testgaussian(S0,[2^13 50],t0); 
+        
+         See also  cov2sdat, dat2tr, troptset
+        '''
+#        Tested on: Matlab 5.3, 5.2, 5.1
+#         History:
+#         revised pab
+#         -changed name from mctrtest to testgaussianity
+#         revised pab jan2005
+#         changed order of input so that chapter1.m works
+#         revised pab Feb2004
+#         -changed h1line  
+#         revised pab 29.12.2000
+#         - added options and def to input due to changed calling syntax for dat2tr.
+#         - updated the help header
+#         revised by pab 12.11.99
+#            fixed a bug, string input to dat2tr 'nonlinear' 
+#         revised by pab 12.10.99
+#            updated help header 
+#         revised by pab 11.08.99
+#         changed name from mctest to mctrtest
+#         by pab 11.11.98
+        
+        maxsize = 200000 # must divide the computations due to limited memory
+#        if nargin<5||isempty(opt):
+#            opt = troptset('dat2tr');
+#        
+#        opt = troptset(opt,'multip',1)
+        
+        if test0 is None:
+            plotflag=0
+        else: 
+            plotflag=1
+        
+        if cases>50:
+            print('  ... be patient this may take a while')
+        
+        test1 = []
+        rep = floor(ns*cases/maxsize)+1
+        
+        Nstep = floor(cases/rep);
+        
+        acf = self.tocovdata()
+        #R = spec2cov(S);
+        
+        for ix in  range(rep):
+            xs = acf.sim(ns=ns, cases=Nstep)
+            #xs = cov2sdat(R,[ns Nstep]);
+            [g, tmp] = dat2tr(xs,method, **opt);
+            #test1 = [test1; tmp(:)]
+            print('finished %d of %d ' % (ix,rep) )
+        
+        if rep>1:
+            xs = acf.sim(ns=ns, cases=rem(cases,rep))
+            [g, tmp] = dat2tr(xs,method,**opt);
+            #test1 = [test1; tmp(:)];
+        
+        
+#        if (nargout>0 || plotflag==0),
+#          test2=test1;
+#        end
+#        
+#        
+#        if plotflag 
+#          plot(test1,'o'),hold on
+#          if 1 
+#            plot([1 cases],test0*[1 1],'--'),
+#          end
+#          hold off
+#          ylabel('e(g(u)-u)')
+#          xlabel('Simulation number')
+#        end
+        
     def moment(self, nr=2, even=True, j=0):
         ''' Calculates spectral moments from spectrum
 
