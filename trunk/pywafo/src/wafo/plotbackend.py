@@ -12,6 +12,7 @@ if False:
 else:
     try:
         from matplotlib import pyplot as plotbackend
+        plotbackend.interactive(True)
         print('wafo.wafodata: plotbackend is set to matplotlib.pyplot')
     except:
         print('wafo: Unable to load matplotlib.pyplot as plotbackend')
