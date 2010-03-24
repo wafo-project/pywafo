@@ -8,6 +8,8 @@ from __future__ import division
 
 from wafo.plotbackend import plotbackend
 from wafo.misc import ecross, findcross, JITImport
+from scipy.misc.ppimport import ppimport
+
 import numdifftools 
 
 from scipy.linalg import pinv2
@@ -16,12 +18,13 @@ from scipy.linalg import pinv2
 from scipy import optimize
 # Trick to avoid error due to circular import
 #_WAFOCOV = ppimport('wafo.covariance')
-_WAFODIST = JITImport('wafo.stats.distributions')
+_WAFODIST = ppimport('wafo.stats.distributions')
+#_WAFODIST = JITImport('wafo.stats.distributions')
 
 from numpy import alltrue, arange, \
-     ravel,  ones, sum,  \
-     zeros,  log, sqrt, exp
-from numpy import atleast_1d, any,  vectorize, asarray, nan, inf, pi
+     ravel, ones, sum, \
+     zeros, log, sqrt, exp
+from numpy import atleast_1d, any, asarray, nan, inf, pi, reshape, repeat, product, ndarray
 import numpy
 import numpy as np
 
@@ -38,13 +41,17 @@ floatinfo = np.finfo(float)
 #arr = atleast_1d
 arr = asarray
 
-
-
-
-
-
 all = alltrue
- 
+
+def valarray(shape, value=nan, typecode=None):
+    """Return an array of all value.
+    """
+    out = reshape(repeat([value], product(shape, axis=0), axis=0), shape)
+    if typecode is not None:
+        out = out.astype(typecode)
+    if not isinstance(out, ndarray):
+        out = asarray(out)
+    return out 
 
 # Frozen RV class
 class rv_frozen(object):
@@ -80,7 +87,7 @@ class rv_frozen(object):
     def __init__(self, dist, *args, **kwds):
         self.dist = dist
         loc0, scale0 = map(kwds.get, ['loc', 'scale'])
-        if isinstance(dist,_WAFODIST.rv_continuous):
+        if isinstance(dist, _WAFODIST.rv_continuous):
             args, loc0, scale0 = dist.fix_loc_scale(args, loc0, scale0)
             self.par = args + (loc0, scale0)
         else: # rv_discrete
@@ -88,37 +95,37 @@ class rv_frozen(object):
             self.par = args + (loc0,)
 
 
-    def pdf(self,x):
+    def pdf(self, x):
         ''' Probability density function at x of the given RV.'''
-        return self.dist.pdf(x,*self.par)
-    def cdf(self,x):
+        return self.dist.pdf(x, *self.par)
+    def cdf(self, x):
         '''Cumulative distribution function at x of the given RV.'''
-        return self.dist.cdf(x,*self.par)
-    def ppf(self,q):
+        return self.dist.cdf(x, *self.par)
+    def ppf(self, q):
         '''Percent point function (inverse of cdf) at q of the given RV.'''
-        return self.dist.ppf(q,*self.par)
-    def isf(self,q):
+        return self.dist.ppf(q, *self.par)
+    def isf(self, q):
         '''Inverse survival function at q of the given RV.'''
-        return self.dist.isf(q,*self.par)
+        return self.dist.isf(q, *self.par)
     def rvs(self, size=None):
         '''Random variates of given type.'''
         kwds = dict(size=size)
-        return self.dist.rvs(*self.par,**kwds)
-    def sf(self,x):
+        return self.dist.rvs(*self.par, **kwds)
+    def sf(self, x):
         '''Survival function (1-cdf) at x of the given RV.'''
-        return self.dist.sf(x,*self.par)
-    def stats(self,moments='mv'):
+        return self.dist.sf(x, *self.par)
+    def stats(self, moments='mv'):
         ''' Some statistics of the given RV'''
         kwds = dict(moments=moments)
-        return self.dist.stats(*self.par,**kwds)
-    def moment(self,n):
+        return self.dist.stats(*self.par, **kwds)
+    def moment(self, n):
         par1 = self.par[:self.dist.numargs]
-        return self.dist.moment(n,*par1)
+        return self.dist.moment(n, *par1)
     def entropy(self):
         return self.dist.entropy(*self.par)
-    def pmf(self,k):
+    def pmf(self, k):
         '''Probability mass function at k of the given RV'''
-        return self.dist.pmf(k,*self.par)
+        return self.dist.pmf(k, *self.par)
 
 
 
@@ -210,11 +217,11 @@ class Profile(object):
         self.title = 'Profile log'
         self.xlabel = ''
         self.ylabel = ''
-        self.i_fixed, self.N, self.alpha, self.pmin,self.pmax,self.x,self.logSF,self.link = map(kwds.get,
-                            ['i','N','alpha','pmin','pmax','x','logSF','link'],
-                            [0,100,0.05,None,None,None,None,None])
+        self.i_fixed, self.N, self.alpha, self.pmin, self.pmax, self.x, self.logSF, self.link = map(kwds.get,
+                            ['i', 'N', 'alpha', 'pmin', 'pmax', 'x', 'logSF', 'link'],
+                            [0, 100, 0.05, None, None, None, None, None])
 
-        self.ylabel = '%g%s CI' % (100*(1.0-self.alpha), '%')
+        self.ylabel = '%g%s CI' % (100 * (1.0 - self.alpha), '%')
         if fit_dist.method.startswith('ml'):
             self.title = self.title + 'likelihood'
             Lmax = fit_dist.LLmax
@@ -223,16 +230,16 @@ class Profile(object):
             Lmax = fit_dist.LPSmax
         else:
             raise ValueError("PROFILE is only valid for ML- or MPS- estimators")
-        if fit_dist.par_fix==None:
-            isnotfixed = valarray(fit_dist.par.shape,True)
+        if fit_dist.par_fix == None:
+            isnotfixed = valarray(fit_dist.par.shape, True)
         else:
-            isnotfixed = 1-numpy.isfinite(fit_dist.par_fix)
+            isnotfixed = 1 - numpy.isfinite(fit_dist.par_fix)
 
         self.i_notfixed = nonzero(isnotfixed)
 
         self.i_fixed = atleast_1d(self.i_fixed)
 
-        if 1-isnotfixed[self.i_fixed]:
+        if 1 - isnotfixed[self.i_fixed]:
             raise ValueError("Index i must be equal to an index to one of the free parameters.")
 
         isfree = isnotfixed
@@ -240,9 +247,9 @@ class Profile(object):
         self.i_free = nonzero(isfree)
 
         self.Lmax = Lmax
-        self.alpha_Lrange = 0.5*chi2.isf(self.alpha,1)
+        self.alpha_Lrange = 0.5 * _WAFODIST.chi2.isf(self.alpha, 1)
         self.alpha_cross_level = Lmax - self.alpha_Lrange
-        lowLevel = self.alpha_cross_level-self.alpha_Lrange/7.0
+        lowLevel = self.alpha_cross_level - self.alpha_Lrange / 7.0
 
         ## Check that par are actually at the optimum
         phatv = fit_dist.par.copy()
@@ -252,26 +259,26 @@ class Profile(object):
 
         ## Set up variable to profile and _local_link function
 
-        self.profile_x = not self.x==None
-        self.profile_logSF = not (self.logSF==None or self.profile_x)
+        self.profile_x = not self.x == None
+        self.profile_logSF = not (self.logSF == None or self.profile_x)
         self.profile_par = not (self.profile_x or self.profile_logSF)
 
-        if self.link==None:
+        if self.link == None:
             self.link = self.fit_dist.dist.link
         if self.profile_par:
             self._local_link = lambda fix_par, par : fix_par
-            self.xlabel = 'phat(%d)'% self.i_fixed
+            self.xlabel = 'phat(%d)' % self.i_fixed
             p_opt = self._par[self.i_fixed]
         elif self.profile_x:
             self.logSF = log(fit_dist.sf(self.x))
-            self._local_link = lambda fix_par, par : self.link(fix_par,self.logSF,par,self.i_fixed)
+            self._local_link = lambda fix_par, par : self.link(fix_par, self.logSF, par, self.i_fixed)
             self.xlabel = 'x'
             p_opt = self.x
         elif self.profile_logSF:
             p_opt = self.logSF
             self.x = fit_dist.isf(exp(p_opt))
-            self._local_link = lambda fix_par, par : self.link(self.x,fix_par,par,self.i_fixed)
-            self.xlabel= 'log(R)'
+            self._local_link = lambda fix_par, par : self.link(self.x, fix_par, par, self.i_fixed)
+            self.xlabel = 'log(R)'
         else:
             raise ValueError("You must supply a non-empty quantile (x) or probability (logSF) in order to profile it!")
 
@@ -283,47 +290,47 @@ class Profile(object):
         mylogfun = self._nlogfun
         self.data = numpy.empty_like(pvec)
         self.data[:] = nan
-        k1 = (pvec>=p_opt).argmax()
-        for ix in xrange(k1,-1,-1):
-            phatfree = optimize.fmin(mylogfun,phatfree,args =(pvec[ix],) ,disp=0)
-            self.data[ix] = -mylogfun(phatfree,pvec[ix])
-            if self.data[ix]<self.alpha_cross_level:
+        k1 = (pvec >= p_opt).argmax()
+        for ix in xrange(k1, -1, -1):
+            phatfree = optimize.fmin(mylogfun, phatfree, args=(pvec[ix],) , disp=0)
+            self.data[ix] = -mylogfun(phatfree, pvec[ix])
+            if self.data[ix] < self.alpha_cross_level:
                 pvec[:ix] = nan
                 break
 
         phatfree = phatv[self.i_free].copy()
-        for ix in xrange(k1+1,pvec.size):
-            phatfree = optimize.fmin(mylogfun,phatfree,args =(pvec[ix],) ,disp=0)
-            self.data[ix] = -mylogfun(phatfree,pvec[ix])
-            if self.data[ix]<self.alpha_cross_level:
-                pvec[ix+1:] = nan
+        for ix in xrange(k1 + 1, pvec.size):
+            phatfree = optimize.fmin(mylogfun, phatfree, args=(pvec[ix],) , disp=0)
+            self.data[ix] = -mylogfun(phatfree, pvec[ix])
+            if self.data[ix] < self.alpha_cross_level:
+                pvec[ix + 1:] = nan
                 break
 
         # prettify result
         ix = nonzero(numpy.isfinite(pvec))
         self.data = self.data[ix]
         self.args = pvec[ix]
-        cond =self.data==-numpy.inf
+        cond = self.data == -numpy.inf
         if any(cond):
             ind, = cond.nonzero()
-            self.data.put(ind, numpy.finfo(float).min/2.0)
-            ind1 = numpy.where(ind==0,ind,ind-1)
-            cl = self.alpha_cross_level-self.alpha_Lrange/2.0
-            t0 = ecross(self.args,self.data,ind1,cl)
+            self.data.put(ind, numpy.finfo(float).min / 2.0)
+            ind1 = numpy.where(ind == 0, ind, ind - 1)
+            cl = self.alpha_cross_level - self.alpha_Lrange / 2.0
+            t0 = ecross(self.args, self.data, ind1, cl)
 
-            self.data.put(ind,cl)
-            self.args.put(ind,t0)
+            self.data.put(ind, cl)
+            self.args.put(ind, t0)
 
 
-    def _get_pvec(self,p_opt):
+    def _get_pvec(self, p_opt):
         ''' return proper interval for the variable to profile
         '''
 
         linspace = numpy.linspace
-        if self.pmin==None or self.pmax==None:
+        if self.pmin == None or self.pmax == None:
 
             if self.profile_par:
-                pvar = self.fit_dist.par_cov[self.i_fixed,:][:,self.i_fixed]
+                pvar = self.fit_dist.par_cov[self.i_fixed, :][:, self.i_fixed]
             else:
                 i_notfixed = self.i_notfixed
                 phatv = self._par
@@ -334,38 +341,38 @@ class Profile(object):
                     gradfun = numdifftools.Gradient(self._myprbfun)
                 drl = gradfun(phatv[self.i_notfixed])
 
-                pcov = self.fit_dist.par_cov[i_notfixed,:][:,i_notfixed]
-                pvar = sum(numpy.dot(drl,pcov)*drl)
+                pcov = self.fit_dist.par_cov[i_notfixed, :][:, i_notfixed]
+                pvar = sum(numpy.dot(drl, pcov) * drl)
 
-            p_crit = norm.isf(self.alpha/2.0)*sqrt(numpy.ravel(pvar))*1.5
-            if self.pmin==None:
-                self.pmin = p_opt-5.0*p_crit
-            if self.pmax==None:
-                self.pmax = p_opt+5.0*p_crit
+            p_crit = _WAFODIST.norm.isf(self.alpha / 2.0) * sqrt(numpy.ravel(pvar)) * 1.5
+            if self.pmin == None:
+                self.pmin = p_opt - 5.0 * p_crit
+            if self.pmax == None:
+                self.pmax = p_opt + 5.0 * p_crit
 
-            N4 = numpy.floor(self.N/4.0)
+            N4 = numpy.floor(self.N / 4.0)
 
-            pvec1 = linspace(self.pmin,p_opt-p_crit,N4+1)
-            pvec2 = linspace(p_opt-p_crit,p_opt+p_crit,self.N-2*N4)
-            pvec3 = linspace(p_opt+p_crit,self.pmax,N4+1)
-            pvec = numpy.unique(numpy.hstack((pvec1,p_opt,pvec2,pvec3)))
+            pvec1 = linspace(self.pmin, p_opt - p_crit, N4 + 1)
+            pvec2 = linspace(p_opt - p_crit, p_opt + p_crit, self.N - 2 * N4)
+            pvec3 = linspace(p_opt + p_crit, self.pmax, N4 + 1)
+            pvec = numpy.unique(numpy.hstack((pvec1, p_opt, pvec2, pvec3)))
 
         else:
-            pvec = linspace(self.pmin,self.pmax,self.N)
+            pvec = linspace(self.pmin, self.pmax, self.N)
         return pvec
-    def  _myinvfun(self,phatnotfixed):
+    def  _myinvfun(self, phatnotfixed):
         mphat = self._par.copy()
         mphat[self.i_notfixed] = phatnotfixed;
         prb = exp(self.logSF)
-        return self.fit_dist.dist.isf(prb,*mphat);
+        return self.fit_dist.dist.isf(prb, *mphat);
 
-    def _myprbfun(phatnotfixed):
+    def _myprbfun(self, phatnotfixed):
         mphat = self._par.copy()
         mphat[self.i_notfixed] = phatnotfixed;
-        return self.fit_dist.dist.sf(self.x,*mphat);
+        return self.fit_dist.dist.sf(self.x, *mphat)
 
 
-    def _nlogfun(self,free_par,fix_par):
+    def _nlogfun(self, free_par, fix_par):
         ''' Return negative of loglike or logps function
 
            free_par - vector of free parameters
@@ -376,45 +383,45 @@ class Profile(object):
         par = self._par
         par[self.i_free] = free_par
         # _local_link: connects fixed quantile or probability with fixed distribution parameter
-        par[self.i_fixed] = self._local_link(fix_par,par)
+        par[self.i_fixed] = self._local_link(fix_par, par)
         return self.fit_dist.fitfun(par)
 
-    def get_CI(self,alpha=0.05):
+    def get_CI(self, alpha=0.05):
         '''Return confidence interval
         '''
-        if alpha<self.alpha:
+        if alpha < self.alpha:
             raise ValueError('Unable to return CI with alpha less than %g' % self.alpha)
 
-        cross_level = self.Lmax - 0.5*chi2.isf(alpha,1)
-        ind = findcross(self.data,cross_level)
+        cross_level = self.Lmax - 0.5 * _WAFODIST.chi2.isf(alpha, 1)
+        ind = findcross(self.data, cross_level)
         N = len(ind)
-        if N==0:
+        if N == 0:
             #Warning('upper bound for XXX is larger'
             #Warning('lower bound for XXX is smaller'
-            CI = (self.pmin,self.pmax)
-        elif N==1:
-            x0 = ecross(self.args,self.data,ind,cross_level)
-            isUpcrossing = self.data[ind]>self.data[ind+1]
+            CI = (self.pmin, self.pmax)
+        elif N == 1:
+            x0 = ecross(self.args, self.data, ind, cross_level)
+            isUpcrossing = self.data[ind] > self.data[ind + 1]
             if isUpcrossing:
-                CI = (x0,self.pmax)
+                CI = (x0, self.pmax)
                 #Warning('upper bound for XXX is larger'
             else:
-                CI = (self.pmin,x0)
+                CI = (self.pmin, x0)
                 #Warning('lower bound for XXX is smaller'
 
-        elif N==2:
-            CI = ecross(self.args,self.data,ind,cross_level)
+        elif N == 2:
+            CI = ecross(self.args, self.data, ind, cross_level)
         else:
             # Warning('Number of crossings too large!')
-            CI = ecross(self.args,self.data,ind[[0,-1]],cross_level)
+            CI = ecross(self.args, self.data, ind[[0, -1]], cross_level)
         return CI
 
     def plot(self):
         ''' Plot profile function with 100(1-alpha)% CI
         '''
-        plotbackend.plot(self.args,self.data,
-            self.args[[0,-1]],[self.Lmax,]*2,'r',
-            self.args[[0,-1]],[self.alpha_cross_level,]*2,'r')
+        plotbackend.plot(self.args, self.data,
+            self.args[[0, -1]], [self.Lmax, ]*2, 'r',
+            self.args[[0, -1]], [self.alpha_cross_level, ]*2, 'r')
         plotbackend.title(self.title)
         plotbackend.ylabel(self.ylabel)
         plotbackend.xlabel(self.xlabel)
@@ -454,7 +461,7 @@ class FitDistribution(rv_frozen):
         self.dist = dist
         numargs = dist.numargs
 
-        self.method, self.alpha, self.par_fix, self.search, self.copydata= map(kwds.get,['method','alpha','par_fix','search','copydata'],['ml',0.05,None,True,True])
+        self.method, self.alpha, self.par_fix, self.search, self.copydata = map(kwds.get, ['method', 'alpha', 'par_fix', 'search', 'copydata'], ['ml', 0.05, None, True, True])
         self.data = ravel(data)
         if self.copydata:
             self.data = self.data.copy()
@@ -464,20 +471,20 @@ class FitDistribution(rv_frozen):
         else:
             self._fitfun = dist.nnlf
 
-        allfixed  = False
+        allfixed = False
         isfinite = numpy.isfinite
-        somefixed = (self.par_fix !=None) and any(isfinite(self.par_fix))
+        somefixed = (self.par_fix != None) and any(isfinite(self.par_fix))
 
         if somefixed:
             fitfun = self._fxfitfun
             self.par_fix = tuple(self.par_fix)
             allfixed = all(isfinite(self.par_fix))
             self.par = atleast_1d(self.par_fix)
-            self.i_notfixed = nonzero(1-isfinite(self.par))
-            self.i_fixed  = nonzero(isfinite(self.par))
-            if len(self.par) != numargs+2:
+            self.i_notfixed = nonzero(1 - isfinite(self.par))
+            self.i_fixed = nonzero(isfinite(self.par))
+            if len(self.par) != numargs + 2:
                 raise ValueError, "Wrong number of input arguments."
-            if len(args)!=len(self.i_notfixed):
+            if len(args) != len(self.i_notfixed):
                 raise ValueError("Length of args must equal number of non-fixed parameters given in par_fix! (%d) " % len(self.i_notfixed))
             x0 = atleast_1d(args)
         else:
@@ -489,7 +496,7 @@ class FitDistribution(rv_frozen):
                 if Narg > numargs:
                     raise ValueError, "Too many input arguments."
                 else:
-                    args += (1.0,)*(numargs-Narg)
+                    args += (1.0,)*(numargs - Narg)
             # location and scale are at the end
             x0 = args + (loc0, scale0)
             x0 = atleast_1d(x0)
@@ -497,7 +504,7 @@ class FitDistribution(rv_frozen):
         numpar = len(x0)
         if self.search and not allfixed:
             #args=(self.data,),
-            par = optimize.fmin(fitfun,x0,disp=0)
+            par = optimize.fmin(fitfun, x0, disp=0)
             if not somefixed:
                 self.par = par
         elif  (not allfixed) and somefixed:
@@ -505,43 +512,43 @@ class FitDistribution(rv_frozen):
         else:
             self.par = x0
 
-        np = numargs+2
+        np = numargs + 2
 
         self.par_upper = None
         self.par_lower = None
-        self.par_cov = zeros((np,np))
-        self.LLmax = -dist.nnlf(self.par,self.data)
-        self.LPSmax = -dist.nlogps(self.par,self.data)
-        self.pvalue = dist.pvalue(self.par,self.data,unknown_numpar=numpar)
-        H = numpy.asmatrix(dist.hessian_nnlf(self.par,self.data))
+        self.par_cov = zeros((np, np))
+        self.LLmax = -dist.nnlf(self.par, self.data)
+        self.LPSmax = -dist.nlogps(self.par, self.data)
+        self.pvalue = dist.pvalue(self.par, self.data, unknown_numpar=numpar)
+        H = numpy.asmatrix(dist.hessian_nnlf(self.par, self.data))
         self.H = H
         try:
             if allfixed:
                 pass
             elif somefixed:
-                pcov = -pinv2(H[self.i_notfixed,:][...,self.i_notfixed])
-                for row,ix in enumerate(list(self.i_notfixed)):
-                    self.par_cov[ix,self.i_notfixed] = pcov[row,:]
+                pcov = -pinv2(H[self.i_notfixed, :][..., self.i_notfixed])
+                for row, ix in enumerate(list(self.i_notfixed)):
+                    self.par_cov[ix, self.i_notfixed] = pcov[row, :]
 
             else:
                 self.par_cov = -pinv2(H)
         except:
-            self.par_cov[:,:] = nan
+            self.par_cov[:, :] = nan
 
         pvar = numpy.diag(self.par_cov)
-        zcrit = -norm.ppf(self.alpha/2.0)
-        self.par_lower = self.par-zcrit*sqrt(pvar)
-        self.par_upper = self.par+zcrit*sqrt(pvar)
+        zcrit = -_WAFODIST.norm.ppf(self.alpha / 2.0)
+        self.par_lower = self.par - zcrit * sqrt(pvar)
+        self.par_upper = self.par + zcrit * sqrt(pvar)
 
-    def fitfun(self,phat):
-        return self._fitfun(phat,self.data)
+    def fitfun(self, phat):
+        return self._fitfun(phat, self.data)
 
-    def _fxfitfun(self,phat10):
+    def _fxfitfun(self, phat10):
         self.par[self.i_notfixed] = phat10
-        return self._fitfun(self.par,self.data)
+        return self._fitfun(self.par, self.data)
 
 
-    def profile(self,**kwds):
+    def profile(self, **kwds):
         ''' Profile Log- likelihood or Log Product Spacing- function,
             which can be used for constructing confidence interval for
             either phat(i), probability or quantile.
@@ -609,12 +616,10 @@ class FitDistribution(rv_frozen):
           --------
           Profile
         '''
-        if not self.par_fix==None:
-            i1 = kwds.setdefault('i',(1-numpy.isfinite(self.par_fix)).argmax())
+        if not self.par_fix == None:
+            i1 = kwds.setdefault('i', (1 - numpy.isfinite(self.par_fix)).argmax())
 
-        return Profile(self,**kwds)
-
-
+        return Profile(self, **kwds)
 
     def plotfitsumry(self):
         ''' Plot various diagnostic plots to asses the quality of the fit.
@@ -626,31 +631,31 @@ class FitDistribution(rv_frozen):
         should follow the model and the residual plots will be linear. Other
         distribution types will introduce curvature in the residual plots.
         '''
-        plotbackend.subplot(2,2,1)
+        plotbackend.subplot(2, 2, 1)
         #self.plotecdf()
         self.plotesf()
-        plotbackend.subplot(2,2,2)
+        plotbackend.subplot(2, 2, 2)
         self.plotepdf()
-        plotbackend.subplot(2,2,3)
+        plotbackend.subplot(2, 2, 3)
         self.plotresprb()
-        plotbackend.subplot(2,2,4)
+        plotbackend.subplot(2, 2, 4)
         self.plotresq()
         fixstr = ''
-        if not self.par_fix==None:
+        if not self.par_fix == None:
             numfix = len(self.i_fixed)
-            if numfix>0:
+            if numfix > 0:
                 format = '%d,'*numfix
                 format = format[:-1]
                 format1 = '%g,'*numfix
                 format1 = format1[:-1]
                 phatistr = format % tuple(self.i_fixed)
                 phatvstr = format1 % tuple(self.par[self.i_fixed])
-                fixstr = 'Fixed: phat[%s] = %s ' % (phatistr,phatvstr)
+                fixstr = 'Fixed: phat[%s] = %s ' % (phatistr, phatvstr)
 
 
-        infostr = 'Fit method: %s, Fit p-value: %2.2f %s' % (self.method,self.pvalue,fixstr)
+        infostr = 'Fit method: %s, Fit p-value: %2.2f %s' % (self.method, self.pvalue, fixstr)
         try:
-            plotbackend.figtext(0.05,0.01,infostr)
+            plotbackend.figtext(0.05, 0.01, infostr)
         except:
             pass
 
@@ -663,8 +668,8 @@ class FitDistribution(rv_frozen):
         Other distribution types will introduce deviations in the plot.
         '''
         n = len(self.data)
-        SF = (arange(n,0,-1))/n
-        plotbackend.semilogy(self.data,SF,'b.',self.data,self.sf(self.data),'r-')
+        SF = (arange(n, 0, -1)) / n
+        plotbackend.semilogy(self.data, SF, 'b.', self.data, self.sf(self.data), 'r-')
         #plotbackend.plot(self.data,SF,'b.',self.data,self.sf(self.data),'r-')
 
         plotbackend.xlabel('x');
@@ -680,8 +685,8 @@ class FitDistribution(rv_frozen):
         Other distribution types will introduce deviations in the plot.
         '''
         n = len(self.data)
-        F = (arange(1,n+1))/n
-        plotbackend.plot(self.data,F,'b.',self.data,self.cdf(self.data),'r-')
+        F = (arange(1, n + 1)) / n
+        plotbackend.plot(self.data, F, 'b.', self.data, self.cdf(self.data), 'r-')
 
 
         plotbackend.xlabel('x');
@@ -697,20 +702,20 @@ class FitDistribution(rv_frozen):
         Other distribution types will introduce deviations in the plot.
         '''
 
-        bin,limits = numpy.histogram(self.data,normed=True,new=True)
-        limits.shape = (-1,1)
-        xx = limits.repeat(3,axis=1)
+        bin, limits = numpy.histogram(self.data, normed=True, new=True)
+        limits.shape = (-1, 1)
+        xx = limits.repeat(3, axis=1)
         xx.shape = (-1,)
         xx = xx[1:-1]
-        bin.shape = (-1,1)
-        yy = bin.repeat(3,axis=1)
+        bin.shape = (-1, 1)
+        yy = bin.repeat(3, axis=1)
         #yy[0,0] = 0.0 # pdf
-        yy[:,0] = 0.0 # histogram
+        yy[:, 0] = 0.0 # histogram
         yy.shape = (-1,)
-        yy = numpy.hstack((yy,0.0))
+        yy = numpy.hstack((yy, 0.0))
 
         #plotbackend.hist(self.data,normed=True,fill=False)
-        plotbackend.plot(self.data,self.pdf(self.data),'r-',xx,yy,'b-')
+        plotbackend.plot(self.data, self.pdf(self.data), 'r-', xx, yy, 'b-')
 
         plotbackend.xlabel('x');
         plotbackend.ylabel('f(x) (%s)' % self.dist.name)
@@ -725,11 +730,11 @@ class FitDistribution(rv_frozen):
         plot will be linear. Other distribution types will introduce
         curvature in the plot.
         '''
-        n=len(self.data)
-        eprob = (arange(1,n+1)-0.5)/n
+        n = len(self.data)
+        eprob = (arange(1, n + 1) - 0.5) / n
         y = self.ppf(eprob)
-        y1 = self.data[[0,-1]]
-        plotbackend.plot(self.data,y,'b.',y1,y1,'r-')
+        y1 = self.data[[0, -1]]
+        plotbackend.plot(self.data, y, 'b.', y1, y1, 'r-')
 
         plotbackend.xlabel('Empirical')
         plotbackend.ylabel('Model (%s)' % self.dist.name)
@@ -747,10 +752,10 @@ class FitDistribution(rv_frozen):
         '''
         n = len(self.data);
         #ecdf = (0.5:n-0.5)/n;
-        ecdf = arange(1,n+1)/(n+1)
+        ecdf = arange(1, n + 1) / (n + 1)
         mcdf = self.cdf(self.data)
-        p1 = [0,1]
-        plotbackend.plot(ecdf,mcdf,'b.',p1,p1,'r-')
+        p1 = [0, 1]
+        plotbackend.plot(ecdf, mcdf, 'b.', p1, p1, 'r-')
 
 
         plotbackend.xlabel('Empirical')
@@ -761,37 +766,37 @@ class FitDistribution(rv_frozen):
 
 
 
-    def pvalue(self,theta,x,unknown_numpar=None):
+    def pvalue(self, theta, x, unknown_numpar=None):
         ''' Return the P-value for the fit using Moran's negative log Product Spacings statistic
 
             where theta are the parameters (including loc and scale)
 
             Note: the data in x must be sorted
         '''
-        dx = numpy.diff(x,axis=0)
-        tie = (dx==0)
+        dx = numpy.diff(x, axis=0)
+        tie = (dx == 0)
         if any(tie):
-            disp('P-value is on the conservative side (i.e. too large) due to ties in the data!')
+            print('P-value is on the conservative side (i.e. too large) due to ties in the data!')
 
-        T = self.nlogps(theta,x)
+        T = self.nlogps(theta, x)
 
         n = len(x)
-        np1 = n+1
-        if unknown_numpar==None:
+        np1 = n + 1
+        if unknown_numpar == None:
             k = len(theta)
         else:
             k = unknown_numpar
 
         isParUnKnown = True
-        m = (np1)*(log(np1)+0.57722)-0.5-1.0/(12.*(np1))
-        v = (np1)*(pi**2./6.0-1.0)-0.5-1.0/(6.*(np1))
-        C1 = m-sqrt(0.5*n*v)
-        C2 = sqrt(v/(2.0*n))
-        Tn = (T + 0.5*k*isParUnKnown-C1)/C2 # chi2 with n degrees of freedom
-        pvalue = chi2.sf(Tn,n)
+        m = (np1) * (log(np1) + 0.57722) - 0.5 - 1.0 / (12. * (np1))
+        v = (np1) * (pi ** 2. / 6.0 - 1.0) - 0.5 - 1.0 / (6. * (np1))
+        C1 = m - sqrt(0.5 * n * v)
+        C2 = sqrt(v / (2.0 * n))
+        Tn = (T + 0.5 * k * isParUnKnown - C1) / C2 # chi2 with n degrees of freedom
+        pvalue = _WAFODIST.chi2.sf(Tn, n)
         return pvalue
 
-    def nlogps(self,theta,x):
+    def nlogps(self, theta, x):
         """ Moran's negative log Product Spacings statistic
 
             where theta are the parameters (including loc and scale)
@@ -825,25 +830,25 @@ class FitDistribution(rv_frozen):
             raise ValueError, "Not enough input arguments."
         if not self.dist._argcheck(*args) or scale <= 0:
             return inf
-        x = arr((x-loc) / scale)
+        x = arr((x - loc) / scale)
         cond0 = (x <= self.dist.a) | (x >= self.dist.b)
         if (any(cond0)):
             return inf
         else:
-            linfo = numpy.finfo(float)
+            #linfo = numpy.finfo(float)
             realmax = floatinfo.machar.xmax
 
             lowertail = True
             if lowertail:
-                prb = numpy.hstack((0.0, self.dist.cdf(x,*args), 1.0))
+                prb = numpy.hstack((0.0, self.dist.cdf(x, *args), 1.0))
                 dprb = numpy.diff(prb)
             else:
-                prb = numpy.hstack((1.0, self.dist.sf(x,*args), 0.0))
+                prb = numpy.hstack((1.0, self.dist.sf(x, *args), 0.0))
                 dprb = -numpy.diff(prb)
 
             logD = log(dprb)
-            dx = numpy.diff(x,axis=0)
-            tie = (dx==0)
+            dx = numpy.diff(x, axis=0)
+            tie = (dx == 0)
             if any(tie):
                 # TODO % implement this method for treating ties in data:
                 # Assume measuring error is delta. Then compute
@@ -857,18 +862,18 @@ class FitDistribution(rv_frozen):
                 i_tie = nonzero(tie)
                 tiedata = x[i_tie]
 
-                logD[(I_tie[0]+1,)]= log(self.dist._pdf(tiedata,*args)) + log(scale)
+                logD[(i_tie[0] + 1,)] = log(self.dist._pdf(tiedata, *args)) + log(scale)
 
             finiteD = numpy.isfinite(logD)
-            nonfiniteD = 1-finiteD
+            nonfiniteD = 1 - finiteD
             if any(nonfiniteD):
-                T = -sum(logD[finiteD],axis=0) + 100.0*log(realmax)*sum(nonfiniteD,axis=0);
+                T = -sum(logD[finiteD], axis=0) + 100.0 * log(realmax) * sum(nonfiniteD, axis=0);
             else:
-                T = -sum(logD,axis=0) #%Moran's negative log product spacing statistic
+                T = -sum(logD, axis=0) #%Moran's negative log product spacing statistic
         return T
 
     def _nnlf(self, x, *args):
-        return -sum(log(self._pdf(x, *args)),axis=0)
+        return - sum(log(self._pdf(x, *args)), axis=0)
 
     def nnlf(self, theta, x):
         ''' Return negative loglikelihood function, i.e., - sum (log pdf(x, theta),axis=0)
@@ -882,23 +887,24 @@ class FitDistribution(rv_frozen):
             raise ValueError, "Not enough input arguments."
         if not self._argcheck(*args) or scale <= 0:
             return inf
-        x = arr((x-loc) / scale)
-        cond0 = (x<=self.a) | (self.b<=x)
-        newCall = False
-        if newCall:
-            goodargs = argsreduce(1-cond0, *((x,)))
-            goodargs = tuple(goodargs + list(args))
-            N = len(x)
-            Nbad = sum(cond0)
-            xmin = floatinfo.machar.xmin
-            return self._nnlf(*goodargs) + N*log(scale) + Nbad*100.0*log(xmin)
-        elif (any(cond0)):
+        x = arr((x - loc) / scale)
+        cond0 = (x <= self.a) | (self.b <= x)
+#        newCall = False
+#        if newCall:
+#            goodargs = argsreduce(1-cond0, *((x,)))
+#            goodargs = tuple(goodargs + list(args))
+#            N = len(x)
+#            Nbad = sum(cond0)
+#            xmin = floatinfo.machar.xmin
+#            return self._nnlf(*goodargs) + N*log(scale) + Nbad*100.0*log(xmin)
+#        el
+        if (any(cond0)):
             return inf
         else:
             N = len(x)
-            return self._nnlf(x, *args) + N*log(scale)
+            return self._nnlf(x, *args) + N * log(scale)
 
-    def hessian_nnlf(self,theta,data,eps=None):
+    def hessian_nnlf(self, theta, data, eps=None):
         ''' approximate hessian of nnlf where theta are the parameters (including loc and scale)
         '''
         #Nd = len(x)
@@ -908,96 +914,100 @@ class FitDistribution(rv_frozen):
         # This is important when calculating numerical derivatives and is
         #  accomplished by the following.
 
-        if eps==None:
-            eps = (floatinfo.machar.eps)**0.4
+        if eps == None:
+            eps = (floatinfo.machar.eps) ** 0.4
         xmin = floatinfo.machar.xmin
         #myfun = lambda y: max(y,100.0*log(xmin)) #% trick to avoid log of zero
-        delta  = (eps+2.0)-2.0
-        delta2 = delta**2.0
+        delta = (eps + 2.0) - 2.0
+        delta2 = delta ** 2.0
         #    % Approximate 1/(nE( (d L(x|theta)/dtheta)^2)) with
         #    %             1/(d^2 L(theta|x)/dtheta^2)
         #    %  using central differences
 
-        LL = self.nnlf(theta,data)
-        H = zeros((np,np))   #%% Hessian matrix
+        LL = self.nnlf(theta, data)
+        H = zeros((np, np))   #%% Hessian matrix
         theta = tuple(theta)
         for ix in xrange(np):
             sparam = list(theta)
-            sparam[ix]= theta[ix]+delta
-            fp  = self.nnlf(sparam,data)
+            sparam[ix] = theta[ix] + delta
+            fp = self.nnlf(sparam, data)
             #fp = sum(myfun(x))
 
-            sparam[ix] = theta[ix]-delta
-            fm  = self.nnlf(sparam,data)
+            sparam[ix] = theta[ix] - delta
+            fm = self.nnlf(sparam, data)
             #fm = sum(myfun(x))
 
-            H[ix,ix] = (fp-2*LL+fm)/delta2
-            for iy in range(ix+1,np):
-                sparam[ix] = theta[ix]+delta
-                sparam[iy] = theta[iy]+delta
-                fpp  = self.nnlf(sparam,data)
+            H[ix, ix] = (fp - 2 * LL + fm) / delta2
+            for iy in range(ix + 1, np):
+                sparam[ix] = theta[ix] + delta
+                sparam[iy] = theta[iy] + delta
+                fpp = self.nnlf(sparam, data)
                 #fpp = sum(myfun(x))
 
-                sparam[iy] = theta[iy]-delta
-                fpm  = self.nnlf(sparam,data)
+                sparam[iy] = theta[iy] - delta
+                fpm = self.nnlf(sparam, data)
                 #fpm = sum(myfun(x))
 
-                sparam[ix] = theta[ix]-delta
-                fmm  = self.nnlf(sparam,data)
+                sparam[ix] = theta[ix] - delta
+                fmm = self.nnlf(sparam, data)
                 #fmm = sum(myfun(x));
 
-                sparam[iy] = theta[iy]+delta
-                fmp  = self.nnlf(sparam,data)
+                sparam[iy] = theta[iy] + delta
+                fmp = self.nnlf(sparam, data)
                 #fmp = sum(myfun(x))
-                H[ix,iy] = ((fpp+fmm)-(fmp+fpm))/(4.*delta2)
-                H[iy,ix] = H[ix,iy]
+                H[ix, iy] = ((fpp + fmm) - (fmp + fpm)) / (4. * delta2)
+                H[iy, ix] = H[ix, iy]
                 sparam[iy] = theta[iy];
 
         # invert the Hessian matrix (i.e. invert the observed information number)
         #pcov = -pinv(H);
-        return -H
+        return - H
 
-                        
-if __name__=='__main__':
-    #nbinom(10, 0.75).rvs(3)
-    bernoulli(0.75).rvs(3)
-    x = np.r_[5,10]
-    npr = np.r_[9,9]
-    bd0(x,npr)
+def main():
+     #nbinom(10, 0.75).rvs(3)
+    import matplotlib
+    matplotlib.interactive(True)
+    t = _WAFODIST.bernoulli(0.75).rvs(3)
+    x = np.r_[5, 10]
+    npr = np.r_[9, 9]
+    t2 = _WAFODIST.bd0(x, npr)
     #Examples   MLE and better CI for phat.par[0]
-    R = weibull_min.rvs(1, size=100);
-    phat = weibull_min.fit(R,1,1,par_fix=[nan,0,nan])
+    R = _WAFODIST.weibull_min.rvs(1, size=100);
+    phat = _WAFODIST.weibull_min.fit(R, 1, 1, par_fix=[nan, 0, nan])
     Lp = phat.profile(i=0)
     Lp.plot()
     Lp.get_CI(alpha=0.1)
-    R = 1./990
+    R = 1. / 990
     x = phat.isf(R)
 
     # CI for x
-    Lx = phat.profile(i=0,x=x)
+    Lx = phat.profile(i=0, x=x)
     Lx.plot()
     Lx.get_CI(alpha=0.2)
 
     # CI for logSF=log(SF)
-    Lpr = phat.profile(i=1,logSF=log(R),link = phat.dist.link)
+    Lpr = phat.profile(i=1, logSF=log(R), link=phat.dist.link)
     Lpr.plot()
     Lpr.get_CI(alpha=0.075)
 
-    dlaplace.stats(0.8,loc=0)
+    dlaplace.stats(0.8, loc=0)
 #    pass
     t = planck(0.51000000000000001)
     t.ppf(0.5)
     t = zipf(2)
     t.ppf(0.5)
     import pylab as plb
-    rice.rvs(1)
-    x = plb.linspace(-5,5)
-    y = genpareto.cdf(x,0)
+    _WAFODIST.rice.rvs(1)
+    x = plb.linspace(-5, 5)
+    y = _WAFODIST.genpareto.cdf(x, 0)
     #plb.plot(x,y)
     #plb.show()
 
 
-    on = ones((2,3))
-    r = genpareto.rvs(0,size=100)
-    pht = genpareto.fit(r,1,par_fix=[0,0,nan])
+    on = ones((2, 3))
+    r = _WAFODIST.genpareto.rvs(0, size=100)
+    pht = _WAFODIST.genpareto.fit(r, 1, par_fix=[0, 0, nan])
     lp = pht.profile()
+                
+if __name__ == '__main__':
+   main()
