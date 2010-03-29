@@ -163,7 +163,7 @@ class rv_frozen(object):
     def __init__(self, dist, *args, **kwds):
         self.dist = dist
         loc0, scale0 = map(kwds.get, ['loc', 'scale'])
-        if isinstance(dist, rv_continuous):
+        if hasattr(dist, 'fix_loc_scale'): #isinstance(dist, rv_continuous):
             args, loc0, scale0 = dist.fix_loc_scale(args, loc0, scale0)
             self.par = args + (loc0, scale0)
         else: # rv_discrete
@@ -569,7 +569,7 @@ class rv_generic(object):
     and rv_continuous.
 
     """
-    def fix_loc_scale(self, args, loc, scale=1):
+    def _fix_loc_scale(self, args, loc, scale=1):
         N = len(args)
         if N > self.numargs:
             if N == self.numargs + 1 and loc is None:
@@ -585,8 +585,8 @@ class rv_generic(object):
             loc = 0.0
         return args, loc, scale
 
-    def fix_loc(self, args, loc):
-        args, loc, scale = self.fix_loc_scale(args, loc)
+    def _fix_loc(self, args, loc):
+        args, loc, scale = self._fix_loc_scale(args, loc)
         return args, loc
 
     # These are actually called, and should not be overwritten if you
@@ -617,7 +617,7 @@ class rv_generic(object):
         loc, scale, size, discrete = map(kwds.get, kwd_names,
                                          [None] * len(kwd_names))
 
-        args, loc, scale = self.fix_loc_scale(args, loc, scale)
+        args, loc, scale = self._fix_loc_scale(args, loc, scale)
         cond = logical_and(self._argcheck(*args), (scale >= 0))
         if not all(cond):
             raise ValueError, "Domain error in arguments."
@@ -765,7 +765,8 @@ class rv_continuous(rv_generic):
                  shapes=None, extradoc=None):
 
         rv_generic.__init__(self)
-
+        self.fix_loc_scale = self._fix_loc_scale
+        
         if badvalue is None:
             badvalue = nan
         self.badvalue = badvalue
@@ -4518,7 +4519,7 @@ class rv_discrete(rv_generic):
                  shapes=None, extradoc=None):
 
         rv_generic.__init__(self)
-
+        self.fix_loc = self._fix_loc
         if badvalue is None:
             badvalue = nan
         self.badvalue = badvalue
@@ -4543,9 +4544,9 @@ class rv_discrete(rv_generic):
             self.pk = take(ravel(self.pk), indx, 0)
             self.a = self.xk[0]
             self.b = self.xk[-1]
-            self.P = make_dict(self.xk, self.pk)
+            self.P = dict(zip(self.xk, self.pk)) #make_dict(self.xk, self.pk)
             self.qvals = numpy.cumsum(self.pk, axis=0)
-            self.F = make_dict(self.xk, self.qvals)
+            self.F = dict(zip(self.xk, self.qvals)) #make_dict(self.xk, self.qvals)
             self.Finv = reverse_dict(self.F)
             self._ppf = new.instancemethod(sgf(_drv_ppf, otypes='d'),
                                            self, rv_discrete)
