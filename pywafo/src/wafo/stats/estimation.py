@@ -1,26 +1,23 @@
-# Functions to implement several important functions for
-#   various Continous and Discrete Probability Distributions
-#
-# Author:  Travis Oliphant  2002-2003
+''' 
+Contains FitDistribution and Profile class, which are
 
+important classes for fitting to various Continous and Discrete Probability Distributions
+
+Author:  Per A. Brodtkorb 2008
+'''
 
 from __future__ import division
 
 from wafo.plotbackend import plotbackend
-from wafo.misc import ecross, findcross, JITImport
+from wafo.misc import ecross, findcross
 from scipy.misc.ppimport import ppimport
 
 import numdifftools 
-
+from scipy import special
 from scipy.linalg import pinv2
 
 
 from scipy import optimize
-# Trick to avoid error due to circular import
-#_WAFOCOV = ppimport('wafo.covariance')
-_WAFODIST = ppimport('wafo.stats.distributions')
-#_WAFODIST = JITImport('wafo.stats.distributions')
-
 from numpy import alltrue, arange, \
      ravel, ones, sum, \
      zeros, log, sqrt, exp
@@ -42,6 +39,14 @@ floatinfo = np.finfo(float)
 arr = asarray
 
 all = alltrue
+
+def chi2isf(p,df):
+    return special.chdtri(df, p)
+def chi2sf(x, df):
+    return special.chdtrc(df, x)
+
+def norm_ppf(q):
+    return special.ndtri(q)
 
 def valarray(shape, value=nan, typecode=None):
     """Return an array of all value.
@@ -87,7 +92,7 @@ class rv_frozen(object):
     def __init__(self, dist, *args, **kwds):
         self.dist = dist
         loc0, scale0 = map(kwds.get, ['loc', 'scale'])
-        if isinstance(dist, _WAFODIST.rv_continuous):
+        if hasattr(dist, 'fix_loc_scale'): #isinstance(dist, _WAFODIST.rv_continuous):
             args, loc0, scale0 = dist.fix_loc_scale(args, loc0, scale0)
             self.par = args + (loc0, scale0)
         else: # rv_discrete
@@ -247,7 +252,7 @@ class Profile(object):
         self.i_free = nonzero(isfree)
 
         self.Lmax = Lmax
-        self.alpha_Lrange = 0.5 * _WAFODIST.chi2.isf(self.alpha, 1)
+        self.alpha_Lrange = 0.5 * chi2isf(self.alpha, 1) #_WAFODIST.chi2.isf(self.alpha, 1)
         self.alpha_cross_level = Lmax - self.alpha_Lrange
         lowLevel = self.alpha_cross_level - self.alpha_Lrange / 7.0
 
@@ -344,7 +349,8 @@ class Profile(object):
                 pcov = self.fit_dist.par_cov[i_notfixed, :][:, i_notfixed]
                 pvar = sum(numpy.dot(drl, pcov) * drl)
 
-            p_crit = _WAFODIST.norm.isf(self.alpha / 2.0) * sqrt(numpy.ravel(pvar)) * 1.5
+            #p_crit = _WAFODIST.norm.isf(self.alpha / 2.0) * sqrt(numpy.ravel(pvar)) * 1.5
+            p_crit = -norm_ppf(self.alpha / 2.0) * sqrt(numpy.ravel(pvar)) * 1.5
             if self.pmin == None:
                 self.pmin = p_opt - 5.0 * p_crit
             if self.pmax == None:
@@ -392,7 +398,7 @@ class Profile(object):
         if alpha < self.alpha:
             raise ValueError('Unable to return CI with alpha less than %g' % self.alpha)
 
-        cross_level = self.Lmax - 0.5 * _WAFODIST.chi2.isf(alpha, 1)
+        cross_level = self.Lmax - 0.5 * chi2isf(alpha, 1) #_WAFODIST.chi2.isf(alpha, 1)
         ind = findcross(self.data, cross_level)
         N = len(ind)
         if N == 0:
@@ -536,7 +542,7 @@ class FitDistribution(rv_frozen):
             self.par_cov[:, :] = nan
 
         pvar = numpy.diag(self.par_cov)
-        zcrit = -_WAFODIST.norm.ppf(self.alpha / 2.0)
+        zcrit = -norm_ppf(self.alpha / 2.0)#_WAFODIST.norm.ppf(self.alpha / 2.0)
         self.par_lower = self.par - zcrit * sqrt(pvar)
         self.par_upper = self.par + zcrit * sqrt(pvar)
 
@@ -702,7 +708,7 @@ class FitDistribution(rv_frozen):
         Other distribution types will introduce deviations in the plot.
         '''
 
-        bin, limits = numpy.histogram(self.data, normed=True, new=True)
+        bin, limits = numpy.histogram(self.data, normed=True) #, new=True)
         limits.shape = (-1, 1)
         xx = limits.repeat(3, axis=1)
         xx.shape = (-1,)
@@ -793,7 +799,7 @@ class FitDistribution(rv_frozen):
         C1 = m - sqrt(0.5 * n * v)
         C2 = sqrt(v / (2.0 * n))
         Tn = (T + 0.5 * k * isParUnKnown - C1) / C2 # chi2 with n degrees of freedom
-        pvalue = _WAFODIST.chi2.sf(Tn, n)
+        pvalue = chi2sf(Tn, n) #_WAFODIST.chi2.sf(Tn, n)
         return pvalue
 
     def nlogps(self, theta, x):
@@ -964,6 +970,7 @@ class FitDistribution(rv_frozen):
         return - H
 
 def main():
+    _WAFODIST = ppimport('wafo.stats.distributions')
      #nbinom(10, 0.75).rvs(3)
     import matplotlib
     matplotlib.interactive(True)
@@ -986,15 +993,15 @@ def main():
     Lx.get_CI(alpha=0.2)
 
     # CI for logSF=log(SF)
-    Lpr = phat.profile(i=1, logSF=log(R), link=phat.dist.link)
+    Lpr = phat.profile(i=0, logSF=log(R), link=phat.dist.link)
     Lpr.plot()
     Lpr.get_CI(alpha=0.075)
 
-    dlaplace.stats(0.8, loc=0)
+    _WAFODIST.dlaplace.stats(0.8, loc=0)
 #    pass
-    t = planck(0.51000000000000001)
+    t = _WAFODIST.planck(0.51000000000000001)
     t.ppf(0.5)
-    t = zipf(2)
+    t = _WAFODIST.zipf(2)
     t.ppf(0.5)
     import pylab as plb
     _WAFODIST.rice.rvs(1)
