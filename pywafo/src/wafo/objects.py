@@ -14,14 +14,15 @@
 
 from __future__ import division
 from wafo.transform.core import TrData
+from wafo.transform.models import TrHermite, TrOchi, TrLinear
+from wafo.interpolate import SmoothSpline
 from scipy.interpolate.interpolate import interp1d
 from scipy.integrate.quadrature import cumtrapz
-from wafo.interpolate import SmoothSpline
 import warnings
 import numpy as np
 
 from numpy import (inf, pi, zeros, ones, sqrt, where, log, exp, sin, arcsin, mod, finfo, interp, #@UnresolvedImport
-                   newaxis, linspace, arange, sort, all, abs, linspace, vstack, hstack, atleast_1d, #@UnresolvedImport
+                   newaxis, linspace, arange, sort, all, abs, vstack, hstack, atleast_1d, #@UnresolvedImport
                    polyfit, r_, nonzero, cumsum, ravel, size, isnan, nan, floor, ceil, diff, array) #@UnresolvedImport
 from numpy.fft import fft
 from numpy.random import randn
@@ -359,13 +360,13 @@ class LevelCrossings(WafoData):
         if ng == 1:
             gvar = opt.gvar * ones(ncr)
         else:
-            gvar = interp1d(linspace(0, 1, ng) , opt.gvar, kind='linear')( linspace(0, 1, ncr))  
+            gvar = interp1d(linspace(0, 1, ng) , opt.gvar, kind='linear')(linspace(0, 1, ncr))  
         
         ng = len(atleast_1d(opt.cvar))
         if ng == 1:
             cvar = opt.cvar * ones(ncr)
         else:
-            cvar = interp1d(linspace(0, 1, ng), opt.cvar, kind='linear')( linspace(0, 1, ncr))  
+            cvar = interp1d(linspace(0, 1, ng), opt.cvar, kind='linear')(linspace(0, 1, ncr))  
         
         
        
@@ -383,7 +384,7 @@ class LevelCrossings(WafoData):
             cor2 = 0
         
     
-        lc22 = hstack((0,cumtrapz(lc2, lc1) + cor1))
+        lc22 = hstack((0, cumtrapz(lc2, lc1) + cor1))
         lc22 = (lc22 + 0.5) / (lc22[-1] + cor2 + 1)
         lc11 = (lc1 - mean) / sigma
         
@@ -401,9 +402,9 @@ class LevelCrossings(WafoData):
         #u0 = interp1q(cros(:,2),cros(:,1),.5)
         
         
-        lc22 = ndtri(lc22)-u0 #invnorm(lc22, -u0, 1);
+        lc22 = ndtri(lc22) - u0 #invnorm(lc22, -u0, 1);
         
-        g2 = TrData(lc22.copy(), lc1.copy(), mean, sigma**2)
+        g2 = TrData(lc22.copy(), lc1.copy(), mean, sigma ** 2)
         # NB! the smooth function does not always extrapolate well outside the edges
         # causing poor estimate of g  
         # We may alleviate this problem by: forcing the extrapolation
@@ -412,7 +413,7 @@ class LevelCrossings(WafoData):
         inds = slice(Ne, ncr - Ne) # indices to points we are smoothing over
         scros2 = SmoothSpline(lc11[inds], lc22[inds], opt.gsm, opt.lin_extrap, gvar[inds])(uu)
         
-        g = TrData(scros2, g1, mean, sigma**2)  #*sa; #multiply with stdev 
+        g = TrData(scros2, g1, mean, sigma ** 2)  #*sa; #multiply with stdev 
         
         if opt.chkder:
             for ix in range(5):
@@ -603,8 +604,6 @@ class TurningPoints(WafoData):
     ----------------
     data : array_like
     args : vector for 1D
-
-
     '''
     def __init__(self, *args, **kwds):
         super(TurningPoints, self).__init__(*args, **kwds)
@@ -857,7 +856,207 @@ class TimeSeries(WafoData):
         fact = 2.0 * pi
         w = fact * f
         return _wafospec.SpecData1D(S / fact, w)
+    def trdata(self, method='nonlinear', **options):
+        '''
+        Estimate transformation, g, from data.
+        
+         CALL:  [g test cmax irr g2]  = dat2tr(x,def,options);
+        
+           g,g2   = the smoothed and empirical transformation, respectively. 
+                    A two column matrix if multip=0.  
+                    If multip=1 it is a 2*(m-1) column matrix where the
+                    first and second column is the transform 
+                    for values in column 2 and third and fourth column is the
+                    transform for values in column 3 ......
+        
+           test   = int (g(u)-u)^2 du  where int. limits is given by param. This
+                    is a measure of departure of the data from the Gaussian model.
+                   
+        Parameters
+        ----------
+        
+        method : string
+            'nonlinear' : transform based on smoothed crossing intensity (default)
+            'mnonlinear': transform based on smoothed marginal distribution
+            'hermite'   : transform based on cubic Hermite polynomial
+            'ochi'      : transform based on exponential function
+            'linear'    : identity.
+        
+        options = options structure with the following fields:
+          csm,gsm - defines the smoothing of the logarithm of crossing intensity 
+                    and the transformation g, respectively. Valid values must 
+                    be 0<=csm,gsm<=1. (default csm=0.9, gsm=0.05)
+                    Smaller values gives smoother functions.
+            param - vector which defines the region of variation of the data x.
+                   (default see lc2tr). 
+         plotflag - 0 no plotting (Default)
+                    1 plots empirical and smoothed g(u) and the theoretical for
+                      a Gaussian model. 
+                    2 monitor the development of the estimation
+        linextrap - 0 use a regular smoothing spline 
+                    1 use a smoothing spline with a constraint on the ends to 
+                      ensure linear extrapolation outside the range of the data.
+                      (default)
+             gvar - Variances for the empirical transformation, g. (default  1) 
+               ne - Number of extremes (maxima & minima) to remove from the
+                    estimation of the transformation. This makes the
+                    estimation more robust against outliers. (default 7)
+              ntr - Maximum length of empirical crossing intensity or CDF.
+                    The empirical crossing intensity or CDF is interpolated
+                    linearly  before smoothing if their lengths exceeds Ntr.
+                    A reasonable NTR will significantly speed up the
+                    estimation for long time series without loosing any
+                    accuracy. NTR should be chosen greater than
+                    PARAM(3). (default 1000)
+           multip - 0 the data in columns belong to the same seastate (default).
+                    1 the data in columns are from separate seastates.
+        
+          DAT2TR estimates the transformation in a transformed Gaussian model.  
+          Assumption: a Gaussian process, Y, is related to the
+          non-Gaussian process, X, by Y = g(X). 
+         
+          The empirical crossing intensity is usually very irregular.
+          More than one local maximum of the empirical crossing intensity
+          may cause poor fit of the transformation. In such case one
+          should use a smaller value of CSM. In order to check the effect 
+          of smoothing it is recomended to also plot g and g2 in the same plot or
+          plot the smoothed g against an interpolated version of g (when CSM=GSM=1).
+            If  x  is likely to cross levels higher than 5 standard deviations
+          then the vector param has to be modified.  For example if x is 
+          unlikely to cross a level of 7 standard deviations one can use 
+          PARAM=[-7 7 513].
+        
+        Example
+        -------
+        >>> import wafo.spectrum.models as sm
+        >>> import wafo.transform.models as tm
+        >>> from wafo.objects import mat2timeseries
+        >>> Hs = 7.0
+        >>> Sj = sm.Jonswap(Hm0=Hs)
+        >>> S = Sj.tospecdata()   #Make spectrum object from numerical values
+        >>> S.tr = tm.TrOchi(mean=0, skew=0.16, kurt=0, sigma=Hs/4, ysigma=Hs/4)
+        >>> xs = S.sim(ns=2**16)
+        >>> ts = mat2timeseries(xs)
+        >>> g0, gemp = ts.trdata(monitor=True) # Monitor the development
+        >>> g1, gemp = ts.trdata(method='m', gvar=0.5 ) # Equal weight on all points
+        >>> g2, gemp = ts.trdata(method='n', gvar=[3.5, 0.5, 3.5])  # Less weight on the ends
+        >>> S.tr.dist2gauss()
+        5.9322684525265501
+        >>> np.round(gemp.dist2gauss())
+        6.0
+        >>> np.round(g0.dist2gauss())
+        4.0
+        >>> np.round(g1.dist2gauss())
+        4.0
+        >>> np.round(g2.dist2gauss())
+        4.0
+        
+         Hm0 = 7;
+         S = jonswap([],Hm0); g=ochitr([],[Hm0/4]); 
+         S.tr=g;S.tr(:,2)=g(:,2)*Hm0/4;
+         xs = spec2sdat(S,2^13);
+         g0 = dat2tr(xs,[],'plot','iter');             % Monitor the development
+         g1 = dat2tr(xs,'mnon','gvar', .5 );           % More weight on all points
+         g2 = dat2tr(xs,'nonl','gvar', [3.5 .5 3.5]);  % Less weight on the ends
+         hold on, trplot(g1,g)                                   % Check the fit
+         trplot(g2)
+        
+        See also
+        --------
+           troptset, lc2tr, cdf2tr, trplot
+        References
+        ----------
+        Rychlik, I. , Johannesson, P and Leadbetter, M. R. (1997)
+        "Modelling and statistical analysis of ocean wavedata using 
+        transformed Gaussian process."
+        Marine structures, Design, Construction and Safety, Vol. 10, No. 1, pp 13--47
+        
+         
+        Brodtkorb, P, Myrhaug, D, and Rue, H (1999)
+        "Joint distribution of wave height and crest velocity from
+        reconstructed data"
+        in Proceedings of 9th ISOPE Conference, Vol III, pp 66-73        
+        '''
+#        Tested on: Matlab 5.3, 5.2, 5.1
+#        History:
+#         revised pab Dec2004
+#          -Fixed bug: string comparison for def at fault.  
+#         revised pab Nov2004
+#          -Fixed bug: linextrap was not accounted for  
+#         revised pab july 2004
+#         revised pab 3 april 2004
+#         -fixed a bug in hermite estimation: excess changed to kurtosis  
+#         revised pab 29.12.2000
+#         - added example, hermite and ochi options
+#         - replaced optional arguments with a options struct
+#         - default param is now [-5 5 513] -> better to have the discretization
+#          represented with exact numbers, especially when calculating
+#          derivatives of the transformation numerically.
+#         revised pab 19.12.2000
+#          - updated call edf(X,-inf,[],monitor) to  edf(X,[],monitor)
+#            due to new calling syntax for edf
+#         modifed pab 24.09.2000
+#          - changed call from norminv to wnorminv
+#          - also removed the 7 lowest and 7 highest points from
+#            the estimation using def='mnonlinear' 
+#            (This is similar to what lc2tr does. lc2tr removes
+#             the 9 highest and 9 lowest TP from the estimation)
+#         modified pab 09.06.2000
+#          - made all the *empirical options secret.
+#          - Added 'mnonlinear' and 'mempirical' 
+#          - Fixed the problem of multip==1 and def=='empirical' by interpolating 
+#            with spline to ensure that the length of g is fixed
+#          - Replaced the test statistic for def=='empirical' with the one
+#            obtained when csm1=csm2=1. (Previously only the smoothed test
+#            statistic where returned)
+#         modified pab 12.10.1999
+#          fixed a bug
+#          added secret output of empirical estimate g2
+#         modified by svi  29.09.1999
+#         changed input def by adding new options.
+#         revised by pab 11.08.99
+#           changed name from dat2tran to dat2tr
+#         modified by Per A. Brodtkorb 12.05.1999,15.08.98
+#           added  secret option: to accept multiple data, to monitor the steps 
+#           of estimation of the transformation 
+#           also removed some code and replaced it with a call to lc2tr (cross2tr) 
+#           making the maintainance easier
+#        
+        
+        #opt = troptset('plotflag','off','csm',.95,'gsm',.05,....
+        #    'param',[-5 5 513],'delay',2,'linextrap','on','ne',7,...
+        #    'cvar',1,'gvar',1,'multip',0);
+        
+        
+        opt = DotDict(chkder=True, plotflag=True, csm=.95, gsm=.05,
+            param=[-5, 5, 513], delay=2, ntr=inf, linextrap=True, ne=7, cvar=1, gvar=1,
+            multip=False, crossdef='uM')
+        opt.update(**options)
+        
+        ma = self.data.mean()
+        sa = self.data.std()
 
+        if method.startswith('lin'):
+            return TrLinear(mean=ma, sigma=sa)
+             
+        if method[0] == 'n':
+            tp = self.turning_points()
+            mM = tp.cycle_pairs()
+            lc = mM.level_crossings(opt.crossdef)
+            return lc.trdata()
+        elif method[0] == 'm':
+            return cdftr()
+        elif method[0] == 'h':
+            ga1 = np.skew(self.data)
+            ga2 = np.kurtosis(self.data, fisher=True) #kurt(xx(n+1:end))-3;
+            up = min(4 * (4 * ga1 / 3) ** 2, 13)
+            lo = (ga1 ** 2) * 3 / 2;
+            kurt1 = min(up, max(ga2, lo)) + 3
+            return TrHermite(mean=ma, var=sa ** 2, skew=ga1, kurt=kurt1)
+        elif method[0] == 'o':
+            ga1 = np.skew(self.data)
+            return TrOchi(mean=ma, var=sa ** 2, skew=ga1)
+             
     def turning_points(self, h=0.0, wavetype=None):
         ''' 
         Return turning points (tp) from data, optionally rainflowfiltered.

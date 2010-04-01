@@ -1,5 +1,6 @@
 from __future__ import division
 from scipy.misc.ppimport import ppimport
+from wafo.objects import mat2timeseries, TimeSeries
 import warnings
 import numpy as np
 from numpy import (pi, inf, meshgrid, zeros, ones, where, nonzero, #@UnresolvedImport
@@ -17,7 +18,8 @@ from pylab import stineman_interp
 
 from dispersion_relation import w2k #, k2w
 from wafo.wafodata import WafoData, now
-from wafo.misc import sub_dict_select, nextpow2, discretize, JITImport, tranproc
+
+from wafo.misc import sub_dict_select, nextpow2, discretize, JITImport #, tranproc
 try:
     from wafo.gaussian import Rind
 except ImportError:
@@ -28,7 +30,8 @@ except ImportError:
     warnings.warn('Compile the c_library.pyd again!')
     c_library = None
     
-from wafo.transform import TrData
+#from wafo.transform import TrData
+from wafo.transform.models import TrLinear
 from wafo.plotbackend import plotbackend
 
 
@@ -190,7 +193,7 @@ class SpecData1D(WafoData):
         self.freqtype = 'w'
         self.angletype = ''
         self.h = inf
-        self.tr = None
+        self.tr = None #TrLinear()
         self.phi = 0.0
         self.v = 0.0
         self.norm = False
@@ -572,7 +575,9 @@ class SpecData1D(WafoData):
         #Fs = 2*freq(end)+eps; % sampling frequency
         
         for ix in xrange(max_sim):
-            [x2, x1] = spec2nlsdat(SL, [np, cases], [], iseed, method, fnLimit)
+            #[x2, x1] = spec2nlsdat(SL, [np, cases], [], iseed, method, fnLimit)
+            [x2, x1] = self.sim_nl(ns=np, cases=cases, dt=None, iseed=iseed, method=method,
+                        fnlimit=fn_limit)
             #%x2(:,2:end) = x2(:,2:end) -x1(:,2:end);
             S2 = dat2spec(x2, L)   
             S1 = dat2spec(x1, L)
@@ -727,9 +732,10 @@ class SpecData1D(WafoData):
         
        
         if self.tr is None:
-            y = linspace(-5, 5, 513)
+            g = TrLinear(var=m[0])
+            #y = linspace(-5, 5, 513)
             #g = _wafotransform.
-            g = TrData(y, sqrt(m[0]) * y)
+            #g = TrData(y, sqrt(m[0]) * y)
         else:
             g = self.tr
         
@@ -1053,7 +1059,7 @@ class SpecData1D(WafoData):
             xder[:, 0] = x[:, 0]
 
         if spec.tr is not None:
-            print('   Transforming data.')
+            #print('   Transforming data.')
             g = spec.tr
             if derivative:
                 for i in range(cases):
@@ -1079,7 +1085,7 @@ class SpecData1D(WafoData):
 
 # function [x2,x,svec,dvec,amp]=spec2nlsdat(spec,np,dt,iseed,method,truncationLimit)
     def sim_nl(self, ns=None, cases=1, dt=None, iseed=None, method='random',
-        fnlimit=1.4142, reltol=1e-3, g=9.81):
+        fnlimit=1.4142, reltol=1e-3, g=9.81, verbose=False):
         """ 
         Simulates a Randomized 2nd order non-linear wave X(t)
 
@@ -1142,6 +1148,21 @@ class SpecData1D(WafoData):
 
         Example
         --------
+        >>> import wafo.spectrum.models as sm
+        >>> Sj = sm.Jonswap();S = Sj.tospecdata()
+        >>> ns =100; dt = .2
+        >>> x1 = S.sim_nl(ns,dt=dt)
+
+        >>> import numpy as np
+        >>> import scipy.stats as st
+        >>> x2 = S.sim_nl(ns=20000,cases=20)
+        >>> truth1 = [0,np.sqrt(S.moment(1)[0])] + S.stats_nl(moments='sk')
+        >>> funs = [np.mean,np.std,st.skew,st.kurtosis]
+        >>> for fun,trueval in zip(funs,truth1):
+        ...     res = fun(x2[:,1::], axis=0)
+        ...     m = res.mean()
+        ...     sa = res.std()
+        ...     assert(np.abs(m-trueval)<sa)
         np =100; dt = .2
         [x1, x2] = spec2nlsdat(jonswap,np,dt)
         waveplot(x1,'r',x2,'g',1,1)
@@ -1281,8 +1302,8 @@ class SpecData1D(WafoData):
         #if isempty(nmin),nmin = 2end % Must always be greater than 1
         f_limit_up = df * nmax
         f_limit_lo = df * nmin
-
-        print('2nd order frequency Limits = %g,%g' % (f_limit_lo, f_limit_up))
+        if verbose:
+            print('2nd order frequency Limits = %g,%g' % (f_limit_lo, f_limit_up))
 
 
 
@@ -1298,7 +1319,7 @@ class SpecData1D(WafoData):
 ##        % 1'st order + 2'nd order component.
 ##        x2(:,2:end) =x(:,2:end)+ real(x2s(1:np,:))+real(x2d(1:np,:))
 ##        else
-        amp = amp.T
+        amp = np.array(amp.T).ravel()
         rvec, ivec = c_library.disufq(amp.real, amp.imag, w, kw, water_depth, g, nmin, nmax, cases, ns)
 
         svec = rvec + 1J * ivec
@@ -1325,8 +1346,8 @@ class SpecData1D(WafoData):
             composed of letters ['mvsk'] specifying which moments to compute:
                    'm' = mean,
                    'v' = variance,
-                   's' = (Fisher's) skew,
-                   'k' = (Fisher's) kurtosis.
+                   's' = skewness,
+                   'k' = (Pearson's) kurtosis.
         method : string
             'approximate' method due to Marthinsen & Winterstein (default)
             'eigenvalue'  method due to Kac and Siegert
@@ -1358,16 +1379,15 @@ class SpecData1D(WafoData):
         --------
         #Simulate a Transformed Gaussian process:
         >>> import wafo.spectrum.models as sm
-        >>> Sj = sm.Jonswap()
+        >>> import wafo.transform.models as wtm
+        >>> Hs = 7.
+        >>> Sj = sm.Jonswap(Hm0=Hs, Tp=11)
         >>> S = Sj.tospecdata()
         >>> me, va, sk, ku = S.stats_nl(moments='mvsk')
-
-
-        Hm0=7;Tp=11
-        S = jonswap([],[Hm0 Tp]); [sk, ku, me]=spec2skew(S)
-        g=hermitetr([],[Hm0/4 sk ku me]);  g2=[g(:,1), g(:,2)*Hm0/4]
-        ys = spec2sdat(S,15000)   % Simulated in the Gaussian world
-        xs = gaus2dat(ys,g2)      % Transformed to the real world
+        >>> g = wtm.TrHermite(mean=me, sigma=Hs/4, skew=sk, kurt=ku, ysigma=Hs/4)
+        >>> ys = S.sim(15000)         # Simulated in the Gaussian world
+        >>> xs = g.gauss2dat(ys[:,1]) # Transformed to the real world
+        
 
         See also
         ---------
@@ -1483,7 +1503,7 @@ class SpecData1D(WafoData):
 ##            skew = sum((6*C2+8*E2).*E)/sa^3   % skewness
 ##            kurt = 3+48*sum((C2+E2).*E2)/sa^4 % kurtosis
         return output
-    def testgaussian(ns,test0=None, cases=100, method='nonlinear',**opt):
+    def testgaussian(self, ns,test0=None, cases=100, method='nonlinear',**opt):
         '''
         TESTGAUSSIAN Test if a stochastic process is Gaussian.
         
@@ -1507,13 +1527,24 @@ class SpecData1D(WafoData):
          This is useful for testing if the process X(t) is Gaussian.
          If 95% of TEST1 is less than TEST0 then X(t) is not Gaussian at a 5% level.
         
-         Example:
-         Hm0 = 7;
-         S0 = jonswap([],Hm0); g=ochitr([],[Hm0/4]); S=S0;
-         S.tr=g;S.tr(:,2)=g(:,2)*Hm0/4;
-         xs = spec2sdat(S,2^13);
-         [g0 t0] = dat2tr(xs);
-         t1 = testgaussian(S0,[2^13 50],t0); 
+        Example:
+        -------
+        >>> import wafo.spectrum.models as sm
+        >>> import wafo.transform.models as wtm
+        >>> import wafo.objects as wo
+        >>> Hs = 7
+        >>> Sj = sm.Jonswap(Hm0=Hs)
+        >>> S0 = Sj.tospecdata()
+        >>> ns =100; dt = .2
+        >>> x1 = S0.sim(ns, dt=dt)
+        
+        >>> S = S0.copy()
+        >>> me, va, sk, ku = S.stats_nl(moments='mvsk')
+        >>> S.tr = wtm.TrHermite(mean=me, sigma=Hs/4, skew=sk, kurt=ku, ysigma=Hs/4)
+        >>> ys = wo.mat2timeseries(S.sim(ns=2**13))         
+        >>> g0, gemp = ys.trdata()
+        >>> t0 = g0.dist2gauss()
+        >>> t1 = S0.testgaussian(ns=2**13, t0=t0, cases=50) 
         
          See also  cov2sdat, dat2tr, troptset
         '''
@@ -1542,49 +1573,43 @@ class SpecData1D(WafoData):
 #        
 #        opt = troptset(opt,'multip',1)
         
-        if test0 is None:
-            plotflag=0
-        else: 
-            plotflag=1
-        
+        plotflag=0 if test0 is None else 1
         if cases>50:
             print('  ... be patient this may take a while')
         
-        test1 = []
-        rep = floor(ns*cases/maxsize)+1
+       
+        rep = int(np.floor(ns*cases/maxsize)+1)
         
-        Nstep = floor(cases/rep);
+        Nstep = np.floor(cases/rep);
         
         acf = self.tocovdata()
         #R = spec2cov(S);
-        
+        test1 = []
         for ix in  range(rep):
             xs = acf.sim(ns=ns, cases=Nstep)
+            for iy in range(1, xs.shape[-1]):
+                ts = TimeSeries(xs[:, iy], xs[:, 0].ravel())
+                g, tmp = ts.trdata(method, **opt)
+                test1.append(g.dist2gauss())
             #xs = cov2sdat(R,[ns Nstep]);
-            [g, tmp] = dat2tr(xs,method, **opt);
+            #[g, tmp] = dat2tr(xs,method, **opt);
             #test1 = [test1; tmp(:)]
-            print('finished %d of %d ' % (ix,rep) )
+            print('finished %d of %d ' % (ix+1,rep) )
         
         if rep>1:
-            xs = acf.sim(ns=ns, cases=rem(cases,rep))
-            [g, tmp] = dat2tr(xs,method,**opt);
-            #test1 = [test1; tmp(:)];
-        
-        
-#        if (nargout>0 || plotflag==0),
-#          test2=test1;
-#        end
-#        
-#        
-#        if plotflag 
-#          plot(test1,'o'),hold on
-#          if 1 
-#            plot([1 cases],test0*[1 1],'--'),
-#          end
-#          hold off
-#          ylabel('e(g(u)-u)')
-#          xlabel('Simulation number')
-#        end
+            xs = acf.sim(ns=ns, cases=np.remainder(cases,rep))
+            for iy in range(1, xs.shape[-1]):
+                ts = TimeSeries(xs[:, iy], xs[:, 0].ravel())
+                g, tmp = ts.trdata(method, **opt)
+                test1.append(g.dist2gauss())
+                
+        if plotflag: 
+            plotbackend.plot(test1,'o')
+            plotbackend.plot([1, cases], [test0, test0],'--')
+          
+            plotbackend.ylabel('e(g(u)-u)')
+            plotbackend.xlabel('Simulation number')
+        return test1
         
     def moment(self, nr=2, even=True, j=0):
         ''' Calculates spectral moments from spectrum
@@ -1647,8 +1672,8 @@ class SpecData1D(WafoData):
         if self.freqtype in ['f', 'w']:
             vari = 't'
             if self.freqtype == 'f':
-               f = 2. * pi * f
-               S = S / (2. * pi)
+                f = 2. * pi * f
+                S = S / (2. * pi)
         else:
             vari = 'x'
         S1 = abs(S) ** (j + 1.)
@@ -2326,7 +2351,7 @@ class SpecData2D(WafoData):
 ##% By es 27.08.1999
 
 
-        pi = pi
+       
         two_dim_spectra = ['dir', 'encdir', 'k2d']
         if self.type not in two_dim_spectra:
             raise ValueError('Unknown 2D spectrum type!')
