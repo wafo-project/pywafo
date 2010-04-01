@@ -48,8 +48,8 @@ class TrCommon(object):
         self.ymean = kwds.get('ymean', 0e0)
         self.ysigma = kwds.get('ysigma', 1e0)
 
-    def __call__(self, x):
-        return self._dat2gauss(x)
+    def __call__(self, x, *xi):
+        return self._dat2gauss(x, *xi)
 
     def dist2gauss(self, x=None, xnmin=-5, xnmax=5, n=513):
         """
@@ -158,6 +158,7 @@ class TrData(WafoData, TrCommon):
     1
     >>> g.sigma
     5
+    >>> g.dat2gauss(1,2,3)
     
     
     Check that the departure from a Gaussian model is zero

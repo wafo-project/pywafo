@@ -40,7 +40,7 @@ arr = asarray
 
 all = alltrue
 
-def chi2isf(p,df):
+def chi2isf(p, df):
     return special.chdtri(df, p)
 def chi2sf(x, df):
     return special.chdtrc(df, x)
@@ -92,7 +92,7 @@ class rv_frozen(object):
     def __init__(self, dist, *args, **kwds):
         self.dist = dist
         loc0, scale0 = map(kwds.get, ['loc', 'scale'])
-        if hasattr(dist, 'fix_loc_scale'): #isinstance(dist, _WAFODIST.rv_continuous):
+        if hasattr(dist, 'fix_loc_scale'): #isinstance(dist, rv_continuous):
             args, loc0, scale0 = dist.fix_loc_scale(args, loc0, scale0)
             self.par = args + (loc0, scale0)
         else: # rv_discrete

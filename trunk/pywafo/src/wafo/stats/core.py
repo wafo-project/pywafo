@@ -8,7 +8,7 @@ __all__ = ['edf']
 
 def edf(x, method=2):
     ''' 
-    Returns EDF Empirical Distribution Function.
+    Returns Empirical Distribution Function (EDF).
     
     Parameters
     ----------
@@ -48,7 +48,7 @@ def edf(x, method=2):
 
 def edfcnd(x, c=None, method=2):
     ''' 
-    EDFCND Empirical Distribution Function CoNDitioned that X>=c.
+    Returns empirical Distribution Function CoNDitioned that X>=c (EDFCND).
     
     Parameters
     ----------

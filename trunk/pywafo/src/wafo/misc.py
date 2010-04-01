@@ -596,15 +596,15 @@ def rfcfilter(x, h, method=0):
             if cmpfun1(yi, fmi):
                 z1 = -1
             elif cmpfun1(fpi, yi):
-                z1 = + 1
+                z1 = +1
             else:
                 z1 = 0
             t1, y1 = (t0, y0) if z1 == 0 else (ti, yi)
         else:
-            if  (((z0 == + 1) & cmpfun1(yi, fmi)) | ((z0 == -1) & cmpfun2(yi, fpi))):
+            if  (((z0 == +1) & cmpfun1(yi, fmi)) | ((z0 == -1) & cmpfun2(yi, fpi))):
                 z1 = -1
-            elif (((z0 == + 1) & cmpfun2(fmi, yi)) | ((z0 == -1) & cmpfun1(fpi, yi))):
-                z1 = + 1
+            elif (((z0 == +1) & cmpfun2(fmi, yi)) | ((z0 == -1) & cmpfun1(fpi, yi))):
+                z1 = +1
             else:
                 warnings.warn('Something wrong, i=%d' % tim1)
 
@@ -614,7 +614,7 @@ def rfcfilter(x, h, method=0):
             elif z1 == -1:
                 #% y1 = min([y0 xi])
                 t1, y1 = (t0, y0) if y0 < yi else (ti, yi)
-            elif z1 == + 1:
+            elif z1 == +1:
                 #% y1 = max([y0 xi])
                 t1, y1 = (t0, y0) if y0 > yi else (ti, yi)
 
@@ -672,6 +672,13 @@ def findtp(x, h=0.0, kind=None):
     >>> tph = x1[itph,:]
     >>> a = pylab.plot(x1[:,0],x1[:,1],tp[:,0],tp[:,1],'ro',tph[:,1],tph[:,1],'k.')
     >>> pylab.close('all')
+    >>> itp
+    array([ 11,  21,  22,  24,  26,  28,  31,  39,  43,  45,  47,  51,  56,
+            64,  70,  78,  82,  84,  89,  94, 101, 108, 119, 131, 141, 148,
+           149, 150, 159, 173, 184, 190, 199])
+    >>> itph
+    array([ 11,  64,  28,  31,  47,  51,  39,  56,  70,  94,  78,  89, 101,
+           108, 119, 148, 131, 141,   0, 159, 173, 184, 190])
 
     See also
     ---------
@@ -1031,7 +1038,7 @@ def common_shape(*args, ** kwds):
     shape = kwds.get('shape')
     if shape is not None:
         if not isinstance(shape, (list, tuple)):
-            shape = (shape, )
+            shape = (shape,)
         shapes.append(tuple(shape))
     if len(set(shapes)) == 1:
         # Common case where nothing needs to be broadcasted.
@@ -1055,7 +1062,7 @@ def common_shape(*args, ** kwds):
         if len(unique) > 2:
             # There must be at least two non-1 lengths for this axis.
             raise ValueError("shape mismatch: two or more arrays have "
-                             "incompatible dimensions on axis %r." % (axis, ))
+                             "incompatible dimensions on axis %r." % (axis,))
         elif len(unique) == 2:
             # There is exactly one non-1 length. The common shape will take this
             # value.
@@ -1109,7 +1116,7 @@ def argsreduce(condition, * args):
     """
     newargs = atleast_1d(*args)
     if not isinstance(newargs, list):
-        newargs = [newargs,]
+        newargs = [newargs, ]
     expand_arr = (condition == condition)
     return [extract(condition, arr1 * expand_arr) for arr1 in newargs]
 
@@ -1541,15 +1548,15 @@ def meshgrid(*xi, ** kwargs):
 
 
     ndim = len(args)
-    s0 = (1, ) * ndim
-    output = [x.reshape(s0[:i] + (-1, ) + s0[i + 1::]) for i, x in enumerate(args)]
+    s0 = (1,) * ndim
+    output = [x.reshape(s0[:i] + (-1,) + s0[i + 1::]) for i, x in enumerate(args)]
 
     shape = [x.size for x in output]
 
     if indexing == 'xy':
         # switch first and second axis
-        output[0].shape = (1, -1) + (1, ) * (ndim - 2)
-        output[1].shape = (-1, 1) + (1, ) * (ndim - 2)
+        output[0].shape = (1, -1) + (1,) * (ndim - 2)
+        output[1].shape = (-1, 1) + (1,) * (ndim - 2)
         shape[0], shape[1] = shape[1], shape[0]
 
     if sparse:
@@ -1722,7 +1729,7 @@ def tranproc(x, f, x0, *xi):
     xo, fo, x0 = atleast_1d(x, f, x0)
     xi = atleast_1d(*xi)
     if not isinstance(xi, list):
-        xi = [xi,]
+        xi = [xi, ]
     N = len(xi) # N = number of derivatives
     nmax = ceil((xo.ptp()) * 10 ** (7. / max(N, 1)))
     xo, fo = trangood(xo, fo, min_x=min(x0), max_x=max(x0), max_n=nmax)
@@ -1748,15 +1755,15 @@ def tranproc(x, f, x0, *xi):
 
         #% Transform X with the derivatives of  f.
         fxder = zeros((N, x0.size))
-        fder = vstack((xo, fo)).T
+        fder = vstack((xo, fo))
         for k in range(N): #% Derivation of f(x) using a difference method.
-            n = fder.shape[0]
+            n = fder.shape[-1]
             #%fder = [(fder(1:n-1,1)+fder(2:n,1))/2 diff(fder(:,2))./diff(fder(:,1))]
-            fder = vstack([(fder[0:n - 1, 0] + fder[1:n, 0]) / 2, diff(fder[:, 1]) / hn])
+            fder = vstack([(fder[0, 0:n - 1] + fder[0, 1:n]) / 2, diff(fder[1, :]) / hn])
             fxder[k] = tranproc(fder[0], fder[1], x0)
 
-        #% Calculate the transforms of the derivatives of X.
-        #% First time derivative of y: y1 = f'(x)*x1
+        # Calculate the transforms of the derivatives of X.
+        # First time derivative of y: y1 = f'(x)*x1
         
         y1 = fxder[0] * xi[0]
         y.append(y1)

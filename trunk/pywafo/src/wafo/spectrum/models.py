@@ -55,7 +55,7 @@ from numpy import (inf, atleast_1d, newaxis, any, minimum, maximum, array, #@Unr
 from dispersion_relation import w2k
 #ppimport.enable()
 #_wafospectrum = ppimport.ppimport('wafo.spectrum')
-from core import SpecData1D
+from wafo.spectrum import SpecData1D
 sech = lambda x: 1.0 / cosh(x)
 
 eps = finfo(float).eps
@@ -542,9 +542,9 @@ class Jonswap(ModelSpectrum):
         outsideJonswapRange = Tp > 5 * sqrt(Hm0) or Tp < 3.6 * sqrt(Hm0)
         if outsideJonswapRange:
             txt0 = '''
-            Hm0,Tp is outside the JONSWAP range.
+            Hm0=%g,Tp=%g is outside the JONSWAP range.
             The validity of the spectral density is questionable.
-            '''
+            ''' % (Hm0, Tp)
             warnings.warn(txt0)
 
         if gam < 1 or 7 < gam:
