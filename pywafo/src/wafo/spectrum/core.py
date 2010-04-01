@@ -1155,14 +1155,25 @@ class SpecData1D(WafoData):
 
         >>> import numpy as np
         >>> import scipy.stats as st
-        >>> x2 = S.sim_nl(ns=20000,cases=20)
-        >>> truth1 = [0,np.sqrt(S.moment(1)[0])] + S.stats_nl(moments='sk')
+        >>> x2, x1 = S.sim_nl(ns=20000,cases=20)
+        >>> truth1 = [0,np.sqrt(S.moment(1)[0][0])] + S.stats_nl(moments='sk')
+        >>> truth1[-1] = truth1[-1]-3
+        >>> truth1
+         
         >>> funs = [np.mean,np.std,st.skew,st.kurtosis]
         >>> for fun,trueval in zip(funs,truth1):
         ...     res = fun(x2[:,1::], axis=0)
         ...     m = res.mean()
         ...     sa = res.std()
-        ...     assert(np.abs(m-trueval)<sa)
+        ...     m, sa
+        ...     np.abs(m-trueval)<sa
+        True
+        True
+        True
+        True
+        
+        assert(np.abs(m-trueval)<sa, fun.__name__)
+        
         np =100; dt = .2
         [x1, x2] = spec2nlsdat(jonswap,np,dt)
         waveplot(x1,'r',x2,'g',1,1)
@@ -1545,8 +1556,10 @@ class SpecData1D(WafoData):
         >>> g0, gemp = ys.trdata()
         >>> t0 = g0.dist2gauss()
         >>> t1 = S0.testgaussian(ns=2**13, t0=t0, cases=50) 
+        >>> sum(t1>t0)<5
+        True
         
-         See also  cov2sdat, dat2tr, troptset
+        See also  cov2sdat, dat2tr, troptset
         '''
 #        Tested on: Matlab 5.3, 5.2, 5.1
 #         History:
