@@ -1422,6 +1422,76 @@ def discretize(fun, a, b, tol=0.005, n=5):
         err = 0.5 * amax(abs((y00 - y) / (abs(y00 + y) + tiny)))
     return x, y
 
+def discretize2(fun, a,b,tol=0.005, n=5):
+    '''
+    Automatic adaptive discretization of function
+
+    Parameters
+    ----------
+    fun : callable
+        function to discretize
+    a,b : real scalars
+        evaluation limits
+    tol : real, scalar
+        absoute error tolerance
+    n : scalar integer
+        number of values
+
+    Returns
+    -------
+    x : discretized values
+    y : fun(x)
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> import pylab as plb
+    >>> x,y = discretize2(np.cos,0,np.pi)
+    >>> t = plb.plot(x,y)
+    >>> plb.show()
+
+    >>> plb.close('all')
+
+    '''
+    tiny = floatinfo.tiny
+    n += (mod(n,2)==0) # make sure n is odd
+    x = linspace(a, b, n)
+    fx = fun(x)
+    
+    n2 = (n-1)/2
+    erri = hstack( (zeros((n2,1)), ones((n2,1)) )).ravel()
+    err = erri.max()
+    err0 = inf
+    #while (err != err0 and err > tol and n < nmax):
+    for j in range(50):
+        if err!=err0 and np.any(erri > tol):
+            err0 = err
+            # find top errors
+           
+            I, = where(erri>tol)
+            # double the sample rate in intervals with the most error     
+            y = (vstack(((x[I]+x[I-1])/2, (x[I+1]+x[I])/2)).T).ravel()    
+            fy = fun(y)
+            
+            fy0 = interp(y, x, fx)
+            erri = 0.5 * (abs((fy0 - fy) / (abs(fy0 + fy) + tiny)))
+            
+            err = erri.max()
+          
+            x = hstack((x,y))
+            
+            I = x.argsort()
+            x = x[I]
+            erri = hstack((zeros(len(fx)),erri))[I]
+            fx = hstack((fx,fy))[I]
+            
+        else:
+            break
+    else:
+        warnings.warn('Recursion level limit reached j=%d' % j)
+    
+    return x, fx
+
 
 def pol2cart(theta, rho):
     ''' 
@@ -1792,6 +1862,9 @@ def tranproc(x, f, x0, *xi):
     return y #y0,y1,y2,y3,y4
 
 
+
+
+    
 def test_common_shape():
 
     A = ones((4, 1))
@@ -1870,8 +1943,16 @@ def _test_discretize():
     x, y = discretize(cos, 0, pi)
     plb.plot(x, y)
     plb.show()
-
     plb.close('all')
+    
+def _test_discretize2():
+    import numpy as np
+    import pylab as plb
+    x,y = discretize2(np.cos,0,np.pi)
+    t = plb.plot(x,y)
+    plb.show()
+    plb.close('all')
+    
 def _test_stirlerr():
     x = linspace(1, 5, 6)
     print stirlerr(x)
@@ -1898,8 +1979,8 @@ def _test_parse_kwargs():
     print out1
 
 if __name__ == "__main__":
-    if  True:# False: #
+    if  False: # True:# 
         import doctest
         doctest.testmod()
     else:
-        _test_tranproc()
+        _test_discretize2()
