@@ -16,7 +16,7 @@ python setup.py sdist bdist_wininst upload --show-response
 #!/usr/bin/env python
 import os, sys
 
-sys.argv.append("develop")
+#sys.argv.append("develop")
 #sys.argv.append("install")
 DISTUTILS_DEBUG = True
 pkg_name = 'wafo'
@@ -33,9 +33,9 @@ if  True: #__file__ == 'setupegg.py':
 else:
     from distutils.core import setup
 
-
+t = find_packages('src')
 subpackages = ('spectrum','data','transform','covariance')
-subpackagesfull = [os.path.join(pkg_name,f) for f in subpackages]
+#subpackagesfull = [os.path.join(pkg_name,f) for f in subpackages]
 
 subtests = [os.path.join(subpkg,'test') for subpkg in subpackages]
 
@@ -58,7 +58,7 @@ setup(
     author_email='wafo@maths.lth.se',
     decription = 'Statistical analysis and simulation of random waves and random loads',
     long_description = info.__doc__,
-	 install_requires = ['numpy>=1.3'],
+	 install_requires = ['numpy>=1.4'],
     license = "GPL",
     url='http://www.maths.lth.se/matstat/wafo/',
 	name = pkg_name,

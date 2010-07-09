@@ -2,8 +2,8 @@ from __future__ import division
 from wafo.wafodata import WafoData
 import numpy as np
 from numpy import inf
-from numpy.lib.shape_base import atleast_1d
-from numpy.ma.core import arange, floor
+from numpy import atleast_1d
+from numpy import arange, floor
 __all__ = ['edf']
 
 def edf(x, method=2):

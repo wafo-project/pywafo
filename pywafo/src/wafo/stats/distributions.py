@@ -27,7 +27,7 @@ import numpy.random as mtrand
 from numpy import flatnonzero as nonzero
 from scipy.special import gammaln as gamln
 from copy import copy
-from estimation import FitDistribution
+from wafo.stats.estimation import FitDistribution
 
 try:
     import vonmises_cython
