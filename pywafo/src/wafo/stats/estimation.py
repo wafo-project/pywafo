@@ -55,7 +55,7 @@ def valarray(shape, value=nan, typecode=None):
     if typecode is not None:
         out = out.astype(typecode)
     if not isinstance(out, ndarray):
-        out = asarray(out)
+        out = arr(out)
     return out 
 
 # Frozen RV class
@@ -99,7 +99,6 @@ class rv_frozen(object):
             args, loc0 = dist.fix_loc(args, loc0)
             self.par = args + (loc0,)
 
-
     def pdf(self, x):
         ''' Probability density function at x of the given RV.'''
         return self.dist.pdf(x, *self.par)
@@ -123,6 +122,14 @@ class rv_frozen(object):
         ''' Some statistics of the given RV'''
         kwds = dict(moments=moments)
         return self.dist.stats(*self.par, **kwds)
+    def median(self):
+        return self.dist.median(*self.par, **self.kwds)
+    def mean(self):
+        return self.dist.mean(*self.par,**self.kwds)
+    def var(self):
+        return self.dist.var(*self.par, **self.kwds)
+    def std(self):
+        return self.dist.std(*self.par, **self.kwds)
     def moment(self, n):
         par1 = self.par[:self.dist.numargs]
         return self.dist.moment(n, *par1)
@@ -131,6 +138,8 @@ class rv_frozen(object):
     def pmf(self, k):
         '''Probability mass function at k of the given RV'''
         return self.dist.pmf(k, *self.par)
+    def interval(self,alpha):
+        return self.dist.interval(alpha, *self.par, **self.kwds)
 
 
 
@@ -525,8 +534,8 @@ class FitDistribution(rv_frozen):
         self.par_cov = zeros((np, np))
         self.LLmax = -dist.nnlf(self.par, self.data)
         self.LPSmax = -dist.nlogps(self.par, self.data)
-        self.pvalue = dist.pvalue(self.par, self.data, unknown_numpar=numpar)
-        H = numpy.asmatrix(dist.hessian_nnlf(self.par, self.data))
+        self.pvalue = self._pvalue(self.par, self.data, unknown_numpar=numpar)
+        H = numpy.asmatrix(self._hessian_nnlf(self.par, self.data))
         self.H = H
         try:
             if allfixed:
@@ -772,7 +781,7 @@ class FitDistribution(rv_frozen):
 
 
 
-    def pvalue(self, theta, x, unknown_numpar=None):
+    def _pvalue(self, theta, x, unknown_numpar=None):
         ''' Return the P-value for the fit using Moran's negative log Product Spacings statistic
 
             where theta are the parameters (including loc and scale)
@@ -784,7 +793,7 @@ class FitDistribution(rv_frozen):
         if any(tie):
             print('P-value is on the conservative side (i.e. too large) due to ties in the data!')
 
-        T = self.nlogps(theta, x)
+        T = self.dist.nlogps(theta, x)
 
         n = len(x)
         np1 = n + 1
@@ -802,115 +811,8 @@ class FitDistribution(rv_frozen):
         pvalue = chi2sf(Tn, n) #_WAFODIST.chi2.sf(Tn, n)
         return pvalue
 
-    def nlogps(self, theta, x):
-        """ Moran's negative log Product Spacings statistic
 
-            where theta are the parameters (including loc and scale)
-
-            Note the data in x must be sorted
-
-        References
-        -----------
-
-        R. C. H. Cheng; N. A. K. Amin (1983)
-        "Estimating Parameters in Continuous Univariate Distributions with a
-        Shifted Origin.",
-        Journal of the Royal Statistical Society. Series B (Methodological),
-        Vol. 45, No. 3. (1983), pp. 394-403.
-
-        R. C. H. Cheng; M. A. Stephens (1989)
-        "A Goodness-Of-Fit Test Using Moran's Statistic with Estimated
-        Parameters", Biometrika, 76, 2, pp 385-392
-
-        Wong, T.S.T. and Li, W.K. (2006)
-        "A note on the estimation of extreme value distributions using maximum
-        product of spacings.",
-        IMS Lecture Notes Monograph Series 2006, Vol. 52, pp. 272-283
-        """
-
-        try:
-            loc = theta[-2]
-            scale = theta[-1]
-            args = tuple(theta[:-2])
-        except IndexError:
-            raise ValueError, "Not enough input arguments."
-        if not self.dist._argcheck(*args) or scale <= 0:
-            return inf
-        x = arr((x - loc) / scale)
-        cond0 = (x <= self.dist.a) | (x >= self.dist.b)
-        if (any(cond0)):
-            return inf
-        else:
-            #linfo = numpy.finfo(float)
-            realmax = floatinfo.machar.xmax
-
-            lowertail = True
-            if lowertail:
-                prb = numpy.hstack((0.0, self.dist.cdf(x, *args), 1.0))
-                dprb = numpy.diff(prb)
-            else:
-                prb = numpy.hstack((1.0, self.dist.sf(x, *args), 0.0))
-                dprb = -numpy.diff(prb)
-
-            logD = log(dprb)
-            dx = numpy.diff(x, axis=0)
-            tie = (dx == 0)
-            if any(tie):
-                # TODO % implement this method for treating ties in data:
-                # Assume measuring error is delta. Then compute
-                # yL = F(xi-delta,theta)
-                # yU = F(xi+delta,theta)
-                # and replace
-                # logDj = log((yU-yL)/(r-1)) for j = i+1,i+2,...i+r-1
-
-                # The following is OK when only minimization of T is wanted
-
-                i_tie = nonzero(tie)
-                tiedata = x[i_tie]
-
-                logD[(i_tie[0] + 1,)] = log(self.dist._pdf(tiedata, *args)) + log(scale)
-
-            finiteD = numpy.isfinite(logD)
-            nonfiniteD = 1 - finiteD
-            if any(nonfiniteD):
-                T = -sum(logD[finiteD], axis=0) + 100.0 * log(realmax) * sum(nonfiniteD, axis=0);
-            else:
-                T = -sum(logD, axis=0) #%Moran's negative log product spacing statistic
-        return T
-
-    def _nnlf(self, x, *args):
-        return - sum(log(self._pdf(x, *args)), axis=0)
-
-    def nnlf(self, theta, x):
-        ''' Return negative loglikelihood function, i.e., - sum (log pdf(x, theta),axis=0)
-           where theta are the parameters (including loc and scale)
-        '''
-        try:
-            loc = theta[-2]
-            scale = theta[-1]
-            args = tuple(theta[:-2])
-        except IndexError:
-            raise ValueError, "Not enough input arguments."
-        if not self._argcheck(*args) or scale <= 0:
-            return inf
-        x = arr((x - loc) / scale)
-        cond0 = (x <= self.a) | (self.b <= x)
-#        newCall = False
-#        if newCall:
-#            goodargs = argsreduce(1-cond0, *((x,)))
-#            goodargs = tuple(goodargs + list(args))
-#            N = len(x)
-#            Nbad = sum(cond0)
-#            xmin = floatinfo.machar.xmin
-#            return self._nnlf(*goodargs) + N*log(scale) + Nbad*100.0*log(xmin)
-#        el
-        if (any(cond0)):
-            return inf
-        else:
-            N = len(x)
-            return self._nnlf(x, *args) + N * log(scale)
-
-    def hessian_nnlf(self, theta, data, eps=None):
+    def _hessian_nnlf(self, theta, data, eps=None):
         ''' approximate hessian of nnlf where theta are the parameters (including loc and scale)
         '''
         #Nd = len(x)
@@ -922,7 +824,7 @@ class FitDistribution(rv_frozen):
 
         if eps == None:
             eps = (floatinfo.machar.eps) ** 0.4
-        xmin = floatinfo.machar.xmin
+        #xmin = floatinfo.machar.xmin
         #myfun = lambda y: max(y,100.0*log(xmin)) #% trick to avoid log of zero
         delta = (eps + 2.0) - 2.0
         delta2 = delta ** 2.0
@@ -930,36 +832,37 @@ class FitDistribution(rv_frozen):
         #    %             1/(d^2 L(theta|x)/dtheta^2)
         #    %  using central differences
 
-        LL = self.nnlf(theta, data)
+        dist = self.dist
+        LL = dist.nnlf(theta, data)
         H = zeros((np, np))   #%% Hessian matrix
         theta = tuple(theta)
         for ix in xrange(np):
             sparam = list(theta)
             sparam[ix] = theta[ix] + delta
-            fp = self.nnlf(sparam, data)
+            fp = dist.nnlf(sparam, data)
             #fp = sum(myfun(x))
 
             sparam[ix] = theta[ix] - delta
-            fm = self.nnlf(sparam, data)
+            fm = dist.nnlf(sparam, data)
             #fm = sum(myfun(x))
 
             H[ix, ix] = (fp - 2 * LL + fm) / delta2
             for iy in range(ix + 1, np):
                 sparam[ix] = theta[ix] + delta
                 sparam[iy] = theta[iy] + delta
-                fpp = self.nnlf(sparam, data)
+                fpp = dist.nnlf(sparam, data)
                 #fpp = sum(myfun(x))
 
                 sparam[iy] = theta[iy] - delta
-                fpm = self.nnlf(sparam, data)
+                fpm = dist.nnlf(sparam, data)
                 #fpm = sum(myfun(x))
 
                 sparam[ix] = theta[ix] - delta
-                fmm = self.nnlf(sparam, data)
+                fmm = dist.nnlf(sparam, data)
                 #fmm = sum(myfun(x));
 
                 sparam[iy] = theta[iy] + delta
-                fmp = self.nnlf(sparam, data)
+                fmp = dist.nnlf(sparam, data)
                 #fmp = sum(myfun(x))
                 H[ix, iy] = ((fpp + fmm) - (fmp + fpm)) / (4. * delta2)
                 H[iy, ix] = H[ix, iy]
