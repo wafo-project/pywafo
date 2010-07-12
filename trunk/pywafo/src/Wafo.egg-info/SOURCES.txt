@@ -38,7 +38,6 @@ src/wafo/rindmod.pyd
 src/wafo/sg_filter.py
 src/wafo/test_ppimport.py
 src/wafo/wafodata.py
-src/wafo/weaver.py
 src/wafo.egg-info/SOURCES.txt
 src/wafo/covariance/__init__.py
 src/wafo/covariance/core.py
@@ -64,6 +63,7 @@ src/wafo/source/c_codes/build_all.py
 src/wafo/source/c_codes/c_functions.c
 src/wafo/source/c_codes/c_library.pyd
 src/wafo/source/c_codes/c_library.pyf
+src/wafo/source/c_codes/old/build_all_.py
 src/wafo/source/c_codes/old/diffsumfunq.pyd
 src/wafo/source/c_codes/old/diffsumfunq.pyf
 src/wafo/source/c_codes/old/disufq.pyf
@@ -84,6 +84,7 @@ src/wafo/source/cov2XXXpdf/bounds/cov2acdfb.f
 src/wafo/source/cov2XXXpdf/bounds/cov2mmpdfb.f
 src/wafo/source/cov2XXXpdf/bounds/cov2tccpdfb.f
 src/wafo/source/cov2XXXpdf/bounds/cov2tthpdfb.f
+src/wafo/source/mreg/build_all_.py
 src/wafo/source/mreg/checkmod.mod
 src/wafo/source/mreg/cov2mmpdfmod.mod
 src/wafo/source/mreg/cov2mmpdfreg.f
@@ -260,6 +261,7 @@ src/wafo/spectrum/models.py
 src/wafo/stats/__init__.py
 src/wafo/stats/core.py
 src/wafo/stats/distributions.py
+src/wafo/stats/distributions_juli2010.py
 src/wafo/stats/estimation.py
 src/wafo/stats/misc.py
 src/wafo/stats/plotbackend.py
