@@ -10,21 +10,18 @@ from __future__ import division
 
 from wafo.plotbackend import plotbackend
 from wafo.misc import ecross, findcross
-from scipy.misc.ppimport import ppimport
+#from scipy.misc.ppimport import ppimport
 
 import numdifftools 
 from scipy import special
 from scipy.linalg import pinv2
-
-
 from scipy import optimize
-from numpy import alltrue, arange, \
-     ravel, ones, sum, \
-     zeros, log, sqrt, exp
-from numpy import atleast_1d, any, asarray, nan, inf, pi, reshape, repeat, product, ndarray
+
 import numpy
 import numpy as np
-
+from numpy import alltrue, arange, ravel, ones, sum, zeros, log, sqrt, exp
+from numpy import (atleast_1d, any, asarray, nan, pi, reshape, repeat, 
+                   product, ndarray, isfinite)
 from numpy import flatnonzero as nonzero
 
 
@@ -33,11 +30,8 @@ __all__ = [
           ]
 
 floatinfo = np.finfo(float)
-
-
 #arr = atleast_1d
 arr = asarray
-
 all = alltrue
 
 def chi2isf(p, df):
@@ -123,13 +117,13 @@ class rv_frozen(object):
         kwds = dict(moments=moments)
         return self.dist.stats(*self.par, **kwds)
     def median(self):
-        return self.dist.median(*self.par, **self.kwds)
+        return self.dist.median(*self.par)
     def mean(self):
-        return self.dist.mean(*self.par,**self.kwds)
+        return self.dist.mean(*self.par)
     def var(self):
-        return self.dist.var(*self.par, **self.kwds)
+        return self.dist.var(*self.par)
     def std(self):
-        return self.dist.std(*self.par, **self.kwds)
+        return self.dist.std(*self.par)
     def moment(self, n):
         par1 = self.par[:self.dist.numargs]
         return self.dist.moment(n, *par1)
@@ -139,9 +133,7 @@ class rv_frozen(object):
         '''Probability mass function at k of the given RV'''
         return self.dist.pmf(k, *self.par)
     def interval(self,alpha):
-        return self.dist.interval(alpha, *self.par, **self.kwds)
-
-
+        return self.dist.interval(alpha, *self.par)
 
 
 # internal class to profile parameters of a given distribution
@@ -261,9 +253,9 @@ class Profile(object):
         self.i_free = nonzero(isfree)
 
         self.Lmax = Lmax
-        self.alpha_Lrange = 0.5 * chi2isf(self.alpha, 1) #_WAFODIST.chi2.isf(self.alpha, 1)
+        self.alpha_Lrange = 0.5 * chi2isf(self.alpha, 1) 
         self.alpha_cross_level = Lmax - self.alpha_Lrange
-        lowLevel = self.alpha_cross_level - self.alpha_Lrange / 7.0
+        #lowLevel = self.alpha_cross_level - self.alpha_Lrange / 7.0
 
         ## Check that par are actually at the optimum
         phatv = fit_dist.par.copy()
@@ -327,7 +319,7 @@ class Profile(object):
         cond = self.data == -numpy.inf
         if any(cond):
             ind, = cond.nonzero()
-            self.data.put(ind, numpy.finfo(float).min / 2.0)
+            self.data.put(ind, floatinfo.min / 2.0)
             ind1 = numpy.where(ind == 0, ind, ind - 1)
             cl = self.alpha_cross_level - self.alpha_Lrange / 2.0
             t0 = ecross(self.args, self.data, ind1, cl)
@@ -446,16 +438,17 @@ class FitDistribution(rv_frozen):
     def __init__(self, dist, data, *args, **kwds):
         extradoc = '''
 
-    RV.plotfitsumry() - Plot various diagnostic plots to asses quality of fit.
-    RV.plotecdf()     - Plot Empirical and fitted Cumulative Distribution Function
-    RV.plotesf()      - Plot Empirical and fitted Survival Function
-    RV.plotepdf()     - Plot Empirical and fitted Probability Distribution Function
-    RV.plotresq()     - Displays a residual quantile plot.
-    RV.plotresprb()   - Displays a residual probability plot.
-
-    RV.profile()      - Return Profile Log- likelihood or Product Spacing-function.
-
-    Member variables:
+        RV.plotfitsumry() - Plot various diagnostic plots to asses quality of fit.
+        RV.plotecdf()     - Plot Empirical and fitted Cumulative Distribution Function
+        RV.plotesf()      - Plot Empirical and fitted Survival Function
+        RV.plotepdf()     - Plot Empirical and fitted Probability Distribution Function
+        RV.plotresq()     - Displays a residual quantile plot.
+        RV.plotresprb()   - Displays a residual probability plot.
+    
+        RV.profile()      - Return Profile Log- likelihood or Product Spacing-function.
+    
+        Member variables
+        ----------------
         data - data used in fitting
         alpha - confidence coefficient
         method - method used
@@ -475,93 +468,150 @@ class FitDistribution(rv_frozen):
         self.__doc__ = rv_frozen.__doc__ + extradoc
         self.dist = dist
         numargs = dist.numargs
-
-        self.method, self.alpha, self.par_fix, self.search, self.copydata = map(kwds.get, ['method', 'alpha', 'par_fix', 'search', 'copydata'], ['ml', 0.05, None, True, True])
-        self.data = ravel(data)
-        if self.copydata:
-            self.data = self.data.copy()
-        self.data.sort()
+        
+        self.method=self.alpha=self.par_fix=self.search=self.copydata=None
+        m_variables = ['method', 'alpha', 'par_fix', 'search', 'copydata']
+        m_defaults = ['ml', 0.05, None, True, True]
+        for (name, val) in zip(m_variables,m_defaults):
+            setattr(self, name, kwds.get(name,val))
+            
+        #self.method, self.alpha, self.par_fix, self.search, self.copydata = map(kwds.get, m_variables, m_defaults)
         if self.method.lower()[:].startswith('mps'):
             self._fitfun = dist.nlogps
         else:
             self._fitfun = dist.nnlf
-
-        allfixed = False
-        isfinite = numpy.isfinite
-        somefixed = (self.par_fix != None) and any(isfinite(self.par_fix))
-
+        
+        self.data = ravel(data)
+        if self.copydata:
+            self.data = self.data.copy()
+        self.data.sort()
+        
+        par, fixedn = self._fit(*args, **kwds)
+        self.par = arr(par)
+        somefixed = len(fixedn)>0 
         if somefixed:
-            fitfun = self._fxfitfun
-            self.par_fix = tuple(self.par_fix)
-            allfixed = all(isfinite(self.par_fix))
-            self.par = atleast_1d(self.par_fix)
-            self.i_notfixed = nonzero(1 - isfinite(self.par))
-            self.i_fixed = nonzero(isfinite(self.par))
-            if len(self.par) != numargs + 2:
-                raise ValueError, "Wrong number of input arguments."
-            if len(args) != len(self.i_notfixed):
-                raise ValueError("Length of args must equal number of non-fixed parameters given in par_fix! (%d) " % len(self.i_notfixed))
-            x0 = atleast_1d(args)
-        else:
-            fitfun = self.fitfun
-            loc0, scale0 = map(kwds.get, ['loc', 'scale'])
-            args, loc0, scale0 = dist.fix_loc_scale(args, loc0, scale0)
-            Narg = len(args)
-            if Narg != numargs:
-                if Narg > numargs:
-                    raise ValueError, "Too many input arguments."
-                else:
-                    args += (1.0,)*(numargs - Narg)
-            # location and scale are at the end
-            x0 = args + (loc0, scale0)
-            x0 = atleast_1d(x0)
+            self.par_fix = [nan,]*len(self.par)
+            for i in fixedn:
+                self.par_fix[i] = self.par[i]
+        
+            self.i_notfixed = nonzero(1 - isfinite(self.par_fix))
+            self.i_fixed = nonzero(isfinite(self.par_fix))
 
-        numpar = len(x0)
-        if self.search and not allfixed:
-            #args=(self.data,),
-            par = optimize.fmin(fitfun, x0, disp=0)
-            if not somefixed:
-                self.par = par
-        elif  (not allfixed) and somefixed:
-            self.par[self.i_notfixed] = x0
-        else:
-            self.par = x0
-
-        np = numargs + 2
-
-        self.par_upper = None
-        self.par_lower = None
-        self.par_cov = zeros((np, np))
+        numpar = numargs + 2
+        self.par_cov = zeros((numpar, numpar))
+        self._compute_cov()
+        
+        # Set confidence interval for parameters
+        pvar = numpy.diag(self.par_cov)
+        zcrit = -norm_ppf(self.alpha / 2.0)
+        self.par_lower = self.par - zcrit * sqrt(pvar)
+        self.par_upper = self.par + zcrit * sqrt(pvar)
+        
         self.LLmax = -dist.nnlf(self.par, self.data)
         self.LPSmax = -dist.nlogps(self.par, self.data)
         self.pvalue = self._pvalue(self.par, self.data, unknown_numpar=numpar)
-        H = numpy.asmatrix(self._hessian_nnlf(self.par, self.data))
+    
+    def _reduce_func(self, args, kwds):
+        args = list(args)
+        Nargs = len(args) - 2
+        fixedn = []
+        index = range(Nargs) + [-2, -1]
+        names = ['f%d' % n for n in range(Nargs)] + ['floc', 'fscale']
+        x0 = args[:]
+        for n, key in zip(index, names):
+            if kwds.has_key(key):
+                fixedn.append(n)
+                args[n] = kwds[key]
+                del x0[n]
+                
+        fitfun = self._fitfun
+            
+        if len(fixedn) == 0:
+            func = fitfun
+            restore = None
+        else:
+            if len(fixedn) == len(index):
+                raise ValueError, "All parameters fixed. There is nothing to optimize."
+            def restore(args, theta):
+                # Replace with theta for all numbers not in fixedn
+                # This allows the non-fixed values to vary, but
+                #  we still call self.nnlf with all parameters.
+                i = 0
+                for n in range(Nargs):
+                    if n not in fixedn:
+                        args[n] = theta[i]
+                        i += 1
+                return args
+
+            def func(theta, x):
+                newtheta = restore(args[:], theta)
+                return fitfun(newtheta, x)
+
+        return x0, func, restore, args, fixedn
+    
+    def _fit(self, *args, **kwds):
+        
+        dist = self.dist
+        data = self.data
+        
+        Narg = len(args)
+        if Narg > dist.numargs:
+                raise ValueError, "Too many input arguments."
+        start = [None]*2
+        if (Narg < dist.numargs) or not (kwds.has_key('loc') and
+                                         kwds.has_key('scale')):
+            start = dist._fitstart(data)  # get distribution specific starting locations
+            args += start[Narg:-2]
+        loc = kwds.get('loc', start[-2])
+        scale = kwds.get('scale', start[-1])
+        args += (loc, scale)
+        x0, func, restore, args, fixedn = self._reduce_func(args, kwds)
+        if self.search:
+            optimizer = kwds.get('optimizer', optimize.fmin)
+            # convert string to function in scipy.optimize
+            if not callable(optimizer) and isinstance(optimizer, (str, unicode)):
+                if not optimizer.startswith('fmin_'):
+                    optimizer = "fmin_"+optimizer
+                if optimizer == 'fmin_': 
+                    optimizer = 'fmin'
+                try:
+                    optimizer = getattr(optimize, optimizer)
+                except AttributeError:
+                    raise ValueError, "%s is not a valid optimizer" % optimizer
+            vals = optimizer(func,x0,args=(ravel(data),),disp=0)
+            vals = tuple(vals)
+        else:
+            vals = tuple(x0)
+        if restore is not None:
+            vals = restore(args, vals)
+        return vals, fixedn
+    
+    def _compute_cov(self):
+        '''Compute covariance
+        '''
+        somefixed = (self.par_fix != None) and any(isfinite(self.par_fix))
+        H = numpy.asmatrix(self.dist.hessian_nnlf(self.par, self.data))
         self.H = H
         try:
-            if allfixed:
-                pass
-            elif somefixed:
-                pcov = -pinv2(H[self.i_notfixed, :][..., self.i_notfixed])
-                for row, ix in enumerate(list(self.i_notfixed)):
-                    self.par_cov[ix, self.i_notfixed] = pcov[row, :]
-
+            if somefixed:
+                allfixed = all(isfinite(self.par_fix))
+                if allfixed:
+                    self.par_cov[:,:]=0
+                else:
+                    pcov = -pinv2(H[self.i_notfixed, :][..., self.i_notfixed])
+                    for row, ix in enumerate(list(self.i_notfixed)):
+                        self.par_cov[ix, self.i_notfixed] = pcov[row, :]
             else:
                 self.par_cov = -pinv2(H)
         except:
             self.par_cov[:, :] = nan
-
-        pvar = numpy.diag(self.par_cov)
-        zcrit = -norm_ppf(self.alpha / 2.0)#_WAFODIST.norm.ppf(self.alpha / 2.0)
-        self.par_lower = self.par - zcrit * sqrt(pvar)
-        self.par_upper = self.par + zcrit * sqrt(pvar)
-
+            
     def fitfun(self, phat):
         return self._fitfun(phat, self.data)
 
     def _fxfitfun(self, phat10):
         self.par[self.i_notfixed] = phat10
         return self._fitfun(self.par, self.data)
-
 
     def profile(self, **kwds):
         ''' Profile Log- likelihood or Log Product Spacing- function,
@@ -812,65 +862,7 @@ class FitDistribution(rv_frozen):
         return pvalue
 
 
-    def _hessian_nnlf(self, theta, data, eps=None):
-        ''' approximate hessian of nnlf where theta are the parameters (including loc and scale)
-        '''
-        #Nd = len(x)
-        np = len(theta)
-        # pab 07.01.2001: Always choose the stepsize h so that
-        # it is an exactly representable number.
-        # This is important when calculating numerical derivatives and is
-        #  accomplished by the following.
-
-        if eps == None:
-            eps = (floatinfo.machar.eps) ** 0.4
-        #xmin = floatinfo.machar.xmin
-        #myfun = lambda y: max(y,100.0*log(xmin)) #% trick to avoid log of zero
-        delta = (eps + 2.0) - 2.0
-        delta2 = delta ** 2.0
-        #    % Approximate 1/(nE( (d L(x|theta)/dtheta)^2)) with
-        #    %             1/(d^2 L(theta|x)/dtheta^2)
-        #    %  using central differences
-
-        dist = self.dist
-        LL = dist.nnlf(theta, data)
-        H = zeros((np, np))   #%% Hessian matrix
-        theta = tuple(theta)
-        for ix in xrange(np):
-            sparam = list(theta)
-            sparam[ix] = theta[ix] + delta
-            fp = dist.nnlf(sparam, data)
-            #fp = sum(myfun(x))
-
-            sparam[ix] = theta[ix] - delta
-            fm = dist.nnlf(sparam, data)
-            #fm = sum(myfun(x))
-
-            H[ix, ix] = (fp - 2 * LL + fm) / delta2
-            for iy in range(ix + 1, np):
-                sparam[ix] = theta[ix] + delta
-                sparam[iy] = theta[iy] + delta
-                fpp = dist.nnlf(sparam, data)
-                #fpp = sum(myfun(x))
-
-                sparam[iy] = theta[iy] - delta
-                fpm = dist.nnlf(sparam, data)
-                #fpm = sum(myfun(x))
-
-                sparam[ix] = theta[ix] - delta
-                fmm = dist.nnlf(sparam, data)
-                #fmm = sum(myfun(x));
-
-                sparam[iy] = theta[iy] + delta
-                fmp = dist.nnlf(sparam, data)
-                #fmp = sum(myfun(x))
-                H[ix, iy] = ((fpp + fmm) - (fmp + fpm)) / (4. * delta2)
-                H[iy, ix] = H[ix, iy]
-                sparam[iy] = theta[iy];
-
-        # invert the Hessian matrix (i.e. invert the observed information number)
-        #pcov = -pinv(H);
-        return - H
+ 
 
 def main():
     _WAFODIST = ppimport('wafo.stats.distributions')
