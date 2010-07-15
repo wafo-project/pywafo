@@ -52,39 +52,41 @@ class WafoData(object):
     >>> h = d2.plot()
 
     Plot with confidence interval
-    d3 = wdata(sin(x),x)
-    d3 = set(d3,'dataCI',[sin(x(:))*0.9 sin(x(:))*1.2])
-    plot(d3)
+    >>> d3 = WafoData(np.sin(x),x)
+    >>> d3.children = [WafoData(np.vstack([np.sin(x)*0.9, np.sin(x)*1.2]).T,x)]
+    >>> d3.children_args=[':r']
+    >>> h = d3.plot()
 
     See also
     --------
-    wdata/plot,
     specdata,
     covdata
     '''
-    def __init__(self, data=None, args=None,*args2,**kwds):
+    def __init__(self, data=None, args=None, *args2, **kwds):
         self.data = data
         self.args = args
         self.date = now()
         self.plotter = None
         self.children = None
+        self.children_args = []
         self.labels = AxisLabels(**kwds)
         self.setplotter()
 
-    def plot(self,*args,**kwds):
+    def plot(self, *args, **kwds):
         tmp = None
-        if self.children!=None:
+        if self.children != None:
             plotbackend.hold('on')
             tmp = []
+            child_args = args + tuple(self.children_args)
             for child in self.children:
-                tmp1 = child.plot(*args, **kwds)
-                if tmp1 !=None:
+                tmp1 = child.plot(*child_args, **kwds)
+                if tmp1 != None:
                     tmp.append(tmp1)
-            if len(tmp)==0:
+            if len(tmp) == 0:
                 tmp = None
 
-        tmp2 =  self.plotter.plot(self,*args,**kwds)
-        return tmp2,tmp
+        tmp2 = self.plotter.plot(self, *args, **kwds)
+        return tmp2, tmp
     
     def show(self):
         self.plotter.show()
@@ -95,20 +97,20 @@ class WafoData(object):
         return newcopy
 
 
-    def setplotter(self,plotmethod=None):
+    def setplotter(self, plotmethod=None):
         '''
             Set plotter based on the data type data_1d, data_2d, data_3d or data_nd
         '''
 
-        if isinstance(self.args,(list,tuple)): # Multidimensional data
+        if isinstance(self.args, (list, tuple)): # Multidimensional data
             ndim = len(self.args)
-            if ndim<2:
+            if ndim < 2:
                 warnings.warn('Unable to determine plotter-type, because len(self.args)<2.')
                 print('If the data is 1D, then self.args should be a vector!')
                 print('If the data is 2D, then length(self.args) should be 2.')
                 print('If the data is 3D, then length(self.args) should be 3.')
                 print('Unless you fix this, the plot methods will not work!')
-            elif ndim==2:
+            elif ndim == 2:
                 self.plotter = Plotter_2d(plotmethod)
             else:
                 warnings.warn('Plotter method not implemented for ndim>2')
@@ -118,7 +120,7 @@ class WafoData(object):
 
 
 class AxisLabels:
-    def __init__(self,title='',xlab='',ylab='',zlab='',**kwds):
+    def __init__(self, title='', xlab='', ylab='', zlab='', **kwds):
         self.title = title
         self.xlab = xlab
         self.ylab = ylab
@@ -137,7 +139,7 @@ class AxisLabels:
             h2 = plotbackend.xlabel(self.xlab)
             h3 = plotbackend.ylabel(self.ylab)
             #h4 = plotbackend.zlabel(self.zlab)
-            return h1,h2,h3
+            return h1, h2, h3
         except:
             pass
 
@@ -159,7 +161,7 @@ class Plotter_1d(object):
         scatter : scatter plot
     """
 
-    def __init__(self,plotmethod='plot'):
+    def __init__(self, plotmethod='plot'):
         self.plotfun = None
         if plotmethod is None:
             plotmethod = 'plot'
@@ -172,14 +174,14 @@ class Plotter_1d(object):
     def show(self):
         plotbackend.show()
 
-    def plot(self,wdata,*args,**kwds):
-        if isinstance(wdata.args,(list,tuple)):
-            args1 = tuple((wdata.args))+(wdata.data,)+args
+    def plot(self, wdata, *args, **kwds):
+        if isinstance(wdata.args, (list, tuple)):
+            args1 = tuple((wdata.args)) + (wdata.data,) + args
         else:
-            args1 = tuple((wdata.args,))+(wdata.data,)+args
-        h1 = self.plotfun(*args1,**kwds)
+            args1 = tuple((wdata.args,)) + (wdata.data,) + args
+        h1 = self.plotfun(*args1, **kwds)
         h2 = wdata.labels.labelfig()
-        return h1,h2
+        return h1, h2
 
 class Plotter_2d(Plotter_1d):
     """
@@ -192,10 +194,10 @@ class Plotter_2d(Plotter_1d):
         surf
     """
 
-    def __init__(self,plotmethod='contour'):
+    def __init__(self, plotmethod='contour'):
         if plotmethod is None:
             plotmethod = 'contour'
-        super(Plotter_2d,self).__init__(plotmethod)
+        super(Plotter_2d, self).__init__(plotmethod)
         #self.plotfun = plotbackend.__dict__[plotmethod]
 
        

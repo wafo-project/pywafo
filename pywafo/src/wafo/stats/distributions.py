@@ -400,15 +400,15 @@ class rv_frozen(object):
     def stats(self, moments='mv'):
         ''' Some statistics of the given RV'''
         kwds = dict(moments=moments)
-        return self.dist.stats(*self.par, **kwds)
+        return self.dist.stats(*self.par)
     def median(self):
-        return self.dist.median(*self.par, **self.kwds)
+        return self.dist.median(*self.par)
     def mean(self):
-        return self.dist.mean(*self.par,**self.kwds)
+        return self.dist.mean(*self.par)
     def var(self):
-        return self.dist.var(*self.par, **self.kwds)
+        return self.dist.var(*self.par)
     def std(self):
-        return self.dist.std(*self.par, **self.kwds)
+        return self.dist.std(*self.par)
     def moment(self, n):
         par1 = self.par[:self.dist.numargs]
         return self.dist.moment(n, *par1)
@@ -418,7 +418,7 @@ class rv_frozen(object):
         '''Probability mass function at k of the given RV'''
         return self.dist.pmf(k, *self.par)
     def interval(self,alpha):
-        return self.dist.interval(alpha, *self.par, **self.kwds)
+        return self.dist.interval(alpha, *self.par)
 
 
 # Frozen RV class
@@ -1982,10 +1982,8 @@ class rv_continuous(rv_generic):
 
     def link(self, x, logSF, theta, i):
         ''' Return dist. par. no. i as function of quantile (x) and log survival probability (sf)
-
-            Assumptions:
-            ------------
-            theta is list containing all parameters including location and scale.
+            where
+            theta is the list containing all parameters including location and scale.
         '''
         raise ValueError('Link function not implemented for the %s distribution' % self.name)
         return None
@@ -2077,7 +2075,7 @@ class rv_continuous(rv_generic):
 
         # invert the Hessian matrix (i.e. invert the observed information number)
         #pcov = -pinv(H);
-        return - H
+        return -H
 
     # return starting point for fit (shape arguments + loc + scale)
     def _fitstart(self, data, args=None):
@@ -2231,25 +2229,6 @@ class rv_continuous(rv_generic):
         in your namespace will be sorted as well.
         '''
         return FitDistribution(self, data, *args, **kwds)
-
-#        loc0, scale0, method = map(kwds.get, ['loc', 'scale','method'],[none, none,'ml'])
-#        args, loc0, scale0 = self.fix_loc_scale(args, loc0, scale0)
-#        Narg = len(args)
-#        if Narg != self.numargs:
-#            if Narg > self.numargs:
-#                raise ValueError, "Too many input arguments."
-#            else:
-#                args += (1.0,)*(self.numargs-Narg)
-#        # location and scale are at the end
-#        x0 = args + (loc0, scale0)
-#        if method.lower()[:].startswith('mps'):
-#            data.sort()
-#            fitfun = self.nlogps
-#        else:
-#            fitfun = self.nnlf
-#
-#        return optimize.fmin(fitfun,x0,args=(ravel(data),),disp=0)
-
    
     def fit_loc_scale(self, data, *args):
         """
@@ -3387,6 +3366,20 @@ class genpareto_gen(rv_continuous):
 
         #vals = 1.0/c * (pow(1-q, -c)-1)
         #return vals
+        
+    def _fitstart(self, data):
+        d = arr(data)
+        loc = d.min()-0.01*d.std()
+        #moments estimator
+        d1 = d-loc
+        m = d1.mean() 
+        s = d1.std()
+        
+        shape = ((m/s)**2 - 1)/2
+        scale = m*((m/s)**2+1)/2
+        return shape, loc, scale 
+
+
     def hessian_nnlf(self, theta, x, eps=None):
         try:
             loc = theta[-2]
@@ -6876,6 +6869,10 @@ Skellam distribution
 def main():
     import matplotlib
     matplotlib.interactive(True)
+    R = norm.rvs(size=100)
+    phat = norm.fit(R)
+    phat = genpareto.fit(R[R>0.7],f0=0.1, floc=0.7)
+    
     #nbinom(10, 0.75).rvs(3)
     t = bernoulli(0.75).rvs(3)
     x = np.r_[5, 10]
