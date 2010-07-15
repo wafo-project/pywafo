@@ -865,51 +865,52 @@ class FitDistribution(rv_frozen):
  
 
 def main():
-    _WAFODIST = ppimport('wafo.stats.distributions')
-     #nbinom(10, 0.75).rvs(3)
-    import matplotlib
-    matplotlib.interactive(True)
-    t = _WAFODIST.bernoulli(0.75).rvs(3)
-    x = np.r_[5, 10]
-    npr = np.r_[9, 9]
-    t2 = _WAFODIST.bd0(x, npr)
-    #Examples   MLE and better CI for phat.par[0]
-    R = _WAFODIST.weibull_min.rvs(1, size=100);
-    phat = _WAFODIST.weibull_min.fit(R, 1, 1, par_fix=[nan, 0, nan])
-    Lp = phat.profile(i=0)
-    Lp.plot()
-    Lp.get_CI(alpha=0.1)
-    R = 1. / 990
-    x = phat.isf(R)
-
-    # CI for x
-    Lx = phat.profile(i=0, x=x)
-    Lx.plot()
-    Lx.get_CI(alpha=0.2)
-
-    # CI for logSF=log(SF)
-    Lpr = phat.profile(i=0, logSF=log(R), link=phat.dist.link)
-    Lpr.plot()
-    Lpr.get_CI(alpha=0.075)
-
-    _WAFODIST.dlaplace.stats(0.8, loc=0)
-#    pass
-    t = _WAFODIST.planck(0.51000000000000001)
-    t.ppf(0.5)
-    t = _WAFODIST.zipf(2)
-    t.ppf(0.5)
-    import pylab as plb
-    _WAFODIST.rice.rvs(1)
-    x = plb.linspace(-5, 5)
-    y = _WAFODIST.genpareto.cdf(x, 0)
-    #plb.plot(x,y)
-    #plb.show()
-
-
-    on = ones((2, 3))
-    r = _WAFODIST.genpareto.rvs(0, size=100)
-    pht = _WAFODIST.genpareto.fit(r, 1, par_fix=[0, 0, nan])
-    lp = pht.profile()
+    pass
+#    _WAFODIST = ppimport('wafo.stats.distributions')
+#     #nbinom(10, 0.75).rvs(3)
+#    import matplotlib
+#    matplotlib.interactive(True)
+#    t = _WAFODIST.bernoulli(0.75).rvs(3)
+#    x = np.r_[5, 10]
+#    npr = np.r_[9, 9]
+#    t2 = _WAFODIST.bd0(x, npr)
+#    #Examples   MLE and better CI for phat.par[0]
+#    R = _WAFODIST.weibull_min.rvs(1, size=100);
+#    phat = _WAFODIST.weibull_min.fit(R, 1, 1, par_fix=[nan, 0, nan])
+#    Lp = phat.profile(i=0)
+#    Lp.plot()
+#    Lp.get_CI(alpha=0.1)
+#    R = 1. / 990
+#    x = phat.isf(R)
+#
+#    # CI for x
+#    Lx = phat.profile(i=0, x=x)
+#    Lx.plot()
+#    Lx.get_CI(alpha=0.2)
+#
+#    # CI for logSF=log(SF)
+#    Lpr = phat.profile(i=0, logSF=log(R), link=phat.dist.link)
+#    Lpr.plot()
+#    Lpr.get_CI(alpha=0.075)
+#
+#    _WAFODIST.dlaplace.stats(0.8, loc=0)
+##    pass
+#    t = _WAFODIST.planck(0.51000000000000001)
+#    t.ppf(0.5)
+#    t = _WAFODIST.zipf(2)
+#    t.ppf(0.5)
+#    import pylab as plb
+#    _WAFODIST.rice.rvs(1)
+#    x = plb.linspace(-5, 5)
+#    y = _WAFODIST.genpareto.cdf(x, 0)
+#    #plb.plot(x,y)
+#    #plb.show()
+#
+#
+#    on = ones((2, 3))
+#    r = _WAFODIST.genpareto.rvs(0, size=100)
+#    pht = _WAFODIST.genpareto.fit(r, 1, par_fix=[0, 0, nan])
+#    lp = pht.profile()
                 
 if __name__ == '__main__':
    main()
