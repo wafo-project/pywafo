@@ -41,7 +41,7 @@ from numpy import r_
 from numpy import sign
 from numpy import sin
 from numpy import sqrt
-from numpy import unique1d
+from numpy import unique
 from numpy import vstack
 from numpy import where
 from numpy import zeros
@@ -275,7 +275,7 @@ def _findcross(xn):
     
     n = len(xn)
     iz, = (xn == 0).nonzero()
-    if any(iz):
+    if len(iz)>0:
         # Trick to avoid turning points on the crossinglevel.
         if iz[0] == 0:
             if len(iz) == n:
@@ -283,14 +283,15 @@ def _findcross(xn):
                 return zeros(0, dtype=np.int)
 
             diz = diff(iz)
-            ix = iz((diz > 1).argmax())
-            if not any(ix):
+            if len(diz)>0 and (diz>1).any():
+                ix = iz[(diz > 1).argmax()]
+            else:
                 ix = iz[-1]
 
             #x(ix) is a up crossing if  x(1:ix) = v and x(ix+1) > v.
             #x(ix) is a downcrossing if x(1:ix) = v and x(ix+1) < v.
-            xn[0:ix] = -xn[ix + 1]
-            iz = iz[ix::]
+            xn[0:ix+1] = -xn[ix + 1]
+            iz = iz[ix+1::]
 
         for ix in iz.tolist():
             xn[ix] = xn[ix - 1]
@@ -328,6 +329,8 @@ def findcross(x, v=0.0, kind=None):
     -------
     >>> from matplotlib import pylab as plb
     >>> ones = plb.ones
+    >>> findcross([0, 1, -1, 1],0)
+    array([0, 1, 2])
     >>> v = 0.75
     >>> t = plb.linspace(0,7*plb.pi,250)
     >>> x = plb.sin(t)
@@ -988,7 +991,7 @@ def findoutliers(x, zcrit=0.0, dcrit=None, ddcrit=None, verbose=False):
     indg = ones(xn.size, dtype=bool)
 
     if ind.size > 1:
-        ind = unique1d(ind)
+        ind = unique(ind)
         indg[ind] = 0
     indg, = nonzero(indg)
 
@@ -1862,8 +1865,8 @@ def tranproc(x, f, x0, *xi):
     return y #y0,y1,y2,y3,y4
 
 
-
-
+def test_find_cross():
+    t = findcross([0, 0, 1, -1, 1],0)
     
 def test_common_shape():
 
@@ -1979,8 +1982,8 @@ def _test_parse_kwargs():
     print out1
 
 if __name__ == "__main__":
-    if  False: # True:# 
+    if True:#  False: # 
         import doctest
         doctest.testmod()
     else:
-        _test_discretize2()
+        test_find_cross()

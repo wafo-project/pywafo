@@ -19,31 +19,31 @@ This module gives gives detailed information and easy access to all datasets
 included in WAFO
 
 """
-#from pylab import load
-#from scipy.io import read_array
-from numpy import (loadtxt,nan)
+from numpy import (loadtxt, nan)
 import os
-__path2data = os.path.dirname( os.path.realpath(__file__))
+__path2data = os.path.dirname(os.path.realpath(__file__))
 
-__all__ =['atlantic','gfaks89','gfaksr89','japansea','northsea','sea','sfa89',
-            'sn','yura87']
+__all__ = ['atlantic', 'gfaks89', 'gfaksr89', 'japansea', 'northsea', 'sea', 
+           'sfa89', 'sn', 'yura87']
+
+_NANS = set(['nan', 'NaN', '-1.#IND00+00', '1.#IND00+00', '-1.#INF00+00'])
+
+def _tofloat(x):
+    return nan if x in _NANS else float(x or 0)
+    
+_MYCONVERTER = {}
+for i in range(2):
+    _MYCONVERTER[i] = _tofloat
 
 def _load(file):
     """ local load function
     """
-    return loadtxt(os.path.join(__path2data,file))
-
-def _tofloat(x):
-    if x=='nan' or x=='NaN':
-        y = nan
-    else:
-        y = float(x or 0)
-    return y
+    return loadtxt(os.path.join(__path2data, file))
+    
 def _loadnan(file):
     """ local load function accepting nan's
     """
-    myconverter = {0: _tofloat, 1: _tofloat}
-    return loadtxt(os.path.join(__path2data,file),converters=myconverter)
+    return loadtxt(os.path.join(__path2data, file), converters=_MYCONVERTER)
 
 def atlantic():
     """
@@ -437,6 +437,6 @@ def yura87():
     japansea
     """
     return _load('yura87.dat')
-if __name__=='__main__':
+if __name__ == '__main__':
     import doctest
     doctest.testmod()

@@ -140,13 +140,13 @@ void findcross(double *y, double v, int *ind, int n, int *info)
 		for (i=1; i<n; i++) {
 			start=i;
 			if  ( y[i]< v){
-				ind[ix] = i; /* first crossing is a down crossing*/ 
+				ind[ix] = i-1; /* first crossing is a down crossing*/
 				ix++; 
 				dcross=-1; /* The next crossing is a up-crossing*/ 
 				goto L120;
 			}
 			else if  ( y[i]> v){
-				ind[ix] = i; /* first crossing is a up-crossing*/ 
+				ind[ix] = i-1; /* first crossing is a up-crossing*/
 				ix++; 
 				dcross=1;  /*The next crossing is a down-crossing*/ 
 				goto L120;
