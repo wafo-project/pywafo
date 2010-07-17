@@ -36,6 +36,7 @@ all = alltrue
 
 def chi2isf(p, df):
     return special.chdtri(df, p)
+
 def chi2sf(x, df):
     return special.chdtrc(df, x)
 

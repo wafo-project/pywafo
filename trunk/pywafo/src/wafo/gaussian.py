@@ -1,9 +1,12 @@
+import warnings
 import numpy as np
 from numpy import (r_, minimum, maximum, atleast_1d, atleast_2d, mod, zeros, #@UnresolvedImport
-        ones, floor, random, eye, nonzero, repeat, sqrt, inf, diag, triu) #@UnresolvedImport
+        ones, floor, random, eye, nonzero, repeat, sqrt, exp, inf, diag, triu) #@UnresolvedImport
 from scipy.special import ndtri as invnorm
+from scipy.special import ndtr as cdfnorm
 import wafo.rindmod as rindmod
-
+import wafo.mvnprdmod as mvnprdmod
+from wafo import mvn
 
 class Rind(object):
     '''
@@ -68,7 +71,7 @@ class Rind(object):
     >>> m = np.zeros(n); rho = 0.3;
     >>> Sc =(np.ones((n,n))-np.eye(n))*rho+np.eye(n)
     >>> rind = Rind()
-    >>> E0 = rind(Sc,m,Blo,Bup,indI)  #  exact prob. 0.001946
+    >>> E0, err0, terr0 = rind(Sc,m,Blo,Bup,indI)  #  exact prob. 0.001946
 
     >>> A = np.repeat(Blo,n); B = np.repeat(Bup,n)  # Integration limits
     >>> E1  = rind(np.triu(Sc),m,A,B)   #same as E0
@@ -358,6 +361,334 @@ def test_rind():
     Blo[0, ind] = maximum(Blo[0, ind], -infinity * dev[indI[ind + 1]])
     E3 = rind(Sc, m, Blo, Bup, indI, xc, nt=1)
 
+def cdflomax(x,alpha,m0):
+    '''
+    Return CDF for local maxima for a zero-mean Gaussian process
+     
+    Parameters
+    ----------
+    x : array-like
+        evaluation points
+    alpha, m0 : real scalars
+        irregularity factor and zero-order spectral moment (variance of the 
+        process), respectively.
+    
+    Returns
+    -------
+    prb : ndarray
+        distribution function evaluated at x
+        
+    Notes
+    -----
+    The cdf is calculated from an explicit expression involving the 
+    standard-normal cdf. This relation is sometimes written as a convolution
+    
+           M = sqrt(m0)*( sqrt(1-a^2)*Z + a*R )
+    
+    where  M  denotes local maximum, Z  is a standard normal r.v.,  
+    R  is a standard Rayleigh r.v., and "=" means equality in distribution.
+    
+    Note that all local maxima of the process are considered, not
+    only crests of waves. 
+     
+    Example 
+    -------
+    >>> pylab
+    >>> import wafo.spectrum.models as wsm
+    >>> import wafo.objects as wo
+    >>> import wafo.stats as ws
+    >>> S = wsm.Jonswap(Hm0=10).tospecdata();
+    >>> xs = S.sim(10000)
+    >>> ts = wo.mat2timeseries(xs)
+    >>> tp = ts.turning_points()
+    >>> mM = tp.cycle_pairs()
+    >>> m0 = S.moment(1)[0]
+    >>> alpha = S.characteristic('alpha')[0] 
+    >>> x = linspace(-10,10,200);
+    >>> mcdf = ws.edf(mM.data)
+    >>> mcdf.plot(), pylab.plot(x,cdflomax(x,alpha,m0))
+     
+    See also
+    --------
+    spec2mom, spec2bw
+    '''
+    c1 = 1.0/(sqrt(1-alpha**2))*x/sqrt(m0)
+    c2 = alpha*c1
+    return cdfnorm(c1)-alpha*exp(-x**2/2/m0)*cdfnorm(c2)
+
+def prbnormtndpc(rho,a,b,D=None,df=0,abseps=1e-4,IERC=0,HNC=0.24):
+    '''
+    Return Multivariate normal or T probability with product correlation structure.
+    
+    Parameters
+    ----------
+    rho : array-like
+        vector of coefficients defining the correlation coefficient by:
+            correlation(I,J) =  rho[i]*rho[j]) for J!=I
+        where -1 < rho[i] < 1
+    a,b : array-like
+        vector of lower and upper integration limits, respectively.
+        Note: any values greater the 37 in magnitude, are considered as infinite values.
+    D : array-like
+        vector of means (default zeros(size(rho)))
+    df = Degrees of freedom, NDF<=0 gives normal probabilities (default)
+    abseps = absolute error tolerance. (default 1e-4)
+    IERC   = 1 if strict error control based on fourth derivative
+             0 if intuitive error control based on halving the intervals (default)
+    HNC   = start interval width of simpson rule (default 0.24)
+    
+    Returns
+    -------
+    value  = estimated value for the integral
+    bound  = bound on the error of the approximation
+    inform = INTEGER, termination status parameter:
+        0, if normal completion with ERROR < EPS;
+        1, if N > 1000 or N < 1.
+        2, IF  any abs(rho)>=1      
+        4, if  ANY(b(I)<=A(i))
+        5, if number of terms computed exceeds maximum number of evaluation points
+        6, if fault accurs in normal subroutines
+        7, if subintervals are too narrow or too many
+        8, if bounds exceeds abseps
+    
+     PRBNORMTNDPC calculates multivariate normal or student T probability
+     with product correlation structure for rectangular regions.
+     The accuracy is as best around single precision, i.e., about 1e-7.
+       
+    Example:
+    --------
+    >>> rho2 = np.random.rand(2); 
+    >>> a2   = np.zeros(2);
+    >>> b2   = np.repeat(np.inf,2);
+    >>> [val2,err2, ift2] = prbnormtndpc(rho2,a2,b2)
+    >>> g2 = lambda x : 0.25+np.arcsin(x[0]*x[1])/(2*pi)
+    >>> E2 = g2(rho2)  #% exact value
+    >>> np.abs(E2-val2)<err2
+    True
+    
+    >>> rho3 = np.random.rand(3) 
+    >>> a3   = np.zeros(3)
+    >>> b3   = np.repeat(inf,3)
+    >>> [val3,err3, ift3] = prbnormtndpc(rho3,a3,b3)  
+    >>> g3 = lambda x : 0.5-sum(np.sort(np.arccos([x[0]*x[1],x[0]*x[2],x[1]*x[2]])))/(4*pi)
+    >>> E3 = g3(rho3)   #  Exact value  
+    >>> np.abs(E3-val3)<err2
+    True
+    
+      
+    See also
+    --------  
+    prbnormndpc, prbnormnd, rind
+      
+    Reference
+    --------- 
+    Charles Dunnett (1989)
+    "Multivariate normal probability integrals with product correlation
+    structure", Applied statistics, Vol 38,No3, (Algorithm AS 251)    
+    '''
+      
+    if D is None:
+        D = zeros(len(rho))
+    # Make sure integration limits are finite
+    A = np.clip(a-D,-100,100)
+    B = np.clip(b-D,-100,100)
+    return mvnprdmod.prbnormtndpc(rho,A,B,df,abseps,IERC,HNC)
+
+def prbnormndpc(rho,a,b,abserr=1e-4,relerr=1e-4,usesimpson=True, usebreakpoints=False):
+    '''
+    Return Multivariate Normal probabilities with product correlation
+     
+    Parameters
+    ----------
+      rho  = vector defining the correlation structure, i.e., 
+              corr(Xi,Xj) = rho(i)*rho(j) for i~=j
+                          = 1             for i==j  
+                 -1 <= rho <= 1  
+      a,b   = lower and upper integration limits respectively.  
+      tol   = requested absolute tolerance
+      
+    Returns
+    -------
+    value = value of integral
+    error = estimated absolute error
+    
+    PRBNORMNDPC calculates multivariate normal probability
+    with product correlation structure for rectangular regions.
+    The accuracy is up to almost double precision, i.e., about 1e-14.
+      
+    Example:
+    -------
+    >>> rho2 = np.random.rand(2); 
+    >>> a2   = np.zeros(2);
+    >>> b2   = np.repeat(np.inf,2);
+    >>> [val2,err2, ift2] = prbnormndpc(rho2,a2,b2)
+    >>> g2 = lambda x : 0.25+np.arcsin(x[0]*x[1])/(2*pi)
+    >>> E2 = g2(rho2)  #% exact value
+    >>> np.abs(E2-val2)<err2
+    True
+    
+    >>> rho3 = np.random.rand(3) 
+    >>> a3   = np.zeros(3)
+    >>> b3   = np.repeat(inf,3)
+    >>> [val3,err3, ift3] = prbnormndpc(rho3,a3,b3)  
+    >>> g3 = lambda x : 0.5-sum(np.sort(np.arccos([x[0]*x[1],x[0]*x[2],x[1]*x[2]])))/(4*pi)
+    >>> E3 = g3(rho3)   #  Exact value  
+    >>> np.abs(E3-val3)<err2
+    True
+    
+    See also
+    --------
+    prbnormtndpc, prbnormnd, rind
+      
+    Reference
+    ---------
+    P. A. Brodtkorb (2004), 
+    "Evaluating multinormal probabilites with product correlation structure."
+    In Lund university report series
+    and in the Dr.Ing thesis: 
+    "The probability of Occurrence of dangerous Wave Situations at Sea."
+    Dr.Ing thesis, Norwegian University of Science and Technolgy, NTNU,
+    Trondheim, Norway.
+      
+    '''  
+    # Call fortran implementation
+    val,err,ier = mvnprdmod.prbnormndpc(rho,a,b,abserr,relerr,usebreakpoints,usesimpson);
+    
+    if ier>0:
+        warnings.warn('Abnormal termination ier = %d\n\n%s' % (ier,_ERRORMESSAGE[ier]))
+    return val, err, ier
+
+_ERRORMESSAGE = {}
+_ERRORMESSAGE[0] = ''
+_ERRORMESSAGE[1] ='''
+       Maximum number of subdivisions allowed has been achieved. one can allow 
+       more subdivisions by increasing the value of limit (and taking the 
+       according dimension adjustments into account). however, if this yields 
+       no improvement it is advised to analyze the integrand in order to 
+       determine the integration difficulties. if the position of a local 
+       difficulty can be determined (i.e. singularity discontinuity within 
+       the interval), it should be supplied to the routine as an element of 
+       the vector points. If necessary an appropriate special-purpose integrator
+       must be used, which is designed for handling the type of difficulty involved.
+       '''
+_ERRORMESSAGE[2] ='''
+     the occurrence of roundoff error is detected, which prevents the requested 
+     tolerance from being achieved. The error may be under-estimated.'''
+         
+_ERRORMESSAGE[3] =''' 
+     Extremely bad integrand behaviour occurs at some points of the integration interval.'''
+_ERRORMESSAGE[4] ='''
+     The algorithm does not converge. Roundoff error is detected in the extrapolation table. 
+     It is presumed that the requested tolerance cannot be achieved, and that 
+     the returned result is the best which can be obtained.'''
+_ERRORMESSAGE[5] ='''
+     The integral is probably divergent, or slowly convergent. 
+     It must be noted that divergence can occur with any other value of ier>0.'''
+_ERRORMESSAGE[6] ='''the input is invalid because:
+        1) npts2 < 2
+        2) break points are specified outside the integration range
+        3) (epsabs<=0 and epsrel<max(50*rel.mach.acc.,0.5d-28))
+        4) limit < npts2.'''
+    
+
+def  prbnormnd(correl,a,b,abseps=1e-4,releps=1e-3,maxpts=None,method=0):
+    '''
+    
+    Multivariate Normal probability by Genz' algorithm.
+    
+    
+    Parameters
+    CORREL = Positive semidefinite correlation matrix
+    A         = vector of lower integration limits.
+    B         = vector of upper integration limits.
+    ABSEPS = absolute error tolerance.
+    RELEPS = relative error tolerance.
+    MAXPTS = maximum number of function values allowed. This 
+                  parameter can be used to limit the time. A sensible 
+                  strategy is to start with MAXPTS = 1000*N, and then
+                  increase MAXPTS if ERROR is too large.
+    METHOD = integer defining the integration method
+                 -1 KRBVRC randomized Korobov rules for the first 20
+                    variables, randomized Richtmeyer rules for the rest, 
+                    NMAX = 500 
+                  0 KRBVRC, NMAX = 100 (default)
+                  1 SADAPT Subregion Adaptive integration method, NMAX = 20 
+                  2 KROBOV Randomized KOROBOV rules,              NMAX = 100
+                  3 RCRUDE Crude Monte-Carlo Algorithm with simple
+                    antithetic variates and weighted results on restart 
+                  4 SPHMVN Monte-Carlo algorithm by Deak (1980),  NMAX = 100
+    Returns
+    -------
+    VALUE  REAL estimated value for the integral
+    ERROR  REAL estimated absolute error, with 99% confidence level.
+    INFORM INTEGER, termination status parameter:
+                if INFORM = 0, normal completion with ERROR < EPS;
+                if INFORM = 1, completion with ERROR > EPS and MAXPTS 
+                               function vaules used; increase MAXPTS to 
+                               decrease ERROR;
+                if INFORM = 2, N > NMAX or N < 1. where NMAX depends on the
+                               integration method
+     Example:% Compute the probability that X1<0,X2<0,X3<0,X4<0,X5<0,
+               % Xi are zero-mean Gaussian variables with variances one
+               % and correlations Cov(X(i),X(j))=0.3:
+               % indI=[0 5], and barriers B_lo=[-inf 0], B_lo=[0  inf]     
+               % gives H_lo = [-inf -inf -inf -inf -inf]  H_lo = [0 0 0 0 0] 
+     
+        N = 5; rho=0.3; NIT=3; Nt=N; indI=[0 N];
+        B_lo=-10; B_up=0; m=1.2*ones(N,1);
+        Sc=(ones(N)-eye(N))*rho+eye(N);
+        E = rind(Sc,m,B_lo,B_up,indI,[],Nt) % exact prob. 0.00195
+       A = [-inf -inf -inf -inf -inf],
+        B = [0 0 0 0 0]-m' 
+        [val,err,inform] = prbnormnd(Sc,A,B);  
+    
+     See also
+     --------
+    prbnormndpc, rind
+    '''
+      
+    
+    m,n = correl.shape
+    Na = len(a)
+    Nb = len(b)
+    if (m!=n or m!=Na or m!=Nb):
+        raise ValueError('Size of input is inconsistent!')
+    
+    if maxpts is None: 
+        maxpts = 1000*n
+    
+    maxpts = max(round(maxpts),10*n);
+    
+#    %            array of correlation coefficients; the correlation
+#    %            coefficient in row I column J of the correlation matrix
+#    %            should be stored in CORREL( J + ((I-2)*(I-1))/2 ), for J < I.
+#    %            The correlation matrix must be positive semidefinite.
+    
+    D = np.diag(correl)
+    if (any(D!=1)):
+        raise ValueError('This is not a correlation matrix')
+    
+    
+    # Make sure integration limits are finite
+    A = np.clip(a,-100,100)
+    B = np.clip(b,-100, 100)
+    
+    #L = correl((triu(ones(m),1)~=0));    % return only off diagonal elements
+    return mvn.mvnun(A,B, correl,maxpts, abseps, releps)
+    
+    #CALL the mexroutine
+#    t0 = clock;
+#    if ((method==0) && (n<=100)),
+#      %NMAX = 100
+#      [value, err,inform] = mexmvnprb(L,A,B,abseps,releps,maxpts);
+#    elseif ( (method<0) || ((method<=0) && (n>100)) ),
+#      % NMAX = 500
+#      [value, err,inform] = mexmvnprb2(L,A,B,abseps,releps,maxpts);
+#    else
+#      [value, err,inform] = mexGenzMvnPrb(L,A,B,abseps,releps,maxpts,method);
+#    end
+#    exTime = etime(clock,t0);
+#    
        
 if __name__ == '__main__':
     if False: #True: #  

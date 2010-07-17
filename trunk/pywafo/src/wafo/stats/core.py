@@ -206,7 +206,7 @@ def reslife(data, u=None, umin=None, umax=None, nu=None, nmin=3, alpha=0.05, plo
     res = WafoData(mrl, u, xlab='Threshold', ylab='Mean Excess', title=titleTxt)
     res.workspace = dict(numdata=num, umin=umin, umax=umax, nu=nu, nmin=nmin, alpha=alpha)
     res.children = [WafoData(vstack([mrll, mrlu]).T, u, xlab='Threshold', title=titleTxt)]
-    res.children_args = [':r']
+    res.plot_args_children = [':r']
     if plotflag:
         res.plot()
     return res
@@ -371,7 +371,7 @@ def dispersion_idx(data, t=None, u=None, umin=None, umax=None, nu=None, nmin=10,
         #'caption',CItxt);
     res.workspace = dict(umin=umin, umax=umax, nu=nu, nmin=nmin, alpha=alpha)
     res.children = [WafoData(vstack([diLo * ones(nu), diUp * ones(nu)]).T, u, xlab='Threshold', title=CItxt)]
-    res.children_args = ['--r']
+    res.plot_args_children = ['--r']
     if plotflag:
         res.plot(di)
     return res, b_u, ok_u

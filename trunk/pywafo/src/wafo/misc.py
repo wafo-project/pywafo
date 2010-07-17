@@ -6,45 +6,11 @@ from __future__ import division
 import sys
 
 import numpy as np
-from numpy import abs
-from numpy import amax
-from numpy import any
-from numpy import arange
-from numpy import arctan2
-from numpy import array
-from numpy import asarray
-from numpy import atleast_1d
-from numpy import broadcast_arrays
-from numpy import ceil
-from numpy import cos
-from numpy import diff
-from numpy import empty_like
-from numpy import exp
-from numpy import extract
-from numpy import finfo
-from numpy import floor
-from numpy import frexp
-from numpy import hstack
-from numpy import hypot
-from numpy import inf
-from numpy import interp
-from numpy import isnan
-from numpy import isscalar
-from numpy import linspace
-from numpy import log
-from numpy import logical_and
-from numpy import mod
-from numpy import nonzero
-from numpy import ones
-from numpy import pi
-from numpy import r_
-from numpy import sign
-from numpy import sin
-from numpy import sqrt
-from numpy import unique
-from numpy import vstack
-from numpy import where
-from numpy import zeros
+from numpy import (abs, amax, any, logical_and, arange, linspace, atleast_1d, 
+                   array, asarray, broadcast_arrays, ceil,  floor, frexp, hypot,
+                   sqrt, arctan2, sin, cos, exp, log, mod, diff, empty_like, 
+                   finfo, inf, pi, interp, isnan, isscalar, zeros, ones, 
+                   r_, sign, unique, hstack, vstack, nonzero, where, extract)
 from scipy.special import gammaln
 import types
 import warnings
@@ -99,7 +65,12 @@ class DotDict(dict):
 
 class Bunch(object):
     ''' Implement keyword argument initialization of class
-
+    
+    Example
+    -------
+    >>> d = Bunch(test1=1,test2=3)
+    >>> d.test1
+    1
     '''
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
@@ -1293,7 +1264,7 @@ def betaloge(z, w):
     for large arguments
 
     Example
-
+    >>> betaloge(3,2)
 
 
     See also
@@ -1496,7 +1467,7 @@ def discretize2(fun, a,b,tol=0.005, n=5):
     return x, fx
 
 
-def pol2cart(theta, rho):
+def pol2cart(theta, rho, z=None):
     ''' 
     Transform polar coordinates into 2D cartesian coordinates.
 
@@ -1509,9 +1480,14 @@ def pol2cart(theta, rho):
     --------
     cart2pol
     '''
-    return rho * cos(theta), rho * sin(theta)
+    x, y = rho * cos(theta), rho * sin(theta)
+    if z is None:
+        return x, y
+    else:
+        return x,y,z
+    
 
-def cart2pol(x, y):
+def cart2pol(x, y, z=None):
     ''' Transform 2D cartesian coordinates into polar coordinates.
 
     Returns
@@ -1525,7 +1501,12 @@ def cart2pol(x, y):
     --------
     pol2cart
     '''
-    return arctan2(y, x), hypot(x, y)
+    t, r = arctan2(y, x), hypot(x, y)
+    if z is None:
+        return t,r
+    else:
+        return t, r, z
+   
 
 def meshgrid(*xi, ** kwargs):
     """
@@ -1865,10 +1846,10 @@ def tranproc(x, f, x0, *xi):
     return y #y0,y1,y2,y3,y4
 
 
-def test_find_cross():
+def _test_find_cross():
     t = findcross([0, 0, 1, -1, 1],0)
     
-def test_common_shape():
+def _test_common_shape():
 
     A = ones((4, 1))
     B = 2
@@ -1883,7 +1864,7 @@ def test_common_shape():
     common_shape(A, B, C, shape=(4, 5))
     
     
-def test_meshgrid():
+def _test_meshgrid():
     x = array([-1, -0.5, 1, 4, 5], float)
     y = array([0, -2, -5], float)
     xv, yv = meshgrid(x, y, sparse=False)

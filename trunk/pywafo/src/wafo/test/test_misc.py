@@ -1,14 +1,33 @@
-from pylab import cos, randn, exp, linspace, pi, sin
-from wafo.misc import detrendma, DotDict, findcross, ecross
+import numpy as np
+from numpy import cos, exp, linspace, pi, sin, diff, arange, ones
+from numpy.random import randn
+from wafo.data import sea
+from wafo.misc import (JITImport, Bunch, detrendma, DotDict, findcross, ecross, findextrema, 
+                       findrfc, rfcfilter, findtp, findtc, findoutliers, 
+                       common_shape, argsreduce, stirlerr, getshipchar, betaloge, 
+                       gravity, nextpow2, discretize, discretize2, pol2cart, 
+                       cart2pol, meshgrid, tranproc)
 
-
+def test_JITImport():
+    '''
+    >>> np = JITImport('numpy')
+    >>> np.exp(0)==1.0
+    True
+    '''
+def test_bunch():
+    '''
+    >>> d = Bunch(test1=1,test2=3)
+    >>> d.test1; d.test2
+    1
+    3
+    '''
 def test_dotdict():
     '''
     >>> d = DotDict(test1=1,test2=3)
-    >>> d.test1
+    >>> d.test1; d.test2
     1
+    3
     '''
-    pass
     
 def test_detrendma():
     '''
@@ -123,9 +142,14 @@ def test_detrendma():
             2.44120808,  2.44120808,  2.44120808,  2.44120808,  2.44120808,
             2.44120808,  2.44120808,  2.44120808,  2.44120808,  2.44120808]))
     '''
-    pass
+    
 def test_findcross_and_ecross():
     '''
+    >>> findcross([0, 0, 1, -1, 1],0)
+    array([1, 2, 3])
+    >>> findcross([0, 1, -1, 1],0)
+    array([0, 1, 2])
+    
     >>> t = linspace(0,7*pi,250)
     >>> x = sin(t)
     >>> ind = findcross(x,0.75)
@@ -135,6 +159,321 @@ def test_findcross_and_ecross():
     >>> t0
     array([  0.84910514,   2.2933879 ,   7.13205663,   8.57630119,
             13.41484739,  14.85909194,  19.69776067,  21.14204343])
+    
+    '''
+def test_findextrema():
+    '''
+    >>> t = linspace(0,7*pi,250)
+    >>> x = sin(t)
+    >>> ind = findextrema(x)
+    >>> ind
+    array([ 18,  53,  89, 125, 160, 196, 231])
+    '''
+    
+def test_findrfc():
+    '''
+    
+    >>> t = linspace(0,7*pi,250)
+    >>> x = sin(t)+0.1*sin(50*t)
+    >>> ind = findextrema(x)
+    >>> ind
+    array([  1,   3,   4,   6,   7,   9,  11,  13,  14,  16,  18,  19,  21,
+            23,  25,  26,  28,  29,  31,  33,  35,  36,  38,  39,  41,  43,
+            45,  46,  48,  50,  51,  53,  55,  56,  58,  60,  61,  63,  65,
+            67,  68,  70,  71,  73,  75,  77,  78,  80,  81,  83,  85,  87,
+            88,  90,  92,  93,  95,  97,  99, 100, 102, 103, 105, 107, 109,
+           110, 112, 113, 115, 117, 119, 120, 122, 124, 125, 127, 129, 131,
+           132, 134, 135, 137, 139, 141, 142, 144, 145, 147, 149, 151, 152,
+           154, 156, 157, 159, 161, 162, 164, 166, 167, 169, 171, 173, 174,
+           176, 177, 179, 181, 183, 184, 186, 187, 189, 191, 193, 194, 196,
+           198, 199, 201, 203, 205, 206, 208, 209, 211, 213, 215, 216, 218,
+           219, 221, 223, 225, 226, 228, 230, 231, 233, 235, 237, 238, 240,
+           241, 243, 245, 247, 248])
+    >>> ti, tp = t[ind], x[ind]
+    >>> ind1 = findrfc(tp,0.3)
+    >>> ind1
+    array([  0,   9,  32,  53,  74,  95, 116, 137])
+    >>> tp[ind1]
+    array([-0.00743352,  1.08753972, -1.07206545,  1.09550837, -1.07940458,
+            1.07849396, -1.0995006 ,  1.08094452])
+    '''
+    
+def test_rfcfilter():
+    '''
+     # 1. Filtered signal y is the turning points of x. 
+    >>> x = sea()
+    >>> y = rfcfilter(x[:,1], h=0, method=1)
+    >>> y[0:5]
+    array([-1.2004945 ,  0.83950546, -0.09049454, -0.02049454, -0.09049454])
+
+    # 2. This removes all rainflow cycles with range less than 0.5.
+    >>> y1 = rfcfilter(x[:,1], h=0.5)
+    >>> y1[0:5]
+    array([-1.2004945 ,  0.83950546, -0.43049454,  0.34950546, -0.51049454])
+    
+    >>> t = linspace(0,7*pi,250)
+    >>> x = sin(t)+0.1*sin(50*t)
+    >>> ind = findextrema(x)
+    >>> ind
+    array([  1,   3,   4,   6,   7,   9,  11,  13,  14,  16,  18,  19,  21,
+            23,  25,  26,  28,  29,  31,  33,  35,  36,  38,  39,  41,  43,
+            45,  46,  48,  50,  51,  53,  55,  56,  58,  60,  61,  63,  65,
+            67,  68,  70,  71,  73,  75,  77,  78,  80,  81,  83,  85,  87,
+            88,  90,  92,  93,  95,  97,  99, 100, 102, 103, 105, 107, 109,
+           110, 112, 113, 115, 117, 119, 120, 122, 124, 125, 127, 129, 131,
+           132, 134, 135, 137, 139, 141, 142, 144, 145, 147, 149, 151, 152,
+           154, 156, 157, 159, 161, 162, 164, 166, 167, 169, 171, 173, 174,
+           176, 177, 179, 181, 183, 184, 186, 187, 189, 191, 193, 194, 196,
+           198, 199, 201, 203, 205, 206, 208, 209, 211, 213, 215, 216, 218,
+           219, 221, 223, 225, 226, 228, 230, 231, 233, 235, 237, 238, 240,
+           241, 243, 245, 247, 248])
+    >>> ti, tp = t[ind], x[ind]
+    >>> tp03 = rfcfilter(tp,0.3)
+    >>> tp03
+    array([-0.00743352,  1.08753972, -1.07206545,  1.09550837, -1.07940458,
+            1.07849396, -1.0995006 ,  1.08094452])
+    '''
+def test_findtp():
+    '''
+    >>> x = sea()
+    >>> x1 = x[0:200,:]
+    >>> itp = findtp(x1[:,1],0,'Mw')
+    >>> itph = findtp(x1[:,1],0.3,'Mw')
+    >>> itp
+    array([ 11,  21,  22,  24,  26,  28,  31,  39,  43,  45,  47,  51,  56,
+            64,  70,  78,  82,  84,  89,  94, 101, 108, 119, 131, 141, 148,
+           149, 150, 159, 173, 184, 190, 199])
+    >>> itph
+    array([ 11,  64,  28,  31,  47,  51,  39,  56,  70,  94,  78,  89, 101,
+           108, 119, 148, 131, 141,   0, 159, 173, 184, 190])
+    '''
+def test_findtc():
+    '''
+    >>> x = sea()
+    >>> x1 = x[0:200,:]
+    >>> itc, iv = findtc(x1[:,1],0,'dw')
+    >>> itc
+    array([ 28,  31,  39,  56,  64,  69,  78,  82,  83,  89,  94, 101, 108,
+           119, 131, 140, 148, 159, 173, 184])
+    >>> iv
+    array([ 19,  29,  34,  53,  60,  67,  76,  81,  82,  84,  90,  99, 103,
+           112, 127, 137, 143, 154, 166, 180, 185])
+    '''
+    
+def test_findoutliers():
+    '''
+    >>> xx = sea()
+    >>> dt = diff(xx[:2,0])
+    >>> dcrit = 5*dt
+    >>> ddcrit = 9.81/2*dt*dt
+    >>> zcrit = 0
+    >>> [inds, indg] = findoutliers(xx[:,1],zcrit,dcrit,ddcrit,verbose=True)
+    Found 0 spurious positive jumps of Dx
+    Found 0 spurious negative jumps of Dx
+    Found 37 spurious positive jumps of D^2x
+    Found 200 spurious negative jumps of D^2x
+    Found 244 consecutive equal values
+    Found the total of 1152 spurious points
+    >>> inds
+    array([   6,    7,    8, ..., 9509, 9510, 9511])
+    >>> indg
+    array([   0,    1,    2, ..., 9521, 9522, 9523])
+    '''
+def test_common_shape():
+    '''
+    >>> import numpy as np
+    >>> A = np.ones((4,1))
+    >>> B = 2
+    >>> C = np.ones((1,5))*5
+    >>> common_shape(A,B,C)
+    (4, 5)
+    >>> common_shape(A,B,C,shape=(3,4,1))
+    (3, 4, 5)
+    >>> A = np.ones((4,1))
+    >>> B = 2
+    >>> C = np.ones((1,5))*5
+    >>> common_shape(A,B,C)
+    (4, 5)
+    >>> common_shape(A,B,C,shape=(3,4,1))
+    (3, 4, 5)
+    '''
+def test_argsreduce():
+    '''
+    >>> import numpy as np
+    >>> rand = np.random.random_sample
+    >>> A = linspace(0,19,20).reshape((4,5))
+    >>> B = 2
+    >>> C = range(5)
+    >>> cond = np.ones(A.shape)
+    >>> [A1,B1,C1] = argsreduce(cond,A,B,C)
+    >>> B1.shape
+    (20,)
+    >>> cond[2,:] = 0
+    >>> [A2,B2,C2] = argsreduce(cond,A,B,C)
+    >>> B2.shape
+    (15,)
+    >>> A2;B2;C2
+    array([  0.,   1.,   2.,   3.,   4.,   5.,   6.,   7.,   8.,   9.,  15.,
+            16.,  17.,  18.,  19.])
+    array([2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2])
+    array([0, 1, 2, 3, 4, 0, 1, 2, 3, 4, 0, 1, 2, 3, 4])
+    '''
+def test_stirlerr():
+    '''
+     >>> stirlerr(range(5))
+     array([        Inf,  0.08106147,  0.0413407 ,  0.02767793,  0.02079067])
+    '''
+def test_getshipchar():
+    '''
+    >>> sc = getshipchar(10,'service_speed')
+    >>> names = ['beam',    'beamSTD',     'draught',
+    ... 'draughtSTD',     'length',     'lengthSTD',
+    ... 'max_deadweight',     'max_deadweightSTD',     'propeller_diameter',
+    ... 'propeller_diameterSTD',     'service_speed',     'service_speedSTD']
+    >>> for name in names: print( '%s : %g' % (name, sc[name]))
+    beam : 29
+    beamSTD : 2.9
+    draught : 9.6
+    draughtSTD : 2.112
+    length : 216
+    lengthSTD : 2.01131
+    max_deadweight : 30969
+    max_deadweightSTD : 3096.9
+    propeller_diameter : 6.76117
+    propeller_diameterSTD : 0.20267
+    service_speed : 10
+    service_speedSTD : 0
+    '''
+def test_betaloge():
+    '''
+    >>> betaloge(3, arange(4))
+    array([        Inf, -1.09861229, -2.48490665, -3.40119738])
+    '''
+def test_gravity():
+    '''
+    >>> phi = linspace(0,45,5)
+    >>> gravity(phi)
+    array([ 9.78049   ,  9.78245014,  9.78803583,  9.79640552,  9.80629387])
+    '''
+def test_nextpow2():
+    '''
+    >>> nextpow2(10)
+    4
+    >>> nextpow2(np.arange(5))
+    3
+    '''
+
+def test_discretize():
+    '''
+    >>> x, y = discretize(np.cos,0,np.pi)
+    >>> x; y
+    array([ 0.        ,  0.19634954,  0.39269908,  0.58904862,  0.78539816,
+            0.9817477 ,  1.17809725,  1.37444679,  1.57079633,  1.76714587,
+            1.96349541,  2.15984495,  2.35619449,  2.55254403,  2.74889357,
+            2.94524311,  3.14159265])
+    array([  1.00000000e+00,   9.80785280e-01,   9.23879533e-01,
+             8.31469612e-01,   7.07106781e-01,   5.55570233e-01,
+             3.82683432e-01,   1.95090322e-01,   6.12323400e-17,
+            -1.95090322e-01,  -3.82683432e-01,  -5.55570233e-01,
+            -7.07106781e-01,  -8.31469612e-01,  -9.23879533e-01,
+            -9.80785280e-01,  -1.00000000e+00])
+    '''
+def test_discretize2():
+    '''
+    >>> x, y = discretize2(np.cos,0,np.pi)
+    >>> x; y
+    array([ 0.        ,  0.19634954,  0.39269908,  0.58904862,  0.78539816,
+            0.9817477 ,  1.17809725,  1.37444679,  1.57079633,  1.76714587,
+            1.96349541,  2.15984495,  2.35619449,  2.55254403,  2.74889357,
+            2.94524311,  3.14159265])
+    array([  1.00000000e+00,   9.80785280e-01,   9.23879533e-01,
+             8.31469612e-01,   7.07106781e-01,   5.55570233e-01,
+             3.82683432e-01,   1.95090322e-01,   6.12323400e-17,
+            -1.95090322e-01,  -3.82683432e-01,  -5.55570233e-01,
+            -7.07106781e-01,  -8.31469612e-01,  -9.23879533e-01,
+            -9.80785280e-01,  -1.00000000e+00])
+    '''
+def test_pol2cart_n_cart2pol():
+    '''
+    >>> r = 5
+    >>> t = linspace(0,pi,20)
+    >>> x, y = pol2cart(t,r)
+    >>> x; y
+    array([ 5.        ,  4.93180652,  4.72908621,  4.39736876,  3.94570255,
+            3.38640786,  2.73474079,  2.00847712,  1.22742744,  0.41289673,
+           -0.41289673, -1.22742744, -2.00847712, -2.73474079, -3.38640786,
+           -3.94570255, -4.39736876, -4.72908621, -4.93180652, -5.        ])
+    array([  0.00000000e+00,   8.22972951e-01,   1.62349735e+00,
+             2.37973697e+00,   3.07106356e+00,   3.67861955e+00,
+             4.18583239e+00,   4.57886663e+00,   4.84700133e+00,
+             4.98292247e+00,   4.98292247e+00,   4.84700133e+00,
+             4.57886663e+00,   4.18583239e+00,   3.67861955e+00,
+             3.07106356e+00,   2.37973697e+00,   1.62349735e+00,
+             8.22972951e-01,   6.12323400e-16])
+    >>> ti, ri = cart2pol(x,y)
+    >>> ti;ri
+    array([ 0.        ,  0.16534698,  0.33069396,  0.49604095,  0.66138793,
+            0.82673491,  0.99208189,  1.15742887,  1.32277585,  1.48812284,
+            1.65346982,  1.8188168 ,  1.98416378,  2.14951076,  2.31485774,
+            2.48020473,  2.64555171,  2.81089869,  2.97624567,  3.14159265])
+    array([ 5.,  5.,  5.,  5.,  5.,  5.,  5.,  5.,  5.,  5.,  5.,  5.,  5.,
+            5.,  5.,  5.,  5.,  5.,  5.,  5.])
+    '''
+def test_meshgrid():
+    '''
+    >>> x = np.linspace(0,1,3)   # coordinates along x axis
+    >>> y = np.linspace(0,1,2)   # coordinates along y axis
+    >>> xv, yv = meshgrid(x,y)   # extend x and y for a 2D xy grid
+    >>> xv
+    array([[ 0. ,  0.5,  1. ],
+           [ 0. ,  0.5,  1. ]])
+    >>> yv
+    array([[ 0.,  0.,  0.],
+           [ 1.,  1.,  1.]])
+    >>> xv, yv = meshgrid(x,y, sparse=True)  # make sparse output arrays
+    >>> xv
+    array([[ 0. ,  0.5,  1. ]])
+    >>> yv
+    array([[ 0.],
+           [ 1.]])
+
+    >>> meshgrid(x,y,sparse=True,indexing='ij')  # change to matrix indexing
+    [array([[ 0. ],
+           [ 0.5],
+           [ 1. ]]), array([[ 0.,  1.]])]
+    >>> meshgrid(x,y,indexing='ij')
+    [array([[ 0. ,  0. ],
+           [ 0.5,  0.5],
+           [ 1. ,  1. ]]), array([[ 0.,  1.],
+           [ 0.,  1.],
+           [ 0.,  1.]])]
+
+    >>> meshgrid(0,1,5)  # just a 3D point
+    [array([[[0]]]), array([[[1]]]), array([[[5]]])]
+    >>> map(np.squeeze,meshgrid(0,1,5))  # just a 3D point
+    [array(0), array(1), array(5)]
+    >>> meshgrid(3)
+    array([3])
+    >>> meshgrid(y)      # 1D grid y is just returned
+    array([ 0.,  1.])
+
+    `meshgrid` is very useful to evaluate functions on a grid.
+
+    >>> x = np.arange(-5, 5, 0.1)
+    >>> y = np.arange(-5, 5, 0.1)
+    >>> xx, yy = meshgrid(x, y, sparse=True)
+    >>> z = np.sin(xx**2+yy**2)/(xx**2+yy**2)
+    '''
+def test_tranproc():
+    '''
+    >>> import wafo.transform.models as wtm
+    >>> tr = wtm.TrHermite()
+    >>> x = linspace(-5,5,501) 
+    >>> g = tr(x)
+    >>> y0, y1 = tranproc(x, g, range(5), ones(5))
+    >>> y0;y1
+    array([ 0.02659612,  1.00115284,  1.92872532,  2.81453257,  3.66292878])
+    array([ 1.00005295,  0.9501118 ,  0.90589954,  0.86643821,  0.83096482])
     
     '''
 if __name__=='__main__':
