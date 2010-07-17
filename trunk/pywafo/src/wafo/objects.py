@@ -62,10 +62,13 @@ class LevelCrossings(WafoData):
 
     '''
     def __init__(self, *args, **kwds):
-        super(LevelCrossings, self).__init__(*args, **kwds)
-        self.labels.title = 'Level crossing spectrum'
-        self.labels.xlab = 'Levels'
-        self.labels.ylab = 'Count'
+        options = dict(title='Level crossing spectrum',
+                            xlab='Levels', ylab='Count',
+                            plot_args=['b'],
+                            plot_args_children=['r--'],)
+        options.update(**kwds)
+        super(LevelCrossings, self).__init__(*args, **options)
+      
         self.stdev = kwds.get('stdev', None)
         self.mean = kwds.get('mean', None)
         self.setplotter(plotmethod='step')
@@ -448,15 +451,16 @@ class CyclePairs(WafoData):
 
     '''
     def __init__(self, *args, **kwds):
-        super(CyclePairs, self).__init__(*args, **kwds)
         self.type_ = kwds.get('type_', 'max2min')
         self.stdev = kwds.get('stdev', None)
         self.mean = kwds.get('mean', None)
-
-        self.labels.title = self.type_ + ' cycle pairs'
-        self.labels.xlab = 'min'
-        self.labels.ylab = 'max'
-
+        
+        options = dict(title=self.type_ + ' cycle pairs',
+                            xlab='min', ylab='max',
+                            plot_args=['b.'])
+        options.update(**kwds)
+        super(CyclePairs, self).__init__(*args, **options)
+         
     def amplitudes(self):
         return (self.data - self.args) / 2.
     
@@ -639,7 +643,7 @@ class TurningPoints(WafoData):
         >>> ts = wafo.objects.mat2timeseries(x)
         >>> tp = ts.turning_points()
         >>> mM = tp.cycle_pairs()
-        >>> h = mM.plot('.')
+        >>> h = mM.plot('x')
 
 
         See also
@@ -663,7 +667,6 @@ class TurningPoints(WafoData):
             type_ = 'max2min'
             M = self.data[iM:-1:2]
             m = self.data[iM + 1::2]
-
         return CyclePairs(M, m, type=type_)
 
 def mat2timeseries(x):

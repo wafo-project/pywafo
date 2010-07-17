@@ -54,7 +54,7 @@ class WafoData(object):
     Plot with confidence interval
     >>> d3 = WafoData(np.sin(x),x)
     >>> d3.children = [WafoData(np.vstack([np.sin(x)*0.9, np.sin(x)*1.2]).T,x)]
-    >>> d3.children_args=[':r']
+    >>> d3.plot_args_children=[':r']
     >>> h = d3.plot()
 
     See also
@@ -68,7 +68,9 @@ class WafoData(object):
         self.date = now()
         self.plotter = None
         self.children = None
-        self.children_args = []
+        self.plot_args_children = kwds.get('plot_args_children',[])
+        self.plot_args = kwds.get('plot_args',[])
+        
         self.labels = AxisLabels(**kwds)
         self.setplotter()
 
@@ -77,15 +79,15 @@ class WafoData(object):
         if self.children != None:
             plotbackend.hold('on')
             tmp = []
-            child_args = args + tuple(self.children_args)
+            child_args = args + tuple(self.plot_args_children)
             for child in self.children:
                 tmp1 = child.plot(*child_args, **kwds)
                 if tmp1 != None:
                     tmp.append(tmp1)
             if len(tmp) == 0:
                 tmp = None
-
-        tmp2 = self.plotter.plot(self, *args, **kwds)
+        main_args = args + tuple(self.plot_args)
+        tmp2 = self.plotter.plot(self, *main_args, **kwds)
         return tmp2, tmp
     
     def show(self):
