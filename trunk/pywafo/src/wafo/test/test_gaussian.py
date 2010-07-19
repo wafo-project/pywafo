@@ -5,7 +5,7 @@ Created on 17. juli 2010
 '''
 import numpy as np
 from numpy import pi, inf
-from wafo.gaussian import Rind, prbnormtndpc, prbnormndpc
+from wafo.gaussian import Rind, prbnormtndpc, prbnormndpc, prbnormnd, cdfnorm2d, prbnorm2d
 
 def test_rind():
     '''
@@ -83,7 +83,7 @@ def test_prbnormtndpc():
     >>> [val3,err3, ift3] = prbnormtndpc(rho3,a3,b3)  
     >>> g3 = lambda x : 0.5-sum(np.sort(np.arccos([x[0]*x[1],x[0]*x[2],x[1]*x[2]])))/(4*pi)
     >>> E3 = g3(rho3)   #  Exact value  
-    >>> np.abs(E3-val3)<err2
+    >>> np.abs(E3-val3)<err3
     True
     '''
 def test_prbnormndpc():
@@ -105,6 +105,47 @@ def test_prbnormndpc():
     >>> E3 = g3(rho3)   #  Exact value  
     >>> np.abs(E3-val3)<err2
     True
+    '''
+    
+def test_prbnormnd():
+    '''
+    >>> Et = 0.001946 # #  exact prob.
+    >>> n = 5; nt = n
+    >>> Blo =-np.inf; Bup=0; indI=[-1, n-1]  # Barriers
+    >>> m = 1.2*np.ones(n); rho = 0.3;
+    >>> Sc =(np.ones((n,n))-np.eye(n))*rho+np.eye(n)
+    >>> rind = Rind()
+    >>> E0, err0, terr0 = rind(Sc,m,Blo,Bup,indI, nt=nt) 
+    
+    >>> A = np.repeat(Blo,n)
+    >>> B = np.repeat(Bup,n)-m 
+    >>> [val,err,inform] = prbnormnd(Sc,A,B);val;err;inform
+    0.0019456719705212067
+    1.0059406844578488e-05
+    0
+    >>> np.abs(val-Et)< err0+terr0
+    array([ True], dtype=bool)
+    >>> 'val = %2.6f' % val  
+    'val = 0.001945'
+    '''
+def test_cdfnorm2d():
+    '''
+    >>> x = np.linspace(-3,3,3) 
+    >>> [b1,b2] = np.meshgrid(x,x)
+    >>> r  = 0.3
+    >>> cdfnorm2d(b1,b2,r)
+    array([[  2.38515157e-05,   1.14504149e-03,   1.34987703e-03],
+           [  1.14504149e-03,   2.98493342e-01,   4.99795143e-01],
+           [  1.34987703e-03,   4.99795143e-01,   9.97324055e-01]])
+    '''
+    
+def test_prbnorm2d():
+    '''
+    >>> a = [-1, -2]
+    >>> b = [1, 1] 
+    >>> r = 0.3
+    >>> prbnorm2d(a,b,r)
+    array([ 0.56659121])
     '''
 if __name__ == '__main__':
     import doctest
