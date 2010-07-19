@@ -1,12 +1,14 @@
-import warnings
-import numpy as np
-from numpy import (r_, minimum, maximum, atleast_1d, atleast_2d, mod, zeros, #@UnresolvedImport
-        ones, floor, random, eye, nonzero, repeat, sqrt, exp, inf, diag, triu) #@UnresolvedImport
-from scipy.special import ndtri as invnorm
-from scipy.special import ndtr as cdfnorm
-import wafo.rindmod as rindmod
-import wafo.mvnprdmod as mvnprdmod
+from numpy import r_, minimum, maximum, atleast_1d, atleast_2d, mod, ones, floor, \
+    random, eye, nonzero, where, repeat, sqrt, exp, inf, diag, zeros, sin, arcsin, nan #@UnresolvedImport
+from numpy import triu #@UnresolvedImport
+from scipy.special import ndtr as cdfnorm, ndtri as invnorm
 from wafo import mvn
+import numpy as np
+import wafo.mvnprdmod as mvnprdmod
+import wafo.rindmod as rindmod
+import warnings
+from wafo.misc import common_shape
+from scipy.stats.stats import erfc
 
 class Rind(object):
     '''
@@ -22,7 +24,7 @@ class Rind(object):
         Lower and upper barriers used to compute the integration limits, Hlo and Hup, respectively. 
     indI : array-like, length Ni
         vector of indices to the different barriers in the indicator function.
-        (NB! restriction  indI(1)=0, indI(NI)=Nt+Nd, Ni = Nb+1)
+        (NB! restriction  indI(1)=-1, indI(NI)=Nt+Nd, Ni = Nb+1)
         (default indI = 0:Nt+Nd)
     xc : values to condition on (default xc = zeros(0,1)), size Nc x Nx
     Nt : size of Xt             (default Nt = Ntdc - Nc)
@@ -361,7 +363,7 @@ def test_rind():
     Blo[0, ind] = maximum(Blo[0, ind], -infinity * dev[indI[ind + 1]])
     E3 = rind(Sc, m, Blo, Bup, indI, xc, nt=1)
 
-def cdflomax(x,alpha,m0):
+def cdflomax(x, alpha, m0):
     '''
     Return CDF for local maxima for a zero-mean Gaussian process
      
@@ -412,11 +414,11 @@ def cdflomax(x,alpha,m0):
     --------
     spec2mom, spec2bw
     '''
-    c1 = 1.0/(sqrt(1-alpha**2))*x/sqrt(m0)
-    c2 = alpha*c1
-    return cdfnorm(c1)-alpha*exp(-x**2/2/m0)*cdfnorm(c2)
+    c1 = 1.0 / (sqrt(1 - alpha ** 2)) * x / sqrt(m0)
+    c2 = alpha * c1
+    return cdfnorm(c1) - alpha * exp(-x ** 2 / 2 / m0) * cdfnorm(c2)
 
-def prbnormtndpc(rho,a,b,D=None,df=0,abseps=1e-4,IERC=0,HNC=0.24):
+def prbnormtndpc(rho, a, b, D=None, df=0, abseps=1e-4, IERC=0, HNC=0.24):
     '''
     Return Multivariate normal or T probability with product correlation structure.
     
@@ -490,11 +492,11 @@ def prbnormtndpc(rho,a,b,D=None,df=0,abseps=1e-4,IERC=0,HNC=0.24):
     if D is None:
         D = zeros(len(rho))
     # Make sure integration limits are finite
-    A = np.clip(a-D,-100,100)
-    B = np.clip(b-D,-100,100)
-    return mvnprdmod.prbnormtndpc(rho,A,B,df,abseps,IERC,HNC)
+    A = np.clip(a - D, -100, 100)
+    B = np.clip(b - D, -100, 100)
+    return mvnprdmod.prbnormtndpc(rho, A, B, df, abseps, IERC, HNC)
 
-def prbnormndpc(rho,a,b,abserr=1e-4,relerr=1e-4,usesimpson=True, usebreakpoints=False):
+def prbnormndpc(rho, a, b, abserr=1e-4, relerr=1e-4, usesimpson=True, usebreakpoints=False):
     '''
     Return Multivariate Normal probabilities with product correlation
      
@@ -552,15 +554,15 @@ def prbnormndpc(rho,a,b,abserr=1e-4,relerr=1e-4,usesimpson=True, usebreakpoints=
       
     '''  
     # Call fortran implementation
-    val,err,ier = mvnprdmod.prbnormndpc(rho,a,b,abserr,relerr,usebreakpoints,usesimpson);
+    val, err, ier = mvnprdmod.prbnormndpc(rho, a, b, abserr, relerr, usebreakpoints, usesimpson);
     
-    if ier>0:
-        warnings.warn('Abnormal termination ier = %d\n\n%s' % (ier,_ERRORMESSAGE[ier]))
+    if ier > 0:
+        warnings.warn('Abnormal termination ier = %d\n\n%s' % (ier, _ERRORMESSAGE[ier]))
     return val, err, ier
 
 _ERRORMESSAGE = {}
 _ERRORMESSAGE[0] = ''
-_ERRORMESSAGE[1] ='''
+_ERRORMESSAGE[1] = '''
        Maximum number of subdivisions allowed has been achieved. one can allow 
        more subdivisions by increasing the value of limit (and taking the 
        according dimension adjustments into account). however, if this yields 
@@ -571,27 +573,27 @@ _ERRORMESSAGE[1] ='''
        the vector points. If necessary an appropriate special-purpose integrator
        must be used, which is designed for handling the type of difficulty involved.
        '''
-_ERRORMESSAGE[2] ='''
+_ERRORMESSAGE[2] = '''
      the occurrence of roundoff error is detected, which prevents the requested 
      tolerance from being achieved. The error may be under-estimated.'''
          
-_ERRORMESSAGE[3] =''' 
+_ERRORMESSAGE[3] = ''' 
      Extremely bad integrand behaviour occurs at some points of the integration interval.'''
-_ERRORMESSAGE[4] ='''
+_ERRORMESSAGE[4] = '''
      The algorithm does not converge. Roundoff error is detected in the extrapolation table. 
      It is presumed that the requested tolerance cannot be achieved, and that 
      the returned result is the best which can be obtained.'''
-_ERRORMESSAGE[5] ='''
+_ERRORMESSAGE[5] = '''
      The integral is probably divergent, or slowly convergent. 
      It must be noted that divergence can occur with any other value of ier>0.'''
-_ERRORMESSAGE[6] ='''the input is invalid because:
+_ERRORMESSAGE[6] = '''the input is invalid because:
         1) npts2 < 2
         2) break points are specified outside the integration range
         3) (epsabs<=0 and epsrel<max(50*rel.mach.acc.,0.5d-28))
         4) limit < npts2.'''
     
 
-def  prbnormnd(correl,a,b,abseps=1e-4,releps=1e-3,maxpts=None,method=0):
+def  prbnormnd(correl, a, b, abseps=1e-4, releps=1e-3, maxpts=None, method=0):
     '''
     
     Multivariate Normal probability by Genz' algorithm.
@@ -628,19 +630,30 @@ def  prbnormnd(correl,a,b,abseps=1e-4,releps=1e-3,maxpts=None,method=0):
                                decrease ERROR;
                 if INFORM = 2, N > NMAX or N < 1. where NMAX depends on the
                                integration method
-     Example:% Compute the probability that X1<0,X2<0,X3<0,X4<0,X5<0,
-               % Xi are zero-mean Gaussian variables with variances one
-               % and correlations Cov(X(i),X(j))=0.3:
-               % indI=[0 5], and barriers B_lo=[-inf 0], B_lo=[0  inf]     
-               % gives H_lo = [-inf -inf -inf -inf -inf]  H_lo = [0 0 0 0 0] 
+    Example
+    ------- 
+    Compute the probability that X1<0,X2<0,X3<0,X4<0,X5<0,
+    Xi are zero-mean Gaussian variables with variances one
+    and correlations Cov(X(i),X(j))=0.3:
+    indI=[0 5], and barriers B_lo=[-inf 0], B_lo=[0  inf]     
+    gives H_lo = [-inf -inf -inf -inf -inf]  H_lo = [0 0 0 0 0] 
      
-        N = 5; rho=0.3; NIT=3; Nt=N; indI=[0 N];
-        B_lo=-10; B_up=0; m=1.2*ones(N,1);
-        Sc=(ones(N)-eye(N))*rho+eye(N);
-        E = rind(Sc,m,B_lo,B_up,indI,[],Nt) % exact prob. 0.00195
-       A = [-inf -inf -inf -inf -inf],
-        B = [0 0 0 0 0]-m' 
-        [val,err,inform] = prbnormnd(Sc,A,B);  
+    >>> Et = 0.001946 # #  exact prob.
+    >>> n = 5; nt = n
+    >>> Blo =-np.inf; Bup=0; indI=[-1, n-1]  # Barriers
+    >>> m = 1.2*np.ones(n); rho = 0.3;
+    >>> Sc =(np.ones((n,n))-np.eye(n))*rho+np.eye(n)
+    >>> rind = Rind()
+    >>> E0, err0, terr0 = rind(Sc,m,Blo,Bup,indI, nt=nt) 
+    
+    >>> A = np.repeat(Blo,n)
+    >>> B = np.repeat(Bup,n)-m 
+    >>> [val,err,inform] = prbnormnd(Sc,A,B);val;err;inform
+    
+    >>> np.abs(val-Et)< err0+terr0
+    array([ True], dtype=bool)
+    >>> 'val = %2.6f' % val  
+    'val = 0.001945'
     
      See also
      --------
@@ -648,16 +661,16 @@ def  prbnormnd(correl,a,b,abseps=1e-4,releps=1e-3,maxpts=None,method=0):
     '''
       
     
-    m,n = correl.shape
+    m, n = correl.shape
     Na = len(a)
     Nb = len(b)
-    if (m!=n or m!=Na or m!=Nb):
+    if (m != n or m != Na or m != Nb):
         raise ValueError('Size of input is inconsistent!')
     
     if maxpts is None: 
-        maxpts = 1000*n
+        maxpts = 1000 * n
     
-    maxpts = max(round(maxpts),10*n);
+    maxpts = max(round(maxpts), 10 * n);
     
 #    %            array of correlation coefficients; the correlation
 #    %            coefficient in row I column J of the correlation matrix
@@ -665,16 +678,21 @@ def  prbnormnd(correl,a,b,abseps=1e-4,releps=1e-3,maxpts=None,method=0):
 #    %            The correlation matrix must be positive semidefinite.
     
     D = np.diag(correl)
-    if (any(D!=1)):
+    if (any(D != 1)):
         raise ValueError('This is not a correlation matrix')
-    
-    
+
     # Make sure integration limits are finite
-    A = np.clip(a,-100,100)
-    B = np.clip(b,-100, 100)
+    A = np.clip(a, -100, 100)
+    B = np.clip(b, -100, 100)
+    ix = np.where(np.triu(np.ones((m, m)), 1) != 0)
+    L = correl[ix].ravel()    #% return only off diagonal elements
     
-    #L = correl((triu(ones(m),1)~=0));    % return only off diagonal elements
-    return mvn.mvnun(A,B, correl,maxpts, abseps, releps)
+    infinity = 37
+    infin = np.repeat(2, n) - (B > infinity) - 2 * (A < -infinity)     
+   
+    err, val, inform = mvn.mvndst(A, B, infin, L, maxpts, abseps, releps)
+    
+    return val, err, inform
     
     #CALL the mexroutine
 #    t0 = clock;
@@ -688,7 +706,253 @@ def  prbnormnd(correl,a,b,abseps=1e-4,releps=1e-3,maxpts=None,method=0):
 #      [value, err,inform] = mexGenzMvnPrb(L,A,B,abseps,releps,maxpts,method);
 #    end
 #    exTime = etime(clock,t0);
-#    
+#  '
+
+ #%     gauss legendre points and weights, n = 6
+_W6 = [ 0.1713244923791705e+00, 0.3607615730481384e+00, 0.4679139345726904e+00]
+_X6 = [-0.9324695142031522e+00, -0.6612093864662647e+00, -0.2386191860831970e+00]
+#%     gauss legendre points and weights, n = 12
+_W12 = [ 0.4717533638651177e-01, 0.1069393259953183e+00, 0.1600783285433464e+00,
+       0.2031674267230659e+00, 0.2334925365383547e+00, 0.2491470458134029e+00]
+_X12 = [ -0.9815606342467191e+00, -0.9041172563704750e+00, -0.7699026741943050e+00,
+    - 0.5873179542866171e+00, -0.3678314989981802e+00, -0.1252334085114692e+00]
+#%     gauss legendre points and weights, n = 20
+_W20 = [ 0.1761400713915212e-01, 0.4060142980038694e-01,
+      0.6267204833410906e-01, 0.8327674157670475e-01,
+      0.1019301198172404e+00, 0.1181945319615184e+00,
+      0.1316886384491766e+00, 0.1420961093183821e+00,
+      0.1491729864726037e+00, 0.1527533871307259e+00]
+_X20 = [ -0.9931285991850949e+00, -0.9639719272779138e+00,
+      - 0.9122344282513259e+00, -0.8391169718222188e+00,
+       - 0.7463319064601508e+00, -0.6360536807265150e+00,
+       - 0.5108670019508271e+00, -0.3737060887154196e+00,
+   - 0.2277858511416451e+00, -0.7652652113349733e-01]
+
+def cdfnorm2d(b1, b2, r):
+    '''
+    Returnc Bivariate Normal cumulative distribution function
+    
+    Parameters
+    ----------
+    
+    b1, b2 : array-like
+        upper integration limits
+    r : real scalar
+        correlation coefficient  (-1 <= r <= 1).
+        
+    Returns
+    -------
+    bvn : ndarray
+        distribution function evaluated at b1, b2.
+        
+    Notes
+    -----  
+    CDFNORM2D computes bivariate normal probabilities, i.e., the probability 
+    Prob(X1 <= B1 and X2 <= B2) with an absolute error less than 1e-15.
+         
+    This function is based on the method described by Drezner, z and 
+    G.O. Wesolowsky, (1989), with major modifications for double precision, 
+    and for |r| close to 1.
+    
+    Example
+    ------- 
+    >>> x = np.linspace(-5,5,20)  
+    >>> [B1,B2] = np.meshgrid(x, x)
+    >>> r  = 0.3;
+    >>> F = cdfnorm2d(B1,B2,r);  
+      surf(x,x,F)
+    
+    See also
+      cdfnorm
+      
+    Reference
+    ---------
+    Drezner, z and g.o. Wesolowsky, (1989),
+    "On the computation of the bivariate normal integral",
+    Journal of statist. comput. simul. 35, pp. 101-107,
+    '''  
+    # Translated into Python
+    # Per A. Brodtkorb
+    #
+    # Original code 
+    # by  alan genz
+    #     department of mathematics
+    #     washington state university
+    #     pullman, wa 99164-3113
+    #     email : alangenz@wsu.edu
+    
+    cshape = common_shape(b1, b2, r, shape=[1, ])
+    one = ones(cshape)
+    
+    h, k, r = (-b1 * one).ravel(), (-b2 * one).ravel(), (r * one).ravel()
+    
+    bvn = where(abs(r) > 1, nan, 0.0)
+     
+    two = 2.e0;
+    twopi = 6.283185307179586e0;
+   
+    hk = h * k
+    
+    k0, = nonzero(abs(r) < 0.925e0)
+    if len(k0) > 0: 
+        hs = (h[k0] ** 2 + k[k0] ** 2) / two
+        asr = arcsin(r[k0])
+        k1, = nonzero(r[k0] >= 0.75)
+        if len(k1) > 0:
+            k01 = k0[k1]
+            for i in range(10):
+                for sign in - 1, 1: 
+                    sn = sin(asr[k1] * (sign * _X20[i] + 1) / 2)
+                    bvn[k01] = bvn[k01] + _W20[i] * exp((sn * hk[k01] - hs[k1]) / (1 - sn * sn));
+           
+        k1, = nonzero((0.3 <= r[k0]) & (r[k0] < 0.75))
+        if len(k1) > 0:
+            k01 = k0[k1];
+            for i in range(6):
+                for sign in - 1, 1: 
+                    sn = sin(asr[k1] * (sign * _X12[i] + 1) / 2);
+                    bvn[k01] = bvn[k01] + _W12[i] * exp((sn * hk[k01] - hs[k1]) / (1 - sn * sn));
+          
+        k1, = nonzero(r[k0] < 0.3);
+        if len(k1) > 0:
+            k01 = k0[k1]
+            for i in range(3):
+                for sign in - 1, 1: 
+                    sn = sin(asr[k1] * (sign * _X6[i] + 1) / 2)
+                    bvn[k01] = bvn[k01] + _W6[i] * exp((sn * hk[k01] - hs[k1]) / (1 - sn * sn))
+          
+        bvn[k0] *= asr / (two * twopi) 
+        bvn[k0] += fi(-h[k0]) * fi(-k[k0])
+    
+    
+    k1, = nonzero((0.925 <= abs(r)) & (abs(r) <= 1));
+    if len(k1) > 0:
+        k2, = nonzero(r[k1] < 0);
+        if len(k2) > 0: 
+            k12 = k1[k2];
+            k[k12] = -k[k12];
+            hk[k12] = -hk[k12];
+      
+        k3, = nonzero(abs(r[k1]) < 1);
+        if len(k3) > 0:
+            k13 = k1[k3];
+            a2 = (1 - r[k13]) * (1 + r[k13]);
+            a = sqrt(a2)
+            b = abs(h[k13] - k[k13]);
+            bs = b * b;
+            c = (4.e0 - hk[k13]) / 8.e0;
+            d = (12.e0 - hk[k13]) / 16.e0;
+            asr = -(bs / a2 + hk[k13]) / 2.e0;
+            k4, = nonzero(asr > -100.e0);
+            if len(k4) > 0: 
+                bvn[k13[k4]] = a[k4] * exp(asr[k4]) * (1 - c[k4] * 
+                                (bs[k4] - a2[k4]) * (1 - d[k4] * bs[k4] / 5) / 3 
+                                                   + c[k4] * d[k4] * a2[k4] ** 2 / 5);
+            
+            k5, = nonzero(hk[k13] < 100.e0);
+            if len(k5) > 0:
+                #%               b = sqrt(bs);
+                k135 = k13[k5];
+                bvn[k135] = bvn[k135] - exp(-hk[k135] / 2) * sqrt(twopi) * fi(-b[k5] / a[k5]) * b[k5] * (1 - c[k5] * bs[k5] * (1 - d[k5] * bs[k5] / 5) / 3)
+            
+            a /= two
+            for i in range(10):
+                for sign in - 1, 1:
+                    xs = (a * (sign * _X20[i] + 1)) ** 2;
+                    rs = sqrt(1 - xs);
+                    asr = -(bs / xs + hk[k13]) / 2;
+                    k6, = nonzero(asr > -100.e0) ;
+                    if len(k6) > 0: 
+                        k136 = k13[k6]
+                        bvn[k136] += (a[k6] * _W20[i] * exp(asr[k6]) * 
+                                      (exp(-hk[k136] * (1 - rs[k6]) / (2 * (1 + rs[k6]))) / rs[k6] - 
+                                       (1 + c[k6] * xs[k6] * (1 + d[k6] * xs[k6]))))
+         
+            bvn[k3] = -bvn[k3] / twopi;
+        
+        
+        k7, = nonzero(r[k1] > 0);
+        if len(k7):
+            k17 = k1[k7]
+            bvn[k17] += fi(-np.maximum(h[k17], k[k17]));
+    
+        k8, = nonzero(r[k1] < 0);
+        if len(k8) > 0:
+            k18 = k1[k8];
+            bvn[k18] = -bvn[k18] + np.maximum(0, fi(-h[k18]) - fi(-k[k18]));
+        
+    bvn.shape = cshape
+    return bvn
+    
+def fi(x):
+    return 0.5 * (erfc((-x) / sqrt(2)))
+
+def prbnorm2d(a, b, r):
+    '''
+    Returns Bivariate Normal probability   
+    
+    Parameters
+    ---------
+    a, b : array-like, size==2
+        vector with lower and upper integration limits, respectively.
+    r : real scalar
+        correlation coefficient  
+    
+    Returns
+    -------
+    prb : real scalar
+        computed probability Prob(A[0] <= X1 <= B[0] and A[1] <= X2 <= B[1])  
+        with an absolute error less than 1e-15.
+    
+    Example
+    -------
+    >>> a = [-1, -2]
+    >>> b = [1, 1] 
+    >>> r = 0.3
+    >>> prbnorm2d(a,b,r)
+    
+    See also
+    --------
+    cdfnorm2d, 
+    cdfnorm, 
+    prbnormndpc
+    '''
+    infinity = 37
+    lower = np.asarray(a)
+    upper = np.asarray(b)
+    if np.all((lower <= -infinity) & (infinity<=upper)):
+        return 1.0 
+    if (lower >= upper).any():
+        return 0.0
+    correl = r
+    infin = np.repeat(2, 2) - (upper > infinity) - 2 * (lower < -infinity)
+    
+    if np.all(infin == 2):
+        return (bvd(lower[0], lower[1], correl)
+          - bvd(upper[0], lower[1], correl)
+          - bvd(lower[0], upper[1], correl)
+          + bvd(upper[0], upper[1], correl))
+    elif (infin[0] == 2  and infin[1] == 1): 
+        return  bvd(lower[0], lower[1], correl) - bvd(upper[0], lower[1], correl)
+    elif (infin[0] == 1  and infin[1] == 2) :
+        return  bvd(lower[0], lower[1], correl) - bvd(lower[0], upper[1], correl)
+    elif (infin[0] == 2  and infin[1] == 0) :
+        return  bvd(-upper[0], -upper[1], correl) - bvd(-lower[0], -upper[1], correl)
+    elif (infin[0] == 0  and infin[1] == 2): 
+        return bvd(-upper[0], -upper[1], correl) - bvd(-upper[0], -lower[1], correl)
+    elif (infin[0] == 1  and infin[1] == 0) :
+        return bvd(lower[0], -upper[1], -correl)
+    elif (infin[0] == 0  and infin[1] == 1) :
+        return bvd(-upper[0], lower[1], -correl)
+    elif (infin[0] == 1  and infin[1] == 1): 
+        return bvd(lower[0], lower[1], correl)
+    elif (infin[0] == 0  and infin[1] == 0) :
+        return bvd(-upper[0], -upper[1], correl)
+    return 1
+
+def bvd(lo, up, r):
+    return cdfnorm2d(-lo, -up, r)
+
        
 if __name__ == '__main__':
     if False: #True: #  
