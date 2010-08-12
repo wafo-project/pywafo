@@ -15,7 +15,7 @@ from numpy import pi, atleast_2d #@UnresolvedImport
 from misc import tranproc, trangood
 def sphere_volume(d, r=1.0):
     """
-     Returns volume of  d-dimensional sphere with radius r
+    Returns volume of  d-dimensional sphere with radius r
 
     Parameters
     ----------

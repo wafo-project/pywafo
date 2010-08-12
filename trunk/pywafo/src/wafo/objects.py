@@ -694,8 +694,9 @@ class TimeSeries(WafoData):
     Examples
     --------
     >>> import wafo.data
+    >>> import wafo.objects as wo
     >>> x = wafo.data.sea()
-    >>> ts = wafo.objects.mat2timeseries(x)
+    >>> ts = wo.mat2timeseries(x)
     >>> rf = ts.tocovdata(lag=150)
     >>> h = rf.plot()
 
@@ -771,8 +772,9 @@ class TimeSeries(WafoData):
          Example:
          --------
          >>> import wafo.data
+         >>> import wafo.objects as wo
          >>> x = wafo.data.sea()
-         >>> ts = mat2timeseries(x)
+         >>> ts = wo.mat2timeseries(x)
          >>> acf = ts.tocovdata(150)
          >>> h = acf.plot()
         '''
@@ -814,6 +816,7 @@ class TimeSeries(WafoData):
         acf = _wafocov.CovData1D(R[lags], t)
         acf.stdev = sqrt(r_[ 0, 1 , 1 + 2 * cumsum(R[1:] ** 2)] / Ncens)
         acf.children = [WafoData(-2. * acf.stdev[lags], t), WafoData(2. * acf.stdev[lags], t)]
+        acf.plot_args_children = ['r:']
         acf.norm = norm
         return acf
 

@@ -1,9 +1,9 @@
 from __future__ import division
-from scipy.misc.ppimport import ppimport
+from wafo.misc import meshgrid
 from wafo.objects import mat2timeseries, TimeSeries
 import warnings
 import numpy as np
-from numpy import (pi, inf, meshgrid, zeros, ones, where, nonzero, #@UnresolvedImport
+from numpy import (pi, inf, zeros, ones, where, nonzero, #@UnresolvedImport
            flatnonzero, ceil, sqrt, exp, log, arctan2, #@UnresolvedImport
            tanh, cosh, sinh, random, atleast_1d, maximum, #@UnresolvedImport
            minimum, diff, isnan, any, r_, conj, mod, #@UnresolvedImport
@@ -945,7 +945,8 @@ class SpecData1D(WafoData):
         ...     res = fun(x2[:,1::],axis=0)
         ...     m = res.mean()
         ...     sa = res.std()
-        ...     assert(np.abs(m-trueval)<sa)
+        ...     trueval, m, sa
+        ...     np.abs(m-trueval)<sa
 
         waveplot(x1,'r',x2,'g',1,1)
 
@@ -1316,8 +1317,6 @@ class SpecData1D(WafoData):
         if verbose:
             print('2nd order frequency Limits = %g,%g' % (f_limit_lo, f_limit_up))
 
-
-
 ##        if nargout>3,
 ##        %compute the sum and frequency effects separately
 ##        [svec, dvec] = disufq((amp.'),w,kw,min(h,10^30),g,nmin,nmax)
@@ -1402,7 +1401,10 @@ class SpecData1D(WafoData):
 
         See also
         ---------
-        hermitetr, ochitr, lc2tr, dat2tr
+        transform.TrHermite
+        transform.TrOchi
+        objects.LevelCrossings.trdata
+        objects.TimeSeries.trdata
 
         References:
         -----------
@@ -1429,7 +1431,7 @@ class SpecData1D(WafoData):
         w = ravel(self.args)
         S = ravel(self.data)
         if self.freqtype in ['f', 'w']:
-            vari = 't'
+            #vari = 't'
             if self.freqtype == 'f':
                 w = 2. * pi * w
                 S = S / (2. * pi)
@@ -1514,7 +1516,7 @@ class SpecData1D(WafoData):
 ##            skew = sum((6*C2+8*E2).*E)/sa^3   % skewness
 ##            kurt = 3+48*sum((C2+E2).*E2)/sa^4 % kurtosis
         return output
-    def testgaussian(self, ns,test0=None, cases=100, method='nonlinear',**opt):
+    def testgaussian(self, ns,test0=None, cases=100, method='nonlinear',verbose=False,**opt):
         '''
         TESTGAUSSIAN Test if a stochastic process is Gaussian.
         
@@ -1607,7 +1609,8 @@ class SpecData1D(WafoData):
             #xs = cov2sdat(R,[ns Nstep]);
             #[g, tmp] = dat2tr(xs,method, **opt);
             #test1 = [test1; tmp(:)]
-            print('finished %d of %d ' % (ix+1,rep) )
+            if verbose:
+                print('finished %d of %d ' % (ix+1,rep) )
         
         if rep>1:
             xs = acf.sim(ns=ns, cases=np.remainder(cases,rep))
@@ -1704,6 +1707,14 @@ class SpecData1D(WafoData):
     def nyquist_freq(self):
         """
         Return Nyquist frequency
+        
+        Example
+        -------
+        >>> import wafo.spectrum.models as sm
+        >>> Sj = sm.Jonswap(Hm0=5)
+        >>> S = Sj.tospecdata() #Make spectrum ob
+        >>> S.nyquist_freq()
+        3.0
         """
         return self.args[-1]
     
@@ -1722,8 +1733,11 @@ class SpecData1D(WafoData):
 
         Example
         -------
-        S = jonswap
-        dt = spec2dt(S)
+        >>> import wafo.spectrum.models as sm
+        >>> Sj = sm.Jonswap(Hm0=5)
+        >>> S = Sj.tospecdata() #Make spectrum ob
+        >>> S.sampling_period()
+        1.0471975511965976
 
         See also
         '''
@@ -1880,9 +1894,16 @@ class SpecData1D(WafoData):
     
         Example:
         ------- 
-        S = jonswap
-        [Sn,mn4] = specnorm(S)
-        mts = spec2mom(S,2)     % Should be equal to one!
+        >>> import wafo.spectrum.models as sm
+        >>> Sj = sm.Jonswap(Hm0=5)
+        >>> S = Sj.tospecdata() #Make spectrum ob
+        >>> S.moment(2)
+        ([1.5614600345079888, 0.95567089481941048], ['m0', 'm0tt'])
+        >>> Sn = S.copy(); Sn.normalize()
+        
+        Now the moments should be one
+        >>> Sn.moment(2)
+        ([1.0000000000000004, 0.99999999999999967], ['m0', 'm0tt'])
         '''
         mom, unused_mtext = self.moment(nr=4, even=True)
         m0 = mom[0] 
@@ -2018,7 +2039,6 @@ class SpecData1D(WafoData):
 
         Examples:
         ---------
-        >>> import numpy as np
         >>> import wafo.spectrum.models as sm
         >>> Sj = sm.Jonswap(Hm0=5)
         >>> S = Sj.tospecdata() #Make spectrum ob

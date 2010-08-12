@@ -53,8 +53,6 @@ from numpy import (inf, atleast_1d, newaxis, any, minimum, maximum, array, #@Unr
     isfinite, mod, expm1, tanh, cosh, finfo, ones, ones_like, isnan, #@UnresolvedImport
     zeros_like, flatnonzero, sinc, hstack, vstack, real, flipud, clip) #@UnresolvedImport
 from dispersion_relation import w2k
-#ppimport.enable()
-#_wafospectrum = ppimport.ppimport('wafo.spectrum')
 from wafo.spectrum import SpecData1D
 sech = lambda x: 1.0 / cosh(x)
 
@@ -638,8 +636,6 @@ class Jonswap(ModelSpectrum):
 def phi1(wi, h, g=9.81):
     ''' Factor transforming spectra to finite water depth spectra.
 
-     CALL: tr = phi1(w,h)
-
     Input
     -----
          w : arraylike
@@ -743,7 +739,8 @@ class Tmaspec(Jonswap):
     phi1,
     Torsethaugen
 
-    References:
+    References
+    ----------
     Buows, E., Gunther, H., Rosenthal, W., and Vincent, C.L. (1985)
     'Similarity of the wind wave spectrum in finite depth water: 1 spectral form.'
     J. Geophys. Res., Vol 90, No. C1, pp 975-986
@@ -1361,8 +1358,8 @@ class Spreading(object):
     (Hasselman: spa ~= spb)  (cos-2s) [6.97 9.77  4.06 -2.3  0    1.05 3  ]
     (Banner   : spa ~= spb)  (sech2)  [2.61 2.28  1.3  -1.3  0.56 0.95 1.6]
 
-    Examples :
-
+    Examples
+    --------
     >>> import pylab as plb
     >>> D = Spreading('cos2s',s_a=10.0)
 
@@ -1385,9 +1382,12 @@ class Spreading(object):
     >>> plb.close('all')
 
 
-    See also  mkdspec, plotspec, spec2spec
+    See also
+    --------
+    mkdspec, plotspec, spec2spec
 
     References
+    ---------
     Krogstad, H.E. and Barstow, S.F. (1999)
     "Directional Distributions in Ocean Wave Spectra"
     Proceedings of the 9th ISOPE Conference, Vol III, pp. 79-86
