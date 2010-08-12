@@ -159,7 +159,7 @@ class TrData(WafoData, TrCommon):
     >>> g.sigma
     5
     >>> g.dat2gauss(1,2,3)
-    
+    [array([ 0.]), array([ 0.4]), array([ 0.6])]
     
     Check that the departure from a Gaussian model is zero
     >>> g.dist2gauss() < 1e-16

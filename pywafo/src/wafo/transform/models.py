@@ -3,6 +3,7 @@ Transform Gaussian models
 -------------------------
 TrHermite
 TrOchi
+TrLinear
 '''
 #-------------------------------------------------------------------------------
 # Name:        transform.models
@@ -84,7 +85,10 @@ class TrHermite(TrCommon):
     
     See also
     --------  
-    spec2skew, ochitr, lc2tr, dat2tr
+    SpecData1d.stats_nl
+    wafo.transform.TrOchi
+    wafo.objects.LevelCrossings.trdata
+    wafo.objects.TimeSeries.trdata
 
     References
     ----------
@@ -306,6 +310,11 @@ class TrLinear(TrCommon):
     
     See also
     --------  
+    TrOchi
+    TrHermite
+    SpecData1D.stats_nl
+    LevelCrossings.trdata
+    TimeSeries.trdata
     spec2skew, ochitr, lc2tr, dat2tr
 
     """

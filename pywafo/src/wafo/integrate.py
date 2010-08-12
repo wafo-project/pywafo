@@ -6,9 +6,8 @@ from numpy import pi, sqrt, ones, zeros #@UnresolvedImport
 from scipy import integrate as intg
 import scipy.special.orthogonal as ort
 from scipy import special as sp
-import matplotlib
 import pylab as plb
-matplotlib.interactive(True)
+
 _POINTS_AND_WEIGHTS = {}
 
 def humps(x=None):
@@ -344,7 +343,7 @@ def h_roots(n, method='newton'):
     >>> import numpy as np
     >>> [x,w] = h_roots(10)
     >>> np.sum(x*w)
-    -5.2516042729766621e-019
+    -5.2516042729766621e-19
 
     See also
     --------
@@ -453,7 +452,7 @@ def j_roots(n, alpha, beta, method='newton'):
     --------
     >>> [x,w]= j_roots(10,0,0)
     >>> sum(x*w)
-    2.7755575615628914e-016
+    2.7755575615628914e-16
 
     See also
     --------
@@ -554,7 +553,7 @@ def la_roots(n, alpha=0, method='newton'):
     >>> import numpy as np
     >>> [x,w] = h_roots(10)
     >>> np.sum(x*w)
-    -5.2516042729766621e-019
+    -5.2516042729766621e-19
 
     See also
     --------
@@ -939,7 +938,7 @@ def gaussq(fun, a, b, reltol=1e-3, abstol=1e-3, alpha=0, beta=0, wfun=1,
     integration of x**2        from 0 to 2 and from 1 to 4
 
     >>> from scitools import numpyutils as npt
-    scitools.easyviz backend is gnuplot
+    scitools.easyviz backend is matplotlib
     >>> A = [0, 1]; B = [2,4]
     >>> fun = npt.wrap2callable('x**2')
     >>> [val1,err1] = gaussq(fun,A,B)
@@ -1165,22 +1164,22 @@ def quadgr(fun,a,b,abseps=1e-5):
     >>> import numpy as np
     >>> Q, err = quadgr(np.log,0,1)
     >>> quadgr(np.exp,0,9999*1j*np.pi)
-    (-2.0000000000122617, 2.1933275196062141e-009)
+    (-2.0000000000122617, 2.1933275196062141e-09)
 
     >>> quadgr(lambda x: np.sqrt(4-x**2),0,2,1e-12)
-    (3.1415926535897811, 1.5809575870662229e-013)
+    (3.1415926535897811, 1.5809575870662229e-13)
 
     >>> quadgr(lambda x: x**-0.75,0,1)
-    (4.0000000000000266, 5.6843418860808015e-014)
+    (4.0000000000000266, 5.6843418860808015e-14)
 
     >>> quadgr(lambda x: 1./np.sqrt(1-x**2),-1,1)
-    (3.141596056985029, 6.2146261559092864e-006)
+    (3.141596056985029, 6.2146261559092864e-06)
 
     >>> quadgr(lambda x: np.exp(-x**2),-np.inf,np.inf,1e-9) #% sqrt(pi)
-    (1.7724538509055152, 1.9722334876348668e-011)
+    (1.7724538509055152, 1.9722334876348668e-11)
 
     >>> quadgr(lambda x: np.cos(x)*np.exp(-x),0,np.inf,1e-9)
-    (0.50000000000000044, 7.3296813063450372e-011)
+    (0.50000000000000044, 7.3296813063450372e-11)
 
     See also
     --------
@@ -1418,7 +1417,7 @@ def qdemo(f,a,b):
         #[x, w]=qrule(n,1)
         #x = (b-a)/2*x + (a+b)/2     % Transform base points X.
         #w = (b-a)/2*w               % Adjust weigths.
-        #q = sum(feval(f,x).*w)
+        #q = sum(feval(f,x)*w)
         qg[k] = q
         eg[k] = abs(q - true_val)
 

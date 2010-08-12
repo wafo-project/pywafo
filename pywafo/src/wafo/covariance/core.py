@@ -130,8 +130,8 @@ class CovData1D(WafoData):
     CovData
     """
 
-    def __init__(self,*args,**kwds):
-        super(CovData1D, self).__init__(*args,**kwds)
+    def __init__(self, *args, **kwds):
+        super(CovData1D, self).__init__(*args, **kwds)
 
         self.name = 'WAFO Covariance Object'
         self.type = 'time'
@@ -143,7 +143,7 @@ class CovData1D(WafoData):
         self.norm = 0
         somekeys = ['phi', 'name', 'h', 'tr', 'lagtype', 'v', 'type', 'norm']
 
-        self.__dict__.update(sub_dict_select(kwds,somekeys))
+        self.__dict__.update(sub_dict_select(kwds, somekeys))
 
         self.setlabels()
     def setlabels(self):
@@ -153,10 +153,10 @@ class CovData1D(WafoData):
         '''
 
         N = len(self.type)
-        if N==0:
+        if N == 0:
             raise ValueError('Object does not appear to be initialized, it is empty!')
 
-        labels = ['','ACF','']
+        labels = ['', 'ACF', '']
 
         if self.lagtype.startswith('t'):
             labels[0] = 'Lag [s]'
@@ -252,36 +252,36 @@ class CovData1D(WafoData):
         if rate is None:
             rate = 1 ##interpolation rate
         else:
-            rate = 2**nextpow2(rate) ##make sure rate is a power of 2
+            rate = 2 ** nextpow2(rate) ##make sure rate is a power of 2
 
 
         ## add a nugget effect to ensure that round off errors
         ## do not result in negative spectral estimates
-        ACF[0] = ACF[0] +nugget
+        ACF[0] = ACF[0] + nugget
         n = ACF.size
         # embedding a circulant vector and Fourier transform
         if fast:
-            nfft = 2**nextpow2(2*n-2)
+            nfft = 2 ** nextpow2(2 * n - 2)
         else:
-            nfft = 2*n-2
+            nfft = 2 * n - 2
 
-        nf   = nfft/2 ## number of frequencies
-        ACF  = r_[ACF,zeros(nfft-2*n+2),ACF[n-1:0:-1]]
+        nf = nfft / 2 ## number of frequencies
+        ACF = r_[ACF, zeros(nfft - 2 * n + 2), ACF[n - 1:0:-1]]
 
-        Rper = (fft(ACF,nfft).real).clip(0) ## periodogram
+        Rper = (fft(ACF, nfft).real).clip(0) ## periodogram
         RperMax = Rper.max()
-        Rper = where(Rper<trunc*RperMax,0,Rper)
+        Rper = where(Rper < trunc * RperMax, 0, Rper)
         pi = pi
-        S = abs(Rper[0:(nf+1)])*dT/pi
-        w = linspace(0,pi/dT,nf+1)
+        S = abs(Rper[0:(nf + 1)]) * dT / pi
+        w = linspace(0, pi / dT, nf + 1)
         So = _wafospec.SpecData1D(S, w, type=spectype, freqtype=ftype)
         So.tr = self.tr
         So.h = self.h
         So.norm = self.norm
 
         if rate > 1:
-            So.args = linspace(0, pi/dT, nf*rate)
-            if method=='stineman':
+            So.args = linspace(0, pi / dT, nf * rate)
+            if method == 'stineman':
                 So.data = stineman_interp(So.args, w, S)
             else:
                 intfun = interpolate.interp1d(w, S, kind=method)
@@ -300,11 +300,11 @@ class CovData1D(WafoData):
             [s] if lagtype=='t'
             [m] otherwise
         '''
-        dt1 = self.args[1]-self.args[0]
-        n = size(self.args)-1
-        t = self.args[-1]-self.args[0]
-        dt = t/n
-        if abs(dt-dt1) > 1e-10:
+        dt1 = self.args[1] - self.args[0]
+        n = size(self.args) - 1
+        t = self.args[-1] - self.args[0]
+        dt = t / n
+        if abs(dt - dt1) > 1e-10:
             warnings.warn('Data is not uniformly sampled!')
         return dt
 
@@ -385,7 +385,7 @@ class CovData1D(WafoData):
 
         dT = self.sampling_period()
 
-        x = zeros((ns, cases+1))
+        x = zeros((ns, cases + 1))
 
         if derivative:
             xder = x.copy()
@@ -399,22 +399,22 @@ class CovData1D(WafoData):
         ## Covariance matrix
         floatinfo = finfo(float)
         if (abs(ACF[-1]) > floatinfo.eps): ## assuming ACF(n+1)==0
-            m2 = 2*n-1
-            nfft = 2**nextpow2(max(m2, 2*ns))
-            ACF = r_[ACF, zeros((nfft-m2,1)), ACF[-1:0:-1,:]]
+            m2 = 2 * n - 1
+            nfft = 2 ** nextpow2(max(m2, 2 * ns))
+            ACF = r_[ACF, zeros((nfft - m2, 1)), ACF[-1:0:-1, :]]
             #disp('Warning: I am now assuming that ACF(k)=0 ')
             #disp('for k>MAXLAG.')
         else: # # ACF(n)==0
-            m2 = 2*n-2
-            nfft = 2**nextpow2(max(m2, 2*ns))
-            ACF = r_[ACF, zeros((nfft-m2, 1)), ACF[n-1:1:-1, :]]
+            m2 = 2 * n - 2
+            nfft = 2 ** nextpow2(max(m2, 2 * ns))
+            ACF = r_[ACF, zeros((nfft - m2, 1)), ACF[n - 1:1:-1, :]]
 
         ##m2=2*n-2
-        S = fft(ACF,nfft,axis=0).real ## periodogram
+        S = fft(ACF, nfft, axis=0).real ## periodogram
 
         I = S.argmax()
-        k = flatnonzero(S<0)
-        if k.size>0:
+        k = flatnonzero(S < 0)
+        if k.size > 0:
             #disp('Warning: Not able to construct a nonnegative circulant ')
             #disp('vector from the ACF. Apply the parzen windowfunction ')
             #disp('to the ACF in order to avoid this.')
@@ -425,57 +425,57 @@ class CovData1D(WafoData):
 
             S[k] = 0.
 
-            ix = flatnonzero(k>2*I)
-            if ix.size>0:
+            ix = flatnonzero(k > 2 * I)
+            if ix.size > 0:
 ##    # truncating all oscillating values above 2 times the peak
 ##    # frequency to zero to ensure that
 ##    # that high frequency noise is not added to
 ##    # the simulated timeseries.
                 ix0 = k[ix[0]]
-                S[ix0:-ix0] =0.0
+                S[ix0:-ix0] = 0.0
 
 
        
         trunc = 1e-5
         maxS = S[I]
-        k = flatnonzero(S[I:-I]<maxS*trunc)
-        if k.size>0:
-            S[k+I]=0.
+        k = flatnonzero(S[I:-I] < maxS * trunc)
+        if k.size > 0:
+            S[k + I] = 0.
             ## truncating small values to zero to ensure that
             ## that high frequency noise is not added to
             ## the simulated timeseries
 
-        cases1 = floor(cases/2)
-        cases2 = ceil(cases/2)
+        cases1 = floor(cases / 2)
+        cases2 = ceil(cases / 2)
 # Generate standard normal random numbers for the simulations
 
         #randn = np.random.randn
-        epsi = randn(nfft,cases2)+1j*randn(nfft,cases2)
-        Ssqr = sqrt(S/(nfft)) # #sqrt(S(wn)*dw )
-        ephat = epsi*Ssqr #[:,np.newaxis]
-        y = fft(ephat,nfft,axis=0)
-        x[:, 1:cases+1] = hstack((y[2:ns+2, 0:cases2].real, y[2:ns+2, 0:cases1].imag))
+        epsi = randn(nfft, cases2) + 1j * randn(nfft, cases2)
+        Ssqr = sqrt(S / (nfft)) # #sqrt(S(wn)*dw )
+        ephat = epsi * Ssqr #[:,np.newaxis]
+        y = fft(ephat, nfft, axis=0)
+        x[:, 1:cases + 1] = hstack((y[2:ns + 2, 0:cases2].real, y[2:ns + 2, 0:cases1].imag))
 
-        x[:, 0] = linspace(0,(ns-1)*dT,ns) ##(0:dT:(dT*(np-1)))'
+        x[:, 0] = linspace(0, (ns - 1) * dT, ns) ##(0:dT:(dT*(np-1)))'
 
         if derivative:
-            Ssqr = Ssqr*r_[0:(nfft/2+1), -(nfft/2-1):0]*2*pi/nfft/dT
-            ephat = epsi*Ssqr #[:,newaxis]
-            y = fft(ephat,nfft,axis=0)
-            xder[:, 1:(cases+1)] = hstack((y[2:ns+2, 0:cases2].imag -y[2:ns+2, 0:cases1].real))
-            xder[:, 0] = x[:,0]
+            Ssqr = Ssqr * r_[0:(nfft / 2 + 1), -(nfft / 2 - 1):0] * 2 * pi / nfft / dT
+            ephat = epsi * Ssqr #[:,newaxis]
+            y = fft(ephat, nfft, axis=0)
+            xder[:, 1:(cases + 1)] = hstack((y[2:ns + 2, 0:cases2].imag - y[2:ns + 2, 0:cases1].real))
+            xder[:, 0] = x[:, 0]
 
         if self.tr is not None:
             print('   Transforming data.')
             g = self.tr
             if derivative:
                 for ix in range(cases):
-                    tmp = g.gauss2dat(x[:,ix+1], xder[:,ix+1])
-                    x[:,ix+1] = tmp[0]
-                    xder[:,ix+1] = tmp[1]
+                    tmp = g.gauss2dat(x[:, ix + 1], xder[:, ix + 1])
+                    x[:, ix + 1] = tmp[0]
+                    xder[:, ix + 1] = tmp[1]
             else:
                 for ix in range(cases):
-                    x[:, ix+1] = g.gauss2dat(x[:, ix+1])
+                    x[:, ix + 1] = g.gauss2dat(x[:, ix + 1])
 
         if derivative:
             return x, xder
@@ -574,7 +574,7 @@ class CovData1D(WafoData):
             warnings.warn(txt)
             return self.sim(ns=N, cases=cases), zeros(Ns), zeros(Ns)
         
-        indg = where(1-isnan(x))[0] #indices to the known observations
+        indg = where(1 - isnan(x))[0] #indices to the known observations
         
         #initializing variables
         mu1o = zeros(Ns, 1)
@@ -588,121 +588,121 @@ class CovData1D(WafoData):
         if method.startswith('dec1'):
             # only correct for variables having the Markov property
             # but still seems to give a reasonable answer. Slow procedure.
-            Sigma = sptoeplitz(hstack((acf, zeros(N-n))))
+            Sigma = sptoeplitz(hstack((acf, zeros(N - n))))
          
             #Soo=Sigma(~inds,~inds); # covariance between known observations
             #S11=Sigma(inds,inds); # covariance between unknown observations
             #S1o=Sigma(inds,~inds);# covariance between known and unknown observations
             #tmp=S1o*pinv(full(Soo)); 
             #tmp=S1o/Soo; # this is time consuming if Soo large
-            tmp = 2*Sigma[inds, indg]/(Sigma[indg, indg] + Sigma[indg, indg].T )
+            tmp = 2 * Sigma[inds, indg] / (Sigma[indg, indg] + Sigma[indg, indg].T)
             
             if compute_sigma:
                 #standard deviation of the expected surface
                 #mu1o_std=sqrt(diag(S11-tmp*S1o'));
-                mu1o_std = sqrt(diag(Sigma[inds, inds]-tmp*Sigma[indg, inds]))
+                mu1o_std = sqrt(diag(Sigma[inds, inds] - tmp * Sigma[indg, inds]))
             
             
             #expected surface conditioned on the known observations from x
-            mu1o = tmp*x[indg]
+            mu1o = tmp * x[indg]
             #expected surface conditioned on the known observations from xs
-            mu1os = tmp*(xs[indg,:])
+            mu1os = tmp * (xs[indg, :])
             # sampled surface conditioned on the known observations
-            sample = mu1o + xs[inds,:] - mu1os 
+            sample = mu1o + xs[inds, :] - mu1os 
             
         elif method.startswith('dec2'):
             # only correct for variables having the Markov property
             # but still seems to give a reasonable answer
             # approximating the expected surfaces conditioned on 
             # the known observations from x and xs by only using the closest points
-            Sigma = sptoeplitz(hstack((acf,zeros(n))))
-            n2 = int(floor(n/2))
-            idx = r_[0:2*n] + max(0,inds[0]-n2) # indices to the points used
-            tmpinds = zeros(N,dtype=bool)
+            Sigma = sptoeplitz(hstack((acf, zeros(n))))
+            n2 = int(floor(n / 2))
+            idx = r_[0:2 * n] + max(0, inds[0] - n2) # indices to the points used
+            tmpinds = zeros(N, dtype=bool)
             tmpinds[inds] = True # temporary storage of indices to missing points
             tinds = where(tmpinds[idx])[0] # indices to the points used
-            tindg = where(1-tmpinds[idx])[0]
+            tindg = where(1 - tmpinds[idx])[0]
             ns = len(tinds); # number of missing data in the interval
             nprev = 0; # number of previously simulated points
-            xsinds = xs[inds,:]
-            while ns>0:
-                tmp=2*Sigma[tinds, tindg]/(Sigma[tindg, tindg]+Sigma[tindg, tindg].T)
+            xsinds = xs[inds, :]
+            while ns > 0:
+                tmp = 2 * Sigma[tinds, tindg] / (Sigma[tindg, tindg] + Sigma[tindg, tindg].T)
                 if compute_sigma:
                     #standard deviation of the expected surface
                     #mu1o_std=sqrt(diag(S11-tmp*S1o'));
-                    ix = slice(nprev+1,nprev+ns+1)
-                    mu1o_std[ix] = max(mu1o_std[ix], 
-                            sqrt(diag(Sigma[tinds, tinds]-tmp*Sigma[tindg,tinds])))
+                    ix = slice(nprev + 1, nprev + ns + 1)
+                    mu1o_std[ix] = max(mu1o_std[ix],
+                            sqrt(diag(Sigma[tinds, tinds] - tmp * Sigma[tindg, tinds])))
                 #end
               
                 #expected surface conditioned on the closest known observations
                 # from x and xs2
-                mu1o[(nprev+1):(nprev+ns+1)] = tmp*x[idx[tindg]]
-                mu1os[(nprev+1):(nprev+ns+1),:] = tmp*xs[idx[tindg],:]      
+                mu1o[(nprev + 1):(nprev + ns + 1)] = tmp * x[idx[tindg]]
+                mu1os[(nprev + 1):(nprev + ns + 1), :] = tmp * xs[idx[tindg], :]      
                
-                if idx[-1]==N-1:# 
-                    ns =0  # no more points to simulate
+                if idx[-1] == N - 1:# 
+                    ns = 0  # no more points to simulate
                 else:
                     # updating by  putting expected surface into x     
-                    x[idx[tinds]] = mu1o[(nprev+1):(nprev+ns+1)]
-                    xs[idx[tinds]] = mu1os[(nprev+1):(nprev+ns+1)]
+                    x[idx[tinds]] = mu1o[(nprev + 1):(nprev + ns + 1)]
+                    xs[idx[tinds]] = mu1os[(nprev + 1):(nprev + ns + 1)]
         
                     nw = sum(tmpinds[idx[-n2:]])# # data which we want to simulate once 
                     tmpinds[idx[:-n2]] = False # removing indices to data ..
                     # which has been simulated
-                    nprev = nprev+ns-nw # update # points simulated so far
+                    nprev = nprev + ns - nw # update # points simulated so far
                               
-                    if (nw==0) and (nprev<Ns): 
-                        idx= r_[0:2*n]+(inds[nprev+1]-n2) # move to the next missing data
+                    if (nw == 0) and (nprev < Ns): 
+                        idx = r_[0:2 * n] + (inds[nprev + 1] - n2) # move to the next missing data
                     else:
-                        idx = idx+n
+                        idx = idx + n
                     #end
-                    tmp = N-idx[-1]
-                    if tmp<0: # checking if tmp exceeds the limits
-                        idx = idx+tmp
+                    tmp = N - idx[-1]
+                    if tmp < 0: # checking if tmp exceeds the limits
+                        idx = idx + tmp
                     #end
                     # find new interval with missing data
                     tinds = where(tmpinds[idx])[0]
-                    tindg = where(1-tmpinds[idx])[0]
+                    tindg = where(1 - tmpinds[idx])[0]
                     ns = len(tinds);# # missing data
                 #end  
             #end
             # sampled surface conditioned on the known observations
-            sample = mu1o+(xsinds-mu1os) 
+            sample = mu1o + (xsinds - mu1os) 
         elif method.startswith('dec3'): 
             # this is not correct for even for variables having the 
             # Markov property but still seems to give a reasonable answer
             # a quasi approach approximating the expected surfaces conditioned on 
             # the known observations from x and xs with a spline
             
-            mu1o = interp1(indg, x[indg],inds,'spline')
-            mu1os = interp1(indg, xs[indg,:],inds,'spline')
+            mu1o = interp1(indg, x[indg], inds, 'spline')
+            mu1os = interp1(indg, xs[indg, :], inds, 'spline')
             # sampled surface conditioned on the known observations
-            sample = mu1o + (xs[inds,:]-mu1os) 
+            sample = mu1o + (xs[inds, :] - mu1os) 
         
         elif method.startswith('exac') or method.startswith('pseu'):
             # exact but slow. It also may not return any result
-            Sigma = sptoeplitz(hstack((acf,zeros(N-n))))
+            Sigma = sptoeplitz(hstack((acf, zeros(N - n))))
             #Soo=Sigma(~inds,~inds); # covariance between known observations
             #S11=Sigma(inds,inds); # covariance between unknown observations
             #S1o=Sigma(inds,~inds);# covariance between known and unknown observations
             #tmp=S1o/Soo; # this is time consuming if Soo large
-            if method[0]=='e': #exact
-                tmp = 2*Sigma[inds,indg]/(Sigma[indg,indg]+Sigma[indg,indg].T);
+            if method[0] == 'e': #exact
+                tmp = 2 * Sigma[inds, indg] / (Sigma[indg, indg] + Sigma[indg, indg].T);
             else: # approximate the inverse with pseudo inverse
-                tmp = dot(Sigma[inds, indg],pinv(Sigma[indg,indg]))
+                tmp = dot(Sigma[inds, indg], pinv(Sigma[indg, indg]))
             #end
             #expected surface conditioned on the known observations from x
-            mu1o = dot(tmp,x[indg])
+            mu1o = dot(tmp, x[indg])
             # Covariance conditioned on the known observations
-            Sigma1o = Sigma[inds,inds] - tmp*Sigma[indg,inds]
+            Sigma1o = Sigma[inds, inds] - tmp * Sigma[indg, inds]
             #sample conditioned on the known observations from x
             sample = random.multivariate_normal(mu1o, Sigma1o, cases)
             #rndnormnd(mu1o,Sigma1o,cases )
             
             if compute_sigma:
                 #standard deviation of the expected surface
-                mu1o_std=sqrt(diag(Sigma1o));
+                mu1o_std = sqrt(diag(Sigma1o));
             #end
  
         elif method.startswith('appr'):
@@ -714,58 +714,58 @@ class CovData1D(WafoData):
             # approximately the same bandstructure as the inverse of the
             # covariance matrix
             
-            Nsig = 2*n;
+            Nsig = 2 * n;
             
-            Sigma = sptoeplitz(hstack((ACF,zeros(Nsig-n))))
-            n2 = floor(Nsig/4)
-            idx = r_[0:Nsig]+max(0,inds[0]-n2) # indices to the points used
-            tmpinds = zeros(N,dtype=bool)
+            Sigma = sptoeplitz(hstack((ACF, zeros(Nsig - n))))
+            n2 = floor(Nsig / 4)
+            idx = r_[0:Nsig] + max(0, inds[0] - n2) # indices to the points used
+            tmpinds = zeros(N, dtype=bool)
             tmpinds[inds] = True # temporary storage of indices to missing points
             tinds = where(tmpinds[idx])[0] # indices to the points used
-            tindg = where(1-tmpinds[idx])[0]
+            tindg = where(1 - tmpinds[idx])[0]
             ns = len(tinds) # number of missing data in the interval
             
             nprev = 0  # number of previously simulated points
             x2 = x
             
-            while ns>0:
+            while ns > 0:
                 #make sure MATLAB uses a symmetric matrix solver
-                tmp = 2*Sigma[tinds,tindg]/(Sigma[tindg,tindg]+Sigma[tindg,tindg].T)
-                Sigma1o = Sigma[tinds,tinds] - tmp*Sigma[tindg,tinds]
+                tmp = 2 * Sigma[tinds, tindg] / (Sigma[tindg, tindg] + Sigma[tindg, tindg].T)
+                Sigma1o = Sigma[tinds, tinds] - tmp * Sigma[tindg, tinds]
                 if compute_sigma:
                     #standard deviation of the expected surface
                     #mu1o_std=sqrt(diag(S11-tmp*S1o'));
-                    mu1o_std[(nprev+1):(nprev+ns+1)] = max( mu1o_std[(nprev+1):(nprev+ns)] , 
+                    mu1o_std[(nprev + 1):(nprev + ns + 1)] = max(mu1o_std[(nprev + 1):(nprev + ns)] ,
                                                             sqrt(diag(Sigma1o)))
                 #end
         
                 #expected surface conditioned on the closest known observations from x
-                mu1o[(nprev+1):(nprev+ns+1)] = tmp*x2[idx[tindg]]
+                mu1o[(nprev + 1):(nprev + ns + 1)] = tmp * x2[idx[tindg]]
                 #sample conditioned on the known observations from x
-                sample[(nprev+1):(nprev+ns+1),:] = rndnormnd(tmp*x[idx[tindg]],Sigma1o, cases)     
-                if idx[-1] == N-1: 
+                sample[(nprev + 1):(nprev + ns + 1), :] = rndnormnd(tmp * x[idx[tindg]], Sigma1o, cases)     
+                if idx[-1] == N - 1: 
                     ns = 0 # no more points to simulate
                 else:
                     # updating
-                    x2[idx[tinds]] = mu1o[(nprev+1):(nprev+ns+1)] #expected surface
-                    x[idx[tinds]] = sample[(nprev+1):(nprev+ns+1)]#sampled surface
-                    nw = sum(tmpinds[idx[-n2::]]==True)# # data we want to simulate once more
+                    x2[idx[tinds]] = mu1o[(nprev + 1):(nprev + ns + 1)] #expected surface
+                    x[idx[tinds]] = sample[(nprev + 1):(nprev + ns + 1)]#sampled surface
+                    nw = sum(tmpinds[idx[-n2::]] == True)# # data we want to simulate once more
                     tmpinds[idx[:-n2]] = False # removing indices to data ..
                     # which has been simulated
-                    nprev = nprev+ns-nw # update # points simulated so far
+                    nprev = nprev + ns - nw # update # points simulated so far
             
-                    if (nw==0) and (nprev<Ns):
-                        idx = r_[0:Nsig]+(inds[nprev+1]-n2) # move to the next missing data
+                    if (nw == 0) and (nprev < Ns):
+                        idx = r_[0:Nsig] + (inds[nprev + 1] - n2) # move to the next missing data
                     else:
-                        idx = idx+n
+                        idx = idx + n
                     #end
-                    tmp = N-idx[-1]
-                    if tmp<0: # checking if tmp exceeds the limits
+                    tmp = N - idx[-1]
+                    if tmp < 0: # checking if tmp exceeds the limits
                         idx = idx + tmp
                     #end
                     # find new interval with missing data
                     tinds = where(tmpinds[idx])[0]
-                    tindg = where(1-tmpinds[idx])[0]
+                    tindg = where(1 - tmpinds[idx])[0]
                     ns = len(tinds);# # missing data in the interval
               #end
             #end
@@ -787,17 +787,17 @@ class CovData1D(WafoData):
 def sptoeplitz(x):
     k = where(x.ravel())[0]
     n = len(x)
-    if len(k)>0.3*n:
+    if len(k) > 0.3 * n:
         return toeplitz(x)
     else:
         spdiags = sparse.dia_matrix
-        data = x[k].reshape(-1,1).repeat(n,axis=-1)
+        data = x[k].reshape(-1, 1).repeat(n, axis= -1)
         offsets = k
-        y = spdiags((data, offsets), shape=(n,n))
-        if k[0]==0:
+        y = spdiags((data, offsets), shape=(n, n))
+        if k[0] == 0:
             offsets = k[1::]
-            data = data[1::,:]
-        return y + spdiags((data, -offsets), shape=(n,n))
+            data = data[1::, :]
+        return y + spdiags((data, -offsets), shape=(n, n))
 
 def test_covdata():
     import wafo.data
