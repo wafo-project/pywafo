@@ -5,5 +5,5 @@ Statistics package in WAFO Toolbox.
 
 """
 from scipy.stats import *
-from wafo.stats.core import *
+from core import *
 from wafo.stats.distributions import *
