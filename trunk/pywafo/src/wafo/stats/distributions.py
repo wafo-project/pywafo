@@ -1249,7 +1249,7 @@ class rv_continuous(rv_generic):
     Accurate confidence interval with profile loglikelihood
     >>> lp = phat3.profile()
     >>> lp.plot()
-    >>> lp.get_CI()
+    >>> lp.get_bounds()
 
     """
 
@@ -6898,19 +6898,19 @@ def main():
     phat = weibull_min.fit(R, 1, 1, par_fix=[nan, 0, nan])
     Lp = phat.profile(i=0)
     Lp.plot()
-    Lp.get_CI(alpha=0.1)
+    Lp.get_bounds(alpha=0.1)
     R = 1. / 990
     x = phat.isf(R)
 
     # CI for x
     Lx = phat.profile(i=0, x=x)
     Lx.plot()
-    Lx.get_CI(alpha=0.2)
+    Lx.get_bounds(alpha=0.2)
 
     # CI for logSF=log(SF)
     Lpr = phat.profile(i=1, logSF=log(R), link=phat.dist.link)
     Lpr.plot()
-    Lpr.get_CI(alpha=0.075)
+    Lpr.get_bounds(alpha=0.075)
 
     dlaplace.stats(0.8, loc=0)
 #    pass
