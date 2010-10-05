@@ -56,33 +56,25 @@ def valarray(shape, value=nan, typecode=None):
 # Frozen RV class
 class rv_frozen(object):
     ''' Frozen continous or discrete 1D Random Variable object (RV)
-
-    RV.rvs(size=1)
-        - random variates
-
-    RV.pdf(x)
-        - probability density function (continous case)
-
-    RV.pmf(x)
-        - probability mass function (discrete case)
-
-    RV.cdf(x)
-        - cumulative density function
-
-    RV.sf(x)
-        - survival function (1-cdf --- sometimes more accurate)
-
-    RV.ppf(q)
-        - percent point function (inverse of cdf --- percentiles)
-
-    RV.isf(q)
-        - inverse survival function (inverse of sf)
-
-    RV.stats(moments='mv')
-        - mean('m',axis=0), variance('v'), skew('s'), and/or kurtosis('k')
-
-    RV.entropy()
-        - (differential) entropy of the RV.
+    
+    Methods
+    -------
+    rvs(size=1)
+        Random variates.
+    pdf(x)
+        Probability density function.
+    cdf(x)
+        Cumulative density function.
+    sf(x)
+        Survival function (1-cdf --- sometimes more accurate).
+    ppf(q)
+        Percent point function (inverse of cdf --- percentiles).
+    isf(q)
+        Inverse survival function (inverse of sf).
+    stats(moments='mv')
+        Mean('m'), variance('v'), skew('s'), and/or kurtosis('k').
+    entropy()
+        (Differential) entropy of the RV.
     '''
     def __init__(self, dist, *args, **kwds):
         self.dist = dist
@@ -200,8 +192,10 @@ class Profile(object):
     #MLE and better CI for phat.par[0]
     >>> import numpy as np
     >>> R = weibull_min.rvs(1,size=100);
-    >>> phat = weibull_min.fit(R,1,1,par_fix=[np.nan,0.,np.nan])
-    >>> Lp = Profile(phat,i=0)
+    >>> phat = FitDistribution(ws.weibull_min, R,1,scale=1, floc=0.0)
+    
+    
+    >>> Lp = Profile(phat, i=0)
     >>> Lp.plot()
     >>> Lp.get_CI(alpha=0.1)
     >>> SF = 1./990
@@ -434,38 +428,150 @@ class Profile(object):
         plotbackend.ylabel(self.ylabel)
         plotbackend.xlabel(self.xlabel)
 
-# internal class to fit given distribution to data
+# class to fit given distribution to data
 class FitDistribution(rv_frozen):
+    '''
+    Return estimators to shape, location, and scale from data
+
+    Starting points for the fit are given by input arguments.  For any
+    arguments not given starting points, dist._fitstart(data) is called
+    to get the starting estimates.
+    
+    You can hold some parameters fixed to specific values by passing in
+    keyword arguments f0..fn for shape paramters and floc, fscale for
+    location and scale parameters.
+    
+    Parameters
+    ----------
+    dist : scipy distribution object
+        distribution to fit to data
+    data : array-like
+        Data to use in calculating the ML or MPS estimators
+    args : optional
+        Starting values for any shape arguments (those not specified
+        will be determined by _fitstart(data))
+    kwds : loc, scale
+        Starting values for the location and scale parameters
+        Special keyword arguments are recognized as holding certain
+        parameters fixed:
+            f0..fn : hold respective shape paramters fixed
+            floc : hold location parameter fixed to specified value
+            fscale : hold scale parameter fixed to specified value
+        method : of estimation. Options are
+            'ml' : Maximum Likelihood method (default)
+            'mps': Maximum Product Spacing method
+        alpha : scalar, optional
+            Confidence coefficent  (default=0.05)
+        search : bool
+            If true search for best estimator (default),
+            otherwise return object with initial distribution parameters
+        copydata : bool
+            If true copydata (default)
+        optimizer : The optimizer to use.  The optimizer must take func,
+                     and starting position as the first two arguments,
+                     plus args (for extra arguments to pass to the
+                     function to be optimized) and disp=0 to suppress
+                     output as keyword arguments.
+    
+    Return
+    ------
+    phat : FitDistribution object
+        Fitted distribution object with following member variables:
+        LLmax  : loglikelihood function evaluated using par
+        LPSmax : log product spacing function evaluated using par
+        pvalue : p-value for the fit
+        par : distribution parameters (fixed and fitted)
+        par_cov : covariance of distribution parameters
+        par_fix : fixed distribution parameters
+        par_lower : lower (1-alpha)% confidence bound for the parameters
+        par_upper : upper (1-alpha)% confidence bound for the parameters
+        
+        
+    Note
+    ----
+    `data` is sorted using this function, so if `copydata`==False the data
+    in your namespace will be sorted as well.
+    
+    Examples
+    --------
+    Estimate distribution parameters for weibull_min distribution.
+    >>> import wafo.stats as ws
+    >>> import numpy as np
+    >>> R = ws.weibull_min.rvs(1,size=100);
+    >>> phat = FitDistribution(ws.weibull_min, R, 1, scale=1, floc=0.0)
+    
+    #Plot various diagnostic plots to asses quality of fit.
+    >>> phat.plotfitsumry() 
+    
+    #phat.par holds the estimated parameters
+    #phat.par_upper upper CI for parameters
+    #phat.par_lower lower CI for parameters
+    
+    #Better CI for phat.par[0]
+    >>> Lp = Profile(phat,i=0)
+    >>> Lp.plot()
+    >>> Lp.get_CI(alpha=0.1)
+    
+    >>> SF = 1./990
+    >>> x = phat.isf(SF)
+
+    # CI for x
+    >>> Lx = phat.profile(i=0,x=x,link=phat.dist.link)
+    >>> Lx.plot()
+    >>> Lx.get_CI(alpha=0.2)
+
+    # CI for logSF=log(SF)
+    >>> Lpr = phat.profile(i=0,logSF=log(SF),link = phat.dist.link) 
+    '''
     def __init__(self, dist, data, *args, **kwds):
         extradoc = '''
-
-        RV.plotfitsumry() - Plot various diagnostic plots to asses quality of fit.
-        RV.plotecdf()     - Plot Empirical and fitted Cumulative Distribution Function
-        RV.plotesf()      - Plot Empirical and fitted Survival Function
-        RV.plotepdf()     - Plot Empirical and fitted Probability Distribution Function
-        RV.plotresq()     - Displays a residual quantile plot.
-        RV.plotresprb()   - Displays a residual probability plot.
+    plotfitsumry()
+         Plot various diagnostic plots to asses quality of fit.
+    plotecdf()
+        Plot Empirical and fitted Cumulative Distribution Function
+    plotesf()
+        Plot Empirical and fitted Survival Function
+    plotepdf()
+        Plot Empirical and fitted Probability Distribution Function
+    plotresq()
+        Displays a residual quantile plot.
+    plotresprb()
+        Displays a residual probability plot.
+        
+    profile()
+        Return Profile Log- likelihood or Product Spacing-function.
     
-        RV.profile()      - Return Profile Log- likelihood or Product Spacing-function.
-    
-        Member variables
-        ----------------
-        data - data used in fitting
-        alpha - confidence coefficient
-        method - method used
-        LLmax  - loglikelihood function evaluated using par
-        LPSmax - log product spacing function evaluated using par
-        pvalue - p-value for the fit
-        search - True if search for distribution parameters (default)
-        copydata - True if copy input data (default)
-
-        par     - parameters (fixed and fitted)
-        par_cov - covariance of parameters
-        par_fix - fixed parameters
-        par_lower - lower (1-alpha)% confidence bound for the parameters
-        par_upper - upper (1-alpha)% confidence bound for the parameters
-
-        '''
+    Parameters
+    ----------
+    x : array-like
+        quantiles
+    q : array-like
+        lower or upper tail probability
+    size : int or tuple of ints, optional
+        shape of random variates (default computed from input arguments )
+    moments : str, optional
+        composed of letters ['mvsk'] specifying which moments to compute where
+        'm' = mean, 'v' = variance, 's' = (Fisher's) skew and
+        'k' = (Fisher's) kurtosis. (default='mv')
+       '''
+#    Member variables
+#    ----------------
+#    data - data used in fitting
+#    alpha - confidence coefficient
+#    method - method used
+#    LLmax  - loglikelihood function evaluated using par
+#    LPSmax - log product spacing function evaluated using par
+#    pvalue - p-value for the fit
+#    search - True if search for distribution parameters (default)
+#    copydata - True if copy input data (default)
+#
+#    par     - parameters (fixed and fitted)
+#    par_cov - covariance of parameters
+#    par_fix - fixed parameters
+#    par_lower - lower (1-alpha)% confidence bound for the parameters
+#    par_upper - upper (1-alpha)% confidence bound for the parameters
+#
+#        '''
         self.__doc__ = rv_frozen.__doc__ + extradoc
         self.dist = dist
         numargs = dist.numargs
