@@ -7,10 +7,10 @@ Author:  Per A. Brodtkorb 2008
 '''
 
 from __future__ import division
-
+import warnings
 from wafo.plotbackend import plotbackend
 from wafo.misc import ecross, findcross
-#from scipy.misc.ppimport import ppimport
+
 
 import numdifftools 
 from scipy import special
@@ -19,7 +19,7 @@ from scipy import optimize
 
 import numpy
 import numpy as np
-from numpy import alltrue, arange, ravel, ones, sum, zeros, log, sqrt, exp
+from numpy import alltrue, arange, ravel, sum, zeros, log, sqrt, exp
 from numpy import (atleast_1d, any, asarray, nan, pi, reshape, repeat, 
                    product, ndarray, isfinite)
 from numpy import flatnonzero as nonzero
@@ -134,84 +134,93 @@ class Profile(object):
     ''' Profile Log- likelihood or Product Spacing-function.
             which can be used for constructing confidence interval for
             either phat(i), probability or quantile.
-    Call
-    -----
-      Lp = Profile(fit_dist,**kwds)
-
+   
     Parameters
     ----------
-    fit_dist : FitDistribution object with ML or MPS estimated distribution parameters.
-
+    fit_dist : FitDistribution object 
+        with ML or MPS estimated distribution parameters.
     **kwds : named arguments with keys
-          i          - Integer defining which distribution parameter to
-                         profile, i.e. which parameter to keep fixed
-                         (default index to first non-fixed parameter)
-          pmin, pmax - Interval for either the parameter, phat(i), prb, or x,
-                        used in the optimization of the profile function (default
-                        is based on the 100*(1-alpha)% confidence interval
-                        computed using the delta method.)
-          N          - Max number of points used in Lp (default 100)
-          x          - Quantile (return value)
-          logSF      - log survival probability,i.e., SF = Prob(X>x;phat)
-          link       - function connecting the quantile (x) and the
-                         survival probability (SF) with the fixed distribution
-                         parameter, i.e.: self.par[i] = link(x,logSF,self.par,i),
-                         where logSF = log(Prob(X>x;phat)).
-                         This means that if:
-                          1) x is not None then x is profiled
-                          2) logSF is not None then logSF is profiled
-                          3) x and logSF both are None then self.par[i] is profiled (default)
-          alpha       - confidence coefficent (default 0.05)
+        i : scalar integer 
+            defining which distribution parameter to profile, i.e. which 
+            parameter to keep fixed (default index to first non-fixed parameter)
+        pmin, pmax : real scalars
+            Interval for either the parameter, phat(i), prb, or x, used in the 
+            optimization of the profile function (default is based on the 
+            100*(1-alpha)% confidence interval computed using the delta method.)
+        N : scalar integer
+            Max number of points used in Lp (default 100)
+        x : real scalar
+            Quantile (return value) (default None)
+        logSF : real scalar
+            log survival probability,i.e., SF = Prob(X>x;phat) (default None)
+        link : function connecting the quantile (x) and the survival probability
+            (SF) with the fixed distribution parameter, i.e.: 
+            self.par[i] = link(x,logSF,self.par,i), where logSF = log(Prob(X>x;phat)).
+            This means that if:
+                1) x is not None then x is profiled
+                2) logSF is not None then logSF is profiled
+                3) x and logSF both are None then self.par[i] is profiled (default)
+        alpha : real scalar 
+            confidence coefficent (default 0.05)
     Returns
     -------
     Lp : Profile log-likelihood function with parameters phat given
-               the data, phat(i), probability (prb) and quantile (x) (if given), i.e.,
-                 Lp = max(log(f(phat|data,phat(i)))),
-               or
-                 Lp = max(log(f(phat|data,phat(i),x,prb)))
+        the data, phat(i), probability (prb) and quantile (x) (if given), i.e.,
+            Lp = max(log(f(phat|data,phat(i)))),
+        or
+            Lp = max(log(f(phat|data,phat(i),x,prb)))
+            
     Member methods
-      plot()
-      get_CI()
+    -------------
+    plot() : Plot profile function with 100(1-alpha)% confidence interval
+    get_bounds() : Return 100(1-alpha)% confidence interval
 
     Member variables
-      fit_dist - fitted data object.
-      data - profile function values
-      args - profile function arguments
-      alpha - confidence coefficient
-      Lmax - Maximum value of profile function
-      alpha_cross_level -
+    ----------------
+    fit_dist : FitDistribution data object.
+    data : profile function values
+    args : profile function arguments
+    alpha : confidence coefficient
+    Lmax : Maximum value of profile function
+    alpha_cross_level :
 
     PROFILE is a utility function for making inferences either on a particular
     component of the vector phat or the quantile, x, or the probability, SF.
     This is usually more accurate than using the delta method assuming
     asymptotic normality of the ML estimator or the MPS estimator.
 
-
     Examples
     --------
-    #MLE and better CI for phat.par[0]
+    # MLE 
     >>> import numpy as np
-    >>> R = weibull_min.rvs(1,size=100);
-    >>> phat = FitDistribution(ws.weibull_min, R,1,scale=1, floc=0.0)
+    >>> import wafo.stats as ws
+    >>> R = ws.weibull_min.rvs(1,size=100);
+    >>> phat = FitDistribution(ws.weibull_min, R, 1, scale=1, floc=0.0)
     
-    
+    # Better CI for phat.par[i=0]
     >>> Lp = Profile(phat, i=0)
     >>> Lp.plot()
-    >>> Lp.get_CI(alpha=0.1)
+    >>> phat_ci = Lp.get_bounds(alpha=0.1)
+    
     >>> SF = 1./990
     >>> x = phat.isf(SF)
 
     # CI for x
-    >>> Lx = phat.profile(i=1,x=x,link=phat.dist.link)
+    >>> Lx = phat.profile(i=0, x=x, link=phat.dist.link)
     >>> Lx.plot()
-    >>> Lx.get_CI(alpha=0.2)
+    >>> x_ci = Lx.get_bounds(alpha=0.2)
 
     # CI for logSF=log(SF)
-    >>> Lpr = phat.profile(i=1,logSF=log(SF),link = phat.dist.link)
-
-
+    >>> Lsf = phat.profile(i=0, logSF=log(SF), link=phat.dist.link)
+    >>> Lsf.plot()
+    >>> sf_ci = Lsf.get_bounds(alpha=0.2)
     '''
     def __init__(self, fit_dist, **kwds):
+      
+        try:
+            i0 = (1 - numpy.isfinite(fit_dist.par_fix)).argmax()
+        except:
+            i0 = 0
         self.fit_dist = fit_dist
         self.data = None
         self.args = None
@@ -220,7 +229,7 @@ class Profile(object):
         self.ylabel = ''
         self.i_fixed, self.N, self.alpha, self.pmin, self.pmax, self.x, self.logSF, self.link = map(kwds.get,
                             ['i', 'N', 'alpha', 'pmin', 'pmax', 'x', 'logSF', 'link'],
-                            [0, 100, 0.05, None, None, None, None, None])
+                            [i0, 100, 0.05, None, None, None, None, None])
 
         self.ylabel = '%g%s CI' % (100 * (1.0 - self.alpha), '%')
         if fit_dist.method.startswith('ml'):
@@ -252,14 +261,10 @@ class Profile(object):
         self.alpha_cross_level = Lmax - self.alpha_Lrange
         #lowLevel = self.alpha_cross_level - self.alpha_Lrange / 7.0
 
-        ## Check that par are actually at the optimum
         phatv = fit_dist.par.copy()
         self._par = phatv.copy()
-        phatfree = phatv[self.i_free].copy()
-
-
+        
         ## Set up variable to profile and _local_link function
-
         self.profile_x = not self.x == None
         self.profile_logSF = not (self.logSF == None or self.profile_x)
         self.profile_par = not (self.profile_x or self.profile_logSF)
@@ -279,16 +284,29 @@ class Profile(object):
             p_opt = self.logSF
             self.x = fit_dist.isf(exp(p_opt))
             self._local_link = lambda fix_par, par : self.link(self.x, fix_par, par, self.i_fixed)
-            self.xlabel = 'log(R)'
+            self.xlabel = 'log(SF)'
         else:
             raise ValueError("You must supply a non-empty quantile (x) or probability (logSF) in order to profile it!")
 
         self.xlabel = self.xlabel + ' (' + fit_dist.dist.name + ')'
+        
+        ## Check that par are actually at the optimum
+       
+        phatfree = phatv[self.i_free].copy()
+        foundNewphat = False
+        mylogfun = self._nlogfun
+        if True:
+            phatfree = optimize.fmin(mylogfun, phatfree, args=(phatv[self.i_fixed],) , disp=0)
+            LLt = -mylogfun(phatfree,phatv[self.i_fixed])
+            if LLt>Lmax:
+                foundNewphat = True
+                warnings.warn('Something wrong with fit')
+                dL = Lmax-LLt
+                self.alpha_cross_level -= dL
+                self.Lmax = LLt
 
         pvec = self._get_pvec(p_opt)
-
-
-        mylogfun = self._nlogfun
+        
         self.data = numpy.empty_like(pvec)
         self.data[:] = nan
         k1 = (pvec >= p_opt).argmax()
@@ -362,6 +380,7 @@ class Profile(object):
         else:
             pvec = linspace(self.pmin, self.pmax, self.N)
         return pvec
+    
     def  _myinvfun(self, phatnotfixed):
         mphat = self._par.copy()
         mphat[self.i_notfixed] = phatnotfixed;
@@ -382,39 +401,39 @@ class Profile(object):
                       probability (return period) or distribution parameter
 
         '''
-        par = self._par
+        par = self._par.copy()
         par[self.i_free] = free_par
         # _local_link: connects fixed quantile or probability with fixed distribution parameter
         par[self.i_fixed] = self._local_link(fix_par, par)
         return self.fit_dist.fitfun(par)
 
-    def get_CI(self, alpha=0.05):
+    def get_bounds(self, alpha=0.05):
         '''Return confidence interval
         '''
         if alpha < self.alpha:
             raise ValueError('Unable to return CI with alpha less than %g' % self.alpha)
 
-        cross_level = self.Lmax - 0.5 * chi2isf(alpha, 1) #_WAFODIST.chi2.isf(alpha, 1)
+        cross_level = self.Lmax - 0.5 * chi2isf(alpha, 1) 
         ind = findcross(self.data, cross_level)
         N = len(ind)
         if N == 0:
-            #Warning('upper bound for XXX is larger'
-            #Warning('lower bound for XXX is smaller'
+            warnings.warn('''Number of crossings is zero, i.e., 
+            upper and lower bound is not found!''')
             CI = (self.pmin, self.pmax)
         elif N == 1:
             x0 = ecross(self.args, self.data, ind, cross_level)
             isUpcrossing = self.data[ind] > self.data[ind + 1]
             if isUpcrossing:
                 CI = (x0, self.pmax)
-                #Warning('upper bound for XXX is larger'
+                warnings.warn('Upper bound is larger')
             else:
                 CI = (self.pmin, x0)
-                #Warning('lower bound for XXX is smaller'
+                warnings.warn('Lower bound is smaller')
 
         elif N == 2:
             CI = ecross(self.args, self.data, ind, cross_level)
         else:
-            # Warning('Number of crossings too large!')
+            warnings.warn('Number of crossings too large! Something is wrong!')
             CI = ecross(self.args, self.data, ind[[0, -1]], cross_level)
         return CI
 
@@ -449,7 +468,7 @@ class FitDistribution(rv_frozen):
         Data to use in calculating the ML or MPS estimators
     args : optional
         Starting values for any shape arguments (those not specified
-        will be determined by _fitstart(data))
+        will be determined by dist._fitstart(data))
     kwds : loc, scale
         Starting values for the location and scale parameters
         Special keyword arguments are recognized as holding certain
@@ -501,31 +520,33 @@ class FitDistribution(rv_frozen):
     >>> phat = FitDistribution(ws.weibull_min, R, 1, scale=1, floc=0.0)
     
     #Plot various diagnostic plots to asses quality of fit.
-    >>> phat.plotfitsumry() 
+    >>> phat.plotfitsummary() 
     
     #phat.par holds the estimated parameters
     #phat.par_upper upper CI for parameters
     #phat.par_lower lower CI for parameters
     
     #Better CI for phat.par[0]
-    >>> Lp = Profile(phat,i=0)
+    >>> Lp = phat.profile(i=0)
     >>> Lp.plot()
-    >>> Lp.get_CI(alpha=0.1)
+    >>> p_ci = Lp.get_bounds(alpha=0.1)
     
     >>> SF = 1./990
     >>> x = phat.isf(SF)
 
     # CI for x
-    >>> Lx = phat.profile(i=0,x=x,link=phat.dist.link)
+    >>> Lx = Profile(phat, i=0,x=x,link=phat.dist.link)
     >>> Lx.plot()
-    >>> Lx.get_CI(alpha=0.2)
-
-    # CI for logSF=log(SF)
-    >>> Lpr = phat.profile(i=0,logSF=log(SF),link = phat.dist.link) 
+    >>> x_ci = Lx.get_bounds(alpha=0.2)
+ 
+     # CI for logSF=log(SF)
+    >>> Lsf = phat.profile(i=0, logSF=log(SF), link=phat.dist.link)
+    >>> Lsf.plot()
+    >>> sf_ci = Lsf.get_bounds(alpha=0.2)
     '''
     def __init__(self, dist, data, *args, **kwds):
         extradoc = '''
-    plotfitsumry()
+    plotfitsummary()
          Plot various diagnostic plots to asses quality of fit.
     plotecdf()
         Plot Empirical and fitted Cumulative Distribution Function
@@ -685,7 +706,16 @@ class FitDistribution(rv_frozen):
                     optimizer = getattr(optimize, optimizer)
                 except AttributeError:
                     raise ValueError, "%s is not a valid optimizer" % optimizer
-            vals = optimizer(func,x0,args=(ravel(data),),disp=0)
+            loglike = numpy.inf
+            for num_times in range(5):
+                vals = optimizer(func,x0,args=(ravel(data),),disp=0)
+                ll = func(vals, ravel(data))
+                if ll<loglike:
+                    loglike = ll 
+                    x0 = vals
+                else:
+                    vals = x0
+            
             vals = tuple(vals)
         else:
             vals = tuple(x0)
@@ -716,87 +746,99 @@ class FitDistribution(rv_frozen):
     def fitfun(self, phat):
         return self._fitfun(phat, self.data)
 
-    def _fxfitfun(self, phat10):
-        self.par[self.i_notfixed] = phat10
-        return self._fitfun(self.par, self.data)
-
     def profile(self, **kwds):
         ''' Profile Log- likelihood or Log Product Spacing- function,
             which can be used for constructing confidence interval for
             either phat(i), probability or quantile.
 
-        CALL:  Lp = RV.profile(**kwds)
+        Parameters
+        ----------
+        **kwds : named arguments with keys
+        i : scalar integer 
+            defining which distribution parameter to profile, i.e. which 
+            parameter to keep fixed (default index to first non-fixed parameter)
+        pmin, pmax : real scalars
+            Interval for either the parameter, phat(i), prb, or x, used in the 
+            optimization of the profile function (default is based on the 
+            100*(1-alpha)% confidence interval computed using the delta method.)
+        N : scalar integer
+            Max number of points used in Lp (default 100)
+        x : real scalar
+            Quantile (return value) (default None)
+        logSF : real scalar
+            log survival probability,i.e., SF = Prob(X>x;phat) (default None)
+        link : function connecting the quantile (x) and the survival probability
+            (SF) with the fixed distribution parameter, i.e.: 
+            self.par[i] = link(x,logSF,self.par,i), where logSF = log(Prob(X>x;phat)).
+            This means that if:
+                1) x is not None then x is profiled
+                2) logSF is not None then logSF is profiled
+                3) x and logSF both are None then self.par[i] is profiled (default)
+        alpha : real scalar 
+            confidence coefficent (default 0.05)
+        Returns
+        -------
+        Lp : Profile log-likelihood function with parameters phat given
+            the data, phat(i), probability (prb) and quantile (x) (if given), i.e.,
+                Lp = max(log(f(phat|data,phat(i)))),
+            or
+                Lp = max(log(f(phat|data,phat(i),x,prb)))
+                
+        Member methods
+        -------------
+        plot() : Plot profile function with 100(1-alpha)% confidence interval
+        get_bounds() : Return 100(1-alpha)% confidence interval
+    
+        Member variables
+        ----------------
+        fit_dist : FitDistribution data object.
+        data : profile function values
+        args : profile function arguments
+        alpha : confidence coefficient
+        Lmax : Maximum value of profile function
+        alpha_cross_level :
+    
+        PROFILE is a utility function for making inferences either on a particular
+        component of the vector phat or the quantile, x, or the probability, SF.
+        This is usually more accurate than using the delta method assuming
+        asymptotic normality of the ML estimator or the MPS estimator.
+       
+        Examples
+        --------
+        # MLE 
+        >>> import numpy as np
+        >>> import wafo.stats as ws
+        >>> R = ws.weibull_min.rvs(1,size=100);
+        >>> phat = FitDistribution(ws.weibull_min, R, 1, scale=1, floc=0.0)
+        
+        # Better CI for phat.par[i=0]
+        >>> Lp = Profile(phat, i=0)
+        >>> Lp.plot()
+        >>> phat_ci = Lp.get_bounds(alpha=0.1)
+        
+        >>> SF = 1./990
+        >>> x = phat.isf(SF)
+    
+        # CI for x
+        >>> Lx = phat.profile(i=0, x=x, link=phat.dist.link)
+        >>> Lx.plot()
+        >>> x_ci = Lx.get_bounds(alpha=0.2)
+    
+        # CI for logSF=log(SF)
+        >>> Lsf = phat.profile(i=0, logSF=log(SF), link=phat.dist.link)
+        >>> Lsf.plot()
+        >>> sf_ci = Lsf.get_bounds(alpha=0.2)
 
-
-       RV = object with ML or MPS estimated distribution parameters.
-       Parameters
-       ----------
-       **kwds : named arguments with keys:
-          i          - Integer defining which distribution parameter to
-                         profile, i.e. which parameter to keep fixed
-                         (default index to first non-fixed parameter)
-          pmin, pmax - Interval for either the parameter, phat(i), prb, or x,
-                        used in the optimization of the profile function (default
-                        is based on the 100*(1-alpha)% confidence interval
-                        computed using the delta method.)
-          N          - Max number of points used in Lp (default 100)
-          x          - Quantile (return value)
-          logSF       - log survival probability,i.e., R = Prob(X>x;phat)
-          link       - function connecting the quantile (x) and the
-                         survival probability (R) with the fixed distribution
-                         parameter, i.e.: self.par[i] = link(x,logSF,self.par,i),
-                         where logSF = log(Prob(X>x;phat)).
-                         This means that if:
-                          1) x is not None then x is profiled
-                          2) logSF is not None then logSF is profiled
-                          3) x and logSF both are None then self.par[i] is profiled (default)
-          alpha       - confidence coefficent (default 0.05)
-       Returns
-       --------
-         Lp = Profile log-likelihood function with parameters phat given
-               the data, phat(i), probability (prb) and quantile (x) (if given), i.e.,
-                 Lp = max(log(f(phat|data,phat(i)))),
-               or
-                 Lp = max(log(f(phat|data,phat(i),x,prb)))
-
-          PROFILE is a utility function for making inferences either on a particular
-          component of the vector phat or the quantile, x, or the probability, R.
-          This is usually more accurate than using the delta method assuming
-          asymptotic normality of the ML estimator or the MPS estimator.
-
-
-          Examples
-          --------
-          # MLE and better CI for phat.par[0]
-          >>> R = weibull_min.rvs(1,size=100);
-          >>> phat = weibull_min.fit(R)
-          >>> Lp = phat.profile(i=0)
-          >>> Lp.plot()
-          >>> Lp.get_CI(alpha=0.1)
-          >>> R = 1./990
-          >>> x = phat.isf(R)
-
-          # CI for x
-          >>> Lx = phat.profile(i=1,x=x,link=phat.dist.link)
-          >>> Lx.plot()
-          >>> Lx.get_CI(alpha=0.2)
-
-          # CI for logSF=log(SF)
-          >>> Lpr = phat.profile(i=1,logSF=log(R),link = phat.dist.link)
-
-          See also
-          --------
-          Profile
+        See also
+        --------
+        Profile
         '''
-        if not self.par_fix == None:
-            i1 = kwds.setdefault('i', (1 - numpy.isfinite(self.par_fix)).argmax())
-
         return Profile(self, **kwds)
 
-    def plotfitsumry(self):
+    def plotfitsummary(self):
         ''' Plot various diagnostic plots to asses the quality of the fit.
 
-        PLOTFITSUMRY displays probability plot, density plot, residual quantile
+        PLOTFITSUMMARY displays probability plot, density plot, residual quantile
         plot and residual probability plot.
         The purpose of these plots is to graphically assess whether the data
         could come from the fitted distribution. If so the empirical- CDF and PDF
@@ -972,7 +1014,20 @@ class FitDistribution(rv_frozen):
  
 
 def main():
+     
+    import wafo.stats as ws
+    R = ws.weibull_min.rvs(1,size=100);
+    phat = FitDistribution(ws.weibull_min, R, 1, scale=1, floc=0.0)
+    
+    # Better CI for phat.par[i=0]
+    Lp = Profile(phat, i=0)
     pass
+    
+    
+    #import doctest
+    #doctest.testmod()
+    
+    
 #    _WAFODIST = ppimport('wafo.stats.distributions')
 #     #nbinom(10, 0.75).rvs(3)
 #    import matplotlib
@@ -986,19 +1041,19 @@ def main():
 #    phat = _WAFODIST.weibull_min.fit(R, 1, 1, par_fix=[nan, 0, nan])
 #    Lp = phat.profile(i=0)
 #    Lp.plot()
-#    Lp.get_CI(alpha=0.1)
+#    Lp.get_bounds(alpha=0.1)
 #    R = 1. / 990
 #    x = phat.isf(R)
 #
 #    # CI for x
 #    Lx = phat.profile(i=0, x=x)
 #    Lx.plot()
-#    Lx.get_CI(alpha=0.2)
+#    Lx.get_bounds(alpha=0.2)
 #
 #    # CI for logSF=log(SF)
 #    Lpr = phat.profile(i=0, logSF=log(R), link=phat.dist.link)
 #    Lpr.plot()
-#    Lpr.get_CI(alpha=0.075)
+#    Lpr.get_bounds(alpha=0.075)
 #
 #    _WAFODIST.dlaplace.stats(0.8, loc=0)
 ##    pass
@@ -1020,4 +1075,4 @@ def main():
 #    lp = pht.profile()
                 
 if __name__ == '__main__':
-   main()
+    main()
