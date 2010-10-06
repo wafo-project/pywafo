@@ -1007,30 +1007,30 @@ class FitDistribution(rv_frozen):
 
 def main():
      
-    import wafo.stats as ws
-    R = ws.weibull_min.rvs(1,size=100);
-    phat = FitDistribution(ws.weibull_min, R, 1, scale=1, floc=0.0)
+#    import wafo.stats as ws
+#    R = ws.weibull_min.rvs(1,size=100);
+#    phat = FitDistribution(ws.weibull_min, R, 1, scale=1, floc=0.0)
+#    
+#    # Better CI for phat.par[i=0]
+#    Lp1 = Profile(phat, i=0)
+#    Lp2 = Profile(phat, i=2)
+#    SF = 1./990
+#    x = phat.isf(SF)
+#
+#    # CI for x
+#    Lx = Profile(phat, i=0,x=x,link=phat.dist.link)
+#    Lx.plot()
+#    x_ci = Lx.get_bounds(alpha=0.2)
+# 
+#     # CI for logSF=log(SF)
+#    Lsf = phat.profile(i=0, logSF=log(SF), link=phat.dist.link)
+#    Lsf.plot()
+#    sf_ci = Lsf.get_bounds(alpha=0.2)
+#    pass
     
-    # Better CI for phat.par[i=0]
-    Lp1 = Profile(phat, i=0)
-    Lp2 = Profile(phat, i=2)
-    SF = 1./990
-    x = phat.isf(SF)
-
-    # CI for x
-    Lx = Profile(phat, i=0,x=x,link=phat.dist.link)
-    Lx.plot()
-    x_ci = Lx.get_bounds(alpha=0.2)
- 
-     # CI for logSF=log(SF)
-    Lsf = phat.profile(i=0, logSF=log(SF), link=phat.dist.link)
-    Lsf.plot()
-    sf_ci = Lsf.get_bounds(alpha=0.2)
-    pass
     
-    
-    #import doctest
-    #doctest.testmod()
+    import doctest
+    doctest.testmod()
     
     
 #    _WAFODIST = ppimport('wafo.stats.distributions')
