@@ -133,7 +133,7 @@ class rv_frozen(object):
 class Profile(object):
     ''' Profile Log- likelihood or Product Spacing-function.
             which can be used for constructing confidence interval for
-            either phat(i), probability or quantile.
+            either phat[i], probability or quantile.
    
     Parameters
     ----------
@@ -290,17 +290,18 @@ class Profile(object):
 
         self.xlabel = self.xlabel + ' (' + fit_dist.dist.name + ')'
         
-        ## Check that par are actually at the optimum
+        
        
         phatfree = phatv[self.i_free].copy()
-        foundNewphat = False
+       
         mylogfun = self._nlogfun
         if True:
-            phatfree = optimize.fmin(mylogfun, phatfree, args=(phatv[self.i_fixed],) , disp=0)
-            LLt = -mylogfun(phatfree,phatv[self.i_fixed])
+            ## Check that par are actually at the optimum
+            phatfree = optimize.fmin(mylogfun, phatfree, args=(p_opt,) , disp=0)
+            LLt = -mylogfun(phatfree, p_opt)
             if LLt>Lmax:
                 foundNewphat = True
-                warnings.warn('Something wrong with fit')
+                warnings.warn('The fitted parameters does not provide the optimum fit. Something wrong with fit')
                 dL = Lmax-LLt
                 self.alpha_cross_level -= dL
                 self.Lmax = LLt
@@ -363,7 +364,6 @@ class Profile(object):
                 pcov = self.fit_dist.par_cov[i_notfixed, :][:, i_notfixed]
                 pvar = sum(numpy.dot(drl, pcov) * drl)
 
-            #p_crit = _WAFODIST.norm.isf(self.alpha / 2.0) * sqrt(numpy.ravel(pvar)) * 1.5
             p_crit = -norm_ppf(self.alpha / 2.0) * sqrt(numpy.ravel(pvar)) * 1.5
             if self.pmin == None:
                 self.pmin = p_opt - 5.0 * p_crit
@@ -390,7 +390,7 @@ class Profile(object):
     def _myprbfun(self, phatnotfixed):
         mphat = self._par.copy()
         mphat[self.i_notfixed] = phatnotfixed;
-        return self.fit_dist.dist.sf(self.x, *mphat)
+        return self.fit_dist.dist.logsf(self.x, *mphat)
 
 
     def _nlogfun(self, free_par, fix_par):
@@ -535,7 +535,7 @@ class FitDistribution(rv_frozen):
     >>> x = phat.isf(SF)
 
     # CI for x
-    >>> Lx = Profile(phat, i=0,x=x,link=phat.dist.link)
+    >>> Lx = phat.profile(i=0,x=x,link=phat.dist.link)
     >>> Lx.plot()
     >>> x_ci = Lx.get_bounds(alpha=0.2)
  
@@ -641,10 +641,10 @@ class FitDistribution(rv_frozen):
     
     def _reduce_func(self, args, kwds):
         args = list(args)
-        Nargs = len(args) - 2
+        Nargs = len(args)
         fixedn = []
-        index = range(Nargs) + [-2, -1]
-        names = ['f%d' % n for n in range(Nargs)] + ['floc', 'fscale']
+        index = range(Nargs) 
+        names = ['f%d' % n for n in range(Nargs-2)] + ['floc', 'fscale']
         x0 = args[:]
         for n, key in zip(index, names):
             if kwds.has_key(key):
@@ -706,16 +706,8 @@ class FitDistribution(rv_frozen):
                     optimizer = getattr(optimize, optimizer)
                 except AttributeError:
                     raise ValueError, "%s is not a valid optimizer" % optimizer
-            loglike = numpy.inf
-            for num_times in range(5):
-                vals = optimizer(func,x0,args=(ravel(data),),disp=0)
-                ll = func(vals, ravel(data))
-                if ll<loglike:
-                    loglike = ll 
-                    x0 = vals
-                else:
-                    vals = x0
-            
+           
+            vals = optimizer(func,x0,args=(ravel(data),),disp=0)
             vals = tuple(vals)
         else:
             vals = tuple(x0)
@@ -1020,7 +1012,20 @@ def main():
     phat = FitDistribution(ws.weibull_min, R, 1, scale=1, floc=0.0)
     
     # Better CI for phat.par[i=0]
-    Lp = Profile(phat, i=0)
+    Lp1 = Profile(phat, i=0)
+    Lp2 = Profile(phat, i=2)
+    SF = 1./990
+    x = phat.isf(SF)
+
+    # CI for x
+    Lx = Profile(phat, i=0,x=x,link=phat.dist.link)
+    Lx.plot()
+    x_ci = Lx.get_bounds(alpha=0.2)
+ 
+     # CI for logSF=log(SF)
+    Lsf = phat.profile(i=0, logSF=log(SF), link=phat.dist.link)
+    Lsf.plot()
+    sf_ci = Lsf.get_bounds(alpha=0.2)
     pass
     
     

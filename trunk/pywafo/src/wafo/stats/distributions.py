@@ -2098,10 +2098,10 @@ class rv_continuous(rv_generic):
 
     def _reduce_func(self, args, kwds):
         args = list(args)
-        Nargs = len(args) - 2
+        Nargs = len(args)
         fixedn = []
-        index = range(Nargs) + [-2, -1]
-        names = ['f%d' % n for n in range(Nargs)] + ['floc', 'fscale']
+        index = range(Nargs) 
+        names = ['f%d' % n for n in range(Nargs-2)] + ['floc', 'fscale']
         x0 = args[:]
         for n, key in zip(index, names):
             if kwds.has_key(key):
@@ -3192,15 +3192,14 @@ class frechet_r_gen(rv_continuous):
     def link(self, x, logSF, phat, ix):
         u = phat[1]
         if ix == 0:
-            phati = (x - phat[1]) / (-logSF) ** (1. / phat[2])
-        elif ix == 2:
-            phati = log(-logSF) / log((x - phat[1]) / phat[0])
+            phati = log(-logSF) / log((x - phat[1]) / phat[2])
         elif ix == 1:
-            phati = x - phat[0] * (-logSF) ** (1. / phat[2]);
+            phati = x - phat[2] * (-logSF) ** (1. / phat[0])
+        elif ix == 2:
+            phati = (x - phat[1]) / (-logSF) ** (1. / phat[0])
         else:
             raise IndexError('Index to the fixed parameter is out of bounds')
         return phati
-
 
     def _pdf(self, x, c):
         return c*pow(x,c-1)*exp(-pow(x,c))
