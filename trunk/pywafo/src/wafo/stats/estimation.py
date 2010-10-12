@@ -192,7 +192,6 @@ class Profile(object):
     Examples
     --------
     # MLE 
-    >>> import numpy as np
     >>> import wafo.stats as ws
     >>> R = ws.weibull_min.rvs(1,size=100);
     >>> phat = FitDistribution(ws.weibull_min, R, 1, scale=1, floc=0.0)
@@ -364,6 +363,10 @@ class Profile(object):
                 pcov = self.fit_dist.par_cov[i_notfixed, :][:, i_notfixed]
                 pvar = sum(numpy.dot(drl, pcov) * drl)
 
+            if pvar<0: 
+                pvar = -pvar*2
+            elif numpy.isnan(pvar):
+                pvar = p_opt*0.5
             p_crit = -norm_ppf(self.alpha / 2.0) * sqrt(numpy.ravel(pvar)) * 1.5
             if self.pmin == None:
                 self.pmin = p_opt - 5.0 * p_crit
@@ -515,7 +518,6 @@ class FitDistribution(rv_frozen):
     --------
     Estimate distribution parameters for weibull_min distribution.
     >>> import wafo.stats as ws
-    >>> import numpy as np
     >>> R = ws.weibull_min.rvs(1,size=100);
     >>> phat = FitDistribution(ws.weibull_min, R, 1, scale=1, floc=0.0)
     
@@ -719,7 +721,8 @@ class FitDistribution(rv_frozen):
         '''Compute covariance
         '''
         somefixed = (self.par_fix != None) and any(isfinite(self.par_fix))
-        H = numpy.asmatrix(self.dist.hessian_nnlf(self.par, self.data))
+        H1 = numpy.asmatrix(self.dist.hessian_nnlf(self.par, self.data))
+        H = numpy.asmatrix(self.dist.hessian_nlogps(self.par, self.data))
         self.H = H
         try:
             if somefixed:
@@ -798,7 +801,6 @@ class FitDistribution(rv_frozen):
         Examples
         --------
         # MLE 
-        >>> import numpy as np
         >>> import wafo.stats as ws
         >>> R = ws.weibull_min.rvs(1,size=100);
         >>> phat = FitDistribution(ws.weibull_min, R, 1, scale=1, floc=0.0)
@@ -1006,13 +1008,15 @@ class FitDistribution(rv_frozen):
  
 
 def main():
-     
-#    import wafo.stats as ws
-#    R = ws.weibull_min.rvs(1,size=100);
-#    phat = FitDistribution(ws.weibull_min, R, 1, scale=1, floc=0.0)
-#    
+    import doctest
+    doctest.testmod()
+def test1():
+    import wafo.stats as ws
+    R = ws.weibull_min.rvs(1,size=100);
+    phat = FitDistribution(ws.weibull_min, R, method='mps')
+    
 #    # Better CI for phat.par[i=0]
-#    Lp1 = Profile(phat, i=0)
+    Lp1 = Profile(phat, i=1)
 #    Lp2 = Profile(phat, i=2)
 #    SF = 1./990
 #    x = phat.isf(SF)
@@ -1029,8 +1033,7 @@ def main():
 #    pass
     
     
-    import doctest
-    doctest.testmod()
+ 
     
     
 #    _WAFODIST = ppimport('wafo.stats.distributions')
@@ -1080,4 +1083,5 @@ def main():
 #    lp = pht.profile()
                 
 if __name__ == '__main__':
+    test1()
     main()

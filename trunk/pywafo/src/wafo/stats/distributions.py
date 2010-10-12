@@ -2031,6 +2031,64 @@ class rv_continuous(rv_generic):
         else:
             N = len(x)
             return self._nnlf(x, *args) + N*log(scale)
+    def hessian_nlogps(self, theta, data, eps=None):
+        ''' approximate hessian of nlogps where theta are the parameters (including loc and scale)
+        '''
+        #Nd = len(x)
+        np = len(theta)
+        # pab 07.01.2001: Always choose the stepsize h so that
+        # it is an exactly representable number.
+        # This is important when calculating numerical derivatives and is
+        #  accomplished by the following.
+
+        if eps == None:
+            eps = (floatinfo.machar.eps) ** 0.4
+        #xmin = floatinfo.machar.xmin
+        #myfun = lambda y: max(y,100.0*log(xmin)) #% trick to avoid log of zero
+        delta = (eps + 2.0) - 2.0
+        delta2 = delta ** 2.0
+        #    % Approximate 1/(nE( (d L(x|theta)/dtheta)^2)) with
+        #    %             1/(d^2 L(theta|x)/dtheta^2)
+        #    %  using central differences
+
+        LL = self.nlogps(theta, data)
+        H = zeros((np, np))   #%% Hessian matrix
+        theta = tuple(theta)
+        for ix in xrange(np):
+            sparam = list(theta)
+            sparam[ix] = theta[ix] + delta
+            fp = self.nlogps(sparam, data)
+            #fp = sum(myfun(x))
+
+            sparam[ix] = theta[ix] - delta
+            fm = self.nlogps(sparam, data)
+            #fm = sum(myfun(x))
+
+            H[ix, ix] = (fp - 2 * LL + fm) / delta2
+            for iy in range(ix + 1, np):
+                sparam[ix] = theta[ix] + delta
+                sparam[iy] = theta[iy] + delta
+                fpp = self.nlogps(sparam, data)
+                #fpp = sum(myfun(x))
+
+                sparam[iy] = theta[iy] - delta
+                fpm = self.nlogps(sparam, data)
+                #fpm = sum(myfun(x))
+
+                sparam[ix] = theta[ix] - delta
+                fmm = self.nlogps(sparam, data)
+                #fmm = sum(myfun(x));
+
+                sparam[iy] = theta[iy] + delta
+                fmp = self.nlogps(sparam, data)
+                #fmp = sum(myfun(x))
+                H[ix, iy] = ((fpp + fmm) - (fmp + fpm)) / (4. * delta2)
+                H[iy, ix] = H[ix, iy]
+                sparam[iy] = theta[iy];
+
+        # invert the Hessian matrix (i.e. invert the observed information number)
+        #pcov = -pinv(H);
+        return -H    
     def hessian_nnlf(self, theta, data, eps=None):
         ''' approximate hessian of nnlf where theta are the parameters (including loc and scale)
         '''
