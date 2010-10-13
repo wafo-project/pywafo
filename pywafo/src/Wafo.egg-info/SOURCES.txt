@@ -33,6 +33,7 @@ src/wafo/polynomial.py
 src/wafo/polynomial_old.py
 src/wafo/rindmod.pyd
 src/wafo/sg_filter.py
+src/wafo/version.py
 src/wafo/wafodata.py
 src/wafo.egg-info/SOURCES.txt
 src/wafo/covariance/__init__.py
