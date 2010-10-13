@@ -9,7 +9,8 @@ from numpy import atleast_1d, nan, ndarray, sqrt, vstack, ones, where, zeros
 from numpy import arange, floor, linspace, asarray, reshape, repeat, product
 
 
-__all__ = ['edf', 'edfcnd']
+__all__ = ['edf', 'edfcnd','reslife', 'dispersion_idx','decluster','findpot', 
+           'declustering_time','extremal_idx']
 
 arr = asarray
 

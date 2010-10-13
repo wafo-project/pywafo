@@ -19,15 +19,16 @@ import os
 import sys
 import subprocess
 import re
+import warnings
 
 MAJOR               = 0
 MINOR               = 1
-MICRO               = 1
-ISRELEASED          = False
+MICRO               = 2
+ISRELEASED          = True
 VERSION             = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 
 
-sys.argv.append("develop")
+#sys.argv.append("develop")
 #sys.argv.append("install")
 DISTUTILS_DEBUG = True
 pkg_name = 'wafo'
@@ -83,7 +84,7 @@ short_version='%(version)s'
 version='%(version)s'
 release=%(isrelease)s
 """
-    fid = open(os.path.join(rootdir,filename), 'w')
+    fid = open(os.path.join(root_dir,filename), 'w')
     try:
         fid.write(cnt % {'version': VERSION, 'isrelease': str(ISRELEASED)})
     finally:
@@ -93,8 +94,9 @@ if __name__=='__main__':
     write_version_py()
     
     packages = find_packages('src')
-    package_paths =[p.replace(pkg_name,+'.','').replace(pkg_name,'').replace('.',os.path.sep)
-                    for p in packages]
+    for p in packages:
+        print(p)
+    package_paths =[p.replace(pkg_name+'.','').replace(pkg_name,'').replace('.',os.path.sep) for p in packages]
     test_paths = [os.path.join(pkg_path,'test') for pkg_path in package_paths
                   if os.path.exists(os.path.join(root_dir,pkg_path,'test'))]
     testscripts = [os.path.join(subtst, f) for subtst in test_paths
