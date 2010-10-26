@@ -637,15 +637,16 @@ def findtp(x, h=0.0, kind=None):
     Example:
     --------
     >>> import wafo.data
-    >>> import pylab
+    >>> import pylab as plb
+    >>> import wafo.misc as wm
     >>> x = wafo.data.sea()
     >>> x1 = x[0:200,:]
-    >>> itp = findtp(x1[:,1],0,'Mw')
-    >>> itph = findtp(x1[:,1],0.3,'Mw')
+    >>> itp = wm.findtp(x1[:,1],0,'Mw')
+    >>> itph = wm.findtp(x1[:,1],0.3,'Mw')
     >>> tp = x1[itp,:]
     >>> tph = x1[itph,:]
-    >>> a = pylab.plot(x1[:,0],x1[:,1],tp[:,0],tp[:,1],'ro',tph[:,1],tph[:,1],'k.')
-    >>> pylab.close('all')
+    >>> a = plb.plot(x1[:,0],x1[:,1],tp[:,0],tp[:,1],'ro',tph[:,1],tph[:,1],'k.')
+    >>> plb.close('all')
     >>> itp
     array([ 11,  21,  22,  24,  26,  28,  31,  39,  43,  45,  47,  51,  56,
             64,  70,  78,  82,  84,  89,  94, 101, 108, 119, 131, 141, 148,
@@ -731,13 +732,14 @@ def findtc(x_in, v=None, kind=None):
     Example:
     --------
     >>> import wafo.data
-    >>> import pylab
+    >>> import pylab as plb
+    >>> import wafo.misc as wm
     >>> x = wafo.data.sea()
     >>> x1 = x[0:200,:]
-    >>> itc, iv = findtc(x1[:,1],0,'dw')
+    >>> itc, iv = wm.findtc(x1[:,1],0,'dw')
     >>> tc = x1[itc,:]
-    >>> a = pylab.plot(x1[:,0],x1[:,1],tc[:,0],tc[:,1],'ro')
-    >>> pylab.close('all')
+    >>> a = plb.plot(x1[:,0],x1[:,1],tc[:,0],tc[:,1],'ro')
+    >>> plb.close('all')
 
     See also
     --------
@@ -833,12 +835,13 @@ def findoutliers(x, zcrit=0.0, dcrit=None, ddcrit=None, verbose=False):
     --------
     >>> import numpy as np
     >>> import wafo
+    >>> import wafo.misc as wm
     >>> xx = wafo.data.sea()
     >>> dt = np.diff(xx[:2,0])
     >>> dcrit = 5*dt
     >>> ddcrit = 9.81/2*dt*dt
     >>> zcrit = 0
-    >>> [inds, indg] = findoutliers(xx[:,1],zcrit,dcrit,ddcrit,verbose=True)
+    >>> [inds, indg] = wm.findoutliers(xx[:,1],zcrit,dcrit,ddcrit,verbose=True)
     Found 0 spurious positive jumps of Dx
     Found 0 spurious negative jumps of Dx
     Found 37 spurious positive jumps of D^2x
@@ -1179,7 +1182,8 @@ def getshipchar(value, property="max_deadweight"):
 
     Example
     ---------
-    >>> getshipchar(10,'service_speed')
+    >>> import wafo.misc as wm
+    >>> wm.getshipchar(10,'service_speed')
     {'beam': 29.0,
      'beamSTD': 2.9000000000000004,
      'draught': 9.5999999999999996,

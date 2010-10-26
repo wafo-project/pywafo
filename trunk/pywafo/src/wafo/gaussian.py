@@ -708,7 +708,7 @@ def  prbnormnd(correl, a, b, abseps=1e-4, releps=1e-3, maxpts=None, method=0):
 #    exTime = etime(clock,t0);
 #  '
 
- #%     gauss legendre points and weights, n = 6
+#%     gauss legendre points and weights, n = 6
 _W6 = [ 0.1713244923791705e+00, 0.3607615730481384e+00, 0.4679139345726904e+00]
 _X6 = [-0.9324695142031522e+00, -0.6612093864662647e+00, -0.2386191860831970e+00]
 #%     gauss legendre points and weights, n = 12

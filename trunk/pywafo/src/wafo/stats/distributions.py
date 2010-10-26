@@ -10,7 +10,7 @@ from __future__ import division
 import math
 from copy import copy
 
-from scipy.misc import comb, derivative
+from scipy.misc import comb, derivative  #@UnresolvedImport
 from scipy import special
 from scipy import optimize
 from scipy import integrate 
@@ -3544,6 +3544,8 @@ for c != 0, and for x >= 0 for all c, and x < 1/abs(c) for c < 0.
 class genexpon_gen(rv_continuous):
     def link(self, x, logSF, phat, ix):
         xn = (x - phat[3]) / phat[4]
+        b = phat[1]
+        c = phat[2]
         fact1 = (xn + expm1(-c * xn) / c)
         if ix == 0:
             phati = b * fact1 + logSF
@@ -4507,8 +4509,8 @@ class ncf_gen(rv_continuous):
         Px *= (n2+n1*x)**(-(n1+n2)/2)
         Px *= special.assoc_laguerre(-nc*n1*x/(2.0*(n2+n1*x)),n2/2,n1/2-1)
         Px /= special.beta(n1/2,n2/2)
-         #this function does not have a return
-         #   drop it for now, the generic function seems to work ok
+        #this function does not have a return
+        #   drop it for now, the generic function seems to work ok
     def _cdf(self, x, dfn, dfd, nc):
         return special.ncfdtr(dfn,dfd,nc,x)
     def _ppf(self, q, dfn, dfd, nc):

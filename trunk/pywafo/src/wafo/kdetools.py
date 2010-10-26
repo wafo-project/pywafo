@@ -13,10 +13,20 @@ from __future__ import division
 import numpy as np
 from numpy import pi, sqrt, atleast_2d, exp, newaxis #@UnresolvedImport
 import scipy
-from scipy.linalg import sqrtm
+from scipy import linalg
 from scipy.special import gamma
 from misc import tranproc, trangood
 from itertools import product
+
+_stats_epan=(1. / 5, 3. / 5, np.inf)
+_stats_biwe=(1. / 7, 5. / 7, 45. / 2),
+_stats_triw=(1. / 9, 350. / 429, np.inf),
+_stats_rect=(1. / 3, 1. / 2, np.inf),
+_stats_tria=(1. / 6, 2. / 3, np.inf),
+_stats_lapl=(2, 1. / 4, np.inf),
+_stats_logi=(pi ** 2 / 3, 1. / 6, 1 / 42),
+_stats_gaus=(1, 1. / (2 * sqrt(pi)), 3. / (8 * sqrt(pi)))
+              
 
 
 def sphere_volume(d, r=1.0):
@@ -47,7 +57,7 @@ def sphere_volume(d, r=1.0):
 
 
 
-class kde(object):
+class KDE(object):
     """ Representation of a kernel-density estimate using Gaussian kernels.
 
     Parameters
@@ -84,23 +94,53 @@ class kde(object):
         obtain the kernel covariance matrix. Set this method to
         kde.scotts_factor or kde.silverman_factor (or subclass to provide your
         own). The default is scotts_factor.
+    
+    Example
+    -------
+    
     """
 
-    def __init__(self, dataset, **kwds):
-        self.kernel = 'gauss'
-        self.hs = None
-        self.hsmethod = None
-        self.L2 = None
-        self.alpha = 0
-        self.__dict__.update(kwds)
-
+    def __init__(self, dataset, hs=None, kernel=None,L2=None,alpha=0.0):
+        self.kernel = kernel if kernel else Kernel('gauss')
+        self.hs = hs
+        self.L2 = L2
+        self.alpha = alpha
+        
         self.dataset = atleast_2d(dataset)
         self.d, self.n = self.dataset.shape
 
+        
+        self._compute_smoothing()
 
-        self._compute_covariance()
-
-
+    def _compute_smoothing(self):
+        """Computes the smoothing matrix
+        """
+        get_smoothing = self.kernel.get_smoothing
+        h = self.hs
+        if h is None:
+            h = get_smoothing(self.dataset)
+        hsiz = h.shape
+    
+        if (min(hsiz)==1) or (self.d==1):
+            if max(hsiz)==1:
+                h = h*np.ones(self.d)
+            else:
+                h.shape = (self.d,) # make sure it has the correct dimension
+          
+            # If h negative calculate automatic values
+            ind, = np.where(h<=0)
+            for i in ind.tolist(): # 
+                h[i] = get_smoothing(self.dataset[i])
+            deth = h.prod()
+            self.inv_hs = linalg.diag(1.0/h)
+        else: #fully general smoothing matrix
+            deth = linalg.det(h)
+            if deth<=0:
+                raise ValueError('bandwidth matrix h must be positive definit!')
+            self.inv_hs = linalg.inv(h)
+        self.hs = h
+        self._norm_factor = deth * self.n
+        
     def evaluate(self, points):
         """Evaluate the estimated pdf on a set of points.
 
@@ -140,22 +180,22 @@ class kde(object):
             # there are more points than data, so loop over data
             for i in range(self.n):
                 diff = self.dataset[:, i, np.newaxis] - points
-                tdiff = np.dot(self.inv_cov, diff)
-                energy = np.sum(diff * tdiff, axis=0) / 2.0
-                result += np.exp(-energy)
+                tdiff = np.dot(self.inv_hs, diff)
+                result += self.kernel(tdiff)
         else:
             # loop over points
             for i in range(m):
                 diff = self.dataset - points[:, i, np.newaxis]
-                tdiff = np.dot(self.inv_cov, diff)
-                energy = sum(diff * tdiff, axis=0) / 2.0
-                result[i] = np.sum(np.exp(-energy), axis=0)
+                tdiff = np.dot(self.inv_hs, diff)
+                tmp = self.kernel(tdiff)
+                result[i] = tmp.sum(axis=-1)
 
-        result /= self._norm_factor
+        result /= (self._norm_factor*self.kernel.norm_factor(d,self.n))
 
         return result
 
     __call__ = evaluate
+
 
 #function [f, hs,lambda]= kdefun(A,options,varargin)
 #%KDEFUN  Kernel Density Estimator.
@@ -433,71 +473,106 @@ class kde(object):
 #  hs=h;
 #end
 
-
-def mkernel_multi(X, p=None):
+class _Kernel(object):
+    def __init__(self, r=1.0, stats=None):
+        self.r = r # radius of kernel
+        self.stats = stats
+    def norm_factor(self, d=1, n=None):
+        return 1.0
+    def norm_kernel(self, x):
+        X = np.atleast_2d(x)
+        return self._kernel(X)/self.norm_factor(*X.shape)
+    def kernel(self, x):
+        return self._kernel(np.atleast_2d(x))
+    __call__ = kernel 
+    
+class _KernelMulti(_Kernel):
     # p=0;  %Sphere = rect for 1D
     # p=1;  %Multivariate Epanechnikov kernel.
     # p=2;  %Multivariate Bi-weight Kernel
     # p=3;  %Multi variate Tri-weight Kernel 
     # p=4;  %Multi variate Four-weight Kernel
-    d, n = X.shape
-    r = 1    # radius of the kernel
-    c = 2 ** p * np.prod(np.r_[1:p + 1]) * sphere_volume(d, r) / np.prod(np.r_[(d + 2):(2 * p + d + 1):2])# normalizing constant
-    # c = beta(r+1,r+1)*vsph(d,b)*(2^(2*r)); % Wand and Jones pp 31
-    # the commented c above does note yield the right scaling for d>1   
-    x2 = X ** 2
-    return ((1.0 - x2.sum(axis=0) / r ** 2).clip(min=0.0)) ** p / c
+    def __init__(self, r=1.0, p=1, stats=None):
+        self.r = r
+        self.p = p
+        self.stats = stats
+    def norm_factor(self, d=1, n=None):
+        r = self.r
+        p = self.p
+        c = 2 ** p * np.prod(np.r_[1:p + 1]) * sphere_volume(d, r) / np.prod(np.r_[(d + 2):(2 * p + d + 1):2])# normalizing constant
+        return c
+    def _kernel(self, x):
+        r = self.r
+        p = self.p
+        x2 = x ** 2
+        return ((1.0 - x2.sum(axis=0) / r ** 2).clip(min=0.0)) ** p
 
-def mkernel_epanechnikov(X):
-    return mkernel_multi(X, p=1)
-def mkernel_biweight(X):
-    return mkernel_multi(X, p=2)
-def mkernel_triweight(X):
-    return mkernel_multi(X, p=3)
- 
-def mkernel_product(X, p):
+mkernel_epanechnikov = _KernelMulti(p=1, stats=_stats_epan)
+mkernel_biweight = _KernelMulti(p=2, stats=_stats_biwe)
+mkernel_triweight = _KernelMulti(p=3, stats=_stats_triw)
+
+class _KernelProduct(_KernelMulti):
     # p=0;  %rectangular
     # p=1;  %1D product Epanechnikov kernel.
     # p=2;  %1D product Bi-weight Kernel
     # p=3;  %1D product Tri-weight Kernel 
     # p=4;  %1D product Four-weight Kernel
-    d, n = X.shape  
-    r = 1.0 # radius
-    pdf = (1 - (X / r) ** 2).clip(min=0.0)
-    c = 2 ** p * np.prod(np.r_[1:p + 1]) * sphere_volume(1, r) / np.prod(np.r_[(1 + 2):(2 * p + 2):2])# normalizing constant
-    return np.prod(pdf, axis=0) / c ** d
-
-def mkernel_p1epanechnikov(X):
-    return mkernel_product(X, p=1)
-def mkernel_p1biweight(X):
-    return mkernel_product(X, p=2)
-def mkernel_p1triweight(X):
-    return mkernel_product(X, p=3)   
-
-
-def mkernel_rectangular(X):
-    d, n = X.shape
-    return np.where(np.all(np.abs(X) <= 1, axis=0), 0.5 ** d, 0.0)
     
-def mkernel_triangular(X):
-    pdf = (1 - np.abs(X)).clip(min=0.0)
-    return np.prod(pdf, axis=0)
-       
-def mkernel_gaussian(X):
-    x2 = X ** 2
-    d, n = X.shape
-    return (2 * pi) ** (-d / 2) * exp(-0.5 * x2.sum(axis=0))       
-    
-def mkernel_laplace(X):
-    ''' Return multivariate laplace kernel'''
-    d, n = X.shape
-    absX = np.abs(X)
-    return 0.5 ** d * exp(-absX.sum(axis=0))
+    def norm_factor(self, d=1, n=None):
+        r = self.r
+        p = self.p
+        c = 2 ** p * np.prod(np.r_[1:p + 1]) * sphere_volume(1, r) / np.prod(np.r_[(1 + 2):(2 * p + 2):2])# normalizing constant
+        return c ** d
+    def _kernel(self, x):
+        r = self.r # radius
+        pdf = (1 - (x / r) ** 2).clip(min=0.0)
+        return pdf.prod(axis=0)
 
-def mkernel_logistic(X):
-    ''' Return multivariate logistic kernel'''
-    s = exp(X)
-    return np.prod(s / (s + 1) ** 2, axis=0)    
+mkernel_p1epanechnikov = _KernelProduct(p=1, stats=_stats_epan)
+mkernel_p1biweight = _KernelProduct(p=2, stats=_stats_biwe)
+mkernel_p1triweight = _KernelProduct(p=3, stats=_stats_triw)
+
+
+class _KernelRectangular(_Kernel):
+    def _kernel(self, x):
+        return np.where(np.all(np.abs(x) <= self.r, axis=0), 1, 0.0)
+    def norm_factor(self, d=1, n=None):
+        r = self.r
+        return (2*r) ** d
+mkernel_rectangular = _KernelRectangular(stats=_stats_rect)
+
+class _KernelTriangular(_Kernel):
+    def _kernel(self, x):
+        pdf = (1 - np.abs(x)).clip(min=0.0)
+        return pdf.prod(axis=0)
+mkernel_triangular = _KernelTriangular(stats=_stats_tria)
+    
+class _KernelGaussian(_Kernel):
+    def _kernel(self, x):
+        x2 = x ** 2
+        return exp(-0.5 * x2.sum(axis=0))       
+    def norm_factor(self, d=1, n=None):
+        return (2 * pi) ** (d / 2.0) 
+mkernel_gaussian = _KernelGaussian(stats=_stats_gaus)
+
+#def mkernel_gaussian(X):
+#    x2 = X ** 2
+#    d = X.shape[0]
+#    return (2 * pi) ** (-d / 2) * exp(-0.5 * x2.sum(axis=0))       
+
+class _KernelLaplace(_Kernel):
+    def _kernel(self, x):
+        absX = np.abs(x)    
+        return exp(-absX.sum(axis=0))
+    def norm_factor(self, d=1, n=None):
+        return 2**d    
+mkernel_laplace = _KernelLaplace(stats=_stats_lapl)
+
+class _KernelLogistic(_Kernel):
+    def _kernel(self, x):
+        s = exp(x)
+        return np.prod(s / (s + 1) ** 2, axis=0)
+mkernel_logistic = _KernelLogistic(stats=_stats_logi)
 
 _MKERNEL_DICT = dict(
                      epan=mkernel_epanechnikov,
@@ -513,18 +588,7 @@ _MKERNEL_DICT = dict(
                      gaus=mkernel_gaussian
                      )
 _KERNEL_EXPONENT_DICT = dict(re=0, sp=0, ep=1, bi=2, tr=3, fo=4, fi=5, si=6, se=7)
-_KERNEL_STATS_DICT = dict(epan=(1. / 5, 3. / 5, np.inf),
-                          biwe=(1. / 7, 5. / 7, 45. / 2),
-                          triw=(1. / 9, 350. / 429, np.inf),
-                          rect=(1. / 3, 1. / 2, np.inf),
-                          tria=(1. / 6, 2. / 3, np.inf),
-                          lapl=(2, 1. / 4, np.inf),
-                          logi=(pi ** 2 / 3, 1. / 6, 1 / 42),
-                          gaus=(1, 1. / (2 * sqrt(pi)), 3. / (8 * sqrt(pi)))
-                          )
 
-
-  
 class Kernel(object):
     '''
     Multivariate kernel
@@ -574,9 +638,13 @@ class Kernel(object):
     'Density estimation for statistics and data analysis'  
      Chapman and Hall, pp 31, 103,  175  
     '''
-    def __init__(self, name):
+    def __init__(self, name, fun='hns'):
         self.kernel = _MKERNEL_DICT[name[:4]]
-        self.name = self.kernel.__name__.replace('mkernel_','').title()
+        #self.name = self.kernel.__name__.replace('mkernel_', '').title()
+        try:
+            self.get_smoothing = getattr(self, fun) 
+        except:
+            self.get_smoothing = self.hns
         
     def stats(self):
         ''' Return some 1D statistics of the kernel.
@@ -596,8 +664,9 @@ class Kernel(object):
         'Kernel smoothing'
         Chapman and Hall, pp 176.
         '''  
-        name = self.name[2:6] if self.name[:2].lower()=='p1' else self.name[:4] 
-        return _KERNEL_STATS_DICT[name.lower()]
+        return self.kernel.stats
+        #name = self.name[2:6] if self.name[:2].lower() == 'p1' else self.name[:4] 
+        #return _KERNEL_STATS_DICT[name.lower()]
     
     def hns(self, data):
         '''
@@ -637,18 +706,19 @@ class Kernel(object):
         '''
         
         A = np.atleast_2d(data)
-        d,n = A.shape
+        n = A.shape[1]
         
         # R= int(mkernel(x)^2),  mu2= int(x^2*mkernel(x))
         mu2, R, Rdd = self.stats()
-        AMISEconstant = (8*sqrt(pi)*R/(3*mu2**2*n))**(1./5)
-        iqr = np.abs(np.percentile(A, 75, axis=1)-np.percentile(A, 25, axis=1))# interquartile range
+        AMISEconstant = (8 * sqrt(pi) * R / (3 * mu2 ** 2 * n)) ** (1. / 5)
+        iqr = np.abs(np.percentile(A, 75, axis=1) - np.percentile(A, 25, axis=1))# interquartile range
         stdA = np.std(A, axis=1)
         #  % use of interquartile range guards against outliers.
         #  % the use of interquartile range is better if 
         #  % the distribution is skew or have heavy tails
         #  % This lessen the chance of oversmoothing.
-        return np.where(iqr>0, np.minimum(stdA, iqr/1.349), stdA)*AMISEconstant
+        return np.where(iqr > 0, np.minimum(stdA, iqr / 1.349), stdA) * AMISEconstant
+    
     def hos(self, data):
         ''' Return Oversmoothing Parameter.
 
@@ -685,7 +755,7 @@ class Kernel(object):
          'Kernel smoothing'
           Chapman and Hall, pp 60--63
         '''    
-        return self.hns(data)/0.93
+        return self.hns(data) / 0.93
     def hmns(self, data):
         '''
         Returns Multivariate Normal Scale Estimate of Smoothing Parameter.
@@ -694,7 +764,7 @@ class Kernel(object):
         
            h      = M dimensional optimal value for smoothing parameter
                     given the data and kernel.  size D x D
-           data   = data matrix, size N x D (D = # dimensions )
+           data   = data matrix, size D x N (D = # dimensions )
            kernel = 'epanechnikov'  - Epanechnikov kernel.
                     'biweight'      - Bi-weight kernel.
                     'triweight'     - Tri-weight kernel.  
@@ -713,8 +783,13 @@ class Kernel(object):
             data = rndnorm(0, 1,20,2)
             h = hmns(data,'epan');
           
-         See also  hns, hste, hbcv, hboot, hos, hldpi, hlscv, hscv, hstt
-         Reference:  
+         See also 
+         --------
+          
+        hns, hste, hbcv, hboot, hos, hldpi, hlscv, hscv, hstt
+        
+         Reference
+         ----------  
           B. W. Silverman (1986) 
          'Density estimation for statistics and data analysis'  
           Chapman and Hall, pp 43-48, 87 
@@ -723,37 +798,35 @@ class Kernel(object):
          'Kernel smoothing'
           Chapman and Hall, pp 60--63, 86--88
         '''
-        # TODO implement more kernels  
+        # TODO: implement more kernels  
           
         A = np.atleast_2d(data)
-        d,n = A.shape
+        d, n = A.shape
         
-        if d==1:
+        if d == 1:
             return self.hns(data)
         name = self.name[:4].lower()
-        if name=='epan':        # Epanechnikov kernel
-            a=(8*(d+4)*(2*sqrt(pi))**d/sphere_volume(d))**(1./(4+d))
-        elif name=='biwe': # Bi-weight kernel
-            a=2.7779;
-            if d>2:
+        if name == 'epan':        # Epanechnikov kernel
+            a = (8.0 * (d + 4.0) * (2 * sqrt(pi)) ** d / sphere_volume(d)) ** (1. / (4.0 + d))
+        elif name == 'biwe': # Bi-weight kernel
+            a = 2.7779;
+            if d > 2:
                 raise ValueError('not implemented for d>2')
-        elif name=='triw': # Triweight
-            a=3.12;
-            if d>2:
+        elif name == 'triw': # Triweight
+            a = 3.12;
+            if d > 2:
                 raise ValueError('not implemented for d>2')
-        elif name=='gaus': # Gaussian kernel
-            a = (4/(d+2))**(1./(d+4))
+        elif name == 'gaus': # Gaussian kernel
+            a = (4.0 / (d + 2.0)) ** (1. / (d + 4.0))
         else:
             raise ValueError('Unknown kernel.')
          
         covA = scipy.cov(A)
         
-        return a*sqrtm(covA)*n*(-1./(d+4))
+        return a * linalg.sqrtm(covA) * n * (-1. / (d + 4))
         
-        
-
-
-        
+    def norm_factor(self, d=1,n=None):
+        return  self.kernel.norm_factor(n,d)    
     def evaluate(self, X):
         return self.kernel(np.atleast_2d(X))
     __call__ = evaluate
@@ -908,7 +981,8 @@ def accum(accmap, a, func=None, size=None, fill_value=0, dtype=None):
             out[s] = func(vals[s])
 
     return out
-def gridcount(data,X):
+
+def gridcount(data, X):
     '''
     GRIDCOUNT D-dimensional histogram using linear binning.
       
@@ -939,16 +1013,21 @@ def gridcount(data,X):
        
     Example
     -------
-      N     = 500;
-      data  = rndray(1,N,1);
-      x = linspace(0,max(data)+1,50).';  
-      dx = x(2)-x(1);  
-      c = gridcount(data,x);
-      plot(x,c,'.')    1D histogram
-      plot(x,c/dx/N)   1D probability density plot
-      trapz(x,c/dx/N)   
+    >>> import numpy as np
+    >>> import wafo.kdetools as wk
+    >>> import pylab as plb
+    >>> N     = 500;
+    >>> data  = np.random.rayleigh(1,N)
+    >>> x = np.linspace(0,max(data)+1,50)  
+    >>> dx = x[1]-x[0]  
+    >>> c = wk.gridcount(data,x)
+    >>> h = plb.plot(x,c,'.')   # 1D histogram
+    >>> h1 = plb.plot(x,c/dx/N) #  1D probability density plot
+    >>> np.trapz(x,c/dx/N)   
     
-     See also  bincount, kdebin
+    See also
+    --------
+    bincount, accum, kdebin
       
     Reference
     ----------
@@ -958,84 +1037,114 @@ def gridcount(data,X):
     '''  
     dat = np.atleast_2d(data)
     x = np.atleast_2d(X)
-    d,n = dat.shape
+    d, n = dat.shape
     d1, inc = x.shape
     
-    if d!=d1:
+    if d != d1:
         raise ValueError('Dimension 0 of data and X do not match.')
     
     
-    dx  = np.diff(x[:,:2],axis=1)
-    xlo = x[:,0]
-    xup = x[:,-1]
+    dx = np.diff(x[:, :2], axis=1)
+    xlo = x[:, 0]
+    xup = x[:, -1]
     
     datlo = dat.min(axis=1)
     datup = dat.max(axis=1)
-    if ((datlo<xlo) or (xup<datup)).any():
+    if ((datlo < xlo) | (xup < datup)).any():
         raise ValueError('X does not include whole range of the data!')
     
     csiz = np.repeat(inc, d)
     
       
-    binx = np.assarray(np.floor((dat-xlo[:, newaxis])/dx[:, newaxis]),dtype=int)
-    w  = dx.prod()
-    if  d==1:
-        c = (accum(binx,(x[binx+1]-data),size=[inc,]) +
-             accum(binx,(data-x[binx]),size=[inc,]))/w
-    elif d==2:
+    binx = np.asarray(np.floor((dat - xlo[:, newaxis]) / dx), dtype=int)
+    w = dx.prod()
+    abs = np.abs
+    if  d == 1:
+        x.shape = (-1,)
+        c = (accum(binx, (x[binx + 1] - data), size=[inc, ]) + 
+             accum(binx, (data - x[binx]), size=[inc, ])) / w
+    elif d == 2:
         b2 = binx[1]
         b1 = binx[0]
-        c = (accum([b1,b2] ,abs(prod(([X(b1+1,1) X(b2+1,2)]-data),2)),size=[inc,inc])+...
-          accum([b1+1,b2]  ,abs(prod(([X(b1,1) X(b2+1,2)]-data),2)),size=[inc,inc])+...
-          accum([b1  ,b2+1],abs(prod(([X(b1+1,1) X(b2,2)]-data),2)),size=[inc,inc])+...
-          accum([b1+1,b2+1],abs(prod(([X(b1,1) X(b2,2)]-data),2)),size=[inc,inc]))/w;
-     
+        c_ = np.c_
+        stk = np.vstack
+        c = (accum(c_[b1, b2] , abs(np.prod(stk([X[0, b1 + 1], X[1, b2 + 1]]) - data, axis=0)), size=[inc, inc]) + 
+          accum(c_[b1 + 1, b2]  , abs(np.prod(stk([X[0, b1], X[1, b2 + 1]]) - data, axis=0)), size=[inc, inc]) + 
+          accum(c_[b1  , b2 + 1], abs(np.prod(stk([X[0, b1 + 1], X[1, b2]]) - data, axis=0)), size=[inc, inc]) + 
+          accum(c_[b1 + 1, b2 + 1], abs(np.prod(stk([X[0, b1], X[1, b2]]) - data, axis=0)), size=[inc, inc])) / w
       
     else: # % d>2
-     useSparse = 0;
-      Nc = prod(csiz);
-      c  = zeros(Nc,1);
+        raise ValueError('Not implemented for d>2')
+        Nc = csiz.prod()
+        c = np.zeros((Nc, 1))
      
-      fact2 = [0 inc*(1:d-1)];
-      fact1 = [1 cumprod(csiz(1:d-1))];
-      fact1 = fact1(ones(n,1),:);
-      for ir=0:2^(d-1)-1,
-        bt0(:,:,1) = bitget(ir,1:d);
-        bt0(:,:,2) = ~bt0(:,:,1);
-        
-        for ix = 0:1
-          one = mod(ix,2)+1;
-          two = mod(ix+1,2)+1;
-          % Convert to linear index (faster than sub2ind)
-          b1  = sum((binx + bt0(ones(n,1),:,one)-1).*fact1,2)+1; %linear index to c
-          bt2 = bt0(:,:,two) + fact2;
-          b2  = binx + bt2(ones(n,1),:);                     % linear index to X
-          try
-            if useSparse
-              % Fast gridding using sparse
-              c = c + sparse(b1,1,abs(prod(X(b2)-data,2)),Nc,1);
-            else
-              c = c + accum(b1,abs(prod(X(b2)-data,2)),[Nc,1]);
-              %c = c + accum([b1,ones(n,1)],abs(prod(X(b2)-data,2)),[Nc,1]);
-              %[len,bin,val] = bincount(b1,abs(prod(X(b2)-data,2)));
-              %c(bin)        = c(bin)+val;
-            end
-          catch
-             c = c + sparse(b1,1,abs(prod(X(b2)-data,2)),Nc,1);
-          end
-        end
-      end
-      c = reshape(c/w,csiz);
-    end
-    switch d % make sure c is stored in the same way as meshgrid
-     case 2,  c = c.';
-     case 3,  c = permute(c,[2 1 3]);
-    end
-    return
-
+        fact2 = inc * np.arange(d)
+        fact1 = csiz.cumprod() / inc
+        #fact1 = fact1(ones(n,1),:);
+#        for ir in xrange(2**(d-1)):
+#            bt0[:,:,1] = bitget(ir,1:d)
+#            bt0[:,:,2] = 1-bt0[:,:,1]
+#            for ix in range(2):
+#                one = mod(ix,2)+1;
+#                two = mod(ix+1,2)+1;
+#                # Convert to linear index (faster than sub2ind)
+#                b1  = sum((binx + bt0(ones(n,1),:,one)-1).*fact1,2)+1; #%linear index to c
+#                bt2 = bt0(:,:,two) + fact2;
+#                b2  = binx + bt2(ones(n,1),:);                     #% linear index to X
+#         
+#                c = c + accum(b1,abs(prod(X(b2)-data,2)),[Nc,1]);
+#                #c = c + accum([b1,ones(n,1)],abs(prod(X(b2)-data,2)),[Nc,1]);
+#                #[len,bin,val] = bincount(b1,abs(prod(X(b2)-data,2)));
+#                #c(bin)        = c(bin)+val;
+#         
+#            #end
+#        #end
+#        c = reshape(c/w,csiz);
+    #end
+    if d == 2: #% make sure c is stored in the same way as meshgrid
+        c = c.T
+    elif d == 3:
+        c = c.transpose(1, 0, 2)
+    
+    return c
+def test_kde():
+    import numpy as np
+    import wafo.kdetools as wk
+    import pylab as plb
+    N = 500;
+    data = np.random.rayleigh(1, size=(1, N))
+    kde = wk.KDE(data)
+    x = np.linspace(0, max(data.ravel()) + 1, 10)
+    #X,Y = np.meshgrid(x, x)
+    f = kde(x)
+    
+    #plb.hist(data.ravel())
+    plb.plot(x,f)
+    plb.show()
+    
+def test_gridcount():
+    import numpy as np
+    import wafo.kdetools as wk
+    import pylab as plb
+    N = 500;
+    data = np.random.rayleigh(1, size=(2, N))
+    x = np.linspace(0, max(data.ravel()) + 1, 10)
+    X = np.vstack((x, x))  
+    dx = x[1] - x[0]  
+    c = wk.gridcount(data, X)
+    h = plb.contourf(x, x, c)
+    plb.show()
+    h = plb.plot(x, c, '.')   # 1D histogram
+   
+    h1 = plb.plot(x, c / dx / N) #  1D probability density plot
+    t = np.trapz(x, c / dx / N)   
+    print(t)
+    
 def main():
     import doctest
     doctest.testmod()
     
 if __name__ == '__main__':
-    main()
+    #main()
+    #test_gridcount()
+    test_kde()
