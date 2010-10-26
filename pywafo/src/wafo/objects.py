@@ -17,7 +17,7 @@ from wafo.transform.core import TrData
 from wafo.transform.models import TrHermite, TrOchi, TrLinear
 from wafo.interpolate import SmoothSpline
 from scipy.interpolate.interpolate import interp1d
-from scipy.integrate.quadrature import cumtrapz
+from scipy.integrate.quadrature import cumtrapz  #@UnresolvedImport
 import warnings
 import numpy as np
 
@@ -39,14 +39,13 @@ from wafo.misc import (nextpow2, findtp, findtc, findcross, sub_dict_select,
 from wafodata import WafoData
 from plotbackend import plotbackend
 import matplotlib
+from scipy.stats.stats import skew, kurtosis
 matplotlib.interactive(True)
 _wafocov = JITImport('wafo.covariance')
 _wafospec = JITImport('wafo.spectrum')
 
 __all__ = ['TimeSeries', 'LevelCrossings', 'CyclePairs', 'TurningPoints',
     'sensortypeid', 'sensortype']
-
-
 
 
 class LevelCrossings(WafoData):
@@ -59,7 +58,18 @@ class LevelCrossings(WafoData):
         number of upcrossings
     args : array-like
         crossing levels
-
+      Examples
+    --------
+    >>> import wafo.data
+    >>> import wafo.objects as wo
+    >>> x = wafo.data.sea()
+    >>> ts = wo.mat2timeseries(x)
+    
+    >>> tp = ts.turning_points()
+    >>> mm = tp.cycle_pairs()
+    
+    >>> lc = mm.level_crossings()
+    >>> h2 = lc.plot()
     '''
     def __init__(self, *args, **kwds):
         options = dict(title='Level crossing spectrum',
@@ -448,7 +458,16 @@ class CyclePairs(WafoData):
     data : array_like
     args : vector for 1D
 
-
+      Examples
+    --------
+    >>> import wafo.data
+    >>> import wafo.objects as wo
+    >>> x = wafo.data.sea()
+    >>> ts = wo.mat2timeseries(x)
+    
+    >>> tp = ts.turning_points()
+    >>> mm = tp.cycle_pairs()
+    >>> h1 = mm.plot(marker='x')
     '''
     def __init__(self, *args, **kwds):
         self.type_ = kwds.get('type_', 'max2min')
@@ -492,7 +511,7 @@ class CyclePairs(WafoData):
         >>> ts = wafo.objects.mat2timeseries(wafo.data.sea())
         >>> tp = ts.turning_points()
         >>> mm = tp.cycle_pairs()
-        >>> h = mm.plot('.')
+        >>> h = mm.plot(marker='.')
         >>> bv = range(3,9)
         >>> D = mm.damage(beta=bv)
         >>> D
@@ -533,7 +552,7 @@ class CyclePairs(WafoData):
         >>> ts = wafo.objects.mat2timeseries(wafo.data.sea())
         >>> tp = ts.turning_points()
         >>> mm = tp.cycle_pairs()
-        >>> h = mm.plot('.')
+        >>> h = mm.plot(marker='.')
         >>> lc = mm.level_crossings()
         >>> h2 = lc.plot()
 
@@ -608,6 +627,16 @@ class TurningPoints(WafoData):
     ----------------
     data : array_like
     args : vector for 1D
+    
+      Examples
+    --------
+    >>> import wafo.data
+    >>> import wafo.objects as wo
+    >>> x = wafo.data.sea()
+    >>> ts = wo.mat2timeseries(x)
+    
+    >>> tp = ts.turning_points()
+    >>> h1 = tp.plot(marker='x')
     '''
     def __init__(self, *args, **kwds):
         super(TurningPoints, self).__init__(*args, **kwds)
@@ -643,7 +672,7 @@ class TurningPoints(WafoData):
         >>> ts = wafo.objects.mat2timeseries(x)
         >>> tp = ts.turning_points()
         >>> mM = tp.cycle_pairs()
-        >>> h = mM.plot('x')
+        >>> h = mM.plot(marker='x')
 
 
         See also
@@ -699,6 +728,13 @@ class TimeSeries(WafoData):
     >>> ts = wo.mat2timeseries(x)
     >>> rf = ts.tocovdata(lag=150)
     >>> h = rf.plot()
+    
+    >>> tp = ts.turning_points()
+    >>> mm = tp.cycle_pairs()
+    >>> h1 = mm.plot(marker='x')
+    
+    >>> lc = mm.level_crossings()
+    >>> h2 = lc.plot()
 
     '''
     def __init__(self, *args, **kwds):
@@ -969,7 +1005,8 @@ class TimeSeries(WafoData):
         
         See also
         --------
-           troptset, lc2tr, cdf2tr, trplot
+        troptset, lc2tr, cdf2tr, trplot
+           
         References
         ----------
         Rychlik, I. , Johannesson, P and Leadbetter, M. R. (1997)
@@ -983,56 +1020,11 @@ class TimeSeries(WafoData):
         reconstructed data"
         in Proceedings of 9th ISOPE Conference, Vol III, pp 66-73        
         '''
-#        Tested on: Matlab 5.3, 5.2, 5.1
-#        History:
-#         revised pab Dec2004
-#          -Fixed bug: string comparison for def at fault.  
-#         revised pab Nov2004
-#          -Fixed bug: linextrap was not accounted for  
-#         revised pab july 2004
-#         revised pab 3 april 2004
-#         -fixed a bug in hermite estimation: excess changed to kurtosis  
-#         revised pab 29.12.2000
-#         - added example, hermite and ochi options
-#         - replaced optional arguments with a options struct
-#         - default param is now [-5 5 513] -> better to have the discretization
-#          represented with exact numbers, especially when calculating
-#          derivatives of the transformation numerically.
-#         revised pab 19.12.2000
-#          - updated call edf(X,-inf,[],monitor) to  edf(X,[],monitor)
-#            due to new calling syntax for edf
-#         modifed pab 24.09.2000
-#          - changed call from norminv to wnorminv
-#          - also removed the 7 lowest and 7 highest points from
-#            the estimation using def='mnonlinear' 
-#            (This is similar to what lc2tr does. lc2tr removes
-#             the 9 highest and 9 lowest TP from the estimation)
-#         modified pab 09.06.2000
-#          - made all the *empirical options secret.
-#          - Added 'mnonlinear' and 'mempirical' 
-#          - Fixed the problem of multip==1 and def=='empirical' by interpolating 
-#            with spline to ensure that the length of g is fixed
-#          - Replaced the test statistic for def=='empirical' with the one
-#            obtained when csm1=csm2=1. (Previously only the smoothed test
-#            statistic where returned)
-#         modified pab 12.10.1999
-#          fixed a bug
-#          added secret output of empirical estimate g2
-#         modified by svi  29.09.1999
-#         changed input def by adding new options.
-#         revised by pab 11.08.99
-#           changed name from dat2tran to dat2tr
-#         modified by Per A. Brodtkorb 12.05.1999,15.08.98
-#           added  secret option: to accept multiple data, to monitor the steps 
-#           of estimation of the transformation 
-#           also removed some code and replaced it with a call to lc2tr (cross2tr) 
-#           making the maintainance easier
-#        
+
         
         #opt = troptset('plotflag','off','csm',.95,'gsm',.05,....
         #    'param',[-5 5 513],'delay',2,'linextrap','on','ne',7,...
         #    'cvar',1,'gvar',1,'multip',0);
-        
         
         opt = DotDict(chkder=True, plotflag=True, csm=.95, gsm=.05,
             param=[-5, 5, 513], delay=2, ntr=inf, linextrap=True, ne=7, cvar=1, gvar=1,
@@ -1053,14 +1045,14 @@ class TimeSeries(WafoData):
         elif method[0] == 'm':
             return cdftr()
         elif method[0] == 'h':
-            ga1 = np.skew(self.data)
-            ga2 = np.kurtosis(self.data, fisher=True) #kurt(xx(n+1:end))-3;
+            ga1 = skew(self.data)
+            ga2 = kurtosis(self.data, fisher=True) #kurt(xx(n+1:end))-3;
             up = min(4 * (4 * ga1 / 3) ** 2, 13)
             lo = (ga1 ** 2) * 3 / 2;
             kurt1 = min(up, max(ga2, lo)) + 3
             return TrHermite(mean=ma, var=sa ** 2, skew=ga1, kurt=kurt1)
         elif method[0] == 'o':
-            ga1 = np.skew(self.data)
+            ga1 = skew(self.data)
             return TrOchi(mean=ma, var=sa ** 2, skew=ga1)
              
     def turning_points(self, h=0.0, wavetype=None):
@@ -1197,13 +1189,13 @@ class TimeSeries(WafoData):
 
         Example:
         --------
+        Histogram of crest2crest waveperiods
         >>> import wafo
+        >>> import pylab as plb
         >>> x = wafo.data.sea()
         >>> ts = wafo.objects.mat2timeseries(x[0:400,:])
-        >>> T = ts.wave_periods(vh=0.0,pdef='c2c')
-
-        T = dat2wa(x1,0,'c2c') #% Returns crest2crest waveperiods
-        subplot(121), waveplot(x1,'-',1,1),subplot(122),histgrm(T)
+        >>> T, ix = ts.wave_periods(vh=0.0,pdef='c2c')
+        >>> h = plb.hist(T)
 
         See also:
         --------
@@ -1310,20 +1302,10 @@ class TimeSeries(WafoData):
             t1 = x[index[(start + dist):nn:step]]
 
         T = t1 - t0
-##        if False: #% Secret option: indices to the actual crossings used.
-##            index=index.ravel()
-##            ind = [index(start:(nn-dist):step) index((start+dist):nn:step)].'
-##            ind = ind(:)
-
-
         return T, index
 
-        #% Old call: kept just in case
-        #%T  = x(index((start+dist):step:nn),1)-x(index(start:step:(nn-dist)),1)
-
-
-
     def reconstruct(self):
+        # TODO: finish reconstruct
         pass
     def plot_wave(self, sym1='k.', ts=None, sym2='k+', nfig=None, nsub=None,
                   stdev=None, vfact=3):
@@ -1362,7 +1344,7 @@ class TimeSeries(WafoData):
         --------  
         findtc, plot
         ''' 
-        # TODO: finish reconstruct
+       
         nw = 20
         tn = self.args
         xn = self.data.ravel()

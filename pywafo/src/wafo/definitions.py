@@ -1,12 +1,24 @@
 """
 WAFO defintions and numenclature
 
-crossings :
-cycle_pairs :
-turning_points :
-wave_amplitudes :
-wave_periods :
-waves :
+    crossings :
+    cycle_pairs :
+    turning_points :
+    wave_amplitudes :
+    wave_periods :
+    waves :
+
+Examples
+--------
+In order to view the documentation do the following in an ipython window:
+
+>>> import wafo.definitions as wd
+>>> wd.crossings() 
+
+or
+>>> wd.crossings?
+
+
 """
 def wave_amplitudes():
     r"""

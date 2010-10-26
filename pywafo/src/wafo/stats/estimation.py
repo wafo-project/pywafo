@@ -12,7 +12,7 @@ from wafo.plotbackend import plotbackend
 from wafo.misc import ecross, findcross
 
 
-import numdifftools 
+import numdifftools  #@UnresolvedImport
 from scipy import special
 from scipy.linalg import pinv2
 from scipy import optimize
