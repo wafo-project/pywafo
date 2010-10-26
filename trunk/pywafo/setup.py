@@ -24,11 +24,11 @@ import warnings
 MAJOR               = 0
 MINOR               = 1
 MICRO               = 2
-ISRELEASED          = True
+ISRELEASED          = False
 VERSION             = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 
 
-#sys.argv.append("develop")
+sys.argv.append("develop")
 #sys.argv.append("install")
 DISTUTILS_DEBUG = True
 pkg_name = 'wafo'
@@ -126,7 +126,7 @@ if __name__=='__main__':
         version = VERSION,
         author='WAFO-group',
         author_email='wafo@maths.lth.se',
-        decription = 'Statistical analysis and simulation of random waves and random loads',
+        description = 'Statistical analysis and simulation of random waves and random loads',
         long_description = info.__doc__,
     	 install_requires = ['numpy>=1.4','numdifftools>=0.2'],
         license = "GPL",
