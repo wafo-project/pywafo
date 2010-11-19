@@ -385,7 +385,7 @@ class Profile(object):
         mphat = self._par.copy()
         mphat[self.i_notfixed] = phatnotfixed
         logSF = self.fit_dist.dist.logsf(self.x, *mphat) 
-        return np.where(np.isfinite(logSF), logSF, -np.inf)
+        return np.where(np.isfinite(logSF), logSF, np.nan)
 
 
     def _nlogfun(self, free_par, fix_par):
