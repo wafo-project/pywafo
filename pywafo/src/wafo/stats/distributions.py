@@ -13,7 +13,7 @@ from copy import copy
 from scipy.misc import comb, derivative  #@UnresolvedImport
 from scipy import special
 from scipy import optimize
-from scipy import integrate 
+from scipy import integrate
 
 from scipy.special import gammaln as gamln
 
@@ -35,7 +35,7 @@ from numpy import flatnonzero as nonzero
 from wafo.stats.estimation import FitDistribution
 
 try:
-    import vonmises_cython
+    from scipy.stats.distributions import vonmises_cython 
 except:
     vonmises_cython = None
 
@@ -461,7 +461,8 @@ class rv_frozen_old(object):
     def median(self):
         return self.dist.median(*self.args, **self.kwds)
     def mean(self):
-        return self.dist.mean(*self.args,**self.kwds)
+        return self.dist.mean(*self.args, **self.kwds)
+
     def var(self):
         return self.dist.var(*self.args, **self.kwds)
     def std(self):
@@ -678,7 +679,8 @@ def bd0(x, npr):
 def valarray(shape,value=nan,typecode=None):
     """Return an array of all value.
     """
-    out = reshape(repeat([value],product(shape,axis=0),axis=0),shape)
+    #out = reshape(repeat([value],product(shape,axis=0),axis=0),shape)
+    out = ones(shape, dtype=bool) * value
     if typecode is not None:
         out = out.astype(typecode)
     if not isinstance(out, ndarray):
@@ -1318,6 +1320,10 @@ class rv_continuous(rv_generic):
 
     def _construct_default_doc(self, longname=None, extradoc=None):
         """Construct instance docstring from the default template."""
+        if longname is None:
+            longname = 'A'
+        if extradoc is None:
+            extradoc = ''
         if extradoc.startswith('\n\n'):
             extradoc = extradoc[2:]
         self.__doc__ = ''.join(['%s continuous random variable.'%longname,
@@ -1694,9 +1700,36 @@ class rv_continuous(rv_generic):
         cond1 = (q > 0) & (q < 1)
         cond2 = (q==1) & cond0
         cond = cond0 & cond1
+  
+        # begin CAT patch 1: 17 MARCH 2010
+        # If expr in value is an array of shape=(N,1), valarray's call to repeat()
+        #   replicates it N times, so output gets shape=(N,N,1). When .reshape(N,1)
+        #   is invoked --> exception. The following may not be robust:
         output = valarray(shape(cond),value=self.a*scale + loc)
+ 
+        #initial_value = self.a * scale + loc
+        #if product(shape(initial_value)) > 1:   # side effects?
+        #    output = initial_value
+        #else:
+        #    output = valarray(shape(cond),value=initial_value)
+        # end CAT patch 1: 17 MARCH 2010
+ 
+        # This line is good
         place(output,(1-cond0)+(1-cond1)*(q!=0.0), self.badvalue)
-        place(output,cond2,self.b*scale + loc)
+        
+        # begin CAT patch 2: 17 MARCH 2010
+        # If expr in last arg has shape(N,1), place() tries to jam an
+        #   array into each cell in output with cond2 == True.
+        #   Causes exception even when (not any(cond2)) holds.
+        #WASplace(output,cond2,self.b*scale + loc)
+ 
+        proxy_value = self.b * scale + loc
+        if product(shape(proxy_value)) != 1:
+            proxy_value = extract(cond2, proxy_value * cond2)
+        place(output,cond2,proxy_value)
+        # end CAT patch 2: 17 MARCH 2010  
+        
+        # rest of method unchanged...       
         if any(cond):  #call only if at least 1 entry
             goodargs = argsreduce(cond, *((q,)+args+(scale,loc)))
             scale, loc, goodargs = goodargs[-2], goodargs[-1], goodargs[:-2]
@@ -1735,10 +1768,40 @@ class rv_continuous(rv_generic):
         cond1 = (q > 0) & (q < 1)
         cond2 = (q==1) & cond0
         cond = cond0 & cond1
-        output = valarray(shape(cond),value=self.b)
+        
+        # begin CAT patch 3: 18 MARCH 2010
+        # If expr in value is an array of shape=(N,1), valarray's call to the
+        #   repeat() method will replicate it N times, so output becomes NxNx1.
+        #   The subsequent call to .reshape(N,1) --> exception. 
+        # This statement also has the unfortunate side effect of being wrong
+        #   when the support of the distribution is bounded above.
+        #WASoutput = valarray(shape(cond),value=self.b)
+        initial_value = self.b * scale + loc
+        
+        #if product(shape(initial_value)) > 1:
+        #    output = initial_value
+        #else:
+        output = valarray(shape(cond),value=initial_value)
+
+        #end CAT patch 3: 18 MARCH 2010
+        
         #place(output,(1-cond0)*(cond1==cond1), self.badvalue)
         place(output,(1-cond0)*(cond1==cond1)+(1-cond1)*(q!=0.0), self.badvalue)
-        place(output,cond2,self.a)
+        
+        # begin CAT patch 4: 18 MARCH 2010
+        # If expr in last arg has shape=(N,1), place() tries to jam a large
+        #   array into each cell in output where cond2==True.
+        #   Causes exception even if cond2 is never True.
+        # This statement also has the unfortunate side effect of being wrong
+        #   when the support of the distribution is bounded below.
+        #WASplace(output,cond2,self.a)
+        
+        proxy_value = self.a * scale + loc
+        if product(shape(proxy_value)) != 1:
+			proxy_value = extract(cond2, proxy_value * cond2)
+        place(output, cond2, proxy_value)
+        
+        #end CAT patch 4: 18 MARCH 2010
         if any(cond):  #call only if at least 1 entry
             goodargs = argsreduce(cond, *((q,)+args+(scale,loc)))  #PB replace 1-q by q
             scale, loc, goodargs = goodargs[-2], goodargs[-1], goodargs[:-2]
@@ -2198,43 +2261,50 @@ class rv_continuous(rv_generic):
             
     def fit(self, data, *args, **kwds):
         """
-        Return maximum likelihood estimators to shape, location, and scale from data
+        Return MLEs for shape, location, and scale parameters from data.
 
-        Starting points for the fit are given by input arguments.  For any 
-        arguments not given starting points, self._fitstart(data) is called 
-        to get the starting estimates.
+		MLE stands for Maximum Likelihood Estimate.  Starting estimates for
+        the fit are given by input arguments; for any arguments not provided
+        with starting estimates, ``self._fitstart(data)`` is called to generate
+        such.
 
-        You can hold some parameters fixed to specific values by passing in 
+        One can hold some parameters fixed to specific values by passing in 
         keyword arguments f0..fn for shape paramters and floc, fscale for 
-        location and scale parameters.
+        location and scale parameters, respectively.
 
         Parameters
         ----------
         data : array-like
-            Data to use in calculating the MLE
-        args : optional
-            Starting values for any shape arguments (those not specified 
-            will be determined by _fitstart(data))
-        kwds : loc, scale
-            Starting values for the location and scale parameters 
-            Special keyword arguments are recognized as holding certain 
+            Data to use in calculating the MLEs.
+        args : floats, optional
+            Starting value(s) for any shape-characterizing arguments (those not
+            provided will be determined by a call to ``_fitstart(data)``).
+            No default value.
+        kwds : floats, optional
+            Starting values for the location and scale parameters; no default.
+            Special keyword arguments are recognized as holding certain
             parameters fixed:
-                f0..fn : hold respective shape paramters fixed
-                floc : hold location parameter fixed to specified value
-                fscale : hold scale parameter fixed to specified value
+
+            f0..fn : hold respective shape parameters fixed.
+
+            floc : hold location parameter fixed to specified value.
+
+            fscale : hold scale parameter fixed to specified value
+
             method : of estimation. Options are
                 'ml' : Maximum Likelihood method (default)
-                'mps': Maximum Product Spacing method
-            optimizer : The optimizer to use.  The optimizer must take func, 
-                         and starting position as the first two arguments, 
-                         plus args (for extra arguments to pass to the 
-                         function to be optimized) and disp=0 to suppress
-                         output as keyword arguments.
-              
-        Return
-        ------
-        shape, loc, scale : tuple of float
-            MLE estimates for any shape arguments followed by location and scale
+            optimizer : The optimizer to use.  The optimizer must take func,
+                        and starting position as the first two arguments,
+                        plus args (for extra arguments to pass to the
+                        function to be optimized) and disp=0 to suppress
+                        output as keyword arguments.
+
+        Returns
+        -------
+        shape, loc, scale : tuple of floats
+            MLEs for any shape statistics, followed by those for location and
+            scale.
+
         """
         Narg = len(args)
         if Narg > self.numargs:
@@ -2762,10 +2832,12 @@ class fisk_gen(burr_gen):
         return burr_gen._stats(self, c, 1.0)
     def _entropy(self, c):
         return 2 - log(c)
-fisk = fisk_gen(a=0.0, name='fink', longname="A funk",
+fisk = fisk_gen(a=0.0, name='fisk', longname="Fisk",
                 shapes='c', extradoc="""
 
-Fink distribution.
+Fisk distribution.
+
+Also known as the log-logistic distribution.
 
 Burr distribution with d=1.
 """
@@ -5561,7 +5633,9 @@ class rv_discrete(rv_generic):
                  shapes=None, extradoc=None):
 
         super(rv_generic,self).__init__()
-
+        
+        self.fix_loc = self._fix_loc
+        
         if badvalue is None:
             badvalue = nan
         self.badvalue = badvalue

@@ -43,15 +43,6 @@ def chi2sf(x, df):
 def norm_ppf(q):
     return special.ndtri(q)
 
-def valarray(shape, value=nan, typecode=None):
-    """Return an array of all value.
-    """
-    out = reshape(repeat([value], product(shape, axis=0), axis=0), shape)
-    if typecode is not None:
-        out = out.astype(typecode)
-    if not isinstance(out, ndarray):
-        out = arr(out)
-    return out 
 
 # Frozen RV class
 class rv_frozen(object):
@@ -240,7 +231,7 @@ class Profile(object):
         else:
             raise ValueError("PROFILE is only valid for ML- or MPS- estimators")
         if fit_dist.par_fix == None:
-            isnotfixed = valarray(fit_dist.par.shape, True)
+            isnotfixed = np.ones(fit_dist.par.shape, dtype=bool)
         else:
             isnotfixed = 1 - numpy.isfinite(fit_dist.par_fix)
 
@@ -392,8 +383,9 @@ class Profile(object):
 
     def _myprbfun(self, phatnotfixed):
         mphat = self._par.copy()
-        mphat[self.i_notfixed] = phatnotfixed;
-        return self.fit_dist.dist.logsf(self.x, *mphat)
+        mphat[self.i_notfixed] = phatnotfixed
+        logSF = self.fit_dist.dist.logsf(self.x, *mphat) 
+        return np.where(np.isfinite(logSF), logSF, -np.inf)
 
 
     def _nlogfun(self, free_par, fix_par):
