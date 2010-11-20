@@ -713,7 +713,7 @@ class FitDistribution(rv_frozen):
         '''Compute covariance
         '''
         somefixed = (self.par_fix != None) and any(isfinite(self.par_fix))
-        H1 = numpy.asmatrix(self.dist.hessian_nnlf(self.par, self.data))
+        #H1 = numpy.asmatrix(self.dist.hessian_nnlf(self.par, self.data))
         H = numpy.asmatrix(self.dist.hessian_nlogps(self.par, self.data))
         self.H = H
         try:

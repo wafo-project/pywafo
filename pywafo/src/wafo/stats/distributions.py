@@ -216,6 +216,22 @@ Check accuracy of cdf and ppf
 Random number generation
 
 >>> R = %(name)s.rvs(%(shapes)s, size=100)
+
+Compare ML and MPS method
+>>> phat = %(name)s.fit2(R, method='ml');
+>>> phat.plotfitsummary();  plt.figure(plt.gcf().number+1)
+>>> phat2 = %(name)s.fit2(R, method='mps')
+>>> phat2.plotfitsummary(); plt.figure(plt.gcf().number+1)
+
+Fix loc=0 and estimate shapes and scale
+>>> phat3 = %(name)s.fit2(R, scale=1, floc=0, method='mps')
+>>> phat3.plotfitsummary(); plt.figure(plt.gcf().number+1)
+
+Accurate confidence interval with profile loglikelihood
+>>> lp = phat3.profile()
+>>> lp.plot()
+>>> pci = lp.get_bounds()
+
 """
 
 _doc_default = ''.join([_doc_default_longsummary,

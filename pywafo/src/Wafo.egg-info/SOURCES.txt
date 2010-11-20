@@ -262,14 +262,11 @@ src/wafo/spectrum/models.py
 src/wafo/stats/__init__.py
 src/wafo/stats/core.py
 src/wafo/stats/distributions.py
-src/wafo/stats/distributions_juli2010.py
 src/wafo/stats/estimation.py
 src/wafo/stats/misc.py
-src/wafo/stats/twolumps.py
 src/wafo/test/__init__.py
 src/wafo/test/test_gaussian.py
 src/wafo/test/test_misc.py
-src/wafo/test/test_objects.py
 src/wafo/transform/__init__.py
 src/wafo/transform/core.py
 src/wafo/transform/models.py

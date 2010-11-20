@@ -18,14 +18,14 @@ from scipy.special import gamma
 from misc import tranproc, trangood
 from itertools import product
 
-_stats_epan=(1. / 5, 3. / 5, np.inf)
-_stats_biwe=(1. / 7, 5. / 7, 45. / 2),
-_stats_triw=(1. / 9, 350. / 429, np.inf),
-_stats_rect=(1. / 3, 1. / 2, np.inf),
-_stats_tria=(1. / 6, 2. / 3, np.inf),
-_stats_lapl=(2, 1. / 4, np.inf),
-_stats_logi=(pi ** 2 / 3, 1. / 6, 1 / 42),
-_stats_gaus=(1, 1. / (2 * sqrt(pi)), 3. / (8 * sqrt(pi)))
+_stats_epan = (1. / 5, 3. / 5, np.inf)
+_stats_biwe = (1. / 7, 5. / 7, 45. / 2),
+_stats_triw = (1. / 9, 350. / 429, np.inf),
+_stats_rect = (1. / 3, 1. / 2, np.inf),
+_stats_tria = (1. / 6, 2. / 3, np.inf),
+_stats_lapl = (2, 1. / 4, np.inf),
+_stats_logi = (pi ** 2 / 3, 1. / 6, 1 / 42),
+_stats_gaus = (1, 1. / (2 * sqrt(pi)), 3. / (8 * sqrt(pi)))
               
 
 
@@ -100,7 +100,7 @@ class KDE(object):
     
     """
 
-    def __init__(self, dataset, hs=None, kernel=None,L2=None,alpha=0.0):
+    def __init__(self, dataset, hs=None, kernel=None, L2=None, alpha=0.0):
         self.kernel = kernel if kernel else Kernel('gauss')
         self.hs = hs
         self.L2 = L2
@@ -121,21 +121,21 @@ class KDE(object):
             h = get_smoothing(self.dataset)
         hsiz = h.shape
     
-        if (min(hsiz)==1) or (self.d==1):
-            if max(hsiz)==1:
-                h = h*np.ones(self.d)
+        if (min(hsiz) == 1) or (self.d == 1):
+            if max(hsiz) == 1:
+                h = h * np.ones(self.d)
             else:
                 h.shape = (self.d,) # make sure it has the correct dimension
           
             # If h negative calculate automatic values
-            ind, = np.where(h<=0)
+            ind, = np.where(h <= 0)
             for i in ind.tolist(): # 
                 h[i] = get_smoothing(self.dataset[i])
             deth = h.prod()
-            self.inv_hs = linalg.diag(1.0/h)
+            self.inv_hs = linalg.diag(1.0 / h)
         else: #fully general smoothing matrix
             deth = linalg.det(h)
-            if deth<=0:
+            if deth <= 0:
                 raise ValueError('bandwidth matrix h must be positive definit!')
             self.inv_hs = linalg.inv(h)
         self.hs = h
@@ -188,9 +188,9 @@ class KDE(object):
                 diff = self.dataset - points[:, i, np.newaxis]
                 tdiff = np.dot(self.inv_hs, diff)
                 tmp = self.kernel(tdiff)
-                result[i] = tmp.sum(axis=-1)
+                result[i] = tmp.sum(axis= -1)
 
-        result /= (self._norm_factor*self.kernel.norm_factor(d,self.n))
+        result /= (self._norm_factor * self.kernel.norm_factor(d, self.n))
 
         return result
 
@@ -481,7 +481,7 @@ class _Kernel(object):
         return 1.0
     def norm_kernel(self, x):
         X = np.atleast_2d(x)
-        return self._kernel(X)/self.norm_factor(*X.shape)
+        return self._kernel(X) / self.norm_factor(*X.shape)
     def kernel(self, x):
         return self._kernel(np.atleast_2d(x))
     __call__ = kernel 
@@ -538,7 +538,7 @@ class _KernelRectangular(_Kernel):
         return np.where(np.all(np.abs(x) <= self.r, axis=0), 1, 0.0)
     def norm_factor(self, d=1, n=None):
         r = self.r
-        return (2*r) ** d
+        return (2 * r) ** d
 mkernel_rectangular = _KernelRectangular(stats=_stats_rect)
 
 class _KernelTriangular(_Kernel):
@@ -565,7 +565,7 @@ class _KernelLaplace(_Kernel):
         absX = np.abs(x)    
         return exp(-absX.sum(axis=0))
     def norm_factor(self, d=1, n=None):
-        return 2**d    
+        return 2 ** d    
 mkernel_laplace = _KernelLaplace(stats=_stats_lapl)
 
 class _KernelLogistic(_Kernel):
@@ -825,8 +825,8 @@ class Kernel(object):
         
         return a * linalg.sqrtm(covA) * n * (-1. / (d + 4))
         
-    def norm_factor(self, d=1,n=None):
-        return  self.kernel.norm_factor(n,d)    
+    def norm_factor(self, d=1, n=None):
+        return  self.kernel.norm_factor(n, d)    
     def evaluate(self, X):
         return self.kernel(np.atleast_2d(X))
     __call__ = evaluate
@@ -981,7 +981,17 @@ def accum(accmap, a, func=None, size=None, fill_value=0, dtype=None):
             out[s] = func(vals[s])
 
     return out
-
+def bitget(int_type, offset):
+    '''
+    Returns the value of the bit at the offset position in int_type.
+    
+    Example
+    -------
+    >>> bitget(5, np.r_[0:4])
+    array([1, 0, 1, 0])
+    '''
+    mask = (1 << offset)
+    return (int_type & mask) != 0
 def gridcount(data, X):
     '''
     GRIDCOUNT D-dimensional histogram using linear binning.
@@ -1016,11 +1026,13 @@ def gridcount(data, X):
     >>> import numpy as np
     >>> import wafo.kdetools as wk
     >>> import pylab as plb
-    >>> N     = 500;
+    >>> N     = 20;
     >>> data  = np.random.rayleigh(1,N)
     >>> x = np.linspace(0,max(data)+1,50)  
     >>> dx = x[1]-x[0]  
+    
     >>> c = wk.gridcount(data,x)
+    
     >>> h = plb.plot(x,c,'.')   # 1D histogram
     >>> h1 = plb.plot(x,c/dx/N) #  1D probability density plot
     >>> np.trapz(x,c/dx/N)   
@@ -1043,7 +1055,6 @@ def gridcount(data, X):
     if d != d1:
         raise ValueError('Dimension 0 of data and X do not match.')
     
-    
     dx = np.diff(x[:, :2], axis=1)
     xlo = x[:, 0]
     xup = x[:, -1]
@@ -1061,47 +1072,46 @@ def gridcount(data, X):
     abs = np.abs
     if  d == 1:
         x.shape = (-1,)
-        c = (accum(binx, (x[binx + 1] - data), size=[inc, ]) + 
-             accum(binx, (data - x[binx]), size=[inc, ])) / w
+        c = (accum(binx, (x[binx + 1] - dat), size=[inc, ]) + 
+             accum(binx, (dat - x[binx]), size=[inc, ])) / w
     elif d == 2:
         b2 = binx[1]
         b1 = binx[0]
         c_ = np.c_
         stk = np.vstack
-        c = (accum(c_[b1, b2] , abs(np.prod(stk([X[0, b1 + 1], X[1, b2 + 1]]) - data, axis=0)), size=[inc, inc]) + 
-          accum(c_[b1 + 1, b2]  , abs(np.prod(stk([X[0, b1], X[1, b2 + 1]]) - data, axis=0)), size=[inc, inc]) + 
-          accum(c_[b1  , b2 + 1], abs(np.prod(stk([X[0, b1 + 1], X[1, b2]]) - data, axis=0)), size=[inc, inc]) + 
-          accum(c_[b1 + 1, b2 + 1], abs(np.prod(stk([X[0, b1], X[1, b2]]) - data, axis=0)), size=[inc, inc])) / w
+        c = (accum(c_[b1, b2] , abs(np.prod(stk([X[0, b1 + 1], X[1, b2 + 1]]) - dat, axis=0)), size=[inc, inc]) + 
+          accum(c_[b1 + 1, b2]  , abs(np.prod(stk([X[0, b1], X[1, b2 + 1]]) - dat, axis=0)), size=[inc, inc]) + 
+          accum(c_[b1  , b2 + 1], abs(np.prod(stk([X[0, b1 + 1], X[1, b2]]) - dat, axis=0)), size=[inc, inc]) + 
+          accum(c_[b1 + 1, b2 + 1], abs(np.prod(stk([X[0, b1], X[1, b2]]) - dat, axis=0)), size=[inc, inc])) / w
       
     else: # % d>2
-        raise ValueError('Not implemented for d>2')
+       
         Nc = csiz.prod()
-        c = np.zeros((Nc, 1))
+        c = np.zeros((Nc,))
      
-        fact2 = inc * np.arange(d)
-        fact1 = csiz.cumprod() / inc
+        fact2 = np.asarray(np.reshape(inc * np.arange(d), (d, -1)), dtype=int)
+        fact1 = np.asarray(np.reshape(csiz.cumprod() / inc, (d, -1)), dtype=int)
         #fact1 = fact1(ones(n,1),:);
-#        for ir in xrange(2**(d-1)):
-#            bt0[:,:,1] = bitget(ir,1:d)
-#            bt0[:,:,2] = 1-bt0[:,:,1]
-#            for ix in range(2):
-#                one = mod(ix,2)+1;
-#                two = mod(ix+1,2)+1;
-#                # Convert to linear index (faster than sub2ind)
-#                b1  = sum((binx + bt0(ones(n,1),:,one)-1).*fact1,2)+1; #%linear index to c
-#                bt2 = bt0(:,:,two) + fact2;
-#                b2  = binx + bt2(ones(n,1),:);                     #% linear index to X
-#         
-#                c = c + accum(b1,abs(prod(X(b2)-data,2)),[Nc,1]);
-#                #c = c + accum([b1,ones(n,1)],abs(prod(X(b2)-data,2)),[Nc,1]);
-#                #[len,bin,val] = bincount(b1,abs(prod(X(b2)-data,2)));
-#                #c(bin)        = c(bin)+val;
-#         
-#            #end
-#        #end
-#        c = reshape(c/w,csiz);
-    #end
-    if d == 2: #% make sure c is stored in the same way as meshgrid
+        bt0 = [0, 0]
+        X1 = X.ravel()
+        for ir in xrange(2 ** (d - 1)):
+            bt0[0] = np.reshape(bitget(ir, np.arange(d)), (d, -1))
+            bt0[1] = 1 - bt0[0]
+            for ix in xrange(2):
+                one = np.mod(ix, 2)
+                two = np.mod(ix + 1, 2)
+                # Convert to linear index 
+                b1 = np.sum((binx + bt0[one]) * fact1, axis=0) #linear index to c
+                bt2 = bt0[two] + fact2
+                b2 = binx + bt2                     # linear index to X
+                c += accum(b1, abs(np.prod(X1[b2] - dat, axis=0)), size=(Nc,))
+                
+        c = np.reshape(c / w, csiz)
+        # TODO: check that the flipping of axis is correct
+        T = range(d); T[-2],T[-1] = T[-1], T[-2]
+        c = c.transpose(*T)
+
+    if d == 2: # make sure c is stored in the same way as meshgrid
         c = c.T
     elif d == 3:
         c = c.transpose(1, 0, 2)
@@ -1119,7 +1129,7 @@ def test_kde():
     f = kde(x)
     
     #plb.hist(data.ravel())
-    plb.plot(x,f)
+    plb.plot(x, f)
     plb.show()
     
 def test_gridcount():
@@ -1129,7 +1139,8 @@ def test_gridcount():
     N = 500;
     data = np.random.rayleigh(1, size=(2, N))
     x = np.linspace(0, max(data.ravel()) + 1, 10)
-    X = np.vstack((x, x))  
+    X = np.vstack((x, x)) 
+    
     dx = x[1] - x[0]  
     c = wk.gridcount(data, X)
     h = plb.contourf(x, x, c)
