@@ -7,7 +7,7 @@ Created on 19. nov. 2010
 import  wafo.stats as ws
 from wafo.stats.estimation import Profile, FitDistribution
 from numpy import log, array
-def test_profile():
+def test_fit_and_profile():
     '''
      # MLE 
     import wafo.stats as ws
