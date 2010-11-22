@@ -10,6 +10,7 @@
 #-------------------------------------------------------------------------------
 #!/usr/bin/env python
 from __future__ import division
+import warnings
 import numpy as np
 from numpy import pi, sqrt, atleast_2d, exp, newaxis #@UnresolvedImport
 import scipy
@@ -55,15 +56,163 @@ def sphere_volume(d, r=1.0):
     """
     return (r ** d) * 2. * pi ** (d / 2.) / (d * gamma(d / 2.))
 
-
-
-class KDE(object):
-    """ Representation of a kernel-density estimate using Gaussian kernels.
+class TKDE(object):
+    """ Transformation Kernel-Density Estimator.
 
     Parameters
     ----------
     dataset : (# of dims, # of data)-array
         datapoints to estimate from
+    hs : array-like (optional) 
+        smooting parameter vector/matrix.
+        (default compute from data using kernel.get_smoothing function)
+    kernel :  kernel function object.
+        kernel must have get_smoothing method
+    alpha : real scalar (optional)
+        sensitivity parameter               (default 0 regular KDE)
+        A good choice might be alpha = 0.5 ( or 1/D)
+        alpha = 0      Regular  KDE (hs is constant)
+        0 < alpha <= 1 Adaptive KDE (Make hs change)  
+    L2 : array-like 
+        vector of transformation parameters (default 1 no transformation)
+        t(xi;L2) = xi^L2*sign(L2)   for L2(i) ~= 0
+        t(xi;L2) = log(xi)          for L2(i) == 0 
+        If single value of L2 is given then the transformation is the same in all directions.
+        
+    Members
+    -------
+    d : int
+        number of dimensions
+    n : int
+        number of datapoints
+
+    Methods
+    -------
+    kde.evaluate(points) : array
+        evaluate the estimated pdf on a provided set of points
+    kde(points) : array
+        same as kde.evaluate(points)
+   
+    
+    Example
+    -------
+    N = 20
+    data = np.random.rayleigh(1, size=(N,))
+    >>> data = array([ 0.75355792,  0.72779194,  0.94149169,  0.07841119,  2.32291887,
+    ...        1.10419995,  0.77055114,  0.60288273,  1.36883635,  1.74754326,
+    ...        1.09547561,  1.01671133,  0.73211143,  0.61891719,  0.75903487,
+    ...        1.8919469 ,  0.72433808,  1.92973094,  0.44749838,  1.36508452])
+
+    >>> x = np.linspace(0, max(data.ravel()) + 1, 10)  
+    >>> kde = wk.TKDE(data, hs=0.5, alpha=0.5, L2=0.5)
+    >>> f = kde(x)
+    >>> f
+    array([ 0.0541248 ,  0.16555235,  0.33084399,  0.45293325,  0.48345808,
+            0.48345808,  0.45293325,  0.33084399,  0.16555235,  0.0541248 ])
+    
+    import pylab as plb          
+    h1 = plb.plot(x, f) #  1D probability density plot
+    t = np.trapz(f, x)   
+    """
+
+    def __init__(self, dataset, hs=None, kernel=None, alpha=0.0, L2=None):
+        self.dataset = atleast_2d(dataset)
+        self.hs = hs
+        self.kernel = kernel
+        self.alpha = alpha
+        self.L2 = L2
+        self.d, self.n = self.dataset.shape
+        self.initialize()
+    
+    def initialize(self):
+        tdataset = self._dat2gaus(self.dataset)
+        self.kde = KDE(tdataset, self.hs, self.kernel, self.alpha)
+    
+    def _check_shape(self, points):
+        points = atleast_2d(points)
+        d, m = points.shape
+        if d != self.d:
+            if d == 1 and m == self.d:
+                # points was passed in as a row vector
+                points = np.reshape(points, (self.d, 1))
+                m = 1
+            else:
+                msg = "points have dimension %s, dataset has dimension %s" % (d,
+                    self.d)
+                raise ValueError(msg)
+        return points   
+    
+    def _dat2gaus(self, points):
+        if self.L2 is None:
+            return points # default no transformation
+        
+        L2 = np.atleast_1d(self.L2) * np.ones(self.d) # default no transformation
+        
+        tpoints = points.copy()
+        for i, v2 in enumerate(L2.tolist()):
+            tpoints[i] = np.where(v2 == 0, np.log(points[i]), points[i] ** v2)
+        return tpoints
+        
+    def _scale_pdf(self, pdf, points):
+        if self.L2 is None:
+            return pdf
+        L2 = np.atleast_1d(self.L2) * np.ones(self.d) # default no transformation
+        for i, v2 in enumerate(L2.tolist()):
+            factor =  v2 * np.sign(v2) if v2 else 1
+            pdf *= np.where(v2 == 1, 1, points[i] ** (v2 - 1) * factor)
+        if (np.abs(np.diff(pdf)).max() > 10).any():
+            msg = ''' Numerical problems may have occured due to the power
+                    transformation. Check the KDE for spurious spikes'''
+            warnings.warn(msg)
+        return pdf
+    
+    def evaluate(self, points):
+        """Evaluate the estimated pdf on a set of points.
+
+        Parameters
+        ----------
+        points : (# of dimensions, # of points)-array
+            Alternatively, a (# of dimensions,) vector can be passed in and
+            treated as a single point.
+
+        Returns
+        -------
+        values : (# of points,)-array
+            The values at each point.
+
+        Raises
+        ------
+        ValueError if the dimensionality of the input points is different than
+        the dimensionality of the KDE.
+        """
+        if self.L2 is None:
+            return self.kde(points)
+        points = self._check_shape(points)
+        tpoints = self._dat2gaus(points)
+        tf = self.kde(tpoints)
+        f = self._scale_pdf(tf, points)
+        return f
+    
+    __call__ = evaluate
+    
+class KDE(object):
+    """ Kernel-Density Estimator.
+
+    Parameters
+    ----------
+    dataset : (# of dims, # of data)-array
+        datapoints to estimate from
+    hs : array-like (optional) 
+        smooting parameter vector/matrix.
+        (default compute from data using kernel.get_smoothing function)
+    kernel :  kernel function object.
+        kernel must have get_smoothing method
+    alpha : real scalar (optional)
+        sensitivity parameter               (default 0 regular KDE)
+        A good choice might be alpha = 0.5 ( or 1/D)
+        alpha = 0      Regular  KDE (hs is constant)
+        0 < alpha <= 1 Adaptive KDE (Make hs change)  
+
 
     Members
     -------
@@ -78,39 +227,47 @@ class KDE(object):
         evaluate the estimated pdf on a provided set of points
     kde(points) : array
         same as kde.evaluate(points)
-    kde.integrate_gaussian(mean, cov) : float
-        multiply pdf with a specified Gaussian and integrate over the whole domain
-    kde.integrate_box_1d(low, high) : float
-        integrate pdf (1D only) between two bounds
-    kde.integrate_box(low_bounds, high_bounds) : float
-        integrate pdf over a rectangular space between low_bounds and high_bounds
-    kde.integrate_kde(other_kde) : float
-        integrate two kernel density estimates multiplied together
-
-   Internal Methods
-   ----------------
-    kde.covariance_factor() : float
-        computes the coefficient that multiplies the data covariance matrix to
-        obtain the kernel covariance matrix. Set this method to
-        kde.scotts_factor or kde.silverman_factor (or subclass to provide your
-        own). The default is scotts_factor.
+   
     
     Example
     -------
+    N = 20
+    data = np.random.rayleigh(1, size=(N,))
+    >>> data = array([ 0.75355792,  0.72779194,  0.94149169,  0.07841119,  2.32291887,
+    ...        1.10419995,  0.77055114,  0.60288273,  1.36883635,  1.74754326,
+    ...        1.09547561,  1.01671133,  0.73211143,  0.61891719,  0.75903487,
+    ...        1.8919469 ,  0.72433808,  1.92973094,  0.44749838,  1.36508452])
+
+    >>> x = np.linspace(0, max(data.ravel()) + 1, 10)  
+    >>> kde = wk.KDE(data, hs=0.5, alpha=0.5)
+    >>> f = kde(x)
+    >>> f
+    array([ 0.0541248 ,  0.16555235,  0.33084399,  0.45293325,  0.48345808,
+            0.48345808,  0.45293325,  0.33084399,  0.16555235,  0.0541248 ])
     
+    import pylab as plb          
+    h1 = plb.plot(x, f) #  1D probability density plot
+    t = np.trapz(f, x)   
     """
 
-    def __init__(self, dataset, hs=None, kernel=None, L2=None, alpha=0.0):
+    def __init__(self, dataset, hs=None, kernel=None, alpha=0.0):
         self.kernel = kernel if kernel else Kernel('gauss')
         self.hs = hs
-        self.L2 = L2
         self.alpha = alpha
         
         self.dataset = atleast_2d(dataset)
         self.d, self.n = self.dataset.shape
+        self.initialize()
 
-        
+    def initialize(self):
         self._compute_smoothing()
+        if self.alpha > 0:
+            pilot = KDE(self.dataset, hs=self.hs, kernel=self.kernel, alpha=0)
+            f = pilot(self.dataset) # get a pilot estimate by regular KDE (alpha=0)
+            g = np.exp(np.mean(np.log(f)))
+            self._lambda = (f / g) ** (-self.alpha)
+        else:
+            self._lambda = np.ones(self.n)
 
     def _compute_smoothing(self):
         """Computes the smoothing matrix
@@ -119,6 +276,7 @@ class KDE(object):
         h = self.hs
         if h is None:
             h = get_smoothing(self.dataset)
+        h = np.atleast_1d(h)
         hsiz = h.shape
     
         if (min(hsiz) == 1) or (self.d == 1):
@@ -141,6 +299,19 @@ class KDE(object):
         self.hs = h
         self._norm_factor = deth * self.n
         
+    def _check_shape(self, points):
+        points = atleast_2d(points)
+        d, m = points.shape
+        if d != self.d:
+            if d == 1 and m == self.d:
+                # points was passed in as a row vector
+                points = np.reshape(points, (self.d, 1))
+                m = 1
+            else:
+                msg = "points have dimension %s, dataset has dimension %s" % (d,
+                    self.d)
+                raise ValueError(msg)
+        return points   
     def evaluate(self, points):
         """Evaluate the estimated pdf on a set of points.
 
@@ -161,33 +332,24 @@ class KDE(object):
         the dimensionality of the KDE.
         """
 
-        points = atleast_2d(points).astype(self.dataset.dtype)
-
+        points = self._check_shape(points)
         d, m = points.shape
-        if d != self.d:
-            if d == 1 and m == self.d:
-                # points was passed in as a row vector
-                points = np.reshape(points, (self.d, 1))
-                m = 1
-            else:
-                msg = "points have dimension %s, dataset has dimension %s" % (d,
-                    self.d)
-                raise ValueError(msg)
-
-        result = np.zeros((m,), points.dtype)
+       
+        result = np.zeros((m,))
 
         if m >= self.n:
             # there are more points than data, so loop over data
             for i in range(self.n):
+                
                 diff = self.dataset[:, i, np.newaxis] - points
-                tdiff = np.dot(self.inv_hs, diff)
-                result += self.kernel(tdiff)
+                tdiff = np.dot(self.inv_hs / self._lambda[i], diff)
+                result += self.kernel(tdiff) / self._lambda[i] ** d
         else:
             # loop over points
             for i in range(m):
                 diff = self.dataset - points[:, i, np.newaxis]
-                tdiff = np.dot(self.inv_hs, diff)
-                tmp = self.kernel(tdiff)
+                tdiff = np.dot(self.inv_hs, diff / self._lambda[np.newaxis, :])
+                tmp = self.kernel(tdiff) / self._lambda ** d
                 result[i] = tmp.sum(axis= -1)
 
         result /= (self._norm_factor * self.kernel.norm_factor(d, self.n))
@@ -196,282 +358,6 @@ class KDE(object):
 
     __call__ = evaluate
 
-
-#function [f, hs,lambda]= kdefun(A,options,varargin)
-#%KDEFUN  Kernel Density Estimator.
-#%
-#% CALL:  [f, hs] = kdefun(data,options,x1,x2,...,xd)
-#%
-#%   f      = kernel density estimate evaluated at x1,x2,...,xd.
-#%   data   = data matrix, size N x D (D = # dimensions)
-#%  options = kdeoptions-structure or cellvector of named parameters with
-#%            corresponding values, see kdeoptset for details.
-#%   x1,x2..= vectors/matrices defining the points to evaluate the density
-#%
-#%  KDEFUN gives a slow, but exact kernel density estimate evaluated at x1,x2,...,xd.
-#%  Notice that densities close to normality appear to be the easiest for the kernel
-#%  estimator to estimate and that the degree of estimation difficulty increases with
-#%  skewness, kurtosis and multimodality.
-#%
-#%  If D > 1 KDE calculates quantile levels by integration. An
-#%  alternative is to calculate them by ranking the kernel density
-#%  estimate obtained at the points DATA  i.e. use the commands
-#%
-#%      f    = kde(data);
-#%      r    = kdefun(data,[],num2cell(data,1));
-#%      f.cl = qlevels2(r,f.PL);
-#%
-#%  The first is probably best when estimating the pdf and the latter is the
-#%  easiest and most robust for multidimensional data when only a visualization
-#%  of the data is needed.
-#%
-#%  For faster estimates try kdebin.
-#%
-#% Examples:
-#%     data = rndray(1,500,1);
-#%     x = linspace(sqrt(eps),5,55);
-#%     plotnorm((data).^(.5)) % gives a straight line => L2 = 0.5 reasonable
-#%     f = kdefun(data,{'L2',.5},x);
-#%     plot(x,f,x,pdfray(x,1),'r')
-#%
-#% See also  kde, mkernel, kdebin
-#
-#% Reference:
-#%  B. W. Silverman (1986)
-#% 'Density estimation for statistics and data analysis'
-#%  Chapman and Hall , pp 100-110
-#%
-#%  Wand, M.P. and Jones, M.C. (1995)
-#% 'Kernel smoothing'
-#%  Chapman and Hall, pp 43--45
-#
-#
-#
-#
-#%Tested on: matlab 5.2
-#% History:
-#% revised pab Feb2004
-#%  -options moved into a structure
-#% revised pab Dec2003
-#% -removed some code
-#% revised pab 27.04.2001
-#% - changed call from mkernel to mkernel2 (increased speed by 10%)
-#% revised pab 01.01.2001
-#% - added the possibility that L2 is a cellarray of parametric
-#%   or non-parametric transformations (secret option)
-#% revised pab 14.12.1999
-#%  - fixed a small error in example in help header
-#% revised pab 28.10.1999
-#%  - added L2
-#% revised pab 21.10.99
-#%  - added alpha to input arguments
-#%  - made it fully general for d dimensions
-#%  - HS may be a smoothing matrix
-#% revised pab 21.09.99
-#%  - adapted from kdetools by Christian Beardah
-#
-#  defaultoptions = kdeoptset;
-#% If just 'defaults' passed in, return the default options in g
-#if ((nargin==1) && (nargout <= 1) &&  isequal(A,'defaults')),
-#  f = defaultoptions;
-#  return
-#end
-#error(nargchk(1,inf, nargin))
-#
-#[n, d]=size(A); % Find dimensions of A,
-#               % n=number of data points,
-#               % d=dimension of the data.
-#if (nargin<2 || isempty(options))
-#  options  = defaultoptions;
-#else
-#  switch lower(class(options))
-#   case {'char','struct'},
-#    options = kdeoptset(defaultoptions,options);
-#   case {'cell'}
-#
-#      options = kdeoptset(defaultoptions,options{:});
-#   otherwise
-#    error('Invalid options')
-#  end
-#end
-#kernel   = options.kernel;
-#h        = options.hs;
-#alpha    = options.alpha;
-#L2       = options.L2;
-#hsMethod = options.hsMethod;
-#
-#if isempty(h)
-#  h=zeros(1,d);
-#end
-#
-#L22 = cell(1,d);
-#k3=[];
-#if isempty(L2)
-#  L2=ones(1,d); % default no transformation
-#elseif iscell(L2)   % cellarray of non-parametric and parametric transformations
-#  Nl2 = length(L2);
-#  if ~(Nl2==1||Nl2==d), error('Wrong size of L2'), end
-#  [L22{1:d}] = deal(L2{1:min(Nl2,d)});
-#  L2 = ones(1,d); % default no transformation
-#  for ix=1:d,
-#    if length(L22{ix})>1,
-#      k3=[k3 ix];       % Non-parametric transformation
-#    else
-#     L2(ix) = L22{ix};  % Parameter to the Box-Cox transformation
-#    end
-#  end
-#elseif length(L2)==1
-#  L2=L2(:,ones(1,d));
-#end
-#
-#amin=min(A);
-#if any((amin(L2~=1)<=0))  ,
-#  error('DATA cannot be negative or zero when L2~=1')
-#end
-#
-#
-#nv=length(varargin);
-#if nv<d,
-#  error('some or all of the evaluation points x1,x2,...,xd is missing')
-#end
-#
-#xsiz = size(varargin{1}); % remember size of input
-#Nx   = prod(xsiz);
-#X    = zeros(Nx,d);
-#for ix=1:min(nv,d),
-#  if (any(varargin{ix}(:)<=0) && (L2(ix)~=1)),
-#    error('xi cannot be negative or zero when L2~=1')
-#  end
-#  X(:,ix)=varargin{ix}(:); % make sure it is a column vector
-#end
-#
-#
-#%new call
-#lX = X; %zeros(Nx,d);
-#lA = A; %zeros(size(A));
-#
-#k1 = find(L2==0); % logaritmic transformation
-#if any(k1)
-#  lA(:,k1)=log(A(:,k1));
-#  lX(:,k1)=log(X(:,k1));
-#end
-#k2=find(L2~=0 & L2~=1); % power transformation
-#if any(k2)
-#  lA(:,k2)=sign(L2(ones(n,1),k2)).*A(:,k2).^L2(ones(n,1),k2);
-#  lX(:,k2)=sign(L2(ones(Nx,1),k2)).*X(:,k2).^L2(ones(Nx,1),k2);
-#end
-#% Non-parametric transformation
-#for ix = k3,
-#  lA(:,ix) = tranproc(A(:,ix),L22{ix});
-#  lX(:,ix) = tranproc(X(:,ix),L22{ix});
-#end
-#
-#
-#hsiz=size(h);
-#if (min(hsiz)==1)||(d==1)
-#  if max(hsiz)==1,
-#    h=h*ones(1,d);
-#  else
-#    h=reshape(h,[1,d]); % make sure it has the correct dimension
-#  end;
-#  ind=find(h<=0);
-#  if any(ind)    % If no value of h has been specified by the user then
-#    h(ind)=feval(hsMethod,lA(:,ind),kernel); % calculate automatic values.
-#  end
-#  deth = prod(h);
-#else  % fully general smoothing matrix
-#  deth = det(h);
-#  if deth<=0
-#    error('bandwidth matrix h must be positive definit')
-#  end
-#end
-#
-#if alpha>0
-#  Xn   = num2cell(lA,1);
-#  opt1 = kdeoptset('kernel',kernel,'hs',h,'alpha',0,'L2',1);
-#  f2   = kdefun(lA,opt1,Xn{:}); % get a pilot estimate by regular KDE (alpha=0)
-#  g    = exp(sum(log(f2))/n);
-#
-#  lambda=(f2(:)/g).^(-alpha);
-#else
-#  lambda=ones(n,1);
-#end
-#
-#
-#
-#
-#
-#f=zeros(Nx,1);
-#if (min(hsiz)==1)||(d==1)
-#  for ix=1:n,     % Sum over all data points
-#    Avec=lA(ix,:);
-#    Xnn=(lX-Avec(ones(Nx,1),:))./(h(ones(Nx,1),:) *lambda(ix));
-#    f = f + mkernel2(Xnn,kernel)/lambda(ix)^d;
-#  end
-#else % fully general
-#  h1=inv(h);
-#  for ix=1:n,     % Sum over all data points
-#    Avec=lA(ix,:);
-#    Xnn=(lX-Avec(ones(Nx,1),:))*(h1/lambda(ix));
-#    f = f + mkernel2(Xnn,kernel)/lambda(ix)^d;
-#  end
-#end
-#f=f/(n*deth);
-#
-#% transforming back
-#if any(k1), % L2=0 i.e. logaritmic transformation
-#  for ix=k1
-#    f=f./X(:,ix);
-#  end
-#  if any(max(abs(diff(f)))>10)
-#    disp('Warning: Numerical problems may have occured due to the logaritmic')
-#    disp('transformation. Check the KDE for spurious spikes')
-#  end
-#end
-#if any(k2) % L2~=0 i.e. power transformation
-#  for ix=k2
-#    f=f.*(X(:,ix).^(L2(ix)-1))*L2(ix)*sign(L2(ix));
-#  end
-#  if any(max(abs(diff(f)))>10)
-#    disp('Warning: Numerical problems may have occured due to the power')
-#    disp('transformation. Check the KDE for spurious spikes')
-#  end
-#end
-#if any(k3), % non-parametric transformation
-#  oneC = ones(Nx,1);
-#  for ix=k3
-#    gn  = L22{ix};
-#    %Gn  = fliplr(L22{ix});
-#    %x0  = tranproc(lX(:,ix),Gn);
-#    if any(isnan(X(:,ix))),
-#      error('The transformation does not have a strictly positive derivative.')
-#    end
-#    hg1  = tranproc([X(:,ix) oneC],gn);
-#    der1 = abs(hg1(:,2)); % dg(X)/dX = 1/(dG(Y)/dY)
-#    % alternative 2
-#    %pp  = smooth(Gn(:,1),Gn(:,2),1,[],1);
-#    %dpp = diffpp(pp);
-#    %der1 = 1./abs(ppval(dpp,f.x{ix}));
-#    % Alternative 3
-#    %pp  = smooth(gn(:,1),gn(:,2),1,[],1);
-#    %dpp = diffpp(pp);
-#    %%plot(hg1(:,1),der1-abs(ppval(dpp,x0)))
-#    %der1 = abs(ppval(dpp,x0));
-#    if any(der1<=0),
-#      error('The transformation must have a strictly positive derivative')
-#    end
-#    f = f.*der1;
-#  end
-#  if any(max(abs(diff(f)))>10)
-#    disp('Warning: Numerical problems may have occured due to the power')
-#    disp('transformation. Check the KDE for spurious spikes')
-#  end
-#end
-#
-#f=reshape(f,xsiz); % restore original shape
-#if nargout>1
-#  hs=h;
-#end
 
 class _Kernel(object):
     def __init__(self, r=1.0, stats=None):
@@ -712,7 +598,7 @@ class Kernel(object):
         mu2, R, Rdd = self.stats()
         AMISEconstant = (8 * sqrt(pi) * R / (3 * mu2 ** 2 * n)) ** (1. / 5)
         iqr = np.abs(np.percentile(A, 75, axis=1) - np.percentile(A, 25, axis=1))# interquartile range
-        stdA = np.std(A, axis=1)
+        stdA = np.std(A, axis=1, ddof=1)
         #  % use of interquartile range guards against outliers.
         #  % the use of interquartile range is better if 
         #  % the distribution is skew or have heavy tails
@@ -746,7 +632,8 @@ class Kernel(object):
           
          See also  hste, hbcv, hboot, hldpi, hlscv, hscv, hstt, kde, kdefun
         
-         Reference:  
+         Reference
+         --------- 
           B. W. Silverman (1986) 
          'Density estimation for statistics and data analysis'  
           Chapman and Hall, pp 43-48 
@@ -826,7 +713,7 @@ class Kernel(object):
         return a * linalg.sqrtm(covA) * n * (-1. / (d + 4))
         
     def norm_factor(self, d=1, n=None):
-        return  self.kernel.norm_factor(n, d)    
+        return  self.kernel.norm_factor(d, n)    
     def evaluate(self, X):
         return self.kernel(np.atleast_2d(X))
     __call__ = evaluate
@@ -981,6 +868,7 @@ def accum(accmap, a, func=None, size=None, fill_value=0, dtype=None):
             out[s] = func(vals[s])
 
     return out
+
 def bitget(int_type, offset):
     '''
     Returns the value of the bit at the offset position in int_type.
@@ -1106,9 +994,9 @@ def gridcount(data, X):
                 b2 = binx + bt2                     # linear index to X
                 c += accum(b1, abs(np.prod(X1[b2] - dat, axis=0)), size=(Nc,))
                 
-        c = np.reshape(c / w, csiz)
+        c = np.reshape(c / w, csiz, order='C')
         # TODO: check that the flipping of axis is correct
-        T = range(d); T[-2],T[-1] = T[-1], T[-2]
+        T = range(d); T[-2], T[-1] = T[-1], T[-2]
         c = c.transpose(*T)
 
     if d == 2: # make sure c is stored in the same way as meshgrid
