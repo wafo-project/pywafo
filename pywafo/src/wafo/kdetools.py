@@ -5,14 +5,14 @@
 # Author:      pab
 #
 # Created:     01.11.2008
-# Copyright:   (c) pab2 2008
+# Copyright:   (c) pab 2008
 # Licence:     LGPL
 #-------------------------------------------------------------------------------
 #!/usr/bin/env python
 from __future__ import division
 import warnings
 import numpy as np
-from numpy import pi, sqrt, atleast_2d, exp, newaxis #@UnresolvedImport
+from numpy import pi, sqrt, atleast_2d, exp, newaxis, array #@UnresolvedImport
 import scipy
 from scipy import linalg
 from scipy.special import gamma
@@ -20,12 +20,12 @@ from misc import tranproc, trangood
 from itertools import product
 
 _stats_epan = (1. / 5, 3. / 5, np.inf)
-_stats_biwe = (1. / 7, 5. / 7, 45. / 2),
-_stats_triw = (1. / 9, 350. / 429, np.inf),
-_stats_rect = (1. / 3, 1. / 2, np.inf),
-_stats_tria = (1. / 6, 2. / 3, np.inf),
-_stats_lapl = (2, 1. / 4, np.inf),
-_stats_logi = (pi ** 2 / 3, 1. / 6, 1 / 42),
+_stats_biwe = (1. / 7, 5. / 7, 45. / 2)
+_stats_triw = (1. / 9, 350. / 429, np.inf)
+_stats_rect = (1. / 3, 1. / 2, np.inf)
+_stats_tria = (1. / 6, 2. / 3, np.inf)
+_stats_lapl = (2, 1. / 4, np.inf)
+_stats_logi = (pi ** 2 / 3, 1. / 6, 1 / 42)
 _stats_gaus = (1, 1. / (2 * sqrt(pi)), 3. / (8 * sqrt(pi)))
               
 
@@ -103,6 +103,7 @@ class TKDE(object):
     ...        1.09547561,  1.01671133,  0.73211143,  0.61891719,  0.75903487,
     ...        1.8919469 ,  0.72433808,  1.92973094,  0.44749838,  1.36508452])
 
+    >>> import wafo.kdetools as wk
     >>> x = np.linspace(0.01, max(data.ravel()) + 1, 10)  
     >>> kde = wk.TKDE(data, hs=0.5, L2=0.5)
     >>> f = kde(x)
@@ -238,12 +239,13 @@ class KDE(object):
     ...        1.09547561,  1.01671133,  0.73211143,  0.61891719,  0.75903487,
     ...        1.8919469 ,  0.72433808,  1.92973094,  0.44749838,  1.36508452])
 
-    >>> x = np.linspace(0, max(data.ravel()) + 1, 10)  
+    >>> x = np.linspace(0, max(data.ravel()) + 1, 10) 
+    >>> import wafo.kdetools as wk 
     >>> kde = wk.KDE(data, hs=0.5, alpha=0.5)
     >>> f = kde(x)
     >>> f
-    array([ 0.0541248 ,  0.16555235,  0.33084399,  0.45293325,  0.48345808,
-            0.48345808,  0.45293325,  0.33084399,  0.16555235,  0.0541248 ])
+    array([ 0.17252055,  0.41014271,  0.61349072,  0.57023834,  0.37198073,
+            0.21409279,  0.12738463,  0.07460326,  0.03956191,  0.01887164])
     
     import pylab as plb          
     h1 = plb.plot(x, f) #  1D probability density plot
@@ -340,7 +342,6 @@ class KDE(object):
         if m >= self.n:
             # there are more points than data, so loop over data
             for i in range(self.n):
-                
                 diff = self.dataset[:, i, np.newaxis] - points
                 tdiff = np.dot(self.inv_hs / self._lambda[i], diff)
                 result += self.kernel(tdiff) / self._lambda[i] ** d
@@ -507,8 +508,8 @@ class Kernel(object):
     (0.1111111111111111, 0.81585081585081587, inf)
     
     >>> triweight(np.linspace(-1,1,11))
-    array([ 0.     ,  0.05103,  0.28672,  0.64827,  0.96768,  1.09375,
-            0.96768,  0.64827,  0.28672,  0.05103,  0.     ])
+    array([ 0.      ,  0.046656,  0.262144,  0.592704,  0.884736,  1.      ,
+            0.884736,  0.592704,  0.262144,  0.046656,  0.      ])
     >>> triweight.hns(np.random.normal(size=100))
     
     See also
@@ -556,39 +557,46 @@ class Kernel(object):
     
     def hns(self, data):
         '''
-        HNS Normal Scale Estimate of Smoothing Parameter.
+        Returns Normal Scale Estimate of Smoothing Parameter.
         
-         CALL:  h = hns(data,kernel)
+        Parameter
+        ---------
+        data : 2D array
+            shape d x n (d = # dimensions )
         
-           h      = one dimensional optimal value for smoothing parameter
-                    given the data and kernel.  size 1 x D
-           data   = data matrix, size N x D (D = # dimensions )
+        Returns
+        -------
+        h : array-like
+            one dimensional optimal value for smoothing parameter
+            given the data and kernel.  size D
          
-         HNS only gives an optimal value with respect to mean integrated 
-         square error, when the true underlying distribution 
-         is Gaussian. This works reasonably well if the data resembles a
-         Gaussian distribution. However if the distribution is asymmetric,
-         multimodal or have long tails then HNS may  return a to large
-         smoothing parameter, i.e., the KDE may be oversmoothed and mask
-         important features of the data. (=> large bias).
-         One way to remedy this is to reduce H by multiplying with a constant 
-         factor, e.g., 0.85. Another is to try different values for H and make a 
-         visual check by eye.
+        HNS only gives an optimal value with respect to mean integrated 
+        square error, when the true underlying distribution 
+        is Gaussian. This works reasonably well if the data resembles a
+        Gaussian distribution. However if the distribution is asymmetric,
+        multimodal or have long tails then HNS may  return a to large
+        smoothing parameter, i.e., the KDE may be oversmoothed and mask
+        important features of the data. (=> large bias).
+        One way to remedy this is to reduce H by multiplying with a constant 
+        factor, e.g., 0.85. Another is to try different values for H and make a 
+        visual check by eye.
         
-          Example: 
-            data = rndnorm(0, 1,20,1)
-            h = hns(data,'epan');
-          
-         See also  hste, hbcv, hboot, hos, hldpi, hlscv, hscv, hstt, kde
+        Example: 
+          data = rndnorm(0, 1,20,1)
+          h = hns(data,'epan');
         
-         Reference:  
-         ---------
-          B. W. Silverman (1986) 
-         'Density estimation for statistics and data analysis'  
-          Chapman and Hall, pp 43-48 
-          Wand,M.P. and Jones, M.C. (1995) 
-         'Kernel smoothing'
-          Chapman and Hall, pp 60--63
+        See also:
+        ---------  
+        hste, hbcv, hboot, hos, hldpi, hlscv, hscv, hstt, kde
+        
+        Reference:  
+        ---------
+        B. W. Silverman (1986) 
+        'Density estimation for statistics and data analysis'  
+        Chapman and Hall, pp 43-48 
+        Wand,M.P. and Jones, M.C. (1995) 
+        'Kernel smoothing'
+        Chapman and Hall, pp 60--63
         '''
         
         A = np.atleast_2d(data)
@@ -606,7 +614,7 @@ class Kernel(object):
         return np.where(iqr > 0, np.minimum(stdA, iqr / 1.349), stdA) * AMISEconstant
     
     def hos(self, data):
-        ''' Return Oversmoothing Parameter.
+        ''' Returns Oversmoothing Parameter.
 
         
         
@@ -817,15 +825,15 @@ def accum(accmap, a, func=None, size=None, fill_value=0, dtype=None):
     >>> # Sum the diagonals.
     >>> accmap = array([[0,1,2],[2,0,1],[1,2,0]])
     >>> s = accum(accmap, a)
-    array([9, 7, 15])
+    >>> s
+    array([ 9,  7, 15])
     >>> # A 2D output, from sub-arrays with shapes and positions like this:
     >>> # [ (2,2) (2,1)]
     >>> # [ (1,2) (1,1)]
     >>> accmap = array([
-            [[0,0],[0,0],[0,1]],
-            [[0,0],[0,0],[0,1]],
-            [[1,0],[1,0],[1,1]],
-        ])
+    ...        [[0,0],[0,0],[0,1]],
+    ...        [[0,0],[0,0],[0,1]],
+    ...        [[1,0],[1,0],[1,1]]])
     >>> # Accumulate using a product.
     >>> accum(accmap, a, func=prod, dtype=float)
     array([[ -8.,  18.],
@@ -880,6 +888,7 @@ def bitget(int_type, offset):
     '''
     mask = (1 << offset)
     return (int_type & mask) != 0
+
 def gridcount(data, X):
     '''
     GRIDCOUNT D-dimensional histogram using linear binning.
@@ -922,8 +931,10 @@ def gridcount(data, X):
     >>> c = wk.gridcount(data,x)
     
     >>> h = plb.plot(x,c,'.')   # 1D histogram
-    >>> h1 = plb.plot(x,c/dx/N) #  1D probability density plot
-    >>> np.trapz(x,c/dx/N)   
+    >>> pdf = c/dx/N
+    >>> h1 = plb.plot(x, pdf) #  1D probability density plot
+    >>> np.trapz(pdf, x)   
+    0.99999999999999956
     
     See also
     --------
@@ -1005,45 +1016,12 @@ def gridcount(data, X):
         c = c.transpose(1, 0, 2)
     
     return c
-def test_kde():
-    import numpy as np
-    import wafo.kdetools as wk
-    import pylab as plb
-    N = 500;
-    data = np.random.rayleigh(1, size=(1, N))
-    kde = wk.KDE(data)
-    x = np.linspace(0, max(data.ravel()) + 1, 10)
-    #X,Y = np.meshgrid(x, x)
-    f = kde(x)
-    
-    #plb.hist(data.ravel())
-    plb.plot(x, f)
-    plb.show()
-    
-def test_gridcount():
-    import numpy as np
-    import wafo.kdetools as wk
-    import pylab as plb
-    N = 500;
-    data = np.random.rayleigh(1, size=(2, N))
-    x = np.linspace(0, max(data.ravel()) + 1, 10)
-    X = np.vstack((x, x)) 
-    
-    dx = x[1] - x[0]  
-    c = wk.gridcount(data, X)
-    h = plb.contourf(x, x, c)
-    plb.show()
-    h = plb.plot(x, c, '.')   # 1D histogram
-   
-    h1 = plb.plot(x, c / dx / N) #  1D probability density plot
-    t = np.trapz(x, c / dx / N)   
-    print(t)
+
     
 def main():
     import doctest
     doctest.testmod()
     
 if __name__ == '__main__':
-    #main()
-    #test_gridcount()
-    test_kde()
+    main()
+    
