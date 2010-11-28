@@ -18,6 +18,7 @@ from scipy import linalg
 from scipy.special import gamma
 from misc import tranproc, trangood
 from itertools import product
+from wafo.misc import meshgrid
 
 _stats_epan = (1. / 5, 3. / 5, np.inf)
 _stats_biwe = (1. / 7, 5. / 7, 45. / 2)
@@ -300,7 +301,16 @@ class KDE(object):
             self.inv_hs = linalg.inv(h)
         self.hs = h
         self._norm_factor = deth * self.n
-        
+    
+    def eval_grid(self, *args):
+        grd = meshgrid(*args)
+        shape0 = grd[0].shape
+        d = len(grd)
+        for i in range(d):
+            grd[i] = grd[i].ravel()
+        f = self.evaluate(np.vstack(grd))
+        return f.reshape(shape0)
+    
     def _check_shape(self, points):
         points = atleast_2d(points)
         d, m = points.shape
@@ -359,7 +369,12 @@ class KDE(object):
 
     __call__ = evaluate
 
-
+class KDEBIN(KDE):
+    def __init__(self, dataset, hs=None, kernel=None, alpha=0.0, inc=128):
+        KDE.__init__(self, dataset, hs, kernel, alpha)
+        self.inc = inc
+    def evaluate(self, *args):
+        pass
 class _Kernel(object):
     def __init__(self, r=1.0, stats=None):
         self.r = r # radius of kernel
@@ -371,6 +386,8 @@ class _Kernel(object):
         return self._kernel(X) / self.norm_factor(*X.shape)
     def kernel(self, x):
         return self._kernel(np.atleast_2d(x))
+    def deriv4_6_8_10(self, t, numout=4):
+        raise Exception('Method not implemented for this kernel!')
     __call__ = kernel 
     
 class _KernelMulti(_Kernel):
@@ -440,6 +457,24 @@ class _KernelGaussian(_Kernel):
         return exp(-0.5 * x2.sum(axis=0))       
     def norm_factor(self, d=1, n=None):
         return (2 * pi) ** (d / 2.0) 
+    def deriv4_6_8_10(self, t, numout=4):
+        '''
+        Returns 4th, 6th, 8th and 10th derivatives of the kernel function.
+        '''
+        phi0 = exp(-0.5*t**2)/sqrt(2*pi)
+        p4 = [1, 0, -6, 0, +3]
+        p4val = np.polyval(p4,t)*phi0
+        if numout==1:
+            return p4val
+        out = [p4val]
+        pn = p4
+        for ix in range(numout-1):
+            pnp1 = np.polyadd(-np.r_[pn, 0], np.polyder(pn))
+            pnp2 = np.polyadd(-np.r_[pnp1, 0], np.polyder(pnp1))
+            out.append(np.polyval(pnp2, t)*phi0)
+            pn = pnp2
+        return out
+    
 mkernel_gaussian = _KernelGaussian(stats=_stats_gaus)
 
 #def mkernel_gaussian(X):
@@ -499,6 +534,13 @@ class Kernel(object):
     
     Examples
     --------
+     N = 20
+    data = np.random.rayleigh(1, size=(N,))
+    >>> data = array([ 0.75355792,  0.72779194,  0.94149169,  0.07841119,  2.32291887,
+    ...        1.10419995,  0.77055114,  0.60288273,  1.36883635,  1.74754326,
+    ...        1.09547561,  1.01671133,  0.73211143,  0.61891719,  0.75903487,
+    ...        1.8919469 ,  0.72433808,  1.92973094,  0.44749838,  1.36508452])
+
     >>> Kernel('gaussian').stats()  
     (1, 0.28209479177387814, 0.21157109383040862)
     >>> Kernel('laplace').stats()
@@ -510,11 +552,17 @@ class Kernel(object):
     >>> triweight(np.linspace(-1,1,11))
     array([ 0.      ,  0.046656,  0.262144,  0.592704,  0.884736,  1.      ,
             0.884736,  0.592704,  0.262144,  0.046656,  0.      ])
-    >>> triweight.hns(np.random.normal(size=100))
+    >>> triweight.hns(data)
+    array([ 0.82087056])
+    >>> triweight.hos(data)
+    array([ 0.88265652])
+    >>> triweight.hste(data)
+    array([ 0.56570278])
     
     See also
     --------
     mkernel
+    
     References
     ---------- 
     B. W. Silverman (1986) 
@@ -554,6 +602,8 @@ class Kernel(object):
         return self.kernel.stats
         #name = self.name[2:6] if self.name[:2].lower() == 'p1' else self.name[:4] 
         #return _KERNEL_STATS_DICT[name.lower()]
+    def deriv4_6_8_10(self, t, numout=4):
+        return self.kernel.deriv4_6_8_10(t, numout)
     
     def hns(self, data):
         '''
@@ -719,7 +769,134 @@ class Kernel(object):
         covA = scipy.cov(A)
         
         return a * linalg.sqrtm(covA) * n * (-1. / (d + 4))
+    def hste(self, data, h0=None, inc=128, maxit=100, releps=0.01, abseps=0.0):
+        '''HSTE 2-Stage Solve the Equation estimate of smoothing parameter.
         
+         CALL:  hs = hste(data,kernel,h0)
+         
+               hs = one dimensional value for smoothing parameter
+                    given the data and kernel.  size 1 x D
+           data   = data matrix, size N x D (D = # dimensions )
+           kernel = 'gaussian'  - Gaussian kernel (default)
+                     ( currently the only supported kernel)
+               h0 = initial starting guess for hs (default h0=hns(A,kernel))
+        
+          Example: 
+           x  = rndnorm(0,1,50,1);
+           hs = hste(x,'gauss');
+        
+         See also  hbcv, hboot, hos, hldpi, hlscv, hscv, hstt, kde, kdefun
+        
+         Reference:  
+          B. W. Silverman (1986) 
+         'Density estimation for statistics and data analysis'  
+          Chapman and Hall, pp 57--61
+        
+          Wand,M.P. and Jones, M.C. (1986) 
+         'Kernel smoothing'
+          Chapman and Hall, pp 74--75
+        '''  
+        # TODO: NB: this routine can be made faster:
+        # TODO: replace the iteration in the end with a Newton Raphson scheme
+        
+        A = np.atleast_2d(data)
+        d, n= A.shape
+        
+        # R= int(mkernel(x)^2),  mu2= int(x^2*mkernel(x))
+        mu2, R, Rdd = self.stats()
+        
+        AMISEconstant = (8 * sqrt(pi) * R / (3 * mu2 ** 2 * n)) ** (1. / 5)
+        STEconstant = R /(mu2**(2)*n)
+        
+        sigmaA = self.hns(A)/AMISEconstant
+        if h0 is None:
+            h0 = sigmaA*AMISEconstant
+        
+        h = np.asarray(h0, dtype=float)
+       
+        nfft = inc*2 
+        amin   = A.min(axis=1) # Find the minimum value of A.
+        amax   = A.max(axis=1) #Find the maximum value of A.
+        arange = amax-amin # Find the range of A.
+        
+        #% xa holds the x 'axis' vector, defining a grid of x values where 
+        #% the k.d. function will be evaluated.
+        
+        ax1 = amin-arange/8.0
+        bx1 = amax+arange/8.0
+        
+        kernel2 = Kernel('gaus') 
+        mu2,R,Rdd = kernel2.stats()
+        STEconstant2 = R /(mu2**(2)*n)
+        fft = np.fft.fft
+        ifft = np.fft.ifft
+        
+        for dim in range(d):
+            s = sigmaA[dim]
+            ax = ax1[dim]
+            bx = bx1[dim]
+          
+            xa = np.linspace(ax,bx,inc) 
+            xn = np.linspace(0,bx-ax,inc)
+          
+            c = gridcount(A[dim],xa)
+       
+        
+            # Step 1
+            psi6NS = -15/(16*sqrt(pi)*s**7)
+            psi8NS = 105/(32*sqrt(pi)*s**9)
+        
+            # Step 2
+            k40, k60 = kernel2.deriv4_6_8_10(0, numout=2)
+            g1 = (-2*k40/(mu2*psi6NS*n))**(1.0/7)
+            g2 = (-2*k60/(mu2*psi8NS*n))**(1.0/9)
+        
+            # Estimate psi6 given g2.
+            kw4, kw6 = kernel2.deriv4_6_8_10(xn/g2, numout=2) # kernel weights.
+            kw = np.r_[kw6,0,kw6[-1:0:-1]]             # Apply fftshift to kw.
+            z = np.real(ifft(fft(c,nfft)*fft(kw)))     # convolution.
+            psi6 = np.sum(c*z[:inc])/(n*(n-1)*g2**7)
+        
+            # Estimate psi4 given g1.
+            kw4  = kernel2.deriv4_6_8_10(xn/g1, numout=1) # kernel weights.
+            kw   = np.r_[kw4,0,kw4[-1:0:-1]]  #Apply 'fftshift' to kw.
+            z    = np.real(ifft(fft(c,nfft)*fft(kw))) # convolution.
+            psi4 = np.sum(c*z[:inc])/(n*(n-1)*g1**5)
+        
+            
+            
+            h1    = h[dim]
+            h_old = 0
+            count = 0
+          
+            while ((abs(h_old-h1)>max(releps*h1,abseps)) and (count < maxit)):
+                count += 1
+                h_old = h1
+          
+                # Step 3
+                gamma=((2*k40*mu2*psi4*h1**5)/(-psi6*R))**(1.0/7)
+        
+                # Now estimate psi4 given gamma.
+                kw4 = kernel2.deriv4_6_8_10(xn/gamma, numout=1) #kernel weights. 
+                kw  = np.r_[kw4,0,kw4[-1:0:-1]] # Apply 'fftshift' to kw.
+                z   = np.real(ifft(fft(c,nfft)*fft(kw))) # convolution.
+        
+                psi4Gamma  = np.sum(c*z[:inc])/(n*(n-1)*gamma**5)
+          
+                # Step 4
+                h1 = (STEconstant2/psi4Gamma)**(1.0/5)
+            
+            # Kernel other than Gaussian scale bandwidth
+            h1  = h1*(STEconstant/STEconstant2)**(1.0/5)
+          
+        
+            if count>= maxit:
+                warnings.warn('The obtained value did not converge.')
+          
+            h[dim] = h1
+        #end % for dim loop
+        return h
+    
     def norm_factor(self, d=1, n=None):
         return  self.kernel.norm_factor(d, n)    
     def evaluate(self, X):
@@ -891,7 +1068,7 @@ def bitget(int_type, offset):
 
 def gridcount(data, X):
     '''
-    GRIDCOUNT D-dimensional histogram using linear binning.
+    Returns D-dimensional histogram using linear binning.
       
     Parameters
     ----------
