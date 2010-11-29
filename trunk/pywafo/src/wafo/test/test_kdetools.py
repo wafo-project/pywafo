@@ -166,7 +166,6 @@ def test_gridcount_2D():
            [ 0.02063536,  0.31054405,  0.71865964,  0.13486633,  0.        ],
            [ 0.        ,  0.        ,  0.        ,  0.        ,  0.        ]])
     
-    
     h = plb.plot(x, c, '.')   # 1D histogram
    
     h1 = plb.plot(x, c / dx / N) #  1D probability density plot

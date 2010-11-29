@@ -10,10 +10,12 @@
 #-------------------------------------------------------------------------------
 #!/usr/bin/env python
 from __future__ import division
+import copy
 import warnings
 import numpy as np
 from numpy import pi, sqrt, atleast_2d, exp, newaxis, array #@UnresolvedImport
 import scipy
+from scipy import interpolate
 from scipy import linalg
 from scipy.special import gamma
 from misc import tranproc, trangood
@@ -111,7 +113,15 @@ class TKDE(object):
     >>> f
     array([ 1.03982714,  0.45839018,  0.39514782,  0.32860602,  0.26433318,
             0.20717946,  0.15907684,  0.1201074 ,  0.08941027,  0.06574882])
-    
+            
+    >>> kde.eval_grid(x)
+    array([ 1.03982714,  0.45839018,  0.39514782,  0.32860602,  0.26433318,
+            0.20717946,  0.15907684,  0.1201074 ,  0.08941027,  0.06574882])
+            
+    >>> kde.eval_grid_fast(x)
+    array([ 0.        ,  1.16200356,  0.99256178,  0.81930973,  0.65479862,
+            0.51021576,  0.3896221 ,  0.29266142,  0.        ,  0.        ])
+            
     import pylab as plb          
     h1 = plb.plot(x, f) #  1D probability density plot
     t = np.trapz(f, x)   
@@ -125,11 +135,13 @@ class TKDE(object):
         self.alpha = alpha
         self.xmin = xmin
         self.xmax = xmax
+        self.inc = inc
         self.L2 = L2
         self.d, self.n = self.dataset.shape
         self.initialize()
     
     def initialize(self):
+        self._set_xlimits()
         tdataset = self._dat2gaus(self.dataset)
         xmin = self.xmin
         if xmin is not None:
@@ -137,9 +149,27 @@ class TKDE(object):
         xmax = self.xmax
         if xmax is not None:
             xmax = self._dat2gaus(xmax)
-        self.kde = KDE(tdataset, self.hs, self.kernel, self.alpha, xmin, xmax,
+        self.tkde = KDE(tdataset, self.hs, self.kernel, self.alpha, xmin, xmax,
                        self.inc)
-    
+    def _set_xlimits(self):
+        amin = self.dataset.min(axis=-1)
+        amax = self.dataset.max(axis=-1)
+        xyzrange = amax-amin
+        offset = xyzrange/4.0
+        if self.xmin is None:
+            self.xmin = amin - offset
+        else:
+            self.xmin = self.xmin * np.ones(self.d)
+        if self.xmax is None:
+            self.xmax = amax + offset
+        else:
+            self.xmax = self.xmax * np.ones(self.d)
+        
+        if self.L2 is not None:
+            L2 = np.atleast_1d(self.L2) * np.ones(self.d) # default no transformation
+            self.xmin = np.where(L2!=1, np.maximum(self.xmin, amin/2.0), self.xmin)
+            
+        
     def _check_shape(self, points):
         points = atleast_2d(points)
         d, m = points.shape
@@ -160,11 +190,22 @@ class TKDE(object):
         
         L2 = np.atleast_1d(self.L2) * np.ones(self.d) # default no transformation
         
-        tpoints = points.copy()
+        tpoints = copy.copy(points)
         for i, v2 in enumerate(L2.tolist()):
-            tpoints[i] = np.where(v2 == 0, np.log(points[i]), points[i] ** v2)
+            tpoints[i] = np.log(points[i]) if v2 == 0 else points[i] ** v2
         return tpoints
+    
+    def _gaus2dat(self, tpoints):
+        if self.L2 is None:
+            return tpoints # default no transformation
         
+        L2 = np.atleast_1d(self.L2) * np.ones(self.d) # default no transformation
+        
+        points = copy.copy(tpoints)
+        for i, v2 in enumerate(L2.tolist()):
+            points[i] = np.exp(tpoints[i]) if v2 == 0 else tpoints[i] ** (1.0/v2)
+        return points
+    
     def _scale_pdf(self, pdf, points):
         if self.L2 is None:
             return pdf
@@ -177,7 +218,70 @@ class TKDE(object):
                     transformation. Check the KDE for spurious spikes'''
             warnings.warn(msg)
         return pdf
-    
+    def eval_grid_fast(self, *args):
+        """Evaluate the estimated pdf on a grid.
+
+        Parameters
+        ----------
+        arg_0,arg_1,... arg_d-1 : vectors
+            Alternatively, if no vectors is passed in then
+             arg_i = linspace(self.xmin[i], self.xmax[i], self.inc)
+
+        Returns
+        -------
+        values : array-like
+            The values evaluated at meshgrid(*args).
+
+        """
+        
+        if self.L2 is None:
+            f = self.tkde.eval_grid_fast(*args)
+            self.args = self.tkde.args
+            return f
+        #targs = self._dat2gaus(list(args)) if len(args) else args
+        tf = self.tkde.eval_grid_fast()
+        self.args = self._gaus2dat(list(self.tkde.args))
+        points = meshgrid(*self.args) if self.d>1 else self.args
+        f = self._scale_pdf(tf, points)
+        if len(args):
+            if self.d==1:
+                pdf = interpolate.interp1d(points[0],f, bounds_error=False, fill_value=0.0)
+            elif self.d==2:
+                pdf = interpolate.interp2d(points[0],points[1], f, bounds_error=False, fill_value=0.0)
+            ipoints = meshgrid(*args) if self.d>1 else args
+            fi = pdf(*ipoints)
+            fi.shape = ipoints[0].shape
+            return fi
+        return f
+    def eval_grid(self, *args):
+        """Evaluate the estimated pdf on a grid.
+
+        Parameters
+        ----------
+        arg_0,arg_1,... arg_d-1 : vectors
+            Alternatively, if no vectors is passed in then
+             arg_i = linspace(self.xmin[i], self.xmax[i], self.inc)
+
+        Returns
+        -------
+        values : array-like
+            The values evaluated at meshgrid(*args).
+
+        """
+        if len(args)==0:
+            args = []
+            for i in range(self.d):
+                args.append(np.linspace(self.xmin[i], self.xmax[i], self.inc))
+        self.args = args
+        if self.L2 is None:
+            return self.tkde.eval_grid(*args)
+        targs = self._dat2gaus(list(args))
+        tf = self.tkde.eval_grid(*targs)
+        points = meshgrid(*args) if self.d>1 else self.args
+        f = self._scale_pdf(tf, points)
+        return f
+        
+        return self.tkde.eval_grid(*args)
     def evaluate(self, points):
         """Evaluate the estimated pdf on a set of points.
 
@@ -198,10 +302,10 @@ class TKDE(object):
         the dimensionality of the KDE.
         """
         if self.L2 is None:
-            return self.kde(points)
+            return self.tkde(points)
         points = self._check_shape(points)
         tpoints = self._dat2gaus(points)
-        tf = self.kde(tpoints)
+        tf = self.tkde(tpoints)
         f = self._scale_pdf(tf, points)
         return f
     
@@ -258,6 +362,24 @@ class KDE(object):
     array([ 0.17252055,  0.41014271,  0.61349072,  0.57023834,  0.37198073,
             0.21409279,  0.12738463,  0.07460326,  0.03956191,  0.01887164])
     
+    >>> kde.eval_grid(x)
+    array([ 0.17252055,  0.41014271,  0.61349072,  0.57023834,  0.37198073,
+            0.21409279,  0.12738463,  0.07460326,  0.03956191,  0.01887164])
+    
+    >>> kde0 = wk.KDE(data, hs=0.5, alpha=0.0)
+    >>> kde0.evaluate(x)
+    array([ 0.2039735 ,  0.40252503,  0.54595078,  0.52219649,  0.3906213 ,
+            0.26381501,  0.16407362,  0.08270612,  0.02991145,  0.00720821])
+    
+    >>> kde0.eval_grid(x)
+    array([ 0.2039735 ,  0.40252503,  0.54595078,  0.52219649,  0.3906213 ,
+            0.26381501,  0.16407362,  0.08270612,  0.02991145,  0.00720821])       
+    
+    >>> f = kde0.eval_grid_fast()
+    >>> np.interp(x, kde0.args[0], f)
+    array([ 0.54344   ,  1.04793706,  1.38047458,  1.28324876,  0.943131  ,
+            0.63570524,  0.39404219,  0.19450807,  0.08505344,  0.08505344])
+            
     import pylab as plb          
     h1 = plb.plot(x, f) #  1D probability density plot
     t = np.trapz(f, x)   
@@ -345,8 +467,10 @@ class KDE(object):
 
         """
         if len(args)==0:
+            args = []
             for i in range(self.d):
                 args.append(np.linspace(self.xmin[i], self.xmax[i], self.inc))
+        self.args = args
         return self._eval_grid_fast(*args)
     def _eval_grid_fast(self, *args):
         X = np.vstack(args)
@@ -360,16 +484,16 @@ class KDE(object):
         for i in range(d):
             Xn.append(x0*dx[i])
         
-        Xnc = meshgrid(*Xn)
+        Xnc = meshgrid(*Xn) if d>1 else Xn
         
         shape0 = Xnc[0].shape
         for i in range(d):
             Xnc[i].shape = (-1,)
  
-        Xn = np.dot(np.vstack(Xnc), self.inv_hs)
+        Xn = np.dot(self.inv_hs, np.vstack(Xnc))
         
         # Obtain the kernel weights.        
-        kw = self.kernel(Xn)
+        kw = self.kernel(Xn)/self._norm_factor
         kw.shape = shape0
         kw = np.fft.ifftshift(kw)
         fftn = np.fft.fftn
@@ -401,13 +525,15 @@ class KDE(object):
         """
 
         if len(args)==0:
+            args = []
             for i in range(self.d):
                 args.append(np.linspace(self.xmin[i], self.xmax[i], self.inc))
+        self.args = args
         return self._eval_grid(*args)
     
     def _eval_grid(self, *args):
         
-        grd = meshgrid(*args)
+        grd = meshgrid(*args) if len(args)>1 else list(args)
         shape0 = grd[0].shape
         d = len(grd)
         for i in range(d):
