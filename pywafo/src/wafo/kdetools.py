@@ -119,8 +119,8 @@ class TKDE(object):
             0.20717946,  0.15907684,  0.1201074 ,  0.08941027,  0.06574882])
             
     >>> kde.eval_grid_fast(x)
-    array([ 0.        ,  1.16200356,  0.99256178,  0.81930973,  0.65479862,
-            0.51021576,  0.3896221 ,  0.29266142,  0.        ,  0.        ])
+    array([ 0.        ,  0.4614821 ,  0.39554839,  0.32764086,  0.26275681,
+            0.20543731,  0.15741056,  0.11863464,  0.        ,  0.        ])
             
     import pylab as plb          
     h1 = plb.plot(x, f) #  1D probability density plot
@@ -377,8 +377,8 @@ class KDE(object):
     
     >>> f = kde0.eval_grid_fast()
     >>> np.interp(x, kde0.args[0], f)
-    array([ 0.54344   ,  1.04793706,  1.38047458,  1.28324876,  0.943131  ,
-            0.63570524,  0.39404219,  0.19450807,  0.08505344,  0.08505344])
+    array([ 0.21165996,  0.41218257,  0.54961961,  0.51713209,  0.38292245,
+            0.25864661,  0.16113184,  0.08055992,  0.03576856,  0.03576856])
             
     import pylab as plb          
     h1 = plb.plot(x, f) #  1D probability density plot
@@ -473,6 +473,7 @@ class KDE(object):
         self.args = args
         return self._eval_grid_fast(*args)
     def _eval_grid_fast(self, *args):
+        # TODO: This does not work correctly yet! Check it.
         X = np.vstack(args)
         d, inc = X.shape
         dx = X[:,1]-X[:,0]
@@ -480,9 +481,9 @@ class KDE(object):
         Xn = []
         nfft0 = 2*inc
         nfft = (nfft0,)*d
-        x0 = np.linspace(-inc, inc, nfft0)
+        x0 = np.linspace(-inc, inc, nfft0+1)
         for i in range(d):
-            Xn.append(x0*dx[i])
+            Xn.append(x0[:-1]*dx[i])
         
         Xnc = meshgrid(*Xn) if d>1 else Xn
         
@@ -493,7 +494,7 @@ class KDE(object):
         Xn = np.dot(self.inv_hs, np.vstack(Xnc))
         
         # Obtain the kernel weights.        
-        kw = self.kernel(Xn)/self._norm_factor
+        kw = self.kernel(Xn)/(self._norm_factor * self.kernel.norm_factor(d, self.n))
         kw.shape = shape0
         kw = np.fft.ifftshift(kw)
         fftn = np.fft.fftn
@@ -1302,11 +1303,12 @@ def bitget(int_type, offset):
     
     Example
     -------
-    >>> bitget(5, np.r_[0:4])
+    >>> bitget(5, np.r_[0:4])   
     array([1, 0, 1, 0])
     '''
-    mask = (1 << offset)
-    return (int_type & mask) != 0
+    
+    return np.bitwise_and(int_type, 1 << offset) >> offset
+    
 
 def gridcount(data, X):
     '''
