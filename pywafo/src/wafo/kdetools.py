@@ -117,18 +117,28 @@ class TKDE(object):
     t = np.trapz(f, x)   
     """
 
-    def __init__(self, dataset, hs=None, kernel=None, alpha=0.0, L2=None):
-        self.dataset = atleast_2d(dataset)
+    def __init__(self, data, hs=None, kernel=None, alpha=0.0, xmin=None, 
+                 xmax=None, inc=128, L2=None):
+        self.dataset = atleast_2d(data)
         self.hs = hs
-        self.kernel = kernel
+        self.kernel = kernel if kernel else Kernel('gauss')
         self.alpha = alpha
+        self.xmin = xmin
+        self.xmax = xmax
         self.L2 = L2
         self.d, self.n = self.dataset.shape
         self.initialize()
     
     def initialize(self):
         tdataset = self._dat2gaus(self.dataset)
-        self.kde = KDE(tdataset, self.hs, self.kernel, self.alpha)
+        xmin = self.xmin
+        if xmin is not None:
+            xmin = self._dat2gaus(xmin)
+        xmax = self.xmax
+        if xmax is not None:
+            xmax = self._dat2gaus(xmax)
+        self.kde = KDE(tdataset, self.hs, self.kernel, self.alpha, xmin, xmax,
+                       self.inc)
     
     def _check_shape(self, points):
         points = atleast_2d(points)
@@ -202,7 +212,7 @@ class KDE(object):
 
     Parameters
     ----------
-    dataset : (# of dims, # of data)-array
+    data : (# of dims, # of data)-array
         datapoints to estimate from
     hs : array-like (optional) 
         smooting parameter vector/matrix.
@@ -253,16 +263,20 @@ class KDE(object):
     t = np.trapz(f, x)   
     """
 
-    def __init__(self, dataset, hs=None, kernel=None, alpha=0.0):
+    def __init__(self, data, hs=None, kernel=None, alpha=0.0, xmin=None, xmax=None, inc=128):
         self.kernel = kernel if kernel else Kernel('gauss')
         self.hs = hs
         self.alpha = alpha
         
-        self.dataset = atleast_2d(dataset)
+        self.dataset = atleast_2d(data)
         self.d, self.n = self.dataset.shape
+        self.xmin = xmin
+        self.xmax = xmax
+        self.inc = inc
         self.initialize()
 
     def initialize(self):
+        self._set_xlimits()
         self._compute_smoothing()
         if self.alpha > 0:
             pilot = KDE(self.dataset, hs=self.hs, kernel=self.kernel, alpha=0)
@@ -271,7 +285,20 @@ class KDE(object):
             self._lambda = (f / g) ** (-self.alpha)
         else:
             self._lambda = np.ones(self.n)
-
+    
+    def _set_xlimits(self):
+        amin = self.dataset.min(axis=-1)
+        amax = self.dataset.max(axis=-1)
+        xyzrange = amax-amin
+        if self.xmin is None:
+            self.xmin = amin-xyzrange/4.0
+        else:
+            self.xmin = self.xmin * np.ones(self.d)
+        if self.xmax is None:
+            self.xmax = amax + xyzrange/4.0
+        else:
+            self.xmax = self.xmax * np.ones(self.d)
+            
     def _compute_smoothing(self):
         """Computes the smoothing matrix
         """
@@ -302,7 +329,84 @@ class KDE(object):
         self.hs = h
         self._norm_factor = deth * self.n
     
+    def eval_grid_fast(self, *args):
+        """Evaluate the estimated pdf on a grid.
+
+        Parameters
+        ----------
+        arg_0,arg_1,... arg_d-1 : vectors
+            Alternatively, if no vectors is passed in then
+             arg_i = linspace(self.xmin[i], self.xmax[i], self.inc)
+
+        Returns
+        -------
+        values : array-like
+            The values evaluated at meshgrid(*args).
+
+        """
+        if len(args)==0:
+            for i in range(self.d):
+                args.append(np.linspace(self.xmin[i], self.xmax[i], self.inc))
+        return self._eval_grid_fast(*args)
+    def _eval_grid_fast(self, *args):
+        X = np.vstack(args)
+        d, inc = X.shape
+        dx = X[:,1]-X[:,0]
+        
+        Xn = []
+        nfft0 = 2*inc
+        nfft = (nfft0,)*d
+        x0 = np.linspace(-inc, inc, nfft0)
+        for i in range(d):
+            Xn.append(x0*dx[i])
+        
+        Xnc = meshgrid(*Xn)
+        
+        shape0 = Xnc[0].shape
+        for i in range(d):
+            Xnc[i].shape = (-1,)
+ 
+        Xn = np.dot(np.vstack(Xnc), self.inv_hs)
+        
+        # Obtain the kernel weights.        
+        kw = self.kernel(Xn)
+        kw.shape = shape0
+        kw = np.fft.ifftshift(kw)
+        fftn = np.fft.fftn
+        ifftn = np.fft.ifftn
+
+        # Find the binned kernel weights, c.
+        c = gridcount(self.dataset, X)
+
+        # Perform the convolution.
+        z = np.real(ifftn(fftn(c,s=nfft)*fftn(kw)))
+
+        ix = (slice(0,inc),)*d
+        return z[ix]*(z[ix]>0.0)
+
     def eval_grid(self, *args):
+        """Evaluate the estimated pdf on a grid.
+
+        Parameters
+        ----------
+        arg_0,arg_1,... arg_d-1 : vectors
+            Alternatively, if no vectors is passed in then
+             arg_i = linspace(self.xmin[i], self.xmax[i], self.inc)
+
+        Returns
+        -------
+        values : array-like
+            The values evaluated at meshgrid(*args).
+
+        """
+
+        if len(args)==0:
+            for i in range(self.d):
+                args.append(np.linspace(self.xmin[i], self.xmax[i], self.inc))
+        return self._eval_grid(*args)
+    
+    def _eval_grid(self, *args):
+        
         grd = meshgrid(*args)
         shape0 = grd[0].shape
         d = len(grd)
@@ -369,12 +473,7 @@ class KDE(object):
 
     __call__ = evaluate
 
-class KDEBIN(KDE):
-    def __init__(self, dataset, hs=None, kernel=None, alpha=0.0, inc=128):
-        KDE.__init__(self, dataset, hs, kernel, alpha)
-        self.inc = inc
-    def evaluate(self, *args):
-        pass
+    
 class _Kernel(object):
     def __init__(self, r=1.0, stats=None):
         self.r = r # radius of kernel
@@ -388,6 +487,17 @@ class _Kernel(object):
         return self._kernel(np.atleast_2d(x))
     def deriv4_6_8_10(self, t, numout=4):
         raise Exception('Method not implemented for this kernel!')
+    def effective_support(self):
+        '''
+        Return the effective support of kernel.
+        
+        The kernel must be symmetric and compactly supported on [-tau tau]
+        if the kernel has infinite support then the kernel must have 
+        the effective support in [-tau tau], i.e., be negligible outside the range
+        '''
+        return self._effective_support()
+    def _effective_support(self):
+        return -self.r, self.r
     __call__ = kernel 
     
 class _KernelMulti(_Kernel):
@@ -453,10 +563,12 @@ mkernel_triangular = _KernelTriangular(stats=_stats_tria)
     
 class _KernelGaussian(_Kernel):
     def _kernel(self, x):
-        x2 = x ** 2
+        sigma = self.r/4.0
+        x2 = (x/sigma) ** 2
         return exp(-0.5 * x2.sum(axis=0))       
     def norm_factor(self, d=1, n=None):
-        return (2 * pi) ** (d / 2.0) 
+        sigma = self.r/4.0
+        return (2 * pi * sigma) ** (d / 2.0) 
     def deriv4_6_8_10(self, t, numout=4):
         '''
         Returns 4th, 6th, 8th and 10th derivatives of the kernel function.
@@ -475,7 +587,8 @@ class _KernelGaussian(_Kernel):
             pn = pnp2
         return out
     
-mkernel_gaussian = _KernelGaussian(stats=_stats_gaus)
+    
+mkernel_gaussian = _KernelGaussian(r=4.0, stats=_stats_gaus)
 
 #def mkernel_gaussian(X):
 #    x2 = X ** 2
@@ -488,13 +601,13 @@ class _KernelLaplace(_Kernel):
         return exp(-absX.sum(axis=0))
     def norm_factor(self, d=1, n=None):
         return 2 ** d    
-mkernel_laplace = _KernelLaplace(stats=_stats_lapl)
+mkernel_laplace = _KernelLaplace(r=7.0, stats=_stats_lapl)
 
 class _KernelLogistic(_Kernel):
     def _kernel(self, x):
         s = exp(x)
         return np.prod(s / (s + 1) ** 2, axis=0)
-mkernel_logistic = _KernelLogistic(stats=_stats_logi)
+mkernel_logistic = _KernelLogistic(r=7.0, stats=_stats_logi)
 
 _MKERNEL_DICT = dict(
                      epan=mkernel_epanechnikov,
@@ -604,6 +717,9 @@ class Kernel(object):
         #return _KERNEL_STATS_DICT[name.lower()]
     def deriv4_6_8_10(self, t, numout=4):
         return self.kernel.deriv4_6_8_10(t, numout)
+    
+    def effective_support(self):
+        return self.kernel.effective_support()
     
     def hns(self, data):
         '''
