@@ -69,10 +69,10 @@ __all__ = [
            'weibull_max', 'genlogistic', 'genpareto', 'genexpon', 'genextreme',
            'gamma', 'gengamma', 'genhalflogistic', 'gompertz', 'gumbel_r',
            'gumbel_l', 'halfcauchy', 'halflogistic', 'halfnorm', 'hypsecant',
-           'gausshyper', 'invgamma', 'invnorm', 'invweibull', 'johnsonsb',
-           'johnsonsu', 'laplace', 'levy', 'levy_l', 'levy_stable',
-           'logistic', 'loggamma', 'loglaplace', 'lognorm', 'gilbrat',
-           'maxwell', 'mielke', 'nakagami', 'ncx2', 'ncf', 't',
+           'gausshyper', 'invgamma', 'invnorm', 'invgauss', 'invweibull',
+           'johnsonsb', 'johnsonsu', 'laplace', 'levy', 'levy_l',
+           'levy_stable', 'logistic', 'loggamma', 'loglaplace', 'lognorm',
+           'gilbrat', 'maxwell', 'mielke', 'nakagami', 'ncx2', 'ncf', 't',
            'nct', 'pareto', 'lomax', 'powerlaw', 'powerlognorm', 'powernorm',
            'rdist', 'rayleigh', 'reciprocal', 'rice', 'recipinvgauss',
            'semicircular', 'triang', 'truncexpon', 'truncnorm',
@@ -353,6 +353,58 @@ class general_cont_ppf(object):
         return self.vecfunc(q, *args)
 
 # Frozen RV class
+class rv_frozen_old(object):
+    def __init__(self, dist, *args, **kwds):
+        self.args = args
+        self.kwds = kwds
+        self.dist = dist
+
+    def pdf(self, x):    #raises AttributeError in frozen discrete distribution
+        return self.dist.pdf(x, *self.args, **self.kwds)
+
+    def cdf(self, x):
+        return self.dist.cdf(x, *self.args, **self.kwds)
+
+    def ppf(self, q):
+        return self.dist.ppf(q, *self.args, **self.kwds)
+
+    def isf(self, q):
+        return self.dist.isf(q, *self.args, **self.kwds)
+
+    def rvs(self, size=None):
+        kwds = self.kwds.copy()
+        kwds.update({'size':size})
+        return self.dist.rvs(*self.args, **kwds)
+
+    def sf(self, x):
+        return self.dist.sf(x, *self.args, **self.kwds)
+
+    def stats(self, moments='mv'):
+        kwds = self.kwds.copy()
+        kwds.update({'moments':moments})
+        return self.dist.stats(*self.args, **kwds)
+
+    def median(self):
+        return self.dist.median(*self.args, **self.kwds)
+    def mean(self):
+        return self.dist.mean(*self.args, **self.kwds)
+
+    def var(self):
+        return self.dist.var(*self.args, **self.kwds)
+    def std(self):
+        return self.dist.std(*self.args, **self.kwds)
+    def moment(self, n):
+        return self.dist.moment(n, *self.args, **self.kwds)
+
+    def entropy(self):
+        return self.dist.entropy(*self.args, **self.kwds)
+    def pmf(self,k):
+        return self.dist.pmf(k, *self.args, **self.kwds)
+
+    def interval(self, alpha):
+        return self.dist.interval(alpha, *self.args, **self.kwds)
+
+# Frozen RV class
 class rv_frozen(object):
     ''' Frozen continous or discrete 1D Random Variable object (RV)
 
@@ -429,7 +481,7 @@ class rv_frozen(object):
     def stats(self, moments='mv'):
         ''' Some statistics of the given RV'''
         kwds = dict(moments=moments)
-        return self.dist.stats(*self.par)
+        return self.dist.stats(*self.par, **kwds)
     def median(self):
         return self.dist.median(*self.par)
     def mean(self):
@@ -450,47 +502,6 @@ class rv_frozen(object):
         return self.dist.interval(alpha, *self.par)
 
 
-# Frozen RV class
-class rv_frozen_old(object):
-    def __init__(self, dist, *args, **kwds):
-        self.args = args
-        self.kwds = kwds
-        self.dist = dist
-    def pdf(self,x):    #raises AttributeError in frozen discrete distribution
-        return self.dist.pdf(x,*self.args,**self.kwds)
-    def cdf(self,x):
-        return self.dist.cdf(x,*self.args,**self.kwds)
-    def ppf(self,q):
-        return self.dist.ppf(q,*self.args,**self.kwds)
-    def isf(self,q):
-        return self.dist.isf(q,*self.args,**self.kwds)
-    def rvs(self, size=None):
-        kwds = self.kwds
-        kwds.update({'size':size})
-        return self.dist.rvs(*self.args,**kwds)
-    def sf(self,x):
-        return self.dist.sf(x,*self.args,**self.kwds)
-    def stats(self,moments='mv'):
-        kwds = self.kwds
-        kwds.update({'moments':moments})
-        return self.dist.stats(*self.args,**kwds)
-    def median(self):
-        return self.dist.median(*self.args, **self.kwds)
-    def mean(self):
-        return self.dist.mean(*self.args, **self.kwds)
-
-    def var(self):
-        return self.dist.var(*self.args, **self.kwds)
-    def std(self):
-        return self.dist.std(*self.args, **self.kwds)
-    def moment(self,n):
-        return self.dist.moment(n,*self.args,**self.kwds)
-    def entropy(self):
-        return self.dist.entropy(*self.args,**self.kwds)
-    def pmf(self,k):
-        return self.dist.pmf(k,*self.args,**self.kwds)
-    def interval(self,alpha):
-        return self.dist.interval(alpha, *self.args, **self.kwds)
 
 
 def stirlerr(n):
@@ -638,7 +649,7 @@ def bd0(x, npr):
 ## pdf -- PDF
 ## logpdf -- log PDF (more  numerically accurate if possible)
 ## cdf -- CDF
-## logcdf -- log of CDF 
+## logcdf -- log of CDF
 ## sf  -- Survival Function (1-CDF)
 ## logsf --- log of SF
 ## ppf -- Percent Point Function (Inverse of CDF)
@@ -670,7 +681,7 @@ def bd0(x, npr):
 ##
 ##     _cdf, _ppf, _rvs, _isf, _sf
 ##
-##   Rarely would you override _isf  and _sf but you could for numerical precision. 
+##   Rarely would you override _isf  and _sf but you could for numerical precision.
 ##
 ##   Statistics are computed using numerical integration by default.
 ##     For speed you can redefine this using
@@ -881,7 +892,7 @@ class rv_generic(object):
         args, loc, scale = self._fix_loc_scale(args, loc, scale)
         cond = logical_and(self._argcheck(*args),(scale >= 0))
         if not all(cond):
-            raise ValueError, "Domain error in arguments."
+            raise ValueError("Domain error in arguments.")
 
         # self._size is total size of all output values
         self._size = product(size, axis=0)
@@ -1016,7 +1027,7 @@ class rv_generic(object):
 
         """
         kwds['moments'] = 'v'
-        res = math.sqrt(self.stats(*args, **kwds))
+        res = sqrt(self.stats(*args, **kwds))
         return res
 
     def interval(self, alpha, *args, **kwds):
@@ -1025,7 +1036,7 @@ class rv_generic(object):
         Parameters
         ----------
         alpha : array-like float in [0,1]
-            Probability that an rv will be drawn from the returned range        
+            Probability that an rv will be drawn from the returned range
         arg1, arg2, ... : array-like
             The shape parameter(s) for the distribution (see docstring of the instance
             object for more information)
@@ -1037,11 +1048,11 @@ class rv_generic(object):
         Returns
         -------
         a, b: array-like (float)
-            end-points of range that contain alpha % of the rvs   
+            end-points of range that contain alpha % of the rvs
         """
         alpha = arr(alpha)
         if any((alpha > 1) | (alpha < 0)):
-            raise ValueError, "alpha must be between 0 and 1 inclusive"
+            raise ValueError("alpha must be between 0 and 1 inclusive")
         q1 = (1.0-alpha)/2
         q2 = (1.0+alpha)/2
         a = self.ppf(q1, *args, **kwds)
@@ -1297,7 +1308,7 @@ class rv_continuous(rv_generic):
 
         self.expandarr = 1
 
-        if not hasattr(self, 'numargs'):
+        if not hasattr(self,'numargs'):
             #allows more general subclassing with *args
             cdf_signature = inspect.getargspec(self._cdf.im_func)
             numargs1 = len(cdf_signature[0]) - 2
@@ -1321,8 +1332,10 @@ class rv_continuous(rv_generic):
         # of _mom0_sc, vectorize cannot count the number of arguments correctly.
 
         if longname is None:
-            if name[0] in ['aeiouAEIOU']: hstr = "An "
-            else: hstr = "A "
+            if name[0] in ['aeiouAEIOU']:
+                hstr = "An "
+            else:
+                hstr = "A "
             longname = hstr + name
 
         # generate docstring for subclass instances
@@ -1395,7 +1408,7 @@ class rv_continuous(rv_generic):
     def _pdf(self,x,*args):
         return derivative(self._cdf,x,dx=1e-5,args=args,order=5)
 
-    ## Could also define any of these 
+    ## Could also define any of these
     def _logpdf(self, x, *args):
         return log(self._pdf(x, *args))
 
@@ -1482,8 +1495,8 @@ class rv_continuous(rv_generic):
     def logpdf(self, x, *args, **kwds):
         """
         Log of the probability density function at x of the given RV.
-        
-        This uses more numerically accurate calculation if available. 
+
+        This uses more numerically accurate calculation if available.
 
         Parameters
         ----------
@@ -1520,7 +1533,7 @@ class rv_continuous(rv_generic):
         if output.ndim == 0:
             return output[()]
         return output
-        
+
 
     def cdf(self,x,*args,**kwds):
         """
@@ -1963,8 +1976,8 @@ class rv_continuous(rv_generic):
 
         """
         if (floor(n) != n):
-            raise ValueError, "Moment must be an integer."
-        if (n < 0): raise ValueError, "Moment must be positive."
+            raise ValueError("Moment must be an integer.")
+        if (n < 0): raise ValueError("Moment must be positive.")
         if (n == 0): return 1.0
         if (n > 0) and (n < 5):
             signature = inspect.getargspec(self._stats.im_func)
@@ -2092,7 +2105,7 @@ class rv_continuous(rv_generic):
             scale = theta[-1]
             args = tuple(theta[:-2])
         except IndexError:
-            raise ValueError, "Not enough input arguments."
+            raise ValueError("Not enough input arguments.")
         if not self._argcheck(*args) or scale <= 0:
             return inf
         x = arr((x-loc) / scale)
@@ -2256,7 +2269,7 @@ class rv_continuous(rv_generic):
             restore = None
         else:
             if len(fixedn) == len(index):
-                raise ValueError, "All parameters fixed. There is nothing to optimize."
+                raise ValueError("All parameters fixed. There is nothing to optimize.")
             def restore(args, theta):
                 # Replace with theta for all numbers not in fixedn
                 # This allows the non-fixed values to vary, but
@@ -2274,12 +2287,12 @@ class rv_continuous(rv_generic):
 
         return x0, func, restore, args
 
-            
+
     def fit(self, data, *args, **kwds):
         """
         Return MLEs for shape, location, and scale parameters from data.
 
-		MLE stands for Maximum Likelihood Estimate.  Starting estimates for
+        MLE stands for Maximum Likelihood Estimate.  Starting estimates for
         the fit are given by input arguments; for any arguments not provided
         with starting estimates, ``self._fitstart(data)`` is called to generate
         such.
@@ -2290,8 +2303,8 @@ class rv_continuous(rv_generic):
 
         Parameters
         ----------
-        data : array-like
-            Data to use in calculating the MLEs.
+        data : array_like
+            Data to use in calculating the MLEs
         args : floats, optional
             Starting value(s) for any shape-characterizing arguments (those not
             provided will be determined by a call to ``_fitstart(data)``).
@@ -2305,7 +2318,7 @@ class rv_continuous(rv_generic):
 
             floc : hold location parameter fixed to specified value.
 
-            fscale : hold scale parameter fixed to specified value
+            fscale : hold scale parameter fixed to specified value.
 
             method : of estimation. Options are
                 'ml' : Maximum Likelihood method (default)
@@ -2324,7 +2337,7 @@ class rv_continuous(rv_generic):
         """
         Narg = len(args)
         if Narg > self.numargs:
-                raise ValueError, "Too many input arguments."
+                raise ValueError("Too many input arguments.")
         start = [None]*2
         if (Narg < self.numargs) or not (kwds.has_key('loc') and
                                          kwds.has_key('scale')):
@@ -2340,12 +2353,12 @@ class rv_continuous(rv_generic):
         if not callable(optimizer) and isinstance(optimizer, (str, unicode)):
             if not optimizer.startswith('fmin_'):
                 optimizer = "fmin_"+optimizer
-            if optimizer == 'fmin_': 
+            if optimizer == 'fmin_':
                 optimizer = 'fmin'
             try:
                 optimizer = getattr(optimize, optimizer)
             except AttributeError:
-                raise ValueError, "%s is not a valid optimizer" % optimizer
+                raise ValueError("%s is not a valid optimizer" % optimizer)
         vals = optimizer(func,x0,args=(ravel(data),),disp=0)
         vals = tuple(vals)
         if restore is not None:
@@ -2401,8 +2414,8 @@ class rv_continuous(rv_generic):
     @np.deprecate
     def est_loc_scale(self, data, *args):
         """This function is deprecated, use self.fit_loc_scale(data) instead. """
-        return self.fit_loc_scale(data, *args)        
-    
+        return self.fit_loc_scale(data, *args)
+
     def freeze(self,*args,**kwds):
         return rv_frozen(self,*args,**kwds)
 
@@ -2459,8 +2472,8 @@ class rv_continuous(rv_generic):
         else:
             place(output,cond0,self.vecentropy(*goodargs)+log(scale))
         return output
-   
-    def expect(self, func=None, args=(), loc=0, scale=1, lb=None, ub=None, 
+
+    def expect(self, func=None, args=(), loc=0, scale=1, lb=None, ub=None,
                conditional=False, **kwds):
         """calculate expected value of a function with respect to the distribution
 
@@ -2484,11 +2497,11 @@ class rv_continuous(rv_generic):
         Returns
         -------
         expected value : float
-        
+
         Notes
         -----
         This function has not been checked for it's behavior when the integral is
-        not finite. The integration behavior is inherited from integrate.quad.           
+        not finite. The integration behavior is inherited from integrate.quad.
         """
         if func is None:
             def fun(x, *args):
@@ -2507,7 +2520,7 @@ class rv_continuous(rv_generic):
         kwds['args'] = args
         return integrate.quad(fun, lb, ub, **kwds)[0] / invfac
 
- 
+
 _EULER = 0.577215664901532860606512090082402431042  # -special.psi(1)
 _ZETA3 = 1.202056903159594285399738161511449990765  # special.zeta(3,1)  Apery's constant
 
@@ -2693,7 +2706,7 @@ class beta_gen(rv_continuous):
             ku = a**3 - a**2*(2*b-1) + b**2*(b+1) - 2*a*b*(b+2)
             ku /= a*b*(a+b+2)*(a+b+3)
             ku *= 6
-            return [sk-g1, ku-g2]            
+            return [sk-g1, ku-g2]
         a, b = optimize.fsolve(func, (1.0, 1.0))
         return super(beta_gen, self)._fitstart(data, args=(a,b))
     def fit(self, data, *args, **kwds):
@@ -2930,7 +2943,7 @@ class chi2_gen(rv_continuous):
         return (df/2.-1)*log(x)-x/2.-gamln(df/2.)-(log(2)*df)/2.
 ##        Px = x**(df/2.0-1)*exp(-x/2.0)
 ##        Px /= special.gamma(df/2.0)* 2**(df/2.0)
-##        return log(Px)        
+##        return log(Px)
     def _cdf(self, x, df):
         return special.chdtr(df, x)
     def _sf(self, x, df):
@@ -4112,7 +4125,43 @@ for x > 0, a > 0.
 ## Inverse Normal Distribution
 # scale is gamma from DATAPLOT and B from Regress
 
+_invnorm_msg = \
+"""The `invnorm` distribution will be renamed to `invgauss` after scipy 0.9"""
 class invnorm_gen(rv_continuous):
+    def _rvs(self, mu):
+        warnings.warn(_invnorm_msg, DeprecationWarning)
+        return mtrand.wald(mu, 1.0, size=self._size)
+    def _pdf(self, x, mu):
+        warnings.warn(_invnorm_msg, DeprecationWarning)
+        return 1.0/sqrt(2*pi*x**3.0)*exp(-1.0/(2*x)*((x-mu)/mu)**2)
+    def _logpdf(self, x, mu):
+        warnings.warn(_invnorm_msg, DeprecationWarning)
+        return -0.5*log(2*pi) - 1.5*log(x) - ((x-mu)/mu)**2/(2*x)
+    def _cdf(self, x, mu):
+        warnings.warn(_invnorm_msg, DeprecationWarning)
+        fac = sqrt(1.0/x)
+        C1 = norm.cdf(fac*(x-mu)/mu)
+        C1 += exp(2.0/mu)*norm.cdf(-fac*(x+mu)/mu)
+        return C1
+    def _stats(self, mu):
+        warnings.warn(_invnorm_msg, DeprecationWarning)
+        return mu, mu**3.0, 3*sqrt(mu), 15*mu
+invnorm = invnorm_gen(a=0.0, name='invnorm', longname="An inverse normal",
+                      shapes="mu",extradoc="""
+
+Inverse normal distribution
+
+NOTE: `invnorm` will be renamed to `invgauss` after scipy 0.9
+
+invnorm.pdf(x,mu) = 1/sqrt(2*pi*x**3) * exp(-(x-mu)**2/(2*x*mu**2))
+for x > 0.
+"""
+                      )
+
+## Inverse Gaussian Distribution (used to be called 'invnorm'
+# scale is gamma from DATAPLOT and B from Regress
+
+class invgauss_gen(rv_continuous):
     def _rvs(self, mu):
         return mtrand.wald(mu, 1.0, size=self._size)
     def _pdf(self, x, mu):
@@ -4126,15 +4175,16 @@ class invnorm_gen(rv_continuous):
         return C1
     def _stats(self, mu):
         return mu, mu**3.0, 3*sqrt(mu), 15*mu
-invnorm = invnorm_gen(a=0.0, name='invnorm', longname="An inverse normal",
-                      shapes="mu",extradoc="""
+invgauss = invgauss_gen(a=0.0, name='invgauss', longname="An inverse Gaussian",
+                        shapes="mu",extradoc="""
 
-Inverse normal distribution
+Inverse Gaussian distribution
 
-invnorm.pdf(x,mu) = 1/sqrt(2*pi*x**3) * exp(-(x-mu)**2/(2*x*mu**2))
+invgauss.pdf(x,mu) = 1/sqrt(2*pi*x**3) * exp(-(x-mu)**2/(2*x*mu**2))
 for x > 0.
 """
                       )
+
 
 ## Inverted Weibull
 
@@ -5009,7 +5059,7 @@ for x > 0, b > 0.
 
 # FIXME: PPF does not work.
 class recipinvgauss_gen(rv_continuous):
-    def _rvs(self, mu): #added, taken from invnorm
+    def _rvs(self, mu): #added, taken from invgauss
         return 1.0/mtrand.wald(mu, 1.0, size=self._size)
     def _pdf(self, x, mu):
         return 1.0/sqrt(2*pi*x)*exp(-(1-mu*x)**2.0 / (2*x*mu**2.0))
@@ -5100,9 +5150,9 @@ class truncexpon_gen(rv_continuous):
     def _logpdf(self, x, b):
         return -x - log(-expm1(-b))
     def _cdf(self, x, b):
-        return (- expm1(-x)) / (-expm1(-b))
+        return expm1(-x) / expm1(-b)
     def _ppf(self, q, b):
-        return - log(1 + q*expm1(-b))
+        return - log1p(q*expm1(-b))
     def _munp(self, n, b):
         #wrong answer with formula, same as in continuous.pdf
         #return gam(n+1)-special.gammainc(1+n,b)
@@ -5140,7 +5190,7 @@ class truncnorm_gen(rv_continuous):
         self._logdelta = log(self._delta)
         return (a != b)
     # All of these assume that _argcheck is called first
-    #  and no other thread calls _pdf before. 
+    #  and no other thread calls _pdf before.
     def _pdf(self, x, a, b):
         return _norm_pdf(x) / self._delta
     def _logpdf(self, x, a, b):
@@ -5275,7 +5325,7 @@ Von Mises distribution
 
 ## Wald distribution (Inverse Normal with shape parameter mu=1.0)
 
-class wald_gen(invnorm_gen):
+class wald_gen(invgauss_gen):
     """A Wald continuous random variable.
 
     %(before_notes)s
@@ -5290,11 +5340,11 @@ class wald_gen(invnorm_gen):
     def _rvs(self):
         return mtrand.wald(1.0, 1.0, size=self._size)
     def _pdf(self, x):
-        return invnorm._pdf(x, 1.0)
+        return invgauss._pdf(x, 1.0)
     def _logpdf(self, x):
-        return invnorm._logpdf(x, 1.0)
+        return invgauss._logpdf(x, 1.0)
     def _cdf(self, x):
-        return invnorm._cdf(x, 1.0)
+        return invgauss._cdf(x, 1.0)
     def _stats(self):
         return 1.0, 1.0, 3.0, 15.0
 wald = wald_gen(a=0.0, name="wald", extradoc="""
@@ -5376,7 +5426,7 @@ def entropy(pk,qk=None):
     else:
         qk = arr(qk)
         if len(qk) != len(pk):
-            raise ValueError, "qk and pk must have same length."
+            raise ValueError("qk and pk must have same length.")
         qk = 1.0*qk / sum(qk,axis=0)
         # If qk is zero anywhere, then unless pk is zero at those places
         #   too, the relative entropy is infinite.
@@ -5718,6 +5768,12 @@ class rv_discrete(rv_generic):
         self._cdfvec.nin = self.numargs + 1
 
         # generate docstring for subclass instances
+        if longname is None:
+            if name[0] in ['aeiouAEIOU']:
+                hstr = "An "
+            else:
+                hstr = "A "
+            longname = hstr + name
         if self.__doc__ is None:
             self._construct_default_doc(longname=longname, extradoc=extradoc)
         else:
@@ -5728,6 +5784,8 @@ class rv_discrete(rv_generic):
 
     def _construct_default_doc(self, longname=None, extradoc=None):
         """Construct instance docstring from the rv_discrete template."""
+        if extradoc is None:
+            extradoc = ''
         if extradoc.startswith('\n\n'):
             extradoc = extradoc[2:]
         self.__doc__ = ''.join(['%s discrete random variable.'%longname,
@@ -6275,8 +6333,8 @@ class rv_discrete(rv_generic):
 
         """
         if (floor(n) != n):
-            raise ValueError, "Moment must be an integer."
-        if (n < 0): raise ValueError, "Moment must be positive."
+            raise ValueError("Moment must be an integer.")
+        if (n < 0): raise ValueError("Moment must be positive.")
         if (n == 0): return 1.0
         if (n > 0) and (n < 5):
             signature = inspect.getargspec(self._stats.im_func)
@@ -6428,7 +6486,7 @@ class rv_discrete(rv_generic):
 
         #handle cases with infinite support
 
-        while (pos <= ub) and (diff > self.moment_tol) and count <= maxcount: 
+        while (pos <= ub) and (diff > self.moment_tol) and count <= maxcount:
             diff = fun(pos)
             tot += diff
             pos += self.inc
@@ -6437,7 +6495,7 @@ class rv_discrete(rv_generic):
         if self.a < 0: #handle case when self.a = -inf
             diff = 1e100
             pos = low - self.inc
-            while (pos >= lb) and (diff > self.moment_tol) and count <= maxcount: 
+            while (pos >= lb) and (diff > self.moment_tol) and count <= maxcount:
                 diff = fun(pos)
                 tot += diff
                 pos -= self.inc
@@ -6446,7 +6504,7 @@ class rv_discrete(rv_generic):
             # fixme: replace with proper warning
             print 'sum did not converge'
         return tot/invfac
-    
+
 
 # Binomial
 
@@ -6974,7 +7032,7 @@ dlaplace = dlaplace_gen(a=-inf,
 
 Discrete Laplacian distribution.
 
-dlapacle.pmf(k,a) = tanh(a/2) * exp(-a*abs(k))
+dlaplace.pmf(k,a) = tanh(a/2) * exp(-a*abs(k))
 for a > 0.
 """
                         )
