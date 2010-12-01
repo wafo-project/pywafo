@@ -248,9 +248,9 @@ class TKDE(object):
                 pdf = interpolate.interp1d(points[0],f, bounds_error=False, fill_value=0.0)
             elif self.d==2:
                 pdf = interpolate.interp2d(points[0],points[1], f, bounds_error=False, fill_value=0.0)
-            ipoints = meshgrid(*args) if self.d>1 else args
-            fi = pdf(*ipoints)
-            fi.shape = ipoints[0].shape
+            #ipoints = meshgrid(*args) if self.d>1 else args
+            fi = pdf(*args)
+            #fi.shape = ipoints[0].shape
             return fi
         return f
     def eval_grid(self, *args):
@@ -431,7 +431,7 @@ class KDE(object):
         h = np.atleast_1d(h)
         hsiz = h.shape
     
-        if (min(hsiz) == 1) or (self.d == 1):
+        if (len(hsiz) == 1) or (self.d == 1):
             if max(hsiz) == 1:
                 h = h * np.ones(self.d)
             else:
