@@ -57,262 +57,10 @@ def sphere_volume(d, r=1.0):
     'Kernel smoothing'
     Chapman and Hall, pp 105
     """
-    return (r ** d) * 2. * pi ** (d / 2.) / (d * gamma(d / 2.))
+    return (r ** d) * 2.0 * pi ** (d / 2.0) / (d * gamma(d / 2.0))
 
-class TKDE(object):
-    """ Transformation Kernel-Density Estimator.
-
-    Parameters
-    ----------
-    dataset : (# of dims, # of data)-array
-        datapoints to estimate from
-    hs : array-like (optional) 
-        smooting parameter vector/matrix.
-        (default compute from data using kernel.get_smoothing function)
-    kernel :  kernel function object.
-        kernel must have get_smoothing method
-    alpha : real scalar (optional)
-        sensitivity parameter               (default 0 regular KDE)
-        A good choice might be alpha = 0.5 ( or 1/D)
-        alpha = 0      Regular  KDE (hs is constant)
-        0 < alpha <= 1 Adaptive KDE (Make hs change)  
-    L2 : array-like 
-        vector of transformation parameters (default 1 no transformation)
-        t(xi;L2) = xi^L2*sign(L2)   for L2(i) ~= 0
-        t(xi;L2) = log(xi)          for L2(i) == 0 
-        If single value of L2 is given then the transformation is the same in all directions.
-        
-    Members
-    -------
-    d : int
-        number of dimensions
-    n : int
-        number of datapoints
-
-    Methods
-    -------
-    kde.evaluate(points) : array
-        evaluate the estimated pdf on a provided set of points
-    kde(points) : array
-        same as kde.evaluate(points)
-   
-    
-    Example
-    -------
-    N = 20
-    data = np.random.rayleigh(1, size=(N,))
-    >>> data = array([ 0.75355792,  0.72779194,  0.94149169,  0.07841119,  2.32291887,
-    ...        1.10419995,  0.77055114,  0.60288273,  1.36883635,  1.74754326,
-    ...        1.09547561,  1.01671133,  0.73211143,  0.61891719,  0.75903487,
-    ...        1.8919469 ,  0.72433808,  1.92973094,  0.44749838,  1.36508452])
-
-    >>> import wafo.kdetools as wk
-    >>> x = np.linspace(0.01, max(data.ravel()) + 1, 10)  
-    >>> kde = wk.TKDE(data, hs=0.5, L2=0.5)
-    >>> f = kde(x)
-    >>> f
-    array([ 1.03982714,  0.45839018,  0.39514782,  0.32860602,  0.26433318,
-            0.20717946,  0.15907684,  0.1201074 ,  0.08941027,  0.06574882])
-            
-    >>> kde.eval_grid(x)
-    array([ 1.03982714,  0.45839018,  0.39514782,  0.32860602,  0.26433318,
-            0.20717946,  0.15907684,  0.1201074 ,  0.08941027,  0.06574882])
-            
-    >>> kde.eval_grid_fast(x)
-    array([ 0.        ,  0.4614821 ,  0.39554839,  0.32764086,  0.26275681,
-            0.20543731,  0.15741056,  0.11863464,  0.        ,  0.        ])
-            
-    import pylab as plb          
-    h1 = plb.plot(x, f) #  1D probability density plot
-    t = np.trapz(f, x)   
-    """
-
-    def __init__(self, data, hs=None, kernel=None, alpha=0.0, xmin=None, 
-                 xmax=None, inc=128, L2=None):
-        self.dataset = atleast_2d(data)
-        self.hs = hs
-        self.kernel = kernel if kernel else Kernel('gauss')
-        self.alpha = alpha
-        self.xmin = xmin
-        self.xmax = xmax
-        self.inc = inc
-        self.L2 = L2
-        self.d, self.n = self.dataset.shape
-        self.initialize()
-    
-    def initialize(self):
-        self._set_xlimits()
-        tdataset = self._dat2gaus(self.dataset)
-        xmin = self.xmin
-        if xmin is not None:
-            xmin = self._dat2gaus(xmin)
-        xmax = self.xmax
-        if xmax is not None:
-            xmax = self._dat2gaus(xmax)
-        self.tkde = KDE(tdataset, self.hs, self.kernel, self.alpha, xmin, xmax,
-                       self.inc)
-    def _set_xlimits(self):
-        amin = self.dataset.min(axis=-1)
-        amax = self.dataset.max(axis=-1)
-        xyzrange = amax-amin
-        offset = xyzrange/4.0
-        if self.xmin is None:
-            self.xmin = amin - offset
-        else:
-            self.xmin = self.xmin * np.ones(self.d)
-        if self.xmax is None:
-            self.xmax = amax + offset
-        else:
-            self.xmax = self.xmax * np.ones(self.d)
-        
-        if self.L2 is not None:
-            L2 = np.atleast_1d(self.L2) * np.ones(self.d) # default no transformation
-            self.xmin = np.where(L2!=1, np.maximum(self.xmin, amin/2.0), self.xmin)
-            
-        
-    def _check_shape(self, points):
-        points = atleast_2d(points)
-        d, m = points.shape
-        if d != self.d:
-            if d == 1 and m == self.d:
-                # points was passed in as a row vector
-                points = np.reshape(points, (self.d, 1))
-                m = 1
-            else:
-                msg = "points have dimension %s, dataset has dimension %s" % (d,
-                    self.d)
-                raise ValueError(msg)
-        return points   
-    
-    def _dat2gaus(self, points):
-        if self.L2 is None:
-            return points # default no transformation
-        
-        L2 = np.atleast_1d(self.L2) * np.ones(self.d) # default no transformation
-        
-        tpoints = copy.copy(points)
-        for i, v2 in enumerate(L2.tolist()):
-            tpoints[i] = np.log(points[i]) if v2 == 0 else points[i] ** v2
-        return tpoints
-    
-    def _gaus2dat(self, tpoints):
-        if self.L2 is None:
-            return tpoints # default no transformation
-        
-        L2 = np.atleast_1d(self.L2) * np.ones(self.d) # default no transformation
-        
-        points = copy.copy(tpoints)
-        for i, v2 in enumerate(L2.tolist()):
-            points[i] = np.exp(tpoints[i]) if v2 == 0 else tpoints[i] ** (1.0/v2)
-        return points
-    
-    def _scale_pdf(self, pdf, points):
-        if self.L2 is None:
-            return pdf
-        L2 = np.atleast_1d(self.L2) * np.ones(self.d) # default no transformation
-        for i, v2 in enumerate(L2.tolist()):
-            factor =  v2 * np.sign(v2) if v2 else 1
-            pdf *= np.where(v2 == 1, 1, points[i] ** (v2 - 1) * factor)
-        if (np.abs(np.diff(pdf)).max() > 10).any():
-            msg = ''' Numerical problems may have occured due to the power
-                    transformation. Check the KDE for spurious spikes'''
-            warnings.warn(msg)
-        return pdf
-    def eval_grid_fast(self, *args):
-        """Evaluate the estimated pdf on a grid.
-
-        Parameters
-        ----------
-        arg_0,arg_1,... arg_d-1 : vectors
-            Alternatively, if no vectors is passed in then
-             arg_i = linspace(self.xmin[i], self.xmax[i], self.inc)
-
-        Returns
-        -------
-        values : array-like
-            The values evaluated at meshgrid(*args).
-
-        """
-        
-        if self.L2 is None:
-            f = self.tkde.eval_grid_fast(*args)
-            self.args = self.tkde.args
-            return f
-        #targs = self._dat2gaus(list(args)) if len(args) else args
-        tf = self.tkde.eval_grid_fast()
-        self.args = self._gaus2dat(list(self.tkde.args))
-        points = meshgrid(*self.args) if self.d>1 else self.args
-        f = self._scale_pdf(tf, points)
-        if len(args):
-            if self.d==1:
-                pdf = interpolate.interp1d(points[0],f, bounds_error=False, fill_value=0.0)
-            elif self.d==2:
-                pdf = interpolate.interp2d(points[0],points[1], f, bounds_error=False, fill_value=0.0)
-            #ipoints = meshgrid(*args) if self.d>1 else args
-            fi = pdf(*args)
-            #fi.shape = ipoints[0].shape
-            return fi
-        return f
-    def eval_grid(self, *args):
-        """Evaluate the estimated pdf on a grid.
-
-        Parameters
-        ----------
-        arg_0,arg_1,... arg_d-1 : vectors
-            Alternatively, if no vectors is passed in then
-             arg_i = linspace(self.xmin[i], self.xmax[i], self.inc)
-
-        Returns
-        -------
-        values : array-like
-            The values evaluated at meshgrid(*args).
-
-        """
-        if len(args)==0:
-            args = []
-            for i in range(self.d):
-                args.append(np.linspace(self.xmin[i], self.xmax[i], self.inc))
-        self.args = args
-        if self.L2 is None:
-            return self.tkde.eval_grid(*args)
-        targs = self._dat2gaus(list(args))
-        tf = self.tkde.eval_grid(*targs)
-        points = meshgrid(*args) if self.d>1 else self.args
-        f = self._scale_pdf(tf, points)
-        return f
-        
-        return self.tkde.eval_grid(*args)
-    def evaluate(self, points):
-        """Evaluate the estimated pdf on a set of points.
-
-        Parameters
-        ----------
-        points : (# of dimensions, # of points)-array
-            Alternatively, a (# of dimensions,) vector can be passed in and
-            treated as a single point.
-
-        Returns
-        -------
-        values : (# of points,)-array
-            The values at each point.
-
-        Raises
-        ------
-        ValueError if the dimensionality of the input points is different than
-        the dimensionality of the KDE.
-        """
-        if self.L2 is None:
-            return self.tkde(points)
-        points = self._check_shape(points)
-        tpoints = self._dat2gaus(points)
-        tf = self.tkde(tpoints)
-        f = self._scale_pdf(tf, points)
-        return f
-    
-    __call__ = evaluate
-    
-class KDE(object):
-    """ Kernel-Density Estimator.
+class _KDE(object):
+    """ Kernel-Density Estimator base class.
 
     Parameters
     ----------
@@ -339,10 +87,400 @@ class KDE(object):
 
     Methods
     -------
-    kde.evaluate(points) : array
+    kde.eval_grid_fast(x0, x1,..., xd) : array
+        evaluate the estimated pdf on meshgrid(x0, x1,..., xd)
+    kde.eval_grid(x0, x1,..., xd) : array
+        evaluate the estimated pdf on meshgrid(x0, x1,..., xd)
+    kde.eval_points(points) : array
         evaluate the estimated pdf on a provided set of points
-    kde(points) : array
-        same as kde.evaluate(points)
+    kde(x0, x1,..., xd) : array
+        same as kde.eval_grid(x0, x1,..., xd)
+    """
+
+    def __init__(self, data, hs=None, kernel=None, alpha=0.0, xmin=None, xmax=None, inc=128):
+        self.dataset = atleast_2d(data)
+        self.hs = hs
+        self.kernel = kernel if kernel else Kernel('gauss')
+        self.alpha = alpha
+        self.xmin = xmin
+        self.xmax = xmax
+        self.inc = inc
+        self.initialize()
+
+    def initialize(self):
+        self.d, self.n = self.dataset.shape
+        self._set_xlimits()
+        self._initialize()
+        
+    def _initialize(self):
+        pass
+    
+    def _set_xlimits(self):
+        amin = self.dataset.min(axis= -1)
+        amax = self.dataset.max(axis= -1)
+        iqr = iqrange(self.dataset, axis=-1)
+        sigma = np.minimum(np.std(self.dataset, axis=-1, ddof=1),iqr/1.34)
+        #xyzrange = amax - amin
+        #offset = xyzrange / 4.0
+        offset  = 2*sigma
+        if self.xmin is None:
+            self.xmin = amin - offset
+        else:
+            self.xmin = self.xmin * np.ones(self.d)
+        if self.xmax is None:
+            self.xmax = amax + offset
+        else:
+            self.xmax = self.xmax * np.ones(self.d)
+            
+    def eval_grid_fast(self, *args):
+        """Evaluate the estimated pdf on a grid.
+
+        Parameters
+        ----------
+        arg_0,arg_1,... arg_d-1 : vectors
+            Alternatively, if no vectors is passed in then
+             arg_i = linspace(self.xmin[i], self.xmax[i], self.inc)
+
+        Returns
+        -------
+        values : array-like
+            The values evaluated at meshgrid(*args).
+
+        """
+        if len(args) == 0:
+            args = []
+            for i in range(self.d):
+                args.append(np.linspace(self.xmin[i], self.xmax[i], self.inc))
+        self.args = args
+        return self._eval_grid_fast(*args)
+    def _eval_grid_fast(self, *args):
+        pass
+
+    def eval_grid(self, *args):
+        """Evaluate the estimated pdf on a grid.
+
+        Parameters
+        ----------
+        arg_0,arg_1,... arg_d-1 : vectors
+            Alternatively, if no vectors is passed in then
+             arg_i = linspace(self.xmin[i], self.xmax[i], self.inc)
+
+        Returns
+        -------
+        values : array-like
+            The values evaluated at meshgrid(*args).
+
+        """
+
+        if len(args) == 0:
+            args = []
+            for i in range(self.d):
+                args.append(np.linspace(self.xmin[i], self.xmax[i], self.inc))
+        self.args = args
+        return self._eval_grid(*args)
+    
+    def _eval_grid(self, *args):
+        pass
+    
+    def _check_shape(self, points):
+        points = atleast_2d(points)
+        d, m = points.shape
+        if d != self.d:
+            if d == 1 and m == self.d:
+                # points was passed in as a row vector
+                points = np.reshape(points, (self.d, 1))
+            else:
+                msg = "points have dimension %s, dataset has dimension %s" % (d,
+                    self.d)
+                raise ValueError(msg)
+        return points   
+    def eval_points(self, points):
+        """Evaluate the estimated pdf on a set of points.
+
+        Parameters
+        ----------
+        points : (# of dimensions, # of points)-array
+            Alternatively, a (# of dimensions,) vector can be passed in and
+            treated as a single point.
+
+        Returns
+        -------
+        values : (# of points,)-array
+            The values at each point.
+
+        Raises
+        ------
+        ValueError if the dimensionality of the input points is different than
+        the dimensionality of the KDE.
+        """
+
+        points = self._check_shape(points)
+        return self._eval_points(points)
+    
+    def _eval_points(self, points):
+        pass
+
+    __call__ = eval_grid
+    
+class TKDE(_KDE):
+    """ Transformation Kernel-Density Estimator.
+
+    Parameters
+    ----------
+    dataset : (# of dims, # of data)-array
+        datapoints to estimate from
+    hs : array-like (optional) 
+        smooting parameter vector/matrix.
+        (default compute from data using kernel.get_smoothing function)
+    kernel :  kernel function object.
+        kernel must have get_smoothing method
+    alpha : real scalar (optional)
+        sensitivity parameter               (default 0 regular KDE)
+        A good choice might be alpha = 0.5 ( or 1/D)
+        alpha = 0      Regular  KDE (hs is constant)
+        0 < alpha <= 1 Adaptive KDE (Make hs change)
+    xmin, xmax  : vectors 
+        specifying the default argument range for the kde.eval_grid methods. 
+        For the kde.eval_grid_fast methods the values must cover the range of the data. 
+        (default min(data)-range(data)/4, max(data)-range(data)/4)
+        If a single value of xmin or xmax is given then the boundary is the is 
+        the same for all dimensions.
+    inc :  scalar integer
+        defining the default dimension of the output from kde.eval_grid methods (default 128)
+        (For kde.eval_grid_fast: A value below 50 is very fast to compute but 
+        may give some inaccuracies. Values between 100 and 500 give very 
+        accurate results)  
+    L2 : array-like 
+        vector of transformation parameters (default 1 no transformation)
+        t(xi;L2) = xi^L2*sign(L2)   for L2(i) ~= 0
+        t(xi;L2) = log(xi)          for L2(i) == 0 
+        If single value of L2 is given then the transformation is the same in all directions.
+        
+    Members
+    -------
+    d : int
+        number of dimensions
+    n : int
+        number of datapoints
+
+    Methods
+    -------
+    kde.eval_grid_fast(x0, x1,..., xd) : array
+        evaluate the estimated pdf on meshgrid(x0, x1,..., xd)
+    kde.eval_grid(x0, x1,..., xd) : array
+        evaluate the estimated pdf on meshgrid(x0, x1,..., xd)
+    kde.eval_points(points) : array
+        evaluate the estimated pdf on a provided set of points
+    kde(x0, x1,..., xd) : array
+        same as kde.eval_grid(x0, x1,..., xd)
+   
+    
+    Example
+    -------
+    N = 20
+    data = np.random.rayleigh(1, size=(N,))
+    >>> data = array([ 0.75355792,  0.72779194,  0.94149169,  0.07841119,  2.32291887,
+    ...        1.10419995,  0.77055114,  0.60288273,  1.36883635,  1.74754326,
+    ...        1.09547561,  1.01671133,  0.73211143,  0.61891719,  0.75903487,
+    ...        1.8919469 ,  0.72433808,  1.92973094,  0.44749838,  1.36508452])
+
+    >>> import wafo.kdetools as wk
+    >>> x = np.linspace(0.01, max(data.ravel()) + 1, 10)  
+    >>> kde = wk.TKDE(data, hs=0.5, L2=0.5)
+    >>> f = kde(x)
+    >>> f
+    array([ 1.03982714,  0.45839018,  0.39514782,  0.32860602,  0.26433318,
+            0.20717946,  0.15907684,  0.1201074 ,  0.08941027,  0.06574882])
+            
+    >>> kde.eval_grid(x)
+    array([ 1.03982714,  0.45839018,  0.39514782,  0.32860602,  0.26433318,
+            0.20717946,  0.15907684,  0.1201074 ,  0.08941027,  0.06574882])
+            
+    >>> kde.eval_grid_fast(x)
+    array([ 1.06437223,  0.46203314,  0.39593137,  0.32781899,  0.26276433,
+            0.20532206,  0.15723498,  0.11843998,  0.08797755,  0.        ])
+            
+    import pylab as plb          
+    h1 = plb.plot(x, f) #  1D probability density plot
+    t = np.trapz(f, x)   
+    """
+
+    def __init__(self, data, hs=None, kernel=None, alpha=0.0, xmin=None,
+                 xmax=None, inc=128, L2=None):
+        self.L2 = L2
+        _KDE.__init__(self, data, hs, kernel, alpha, xmin, xmax, inc)
+    
+    def _initialize(self):
+        self._check_xmin()
+        tdataset = self._dat2gaus(self.dataset)
+        xmin = self.xmin
+        if xmin is not None:
+            xmin = self._dat2gaus(xmin)
+        xmax = self.xmax
+        if xmax is not None:
+            xmax = self._dat2gaus(xmax)
+        self.tkde = KDE(tdataset, self.hs, self.kernel, self.alpha, xmin, xmax,
+                       self.inc)
+    def _check_xmin(self):
+        if self.L2 is not None:
+            amin = self.dataset.min(axis= -1)
+            L2 = np.atleast_1d(self.L2) * np.ones(self.d) # default no transformation
+            self.xmin = np.where(L2 != 1, np.maximum(self.xmin, amin / 100.0), self.xmin)
+            
+    def _dat2gaus(self, points):
+        if self.L2 is None:
+            return points # default no transformation
+        
+        L2 = np.atleast_1d(self.L2) * np.ones(self.d) # default no transformation
+        
+        tpoints = copy.copy(points)
+        for i, v2 in enumerate(L2.tolist()):
+            tpoints[i] = np.log(points[i]) if v2 == 0 else points[i] ** v2
+        return tpoints
+    
+    def _gaus2dat(self, tpoints):
+        if self.L2 is None:
+            return tpoints # default no transformation
+        
+        L2 = np.atleast_1d(self.L2) * np.ones(self.d) # default no transformation
+        
+        points = copy.copy(tpoints)
+        for i, v2 in enumerate(L2.tolist()):
+            points[i] = np.exp(tpoints[i]) if v2 == 0 else tpoints[i] ** (1.0 / v2)
+        return points
+    
+    def _scale_pdf(self, pdf, points):
+        if self.L2 is None:
+            return pdf
+        L2 = np.atleast_1d(self.L2) * np.ones(self.d) # default no transformation
+        for i, v2 in enumerate(L2.tolist()):
+            factor = v2 * np.sign(v2) if v2 else 1
+            pdf *= np.where(v2 == 1, 1, points[i] ** (v2 - 1) * factor)
+        if (np.abs(np.diff(pdf)).max() > 10).any():
+            msg = ''' Numerical problems may have occured due to the power
+                    transformation. Check the KDE for spurious spikes'''
+            warnings.warn(msg)
+        return pdf
+    
+    def eval_grid_fast2(self, *args):
+        """Evaluate the estimated pdf on a grid.
+        
+        Parameters
+        ----------
+        arg_0,arg_1,... arg_d-1 : vectors
+           Alternatively, if no vectors is passed in then
+            arg_i = gauss2dat(linspace(dat2gauss(self.xmin[i]), dat2gauss(self.xmax[i]), self.inc))
+        
+        Returns
+        -------
+        values : array-like
+           The values evaluated at meshgrid(*args).
+        
+        """
+        return self._eval_grid_fast(*args)
+    
+    def _eval_grid_fast(self, *args): 
+        if self.L2 is None:
+            f = self.tkde.eval_grid_fast(*args)
+            self.args = self.tkde.args
+            return f
+        #targs = self._dat2gaus(list(args)) if len(args) else args
+        tf = self.tkde.eval_grid_fast()
+        self.args = self._gaus2dat(list(self.tkde.args))
+        points = meshgrid(*self.args) if self.d > 1 else self.args
+        f = self._scale_pdf(tf, points)
+        if len(args):
+            if self.d == 1:
+                pdf = interpolate.interp1d(points[0], f, bounds_error=False, fill_value=0.0)
+            elif self.d == 2:
+                pdf = interpolate.interp2d(points[0], points[1], f, bounds_error=False, fill_value=0.0)
+            #ipoints = meshgrid(*args) if self.d>1 else args
+            fi = pdf(*args)
+            #fi.shape = ipoints[0].shape
+            return fi
+        return f
+    def _eval_grid(self, *args):
+        if self.L2 is None:
+            return self.tkde.eval_grid(*args)
+        targs = self._dat2gaus(list(args))
+        tf = self.tkde.eval_grid(*targs)
+        points = meshgrid(*args) if self.d > 1 else self.args
+        f = self._scale_pdf(tf, points)
+        return f
+
+    def _eval_points(self, points):
+        """Evaluate the estimated pdf on a set of points.
+
+        Parameters
+        ----------
+        points : (# of dimensions, # of points)-array
+            Alternatively, a (# of dimensions,) vector can be passed in and
+            treated as a single point.
+
+        Returns
+        -------
+        values : (# of points,)-array
+            The values at each point.
+
+        Raises
+        ------
+        ValueError if the dimensionality of the input points is different than
+        the dimensionality of the KDE.
+        """
+        if self.L2 is None:
+            return self.tkde.eval_points(points)
+        
+        tpoints = self._dat2gaus(points)
+        tf = self.tkde.eval_points(tpoints)
+        f = self._scale_pdf(tf, points)
+        return f
+    
+class KDE(_KDE):
+    """ Kernel-Density Estimator.
+
+    Parameters
+    ----------
+    data : (# of dims, # of data)-array
+        datapoints to estimate from
+    hs : array-like (optional) 
+        smooting parameter vector/matrix.
+        (default compute from data using kernel.get_smoothing function)
+    kernel :  kernel function object.
+        kernel must have get_smoothing method
+    alpha : real scalar (optional)
+        sensitivity parameter               (default 0 regular KDE)
+        A good choice might be alpha = 0.5 ( or 1/D)
+        alpha = 0      Regular  KDE (hs is constant)
+        0 < alpha <= 1 Adaptive KDE (Make hs change)  
+    xmin, xmax  : vectors 
+        specifying the default argument range for the kde.eval_grid methods. 
+        For the kde.eval_grid_fast methods the values must cover the range of the data. 
+        (default min(data)-range(data)/4, max(data)-range(data)/4)
+        If a single value of xmin or xmax is given then the boundary is the is 
+        the same for all dimensions.
+    inc :  scalar integer
+        defining the default dimension of the output from kde.eval_grid methods (default 128)
+        (For kde.eval_grid_fast: A value below 50 is very fast to compute but 
+        may give some inaccuracies. Values between 100 and 500 give very 
+        accurate results)  
+
+    Members
+    -------
+    d : int
+        number of dimensions
+    n : int
+        number of datapoints
+
+    Methods
+    -------
+    kde.eval_grid_fast(x0, x1,..., xd) : array
+        evaluate the estimated pdf on meshgrid(x0, x1,..., xd)
+    kde.eval_grid(x0, x1,..., xd) : array
+        evaluate the estimated pdf on meshgrid(x0, x1,..., xd)
+    kde.eval_points(points) : array
+        evaluate the estimated pdf on a provided set of points
+    kde(x0, x1,..., xd) : array
+        same as kde.eval_grid(x0, x1,..., xd)
    
     
     Example
@@ -367,18 +505,18 @@ class KDE(object):
             0.21409279,  0.12738463,  0.07460326,  0.03956191,  0.01887164])
     
     >>> kde0 = wk.KDE(data, hs=0.5, alpha=0.0)
-    >>> kde0.evaluate(x)
+    >>> kde0.eval_points(x)
     array([ 0.2039735 ,  0.40252503,  0.54595078,  0.52219649,  0.3906213 ,
             0.26381501,  0.16407362,  0.08270612,  0.02991145,  0.00720821])
     
     >>> kde0.eval_grid(x)
     array([ 0.2039735 ,  0.40252503,  0.54595078,  0.52219649,  0.3906213 ,
-            0.26381501,  0.16407362,  0.08270612,  0.02991145,  0.00720821])       
+            0.26381501,  0.16407362,  0.08270612,  0.02991145,  0.00720821])
     
     >>> f = kde0.eval_grid_fast()
     >>> np.interp(x, kde0.args[0], f)
-    array([ 0.21165996,  0.41218257,  0.54961961,  0.51713209,  0.38292245,
-            0.25864661,  0.16113184,  0.08055992,  0.03576856,  0.03576856])
+    array([ 0.21227584,  0.41256459,  0.5495661 ,  0.5176579 ,  0.38431616,
+            0.2591162 ,  0.15978948,  0.07889179,  0.02769818,  0.00791829])
             
     import pylab as plb          
     h1 = plb.plot(x, f) #  1D probability density plot
@@ -386,41 +524,18 @@ class KDE(object):
     """
 
     def __init__(self, data, hs=None, kernel=None, alpha=0.0, xmin=None, xmax=None, inc=128):
-        self.kernel = kernel if kernel else Kernel('gauss')
-        self.hs = hs
-        self.alpha = alpha
-        
-        self.dataset = atleast_2d(data)
-        self.d, self.n = self.dataset.shape
-        self.xmin = xmin
-        self.xmax = xmax
-        self.inc = inc
-        self.initialize()
-
-    def initialize(self):
-        self._set_xlimits()
+        _KDE.__init__(self, data, hs, kernel, alpha, xmin, xmax, inc)
+            
+    def _initialize(self):
         self._compute_smoothing()
         if self.alpha > 0:
             pilot = KDE(self.dataset, hs=self.hs, kernel=self.kernel, alpha=0)
-            f = pilot(self.dataset) # get a pilot estimate by regular KDE (alpha=0)
+            f = pilot.eval_points(self.dataset) # get a pilot estimate by regular KDE (alpha=0)
             g = np.exp(np.mean(np.log(f)))
             self._lambda = (f / g) ** (-self.alpha)
         else:
             self._lambda = np.ones(self.n)
-    
-    def _set_xlimits(self):
-        amin = self.dataset.min(axis=-1)
-        amax = self.dataset.max(axis=-1)
-        xyzrange = amax-amin
-        if self.xmin is None:
-            self.xmin = amin-xyzrange/4.0
-        else:
-            self.xmin = self.xmin * np.ones(self.d)
-        if self.xmax is None:
-            self.xmax = amax + xyzrange/4.0
-        else:
-            self.xmax = self.xmax * np.ones(self.d)
-            
+                
     def _compute_smoothing(self):
         """Computes the smoothing matrix
         """
@@ -451,41 +566,21 @@ class KDE(object):
         self.hs = h
         self._norm_factor = deth * self.n
     
-    def eval_grid_fast(self, *args):
-        """Evaluate the estimated pdf on a grid.
 
-        Parameters
-        ----------
-        arg_0,arg_1,... arg_d-1 : vectors
-            Alternatively, if no vectors is passed in then
-             arg_i = linspace(self.xmin[i], self.xmax[i], self.inc)
-
-        Returns
-        -------
-        values : array-like
-            The values evaluated at meshgrid(*args).
-
-        """
-        if len(args)==0:
-            args = []
-            for i in range(self.d):
-                args.append(np.linspace(self.xmin[i], self.xmax[i], self.inc))
-        self.args = args
-        return self._eval_grid_fast(*args)
     def _eval_grid_fast(self, *args):
         # TODO: This does not work correctly yet! Check it.
         X = np.vstack(args)
         d, inc = X.shape
-        dx = X[:,1]-X[:,0]
+        dx = X[:, 1] - X[:, 0]
         
         Xn = []
-        nfft0 = 2*inc
+        nfft0 = 2 * inc
         nfft = (nfft0,)*d
-        x0 = np.linspace(-inc, inc, nfft0+1)
+        x0 = np.linspace(-inc, inc, nfft0 + 1)
         for i in range(d):
-            Xn.append(x0[:-1]*dx[i])
+            Xn.append(x0[:-1] * dx[i])
         
-        Xnc = meshgrid(*Xn) if d>1 else Xn
+        Xnc = meshgrid(*Xn) if d > 1 else Xn
         
         shape0 = Xnc[0].shape
         for i in range(d):
@@ -494,7 +589,7 @@ class KDE(object):
         Xn = np.dot(self.inv_hs, np.vstack(Xnc))
         
         # Obtain the kernel weights.        
-        kw = self.kernel(Xn)/(self._norm_factor * self.kernel.norm_factor(d, self.n))
+        kw = self.kernel(Xn) / (self._norm_factor * self.kernel.norm_factor(d, self.n))
         kw.shape = shape0
         kw = np.fft.ifftshift(kw)
         fftn = np.fft.fftn
@@ -504,58 +599,23 @@ class KDE(object):
         c = gridcount(self.dataset, X)
 
         # Perform the convolution.
-        z = np.real(ifftn(fftn(c,s=nfft)*fftn(kw)))
+        z = np.real(ifftn(fftn(c, s=nfft) * fftn(kw)))
 
-        ix = (slice(0,inc),)*d
-        return z[ix]*(z[ix]>0.0)
-
-    def eval_grid(self, *args):
-        """Evaluate the estimated pdf on a grid.
-
-        Parameters
-        ----------
-        arg_0,arg_1,... arg_d-1 : vectors
-            Alternatively, if no vectors is passed in then
-             arg_i = linspace(self.xmin[i], self.xmax[i], self.inc)
-
-        Returns
-        -------
-        values : array-like
-            The values evaluated at meshgrid(*args).
-
-        """
-
-        if len(args)==0:
-            args = []
-            for i in range(self.d):
-                args.append(np.linspace(self.xmin[i], self.xmax[i], self.inc))
-        self.args = args
-        return self._eval_grid(*args)
-    
+        ix = (slice(0, inc),)*d
+        return z[ix] * (z[ix] > 0.0)
+   
     def _eval_grid(self, *args):
         
-        grd = meshgrid(*args) if len(args)>1 else list(args)
+        grd = meshgrid(*args) if len(args) > 1 else list(args)
         shape0 = grd[0].shape
         d = len(grd)
         for i in range(d):
             grd[i] = grd[i].ravel()
-        f = self.evaluate(np.vstack(grd))
+        f = self.eval_points(np.vstack(grd))
         return f.reshape(shape0)
     
-    def _check_shape(self, points):
-        points = atleast_2d(points)
-        d, m = points.shape
-        if d != self.d:
-            if d == 1 and m == self.d:
-                # points was passed in as a row vector
-                points = np.reshape(points, (self.d, 1))
-                m = 1
-            else:
-                msg = "points have dimension %s, dataset has dimension %s" % (d,
-                    self.d)
-                raise ValueError(msg)
-        return points   
-    def evaluate(self, points):
+
+    def _eval_points(self, points):
         """Evaluate the estimated pdf on a set of points.
 
         Parameters
@@ -574,8 +634,6 @@ class KDE(object):
         ValueError if the dimensionality of the input points is different than
         the dimensionality of the KDE.
         """
-
-        points = self._check_shape(points)
         d, m = points.shape
        
         result = np.zeros((m,))
@@ -597,8 +655,6 @@ class KDE(object):
         result /= (self._norm_factor * self.kernel.norm_factor(d, self.n))
 
         return result
-
-    __call__ = evaluate
 
     
 class _Kernel(object):
@@ -624,7 +680,7 @@ class _Kernel(object):
         '''
         return self._effective_support()
     def _effective_support(self):
-        return -self.r, self.r
+        return - self.r, self.r
     __call__ = kernel 
     
 class _KernelMulti(_Kernel):
@@ -690,27 +746,27 @@ mkernel_triangular = _KernelTriangular(stats=_stats_tria)
     
 class _KernelGaussian(_Kernel):
     def _kernel(self, x):
-        sigma = self.r/4.0
-        x2 = (x/sigma) ** 2
+        sigma = self.r / 4.0
+        x2 = (x / sigma) ** 2
         return exp(-0.5 * x2.sum(axis=0))       
     def norm_factor(self, d=1, n=None):
-        sigma = self.r/4.0
+        sigma = self.r / 4.0
         return (2 * pi * sigma) ** (d / 2.0) 
     def deriv4_6_8_10(self, t, numout=4):
         '''
         Returns 4th, 6th, 8th and 10th derivatives of the kernel function.
         '''
-        phi0 = exp(-0.5*t**2)/sqrt(2*pi)
+        phi0 = exp(-0.5 * t ** 2) / sqrt(2 * pi)
         p4 = [1, 0, -6, 0, +3]
-        p4val = np.polyval(p4,t)*phi0
-        if numout==1:
+        p4val = np.polyval(p4, t) * phi0
+        if numout == 1:
             return p4val
         out = [p4val]
         pn = p4
-        for ix in range(numout-1):
+        for ix in range(numout - 1):
             pnp1 = np.polyadd(-np.r_[pn, 0], np.polyder(pn))
             pnp2 = np.polyadd(-np.r_[pnp1, 0], np.polyder(pnp1))
-            out.append(np.polyval(pnp2, t)*phi0)
+            out.append(np.polyval(pnp2, t) * phi0)
             pn = pnp2
         return out
     
@@ -898,7 +954,7 @@ class Kernel(object):
         # R= int(mkernel(x)^2),  mu2= int(x^2*mkernel(x))
         mu2, R, Rdd = self.stats()
         AMISEconstant = (8 * sqrt(pi) * R / (3 * mu2 ** 2 * n)) ** (1. / 5)
-        iqr = np.abs(np.percentile(A, 75, axis=1) - np.percentile(A, 25, axis=1))# interquartile range
+        iqr = iqrange(A, axis=1) # interquartile range
         stdA = np.std(A, axis=1, ddof=1)
         #  % use of interquartile range guards against outliers.
         #  % the use of interquartile range is better if 
@@ -1043,34 +1099,34 @@ class Kernel(object):
         # TODO: replace the iteration in the end with a Newton Raphson scheme
         
         A = np.atleast_2d(data)
-        d, n= A.shape
+        d, n = A.shape
         
         # R= int(mkernel(x)^2),  mu2= int(x^2*mkernel(x))
         mu2, R, Rdd = self.stats()
         
         AMISEconstant = (8 * sqrt(pi) * R / (3 * mu2 ** 2 * n)) ** (1. / 5)
-        STEconstant = R /(mu2**(2)*n)
+        STEconstant = R / (mu2 ** (2) * n)
         
-        sigmaA = self.hns(A)/AMISEconstant
+        sigmaA = self.hns(A) / AMISEconstant
         if h0 is None:
-            h0 = sigmaA*AMISEconstant
+            h0 = sigmaA * AMISEconstant
         
         h = np.asarray(h0, dtype=float)
        
-        nfft = inc*2 
-        amin   = A.min(axis=1) # Find the minimum value of A.
-        amax   = A.max(axis=1) #Find the maximum value of A.
-        arange = amax-amin # Find the range of A.
+        nfft = inc * 2 
+        amin = A.min(axis=1) # Find the minimum value of A.
+        amax = A.max(axis=1) #Find the maximum value of A.
+        arange = amax - amin # Find the range of A.
         
         #% xa holds the x 'axis' vector, defining a grid of x values where 
         #% the k.d. function will be evaluated.
         
-        ax1 = amin-arange/8.0
-        bx1 = amax+arange/8.0
+        ax1 = amin - arange / 8.0
+        bx1 = amax + arange / 8.0
         
-        kernel2 = Kernel('gaus') 
-        mu2,R,Rdd = kernel2.stats()
-        STEconstant2 = R /(mu2**(2)*n)
+        kernel2 = Kernel('gauss') 
+        mu2, R, Rdd = kernel2.stats()
+        STEconstant2 = R / (mu2 ** (2) * n)
         fft = np.fft.fft
         ifft = np.fft.ifft
         
@@ -1079,61 +1135,61 @@ class Kernel(object):
             ax = ax1[dim]
             bx = bx1[dim]
           
-            xa = np.linspace(ax,bx,inc) 
-            xn = np.linspace(0,bx-ax,inc)
+            xa = np.linspace(ax, bx, inc) 
+            xn = np.linspace(0, bx - ax, inc)
           
-            c = gridcount(A[dim],xa)
+            c = gridcount(A[dim], xa)
        
         
             # Step 1
-            psi6NS = -15/(16*sqrt(pi)*s**7)
-            psi8NS = 105/(32*sqrt(pi)*s**9)
+            psi6NS = -15 / (16 * sqrt(pi) * s ** 7)
+            psi8NS = 105 / (32 * sqrt(pi) * s ** 9)
         
             # Step 2
             k40, k60 = kernel2.deriv4_6_8_10(0, numout=2)
-            g1 = (-2*k40/(mu2*psi6NS*n))**(1.0/7)
-            g2 = (-2*k60/(mu2*psi8NS*n))**(1.0/9)
+            g1 = (-2 * k40 / (mu2 * psi6NS * n)) ** (1.0 / 7)
+            g2 = (-2 * k60 / (mu2 * psi8NS * n)) ** (1.0 / 9)
         
             # Estimate psi6 given g2.
-            kw4, kw6 = kernel2.deriv4_6_8_10(xn/g2, numout=2) # kernel weights.
-            kw = np.r_[kw6,0,kw6[-1:0:-1]]             # Apply fftshift to kw.
-            z = np.real(ifft(fft(c,nfft)*fft(kw)))     # convolution.
-            psi6 = np.sum(c*z[:inc])/(n*(n-1)*g2**7)
+            kw4, kw6 = kernel2.deriv4_6_8_10(xn / g2, numout=2) # kernel weights.
+            kw = np.r_[kw6, 0, kw6[-1:0:-1]]             # Apply fftshift to kw.
+            z = np.real(ifft(fft(c, nfft) * fft(kw)))     # convolution.
+            psi6 = np.sum(c * z[:inc]) / (n * (n - 1) * g2 ** 7)
         
             # Estimate psi4 given g1.
-            kw4  = kernel2.deriv4_6_8_10(xn/g1, numout=1) # kernel weights.
-            kw   = np.r_[kw4,0,kw4[-1:0:-1]]  #Apply 'fftshift' to kw.
-            z    = np.real(ifft(fft(c,nfft)*fft(kw))) # convolution.
-            psi4 = np.sum(c*z[:inc])/(n*(n-1)*g1**5)
+            kw4 = kernel2.deriv4_6_8_10(xn / g1, numout=1) # kernel weights.
+            kw = np.r_[kw4, 0, kw4[-1:0:-1]]  #Apply 'fftshift' to kw.
+            z = np.real(ifft(fft(c, nfft) * fft(kw))) # convolution.
+            psi4 = np.sum(c * z[:inc]) / (n * (n - 1) * g1 ** 5)
         
             
             
-            h1    = h[dim]
+            h1 = h[dim]
             h_old = 0
             count = 0
           
-            while ((abs(h_old-h1)>max(releps*h1,abseps)) and (count < maxit)):
+            while ((abs(h_old - h1) > max(releps * h1, abseps)) and (count < maxit)):
                 count += 1
                 h_old = h1
           
                 # Step 3
-                gamma=((2*k40*mu2*psi4*h1**5)/(-psi6*R))**(1.0/7)
+                gamma = ((2 * k40 * mu2 * psi4 * h1 ** 5) / (-psi6 * R)) ** (1.0 / 7)
         
                 # Now estimate psi4 given gamma.
-                kw4 = kernel2.deriv4_6_8_10(xn/gamma, numout=1) #kernel weights. 
-                kw  = np.r_[kw4,0,kw4[-1:0:-1]] # Apply 'fftshift' to kw.
-                z   = np.real(ifft(fft(c,nfft)*fft(kw))) # convolution.
+                kw4 = kernel2.deriv4_6_8_10(xn / gamma, numout=1) #kernel weights. 
+                kw = np.r_[kw4, 0, kw4[-1:0:-1]] # Apply 'fftshift' to kw.
+                z = np.real(ifft(fft(c, nfft) * fft(kw))) # convolution.
         
-                psi4Gamma  = np.sum(c*z[:inc])/(n*(n-1)*gamma**5)
+                psi4Gamma = np.sum(c * z[:inc]) / (n * (n - 1) * gamma ** 5)
           
                 # Step 4
-                h1 = (STEconstant2/psi4Gamma)**(1.0/5)
+                h1 = (STEconstant2 / psi4Gamma) ** (1.0 / 5)
             
             # Kernel other than Gaussian scale bandwidth
-            h1  = h1*(STEconstant/STEconstant2)**(1.0/5)
+            h1 = h1 * (STEconstant / STEconstant2) ** (1.0 / 5)
           
         
-            if count>= maxit:
+            if count >= maxit:
                 warnings.warn('The obtained value did not converge.')
           
             h[dim] = h1
@@ -1142,9 +1198,9 @@ class Kernel(object):
     
     def norm_factor(self, d=1, n=None):
         return  self.kernel.norm_factor(d, n)    
-    def evaluate(self, X):
-        return self.kernel(np.atleast_2d(X))
-    __call__ = evaluate
+    def eval_points(self, points):
+        return self.kernel(np.atleast_2d(points))
+    __call__ = eval_points
     
 def mkernel(X, kernel):
     '''
@@ -1296,6 +1352,39 @@ def accum(accmap, a, func=None, size=None, fill_value=0, dtype=None):
             out[s] = func(vals[s])
 
     return out
+
+def iqrange(data, axis=None):
+    '''
+    Returns the Inter Quartile Range of data
+    
+    Parameters
+    ----------
+    data : array-like
+        Input array or object that can be converted to an array.
+    axis : {None, int}, optional
+        Axis along which the percentiles are computed. The default (axis=None)
+        is to compute the median along a flattened version of the array.
+    Returns
+    -------
+    r : array-like
+        abs(np.percentile(data, 75, axis)-np.percentile(data, 25, axis))
+    
+    Notes
+    -----    
+    IQRANGE is a robust measure of spread. The use of interquartile range 
+    guards against outliers if the distribution have heavy tails.
+    
+    Example
+    -------
+    >>> a = np.arange(101)
+    >>> iqrange(a)
+    50.0
+    
+    See also  
+    --------
+    np.std
+    '''
+    return np.abs(np.percentile(data, 75, axis=axis)-np.percentile(data, 25, axis=axis))
 
 def bitget(int_type, offset):
     '''
