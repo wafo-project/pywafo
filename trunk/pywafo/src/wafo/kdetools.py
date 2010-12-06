@@ -10,17 +10,16 @@
 #-------------------------------------------------------------------------------
 #!/usr/bin/env python
 from __future__ import division
-import copy
-import warnings
-import numpy as np
-from numpy import pi, sqrt, atleast_2d, exp, newaxis, array #@UnresolvedImport
-import scipy
-from scipy import interpolate
-from scipy import linalg
-from scipy.special import gamma
-from misc import tranproc, trangood
 from itertools import product
+#from misc import tranproc, trangood
+from numpy import pi, sqrt, atleast_2d, exp, newaxis #@UnresolvedImport
+from scipy import interpolate, linalg
+from scipy.special import gamma
 from wafo.misc import meshgrid
+import copy
+import numpy as np
+import scipy
+import warnings
 
 _stats_epan = (1. / 5, 3. / 5, np.inf)
 _stats_biwe = (1. / 7, 5. / 7, 45. / 2)
