@@ -12,7 +12,7 @@
 from __future__ import division
 from itertools import product
 #from misc import tranproc, trangood
-from numpy import pi, sqrt, atleast_2d, exp, newaxis #@UnresolvedImport
+from numpy import pi, sqrt, atleast_2d, exp, newaxis, array #@UnresolvedImport
 from scipy import interpolate, linalg
 from scipy.special import gamma
 from wafo.misc import meshgrid
@@ -20,6 +20,7 @@ import copy
 import numpy as np
 import scipy
 import warnings
+from wafo.wafodata import WafoData
 
 _stats_epan = (1. / 5, 3. / 5, np.inf)
 _stats_biwe = (1. / 7, 5. / 7, 45. / 2)
@@ -131,7 +132,7 @@ class _KDE(object):
         else:
             self.xmax = self.xmax * np.ones(self.d)
             
-    def eval_grid_fast(self, *args):
+    def eval_grid_fast(self, *args, **kwds):
         """Evaluate the estimated pdf on a grid.
 
         Parameters
@@ -146,16 +147,12 @@ class _KDE(object):
             The values evaluated at meshgrid(*args).
 
         """
-        if len(args) == 0:
-            args = []
-            for i in range(self.d):
-                args.append(np.linspace(self.xmin[i], self.xmax[i], self.inc))
-        self.args = args
-        return self._eval_grid_fast(*args)
+        return self._eval_grid_fun(self._eval_grid_fast, *args, **kwds)
+       
     def _eval_grid_fast(self, *args):
         pass
-
-    def eval_grid(self, *args):
+    
+    def eval_grid(self, *args, **kwds):
         """Evaluate the estimated pdf on a grid.
 
         Parameters
@@ -163,24 +160,36 @@ class _KDE(object):
         arg_0,arg_1,... arg_d-1 : vectors
             Alternatively, if no vectors is passed in then
              arg_i = linspace(self.xmin[i], self.xmax[i], self.inc)
-
+        output : string
+            'value' if value output
+            'wafodata' if object output
+        
         Returns
         -------
         values : array-like
             The values evaluated at meshgrid(*args).
 
         """
-
+        return self._eval_grid_fun(self._eval_grid, *args, **kwds)
+    def _eval_grid(self, *args):
+        pass
+    def _eval_grid_fun(self, eval_grd, *args, **kwds):
         if len(args) == 0:
             args = []
             for i in range(self.d):
                 args.append(np.linspace(self.xmin[i], self.xmax[i], self.inc))
         self.args = args
-        return self._eval_grid(*args)
-    
-    def _eval_grid(self, *args):
-        pass
-    
+        f = eval_grd(*args)
+        if kwds.get('output', 'value')=='value':
+            return f
+        else:
+            titlestr = 'Kernel density estimate (%s)' % self.kernel.name
+            kwds2 = dict(title=titlestr)
+            kwds2.update(**kwds)
+            if self.d==1:
+                args = args[0]        
+            return WafoData(f,args, **kwds2)
+
     def _check_shape(self, points):
         points = atleast_2d(points)
         d, m = points.shape
@@ -511,12 +520,16 @@ class KDE(_KDE):
     >>> kde0.eval_grid(x)
     array([ 0.2039735 ,  0.40252503,  0.54595078,  0.52219649,  0.3906213 ,
             0.26381501,  0.16407362,  0.08270612,  0.02991145,  0.00720821])
-    
+    >>> f = kde0.eval_grid(x, output='plotobj')
+    >>> f.data
+    array([ 0.2039735 ,  0.40252503,  0.54595078,  0.52219649,  0.3906213 ,
+            0.26381501,  0.16407362,  0.08270612,  0.02991145,  0.00720821])
+            
     >>> f = kde0.eval_grid_fast()
     >>> np.interp(x, kde0.args[0], f)
     array([ 0.21227584,  0.41256459,  0.5495661 ,  0.5176579 ,  0.38431616,
             0.2591162 ,  0.15978948,  0.07889179,  0.02769818,  0.00791829])
-            
+        
     import pylab as plb          
     h1 = plb.plot(x, f) #  1D probability density plot
     t = np.trapz(f, x)   
@@ -875,7 +888,9 @@ class Kernel(object):
             self.get_smoothing = getattr(self, fun) 
         except:
             self.get_smoothing = self.hns
-        
+    def _get_name(self):
+        return self.kernel.__class__.__name__.replace('_Kernel', '').title()
+    name = property(_get_name)
     def stats(self):
         ''' Return some 1D statistics of the kernel.
       
