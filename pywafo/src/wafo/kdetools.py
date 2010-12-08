@@ -21,6 +21,7 @@ import numpy as np
 import scipy
 import warnings
 from wafo.wafodata import WafoData
+import pylab
 
 _stats_epan = (1. / 5, 3. / 5, np.inf)
 _stats_biwe = (1. / 7, 5. / 7, 45. / 2)
@@ -370,7 +371,7 @@ class TKDE(_KDE):
             warnings.warn(msg)
         return pdf
     
-    def eval_grid_fast2(self, *args):
+    def eval_grid_fast2(self, *args, **kwds):
         """Evaluate the estimated pdf on a grid.
         
         Parameters
@@ -385,7 +386,17 @@ class TKDE(_KDE):
            The values evaluated at meshgrid(*args).
         
         """
-        return self._eval_grid_fast(*args)
+        f = self._eval_grid_fast(*args)
+        if kwds.get('output', 'value')=='value':
+            return f
+        else:
+            args = self.args
+            titlestr = 'Kernel density estimate (%s)' % self.kernel.name
+            kwds2 = dict(title=titlestr)
+            kwds2.update(**kwds)
+            if self.d==1:
+                args = args[0]        
+            return WafoData(f,args, **kwds2)
     
     def _eval_grid_fast(self, *args): 
         if self.L2 is None:
@@ -404,6 +415,7 @@ class TKDE(_KDE):
                 pdf = interpolate.interp2d(points[0], points[1], f, bounds_error=False, fill_value=0.0)
             #ipoints = meshgrid(*args) if self.d>1 else args
             fi = pdf(*args)
+            self.args = args
             #fi.shape = ipoints[0].shape
             return fi
         return f
@@ -1541,6 +1553,69 @@ def gridcount(data, X):
     
     return c
 
+
+def kde_demo1():
+    '''
+    KDEDEMO1 Demonstrate the smoothing parameter impact on KDE
+
+    KDEDEMO1 shows the true density (dotted) compared to KDE based on 7
+    observations (solid) and their individual kernels (dashed) for 3
+    different values of the smoothing parameter, hs.
+    '''
+    
+    import scipy.stats as st
+    x = np.linspace(-4,4)
+    x0 = x/2.0
+    data = np.random.normal(loc=0, scale=1.0, size=7) #rndnorm(0,1,7,1);
+    kernel = Kernel('gaus')
+    hs     = kernel.hns(data)
+    hVec   = [hs/2, hs, 2*hs]
+       
+    for ix, h in enumerate(hVec): 
+        pylab.figure(ix)
+        kde = KDE(data,hs=h, kernel=kernel)
+        f2 = kde(x, output='plot', title='h_s = %2.2f' % h, ylab='Density')
+        f2.plot('k-')
+       
+        pylab.plot(x, st.norm.pdf(x,0,1),'k:')
+        n = len(data)
+        pylab.plot(data,np.zeros(data.shape),'bx')
+        y = kernel(x0)/(n*h*kernel.norm_factor(d=1, n=n)) 
+        for i in range(n):
+            pylab.plot(data[i]+x0*h, y,'b--')
+            pylab.plot([data[i], data[i]], [0, np.max(y)],'b')
+        
+        pylab.axis([x.min(),x.max(), 0, 0.5])
+     
+def kde_demo2(): 
+    '''Demonstrate the difference between transformation- and ordinary-KDE
+
+    KDEDEMO2 shows that the transformation KDE is a better estimate for
+    Rayleigh distributed data around 0 than the ordinary KDE.
+    '''
+    import scipy.stats as st
+    data = st.rayleigh.rvs(scale=1, size=300)
+    
+    x = np.linspace(1.5e-3,5, 55);
+    
+    kde = KDE(data)
+    f = kde(output='plot', title='Ordinary KDE')
+    pylab.figure(0)
+    f.plot()
+    
+    
+    pylab.plot(x,st.rayleigh.pdf(x,scale=1),':')
+    
+    #plotnorm((data).^(L2)) % gives a straight line => L2 = 0.5 reasonable
+    
+    tkde = TKDE(data, L2=0.5)
+    ft = tkde(x, output='plot', title='Transformation KDE')
+    pylab.figure(1)
+    ft.plot()
+    
+    pylab.plot(x,st.rayleigh.pdf(x,scale=1),':')
+
+    pylab.figure(0)
     
 def main():
     import doctest
