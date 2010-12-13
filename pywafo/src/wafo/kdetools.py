@@ -11,7 +11,7 @@
 #!/usr/bin/env python
 from __future__ import division
 from itertools import product
-#from misc import tranproc, trangood
+from misc import tranproc #, trangood
 from numpy import pi, sqrt, atleast_2d, exp, newaxis, array #@UnresolvedImport
 from scipy import interpolate, linalg
 from scipy.special import gamma
@@ -119,11 +119,11 @@ class _KDE(object):
     def _set_xlimits(self):
         amin = self.dataset.min(axis= -1)
         amax = self.dataset.max(axis= -1)
-        iqr = iqrange(self.dataset, axis=-1)
-        sigma = np.minimum(np.std(self.dataset, axis=-1, ddof=1),iqr/1.34)
+        iqr = iqrange(self.dataset, axis= -1)
+        sigma = np.minimum(np.std(self.dataset, axis= -1, ddof=1), iqr / 1.34)
         #xyzrange = amax - amin
         #offset = xyzrange / 4.0
-        offset  = 2*sigma
+        offset = 2 * sigma
         if self.xmin is None:
             self.xmin = amin - offset
         else:
@@ -181,15 +181,19 @@ class _KDE(object):
                 args.append(np.linspace(self.xmin[i], self.xmax[i], self.inc))
         self.args = args
         f = eval_grd(*args)
-        if kwds.get('output', 'value')=='value':
+        if kwds.get('output', 'value') == 'value':
             return f
         else:
             titlestr = 'Kernel density estimate (%s)' % self.kernel.name
             kwds2 = dict(title=titlestr)
             kwds2.update(**kwds)
-            if self.d==1:
-                args = args[0]        
-            return WafoData(f,args, **kwds2)
+            if self.d == 1:
+                args = args[0]
+            elif self.d > 1:
+                PL = np.r_[10:90:20, 95, 99, 99.9]
+                ql = qlevels(f,p=PL)
+                kwds2.setdefault('levels', ql)
+            return WafoData(f, args, **kwds2)
 
     def _check_shape(self, points):
         points = atleast_2d(points)
@@ -387,16 +391,16 @@ class TKDE(_KDE):
         
         """
         f = self._eval_grid_fast(*args)
-        if kwds.get('output', 'value')=='value':
+        if kwds.get('output', 'value') == 'value':
             return f
         else:
             args = self.args
             titlestr = 'Kernel density estimate (%s)' % self.kernel.name
             kwds2 = dict(title=titlestr)
             kwds2.update(**kwds)
-            if self.d==1:
+            if self.d == 1:
                 args = args[0]        
-            return WafoData(f,args, **kwds2)
+            return WafoData(f, args, **kwds2)
     
     def _eval_grid_fast(self, *args): 
         if self.L2 is None:
@@ -541,6 +545,11 @@ class KDE(_KDE):
     >>> np.interp(x, kde0.args[0], f)
     array([ 0.21227584,  0.41256459,  0.5495661 ,  0.5176579 ,  0.38431616,
             0.2591162 ,  0.15978948,  0.07889179,  0.02769818,  0.00791829])
+    >>> f1 = kde0.eval_grid_fast(output='plot')
+    >>> np.interp(x, f1.args, f1.data)
+    array([ 0.21227584,  0.41256459,  0.5495661 ,  0.5176579 ,  0.38431616,
+            0.2591162 ,  0.15978948,  0.07889179,  0.02769818,  0.00791829])
+    >>> h = f1.plot()
         
     import pylab as plb          
     h1 = plb.plot(x, f) #  1D probability density plot
@@ -787,13 +796,12 @@ class _KernelGaussian(_Kernel):
             return p4val
         out = [p4val]
         pn = p4
-        for ix in range(numout - 1):
+        for unusedix in range(numout - 1):
             pnp1 = np.polyadd(-np.r_[pn, 0], np.polyder(pn))
             pnp2 = np.polyadd(-np.r_[pnp1, 0], np.polyder(pnp1))
             out.append(np.polyval(pnp2, t) * phi0)
             pn = pnp2
         return out
-    
     
 mkernel_gaussian = _KernelGaussian(r=4.0, stats=_stats_gaus)
 
@@ -861,8 +869,18 @@ class Kernel(object):
     ...        1.09547561,  1.01671133,  0.73211143,  0.61891719,  0.75903487,
     ...        1.8919469 ,  0.72433808,  1.92973094,  0.44749838,  1.36508452])
 
-    >>> Kernel('gaussian').stats()  
+    >>> gauss = Kernel('gaussian')
+    >>> gauss.stats()  
     (1, 0.28209479177387814, 0.21157109383040862)
+    >>> gauss.hscv(data)
+    array([ 0.21555043])
+    >>> gauss.hstt(data)
+    array([ 0.15165387])
+    >>> gauss.hste(data)
+    array([ 0.18942238])
+    >>> gauss.hldpi(data)
+    array([ 0.1718688])
+    
     >>> Kernel('laplace').stats()
     (2, 0.25, inf)
     
@@ -878,6 +896,8 @@ class Kernel(object):
     array([ 0.88265652])
     >>> triweight.hste(data)
     array([ 0.56570278])
+    >>> triweight.hscv(data)
+    array([ 0.64193201])
     
     See also
     --------
@@ -978,14 +998,14 @@ class Kernel(object):
         n = A.shape[1]
         
         # R= int(mkernel(x)^2),  mu2= int(x^2*mkernel(x))
-        mu2, R, Rdd = self.stats()
+        mu2, R, unusedRdd = self.stats()
         AMISEconstant = (8 * sqrt(pi) * R / (3 * mu2 ** 2 * n)) ** (1. / 5)
         iqr = iqrange(A, axis=1) # interquartile range
         stdA = np.std(A, axis=1, ddof=1)
-        #  % use of interquartile range guards against outliers.
-        #  % the use of interquartile range is better if 
-        #  % the distribution is skew or have heavy tails
-        #  % This lessen the chance of oversmoothing.
+        # use of interquartile range guards against outliers.
+        # the use of interquartile range is better if 
+        # the distribution is skew or have heavy tails
+        # This lessen the chance of oversmoothing.
         return np.where(iqr > 0, np.minimum(stdA, iqr / 1.349), stdA) * AMISEconstant
     
     def hos(self, data):
@@ -1128,7 +1148,7 @@ class Kernel(object):
         d, n = A.shape
         
         # R= int(mkernel(x)^2),  mu2= int(x^2*mkernel(x))
-        mu2, R, Rdd = self.stats()
+        mu2, R, unusedRdd = self.stats()
         
         AMISEconstant = (8 * sqrt(pi) * R / (3 * mu2 ** 2 * n)) ** (1. / 5)
         STEconstant = R / (mu2 ** (2) * n)
@@ -1151,7 +1171,7 @@ class Kernel(object):
         bx1 = amax + arange / 8.0
         
         kernel2 = Kernel('gauss') 
-        mu2, R, Rdd = kernel2.stats()
+        mu2, R, unusedRdd = kernel2.stats()
         STEconstant2 = R / (mu2 ** (2) * n)
         fft = np.fft.fft
         ifft = np.fft.ifft
@@ -1166,7 +1186,6 @@ class Kernel(object):
           
             c = gridcount(A[dim], xa)
        
-        
             # Step 1
             psi6NS = -15 / (16 * sqrt(pi) * s ** 7)
             psi8NS = 105 / (32 * sqrt(pi) * s ** 9)
@@ -1221,7 +1240,343 @@ class Kernel(object):
             h[dim] = h1
         #end % for dim loop
         return h
+    def hstt(self, data, h0=None, inc=128, maxit=100, releps=0.01, abseps=0.0):
+        '''HSTT Scott-Tapia-Thompson estimate of smoothing parameter.
+        
+         CALL: hs = hstt(data,kernel)
+        
+               hs = one dimensional value for smoothing parameter
+                    given the data and kernel.  size 1 x D
+           data   = data matrix, size N x D (D = # dimensions )
+           kernel = 'epanechnikov'  - Epanechnikov kernel. (default)
+                    'biweight'      - Bi-weight kernel.
+                    'triweight'     - Tri-weight kernel.  
+                    'triangular'    - Triangular kernel.
+                    'gaussian'      - Gaussian kernel
+                    'rectangular'   - Rectangular kernel. 
+                    'laplace'       - Laplace kernel.
+                    'logistic'      - Logistic kernel.  
+        
+         HSTT returns Scott-Tapia-Thompson (STT) estimate of smoothing
+         parameter. This is a Solve-The-Equation rule (STE).
+         Simulation studies shows that the STT estimate of HS
+         is a good choice under a variety of models. A comparison with
+         likelihood cross-validation (LCV) indicates that LCV performs slightly
+         better for short tailed densities.
+         However, STT method in contrast to LCV is insensitive to outliers.
+         
+          Example: 
+           x  = rndnorm(0,1,50,1);
+           hs = hstt(x,'gauss');
+        
+         See also  hste, hbcv, hboot, hos, hldpi, hlscv, hscv, kde, kdebin 
+        
+        
+        
+         Reference:  
+          B. W. Silverman (1986) 
+         'Density estimation for statistics and data analysis'  
+          Chapman and Hall, pp 57--61 
+        '''
+        A = np.atleast_2d(data)
+        d, n = A.shape
+        
+        # R= int(mkernel(x)^2),  mu2= int(x^2*mkernel(x))
+        mu2, R, unusedRdd = self.stats()
+        
+        AMISEconstant = (8 * sqrt(pi) * R / (3 * mu2 ** 2 * n)) ** (1. / 5)
+        STEconstant = R / (mu2 ** (2) * n)
+        
+        sigmaA = self.hns(A) / AMISEconstant
+        if h0 is None:
+            h0 = sigmaA * AMISEconstant
+        
+        h = np.asarray(h0, dtype=float)
+       
+        nfft = inc * 2 
+        amin = A.min(axis=1) # Find the minimum value of A.
+        amax = A.max(axis=1) #Find the maximum value of A.
+        arange = amax - amin # Find the range of A.
+        
+        #% xa holds the x 'axis' vector, defining a grid of x values where 
+        #% the k.d. function will be evaluated.
+        
+        ax1 = amin - arange / 8.0
+        bx1 = amax + arange / 8.0
+        
+        fft = np.fft.fft
+        ifft = np.fft.ifft
+        for dim in range(d):
+            s = sigmaA[dim]
+            datan = A[dim] / s
+            ax = ax1[dim] / s
+            bx = bx1[dim] / s
+          
+            xa = np.linspace(ax, bx, inc) 
+            xn = np.linspace(0, bx - ax, inc)
+          
+            c = gridcount(datan, xa)
+            
+            count = 1
+            h_old = 0
+            h1 = h[dim] / s
+            delta = (bx - ax) / (inc - 1)
+            while ((abs(h_old - h1) > max(releps * h1, abseps)) and (count < maxit)):
+                count += 1
+                h_old = h1
+          
+                kw4 = self.kernel(xn / h1) / (n * h1 * self.norm_factor(d=1))  
+                kw = np.r_[kw4, 0, kw4[-1:0:-1]] # Apply 'fftshift' to kw.
+                f = np.real(ifft(fft(c, nfft) * fft(kw))) # convolution.
+               
+                #  Estimate psi4=R(f'') using simple finite differences and quadrature.
+                ix = np.arange(1, inc - 1)
+                z = ((f[ix + 1] - 2 * f[ix] + f[ix - 1]) / delta ** 2) ** 2
+                psi4 = delta * z.sum()
+                h1 = (STEconstant / psi4) ** (1 / 5);
+            
+            if count >= maxit:
+                warnings.warn('The obtained value did not converge.')
+          
+            h[dim] = h1 * s
+        #end % for dim loop
+        return h
+            
+
+    def hscv(self, data, hvec=None, inc=128, maxit=100):
+        '''
+        HSCV Smoothed cross-validation estimate of smoothing parameter.
+        
+         CALL: [hs,hvec,score] = hscv(data,kernel,hvec); 
+         
+           hs     = smoothing parameter
+           hvec   = vector defining possible values of hs
+                     (default linspace(0.25*h0,h0,100), h0=0.62)
+           score  = score vector
+           data   = data vector
+           kernel = 'gaussian'      - Gaussian kernel the only supported
+                                       
+          Note that only the first 4 letters of the kernel name is needed.
+          
+          Example: 
+            data = rndnorm(0,1,20,1)
+             [hs hvec score] = hscv(data,'epan');
+             plot(hvec,score) 
+         See also  hste, hbcv, hboot, hos, hldpi, hlscv, hstt, kde, kdefun
+        
+         Wand,M.P. and Jones, M.C. (1986) 
+         'Kernel smoothing'
+          Chapman and Hall, pp 75--79
+        '''
+        # TODO: Add support for other kernels than Gaussian  
+        A = np.atleast_2d(data)
+        d, n = A.shape
+        
+        # R= int(mkernel(x)^2),  mu2= int(x^2*mkernel(x))
+        mu2, R, unusedRdd = self.stats()
+        
+        AMISEconstant = (8 * sqrt(pi) * R / (3 * mu2 ** 2 * n)) ** (1. / 5)
+        STEconstant = R / (mu2 ** (2) * n)
+        
+        sigmaA = self.hns(A) / AMISEconstant
+        if hvec is None:
+            H = AMISEconstant / 0.93
+            hvec = np.linspace(0.25 * H, H, maxit)
+        hvec = np.asarray(hvec, dtype=float)
+  
+        steps = len(hvec)
+        score = np.zeros(steps)
+
+        nfft = inc * 2 
+        amin = A.min(axis=1) # Find the minimum value of A.
+        amax = A.max(axis=1) #Find the maximum value of A.
+        arange = amax - amin # Find the range of A.
+        
+        #% xa holds the x 'axis' vector, defining a grid of x values where 
+        #% the k.d. function will be evaluated.
+        
+        ax1 = amin - arange / 8.0
+        bx1 = amax + arange / 8.0
+        
+        kernel2 = Kernel('gauss') 
+        mu2, R, unusedRdd = kernel2.stats()
+        STEconstant2 = R / (mu2 ** (2) * n)
+        fft = np.fft.fft
+        ifft = np.fft.ifft
+        
+         
+        h = np.zeros(d)
+        hvec = hvec * (STEconstant2 / STEconstant) ** (1. / 5.)
+        
+        k40, k60, k80, k100 = kernel2.deriv4_6_8_10(0, numout=4)
+        psi8 = 105 / (32 * sqrt(pi));
+        psi12 = 3465. / (512 * sqrt(pi))
+        g1 = (-2. * k60 / (mu2 * psi8 * n)) ** (1. / 9.)       
+        g2 = (-2. * k100 / (mu2 * psi12 * n)) ** (1. / 13.)
+        
+        for dim in range(d):
+            s = sigmaA[dim]
+            ax = ax1[dim] / s
+            bx = bx1[dim] / s
+            datan = A[dim] / s
+
+            xa = np.linspace(ax, bx, inc) 
+            xn = np.linspace(0, bx - ax, inc)
+          
+            c = gridcount(datan, xa)
+       
+            kw4, kw6 = kernel2.deriv4_6_8_10(xn / g1, numout=2) 
+            kw = np.r_[kw6, 0, kw6[-1:0:-1]]             
+            z = np.real(ifft(fft(c, nfft) * fft(kw)))     
+            psi6 = np.sum(c * z[:inc]) / (n ** 2 * g1 ** 7)
+            
+            kw4, kw6, kw8, kw10 = kernel2.deriv4_6_8_10(xn / g2, numout=4) 
+            kw = np.r_[kw10, 0, kw10[-1:0:-1]]  
+            z = np.real(ifft(fft(c, nfft) * fft(kw)))
+            psi10 = np.sum(c * z[:inc]) / (n ** 2 * g2 ** 11)
+           
+            g3 = (-2. * k40 / (mu2 * psi6 * n)) ** (1. / 7.)
+            g4 = (-2. * k80 / (mu2 * psi10 * n)) ** (1. / 11.)
+            
+            kw4 = kernel2.deriv4_6_8_10(xn / g3, numout=1) 
+            kw = np.r_[kw4, 0, kw4[-1:0:-1]]
+            z = np.real(ifft(fft(c, nfft) * fft(kw))) 
+            psi4 = np.sum(c * z[:inc]) / (n ** 2 * g3 ** 5) 
+            
+            kw4, kw6, kw8 = kernel2.deriv4_6_8_10(xn / g3, numout=3) 
+            kw = np.r_[kw8, 0, kw8[-1:0:-1]]
+            z = np.real(ifft(fft(c, nfft) * fft(kw)))
+            psi8 = np.sum(c * z[:inc]) / (n ** 2 * g4 ** 9) 
+  
+            const = (441. / (64 * pi)) ** (1. / 18.) * (4 * pi) ** (-1. / 5.) * psi4 ** (-2. / 5.) * psi8 ** (-1. / 9.)
+  
+            M = np.atleast_2d(datan) 
+  
+            Y = (M - M.T).ravel()
+  
+            for i in range(steps):
+                g = const * n ** (-23. / 45) * hvec[i] ** (-2)
+                sig1 = sqrt(2 * hvec[i] ** 2 + 2 * g ** 2)
+                sig2 = sqrt(hvec[i] ** 2 + 2 * g ** 2)
+                sig3 = sqrt(2 * g ** 2)
+                term2 = np.sum(kernel2(Y / sig1) / sig1 - 2 * kernel2(Y / sig2) / sig2 + kernel2(Y / sig3) / sig3)
     
+                score[i] = 1. / (n * hvec[i] * 2. * sqrt(pi)) + term2 / n ** 2
+    
+            idx = score.argmin()
+            # Kernel other than Gaussian scale bandwidth
+            h[dim] = hvec[idx] * (STEconstant / STEconstant2) ** (1 / 5)
+            if idx == 0:
+                warnings.warn('Optimum is probably lower than hs=%g for dim=%d' % (h[dim] * s, dim))
+            elif idx == maxit - 1:
+                warnings.warn('Optimum is probably higher than hs=%g for dim=%d' % (h[dim] * s, dim))
+            
+        hvec = hvec * (STEconstant / STEconstant2) ** (1 / 5)
+        return h * sigmaA
+    
+    def hldpi(self, data, L=2, inc=128):
+        '''HLDPI L-stage Direct Plug-In estimate of smoothing parameter.
+        
+         CALL: hs = hldpi(data,kernel,L)
+        
+               hs = one dimensional value for smoothing parameter
+                    given the data and kernel.  size 1 x D
+           data   = data matrix, size N x D (D = # dimensions )
+           kernel = 'epanechnikov'  - Epanechnikov kernel.
+                    'biweight'      - Bi-weight kernel.
+                    'triweight'     - Tri-weight kernel.
+                    'triangluar'    - Triangular kernel.
+                    'gaussian'      - Gaussian kernel
+                    'rectangular'   - Rectanguler kernel.
+                    'laplace'       - Laplace kernel.
+                    'logistic'      - Logistic kernel.
+                L = 0,1,2,3,...   (default 2)
+        
+          Note that only the first 4 letters of the kernel name is needed.
+        
+          Example:
+           x  = rndnorm(0,1,50,1);
+           hs = hldpi(x,'gauss',1);
+        
+         See also  hste, hbcv, hboot, hos, hlscv, hscv, hstt, kde, kdefun
+        
+          Wand,M.P. and Jones, M.C. (1995)
+         'Kernel smoothing'
+          Chapman and Hall, pp 67--74
+        '''
+        A = np.atleast_2d(data)
+        d, n = A.shape
+        
+        # R= int(mkernel(x)^2),  mu2= int(x^2*mkernel(x))
+        mu2, R, unusedRdd = self.stats()
+        
+        AMISEconstant = (8 * sqrt(pi) * R / (3 * mu2 ** 2 * n)) ** (1. / 5)
+        STEconstant = R / (mu2 ** (2) * n)
+        
+        sigmaA = self.hns(A) / AMISEconstant
+        
+       
+        nfft = inc * 2 
+        amin = A.min(axis=1) # Find the minimum value of A.
+        amax = A.max(axis=1) #Find the maximum value of A.
+        arange = amax - amin # Find the range of A.
+        
+        #% xa holds the x 'axis' vector, defining a grid of x values where 
+        #% the k.d. function will be evaluated.
+        
+        ax1 = amin - arange / 8.0
+        bx1 = amax + arange / 8.0
+        
+        kernel2 = Kernel('gauss')
+        mu2, unusedR, unusedRdd = kernel2.stats()
+        
+        fft = np.fft.fft
+        ifft = np.fft.ifft
+        
+        h = np.zeros(d)
+        for dim in range(d):
+            s = sigmaA[dim]
+            datan = A[dim] / s
+            ax = ax1[dim] / s
+            bx = bx1[dim] / s
+          
+            xa = np.linspace(ax, bx, inc) 
+            xn = np.linspace(0, bx - ax, inc)
+          
+            c = gridcount(datan, xa)
+            
+            r = 2 * L + 4
+            rd2 = L + 2
+
+            # Eq. 3.7 in Wand and Jones (1995)
+            PSI_r = (-1) ** (rd2) * np.prod(np.r_[rd2 + 1:r]) / (sqrt(pi) * (2 * s) ** (r + 1));
+            PSI = PSI_r
+            if L > 0:
+                # High order derivatives of the Gaussian kernel
+                Kd = kernel2.deriv4_6_8_10(0, numout=L)
+    
+                # L-stage iterations to estimate PSI_4
+                for ix in range(L - 1, -1, -1):
+                    gi = (-2 * Kd[ix] / (mu2 * PSI * n)) ** (1. / (2 * ix + 5))
+
+                    # Obtain the kernel weights.
+                    KW0 = kernel2.deriv4_6_8_10(xn / gi, numout=ix + 1)
+                    if ix > 0:
+                        KW0 = KW0[-1]
+                    kw = np.r_[KW0, 0, KW0[inc - 1:0:-1]] # Apply 'fftshift' to kw.
+
+                    # Perform the convolution.
+                    z = np.real(ifft(fft(c, nfft) * fft(kw)))
+
+                    PSI = np.sum(c * z[:inc]) / (n ** 2 * gi ** (2 * ix + 3))
+                    #end
+                #end
+            h[dim] = s * (STEconstant / PSI) ** (1. / 5)
+
+        return h
+
+
+
     def norm_factor(self, d=1, n=None):
         return  self.kernel.norm_factor(d, n)    
     def eval_points(self, points):
@@ -1379,6 +1734,121 @@ def accum(accmap, a, func=None, size=None, fill_value=0, dtype=None):
 
     return out
 
+def qlevels(pdf, p=(10, 30, 50, 70, 90, 95, 99, 99.9), x1=None, x2=None):
+    '''QLEVELS Calculates quantile levels which encloses P% of PDF
+    
+      CALL: [ql PL] = qlevels(pdf,PL,x1,x2);
+    
+            ql    = the discrete quantile levels.
+            pdf   = joint point density function matrix or vector
+            PL    = percent level (default [10:20:90 95 99 99.9])
+            x1,x2 = vectors of the spacing of the variables 
+                   (Default unit spacing)
+    
+    QLEVELS numerically integrates PDF by decreasing height and find the 
+    quantile levels which  encloses P% of the distribution. If X1 and 
+    (or) X2 is unspecified it is assumed that dX1 and dX2 is constant.
+    NB! QLEVELS normalizes the integral of PDF to N/(N+0.001) before 
+    calculating QL in order to reflect the sampling of PDF is finite.  
+    Currently only able to handle 1D and 2D PDF's if dXi is not constant (i=1,2).
+    
+    Example
+    -------
+    >>> import wafo.stats as ws
+    >>> x = np.linspace(-8,8,2001);
+    >>> PL = np.r_[10:90:20, 90, 95, 99, 99.9]
+    >>> qlevels(ws.norm.pdf(x),p=PL, x1=x);
+    array([ 0.39591707,  0.37058719,  0.31830968,  0.23402133,  0.10362052,
+            0.05862129,  0.01449505,  0.00178806])
+            
+    # compared with the exact values
+    >>> ws.norm.pdf(ws.norm.ppf((100-PL)/200))
+    array([ 0.39580488,  0.370399  ,  0.31777657,  0.23315878,  0.10313564,
+            0.05844507,  0.01445974,  0.00177719])
+       
+    See also
+    --------
+    qlevels2, tranproc
+    '''
+
+    norm = 1 # normalize cdf to unity
+    pdf = np.atleast_1d(pdf)
+    if any(pdf.ravel() < 0):
+        raise ValueError('This is not a pdf since one or more values of pdf is negative')
+    
+    fsiz = pdf.shape
+    fsizmin = min(fsiz)
+    if fsizmin == 0:
+        return []
+    
+    N = np.prod(fsiz);
+    d = len(fsiz)
+    if x1 is None or ((x2 is None) and d > 2):
+        fdfi = pdf.ravel()
+    else:
+        if d == 1: # pdf in one dimension
+            dx22 = np.ones(1)
+        else: # % pdf in two dimensions
+            dx2 = np.diff(x2.ravel())*0.5;
+            dx22 = np.r_[0, dx2] + np.r_[dx2, 0];
+  
+        dx1 = np.diff(x1.ravel())*0.5
+        dx11 = np.r_[0 , dx1] + np.r_[dx1, 0]
+        dx1x2 = dx22[:, None] * dx11
+        fdfi = (pdf * dx1x2).ravel();
+
+
+    p = np.atleast_1d(p)
+    
+    if np.any((p < 0) | (100 < p)):
+        raise ValueError('PL must satisfy 0 <= PL <= 100')
+
+    
+    p2 = p / 100.0
+    ind = np.argsort(pdf.ravel()) # sort by height of pdf
+    ind = ind[::-1]
+    fi = pdf[ind]
+
+    Fi = np.cumsum(fdfi[ind]) # integration in the order of decreasing height of pdf
+              
+    if norm: #  %normalize Fi to make sure int pdf dx1 dx2 approx 1
+        Fi = Fi / Fi[-1] * N / (N + 1.5e-8)
+
+    maxFi = np.max(Fi)
+    if maxFi > 1:
+        warnings.warn('this is not a pdf since cdf>1! normalizing')
+        
+        Fi = Fi / Fi[-1] * N / (N + 1.5e-8)
+    
+    elif maxFi < .95:
+        msg = '''The given pdf is too sparsely sampled since cdf<.95.  
+        Thus QL is questionable'''
+        warnings.warn(msg)
+    
+
+
+    ind, = np.where(np.diff(np.r_[Fi, 1]) > 0) # make sure Fi is strictly increasing by not considering duplicate values
+    ui = tranproc(Fi[ind], fi[ind], p2) # calculating the inverse of Fi to find the index
+    # to the desired quantile level
+    #ui=smooth(Fi(ind),fi(ind),1,p2(:),1) % alternative
+    #res=ui-ui2
+
+
+    if np.any(ui >= max(pdf.ravel())):
+        warnings.warn('The lowest percent level is too close to 0%')
+
+    if np.any(ui <= min(pdf.ravel())):
+        msg = '''The given pdf is too sparsely sampled or
+       the highest percent level is too close to 100%'''
+        warnings.warn(msg)   
+        ui[ui < 0] = 0.0 
+
+
+    return ui
+
+
+
+
 def iqrange(data, axis=None):
     '''
     Returns the Inter Quartile Range of data
@@ -1410,7 +1880,7 @@ def iqrange(data, axis=None):
     --------
     np.std
     '''
-    return np.abs(np.percentile(data, 75, axis=axis)-np.percentile(data, 25, axis=axis))
+    return np.abs(np.percentile(data, 75, axis=axis) - np.percentile(data, 25, axis=axis))
 
 def bitget(int_type, offset):
     '''
@@ -1484,7 +1954,7 @@ def gridcount(data, X):
     '''  
     dat = np.atleast_2d(data)
     x = np.atleast_2d(X)
-    d, n = dat.shape
+    d = dat.shape[0]
     d1, inc = x.shape
     
     if d != d1:
@@ -1564,28 +2034,28 @@ def kde_demo1():
     '''
     
     import scipy.stats as st
-    x = np.linspace(-4,4)
-    x0 = x/2.0
+    x = np.linspace(-4, 4)
+    x0 = x / 2.0
     data = np.random.normal(loc=0, scale=1.0, size=7) #rndnorm(0,1,7,1);
     kernel = Kernel('gaus')
-    hs     = kernel.hns(data)
-    hVec   = [hs/2, hs, 2*hs]
+    hs = kernel.hns(data)
+    hVec = [hs / 2, hs, 2 * hs]
        
     for ix, h in enumerate(hVec): 
         pylab.figure(ix)
-        kde = KDE(data,hs=h, kernel=kernel)
+        kde = KDE(data, hs=h, kernel=kernel)
         f2 = kde(x, output='plot', title='h_s = %2.2f' % h, ylab='Density')
         f2.plot('k-')
        
-        pylab.plot(x, st.norm.pdf(x,0,1),'k:')
+        pylab.plot(x, st.norm.pdf(x, 0, 1), 'k:')
         n = len(data)
-        pylab.plot(data,np.zeros(data.shape),'bx')
-        y = kernel(x0)/(n*h*kernel.norm_factor(d=1, n=n)) 
+        pylab.plot(data, np.zeros(data.shape), 'bx')
+        y = kernel(x0) / (n * h * kernel.norm_factor(d=1, n=n)) 
         for i in range(n):
-            pylab.plot(data[i]+x0*h, y,'b--')
-            pylab.plot([data[i], data[i]], [0, np.max(y)],'b')
+            pylab.plot(data[i] + x0 * h, y, 'b--')
+            pylab.plot([data[i], data[i]], [0, np.max(y)], 'b')
         
-        pylab.axis([x.min(),x.max(), 0, 0.5])
+        pylab.axis([x.min(), x.max(), 0, 0.5])
      
 def kde_demo2(): 
     '''Demonstrate the difference between transformation- and ordinary-KDE
@@ -1596,7 +2066,7 @@ def kde_demo2():
     import scipy.stats as st
     data = st.rayleigh.rvs(scale=1, size=300)
     
-    x = np.linspace(1.5e-3,5, 55);
+    x = np.linspace(1.5e-3, 5, 55);
     
     kde = KDE(data)
     f = kde(output='plot', title='Ordinary KDE')
@@ -1604,7 +2074,7 @@ def kde_demo2():
     f.plot()
     
     
-    pylab.plot(x,st.rayleigh.pdf(x,scale=1),':')
+    pylab.plot(x, st.rayleigh.pdf(x, scale=1), ':')
     
     #plotnorm((data).^(L2)) % gives a straight line => L2 = 0.5 reasonable
     
@@ -1613,7 +2083,7 @@ def kde_demo2():
     pylab.figure(1)
     ft.plot()
     
-    pylab.plot(x,st.rayleigh.pdf(x,scale=1),':')
+    pylab.plot(x, st.rayleigh.pdf(x, scale=1), ':')
 
     pylab.figure(0)
     

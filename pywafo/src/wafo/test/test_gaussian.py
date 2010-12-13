@@ -125,8 +125,8 @@ def test_prbnormnd():
     0
     >>> np.abs(val-Et)< err0+terr0
     array([ True], dtype=bool)
-    >>> 'val = %2.6f' % val  
-    'val = 0.001945'
+    >>> 'val = %2.5f' % val  
+    'val = 0.00195'
     '''
 def test_cdfnorm2d():
     '''

@@ -69,7 +69,9 @@ class WafoData(object):
         self.plotter = None
         self.children = None
         self.plot_args_children = kwds.get('plot_args_children',[])
+        self.plot_kwds_children = kwds.get('plot_kwds_children',{})
         self.plot_args = kwds.get('plot_args',[])
+        self.plot_kwds = kwds.get('plot_kwds',{})
         
         self.labels = AxisLabels(**kwds)
         self.setplotter()
@@ -80,6 +82,9 @@ class WafoData(object):
             plotbackend.hold('on')
             tmp = []
             child_args = args + tuple(self.plot_args_children)
+            child_kwds = dict()
+            child_kwds.update(self.plot_kwds_children)
+            child_kwds.update(**kwds)
             for child in self.children:
                 tmp1 = child.plot(*child_args, **kwds)
                 if tmp1 != None:
@@ -87,7 +92,10 @@ class WafoData(object):
             if len(tmp) == 0:
                 tmp = None
         main_args = args + tuple(self.plot_args)
-        tmp2 = self.plotter.plot(self, *main_args, **kwds)
+        main_kwds = dict()
+        main_kwds.update(self.plot_kwds)
+        main_kwds.update(kwds)
+        tmp2 = self.plotter.plot(self, *main_args, **main_kwds)
         return tmp2, tmp
     
     def show(self):
@@ -107,11 +115,12 @@ class WafoData(object):
         if isinstance(self.args, (list, tuple)): # Multidimensional data
             ndim = len(self.args)
             if ndim < 2:
-                warnings.warn('Unable to determine plotter-type, because len(self.args)<2.')
-                print('If the data is 1D, then self.args should be a vector!')
-                print('If the data is 2D, then length(self.args) should be 2.')
-                print('If the data is 3D, then length(self.args) should be 3.')
-                print('Unless you fix this, the plot methods will not work!')
+                msg = '''Unable to determine plotter-type, because len(self.args)<2.
+                If the data is 1D, then self.args should be a vector!
+                If the data is 2D, then length(self.args) should be 2.
+                If the data is 3D, then length(self.args) should be 3.
+                Unless you fix this, the plot methods will not work!'''
+                warnings.warn(msg)
             elif ndim == 2:
                 self.plotter = Plotter_2d(plotmethod)
             else:
