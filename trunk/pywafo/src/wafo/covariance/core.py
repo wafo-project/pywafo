@@ -85,6 +85,7 @@ def _set_seed(iseed):
 #    See also
 #    --------
 #    chol, svd, sqrtm, genchol
+#    np.random.multivariate_normal
 #    '''
 #    sa = np.atleast_2d(cov)
 #    mu = np.atleast_1d(mean).ravel() 
@@ -537,7 +538,7 @@ class CovData1D(WafoData):
         reconstructed data"
         in Proceedings of 9th ISOPE Conference, Vol III, pp 66-73
         """     
-        # TODO does not work yet.
+        # TODO: does not work yet.
         
         # secret methods:
         #         'dec1-3': different decomposing algorithm's 
@@ -716,7 +717,7 @@ class CovData1D(WafoData):
             
             Nsig = 2 * n;
             
-            Sigma = sptoeplitz(hstack((ACF, zeros(Nsig - n))))
+            Sigma = sptoeplitz(hstack((acf, zeros(Nsig - n))))
             n2 = floor(Nsig / 4)
             idx = r_[0:Nsig] + max(0, inds[0] - n2) # indices to the points used
             tmpinds = zeros(N, dtype=bool)

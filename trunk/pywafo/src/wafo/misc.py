@@ -1269,7 +1269,7 @@ def betaloge(z, w):
 
     Example
     >>> betaloge(3,2)
-
+    array([-2.48490665])
 
     See also
     --------
