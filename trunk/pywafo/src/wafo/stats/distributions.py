@@ -1,7 +1,7 @@
 # Functions to implement several important functions for
 #   various Continous and Discrete Probability Distributions
 #
-# Author:  Travis Oliphant  2002-2010 with contributions from 
+# Author:  Travis Oliphant  2002-2010 with contributions from
 #          SciPy Developers 2004-2010
 #
 
