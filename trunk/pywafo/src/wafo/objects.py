@@ -895,7 +895,7 @@ class TimeSeries(WafoData):
         """
         fs = 1. / (2 * self.sampling_period())
         S, f = psd(self.data.ravel(), Fs=fs, *args, **kwargs)
-        fact = 2.0 * pi
+        fact = 2 * 2.0 * pi
         w = fact * f
         return _wafospec.SpecData1D(S / fact, w)
     def trdata(self, method='nonlinear', **options):

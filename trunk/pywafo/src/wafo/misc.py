@@ -6,14 +6,15 @@ from __future__ import division
 import sys
 
 import numpy as np
-from numpy import (abs, amax, any, logical_and, arange, linspace, atleast_1d, 
-                   array, asarray, broadcast_arrays, ceil,  floor, frexp, hypot,
-                   sqrt, arctan2, sin, cos, exp, log, mod, diff, empty_like, 
-                   finfo, inf, pi, interp, isnan, isscalar, zeros, ones, 
+from numpy import (abs, amax, any, logical_and, arange, linspace, atleast_1d,
+                   array, asarray, broadcast_arrays, ceil, floor, frexp, hypot,
+                   sqrt, arctan2, sin, cos, exp, log, mod, diff, empty_like,
+                   finfo, inf, pi, interp, isnan, isscalar, zeros, ones,
                    r_, sign, unique, hstack, vstack, nonzero, where, extract)
 from scipy.special import gammaln
 import types
 import warnings
+from wafo import plotbackend
 
 try:
     import wafo.c_library as clib
@@ -26,7 +27,7 @@ __all__ = ['JITImport', 'DotDict', 'Bunch', 'printf', 'sub_dict_select',
     'parse_kwargs', 'ecross', 'findtc', 'findtp', 'findcross',
     'findextrema', 'findrfc', 'rfcfilter', 'common_shape', 'argsreduce',
     'stirlerr', 'getshipchar', 'betaloge', 'gravity', 'nextpow2',
-    'discretize', 'pol2cart', 'cart2pol', 'ndgrid', 'meshgrid']
+    'discretize', 'pol2cart', 'cart2pol', 'ndgrid', 'meshgrid', 'histgrm']
 
 class JITImport(object):
     ''' 
@@ -246,7 +247,7 @@ def _findcross(xn):
     
     n = len(xn)
     iz, = (xn == 0).nonzero()
-    if len(iz)>0:
+    if len(iz) > 0:
         # Trick to avoid turning points on the crossinglevel.
         if iz[0] == 0:
             if len(iz) == n:
@@ -254,15 +255,15 @@ def _findcross(xn):
                 return zeros(0, dtype=np.int)
 
             diz = diff(iz)
-            if len(diz)>0 and (diz>1).any():
+            if len(diz) > 0 and (diz > 1).any():
                 ix = iz[(diz > 1).argmax()]
             else:
                 ix = iz[-1]
 
             #x(ix) is a up crossing if  x(1:ix) = v and x(ix+1) > v.
             #x(ix) is a downcrossing if x(1:ix) = v and x(ix+1) < v.
-            xn[0:ix+1] = -xn[ix + 1]
-            iz = iz[ix+1::]
+            xn[0:ix + 1] = -xn[ix + 1]
+            iz = iz[ix + 1::]
 
         for ix in iz.tolist():
             xn[ix] = xn[ix - 1]
@@ -1400,7 +1401,7 @@ def discretize(fun, a, b, tol=0.005, n=5):
         err = 0.5 * amax(abs((y00 - y) / (abs(y00 + y) + tiny)))
     return x, y
 
-def discretize2(fun, a,b,tol=0.005, n=5):
+def discretize2(fun, a, b, tol=0.005, n=5):
     '''
     Automatic adaptive discretization of function
 
@@ -1432,23 +1433,23 @@ def discretize2(fun, a,b,tol=0.005, n=5):
 
     '''
     tiny = floatinfo.tiny
-    n += (mod(n,2)==0) # make sure n is odd
+    n += (mod(n, 2) == 0) # make sure n is odd
     x = linspace(a, b, n)
     fx = fun(x)
     
-    n2 = (n-1)/2
-    erri = hstack( (zeros((n2,1)), ones((n2,1)) )).ravel()
+    n2 = (n - 1) / 2
+    erri = hstack((zeros((n2, 1)), ones((n2, 1)))).ravel()
     err = erri.max()
     err0 = inf
     #while (err != err0 and err > tol and n < nmax):
     for j in range(50):
-        if err!=err0 and np.any(erri > tol):
+        if err != err0 and np.any(erri > tol):
             err0 = err
             # find top errors
            
-            I, = where(erri>tol)
+            I, = where(erri > tol)
             # double the sample rate in intervals with the most error     
-            y = (vstack(((x[I]+x[I-1])/2, (x[I+1]+x[I])/2)).T).ravel()    
+            y = (vstack(((x[I] + x[I - 1]) / 2, (x[I + 1] + x[I]) / 2)).T).ravel()    
             fy = fun(y)
             
             fy0 = interp(y, x, fx)
@@ -1456,12 +1457,12 @@ def discretize2(fun, a,b,tol=0.005, n=5):
             
             err = erri.max()
           
-            x = hstack((x,y))
+            x = hstack((x, y))
             
             I = x.argsort()
             x = x[I]
-            erri = hstack((zeros(len(fx)),erri))[I]
-            fx = hstack((fx,fy))[I]
+            erri = hstack((zeros(len(fx)), erri))[I]
+            fx = hstack((fx, fy))[I]
             
         else:
             break
@@ -1488,7 +1489,7 @@ def pol2cart(theta, rho, z=None):
     if z is None:
         return x, y
     else:
-        return x,y,z
+        return x, y, z
     
 
 def cart2pol(x, y, z=None):
@@ -1507,7 +1508,7 @@ def cart2pol(x, y, z=None):
     '''
     t, r = arctan2(y, x), hypot(x, y)
     if z is None:
-        return t,r
+        return t, r
     else:
         return t, r, z
    
@@ -1849,9 +1850,69 @@ def tranproc(x, f, x0, *xi):
                         warnings.warn('Transformation of derivatives of order>4 not supported.')
     return y #y0,y1,y2,y3,y4
 
-
+def histgrm(data, n=None, odd=False, scale=False, lintype='b-'):
+    '''HISTGRM Plot histogram
+     
+     CALL:  binwidth = histgrm(x,N,odd,scale)
+            binwidth = the width of each bin
+            
+    Parameters
+    -----------
+    x = the data
+    n = approximate number of bins wanted 
+        (default depending on length(x))  
+    odd = placement of bins (0 or 1) (default 0)
+    scale = argument for scaling (default 0)
+    scale = 1 yields the area 1 under the histogram
+    lintype : specify color and lintype, see PLOT for possibilities.
+    
+     Example:
+       R=rndgumb(2,2,1,100);
+       histgrm(R,20,0,1)
+       hold on
+       x=linspace(-3,16,200);
+       plot(x,pdfgumb(x,2,2),'r')
+       hold off
+    '''
+    
+    x = np.atleast_1d(data)
+    if n is None:
+        n = np.ceil(4 * np.sqrt(np.sqrt(len(x))))
+    
+    mn = x.min()
+    mx = x.max()
+    d = (mx - mn) / n * 2
+    e = np.floor(np.log(d) / np.log(10));
+    m = np.floor(d / 10 ** e)
+    if m > 5:
+        m = 5
+    elif m > 2:
+        m = 2
+    
+    d = m * 10 ** e
+    mn = (np.floor(mn / d) - 1) * d - odd * d / 2
+    mx = (np.ceil(mx / d) + 1) * d + odd * d / 2
+    limits = np.arange(mn, mx, d)
+    
+   
+    
+    bin, limits = np.histogram(data, bins=limits, normed=scale) #, new=True)
+    limits.shape = (-1, 1)
+    xx = limits.repeat(3, axis=1)
+    xx.shape = (-1,)
+    xx = xx[1:-1]
+    bin.shape = (-1, 1)
+    yy = bin.repeat(3, axis=1)
+    #yy[0,0] = 0.0 # pdf
+    yy[:, 0] = 0.0 # histogram
+    yy.shape = (-1,)
+    yy = np.hstack((yy, 0.0))
+    plotbackend.plotbackend.plot(xx, yy, lintype, limits, limits * 0)
+    binwidth = d
+    return binwidth
+    
 def _test_find_cross():
-    t = findcross([0, 0, 1, -1, 1],0)
+    t = findcross([0, 0, 1, -1, 1], 0)
     
 def _test_common_shape():
 
@@ -1936,8 +1997,8 @@ def _test_discretize():
 def _test_discretize2():
     import numpy as np
     import pylab as plb
-    x,y = discretize2(np.cos,0,np.pi)
-    t = plb.plot(x,y)
+    x, y = discretize2(np.cos, 0, np.pi)
+    t = plb.plot(x, y)
     plb.show()
     plb.close('all')
     
