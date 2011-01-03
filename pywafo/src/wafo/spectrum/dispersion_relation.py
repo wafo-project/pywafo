@@ -136,7 +136,7 @@ def w2k(w, theta=0.0, h=inf, g=9.81, count_limit=100):
         return zeros_like(wi)
 
     k = 1.0*sign(wi)*wi**2.0  #% deep water
-    if h == inf:
+    if h > 10. ** 25:
         k2 = k*sin(th)/gi[-1] #%size np x nf
         k1 = k*cos(th)/gi[0]
         return k1, k2

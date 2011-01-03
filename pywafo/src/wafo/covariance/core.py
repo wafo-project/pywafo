@@ -121,7 +121,7 @@ class CovData1D(WafoData):
     --------
     >>> import numpy as np
     >>> import wafo.spectrum as sp
-    >>> Sj = sp.models.Jonswap(Hm0=3)
+    >>> Sj = sp.models.Jonswap(Hm0=3,Tp=7)
     >>> w = np.linspace(0,4,256)
     >>> S = sp.SpecData1D(Sj(w),w) #Make spectrum object from numerical values
 

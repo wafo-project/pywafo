@@ -4,7 +4,7 @@ Misc lsdkfalsdflasdfl
 from __future__ import division
 
 import sys
-
+import fractions
 import numpy as np
 from numpy import (abs, amax, any, logical_and, arange, linspace, atleast_1d,
                    array, asarray, broadcast_arrays, ceil, floor, frexp, hypot,
@@ -384,8 +384,89 @@ def findextrema(x):
     '''
     xn = atleast_1d(x).ravel()
     return findcross(diff(xn), 0.0) + 1
+def findpeaks(data, n=2, min_h=None, min_p=0.0):
+    '''
+    Find peaks of vector or matrix possibly rainflow filtered
+     
+    Parameters
+    ----------
+    data      = matrix or vector
+    n     = The n highest peaks are found (if exist). (default 2)
+    min_h  = The threshold in the rainflowfilter (default 0.05*range(S(:))).
+                 A zero value will return all the peaks of S.
+    min_p  = 0..1, Only the peaks that are higher than 
+                       min_p*max(max(S))  min_p*(the largest peak in S)
+                       are returned (default  0).
+    Returns
+    ix = 
+        linear index to peaks of S
+        
+    Example: 
+    
+    Find highest 8 peaks that are not
+    less that 0.3*"global max" and have 
+    rainflow amplitude larger than 5.
+    >>> import numpy as np
+    >>> x = np.arange(0,10,0.01) 
+    >>> data = x**2+10*np.sin(3*x)+0.5*np.sin(50*x)
+    >>> findpeaks(data, n=8, min_h=5, min_p=0.3) 
+    array([908, 694, 481])
+    
+    See also  
+    --------
+    findtp
+    '''
+    S = np.atleast_1d(data)
+    smax = S.max()
+    if min_h is None:
+        smin = S.min()
+        min_h = 0.05*(smax-smin)
+    ndim = S.ndim
+    S = np.atleast_2d(S)
+    nrows, mcols = S.shape
 
-def findrfc(tp, hmin=0.0):
+    # Finding turningpoints of the spectrum
+    # Returning only those with rainflowcycle heights greater than h_min 
+    indP = [] # indices to peaks
+    ind = []
+    for iy in range(nrows): # % find all peaks
+        TuP = findtp(S[iy], min_h)
+        if len(TuP):
+            ind = TuP[1::2] #; % extract indices to maxima only
+        else: # % did not find any , try maximum
+            ind = S[iy].argmax()
+      
+        if ndim>1:
+            if iy==0:
+                ind2 = np.flatnonzero(S[iy,ind]>S[iy+1,ind])
+            elif iy==nrows-1:
+                ind2 = np.flatnonzero(S[iy,ind]>S[iy-1,ind])
+            else:
+                ind2 = np.flatnonzero((S[iy,ind]>S[iy-1,ind]) & (S[iy,ind]>S[iy+1,ind]))
+        
+            if len(ind2):
+                indP.append((ind[ind2] + iy*mcols))
+      
+    if ndim>1:
+        ind = np.hstack(indP) if len(indP) else []
+    if len(ind)==0:
+        return []
+    
+    peaks = S.take(ind)
+    ind2 = peaks.argsort()[::-1]
+     
+    
+    # keeping only the Np most significant peak frequencies.
+    nmax = min(n,len(ind))
+    ind = ind[ind2[:nmax]]
+    if (min_p >0 ) :
+        # Keeping only peaks larger than min_p percent relative to the maximum peak 
+        ind = ind[(S.take(ind) > min_p*smax)]
+    
+    return ind
+    
+
+def findrfc(tp, hmin=0.0, method='clib'):
     '''
     Return indices to rainflow cycles of a sequence of TP.
 
@@ -410,7 +491,8 @@ def findrfc(tp, hmin=0.0):
     >>> ind = findextrema(x)
     >>> ti, tp = t[ind], x[ind]
     >>> a = pb.plot(t,x,'.',ti,tp,'r.')
-    >>> ind1 = findrfc(tp,0.3)
+    >>> ind1 = findrfc(tp,0.3); ind1
+    array([  0,   9,  32,  53,  74,  95, 116, 137])
     >>> a = pb.plot(ti[ind1],tp[ind1])
     >>> pb.close('all')
 
@@ -445,7 +527,7 @@ def findrfc(tp, hmin=0.0):
         warnings.warn('This is not a sequence of turningpoints, exit')
         return ind
 
-    if clib is None:
+    if clib is None or method!='clib':
         ind = zeros(n, dtype=np.int)
         NC = np.int(NC)
         for i in xrange(NC):
@@ -506,7 +588,7 @@ def findrfc(tp, hmin=0.0):
         #  /* for i */
     else:
         ind, ix = clib.findrfc(y, hmin)
-    return ind[:ix]
+    return np.sort(ind[:ix])
 
 def rfcfilter(x, h, method=0):
     """ 
@@ -653,8 +735,8 @@ def findtp(x, h=0.0, kind=None):
             64,  70,  78,  82,  84,  89,  94, 101, 108, 119, 131, 141, 148,
            149, 150, 159, 173, 184, 190, 199])
     >>> itph
-    array([ 11,  64,  28,  31,  47,  51,  39,  56,  70,  94,  78,  89, 101,
-           108, 119, 148, 131, 141,   0, 159, 173, 184, 190])
+    array([ 11,  28,  31,  39,  47,  51,  56,  64,  70,  78,  89,  94, 101,
+           108, 119, 131, 141, 148, 159, 173, 184, 190, 199])
 
     See also
     ---------
@@ -1910,7 +1992,41 @@ def histgrm(data, n=None, odd=False, scale=False, lintype='b-'):
     plotbackend.plotbackend.plot(xx, yy, lintype, limits, limits * 0)
     binwidth = d
     return binwidth
+
+def num2pistr(x, n=3):
+    ''' 
+    Convert a scalar to a text string in fractions of pi
+        if the numerator is less than 10 and not equal 0 
+               and if the denominator is less than 10.
+
+    Parameters
+    ----------
+    x   = a scalar
+    n   = maximum digits of precision. (default 3)
+    Returns
+    -------
+    xtxt = a text string in fractions of pi
     
+    Example
+    >>> num2pistr(np.pi*3/4)
+    '3\\pi/4'
+    '''
+    
+    frac = fractions.Fraction.from_float(x/pi).limit_denominator(10000000)
+    num = frac.numerator
+    den = frac.denominator
+    if (den<10) and (num<10) and (num!=0):
+        dtxt = '' if abs(den)==1 else '/%d' % den
+        if abs(num)==1: # % numerator
+            ntxt='-' if num==-1 else ''
+        else: 
+            ntxt = '%d' % num 
+        xtxt= ntxt+r'\pi'+dtxt
+    else:
+        format = '%0.' +'%dg' % n
+        xtxt = format % x
+    return xtxt     
+
 def _test_find_cross():
     t = findcross([0, 0, 1, -1, 1], 0)
     
