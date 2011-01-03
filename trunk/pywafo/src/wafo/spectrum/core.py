@@ -1,5 +1,5 @@
 from __future__ import division
-from wafo.misc import meshgrid
+from wafo.misc import meshgrid, gravity
 from wafo.objects import mat2timeseries, TimeSeries
 import warnings
 
@@ -2931,7 +2931,7 @@ class SpecData2D(WafoData):
             self.phi   = mod(self.phi+phi0+pi,2*pi)-pi
             if (rotateGrid and (self.phi!=0)):
                 # Do a physical rotation of spectrum
-                theta = Snew.args[0]
+                #theta = Snew.args[0]
                 ntOld = len(theta);
                 if (mod(theta[0]-theta[-1],2*pi)==0):
                     nt = ntOld-1
@@ -2939,7 +2939,7 @@ class SpecData2D(WafoData):
                     nt = ntOld
              
                 theta[0:nt] = mod(theta[0:nt]-self.phi+pi,2*pi)-pi
-                Snew.phi         = 0;
+                self.phi = 0
                 ind = theta.argsort()
                 self.data           = self.data[ind,:]
                 self.args[0] = theta[ind]
@@ -2980,7 +2980,7 @@ class SpecData2D(WafoData):
 
 
         
-    def moment(self, nr=2, vari='xt', even=True):
+    def moment(self, nr=2, vari='xt'):
         ''' 
         Calculates spectral moments from spectrum
 
@@ -2991,10 +2991,6 @@ class SpecData2D(WafoData):
         vari : string
             variables in model, optional when two-dim.spectrum,
                    string with 'x' and/or 'y' and/or 't'
-        even : bool
-            False for all moments,
-            True for only even orders
-
         Returns
         -------
         m     : list of moments
@@ -3024,8 +3020,15 @@ class SpecData2D(WafoData):
         For the calculation of moments see Baxevani et al.
 
         Example:
-          S=demospec('dir')
-          [m,mtext]=spec2mom(S,2,'xyt')
+        >>> import wafo.spectrum.models as sm
+        >>> D = sm.Spreading()
+        >>> SD = D.tospecdata2d(sm.Jonswap().tospecdata())
+        >>> m,mtext = SD.moment(nr=2,vari='xyt')
+        >>> m,mtext
+        (array([  3.06081401e+00,   1.31633777e-01,  -1.06245690e-17,
+             2.13024554e+00,   1.14268485e-02,   8.07334609e-03,
+             1.67721091e+00,  -5.29341959e-19,   1.08960751e-01,
+             1.08960751e-01]), ['m0', 'mx', 'my', 'mt', 'mxx', 'myy', 'mtt', 'mxy', 'mxt', 'myt'])
 
         References
         ----------
@@ -3058,135 +3061,91 @@ class SpecData2D(WafoData):
         w = ravel(S1.args[0])
         theta = S1.args[1]-S1.phi
         S = S1.data
-        Sw = simps(S,x=theta)
+        Sw = simps(S,x=theta,axis=0)
         m = [simps(Sw,x=w)]
         mtext=['m0']
-
+        
         if nr>0:
+            vec = []
+            g = np.atleast_1d(S1.__dict__.get('g', gravity()))
+            kx=w**2/g[0] # maybe different normalization in x and y => diff. g
+            ky=w**2/g[-1]
+            
             nw=w.size
+            
             if 'x' in vari:
-                Sc = simps(S*np.cos(theta[:,None]),x=theta)
-                #% integral S*cos(th) dth
-                #end
+                ct = np.cos(theta[:,None])
+                Sc = simps(S*ct,x=theta, axis=0)
+                vec.append(kx*Sc)
+                mtext.append('mx')
             if 'y' in vari:
-                Ss = simps(S*np.sin(theta[:,None]),x=theta)    
-            #end
-#            if ~isfield(S1,'g')
-#                S1.g=gravity
-#            end
-#            kx=w.^2/S1.g(1) % maybe different normalization in x and y => diff. g
-#            ky=w.^2/S1.g(end)
-#
-#            if Nv>=1
-#            switch vari
-#              case 'x'
-#                vec = kx.*Sc
-#                mtext(end+1)={'mx'}
-#              case 'y'
-#                vec = ky.*Ss
-#                mtext(end+1)={'my'}
-#              case 't'
-#                vec = w.*Sw
-#               mtext(end+1)={'mt'}
-#            end
-#          else
-#            vec = [kx.*Sc ky.*Ss w*Sw]
-#            mtext(end+(1:3))={'mx', 'my', 'mt'}
-#          end
-#          if nr>1
-#          if strcmpi(vari(1),'x')
-#            Sc=simpson(th,S1.S.*(cos(th)*ones(1,nw))).'
-#            % integral S*cos(th) dth
-#            Sc2=simpson(th,S1.S.*(cos(th).^2*ones(1,nw))).'
-#            % integral S*cos(th)^2 dth
-#          end
-#          if strcmpi(vari(1),'y')||strcmpi(vari(2),'y')
-#            Ss=simpson(th,S1.S.*(sin(th)*ones(1,nw))).'
-#            % integral S*sin(th) dth
-#            Ss2=simpson(th,S1.S.*(sin(th).^2*ones(1,nw))).'
-#            % integral S*sin(th)^2 dth
-#            if strcmpi(vari(1),'x')
-#              Scs=simpson(th,S1.S.*((cos(th).*sin(th))*ones(1,nw))).'
-#              % integral S*cos(th)*sin(th) dth
-#            end
-#          end
-#          if ~isfield(S1,'g')
-#            S1.g=gravity
-#          end
-#
-#          if Nv==2
-#            switch vari
-#              case 'xy'
-#                vec=[kx.*Sc ky.*Ss kx.^2.*Sc2 ky.^2.*Ss2 kx.*ky.*Scs]
-#                mtext(end+(1:5))={'mx','my','mxx', 'myy', 'mxy'}
-#              case 'xt'
-#                vec=[kx.*Sc w.*Sw kx.^2.*Sc2 w.^2.*Sw kx.*w.*Sc]
-#                mtext(end+(1:5))={'mx','mt','mxx', 'mtt', 'mxt'}
-#              case 'yt'
-#                vec=[ky.*Ss w.*Sw ky.^2.*Ss2 w.^2.*Sw ky.*w.*Ss]
-#                mtext(end+(1:5))={'my','mt','myy', 'mtt', 'myt'}
-#            end
-#          else
-#            vec=[kx.*Sc ky.*Ss w.*Sw kx.^2.*Sc2 ky.^2.*Ss2  w.^2.*Sw kx.*ky.*Scs kx.*w.*Sc ky.*w.*Ss]
-#            mtext(end+(1:9))={'mx','my','mt','mxx', 'myy', 'mtt', 'mxy', 'mxt', 'myt'}
-#          end
-#          if nr>3
-#            if strcmpi(vari(1),'x')
-#              Sc3=simpson(th,S1.S.*(cos(th).^3*ones(1,nw))).'
-#              % integral S*cos(th)^3 dth
-#              Sc4=simpson(th,S1.S.*(cos(th).^4*ones(1,nw))).'
-#              % integral S*cos(th)^4 dth
-#            end
-#            if strcmpi(vari(1),'y')||strcmpi(vari(2),'y')
-#              Ss3=simpson(th,S1.S.*(sin(th).^3*ones(1,nw))).'
-#              % integral S*sin(th)^3 dth
-#              Ss4=simpson(th,S1.S.*(sin(th).^4*ones(1,nw))).'
-#              % integral S*sin(th)^4 dth
-#              if strcmpi(vari(1),'x')  %both x and y
-#                Sc2s=simpson(th,S1.S.*((cos(th).^2.*sin(th))*ones(1,nw))).'
-#                % integral S*cos(th)^2*sin(th) dth
-#                Sc3s=simpson(th,S1.S.*((cos(th).^3.*sin(th))*ones(1,nw))).'
-#                % integral S*cos(th)^3*sin(th) dth
-#                Scs2=simpson(th,S1.S.*((cos(th).*sin(th).^2)*ones(1,nw))).'
-#                % integral S*cos(th)*sin(th)^2 dth
-#                Scs3=simpson(th,S1.S.*((cos(th).*sin(th).^3)*ones(1,nw))).'
-#                % integral S*cos(th)*sin(th)^3 dth
-#                Sc2s2=simpson(th,S1.S.*((cos(th).^2.*sin(th).^2)*ones(1,nw))).'
-#                % integral S*cos(th)^2*sin(th)^2 dth
-#              end
-#            end
-#            if Nv==2
-#              switch vari
-#                case 'xy'
-#                  vec=[vec kx.^4.*Sc4 ky.^4.*Ss4 kx.^3.*ky.*Sc3s ...
-#                        kx.^2.*ky.^2.*Sc2s2 kx.*ky.^3.*Scs3]
-#                  mtext(end+(1:5))={'mxxxx','myyyy','mxxxy','mxxyy','mxyyy'}
-#                case 'xt'
-#                  vec=[vec kx.^4.*Sc4 w.^4.*Sw kx.^3.*w.*Sc3 ...
-#                        kx.^2.*w.^2.*Sc2 kx.*w.^3.*Sc]
-#                  mtext(end+(1:5))={'mxxxx','mtttt','mxxxt','mxxtt','mxttt'}
-#                case 'yt'
-#                  vec=[vec ky.^4.*Ss4 w.^4.*Sw ky.^3.*w.*Ss3 ...
-#                        ky.^2.*w.^2.*Ss2 ky.*w.^3.*Ss]
-#                  mtext(end+(1:5))={'myyyy','mtttt','myyyt','myytt','myttt'}
-#              end
-#            else
-#              vec=[vec kx.^4.*Sc4 ky.^4.*Ss4 w.^4.*Sw kx.^3.*ky.*Sc3s ...
-#                   kx.^2.*ky.^2.*Sc2s2 kx.*ky.^3.*Scs3 kx.^3.*w.*Sc3 ...
-#                   kx.^2.*w.^2.*Sc2 kx.*w.^3.*Sc ky.^3.*w.*Ss3 ...
-#                   ky.^2.*w.^2.*Ss2 ky.*w.^3.*Ss kx.^2.*ky.*w.*Sc2s ...
-#                   kx.*ky.^2.*w.*Scs2 kx.*ky.*w.^2.*Scs]
-#              mtext(end+(1:15))={'mxxxx','myyyy','mtttt','mxxxy','mxxyy',...
-#              'mxyyy','mxxxt','mxxtt','mxttt','myyyt','myytt','myttt','mxxyt','mxyyt','mxytt'}
-#
-#            end % if Nv==2 ... else ...
-#          end % if nr>3
-#          end % if nr>1
-#          m=[m simpson(w,vec)]
-#        end % if nr>0
-#      %  end %%if Nv==1... else...    to be removed
-#    end % ... else two-dim spectrum
-
+                st = np.sin(theta[:,None])
+                Ss = simps(S*st,x=theta, axis=0)    
+                vec.append(ky*Ss)
+                mtext.append('my')
+            if 't' in vari:
+                vec.append(w*Sw)
+                mtext.append('mt')
+            
+            if nr>1:
+                if 'x' in vari:
+                    Sc2 = simps(S*ct**2,x=theta, axis=0)
+                    vec.append(kx**2*Sc2)
+                    mtext.append('mxx')
+                if 'y' in vari: 
+                    Ss2 = simps(S*st**2,x=theta, axis=0)
+                    vec.append(ky**2*Ss2)
+                    mtext.append('myy')
+                if 't' in vari:
+                    vec.append(w**2*Sw)
+                    mtext.append('mtt')
+                if 'x' in vari and 'y' in vari:
+                    Scs = simps(S*ct*st,x=theta, axis=0)
+                    vec.append(kx*ky*Scs)
+                    mtext.append('mxy')
+                if 'x' in vari and 't' in vari:
+                    vec.append(kx*w*Sc)
+                    mtext.append('mxt')
+                if 'y' in vari and 't' in vari:
+                    vec.append(ky*w*Sc)
+                    mtext.append('myt')
+              
+                if nr>3:
+                    if 'x' in vari:
+                        Sc3 = simps(S*ct**3,x=theta, axis=0)
+                        Sc4 = simps(S*ct**4,x=theta, axis=0)
+                        vec.append(kx**4*Sc4)
+                        mtext.append('mxxxx')
+                    if 'y' in vari:
+                        Ss3 = simps(S*st**3,x=theta, axis=0)
+                        Ss4 = simps(S*st**4,x=theta, axis=0)
+                        vec.append(ky**4*Ss4)
+                        mtext.append('myyyy')
+                    if 't' in vari:
+                        vec.append(w**4*Sw)
+                        mtext.append('mtttt')
+                        
+                    if 'x' in vari and 'y' in vari:
+                        Sc2s = simps(S*ct**2*st,x=theta, axis=0)
+                        Sc3s = simps(S*ct**3*st,x=theta, axis=0)
+                        Scs2 = simps(S*ct*st**2,x=theta, axis=0)
+                        Scs3 = simps(S*ct*st**3,x=theta, axis=0)
+                        Sc2s2 = simps(S*ct**2*st**2,x=theta, axis=0)
+                        vec.extend((kx**3*ky*Sc3s,kx**2*ky**2*Sc2s2, kx*ky**3*Scs3))
+                        mtext.extend(('mxxxy','mxxyy','mxyyy'))
+                    if 'x' in vari and 't' in vari:
+                        vec.extend((kx**3*w*Sc3, kx**2*w**2*Sc2, kx*w**3*Sc))
+                        mtext.extend(('mxxxt','mxxtt','mxttt'))
+                    if 'y' in vari and 't' in vari:
+                        vec.extend((ky**3*w*Ss3, ky**2*w**2*Ss2, ky*w**3*Ss))
+                        mtext.extend(('myyyt','myytt','myttt'))
+                    if 'x' in vari and 'y' in vari and 't' in vari:
+                        vec.extend((kx**2*ky*w*Sc2s, kx*ky**2*w*Scs2, kx*ky*w**2*Scs))
+                        mtext.extend(('mxxyt','mxyyt','mxytt'))
+            #end % if nr>1
+            m.extend([simps(vals, x=w) for vals in vec])
+        return np.asarray(m), mtext
+    
 
 
     def interp(self):
