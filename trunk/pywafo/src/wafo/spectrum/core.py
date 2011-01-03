@@ -2,9 +2,10 @@ from __future__ import division
 from wafo.misc import meshgrid
 from wafo.objects import mat2timeseries, TimeSeries
 import warnings
+
 import numpy as np
 from numpy import (pi, inf, zeros, ones, where, nonzero, #@UnresolvedImport
-           flatnonzero, ceil, sqrt, exp, log, arctan2, #@UnresolvedImport
+           flatnonzero, ceil, sqrt, exp, log, arctan2, log10, #@UnresolvedImport
            tanh, cosh, sinh, random, atleast_1d, maximum, #@UnresolvedImport
            minimum, diff, isnan, any, r_, conj, mod, #@UnresolvedImport
            hstack, vstack, interp, ravel, finfo, linspace, #@UnresolvedImport
@@ -19,7 +20,7 @@ from pylab import stineman_interp
 from dispersion_relation import w2k #, k2w
 from wafo.wafodata import WafoData, now
 
-from wafo.misc import sub_dict_select, nextpow2, discretize, JITImport #, tranproc
+from wafo.misc import sub_dict_select, nextpow2, discretize, JITImport, findpeaks #, tranproc
 try:
     from wafo.gaussian import Rind
 except ImportError:
@@ -40,7 +41,7 @@ from wafo.plotbackend import plotbackend
 _WAFOCOV = JITImport('wafo.covariance')
 
 
-__all__ = ['SpecData1D', 'SpecData2D']
+__all__ = ['SpecData1D', 'SpecData2D', 'cltext', 'plotspec']
 
 def _set_seed(iseed):
     '''Set seed of random generator'''
@@ -147,6 +148,556 @@ def qtf(w, h=inf, g=9.81):
 
     return h_s, h_d , h_dii
 
+def plotspec(specdata, linetype='b-', flag=1):
+    '''
+    PLOTSPEC Plot a spectral density 
+    
+     CALL:  plotspec(S,plotflag,linetype) 
+    
+        S       = an array of spectral density structs:
+                  1D  (see dat2spec)
+                  2D  (see createspec)
+       1D:
+       plotflag = 1 plots the density, S, (default)
+                  2 plot 10log10(S)
+               3 plots both the above plots 
+       2D:
+       Directional spectra: S(w,theta), S(f,theta)             
+       plotflag = 1 polar plot S (default)
+                  2 plots spectral density and the directional 
+                    spreading, int S(w,theta) dw or int S(f,theta) df
+                  3 plots spectral density and the directional 
+                    spreading, int S(w,theta)/S(w) dw or int S(f,theta)/S(f) df
+                  4 mesh of S
+                  5 mesh of S in polar coordinates  
+                  6 contour plot of S
+                  7 filled contour plot of S
+       Wavenumber spectra: S(k1,k2)
+       plotflag = 1 contour plot of S (default)
+                  2 filled contour plot of S
+       lintype : specify color and lintype, see PLOT for possibilities.
+    
+     NOTE: - lintype may be given anywhere after S.
+    
+     Examples
+      S = demospec('dir'); S2 = mkdspec(jonswap,spreading);
+      plotspec(S,2), hold on
+      plotspec(S,3,'g')  % Same as previous fig. due to frequency independent spreading
+      plotspec(S2,2,'r') % Not the same as previous figs. due to frequency dependent spreading
+      plotspec(S2,3,'m')
+      % transform from angular frequency and radians to frequency and degrees
+      Sf = ttspec(S,'f','d'); clf
+      plotspec(Sf,2),
+    
+     See also  dat2spec, createspec, simpson
+    '''
+    
+    
+    # label the contour levels
+    txtFlag = 0;
+    LegendOn = 1;
+  
+    
+    ftype = specdata.freqtype #options are 'f' and 'w' and 'k'
+    data = specdata.data
+    if data.ndim == 2:
+        freq = specdata.args[1]
+        theta = specdata.args[0]
+    else:
+        freq = specdata.args    
+    #if isinstance(specdata.args, (list, tuple)):
+        
+    if ftype == 'w': 
+        xlbl_txt = 'Frequency [rad/s]';  
+        ylbl1_txt = 'S(w) [m^2 s / rad]';
+        ylbl3_txt = 'Directional Spectrum';
+        zlbl_txt = 'S(w,\theta) [m^2 s / rad^2]';
+        funit = ' [rad/s]';  
+        #Sunit     = ' [m^2 s / rad]'; 
+    elif ftype == 'f':  
+        xlbl_txt = 'Frequency [Hz]';     
+        ylbl1_txt = 'S(f) [m^2 s]';
+        ylbl3_txt = 'Directional Spectrum';
+        zlbl_txt = 'S(f,\theta) [m^2 s / rad]';
+        funit = ' [Hz]';  
+        #Sunit     = ' [m^2 s ]'; 
+    elif ftype == 'k':
+        xlbl_txt = 'Wave number [rad/m]';
+        ylbl1_txt = 'S(k) [m^3/ rad]';
+        funit = ' [rad/m]'; 
+        #Sunit     = ' [m^3 / rad]';     
+        ylbl4_txt = 'Wave Number Spectrum';
+    
+    else:
+      raise ValueError('Frequency type unknown')
+
+    
+    if hasattr(specdata, 'norm') and specdata.norm :
+        #Sunit=[];
+        funit = [];
+        ylbl1_txt = 'Normalized Spectral density';
+        ylbl3_txt = 'Normalized Directional Spectrum';
+        ylbl4_txt = 'Normalized Wave Number Spectrum';
+        if ftype == 'k':
+            xlbl_txt = 'Normalized Wave number';
+        else:
+            xlbl_txt = 'Normalized Frequency';     
+    
+    ylbl2_txt = 'Power spectrum (dB)';
+    
+    phi = specdata.phi
+    
+    spectype = specdata.type.lower()
+    stype = spectype[-3::]
+    if stype in ('enc','req','k1d') : #1D plot
+        Fn   = freq(-1) # Nyquist frequency
+        indm = findpeaks(data,n=4)
+        maxS = data.max()
+#        if isfield(S,'CI') && ~isempty(S.CI),
+#          maxS  = maxS*S.CI(2);
+#          txtCI = [num2str(100*S.p), '% CI'];
+#        end
+        
+        Fp = freq[indm]# %peak frequency/wave number
+        
+        if len(indm)==1:
+            txt = [('fp = %0.2g' % Fp) + funit]
+        else:
+            txt = []
+            for i,fp in enumerate(Fp.tolist()):
+                txt.append(('fp%d = %0.2g' % (i,fp)) + funit)
+          
+        
+        if (flag == 3):
+            plotbackend.subplot(2,1,1) 
+        if (flag == 1) or (flag ==3):#% Plot in normal scale
+            plotbackend.plot(np.vstack([Fp, Fp]),np.vstack([zeros(len(indm)), data.take(indm)]),':',
+                             freq,data,linetype)
+            
+#          if isfield(S,'CI'),
+#            plot(freq,S.S*S.CI(1), 'r:' )
+#            plot(freq,S.S*S.CI(2), 'r:' )
+          
+            a = plotbackend.axis() 
+          
+            a1 = Fn
+            if (Fp>0): 
+                a1 = max(min(Fn,10*max(Fp)),a[1]);
+          
+            plotbackend.axis([0, a1 ,0, max(1.01*maxS,a[3])]) 
+            plotbackend.title('Spectral density')
+            plotbackend.xlabel(xlbl_txt)
+            plotbackend.ylabel(ylbl1_txt )
+        
+        
+        if (flag==3):
+            plotbackend.subplot(2,1,2)    
+        
+        if (flag == 2) or (flag ==3) : # Plot in logaritmic scale
+            ind = np.flatnonzero(data>0)
+            
+            plotbackend.plot(np.vstack([Fp,Fp]),np.vstack((min(10*log10(data.take(ind)/maxS)).repeat(len(Fp)),
+                                                            10*log10(data.take(indm)/maxS))),':')
+#          hold on 
+#          if isfield(S,'CI'),
+#            plot(freq(ind),10*log10(S.S(ind)*S.CI(1)/maxS), 'r:' )
+#            plot(freq(ind),10*log10(S.S(ind)*S.CI(2)/maxS), 'r:' )
+#          end
+            plotbackend.plot(freq[ind],10*log10(data[ind]/maxS),linetype)
+          
+#            if ih, a=axis; else a=[0 0 0 0]; end
+#            axis([0 max(min(Fn,max(10*Fp)),a(2)) -20 max(1.01*10*log10(1),a(4))]) % log10(maxS)
+#            title('Spectral density')
+#            xlabel(xlbl_txt)
+#            ylabel(ylbl2_txt )
+#              
+#        if LegendOn
+#            if isfield(S,'CI'),
+#                legend(txt{:},txtCI,1)
+#            else
+#                legend(txt{:},1)
+#                end
+#        end
+#      case {'k2d'}
+#        if plotflag==1,
+#          [c, h] = contour(freq,S.k2,S.S,'b');
+#          z_level = clevels(c);
+#        
+#          
+#          if txtFlag==1
+#            textstart_x=0.05; textstart_y=0.94;
+#            cltext1(z_level,textstart_x,textstart_y);
+#          else
+#            cltext(z_level,0)
+#          end
+#        else
+#          [c,h] = contourf(freq,S.k2,S.S);
+#          %clabel(c,h), colorbar(c,h)
+#          fcolorbar(c) % alternative
+#        end
+#        rotate(h,[0 0 1],-phi*180/pi)
+#        
+#        
+#           
+#        xlabel(xlbl_txt)
+#        ylabel(xlbl_txt)
+#        title(ylbl4_txt)
+#        %return
+#        km=max([-freq(1) freq(end) S.k2(1) -S.k2(end)]);
+#        axis([-km km -km km])
+#        hold on
+#        plot([0 0],[ -km km],':')
+#        plot([-km km],[0 0],':')
+#        axis('square')
+#        
+#        
+#        %cltext(z_level);
+#        %axis('square')
+#        if ~ih, hold off,end
+#      case {'dir'}
+#        thmin = S.theta(1)-phi;thmax=S.theta(end)-phi;
+#        if plotflag==1 % polar plot
+#          if 0, % alternative but then z_level must be chosen beforehand
+#            h = polar([0 2*pi],[0 freq(end)]);
+#            delete(h);hold on
+#            [X,Y]=meshgrid(S.theta,freq);
+#            [X,Y]=pol2cart(X,Y);
+#            contour(X,Y,S.S',lintype)
+#          else
+#            if (abs(thmax-thmin)<3*pi), % angle given in radians
+#              theta = S.theta;
+#            else
+#              theta = S.theta*pi/180; % convert to radians
+#              phi  = phi*pi/180;
+#            end
+#            c = contours(theta,freq,S.S');%,Nlevel); % calculate levels
+#            if isempty(c)
+#              c = contours(theta,freq,S.S);%,Nlevel); % calculate levels
+#            end
+#            [z_level c] = clevels(c); % find contour levels
+#            h = polar(c(1,:),c(2,:),lintype);
+#            rotate(h,[0 0 1],-phi*180/pi)
+#          end
+#          title(ylbl3_txt)
+#          % label the contour levels
+#          
+#          if txtFlag==1
+#            textstart_x = -0.1; textstart_y=1.00;
+#            cltext1(z_level,textstart_x,textstart_y);
+#          else
+#            cltext(z_level,0)
+#          end
+#          
+#        elseif (plotflag==2) || (plotflag==3),
+#          %ih = ishold;
+#          
+#          subplot(211)
+#          
+#          if ih, hold on, end
+#          
+#          Sf = spec2spec(S,'freq'); % frequency spectrum
+#          plotspec(Sf,1,lintype)
+#    
+#          subplot(212)
+#          
+#          Dtf        = S.S;
+#          [Nt,Nf]    = size(S.S); 
+#          Sf         = Sf.S(:).';
+#          ind        = find(Sf);
+#          
+#          if plotflag==3, %Directional distribution  D(theta,freq))
+#            Dtf(:,ind) = Dtf(:,ind)./Sf(ones(Nt,1),ind);
+#          end
+#          Dtheta  = simpson(freq,Dtf,2); %Directional spreading, D(theta)
+#          Dtheta  = Dtheta/simpson(S.theta,Dtheta); % make sure int D(theta)dtheta = 1
+#          [y,ind] = max(Dtheta);
+#          Wdir    = S.theta(ind)-phi; % main wave direction
+#          txtwdir = ['\theta_p=' num2pistr(Wdir,3)]; % convert to text string
+#          
+#          plot([1 1]*S.theta(ind)-phi,[0 Dtheta(ind)],':'), hold on
+#          if LegendOn
+#            lh=legend(txtwdir,0);
+#          end
+#          plot(S.theta-phi,Dtheta,lintype)
+#          
+#          fixthetalabels(thmin,thmax,'x',2)  % fix xticklabel and xlabel for theta
+#          ylabel('D(\theta)')
+#          title('Spreading function')
+#          if ~ih, hold off, end
+#          %legend(lh) % refresh current legend
+#        elseif plotflag==4 % mesh
+#          mesh(freq,S.theta-phi,S.S)
+#          xlabel(xlbl_txt);
+#          fixthetalabels(thmin,thmax,'y',3) % fix yticklabel and ylabel for theta
+#          zlabel(zlbl_txt)
+#          title(ylbl3_txt)
+#        elseif plotflag==5 % mesh
+#          %h=polar([0 2*pi],[0 freq(end)]);
+#          %delete(h);hold on
+#          [X,Y]=meshgrid(S.theta-phi,freq);
+#          [X,Y]=pol2cart(X,Y);
+#          mesh(X,Y,S.S')
+#          % display the unit circle beneath the surface
+#          hold on, mesh(X,Y,zeros(size(S.S'))),hold off
+#          zlabel(zlbl_txt)
+#          title(ylbl3_txt)
+#          set(gca,'xticklabel','','yticklabel','')
+#          lighting phong
+#          %lighting gouraud
+#          %light
+#        elseif (plotflag==6) || (plotflag==7),
+#          theta = S.theta-phi;
+#          [c, h] = contour(freq,theta,S.S); %,Nlevel); % calculate levels
+#          fixthetalabels(thmin,thmax,'y',2) % fix yticklabel and ylabel for theta
+#          if plotflag==7,
+#            hold on
+#            [c,h] =    contourf(freq,theta,S.S); %,Nlevel); % calculate levels
+#            %hold on
+#          end
+#        
+#          title(ylbl3_txt)
+#          xlabel(xlbl_txt);
+#          if 0,
+#            [z_level] = clevels(c); % find contour levels
+#            % label the contour levels
+#            if txtFlag==1
+#              textstart_x = 0.06; textstart_y=0.94;
+#              cltext1(z_level,textstart_x,textstart_y) % a local variant of cltext
+#            else
+#              cltext(z_level)
+#            end
+#          else
+#            colormap('jet')
+#         
+#            if plotflag==7,
+#              fcolorbar(c)
+#            else
+#              %clabel(c,h),
+#              hcb = colorbar;
+#            end
+#            grid on
+#          end
+#        else
+#          error('Unknown plot option')
+#        end
+#      otherwise, error('unknown spectral type')
+#    end
+#    
+#    if ~ih, hold off, end
+#    
+#    %  The following two commands install point-and-click editing of
+#    %   all the text objects (title, xlabel, ylabel) of the current figure:
+#    
+#    %set(findall(gcf,'type','text'),'buttondownfcn','edtext')
+#    %set(gcf,'windowbuttondownfcn','edtext(''hide'')')
+#    
+#    return
+#    
+
+
+#      
+#    function fixthetalabels(thmin,thmax,xy,dim)
+#    %FIXTHETALABELS pretty prints the ticklabels and x or y labels for theta  
+#    %  
+#    % CALL fixthetalabels(thmin,thmax,xy,dim)
+#    %
+#    %  thmin, thmax = minimum and maximum value for theta (wave direction)
+#    %  xy           = 'x' if theta is plotted on the x-axis 
+#    %                 'y' if theta is plotted on the y-axis 
+#    %  dim          = specifies the dimension of the plot (ie number of axes shown 2 or 3)
+#    %  If abs(thmax-thmin)<3*pi it is assumed that theta is given in radians 
+#    %  otherwise degrees
+#    
+#    ind = [('x' == xy)  ('y' == xy) ];
+#    yx = 'yx';
+#    yx = yx(ind);
+#    if nargin<4||isempty(dim),
+#      dim=2;
+#    end
+#    %drawnow
+#    %pause
+#    
+#    if abs(thmax-thmin)<3*pi, %Radians given. Want xticks given as fractions  of pi
+#      %Trick to update the axis 
+#      if xy=='x'    
+#        if dim<3,
+#          axis([thmin,thmax 0 inf ])
+#        else
+#          axis([thmin,thmax 0 inf 0 inf])
+#        end
+#      else
+#        if dim<3, 
+#          axis([0 inf thmin,thmax ])
+#        else
+#          axis([0 inf thmin,thmax 0 inf])
+#        end
+#      end
+#      
+#      set(gca,[xy 'tick'],pi*(thmin/pi:0.25:thmax/pi));
+#      set(gca,[xy 'ticklabel'],[]);
+#      x    = get(gca,[xy 'tick']);
+#      y    = get(gca,[yx 'tick']);
+#      y1 = y(1);
+#      dy = y(2)-y1;
+#      yN = y(end)+dy;
+#      ylim = [y1 yN];
+#      dy1 = diff(ylim)/40;
+#      %ylim=get(gca,[yx 'lim'])%,ylim=ylim(2);
+#      
+#      if xy=='x'
+#        for j=1:length(x)
+#          xtxt = num2pistr(x(j));
+#          figtext(x(j),y1-dy1,xtxt,'data','data','center','top');
+#        end
+#       % ax = [thmin thmax 0 inf];
+#        ax = [thmin thmax ylim];
+#        if dim<3,
+#          figtext(mean(x),y1-7*dy1,'Wave directions (rad)','data','data','center','top')
+#        else
+#          ax = [ax  0 inf];      
+#          xlabel('Wave directions (rad)')
+#        end
+#      else
+#        %ax = [0 inf thmin thmax];
+#        ax = [ylim thmin thmax];
+#       
+#        if dim<3,
+#          for j=1:length(x)
+#            xtxt = num2pistr(x(j));
+#            figtext(y1-dy1/2,x(j),xtxt,'data','data','right');
+#          end
+#          set(gca,'DefaultTextRotation',90)
+#          %ylabel('Wave directions (rad)')
+#          figtext(y1-3*dy1,mean(x),'Wave directions (rad)','data','data','center','bottom')
+#          set(gca,'DefaultTextRotation',0)
+#        else
+#          for j=1:length(x)
+#            xtxt = num2pistr(x(j));
+#            figtext(y1-3*dy1,x(j),xtxt,'data','data','right');
+#          end
+#          ax = [ax 0 inf];
+#          ylabel('Wave directions (rad)')
+#        end
+#      end
+#      %xtxt = num2pistr(x(j));
+#      %for j=2:length(x)
+#      %  xtxt = strvcat(xtxt,num2pistr(x(j)));
+#      %end
+#      %set(gca,[xy 'ticklabel'],xtxt)
+#    else % Degrees given
+#      set(gca,[xy 'tick'],thmin:45:thmax)
+#      if xy=='x'
+#        ax=[thmin thmax 0 inf];
+#        if dim>=3,      ax=[ax 0 inf];    end
+#        xlabel('Wave directions (deg)')
+#      else
+#        ax=[0 inf thmin thmax ];
+#        if dim>=3,      ax=[ax 0 inf];    end
+#        ylabel('Wave directions (deg)')
+#      end
+#    end
+#    axis(ax)
+#    return
+#    
+  
+
+def cltext(levels, percent=False, n=4, xs=0.036, ys=0.94, zs=0):
+    '''
+    Places contour level text in the current window
+              
+    Parameters
+    ----------
+    levels  = vector of contour levels or the corresponding percent which the
+              contour line encloses
+    percent = 0 if levels are the actual contour levels (default)
+              1 if levels are the corresponding percent which the
+                contour line encloses
+    n       = maximum N digits of precision (default 4)
+    Returns
+    h       = handles to the text objects.
+    CLTEXT creates text objects in the current figure and prints 
+          "Level curves at:"        if percent is False and
+          "Level curves enclosing:" otherwise
+    and the contour levels or percent.
+    
+    NOTE: 
+    -The handles to the lines of text may also be found by 
+          h  = findobj(gcf,'gid','CLTEXT','type','text');
+          h  = findobj(gca,'gid','CLTEXT','type','text');
+    -To make the text objects follow the data in the axes set the units 
+    for the text objects 'data' by    
+          set(h,'unit','data')
+    
+    Examples:
+    >>> from wafo.integrate import peaks
+    >>> import pylab as plt
+    >>> x,y,z  = peaks();
+    >>> h = plt.contour(x,y,z)
+    >>> h = cltext(h.levels)
+    >>> plt.show()
+    
+    data = rndray(1,2000,2); f = kdebin(data,{'kernel','epan','L2',.5,'inc',128});
+    contour(f.x{:},f.f,f.cl),cltext(f.pl,1)
+    
+    See also
+    pdfplot
+    '''
+    # TODO : Make it work like legend does (but without the box): include position options etc...
+    clevels = np.atleast_1d(levels)
+    _CLTEXT_TAG = 'CLTEXT'
+    cax = plotbackend.gca()
+    axpos = cax.get_position()
+    xint = axpos.intervalx
+    yint = axpos.intervaly
+    
+    xss = xint[0] + xs * (xint[1] - xint[0])
+    yss = yint[0] + ys * (yint[1] - yint[0])
+    
+    cf = plotbackend.gcf() # get current figure
+    #% delete cltext object if it exists 
+    #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    def matchfun(x): 
+        if hasattr(x, 'get_gid'):
+            return x.get_gid() == _CLTEXT_TAG
+        return False
+    h_cltxts = plotbackend.findobj(cf, matchfun); 
+    if len(h_cltxts):
+        for i in h_cltxts:
+            try:
+                cax.texts.remove(i)
+            except:
+                warnings.warn('Tried to delete a non-existing CL-text')
+     
+            try:
+                cf.texts.remove(i)
+            except:
+                warnings.warn('Tried to delete a non-existing CL-text')
+     
+    charHeight = 1 / 33;
+    delta_y = charHeight;
+    
+    if percent:
+        titletxt = 'Level curves enclosing:';
+    else:
+        titletxt = 'Level curves at:';
+
+    format = '%0.' + ('%d' % n) + 'g\n'
+     
+    cltxt = ''.join([format % level for level in clevels.tolist()])
+    
+    titleProp = dict(gid=_CLTEXT_TAG, horizontalalignment='left',
+                     verticalalignment='center', fontweight='bold', axes=cax) # 
+    ha1 = plotbackend.figtext(xss, yss, titletxt, **titleProp)
+    
+    yss -= delta_y;
+    txtProp = dict(gid=_CLTEXT_TAG, horizontalalignment='left',
+                     verticalalignment='top', axes=cax)
+    
+    ha2 = plotbackend.figtext(xss, yss, cltxt, **txtProp)
+        
+    return ha1, ha2
+
+
 class SpecData1D(WafoData):
     """ 
     Container class for 1D spectrum data objects in WAFO
@@ -235,8 +786,8 @@ class SpecData1D(WafoData):
         >>> S = Sj.tospecdata()
         >>> acfmat = S.tocov_matrix(nr=3, nt=256, dt=0.1)
         >>> acfmat[:2,:]
-        array([[ 3.06075987,  0.        , -1.67750289,  0.        ],
-               [ 3.05246132, -0.16662376, -1.66819445,  0.18634189]])
+        array([[ 3.06073383,  0.        , -1.67748256,  0.        ],
+           [ 3.05235439, -0.16743411, -1.66811456,  0.18693124]])
 
         See also
         --------
@@ -426,7 +977,7 @@ class SpecData1D(WafoData):
                 setattr(acf, fieldname[0:i + 1], d_acf[0:nt + 1])
         return acf
     
-    def to_linspec(self, ns=None, dt=None, cases=20, iseed=None, 
+    def to_linspec(self, ns=None, dt=None, cases=20, iseed=None,
                    fn_limit=sqrt(2), gravity=9.81):
         '''
         Split the linear and non-linear component from the Spectrum 
@@ -947,6 +1498,14 @@ class SpecData1D(WafoData):
         ...     sa = res.std()
         ...     trueval, m, sa
         ...     np.abs(m-trueval)<sa
+        (0, 1.2309597785531439e-19, 3.2562166904166163e-18)
+        True
+        (array([ 1.74952003]), 1.7500502911292997, 0.022461280887884415)
+        array([ True], dtype=bool)
+        (0.0, -0.00024040615507690482, 0.0087615749174770451)
+        True
+        (0.0, 0.0018609047569154713, 0.049873521257196997)
+        True
 
         waveplot(x1,'r',x2,'g',1,1)
 
@@ -1028,7 +1587,7 @@ class SpecData1D(WafoData):
         z_i = vstack((zeros((1, cases)), randn((ns / 2) - 1, cases), zeros((1, cases))))
 
         amp = zeros((ns, cases), dtype=complex)
-        amp[0:(ns / 2 + 1), :] = z_r - 1j *z_i
+        amp[0:(ns / 2 + 1), :] = z_r - 1j * z_i
         del(z_r, z_i)
         amp[(ns / 2 + 1):ns, :] = amp[ns / 2 - 1:0:-1, :].conj()
         amp[0, :] = amp[0, :]*sqrt(2.)
@@ -1160,13 +1719,14 @@ class SpecData1D(WafoData):
         >>> truth1 = [0,np.sqrt(S.moment(1)[0][0])] + S.stats_nl(moments='sk')
         >>> truth1[-1] = truth1[-1]-3
         >>> truth1
+        [0, 1.7495200310090628, 0.18673120577479821, 0.06198852126241805]
          
         >>> funs = [np.mean,np.std,st.skew,st.kurtosis]
         >>> for fun,trueval in zip(funs,truth1):
         ...     res = fun(x2[:,1::], axis=0)
         ...     m = res.mean()
         ...     sa = res.std()
-        ...     m, sa
+        ...     trueval, m, sa
         ...     np.abs(m-trueval)<sa
         True
         True
@@ -1516,7 +2076,7 @@ class SpecData1D(WafoData):
 ##            skew = sum((6*C2+8*E2).*E)/sa^3   % skewness
 ##            kurt = 3+48*sum((C2+E2).*E2)/sa^4 % kurtosis
         return output
-    def testgaussian(self, ns,test0=None, cases=100, method='nonlinear',verbose=False,**opt):
+    def testgaussian(self, ns, test0=None, cases=100, method='nonlinear', verbose=False, **opt):
         '''
         TESTGAUSSIAN Test if a stochastic process is Gaussian.
         
@@ -1588,14 +2148,14 @@ class SpecData1D(WafoData):
 #        
 #        opt = troptset(opt,'multip',1)
         
-        plotflag=0 if test0 is None else 1
-        if cases>50:
+        plotflag = 0 if test0 is None else 1
+        if cases > 50:
             print('  ... be patient this may take a while')
         
        
-        rep = int(np.floor(ns*cases/maxsize)+1)
+        rep = int(np.floor(ns * cases / maxsize) + 1)
         
-        Nstep = np.floor(cases/rep);
+        Nstep = np.floor(cases / rep);
         
         acf = self.tocovdata()
         #R = spec2cov(S);
@@ -1610,18 +2170,18 @@ class SpecData1D(WafoData):
             #[g, tmp] = dat2tr(xs,method, **opt);
             #test1 = [test1; tmp(:)]
             if verbose:
-                print('finished %d of %d ' % (ix+1,rep) )
+                print('finished %d of %d ' % (ix + 1, rep))
         
-        if rep>1:
-            xs = acf.sim(ns=ns, cases=np.remainder(cases,rep))
+        if rep > 1:
+            xs = acf.sim(ns=ns, cases=np.remainder(cases, rep))
             for iy in range(1, xs.shape[-1]):
                 ts = TimeSeries(xs[:, iy], xs[:, 0].ravel())
                 g, tmp = ts.trdata(method, **opt)
                 test1.append(g.dist2gauss())
                 
         if plotflag: 
-            plotbackend.plot(test1,'o')
-            plotbackend.plot([1, cases], [test0, test0],'--')
+            plotbackend.plot(test1, 'o')
+            plotbackend.plot([1, cases], [test0, test0], '--')
           
             plotbackend.ylabel('e(g(u)-u)')
             plotbackend.xlabel('Simulation number')
@@ -1668,11 +2228,11 @@ class SpecData1D(WafoData):
         Example:
         >>> import numpy as np
         >>> import wafo.spectrum.models as sm
-        >>> Sj = sm.Jonswap(Hm0=3)
+        >>> Sj = sm.Jonswap(Hm0=3, Tp=7)
         >>> w = np.linspace(0,4,256)
         >>> S = SpecData1D(Sj(w),w) #Make spectrum object from numerical values
         >>> S.moment()
-        ([0.56220770033914191, 0.35433180985851975], ['m0', 'm0tt'])
+        ([0.5616342024616453, 0.7309966918203602], ['m0', 'm0tt'])
 
         References
         ----------
@@ -1849,8 +2409,8 @@ class SpecData1D(WafoData):
             dwMin = finfo(float).max
             #%wnc = min(wnNew,wnOld-1e-5)
             wnc = wnNew
-            specfun = lambda xi : stineman_interp(xi, w, S1)
-
+            #specfun = lambda xi : stineman_interp(xi, w, S1)
+            specfun = interpolate.interp1d(w,S1, kind='cubic')
             x, unused_y = discretize(specfun, 0, wnc)
             dwMin = minimum(min(diff(x)), dwMin)
 
@@ -1950,11 +2510,11 @@ class SpecData1D(WafoData):
         Example:
         >>> import numpy as np
         >>> import wafo.spectrum.models as sm
-        >>> Sj = sm.Jonswap(Hm0=3)
+        >>> Sj = sm.Jonswap(Hm0=3, Tp=7)
         >>> w = np.linspace(0,4,256)
         >>> S = SpecData1D(Sj(w),w) #Make spectrum object from numerical values
         >>> S.bandwidth([0,1,2,3])
-        array([ 0.65354446,  0.3975428 ,  0.75688813,  2.00207912])
+        array([ 0.73062845,  0.34476034,  0.68277527,  2.90817052])
         '''
 
 #        if self.freqtype in 'k':
@@ -2281,7 +2841,7 @@ class SpecData2D(WafoData):
     --------
     >>> import numpy as np
     >>> import wafo.spectrum.models as sm
-    >>> Sj = sm.Jonswap(Hm0=3)
+    >>> Sj = sm.Jonswap(Hm0=3, Tp=7)
     >>> w = np.linspace(0,4,256)
     >>> S = SpecData1D(Sj(w),w) #Make spectrum object from numerical values
 
@@ -2295,7 +2855,7 @@ class SpecData2D(WafoData):
         super(SpecData2D, self).__init__(*args, **kwds)
 
         self.name = 'WAFO Spectrum Object'
-        self.type = 'freq'
+        self.type = 'dir'
         self.freqtype = 'w'
         self.angletype = ''
         self.h = inf
@@ -2314,12 +2874,112 @@ class SpecData2D(WafoData):
 
     def toacf(self):
         pass
+    def tospecdata(self,type=None):
+        pass
     def sim(self):
         pass
     def sim_nl(self):
         pass
-    def rotate(self):
-        pass
+    def rotate(self, phi=0,rotateGrid=False,method='linear'):
+        '''
+        Rotate spectrum clockwise around the origin. 
+         
+        Parameters
+        ----------- 
+        phi = rotation angle (default 0)
+        rotateGrid = 1 if rotate grid of Snew physically (thus Snew.phi=0).
+                      0 if rotate so that only Snew.phi is changed  
+                        (the grid is not physically rotated)  (default)
+        method = interpolation method to use when ROTATEGRID==1,
+                      (default 'linear')
+        
+        Rotates the spectrum clockwise around the origin. 
+        This equals a anti-clockwise rotation of the cordinate system (x,y). 
+        The spectrum can be of any of the two-dimensional types.
+        For spectrum in polar representation:
+            newtheta = theta-phi, but circulant such that -pi<newtheta<pi
+        For spectrum in Cartesian representation:
+            If the grid is rotated physically, the size of it is preserved
+            (maybe it must be increased such that no nonzero points are
+            affected, but this is not implemented yet: i.e. corners are cut off)
+        The spectrum is assumed to be zero outside original grid.
+        NB! The routine does not change the type of spectrum, use spec2spec
+            for this.
+        
+        Example
+          S=demospec('dir');
+          plotspec(S), hold on  
+          plotspec(rotspec(S,pi/2),'r'), hold off
+          
+        See also spec2spec
+        ''' 
+        # TODO: Make physical grid rotation of cartesian coordinates more robust.
+        
+        #Snew=S;
+        
+        
+        self.phi = mod(self.phi+phi+pi,2*pi)-pi
+        stype = self.type.lower()[-3::]
+        if stype=='dir':
+            #% any of the directinal types 
+            #% Make sure theta is from -pi to pi
+            theta = self.args[0]
+            phi0 = theta[0]+pi; 
+            self.args[0] = theta-phi0
+           
+            # make sure -pi<phi<pi
+            self.phi   = mod(self.phi+phi0+pi,2*pi)-pi
+            if (rotateGrid and (self.phi!=0)):
+                # Do a physical rotation of spectrum
+                theta = Snew.args[0]
+                ntOld = len(theta);
+                if (mod(theta[0]-theta[-1],2*pi)==0):
+                    nt = ntOld-1
+                else:
+                    nt = ntOld
+             
+                theta[0:nt] = mod(theta[0:nt]-self.phi+pi,2*pi)-pi
+                Snew.phi         = 0;
+                ind = theta.argsort()
+                self.data           = self.data[ind,:]
+                self.args[0] = theta[ind]
+                if (nt<ntOld):
+                    if (self.args[0][0]==-pi):
+                        self.data[ntOld,:] = self.data[0,:]
+                    else:    
+                        ftype = self.freqtype 
+                        freq  = self.args[1]
+                        theta = linspace(-pi,pi,ntOld)
+                        [F,T] = meshgrid(freq,theta)
+                 
+                        dtheta           = self.theta[1]-self.theta[0]
+                        self.theta[nt] = self.theta[nt-1]+dtheta;
+                        self.data[nt,:]   = self.data[0,:]
+                        self.data = interp2(freq,np.vstack([self.theta[0]-dtheta,self.theta]),
+                                            np.vstack([self.data[nt,:],self.data]),F,T,method)
+                        self.args[0] = theta;
+                 
+        elif stype=='k2d': 
+            #any of the 2D wave number types
+            #Snew.phi   = mod(Snew.phi+phi+pi,2*pi)-pi;  
+            if (rotateGrid and (self.phi!=0)):
+                # Do a physical rotation of spectrum
+                
+                [k,k2] = meshgrid(*self.args)
+                [th,r] = cart2pol(k,k2)
+                [k,k2] = pol2cart(th+self.phi,r)
+                ki1, ki2 = self.args
+                Sn = interp2(ki1,ki2,self.data,k,k2,method)
+                self.data = np.where(np.isnan(Sn), 0, Sn)
+                
+                self.phi = 0;
+        
+        else:
+            raise ValueError('Can only rotate two dimensional spectra')  
+        return
+
+
+        
     def moment(self, nr=2, vari='xt', even=True):
         ''' 
         Calculates spectral moments from spectrum
@@ -2373,175 +3033,159 @@ class SpecData2D(WafoData):
         Velocities for Random Surfaces
         '''
 
-##% Tested on: Matlab 6.0
-##% Tested on: Matlab 5.3
-##% History:
-##% Revised by I.R. 04.04.2001: Introducing the rotation angle phi.
-##% Revised by A.B. 23.05.2001: Correcting 'mxxyy' and introducing
-##% 'mxxyt','mxyyt' and 'mxytt'.
-##% Revised by A.B. 21.10.2001: Correcting 'mxxyt'.
-##% Revised by A.B. 21.10.2001: Adding odd-order moments.
-##% By es 27.08.1999
-
-
        
         two_dim_spectra = ['dir', 'encdir', 'k2d']
         if self.type not in two_dim_spectra:
             raise ValueError('Unknown 2D spectrum type!')
 
-##        if (vari==None and nr<=1:
-##            vari='x'
-##        elif vari==None:
-##            vari='xt'
-##        else #% secure the mutual order ('xyt')
-##            vari=''.join(sorted(vari.lower()))
-##            Nv=len(vari)
-##
-##            if vari[0]=='t' and Nv>1:
-##                vari = vari[1::]+ vari[0]
-##
-##        Nv = len(vari)
-##
-##        if not self.type.endswith('dir'):
-##            S1 = self.tospecdata(self.type[:-2]+'dir')
-##        else:
-##            S1 = self
-##        w = ravel(S1.args[0])
-##        theta = S1.args[1]-S1.phi
-##        S = S1.data
-##        Sw = simps(S,x=theta)
-##        m = [simps(Sw,x=w)]
-##        mtext=['m0']
-##
-##        if nr>0:
-##
-##          nw=w.size
-##          if strcmpi(vari(1),'x')
-##            Sc=simpson(th,S1.S.*(cos(th)*ones(1,nw))).'
-##            % integral S*cos(th) dth
-##          end
-##          if strcmpi(vari(1),'y')
-##            Ss=simpson(th,S1.S.*(sin(th)*ones(1,nw))).'
-##            % integral S*sin(th) dth
-##            if strcmpi(vari(1),'x')
-##            Sc=simpson(th,S1.S.*(cos(th)*ones(1,nw))).'
-##            end
-##          end
-##          if ~isfield(S1,'g')
-##            S1.g=gravity
-##          end
-##          kx=w.^2/S1.g(1) % maybe different normalization in x and y => diff. g
-##          ky=w.^2/S1.g(end)
-##
-##          if Nv>=1
-##            switch vari
-##              case 'x'
-##                vec = kx.*Sc
-##                mtext(end+1)={'mx'}
-##              case 'y'
-##                vec = ky.*Ss
-##                mtext(end+1)={'my'}
-##              case 't'
-##                vec = w.*Sw
-##               mtext(end+1)={'mt'}
-##            end
-##          else
-##            vec = [kx.*Sc ky.*Ss w*Sw]
-##            mtext(end+(1:3))={'mx', 'my', 'mt'}
-##          end
-##          if nr>1
-##          if strcmpi(vari(1),'x')
-##            Sc=simpson(th,S1.S.*(cos(th)*ones(1,nw))).'
-##            % integral S*cos(th) dth
-##            Sc2=simpson(th,S1.S.*(cos(th).^2*ones(1,nw))).'
-##            % integral S*cos(th)^2 dth
-##          end
-##          if strcmpi(vari(1),'y')||strcmpi(vari(2),'y')
-##            Ss=simpson(th,S1.S.*(sin(th)*ones(1,nw))).'
-##            % integral S*sin(th) dth
-##            Ss2=simpson(th,S1.S.*(sin(th).^2*ones(1,nw))).'
-##            % integral S*sin(th)^2 dth
-##            if strcmpi(vari(1),'x')
-##              Scs=simpson(th,S1.S.*((cos(th).*sin(th))*ones(1,nw))).'
-##              % integral S*cos(th)*sin(th) dth
-##            end
-##          end
-##          if ~isfield(S1,'g')
-##            S1.g=gravity
-##          end
-##
-##          if Nv==2
-##            switch vari
-##              case 'xy'
-##                vec=[kx.*Sc ky.*Ss kx.^2.*Sc2 ky.^2.*Ss2 kx.*ky.*Scs]
-##                mtext(end+(1:5))={'mx','my','mxx', 'myy', 'mxy'}
-##              case 'xt'
-##                vec=[kx.*Sc w.*Sw kx.^2.*Sc2 w.^2.*Sw kx.*w.*Sc]
-##                mtext(end+(1:5))={'mx','mt','mxx', 'mtt', 'mxt'}
-##              case 'yt'
-##                vec=[ky.*Ss w.*Sw ky.^2.*Ss2 w.^2.*Sw ky.*w.*Ss]
-##                mtext(end+(1:5))={'my','mt','myy', 'mtt', 'myt'}
-##            end
-##          else
-##            vec=[kx.*Sc ky.*Ss w.*Sw kx.^2.*Sc2 ky.^2.*Ss2  w.^2.*Sw kx.*ky.*Scs kx.*w.*Sc ky.*w.*Ss]
-##            mtext(end+(1:9))={'mx','my','mt','mxx', 'myy', 'mtt', 'mxy', 'mxt', 'myt'}
-##          end
-##          if nr>3
-##            if strcmpi(vari(1),'x')
-##              Sc3=simpson(th,S1.S.*(cos(th).^3*ones(1,nw))).'
-##              % integral S*cos(th)^3 dth
-##              Sc4=simpson(th,S1.S.*(cos(th).^4*ones(1,nw))).'
-##              % integral S*cos(th)^4 dth
-##            end
-##            if strcmpi(vari(1),'y')||strcmpi(vari(2),'y')
-##              Ss3=simpson(th,S1.S.*(sin(th).^3*ones(1,nw))).'
-##              % integral S*sin(th)^3 dth
-##              Ss4=simpson(th,S1.S.*(sin(th).^4*ones(1,nw))).'
-##              % integral S*sin(th)^4 dth
-##              if strcmpi(vari(1),'x')  %both x and y
-##                Sc2s=simpson(th,S1.S.*((cos(th).^2.*sin(th))*ones(1,nw))).'
-##                % integral S*cos(th)^2*sin(th) dth
-##                Sc3s=simpson(th,S1.S.*((cos(th).^3.*sin(th))*ones(1,nw))).'
-##                % integral S*cos(th)^3*sin(th) dth
-##                Scs2=simpson(th,S1.S.*((cos(th).*sin(th).^2)*ones(1,nw))).'
-##                % integral S*cos(th)*sin(th)^2 dth
-##                Scs3=simpson(th,S1.S.*((cos(th).*sin(th).^3)*ones(1,nw))).'
-##                % integral S*cos(th)*sin(th)^3 dth
-##                Sc2s2=simpson(th,S1.S.*((cos(th).^2.*sin(th).^2)*ones(1,nw))).'
-##                % integral S*cos(th)^2*sin(th)^2 dth
-##              end
-##            end
-##            if Nv==2
-##              switch vari
-##                case 'xy'
-##                  vec=[vec kx.^4.*Sc4 ky.^4.*Ss4 kx.^3.*ky.*Sc3s ...
-##                        kx.^2.*ky.^2.*Sc2s2 kx.*ky.^3.*Scs3]
-##                  mtext(end+(1:5))={'mxxxx','myyyy','mxxxy','mxxyy','mxyyy'}
-##                case 'xt'
-##                  vec=[vec kx.^4.*Sc4 w.^4.*Sw kx.^3.*w.*Sc3 ...
-##                        kx.^2.*w.^2.*Sc2 kx.*w.^3.*Sc]
-##                  mtext(end+(1:5))={'mxxxx','mtttt','mxxxt','mxxtt','mxttt'}
-##                case 'yt'
-##                  vec=[vec ky.^4.*Ss4 w.^4.*Sw ky.^3.*w.*Ss3 ...
-##                        ky.^2.*w.^2.*Ss2 ky.*w.^3.*Ss]
-##                  mtext(end+(1:5))={'myyyy','mtttt','myyyt','myytt','myttt'}
-##              end
-##            else
-##              vec=[vec kx.^4.*Sc4 ky.^4.*Ss4 w.^4.*Sw kx.^3.*ky.*Sc3s ...
-##                   kx.^2.*ky.^2.*Sc2s2 kx.*ky.^3.*Scs3 kx.^3.*w.*Sc3 ...
-##                   kx.^2.*w.^2.*Sc2 kx.*w.^3.*Sc ky.^3.*w.*Ss3 ...
-##                   ky.^2.*w.^2.*Ss2 ky.*w.^3.*Ss kx.^2.*ky.*w.*Sc2s ...
-##                   kx.*ky.^2.*w.*Scs2 kx.*ky.*w.^2.*Scs]
-##              mtext(end+(1:15))={'mxxxx','myyyy','mtttt','mxxxy','mxxyy',...
-##              'mxyyy','mxxxt','mxxtt','mxttt','myyyt','myytt','myttt','mxxyt','mxyyt','mxytt'}
-##
-##            end % if Nv==2 ... else ...
-##          end % if nr>3
-##          end % if nr>1
-##          m=[m simpson(w,vec)]
-##        end % if nr>0
-##      %  end %%if Nv==1... else...    to be removed
-##    end % ... else two-dim spectrum
+        if vari==None and nr<=1:
+            vari='x'
+        elif vari==None:
+            vari='xt'
+        else: #% secure the mutual order ('xyt')
+            vari=''.join(sorted(vari.lower()))
+            Nv=len(vari)
+
+            if vari[0]=='t' and Nv>1:
+                vari = vari[1::]+ vari[0]
+
+        Nv = len(vari)
+
+        if not self.type.endswith('dir'):
+            S1 = self.tospecdata(self.type[:-2]+'dir')
+        else:
+            S1 = self
+        w = ravel(S1.args[0])
+        theta = S1.args[1]-S1.phi
+        S = S1.data
+        Sw = simps(S,x=theta)
+        m = [simps(Sw,x=w)]
+        mtext=['m0']
+
+        if nr>0:
+            nw=w.size
+            if 'x' in vari:
+                Sc = simps(S*np.cos(theta[:,None]),x=theta)
+                #% integral S*cos(th) dth
+                #end
+            if 'y' in vari:
+                Ss = simps(S*np.sin(theta[:,None]),x=theta)    
+            #end
+#            if ~isfield(S1,'g')
+#                S1.g=gravity
+#            end
+#            kx=w.^2/S1.g(1) % maybe different normalization in x and y => diff. g
+#            ky=w.^2/S1.g(end)
+#
+#            if Nv>=1
+#            switch vari
+#              case 'x'
+#                vec = kx.*Sc
+#                mtext(end+1)={'mx'}
+#              case 'y'
+#                vec = ky.*Ss
+#                mtext(end+1)={'my'}
+#              case 't'
+#                vec = w.*Sw
+#               mtext(end+1)={'mt'}
+#            end
+#          else
+#            vec = [kx.*Sc ky.*Ss w*Sw]
+#            mtext(end+(1:3))={'mx', 'my', 'mt'}
+#          end
+#          if nr>1
+#          if strcmpi(vari(1),'x')
+#            Sc=simpson(th,S1.S.*(cos(th)*ones(1,nw))).'
+#            % integral S*cos(th) dth
+#            Sc2=simpson(th,S1.S.*(cos(th).^2*ones(1,nw))).'
+#            % integral S*cos(th)^2 dth
+#          end
+#          if strcmpi(vari(1),'y')||strcmpi(vari(2),'y')
+#            Ss=simpson(th,S1.S.*(sin(th)*ones(1,nw))).'
+#            % integral S*sin(th) dth
+#            Ss2=simpson(th,S1.S.*(sin(th).^2*ones(1,nw))).'
+#            % integral S*sin(th)^2 dth
+#            if strcmpi(vari(1),'x')
+#              Scs=simpson(th,S1.S.*((cos(th).*sin(th))*ones(1,nw))).'
+#              % integral S*cos(th)*sin(th) dth
+#            end
+#          end
+#          if ~isfield(S1,'g')
+#            S1.g=gravity
+#          end
+#
+#          if Nv==2
+#            switch vari
+#              case 'xy'
+#                vec=[kx.*Sc ky.*Ss kx.^2.*Sc2 ky.^2.*Ss2 kx.*ky.*Scs]
+#                mtext(end+(1:5))={'mx','my','mxx', 'myy', 'mxy'}
+#              case 'xt'
+#                vec=[kx.*Sc w.*Sw kx.^2.*Sc2 w.^2.*Sw kx.*w.*Sc]
+#                mtext(end+(1:5))={'mx','mt','mxx', 'mtt', 'mxt'}
+#              case 'yt'
+#                vec=[ky.*Ss w.*Sw ky.^2.*Ss2 w.^2.*Sw ky.*w.*Ss]
+#                mtext(end+(1:5))={'my','mt','myy', 'mtt', 'myt'}
+#            end
+#          else
+#            vec=[kx.*Sc ky.*Ss w.*Sw kx.^2.*Sc2 ky.^2.*Ss2  w.^2.*Sw kx.*ky.*Scs kx.*w.*Sc ky.*w.*Ss]
+#            mtext(end+(1:9))={'mx','my','mt','mxx', 'myy', 'mtt', 'mxy', 'mxt', 'myt'}
+#          end
+#          if nr>3
+#            if strcmpi(vari(1),'x')
+#              Sc3=simpson(th,S1.S.*(cos(th).^3*ones(1,nw))).'
+#              % integral S*cos(th)^3 dth
+#              Sc4=simpson(th,S1.S.*(cos(th).^4*ones(1,nw))).'
+#              % integral S*cos(th)^4 dth
+#            end
+#            if strcmpi(vari(1),'y')||strcmpi(vari(2),'y')
+#              Ss3=simpson(th,S1.S.*(sin(th).^3*ones(1,nw))).'
+#              % integral S*sin(th)^3 dth
+#              Ss4=simpson(th,S1.S.*(sin(th).^4*ones(1,nw))).'
+#              % integral S*sin(th)^4 dth
+#              if strcmpi(vari(1),'x')  %both x and y
+#                Sc2s=simpson(th,S1.S.*((cos(th).^2.*sin(th))*ones(1,nw))).'
+#                % integral S*cos(th)^2*sin(th) dth
+#                Sc3s=simpson(th,S1.S.*((cos(th).^3.*sin(th))*ones(1,nw))).'
+#                % integral S*cos(th)^3*sin(th) dth
+#                Scs2=simpson(th,S1.S.*((cos(th).*sin(th).^2)*ones(1,nw))).'
+#                % integral S*cos(th)*sin(th)^2 dth
+#                Scs3=simpson(th,S1.S.*((cos(th).*sin(th).^3)*ones(1,nw))).'
+#                % integral S*cos(th)*sin(th)^3 dth
+#                Sc2s2=simpson(th,S1.S.*((cos(th).^2.*sin(th).^2)*ones(1,nw))).'
+#                % integral S*cos(th)^2*sin(th)^2 dth
+#              end
+#            end
+#            if Nv==2
+#              switch vari
+#                case 'xy'
+#                  vec=[vec kx.^4.*Sc4 ky.^4.*Ss4 kx.^3.*ky.*Sc3s ...
+#                        kx.^2.*ky.^2.*Sc2s2 kx.*ky.^3.*Scs3]
+#                  mtext(end+(1:5))={'mxxxx','myyyy','mxxxy','mxxyy','mxyyy'}
+#                case 'xt'
+#                  vec=[vec kx.^4.*Sc4 w.^4.*Sw kx.^3.*w.*Sc3 ...
+#                        kx.^2.*w.^2.*Sc2 kx.*w.^3.*Sc]
+#                  mtext(end+(1:5))={'mxxxx','mtttt','mxxxt','mxxtt','mxttt'}
+#                case 'yt'
+#                  vec=[vec ky.^4.*Ss4 w.^4.*Sw ky.^3.*w.*Ss3 ...
+#                        ky.^2.*w.^2.*Ss2 ky.*w.^3.*Ss]
+#                  mtext(end+(1:5))={'myyyy','mtttt','myyyt','myytt','myttt'}
+#              end
+#            else
+#              vec=[vec kx.^4.*Sc4 ky.^4.*Ss4 w.^4.*Sw kx.^3.*ky.*Sc3s ...
+#                   kx.^2.*ky.^2.*Sc2s2 kx.*ky.^3.*Scs3 kx.^3.*w.*Sc3 ...
+#                   kx.^2.*w.^2.*Sc2 kx.*w.^3.*Sc ky.^3.*w.*Ss3 ...
+#                   ky.^2.*w.^2.*Ss2 ky.*w.^3.*Ss kx.^2.*ky.*w.*Sc2s ...
+#                   kx.*ky.^2.*w.*Scs2 kx.*ky.*w.^2.*Scs]
+#              mtext(end+(1:15))={'mxxxx','myyyy','mtttt','mxxxy','mxxyy',...
+#              'mxyyy','mxxxt','mxxtt','mxttt','myyyt','myytt','myttt','mxxyt','mxyyt','mxytt'}
+#
+#            end % if Nv==2 ... else ...
+#          end % if nr>3
+#          end % if nr>1
+#          m=[m simpson(w,vec)]
+#        end % if nr>0
+#      %  end %%if Nv==1... else...    to be removed
+#    end % ... else two-dim spectrum
 
 
 
@@ -2566,10 +3210,10 @@ class SpecData2D(WafoData):
             title = 'Directional Spectrum'
             if self.freqtype.startswith('w'):
                 labels[0] = 'Frequency [rad/s]'
-                labels[2] = 'S(w,\theta) [m**2 s / rad**2]'
+                labels[2] = r'$S(w,\theta) [m**2 s / rad**2]$'
             else:
                 labels[0] = 'Frequency [Hz]'
-                labels[2] = 'S(f,\theta) [m**2 s / rad]'
+                labels[2] = r'$S(f,\theta) [m**2 s / rad]$'
 
             if self.angletype.startswith('r'):
                 labels[1] = 'Wave directions [rad]'

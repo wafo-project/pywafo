@@ -47,13 +47,13 @@ import scipy.integrate as integrate
 import scipy.special as sp
 from scipy.fftpack import fft
 #from scipy.misc import ppimport
-#import numpy as np
+import numpy as np
 from numpy import (inf, atleast_1d, newaxis, any, minimum, maximum, array, #@UnresolvedImport
     asarray, exp, log, sqrt, where, pi, arange, linspace, sin, cos, abs, sinh, #@UnresolvedImport
     isfinite, mod, expm1, tanh, cosh, finfo, ones, ones_like, isnan, #@UnresolvedImport
     zeros_like, flatnonzero, sinc, hstack, vstack, real, flipud, clip) #@UnresolvedImport
 from dispersion_relation import w2k
-from wafo.spectrum import SpecData1D
+from wafo.spectrum import SpecData1D, SpecData2D
 sech = lambda x: 1.0 / cosh(x)
 
 eps = finfo(float).eps
@@ -1492,9 +1492,9 @@ class Spreading(object):
                                     p=self.fourier2x, s=self.fourier2b,
                                     w=self.fourier2d)
 
-    def __call__(self, *args):
+    def __call__(self, *args, **kwds):
         spreadfun = self._spreadfun[self.type[0]]
-        return spreadfun(*args)
+        return spreadfun(*args, **kwds)
 
     def  chk_input(self, theta, w=1, wc=1): # [s_par,TH,phi0,Nt] =
         ''' CHK_INPUT
@@ -1828,10 +1828,6 @@ class Spreading(object):
         r = clip(r1, 0., 1.0)
         return where(r <= 0, inf, sqrt(-2.0 * log(r)))
 
-
-
-
-
     def  spread_par_s(self, wn):
         ''' Return spread parameter, S, of COS2S function
 
@@ -1906,7 +1902,66 @@ class Spreading(object):
         xk = pi / x
         return where(x < 100., xk / sinh(xk), -2. * xk / (exp(xk) * expm1(-2. * xk)))
 
+    def tospecdata2d(self, specdata=None, theta=None, wc=0.52, nt=51):
+        '''
+         MKDSPEC Make a directional spectrum
+                 frequency spectrum times spreading function
+        
+         CALL:  Snew=mkdspec(S,D,plotflag)
+          
+               Snew = directional spectrum (spectrum struct)
+               S    = frequency spectrum (spectrum struct)
+                          (default jonswap)  
+               D    = spreading function (special struct)
+                          (default spreading([],'cos2s'))
+               plotflag = 1: plot the spectrum, else: do not plot (default 0)   
+        
+         Creates a directional spectrum through multiplication of a frequency
+         spectrum and a spreading function: S(w,theta)=S(w)*D(w,theta)
+          
+         The spreading structure must contain the following fields:
+           .S (size [np 1] or [np nf])  and  .theta (length np)  
+         optional fields: .w (length nf), .note (memo) .phi (rotation-azymuth)   
+          
+         NB! S.w and D.w (if any) must be identical.
+        
+         Example 
+         -------
+         >>> S = Jonswap().tospecdata()
+         >>> D = Spreading('cos2s')
+         >>> SD = D.tospecdata2d(S)
+         >>> SD.plot() 
+          
+         See also  spreading, rotspec, jonswap, torsethaugen  
+        '''  
+        
+        if specdata is None:
+            specdata = Jonswap().tospecdata()
+        if theta is None:
+            pi = np.pi
+            theta = np.linspace(-pi,pi,nt)
+        else:
+            L = abs(theta[-1]-theta[0])
+            if abs(L-pi)>eps: 
+                raise ValueError('theta must cover all angles -pi -> pi')   
+            nt = len(theta)
 
+        if nt<40: 
+            warnings.warn('Number of angles is less than 40. Spreading too sparsely sampled!')
+
+        w = specdata.args
+        S = specdata.data
+        D, phi0 = self(theta, w=w, wc=wc)
+            
+        SD = D * S[None,:]
+        
+        Snew    = SpecData2D(SD,(w,theta), type='dir', freqtype=specdata.freqtype)
+        Snew.tr = specdata.tr
+        Snew.h  = specdata.h
+        Snew.phi = phi0
+        Snew.norm = specdata.norm
+        #Snew.note = specdata.note + ', spreading: %s' % self.type
+        return Snew
 
 def test_some_spectra():
     S = Jonswap()

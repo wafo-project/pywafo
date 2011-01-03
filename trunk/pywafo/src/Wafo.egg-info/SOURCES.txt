@@ -12,6 +12,7 @@ src/Wafo.egg-info/dependency_links.txt
 src/Wafo.egg-info/top_level.txt
 src/wafo/SpecData1D.mm
 src/wafo/__init__.py
+src/wafo/bitwise.py
 src/wafo/c_library.pyd
 src/wafo/dctpack.py
 src/wafo/definitions.py
@@ -56,6 +57,14 @@ src/wafo/data/wafoLogoNewWithoutBorder.png
 src/wafo/data/wafoLogoNewWithoutBorder.svg
 src/wafo/data/wafologoWithBorder.png
 src/wafo/data/yura87.dat
+src/wafo/doc/__init__.py
+src/wafo/doc/test_pyreport.py
+src/wafo/doc/tutorial_scripts/__init__.py
+src/wafo/doc/tutorial_scripts/chapter1.py
+src/wafo/doc/tutorial_scripts/chapter2.py
+src/wafo/doc/tutorial_scripts/chapter3.py
+src/wafo/doc/tutorial_scripts/chapter4.py
+src/wafo/doc/tutorial_scripts/chapter5.py
 src/wafo/source/c_codes/build_all.py
 src/wafo/source/c_codes/c_functions.c
 src/wafo/source/c_codes/c_library.pyd
@@ -264,8 +273,11 @@ src/wafo/stats/core.py
 src/wafo/stats/distributions.py
 src/wafo/stats/estimation.py
 src/wafo/stats/misc.py
+src/wafo/stats/tests/test_distributions.py
+src/wafo/stats/tests/test_estimation.py
 src/wafo/test/__init__.py
 src/wafo/test/test_gaussian.py
+src/wafo/test/test_kdetools.py
 src/wafo/test/test_misc.py
 src/wafo/transform/__init__.py
 src/wafo/transform/core.py
