@@ -785,9 +785,9 @@ class SpecData1D(WafoData):
         >>> Sj = sm.Jonswap()
         >>> S = Sj.tospecdata()
         >>> acfmat = S.tocov_matrix(nr=3, nt=256, dt=0.1)
-        >>> acfmat[:2,:]
-        array([[ 3.06073383,  0.        , -1.67748256,  0.        ],
-           [ 3.05235439, -0.16743411, -1.66811456,  0.18693124]])
+        >>> np.round(acfmat[:2,:],3)
+        array([[ 3.061,  0.   , -1.677,  0.   ],
+               [ 3.052, -0.167, -1.668,  0.187]])
 
         See also
         --------
@@ -3024,11 +3024,9 @@ class SpecData2D(WafoData):
         >>> D = sm.Spreading()
         >>> SD = D.tospecdata2d(sm.Jonswap().tospecdata())
         >>> m,mtext = SD.moment(nr=2,vari='xyt')
-        >>> m,mtext
-        (array([  3.06081401e+00,   1.31633777e-01,  -1.06245690e-17,
-             2.13024554e+00,   1.14268485e-02,   8.07334609e-03,
-             1.67721091e+00,  -5.29341959e-19,   1.08960751e-01,
-             1.08960751e-01]), ['m0', 'mx', 'my', 'mt', 'mxx', 'myy', 'mtt', 'mxy', 'mxt', 'myt'])
+        >>> np.round(m,3),mtext
+        (array([ 3.061,  0.132, -0.   ,  2.13 ,  0.011,  0.008,  1.677, -0.   ,
+                0.109,  0.109]), ['m0', 'mx', 'my', 'mt', 'mxx', 'myy', 'mtt', 'mxy', 'mxt', 'myt'])
 
         References
         ----------
