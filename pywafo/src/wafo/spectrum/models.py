@@ -447,9 +447,9 @@ class Jonswap(ModelSpectrum):
     N      : scalar defining decay of high frequency part.   (default 5)
     M      : scalar defining spectral width around the peak. (default 4)
     method : String defining method used to estimate Ag when gamma>1
-            'integrate' : Ag = 1/gaussq(Gf*ggamspec(wn,N,M),0,wnc) (default)
-            'parametric': Ag = (1+f1(N,M)*log(gamma)**f2(N,M))/gamma
-            'custom'    : Ag = Ag
+            'integration': Ag = 1/gaussq(Gf*ggamspec(wn,N,M),0,wnc) (default)
+            'parametric' : Ag = (1+f1(N,M)*log(gamma)**f2(N,M))/gamma
+            'custom'     : Ag = Ag
     wnc    : wc/wp normalized cut off frequency used when calculating Ag
                 by integration (default 6)
     Parameters
