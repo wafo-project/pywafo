@@ -1496,15 +1496,11 @@ class SpecData1D(WafoData):
         ...     res = fun(x2[:,1::],axis=0)
         ...     m = res.mean()
         ...     sa = res.std()
-        ...     trueval, m, sa
+        ...     #trueval, m, sa
         ...     np.abs(m-trueval)<sa
-        (0, 1.2309597785531439e-19, 3.2562166904166163e-18)
         True
-        (array([ 1.74952003]), 1.7500502911292997, 0.022461280887884415)
         array([ True], dtype=bool)
-        (0.0, -0.00024040615507690482, 0.0087615749174770451)
         True
-        (0.0, 0.0018609047569154713, 0.049873521257196997)
         True
 
         waveplot(x1,'r',x2,'g',1,1)
@@ -1726,7 +1722,29 @@ class SpecData1D(WafoData):
         ...     res = fun(x2[:,1::], axis=0)
         ...     m = res.mean()
         ...     sa = res.std()
-        ...     trueval, m, sa
+        ...     #trueval, m, sa
+        ...     np.abs(m-trueval)<sa
+        True
+        True
+        True
+        True
+        
+        >>> x = []
+        >>> for i in range(20):
+        ...     x2, x1 = S.sim_nl(ns=20000,cases=1)
+        ...     x.append(x2[:,1::])
+        >>> x2 = np.hstack(x)
+        >>> truth1 = [0,np.sqrt(S.moment(1)[0][0])] + S.stats_nl(moments='sk')
+        >>> truth1[-1] = truth1[-1]-3
+        >>> truth1
+        [0, 1.7495200310090628, 0.18673120577479821, 0.06198852126241805]
+         
+        >>> funs = [np.mean,np.std,st.skew,st.kurtosis]
+        >>> for fun,trueval in zip(funs,truth1):
+        ...     res = fun(x2, axis=0)
+        ...     m = res.mean()
+        ...     sa = res.std()
+        ...     #trueval, m, sa
         ...     np.abs(m-trueval)<sa
         True
         True
@@ -1889,10 +1907,20 @@ class SpecData1D(WafoData):
 ##        % 1'st order + 2'nd order component.
 ##        x2(:,2:end) =x(:,2:end)+ real(x2s(1:np,:))+real(x2d(1:np,:))
 ##        else
-        amp = np.array(amp.T).ravel()
-        rvec, ivec = c_library.disufq(amp.real, amp.imag, w, kw, water_depth, g, nmin, nmax, cases, ns)
-
-        svec = rvec + 1J * ivec
+        if False:
+            # TODO: disufq does not work for cases>1
+            amp = np.array(amp.T).ravel()
+            rvec, ivec = c_library.disufq(amp.real, amp.imag, w, kw, water_depth,
+                                      g, nmin, nmax, cases, ns)
+            svec = rvec + 1J * ivec
+        else:
+            amp = amp.T
+            svec=[]
+            for i in range(cases):
+                rvec, ivec = c_library.disufq(amp[i].real, amp[i].imag, w, kw, water_depth,
+                                      g, nmin, nmax, 1, ns)
+                svec.append(rvec + 1J * ivec)
+            svec = np.hstack(svec)
         svec.shape = (cases, ns)
         x2o = fft(svec, axis=1).T # 2'nd order component
 
@@ -3022,7 +3050,7 @@ class SpecData2D(WafoData):
         Example:
         >>> import wafo.spectrum.models as sm
         >>> D = sm.Spreading()
-        >>> SD = D.tospecdata2d(sm.Jonswap().tospecdata())
+        >>> SD = D.tospecdata2d(sm.Jonswap().tospecdata(),nt=101)
         >>> m,mtext = SD.moment(nr=2,vari='xyt')
         >>> np.round(m,3),mtext
         (array([ 3.061,  0.132, -0.   ,  2.13 ,  0.011,  0.008,  1.677, -0.   ,

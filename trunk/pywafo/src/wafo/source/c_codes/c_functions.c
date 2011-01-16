@@ -229,64 +229,64 @@ void disufq(double *rvec, double *ivec,
       kw1  = kw[ix];
       Epij = kw1; 
       for (i=0;i<m;i++,ixi++,iz1++) { 
-	rrA = rA[ixi]*rA[ixi]; ///
-	iiA = iA[ixi]*iA[ixi]; ///
-	riA = rA[ixi]*iA[ixi]; ///
+    	  rrA = rA[ixi]*rA[ixi]; ///
+    	  iiA = iA[ixi]*iA[ixi]; ///
+    	  riA = rA[ixi]*iA[ixi]; ///
 	
-	/// Sum frequency effects along the diagonal
-	tmp1 = kfact*(rrA-iiA)*Epij;
-	tmp2 = kfact*2.0*riA*Epij;
-	rvec[iz1] += tmp1;
-	ivec[iz1] += tmp2;
+    	  /// Sum frequency effects along the diagonal
+    	  tmp1 = kfact*(rrA-iiA)*Epij;
+    	  tmp2 = kfact*2.0*riA*Epij;
+    	  rvec[iz1] += tmp1;
+    	  ivec[iz1] += tmp2;
 	
-	//rvec[iz2] += tmp1;
-	//ivec[iz2] -= tmp2;
-	//iz2++;
+    	  //rvec[iz2] += tmp1;
+    	  //ivec[iz2] -= tmp2;
+    	  //iz2++;
 
-	/// Difference frequency effects are zero along the diagonal
-	/// and are thus not contributing to the mean.
+    	  /// Difference frequency effects are zero along the diagonal
+    	  /// and are thus not contributing to the mean.
       }
       for (jy = ix+1;jy<nmax;jy++){
-	kw2  = kw[jy];
-	Epij = 0.5*(kw2 + kw1); 
-	Edij = -0.5*(kw2 - kw1);
-	//printf("Edij = %f Epij = %f \n", Edij,Epij);
+    	  kw2  = kw[jy];
+    	  Epij = 0.5*(kw2 + kw1);
+    	  Edij = -0.5*(kw2 - kw1);
+    	  //printf("Edij = %f Epij = %f \n", Edij,Epij);
 	
-	ixi = ix*m;
-	jyi = jy*m;
-	iz1 = ixi+jyi;
-	iv1 = jyi-ixi;
-	//iz2 = (n*m-iz1);
-	//iv2 = (n*m-iv1);
-	for (i = 0;i<m;i++,ixi++,jyi++,iz1++,iv1++) { 
+    	  ixi = ix*m;
+    	  jyi = jy*m;
+    	  iz1 = ixi+jyi;
+    	  iv1 = jyi-ixi;
+    	  //iz2 = (n*m-iz1);
+    	  //iv2 = (n*m-iv1);
+    	  for (i = 0;i<m;i++,ixi++,jyi++,iz1++,iv1++) {
 	  
-	  rrA = rA[ixi]*rA[jyi]; ///rrA = rA[i][ix]*rA[i][jy];
-	  iiA = iA[ixi]*iA[jyi]; ///iiA = iA[i][ix]*iA[i][jy];
-	  riA = rA[ixi]*iA[jyi]; ///riA = rA[i][ix]*iA[i][jy];
-	  irA = iA[ixi]*rA[jyi]; ///irA = iA[i][ix]*rA[i][jy];
+    		  rrA = rA[ixi]*rA[jyi]; ///rrA = rA[i][ix]*rA[i][jy];
+    		  iiA = iA[ixi]*iA[jyi]; ///iiA = iA[i][ix]*iA[i][jy];
+    		  riA = rA[ixi]*iA[jyi]; ///riA = rA[i][ix]*iA[i][jy];
+    		  irA = iA[ixi]*rA[jyi]; ///irA = iA[i][ix]*rA[i][jy];
 	  
-	 /* Sum frequency effects */ 
-	  tmp1 = kfact*2.0*(rrA-iiA)*Epij;
-	  tmp2 = kfact*2.0*(riA+irA)*Epij;
-	  rvec[iz1] += tmp1;///rvec[i][ix+jy] += tmp1;
-	  ivec[iz1] += tmp2;///ivec[i][ix+jy] += tmp2;
-	  //rvec[iz2] += tmp1;///rvec[i][n*m-(ix+jy)] +=  tmp1;
-	  //ivec[iz2] -= tmp2;///ivec[i][n*m-(ix+jy)] -=  tmp2;
-	  // iz2++;
+    		  /* Sum frequency effects */
+    		  tmp1 = kfact*2.0*(rrA-iiA)*Epij;
+    		  tmp2 = kfact*2.0*(riA+irA)*Epij;
+    		  rvec[iz1] += tmp1;///rvec[i][ix+jy] += tmp1;
+    		  ivec[iz1] += tmp2;///ivec[i][ix+jy] += tmp2;
+    		  //rvec[iz2] += tmp1;///rvec[i][n*m-(ix+jy)] +=  tmp1;
+    		  //ivec[iz2] -= tmp2;///ivec[i][n*m-(ix+jy)] -=  tmp2;
+    		  // iz2++;
 
-	  /* Difference frequency effects */
-	  tmp1 = kfact*2.0*(rrA+iiA)*Edij;
-	  tmp2 = kfact*2.0*(riA-irA)*Edij;
+    		  /* Difference frequency effects */
+    		  tmp1 = kfact*2.0*(rrA+iiA)*Edij;
+    		  tmp2 = kfact*2.0*(riA-irA)*Edij;
 	  
-	  rvec[iv1] += tmp1;///rvec[i][jy-ix] += tmp1;
-	  ivec[iv1] += tmp2;///ivec[i][jy-ix] += tmp2;
+    		  rvec[iv1] += tmp1;///rvec[i][jy-ix] += tmp1;
+    		  ivec[iv1] += tmp2;///ivec[i][jy-ix] += tmp2;
 	  
-	  //rvec[iv2] += tmp1;///rvec[i][n*m-(jy-ix)] += tmp1;
-	  //ivec[iv2] -= tmp2;///ivec[i][n*m-(jy-ix)] -= tmp2;
-	  //iv2++;
-	}
+    		  //rvec[iv2] += tmp1;///rvec[i][n*m-(jy-ix)] += tmp1;
+    		  //ivec[iv2] -= tmp2;///ivec[i][n*m-(jy-ix)] -= tmp2;
+    		  //iv2++;
+    	  }
       }
-   }
+    }
   }
   else{ /* Finite water depth */
     for (ix = nmin-1;ix<nmax;ix++) {
