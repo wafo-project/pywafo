@@ -2,6 +2,7 @@
 from info import __doc__
 import misc
 import data
+import kdetools
 import objects
 import spectrum
 import transform

@@ -22,7 +22,7 @@ from numpy import (sqrt, atleast_1d, abs, imag, sign, where, cos, arccos, ceil, 
     expm1, log1p, pi) #@UnresolvedImport
 import numpy as np
 import warnings
-from core import TrCommon
+from core import TrCommon, TrData
 __all__ = ['TrHermite', 'TrLinear', 'TrOchi']
 
 _example = '''
@@ -41,10 +41,40 @@ _example = '''
     >>> g2 = <generic>(mean=me, var=va, skew=sk, kurt=ku, ysigma=std)
     >>> xs = g2.gauss2dat(ys[:,1:]) # Transformed to the real world 
     '''
+class TrCommon2(TrCommon):
+    __doc__ = TrCommon.__doc__
+    def trdata(self,x=None, xnmin=-5, xnmax=5, n=513):
+        """
+        Return a discretized transformation model.
 
+        Parameters
+        ----------
+        x : vector  (default sigma*linspace(xnmin,xnmax,n)+mean)
+        xnmin : real, scalar
+            minimum on normalized scale
+        xnmax : real, scalar
+            maximum on normalized scale
+        n : integer, scalar
+            number of evaluation points
 
-class TrHermite(TrCommon):
-    __doc__ = TrCommon.__doc__.replace('<generic>', 'Hermite') + """
+        Returns
+        -------
+        t0 : real, scalar
+            a measure of departure from the Gaussian model calculated as
+            trapz(xn,(xn-g(x))**2.) where int. limits is given by X.
+        """
+        if x is None:
+            xn = np.linspace(xnmin, xnmax, n)
+            x = self.sigma*xn+self.mean
+        else:
+            xn = (x-self.mean)/self.sigma
+
+        yn = (self._dat2gauss(x)-self.ymean)/self.ysigma
+        
+        return TrData(yn, x, mean=self.mean, sigma=self.sigma)
+
+class TrHermite(TrCommon2):
+    __doc__ = TrCommon2.__doc__.replace('<generic>', 'Hermite') + """
     pardef : scalar, integer
         1  Winterstein et. al. (1994) parametrization [1]_ (default)
         2  Winterstein (1988) parametrization [2]_
@@ -294,8 +324,8 @@ class TrHermite(TrCommon):
 
 
 
-class TrLinear(TrCommon):
-    __doc__ = TrCommon.__doc__.replace('<generic>', 'Linear') + """
+class TrLinear(TrCommon2):
+    __doc__ = TrCommon2.__doc__.replace('<generic>', 'Linear') + """
     Description
     -----------
     The linear transformation model is monotonic linear polynomial, calibrated
@@ -333,8 +363,8 @@ class TrLinear(TrCommon):
         return x
     
    
-class TrOchi(TrCommon):
-    __doc__ = TrCommon.__doc__.replace('<generic>', 'Ochi') + """
+class TrOchi(TrCommon2):
+    __doc__ = TrCommon2.__doc__.replace('<generic>', 'Ochi') + """
 
     Description
     -----------
