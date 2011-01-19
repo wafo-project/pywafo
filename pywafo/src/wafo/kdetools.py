@@ -12,7 +12,7 @@
 from __future__ import division
 from itertools import product
 from misc import tranproc #, trangood
-from numpy import pi, sqrt, atleast_2d, exp, newaxis, array #@UnresolvedImport
+from numpy import pi, sqrt, atleast_2d, exp, newaxis #@UnresolvedImport
 from scipy import interpolate, linalg
 from scipy.special import gamma
 from wafo.misc import meshgrid
@@ -32,8 +32,8 @@ _stats_lapl = (2, 1. / 4, np.inf)
 _stats_logi = (pi ** 2 / 3, 1. / 6, 1 / 42)
 _stats_gaus = (1, 1. / (2 * sqrt(pi)), 3. / (8 * sqrt(pi)))
               
-
-
+__all__ =['sphere_volume','TKDE', 'KDE', 'Kernel', 'accum', 'qlevels',
+           'iqrange', 'gridcount', 'kde_demo1', 'kde_demo2']
 def sphere_volume(d, r=1.0):
     """
     Returns volume of  d-dimensional sphere with radius r

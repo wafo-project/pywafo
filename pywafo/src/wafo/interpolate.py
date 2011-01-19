@@ -19,6 +19,8 @@ from numpy.lib.shape_base import vstack
 from numpy.lib.function_base import linspace
 import polynomial as pl
 
+__all__ =['PPform','SmoothSpline']
+
 class PPform(object):
     """The ppform of the piecewise polynomials is given in terms of coefficients
     and breaks.  The polynomial in the ith interval is

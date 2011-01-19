@@ -2,14 +2,15 @@ from numpy import r_, minimum, maximum, atleast_1d, atleast_2d, mod, ones, floor
     random, eye, nonzero, where, repeat, sqrt, exp, inf, diag, zeros, sin, arcsin, nan #@UnresolvedImport
 from numpy import triu #@UnresolvedImport
 from scipy.special import ndtr as cdfnorm, ndtri as invnorm
+from scipy.special import erfc
 from wafo import mvn
 import numpy as np
 import wafo.mvnprdmod as mvnprdmod
 import wafo.rindmod as rindmod
 import warnings
 from wafo.misc import common_shape
-from scipy.stats.stats import erfc
 
+__all__ = ['Rind', 'rindmod', 'mvnprdmod', 'mvn', 'cdflomax' , 'prbnormtndpc', 'prbnormndpc', 'prbnormnd', 'cdfnornd2', 'prbnorm2d','cdfnorm','invnorm']
 class Rind(object):
     '''
     RIND Computes multivariate normal expectations
@@ -595,7 +596,6 @@ _ERRORMESSAGE[6] = '''the input is invalid because:
 
 def  prbnormnd(correl, a, b, abseps=1e-4, releps=1e-3, maxpts=None, method=0):
     '''
-    
     Multivariate Normal probability by Genz' algorithm.
     
     

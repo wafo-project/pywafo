@@ -1,5 +1,5 @@
 from __future__ import division
-from wafo.misc import meshgrid, gravity
+from wafo.misc import meshgrid, gravity, cart2pol, pol2cart
 from wafo.objects import mat2timeseries, TimeSeries
 import warnings
 
@@ -180,6 +180,12 @@ def plotspec(specdata, linetype='b-', flag=1):
      NOTE: - lintype may be given anywhere after S.
     
      Examples
+    >>> import numpy as np
+    >>> import wafo.spectrum.models as sm
+    >>> Sj = sm.Jonswap(Hm0=3, Tp=7)
+    >>> S = Sj.tospecdata()
+    >>> plotspec(S,1)
+
       S = demospec('dir'); S2 = mkdspec(jonswap,spreading);
       plotspec(S,2), hold on
       plotspec(S,3,'g')  % Same as previous fig. due to frequency independent spreading
@@ -250,8 +256,8 @@ def plotspec(specdata, linetype='b-', flag=1):
     spectype = specdata.type.lower()
     stype = spectype[-3::]
     if stype in ('enc','req','k1d') : #1D plot
-        Fn   = freq(-1) # Nyquist frequency
-        indm = findpeaks(data,n=4)
+        Fn   = freq[-1] # Nyquist frequency
+        indm = findpeaks(data, n=4)
         maxS = data.max()
 #        if isfield(S,'CI') && ~isempty(S.CI),
 #          maxS  = maxS*S.CI(2);
@@ -1714,8 +1720,8 @@ class SpecData1D(WafoData):
         >>> x2, x1 = S.sim_nl(ns=20000,cases=20)
         >>> truth1 = [0,np.sqrt(S.moment(1)[0][0])] + S.stats_nl(moments='sk')
         >>> truth1[-1] = truth1[-1]-3
-        >>> truth1
-        [0, 1.7495200310090628, 0.18673120577479821, 0.06198852126241805]
+        >>> np.round(truth1, 3)
+        array([ 0.   ,  1.75 ,  0.187,  0.062])
          
         >>> funs = [np.mean,np.std,st.skew,st.kurtosis]
         >>> for fun,trueval in zip(funs,truth1):
@@ -1736,8 +1742,8 @@ class SpecData1D(WafoData):
         >>> x2 = np.hstack(x)
         >>> truth1 = [0,np.sqrt(S.moment(1)[0][0])] + S.stats_nl(moments='sk')
         >>> truth1[-1] = truth1[-1]-3
-        >>> truth1
-        [0, 1.7495200310090628, 0.18673120577479821, 0.06198852126241805]
+        >>> np.round(truth1,3)
+        array([ 0.   ,  1.75 ,  0.187,  0.062])
          
         >>> funs = [np.mean,np.std,st.skew,st.kurtosis]
         >>> for fun,trueval in zip(funs,truth1):
@@ -2811,10 +2817,10 @@ class SpecData1D(WafoData):
             title = 'Directional Spectrum'
             if self.freqtype.startswith('w'):
                 labels[0] = 'Frequency [rad/s]'
-                labels[2] = 'S(w,\theta) [m^2 s / rad^2]'
+                labels[2] = r'S(w,$\theta$) $[m^2 s / rad^2]$'
             else:
                 labels[0] = 'Frequency [Hz]'
-                labels[2] = 'S(f,\theta) [m^2 s / rad]'
+                labels[2] = r'S(f,$\theta$) $[m^2 s / rad]$'
 
             if self.angletype.startswith('r'):
                 labels[1] = 'Wave directions [rad]'
@@ -2824,18 +2830,18 @@ class SpecData1D(WafoData):
             title = 'Spectral density'
             if self.freqtype.startswith('w'):
                 labels[0] = 'Frequency [rad/s]'
-                labels[1] = 'S(w) [m^2 s/ rad]'
+                labels[1] = r'S(w) $[m^2 s/ rad]$'
             else:
                 labels[0] = 'Frequency [Hz]'
-                labels[1] = 'S(f) [m^2 s]'
+                labels[1] = r'S(f) $[m^2 s]$'
         else:
             title = 'Wave Number Spectrum'
             labels[0] = 'Wave number [rad/m]'
             if self.type.endswith('k1d'):
-                labels[1] = 'S(k) [m^3/ rad]'
+                labels[1] = r'S(k) $[m^3/ rad]$'
             elif self.type.endswith('k2d'):
                 labels[1] = labels[0]
-                labels[2] = 'S(k1,k2) [m^4/ rad^2]'
+                labels[2] = r'S(k1,k2) $[m^4/ rad^2]$'
             else:
                 raise ValueError('Object does not appear to be initialized, it is empty!')
         if self.norm != 0:
@@ -2975,7 +2981,7 @@ class SpecData2D(WafoData):
                     if (self.args[0][0]==-pi):
                         self.data[ntOld,:] = self.data[0,:]
                     else:    
-                        ftype = self.freqtype 
+                        #ftype = self.freqtype 
                         freq  = self.args[1]
                         theta = linspace(-pi,pi,ntOld)
                         [F,T] = meshgrid(freq,theta)
@@ -2985,7 +2991,7 @@ class SpecData2D(WafoData):
                         self.data[nt,:]   = self.data[0,:]
                         self.data = interp2(freq,np.vstack([self.theta[0]-dtheta,self.theta]),
                                             np.vstack([self.data[nt,:],self.data]),F,T,method)
-                        self.args[0] = theta;
+                        self.args[0] = theta
                  
         elif stype=='k2d': 
             #any of the 2D wave number types
@@ -3053,8 +3059,8 @@ class SpecData2D(WafoData):
         >>> SD = D.tospecdata2d(sm.Jonswap().tospecdata(),nt=101)
         >>> m,mtext = SD.moment(nr=2,vari='xyt')
         >>> np.round(m,3),mtext
-        (array([ 3.061,  0.132, -0.   ,  2.13 ,  0.011,  0.008,  1.677, -0.   ,
-                0.109,  0.109]), ['m0', 'mx', 'my', 'mt', 'mxx', 'myy', 'mtt', 'mxy', 'mxt', 'myt'])
+        (array([ 3.061,  0.132,  0.   ,  2.13 ,  0.011,  0.008,  1.677, -0.   ,
+            0.109,  0.109]), ['m0', 'mx', 'my', 'mt', 'mxx', 'myy', 'mtt', 'mxy', 'mxt', 'myt'])
 
         References
         ----------
