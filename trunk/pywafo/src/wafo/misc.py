@@ -24,10 +24,12 @@ floatinfo = finfo(float)
 
 
 __all__ = ['JITImport', 'DotDict', 'Bunch', 'printf', 'sub_dict_select',
-    'parse_kwargs', 'ecross', 'findtc', 'findtp', 'findcross',
-    'findextrema', 'findrfc', 'rfcfilter', 'common_shape', 'argsreduce',
+    'parse_kwargs', 'detrendma', 'ecross', 'findcross',
+    'findextrema', 'findpeaks', 'findrfc', 'rfcfilter', 'findtp', 'findtc', 
+    'findoutliers', 'common_shape', 'argsreduce',
     'stirlerr', 'getshipchar', 'betaloge', 'gravity', 'nextpow2',
-    'discretize', 'pol2cart', 'cart2pol', 'ndgrid', 'meshgrid', 'histgrm']
+    'discretize', 'discretize2', 'pol2cart', 'cart2pol',  'meshgrid', 'ndgrid', 
+    'trangood', 'tranproc', 'histgrm', 'num2pistr']
 
 class JITImport(object):
     ''' 
@@ -434,7 +436,7 @@ def findpeaks(data, n=2, min_h=None, min_p=0.0):
         if len(TuP):
             ind = TuP[1::2] #; % extract indices to maxima only
         else: # % did not find any , try maximum
-            ind = S[iy].argmax()
+            ind = np.atleast_1d(S[iy].argmax())
       
         if ndim>1:
             if iy==0:

@@ -9,6 +9,7 @@ import transform
 import definitions
 import polynomial
 import stats
+import interpolate
 
 try:
     from wafo.version import version as __version__

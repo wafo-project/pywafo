@@ -6,11 +6,11 @@ from scipy import special
 import numpy as np
 from numpy import inf
 from numpy import atleast_1d, nan, ndarray, sqrt, vstack, ones, where, zeros
-from numpy import arange, floor, linspace, asarray, reshape, repeat, product
+from numpy import arange, floor, linspace, asarray #, reshape, repeat, product
 
 
 __all__ = ['edf', 'edfcnd','reslife', 'dispersion_idx','decluster','findpot', 
-           'declustering_time','extremal_idx']
+           'declustering_time','interexceedance_times', 'extremal_idx']
 
 arr = asarray
 
@@ -533,8 +533,6 @@ def _find_ok_peaks(Ye, Te, Tmin):
     iOK, = where(1 - isTooClose[oOrder])
     return iOK
 
-
-    
 def declustering_time(t):
     '''
     Returns minimum distance between clusters.

@@ -11,6 +11,9 @@ from wafo.misc import meshgrid
 
 _POINTS_AND_WEIGHTS = {}
 
+__all__ = ['peaks', 'humps', 'is_numlike', 'dea3', 'clencurt', 'romberg', 
+         'h_roots','j_roots', 'la_roots','p_roots','qrule',
+         'gaussq', 'richardson', 'quadgr', 'qdemo']
 def peaks(x=None, y=None, n=51):
     '''
     Return the "well" known MatLab (R) peaks function
@@ -20,7 +23,7 @@ def peaks(x=None, y=None, n=51):
     -------
     >>> import pylab as plt
     >>> x,y,z = peaks()
-    >>> plt.contourf(x,y,z)
+    >>> h = plt.contourf(x,y,z)
     
     '''
     if x is None:
@@ -1164,7 +1167,8 @@ def gaussq(fun, a, b, reltol=1e-3, abstol=1e-3, alpha=0, beta=0, wfun=1,
     return val, abserr
 
 def richardson(Q, k):
-    #% Richardson extrapolation with parameter estimation
+    # license BSD
+    # Richardson extrapolation with parameter estimation
     c = np.real((Q[k - 1] - Q[k - 2]) / (Q[k] - Q[k - 1])) - 1.
     #% The lower bound 0.07 admits the singularity x.^-0.9
     c = max(c, 0.07)
@@ -1212,9 +1216,7 @@ def quadgr(fun, a, b, abseps=1e-5):
     QUAD,
     QUADGK
     '''
-    #%   Author: jonas.lundgren@saabgroup.com, 2009.
-
-
+    # Author: jonas.lundgren@saabgroup.com, 2009. license BSD
     # Order limits (required if infinite limits)
     if a == b:
         Q = b - a
