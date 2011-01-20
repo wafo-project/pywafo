@@ -5,6 +5,7 @@ Spectrum package in WAFO Toolbox.
 
 """
 
-from core import * #SpecData1D, SpecData2D, cltext
+from core import * 
+#SpecData1D, SpecData2D, cltext
 import models
 import dispersion_relation

@@ -32,7 +32,6 @@ from pylab import *
 #! from commands used in Chapter 2
 #!
 
-pstate =  'off';
 
 #! Section 2.1 Introduction and preliminary analysis
 #!====================================================

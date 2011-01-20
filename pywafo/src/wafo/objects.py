@@ -28,7 +28,7 @@ from numpy.fft import fft
 from numpy.random import randn
 from scipy.integrate import trapz
 from pylab import stineman_interp
-from matplotlib.mlab import psd
+from matplotlib.mlab import psd, detrend_mean
 import scipy.signal
 
 
@@ -40,6 +40,9 @@ from wafodata import WafoData
 from plotbackend import plotbackend
 import matplotlib
 from scipy.stats.stats import skew, kurtosis
+from scipy.signal.windows import parzen
+from scipy import special
+
 matplotlib.interactive(True)
 _wafocov = JITImport('wafo.covariance')
 _wafospec = JITImport('wafo.spectrum')
@@ -47,6 +50,8 @@ _wafospec = JITImport('wafo.spectrum')
 __all__ = ['TimeSeries', 'LevelCrossings', 'CyclePairs', 'TurningPoints',
     'sensortypeid', 'sensortype']
 
+def _invchi2(q, df):
+    return special.chdtri(df, q)
 
 class LevelCrossings(WafoData):
     '''
@@ -856,7 +861,7 @@ class TimeSeries(WafoData):
         acf.norm = norm
         return acf
 
-    def tospecdata(self, *args, **kwargs):
+    def tospecdata(self, L=None, tr=None, method='cov', detrend=detrend_mean, window=parzen, noverlap=0, pad_to=None):
         """ 
         Return power spectral density by Welches average periodogram method.
 
@@ -866,9 +871,6 @@ class TimeSeries(WafoData):
             if len(data) < NFFT, it will be zero padded to `NFFT`
             before estimation. Must be even; a power 2 is most efficient.
         detrend : function
-        Fs : real, scalar
-            sampling frequency (samples per time unit).
-
         window : vector of length NFFT or function
             To create window vectors see numpy.blackman, numpy.hamming,
             numpy.bartlett, scipy.signal, scipy.signal.get_window etc.
@@ -893,11 +895,180 @@ class TimeSeries(WafoData):
         Bendat & Piersol (1986) Random Data: Analysis and Measurement
         Procedures, John Wiley & Sons
         """
-        fs = 1. / (2 * self.sampling_period())
-        S, f = psd(self.data.ravel(), Fs=fs, *args, **kwargs)
+        dt = self.sampling_period()
+        #fs = 1. / (2 * dt)
+        yy = self.data.ravel() if tr is None else tr.dat2gauss(self.data.ravel())
+        yy = detrend(yy) if hasattr(detrend,'__call__') else yy
+        
+        S, f = psd(yy, Fs=1./dt, NFFT=nfft, detrend=detrend, window=window, 
+                   noverlap=noverlap,pad_to=pad_to, scale_by_freq=True)
         fact = 2 * 2.0 * pi
         w = fact * f
         return _wafospec.SpecData1D(S / fact, w)
+    def specdata(self, L=None, tr=None, method='cov',dflag='mean', ftype='w'):
+        '''
+        Estimate one-sided spectral density from data.
+     
+        Parameters
+        ----------
+        L : scalar integer
+            maximum lag size of the window function. As L decreases the estimate 
+            becomes smoother and Bw increases. If we want to resolve peaks in 
+            S which is Bf (Hz or rad/sec) apart then Bw < Bf. If no value is given the 
+            lag size is set to be the lag where the auto correlation is less than 
+            2 standard deviations. (maximum 300) 
+        tr : transformation object
+            the transformation assuming that x is a sample of a transformed 
+            Gaussian process. If g is None then x  is a sample of a Gaussian process (Default)
+        method : string
+            defining estimation method. Options are
+            'cov' :  Frequency smoothing using a parzen window function
+                    on the estimated autocovariance function.  (default)
+            'psd' : Welch's averaged periodogram method with no overlapping batches
+        dflag : string 
+            defining detrending performed on the signal before estimation.
+            'mean','linear' or 'ma' (= moving average)  (default 'mean')   
+        ftype : character
+            defining frequency type: 'w' or 'f'  (default 'w')    
+     
+        Returns
+        ---------
+        spec : SpecData1D  object
+     
+     
+        Example
+        -------
+        x = load('sea.dat');
+        S = dat2spec(x);
+        specplot(S)
+     
+        See also
+        --------
+        dat2tr, dat2cov
+    
+    
+        References:
+        -----------
+        Georg Lindgren and Holger Rootzen (1986)
+        "Stationära stokastiska processer",  pp 173--176.
+         
+        Gareth Janacek and Louise Swift (1993)
+        "TIME SERIES forecasting, simulation, applications",
+        pp 75--76 and 261--268
+        
+        Emanuel Parzen (1962),
+        "Stochastic Processes", HOLDEN-DAY,
+        pp 66--103
+        '''
+        
+        #% Initialize constants 
+        #%~~~~~~~~~~~~~~~~~~~~~
+        nugget   = 0; #%10^-12;
+        rate     = 2; #% interpolationrate for frequency
+        tapery   = 0; #% taper the data before the analysis
+        wdef     = 1; #% 1=parzen window 2=hanning window, 3= bartlett window
+          
+        dt = self.sampling_period()
+        yy = self.data if tr is None else tr.dat2gauss(self.data)
+        n = len(yy)
+        L = min(L,n);
+        
+        dflag = dflag.lower()
+        if dflag=='mean':
+            yy -= yy.mean()
+        elif dflag== 'linear':
+            yy = detrend(yy,1); # % signal toolbox detrend
+        elif dflag== 'ma':
+            dL        = np.ceil(1200/2/dT); # % approximately 20 min. moving average    
+            yy = detrendma(yy,dL);
+            dflag     = 'mean';
+        
+         
+        max_L = min(300,n); #% maximum lag if L is undetermined
+        change_L = L is None
+        if change_L:
+            L = min(n-2, int(4./3*max_L+0.5))
+
+            
+        if method=='cov' or change_L:
+            R = self.tocovdata() 
+            if  change_L:
+                #finding where ACF is less than 2 st. deviations.
+                L = max_L-(np.abs(R.data[max_L::-1])>2*R.stdev[max_L::-1]).argmax() # a better L value  
+                hasattr(windom, '__call__') 
+                if wdef==1:  # % modify L so that hanning and Parzen give appr. the same result
+                    L = min(int(4*L/3),n-2)
+                print('The default L is set to %d' % L)       
+        try:
+            win = window(2*L-1)
+            wname = window.__name__ 
+        except:
+            wname = None
+            win = window
+            v = None
+            Be = None
+        
+        nf   = rate*2**nextpow2(2*L-2) #  Interpolate the spectrum with rate 
+        nfft = 2*nf
+        
+#        S      = createspec('freq',ftype);
+#        S.tr   = g;
+#        S.note = ['dat2spec(',inputname(1),'), Method = ' method ];
+#        S.norm = 0; % not normalized
+#        S.L    = L;
+#        S.S = zeros(nf+1,m-1);
+        
+        if method=='psd': 
+            S, f = psd(yy, Fs=1./dt, NFFT=nfft, detrend=detrend, window=window, 
+                   noverlap=noverlap,pad_to=pad_to, scale_by_freq=True)
+               
+        else  :# cov method
+            # add a nugget effect to ensure that round off errors
+            # do not result in negative spectral estimates
+             
+            R.data[:L] = R.data[:L]*win[L::] 
+            R.data[L:] = 0
+            
+            spec = R.tospecdata(rate=2,nugget=nugget)
+             
+            if (  ~isempty(p) ),
+                alpha = (1-p);
+                #% Confidence interval constants
+                CI = [v/_invchi2( 1-alpha/2 ,v), v/_invchi2( alpha/2 ,v)];
+            
+          
+        
+        
+        ind = find(Rper<0);
+        if any(ind)
+          Rper(ind) = 0; % set negative values to zero
+          warning('WAFO:DAT2SPEC','negative spectral estimates')
+        end
+        
+            
+        if wname=='parzen':  
+            v   = int(3.71*n/L)   # degrees of freedom used in chi^2 distribution
+            Be  = 2*pi*1.33/(L*dT) # % bandwidth (rad/sec)
+        elif wname=='hanning':  
+            v   = int(2.67*n/L);   # degrees of freedom used in chi^2 distribution
+            Be  = 2*pi/(L*dT);      # % bandwidth (rad/sec)
+        elif wname=='bartlett':  
+            v   = int(3*n/L);   # degrees of freedom used in chi^2 distribution
+            Be  = 2*pi*1.33/(L*dT);  # bandwidth (rad/sec)
+        if ftype=='w'
+            S.w  = (0:nf)'/nf*pi/dT;           % (rad/s)
+            S.S  = real(Rper(1:(nf+1),1))*dT/pi; % (m^2*s/rad)one sided spectrum
+            S.Bw = Be;
+        else % ftype == f
+            S.f  = (0:nf)'/nf/2/dT;            % frequency Hz if dT is in seconds
+            S.S  = 2*real(Rper(1:(nf+1),1))*dT;  % (m^2*s) one sided spectrum
+            S.Bw = Be/(2*pi);                    % bandwidth in Hz
+        
+
+ 
+
+
+
     def trdata(self, method='nonlinear', **options):
         '''
         Estimate transformation, g, from data.
