@@ -23,7 +23,7 @@ except:
 floatinfo = finfo(float) 
 
 
-__all__ = ['JITImport', 'DotDict', 'Bunch', 'printf', 'sub_dict_select',
+__all__ = ['is_numlike','JITImport', 'DotDict', 'Bunch', 'printf', 'sub_dict_select',
     'parse_kwargs', 'detrendma', 'ecross', 'findcross',
     'findextrema', 'findpeaks', 'findrfc', 'rfcfilter', 'findtp', 'findtc', 
     'findoutliers', 'common_shape', 'argsreduce',
@@ -31,6 +31,13 @@ __all__ = ['JITImport', 'DotDict', 'Bunch', 'printf', 'sub_dict_select',
     'discretize', 'discretize2', 'pol2cart', 'cart2pol',  'meshgrid', 'ndgrid', 
     'trangood', 'tranproc', 'histgrm', 'num2pistr']
 
+def is_numlike(obj):
+    'return true if *obj* looks like a number'
+    try:
+        obj + 1
+    except TypeError: return False
+    else: return True
+    
 class JITImport(object):
     ''' 
     Just In Time Import of module

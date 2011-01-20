@@ -2,60 +2,20 @@ from __future__ import division
 import warnings
 import copy
 import numpy as np
-from numpy import pi, sqrt, ones, zeros, exp #@UnresolvedImport
+from numpy import pi, sqrt, ones, zeros #@UnresolvedImport
 from scipy import integrate as intg
 import scipy.special.orthogonal as ort
 from scipy import special as sp
 import pylab as plb
-from wafo.misc import meshgrid
-
+from scipy.integrate import simps, trapz
+from wafo.misc import is_numlike
+from wafo.demos import humps
 _POINTS_AND_WEIGHTS = {}
 
-__all__ = ['peaks', 'humps', 'is_numlike', 'dea3', 'clencurt', 'romberg', 
+__all__ = ['dea3', 'clencurt', 'romberg', 
          'h_roots','j_roots', 'la_roots','p_roots','qrule',
          'gaussq', 'richardson', 'quadgr', 'qdemo']
-def peaks(x=None, y=None, n=51):
-    '''
-    Return the "well" known MatLab (R) peaks function
-    evaluated in the [-3,3] x,y range
-    
-    Example
-    -------
-    >>> import pylab as plt
-    >>> x,y,z = peaks()
-    >>> h = plt.contourf(x,y,z)
-    
-    '''
-    if x is None:
-        x = np.linspace(-3, 3, n)
-    if y is None:
-        y = np.linspace(-3, 3, n)
-        
-    [x1, y1] = meshgrid(x, y)
 
-    z = (3 * (1 - x1) ** 2 * exp(-(x1 ** 2) - (y1 + 1) ** 2) 
-         - 10 * (x1 / 5 - x1 ** 3 - y1 ** 5) * exp(-x1 ** 2 - y1 ** 2) 
-         - 1. / 3 * exp(-(x1 + 1) ** 2 - y1 ** 2))
-
-    return x1, y1, z
-
-def humps(x=None):
-    '''
-    Computes a function that has three roots, and some humps.
-    '''
-    if x is None:
-        y = np.linspace(0, 1)
-    else:
-        y = np.asarray(x)
-
-    return 1.0 / ((y - 0.3) ** 2 + 0.01) + 1.0 / ((y - 0.9) ** 2 + 0.04) + 2 * y - 5.2
-
-def is_numlike(obj):
-    'return true if *obj* looks like a number'
-    try:
-        obj + 1
-    except TypeError: return False
-    else: return True
 
 def dea3(v0, v1, v2):
     '''
@@ -530,7 +490,6 @@ def j_roots(n, alpha, beta, method='newton'):
                 a = 2. * j * (j + alfbet) * tmp
                 tmp = tmp + 2
                 c = 2 * (j - 1 + alpha) * (j - 1 + beta) * tmp
-
                 b = (tmp - 1) * (alpha ** 2 - beta ** 2 + tmp * (tmp - 2) * z)
 
                 L[kp1, :] = (b * L[k0, :] - c * L[km1, :]) / a
