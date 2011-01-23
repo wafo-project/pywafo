@@ -105,7 +105,7 @@ inds, indg = wm.findoutliers(xx[:,1],zcrit,dcrit,ddcrit, verbose=True)
 #!
 clf()
 Lmax = 9500
-S = ts.tospecdata(NFFT=Lmax)
+S = ts.tospecdata(L=Lmax)
 S.plot()
 axis([0, 5, 0, 0.7])
 show()
@@ -123,8 +123,8 @@ mom, text= S.moment(nr=4)
 
 clf()
 Lmax0 = 200; Lmax1 = 50
-S1 = ts.tospecdata(NFFT=Lmax0)
-S2 = ts.tospecdata(NFFT=Lmax1)
+S1 = ts.tospecdata(L=Lmax0)
+S2 = ts.tospecdata(L=Lmax1)
 S1.plot('-.')
 S2.plot()
 show()
@@ -136,11 +136,12 @@ show()
 #! unimodal spectral density S1 and compare it with estimated 
 #! covariance of the signal xx.
 clf()
-Lmax = 80
+Lmax = 85
 R1 = S1.tocovdata(nr=1)   
 Rest = ts.tocovdata(lag=Lmax)
 R1.plot('.')
 Rest.plot()
+axis([0,25,-0.1,0.25])
 show()
 
 #! We can see in Figure below that the covariance function corresponding to 
