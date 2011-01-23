@@ -55,8 +55,6 @@ def edf(x, method=2):
       
      See also edf, pdfplot, cumtrapz
     '''
-        
-
     z = atleast_1d(x)       
     z.sort()
     
