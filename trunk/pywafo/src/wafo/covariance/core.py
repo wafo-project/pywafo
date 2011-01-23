@@ -19,7 +19,7 @@ import warnings
 #import numpy as np
 from numpy import (zeros, sqrt, dot, newaxis, inf, where, pi, nan, #@UnresolvedImport
                    atleast_1d, hstack, vstack, r_, linspace, flatnonzero, size, #@UnresolvedImport
-                   isnan, finfo, diag, ceil, floor, random) #@UnresolvedImport
+                   isnan, finfo, diag, ceil, floor, random, pi) #@UnresolvedImport
 from numpy.fft import fft
 from numpy.random import randn
 import scipy.interpolate as interpolate
@@ -272,7 +272,7 @@ class CovData1D(WafoData):
         Rper = (fft(ACF, nfft).real).clip(0) ## periodogram
         RperMax = Rper.max()
         Rper = where(Rper < trunc * RperMax, 0, Rper)
-        pi = pi
+    
         S = abs(Rper[0:(nf + 1)]) * dT / pi
         w = linspace(0, pi / dT, nf + 1)
         So = _wafospec.SpecData1D(S, w, type=spectype, freqtype=ftype)

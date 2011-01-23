@@ -310,7 +310,7 @@ class LevelCrossings(WafoData):
         >>> Sj = sm.Jonswap(Hm0=Hs)
         >>> S = Sj.tospecdata()   #Make spectrum object from numerical values
         >>> S.tr = tm.TrOchi(mean=0, skew=0.16, kurt=0, sigma=Hs/4, ysigma=Hs/4)
-        >>> xs = S.sim(ns=2**16)
+        >>> xs = S.sim(ns=2**16, iseed=10)
         >>> ts = mat2timeseries(xs)
         >>> tp = ts.turning_points()
         >>> mm = tp.cycle_pairs()
@@ -318,16 +318,16 @@ class LevelCrossings(WafoData):
         >>> g0, gemp = lc.trdata(monitor=True) # Monitor the development
         >>> g1, gemp = lc.trdata(gvar=0.5 ) # Equal weight on all points
         >>> g2, gemp = lc.trdata(gvar=[3.5, 0.5, 3.5])  # Less weight on the ends
-        >>> S.tr.dist2gauss()
-        5.9322684525265501
-        >>> np.round(gemp.dist2gauss())
-        6.0
-        >>> np.round(g0.dist2gauss())
-        4.0
-        >>> np.round(g1.dist2gauss())
-        4.0
-        >>> np.round(g2.dist2gauss())
-        4.0
+        >>> int(S.tr.dist2gauss()*100)
+        593
+        >>> int(gemp.dist2gauss()*100)
+        431
+        >>> int(g0.dist2gauss()*100)
+        391
+        >>> int(g1.dist2gauss()*100)
+        311
+        >>> int(g2.dist2gauss()*100)
+        357
         
          hold on, trplot(g1,g)                          # Check the fit
          trplot(g2)
@@ -734,6 +734,8 @@ class TimeSeries(WafoData):
     >>> rf = ts.tocovdata(lag=150)
     >>> h = rf.plot()
     
+    >>> S = ts.tospecdata()
+    
     >>> tp = ts.turning_points()
     >>> mm = tp.cycle_pairs()
     >>> h1 = mm.plot(marker='x')
@@ -861,7 +863,7 @@ class TimeSeries(WafoData):
         acf.norm = norm
         return acf
 
-    def tospecdata(self, L=None, tr=None, method='cov', detrend=detrend_mean, window=parzen, noverlap=0, pad_to=None):
+    def specdata(self, L=None, tr=None, method='cov', detrend=detrend_mean, window=parzen, noverlap=0, pad_to=None):
         """ 
         Return power spectral density by Welches average periodogram method.
 
@@ -900,12 +902,12 @@ class TimeSeries(WafoData):
         yy = self.data.ravel() if tr is None else tr.dat2gauss(self.data.ravel())
         yy = detrend(yy) if hasattr(detrend,'__call__') else yy
         
-        S, f = psd(yy, Fs=1./dt, NFFT=nfft, detrend=detrend, window=window, 
+        S, f = psd(yy, Fs=1./dt, NFFT=L, detrend=detrend, window=window, 
                    noverlap=noverlap,pad_to=pad_to, scale_by_freq=True)
-        fact = 2 * 2.0 * pi
+        fact = 2.0 * pi
         w = fact * f
         return _wafospec.SpecData1D(S / fact, w)
-    def specdata(self, L=None, tr=None, method='cov',dflag='mean', ftype='w'):
+    def tospecdata(self, L=None, tr=None, method='cov',detrend=detrend_mean, window=parzen, noverlap=0, pad_to=None, ftype='w', alpha=None):
         '''
         Estimate one-sided spectral density from data.
      
@@ -950,7 +952,7 @@ class TimeSeries(WafoData):
         References:
         -----------
         Georg Lindgren and Holger Rootzen (1986)
-        "Stationära stokastiska processer",  pp 173--176.
+        "Stationara stokastiska processer",  pp 173--176.
          
         Gareth Janacek and Louise Swift (1993)
         "TIME SERIES forecasting, simulation, applications",
@@ -969,20 +971,11 @@ class TimeSeries(WafoData):
         wdef     = 1; #% 1=parzen window 2=hanning window, 3= bartlett window
           
         dt = self.sampling_period()
-        yy = self.data if tr is None else tr.dat2gauss(self.data)
+        #yy = self.data if tr is None else tr.dat2gauss(self.data)
+        yy = self.data.ravel() if tr is None else tr.dat2gauss(self.data.ravel())
+        yy = detrend(yy) if hasattr(detrend,'__call__') else yy
         n = len(yy)
         L = min(L,n);
-        
-        dflag = dflag.lower()
-        if dflag=='mean':
-            yy -= yy.mean()
-        elif dflag== 'linear':
-            yy = detrend(yy,1); # % signal toolbox detrend
-        elif dflag== 'ma':
-            dL        = np.ceil(1200/2/dT); # % approximately 20 min. moving average    
-            yy = detrendma(yy,dL);
-            dflag     = 'mean';
-        
          
         max_L = min(300,n); #% maximum lag if L is undetermined
         change_L = L is None
@@ -991,81 +984,68 @@ class TimeSeries(WafoData):
 
             
         if method=='cov' or change_L:
-            R = self.tocovdata() 
+            tsy = TimeSeries(yy, self.args)
+            R = tsy.tocovdata() 
             if  change_L:
                 #finding where ACF is less than 2 st. deviations.
                 L = max_L-(np.abs(R.data[max_L::-1])>2*R.stdev[max_L::-1]).argmax() # a better L value  
-                hasattr(windom, '__call__') 
                 if wdef==1:  # % modify L so that hanning and Parzen give appr. the same result
                     L = min(int(4*L/3),n-2)
                 print('The default L is set to %d' % L)       
         try:
             win = window(2*L-1)
             wname = window.__name__ 
+            if wname=='parzen':  
+                v   = int(3.71*n/L)   # degrees of freedom used in chi^2 distribution
+                Be  = 2*pi*1.33/(L*dt) # % bandwidth (rad/sec)
+            elif wname=='hanning':  
+                v   = int(2.67*n/L);   # degrees of freedom used in chi^2 distribution
+                Be  = 2*pi/(L*dt);      # % bandwidth (rad/sec)
+            elif wname=='bartlett':  
+                v   = int(3*n/L);   # degrees of freedom used in chi^2 distribution
+                Be  = 2*pi*1.33/(L*dt);  # bandwidth (rad/sec)
         except:
             wname = None
             win = window
             v = None
             Be = None
+              
+        if method=='psd':
+            nf   = rate*2**nextpow2(2*L-2) #  Interpolate the spectrum with rate 
+            nfft = 2*nf 
+            S, f = psd(yy, Fs=1./dt, NFFT=nfft, detrend=detrend, window=window, 
+                   noverlap=noverlap,pad_to=pad_to, scale_by_freq=True)
+            fact = 2.0 * pi
+            w = fact * f
+            spec = _wafospec.SpecData1D(S / fact, w)
+        else  :# cov method
+            # add a nugget effect to ensure that round off errors
+            # do not result in negative spectral estimates
+             
+            R.data = R.data[:L]*win[L-1::] 
+            R.args = R.args[:L]
+            
+            spec = R.tospecdata(rate=2,nugget=nugget)
+             
+        spec.Bw = Be
+        if ftype=='f':
+            spec.Bw = Be/(2*pi) # bandwidth in Hz
         
-        nf   = rate*2**nextpow2(2*L-2) #  Interpolate the spectrum with rate 
-        nfft = 2*nf
+        if alpha is not None :
+            #% Confidence interval constants
+            CI = [v/_invchi2( 1-alpha/2 ,v), v/_invchi2( alpha/2 ,v)];
         
+        spec.tr = tr
+        spec.L = L
+        spec.norm = False
+        spec.note = 'method=%s' % method       
 #        S      = createspec('freq',ftype);
 #        S.tr   = g;
 #        S.note = ['dat2spec(',inputname(1),'), Method = ' method ];
 #        S.norm = 0; % not normalized
 #        S.L    = L;
 #        S.S = zeros(nf+1,m-1);
-        
-        if method=='psd': 
-            S, f = psd(yy, Fs=1./dt, NFFT=nfft, detrend=detrend, window=window, 
-                   noverlap=noverlap,pad_to=pad_to, scale_by_freq=True)
-               
-        else  :# cov method
-            # add a nugget effect to ensure that round off errors
-            # do not result in negative spectral estimates
-             
-            R.data[:L] = R.data[:L]*win[L::] 
-            R.data[L:] = 0
-            
-            spec = R.tospecdata(rate=2,nugget=nugget)
-             
-            if (  ~isempty(p) ),
-                alpha = (1-p);
-                #% Confidence interval constants
-                CI = [v/_invchi2( 1-alpha/2 ,v), v/_invchi2( alpha/2 ,v)];
-            
-          
-        
-        
-        ind = find(Rper<0);
-        if any(ind)
-          Rper(ind) = 0; % set negative values to zero
-          warning('WAFO:DAT2SPEC','negative spectral estimates')
-        end
-        
-            
-        if wname=='parzen':  
-            v   = int(3.71*n/L)   # degrees of freedom used in chi^2 distribution
-            Be  = 2*pi*1.33/(L*dT) # % bandwidth (rad/sec)
-        elif wname=='hanning':  
-            v   = int(2.67*n/L);   # degrees of freedom used in chi^2 distribution
-            Be  = 2*pi/(L*dT);      # % bandwidth (rad/sec)
-        elif wname=='bartlett':  
-            v   = int(3*n/L);   # degrees of freedom used in chi^2 distribution
-            Be  = 2*pi*1.33/(L*dT);  # bandwidth (rad/sec)
-        if ftype=='w'
-            S.w  = (0:nf)'/nf*pi/dT;           % (rad/s)
-            S.S  = real(Rper(1:(nf+1),1))*dT/pi; % (m^2*s/rad)one sided spectrum
-            S.Bw = Be;
-        else % ftype == f
-            S.f  = (0:nf)'/nf/2/dT;            % frequency Hz if dT is in seconds
-            S.S  = 2*real(Rper(1:(nf+1),1))*dT;  % (m^2*s) one sided spectrum
-            S.Bw = Be/(2*pi);                    % bandwidth in Hz
-        
-
- 
+        return spec
 
 
 
@@ -1148,21 +1128,21 @@ class TimeSeries(WafoData):
         >>> Sj = sm.Jonswap(Hm0=Hs)
         >>> S = Sj.tospecdata()   #Make spectrum object from numerical values
         >>> S.tr = tm.TrOchi(mean=0, skew=0.16, kurt=0, sigma=Hs/4, ysigma=Hs/4)
-        >>> xs = S.sim(ns=2**16)
+        >>> xs = S.sim(ns=2**16, iseed=10)
         >>> ts = mat2timeseries(xs)
         >>> g0, gemp = ts.trdata(monitor=True) # Monitor the development
         >>> g1, gemp = ts.trdata(method='m', gvar=0.5 ) # Equal weight on all points
         >>> g2, gemp = ts.trdata(method='n', gvar=[3.5, 0.5, 3.5])  # Less weight on the ends
-        >>> S.tr.dist2gauss()
-        5.9322684525265501
-        >>> np.round(gemp.dist2gauss())
-        6.0
-        >>> np.round(g0.dist2gauss())
+        >>> int(S.tr.dist2gauss()*100)
+        593
+        >>> int(gemp.dist2gauss()*100)
+        431
+        >>> int(g0.dist2gauss()*100)
+        342
+        >>> int(g1.dist2gauss()*100)
         4.0
-        >>> np.round(g1.dist2gauss())
-        4.0
-        >>> np.round(g2.dist2gauss())
-        4.0
+        >>> int(g2.dist2gauss()*100)
+        342
         
          Hm0 = 7;
          S = jonswap([],Hm0); g=ochitr([],[Hm0/4]); 
@@ -1214,7 +1194,7 @@ class TimeSeries(WafoData):
             lc = mM.level_crossings(opt.crossdef)
             return lc.trdata()
         elif method[0] == 'm':
-            return cdftr()
+            return self._cdftr()
         elif method[0] == 'h':
             ga1 = skew(self.data)
             ga2 = kurtosis(self.data, fisher=True) #kurt(xx(n+1:end))-3;
