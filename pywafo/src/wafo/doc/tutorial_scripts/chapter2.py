@@ -176,7 +176,7 @@ g = wtm.TrLinear(mean=me, sigma=sa ).trdata()
 
 #! Linear transformation
  
-glc, gemp = lc.trdata()
+glc, gemp = lc.trdata(mean=me, sigma=sa)
 g.plot('r')
 glc.plot('b-') #! Transf. estimated from level-crossings
 gh.plot('b-.')  #! Hermite Transf. estimated from moments
