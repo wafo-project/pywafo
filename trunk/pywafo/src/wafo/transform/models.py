@@ -61,7 +61,7 @@ class TrCommon2(TrCommon):
         -------
         t0 : real, scalar
             a measure of departure from the Gaussian model calculated as
-            trapz(xn,(xn-g(x))**2.) where int. limits is given by X.
+            trapz((xn-g(x))**2., xn) where int. limits is given by X.
         """
         if x is None:
             xn = np.linspace(xnmin, xnmax, n)

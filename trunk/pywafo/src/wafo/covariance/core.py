@@ -20,7 +20,7 @@ import warnings
 from numpy import (zeros, sqrt, dot, newaxis, inf, where, pi, nan, #@UnresolvedImport
                    atleast_1d, hstack, vstack, r_, linspace, flatnonzero, size, #@UnresolvedImport
                    isnan, finfo, diag, ceil, floor, random, pi) #@UnresolvedImport
-from numpy.fft import fft
+from numpy.fft import fft #as fft
 from numpy.random import randn
 import scipy.interpolate as interpolate
 from scipy.linalg import toeplitz, sqrtm, svd, cholesky, diagsvd, pinv
@@ -182,7 +182,7 @@ class CovData1D(WafoData):
 ##        wdata = CovData1D(**kwds)
 ##        return wdata
 
-    def tospecdata(self, rate=None, method='linear', nugget=0.0, trunc=1e-5, fast=True):
+    def tospecdata(self, rate=None, method='fft', nugget=0.0, trunc=1e-5, fast=True):
         '''
         Computes spectral density from the auto covariance function
 
@@ -192,7 +192,7 @@ class CovData1D(WafoData):
             1,2,4,8...2^r, interpolation rate for f (default 1)
 
         method: string
-            interpolation method 'stineman', 'linear', 'cubic'
+            interpolation method 'stineman', 'linear', 'cubic', 'fft'
 
         nugget = scalar, real
             nugget effect to ensure that round off errors do not result in
@@ -217,7 +217,8 @@ class CovData1D(WafoData):
         Example:
         >>> import wafo.spectrum.models as sm
         >>> import numpy as np
-        >>> import scipy.signal.signaltools as st
+        >>> import scipy.signal as st
+        >>> import pylab
         >>> L = 129
         >>> t = np.linspace(0,75,L)
         >>> R = np.zeros(L)
@@ -230,7 +231,13 @@ class CovData1D(WafoData):
         >>> S = Sj.tospecdata()
         >>> R2 = S.tocovdata()
         >>> S1 = R2.tospecdata()
-        >>> assert(all(abs(S1.data-S.data)<1e-4) ,'COV2SPEC')
+        >>> abs(S1.data-S.data).max()
+        
+        >>> S1.plot('r-')
+        >>> S.plot('b:')
+        >>> pylab.show()
+        
+        >>> all(abs(S1.data-S.data)<1e-4)
 
         See also
         --------
@@ -238,10 +245,10 @@ class CovData1D(WafoData):
         datastructures
         '''
 
-        dT = self.sampling_period()
-        # dT = time-step between data points.
+        dt = self.sampling_period()
+        # dt = time-step between data points.
 
-        ACF, unused_ti = atleast_1d(self.data, self.args)
+        acf, unused_ti = atleast_1d(self.data, self.args)
 
         if self.lagtype in 't':
             spectype = 'freq'
@@ -258,30 +265,34 @@ class CovData1D(WafoData):
 
         ## add a nugget effect to ensure that round off errors
         ## do not result in negative spectral estimates
-        ACF[0] = ACF[0] + nugget
-        n = ACF.size
+        acf[0] = acf[0] + nugget
+        n = acf.size
         # embedding a circulant vector and Fourier transform
-        if fast:
-            nfft = 2 ** nextpow2(2 * n - 2)
-        else:
-            nfft = 2 * n - 2
-
+        
+        nfft = 2 ** nextpow2(2 * n - 2) if fast else 2 * n - 2
+        
+        if method=='fft':
+            nfft *= rate
+         
         nf = nfft / 2 ## number of frequencies
-        ACF = r_[ACF, zeros(nfft - 2 * n + 2), ACF[n - 1:0:-1]]
-
-        Rper = (fft(ACF, nfft).real).clip(0) ## periodogram
+        acf = r_[acf, zeros(nfft - 2 * n + 2), acf[n - 2:0:-1]]
+        
+        Rper = (fft(acf, nfft).real).clip(0) ## periodogram
+#        import pylab
+#        pylab.semilogy(Rper)
+#        pylab.show()
         RperMax = Rper.max()
         Rper = where(Rper < trunc * RperMax, 0, Rper)
     
-        S = abs(Rper[0:(nf + 1)]) * dT / pi
-        w = linspace(0, pi / dT, nf + 1)
+        S = abs(Rper[0:(nf + 1)]) * dt / pi
+        w = linspace(0, pi / dt, nf + 1)
         So = _wafospec.SpecData1D(S, w, type=spectype, freqtype=ftype)
         So.tr = self.tr
         So.h = self.h
         So.norm = self.norm
 
-        if rate > 1:
-            So.args = linspace(0, pi / dT, nf * rate)
+        if method != 'fft' and rate > 1:
+            So.args = linspace(0, pi / dt, nf * rate)
             if method == 'stineman':
                 So.data = stineman_interp(So.args, w, S)
             else:
@@ -374,15 +385,15 @@ class CovData1D(WafoData):
 
         _set_seed(iseed)
 
-        ACF = self.data.ravel()
-        n = ACF.size
+        acf = self.data.ravel()
+        n = acf.size
 
 
-        I = ACF.argmax()
+        I = acf.argmax()
         if I != 0:
             raise ValueError('ACF does not have a maximum at zero lag')
 
-        ACF.shape = (n, 1)
+        acf.shape = (n, 1)
 
         dT = self.sampling_period()
 
@@ -393,25 +404,24 @@ class CovData1D(WafoData):
 
         ## add a nugget effect to ensure that round off errors
         ## do not result in negative spectral estimates
-        ACF[0] = ACF[0] + nugget
+        acf[0] = acf[0] + nugget
 
         ## Fast and exact simulation of simulation of stationary
         ## Gaussian process throug circulant embedding of the
         ## Covariance matrix
         floatinfo = finfo(float)
-        if (abs(ACF[-1]) > floatinfo.eps): ## assuming ACF(n+1)==0
+        if (abs(acf[-1]) > floatinfo.eps): ## assuming acf(n+1)==0
             m2 = 2 * n - 1
             nfft = 2 ** nextpow2(max(m2, 2 * ns))
-            ACF = r_[ACF, zeros((nfft - m2, 1)), ACF[-1:0:-1, :]]
-            #disp('Warning: I am now assuming that ACF(k)=0 ')
-            #disp('for k>MAXLAG.')
+            acf = r_[acf, zeros((nfft - m2, 1)), acf[-1:0:-1, :]]
+            #warnings,warn('I am now assuming that ACF(k)=0 for k>MAXLAG.')
         else: # # ACF(n)==0
             m2 = 2 * n - 2
             nfft = 2 ** nextpow2(max(m2, 2 * ns))
-            ACF = r_[ACF, zeros((nfft - m2, 1)), ACF[n - 1:1:-1, :]]
+            acf = r_[acf, zeros((nfft - m2, 1)), acf[n - 1:1:-1, :]]
 
         ##m2=2*n-2
-        S = fft(ACF, nfft, axis=0).real ## periodogram
+        S = fft(acf, nfft, axis=0).real ## periodogram
 
         I = S.argmax()
         k = flatnonzero(S < 0)

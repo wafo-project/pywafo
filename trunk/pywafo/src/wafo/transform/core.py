@@ -70,7 +70,7 @@ class TrCommon(object):
         -------
         t0 : real, scalar
             a measure of departure from the Gaussian model calculated as
-            trapz(xn,(xn-g(x))**2.) where int. limits is given by X.
+            trapz((xn-g(x))**2., xn) where int. limits is given by X.
         """
         if x is None:
             xn = linspace(xnmin, xnmax, n)
@@ -79,7 +79,7 @@ class TrCommon(object):
             xn = (x-self.mean)/self.sigma
 
         yn = (self._dat2gauss(x)-self.ymean)/self.ysigma
-        t0 = trapz(xn,(xn-yn)**2.)
+        t0 = trapz((xn-yn)**2., xn)
         return t0
 
     def gauss2dat(self, y, *yi):
@@ -166,14 +166,18 @@ class TrData(WafoData, TrCommon):
     True
     """
     def __init__(self, *args, **kwds):
-        super(TrData, self).__init__(*args, **kwds)
-        self.labels.title = 'Transform'
-        self.labels.ylab = 'g(x)'
-        self.labels.xlab = 'x'
-        self.ymean = kwds.get('ymean', 0e0)
-        self.ysigma = kwds.get('ysigma', 1e0)
-        self.mean = kwds.get('mean', None)
-        self.sigma = kwds.get('sigma', None)
+        self.ymean = kwds.pop('ymean', 0e0)
+        self.ysigma = kwds.pop('ysigma', 1e0)
+        self.mean = kwds.pop('mean', None)
+        self.sigma = kwds.pop('sigma', None)
+        
+        options = dict(title='Transform',
+                            xlab='x', ylab='g(x)',
+                            plot_args=['r'],
+                            plot_args_children=['g--'],)
+        options.update(**kwds)
+        super(TrData, self).__init__(*args, **options)
+        
         
         if self.mean is None: 
             #self.mean = np.mean(self.args) # 
@@ -182,6 +186,8 @@ class TrData(WafoData, TrCommon):
             yp = self.ymean+self.ysigma
             ym = self.ymean-self.ysigma
             self.sigma = (self.gauss2dat(yp)-self.gauss2dat(ym))/2.
+            
+        self.children = [WafoData((self.args-self.mean)/self.sigma, self.args)]
 
     def _gauss2dat(self, y, *yi):
         return tranproc(self.data, self.args, y, *yi)

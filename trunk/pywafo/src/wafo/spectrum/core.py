@@ -649,20 +649,17 @@ class SpecData1D(WafoData):
     """
 
     def __init__(self, *args, **kwds):
-        super(SpecData1D, self).__init__(*args, **kwds)
-        self.name = 'WAFO Spectrum Object'
-        self.type = 'freq'
-        self.freqtype = 'w'
+        self.name_ = kwds.pop('name', 'WAFO Spectrum Object') 
+        self.type = kwds.pop('type','freq')
+        self.freqtype = kwds.pop('freqtype','w')
         self.angletype = ''
-        self.h = inf
-        self.tr = None #TrLinear()
-        self.phi = 0.0
-        self.v = 0.0
-        self.norm = False
-        somekeys = ['phi', 'name', 'h', 'tr', 'freqtype', 'v','type', 'norm']
-
-        self.__dict__.update(sub_dict_select(kwds, somekeys))
-
+        self.h = kwds.pop('h',inf)
+        self.tr = kwds.pop('tr',None) #TrLinear()
+        self.phi = kwds.pop('phi',0.0)
+        self.v = kwds.pop('v',0.0)
+        self.norm = kwds.pop('norm',False)
+        super(SpecData1D, self).__init__(*args, **kwds)
+        
         self.setlabels()
 
     def tocov_matrix(self, nr=0, nt=None, dt=None):
@@ -869,7 +866,7 @@ class SpecData1D(WafoData):
         nfft = rate * 2 ** nextpow2(2 * n_f - 2)
 
         # periodogram
-        rper = r_[specn, zeros(nfft - (2 * n_f) + 2), conj(specn[n_f - 1:0:-1])] 
+        rper = r_[specn, zeros(nfft - (2 * n_f) + 2), conj(specn[n_f - 2:0:-1])] 
         time = r_[0:nt + 1] * d_t * (2 * n_f - 2) / nfft
 
         r = fft(rper, nfft).real / (2 * n_f - 2)
@@ -1194,9 +1191,6 @@ class SpecData1D(WafoData):
        
         if self.tr is None:
             g = TrLinear(var=m[0])
-            #y = linspace(-5, 5, 513)
-            #g = _wafotransform.
-            #g = TrData(y, sqrt(m[0]) * y)
         else:
             g = self.tr
         
@@ -2086,7 +2080,7 @@ class SpecData1D(WafoData):
 #        
 #        opt = troptset(opt,'multip',1)
         
-        plotflag = 0 if test0 is None else 1
+        plotflag = False if test0 is None else True
         if cases > 50:
             print('  ... be patient this may take a while')
         
@@ -2104,9 +2098,6 @@ class SpecData1D(WafoData):
                 ts = TimeSeries(xs[:, iy], xs[:, 0].ravel())
                 g, tmp = ts.trdata(method, **opt)
                 test1.append(g.dist2gauss())
-            #xs = cov2sdat(R,[ns Nstep]);
-            #[g, tmp] = dat2tr(xs,method, **opt);
-            #test1 = [test1; tmp(:)]
             if verbose:
                 print('finished %d of %d ' % (ix + 1, rep))
         
@@ -2790,6 +2781,8 @@ class SpecData2D(WafoData):
     """
 
     def __init__(self, *args, **kwds):
+    
+        
         super(SpecData2D, self).__init__(*args, **kwds)
 
         self.name = 'WAFO Spectrum Object'

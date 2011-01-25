@@ -1952,6 +1952,8 @@ class Spreading(object):
         w = specdata.args
         S = specdata.data
         D, phi0 = self(theta, w=w, wc=wc)
+        if D.ndim != 2: # frequency dependent spreading
+            D = D[:, None]
             
         SD = D * S[None,:]
         
