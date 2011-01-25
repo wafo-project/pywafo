@@ -2157,4 +2157,4 @@ if __name__ == "__main__":
         import doctest
         doctest.testmod()
     else:
-        test_find_cross()
+        _test_find_cross()

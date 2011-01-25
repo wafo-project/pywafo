@@ -81,7 +81,7 @@ class WafoData(object):
         if self.children != None:
             plotbackend.hold('on')
             tmp = []
-            child_args = args + tuple(self.plot_args_children)
+            child_args = args if len(args) else tuple(self.plot_args_children)
             child_kwds = dict()
             child_kwds.update(self.plot_kwds_children)
             child_kwds.update(**kwds)
@@ -91,7 +91,7 @@ class WafoData(object):
                     tmp.append(tmp1)
             if len(tmp) == 0:
                 tmp = None
-        main_args = args + tuple(self.plot_args)
+        main_args = args if len(args) else tuple(self.plot_args)
         main_kwds = dict()
         main_kwds.update(self.plot_kwds)
         main_kwds.update(kwds)

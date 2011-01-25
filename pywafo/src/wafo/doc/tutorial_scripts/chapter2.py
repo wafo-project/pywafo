@@ -180,6 +180,7 @@ glc, gemp = lc.trdata(mean=me, sigma=sa)
 g.plot('r')
 glc.plot('b-') #! Transf. estimated from level-crossings
 gh.plot('b-.')  #! Hermite Transf. estimated from moments
+grid('on')
 show()
  
 #!  Test Gaussianity of a stochastic process.
@@ -205,7 +206,7 @@ show()
 #! "light" lower tail. 
 clf()
 import pylab
-ws.probplot(ts.data, dist='norm', plot=pylab)
+ws.probplot(ts.data.ravel(), dist='norm', plot=pylab)
 show()
 #! Section 2.2.3 Spectral densities of sea data
 #!-----------------------------------------------

@@ -1,6 +1,28 @@
 from scipy import *
 from pylab import *
 
+#import wafo.spectrum.models as sm
+#Sj = sm.Jonswap()
+#S = Sj.tospecdata()
+#S.data[0:40] = 0.0
+#S.data[100:-1] = 0.0
+#Nt = len(S.data)-1
+#acf = S.tocovdata(nr=0, nt=Nt)
+#S2 = acf.tospecdata()
+#S.plot('r')
+#S2.plot('b:')
+#
+#show()
+#        
+#import wafo
+#import wafo.objects as wo
+#xn = wafo.data.sea()
+#ts = wo.mat2timeseries(xn)
+#Sest = ts.tospecdata(method='cov')
+#Sest.setplotter('semilogy')
+#Sest.plot()
+#show()
+
 # pyreport -o chapter1.html chapter1.py
 
 #! CHAPTER1 demonstrates some applications of WAFO
@@ -26,12 +48,14 @@ S1 = S.tospecdata()
 S1.plot()
 show()
 
+
 ##
 import wafo.objects as wo
 xs = S1.sim(ns=2000, dt=0.1)
 ts = wo.mat2timeseries(xs)
 ts.plot_wave('-')
 show()
+
 
 #! Estimation of spectrum 
 #!~~~~~~~~~~~~~~~~~~~~~~~
@@ -42,19 +66,20 @@ clf()
 Fs = 4;  
 xs = S1.sim(ns=fix(20 * 60 * Fs), dt=1. / Fs) 
 ts = wo.mat2timeseries(xs) 
-Sest = ts.tospecdata(NFFT=400)
+Sest = ts.tospecdata(L=400)
 S1.plot()
 Sest.plot('--')
 axis([0, 3, 0, 5]) # This may depend on the simulation
 show()
 
-## Section 1.4.2 Probability distributions of wave characteristics.
-## Probability distribution of wave trough period
-# WAFO gives the possibility of computing the exact probability
-# distributions for a number of characteristics given a spectral density.
-# In the following example we study the trough period extracted from the
-# time series and compared with the theoretical density computed with exact
-# spectrum, S1, and the estimated spectrum, Sest.
+#! Section 1.4.2 Probability distributions of wave characteristics.
+#!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#! Probability distribution of wave trough period:
+#! WAFO gives the possibility of computing the exact probability
+#! distributions for a number of characteristics given a spectral density.
+#! In the following example we study the trough period extracted from the
+#! time series and compared with the theoretical density computed with exact
+#! spectrum, S1, and the estimated spectrum, Sest.
 clf()
 import wafo.misc as wm
 dtyex = S1.to_t_pdf(pdef='Tt', paramt=(0, 10, 51), nit=3)
@@ -81,11 +106,11 @@ Sp = 15;   # spreading parameter
 D1 = sm.Spreading(type='cos', theta0=th0, method=None) # frequency independent
 D12 = sm.Spreading(type='cos', theta0=0, method='mitsuyasu') # frequency dependent
 
-#SD1 = mkdspec(S1, D1)
-#SD12 = mkdspec(S1, D12);
-#plotspec(SD1, plotflag), hold on, plotspec(SD12, plotflag, '-.'); hold off
-#wafostamp('', '(ER)')
-#disp('Block = 5'), pause(pstate)
+SD1 = D1.tospecdata2d(S1)
+SD12 = D12.tospecdata2d(S1)
+SD1.plot()
+SD12.plot()#linestyle='dashdot')
+show()
 
 #! 3D Simulation of the sea surface 
 #!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

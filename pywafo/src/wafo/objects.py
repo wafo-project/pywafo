@@ -197,7 +197,7 @@ class LevelCrossings(WafoData):
         integral = zeros(u.shape, dtype=float)
         for i in range(len(integral)):
             y = factor1 * exp(-u[i] * u[i] * factor2)
-            integral[i] = trapz(x, y)
+            integral[i] = trapz(y, x)
         #end
         G = G - integral / (2 * pi)
         G = G / max(G)
@@ -215,7 +215,7 @@ class LevelCrossings(WafoData):
         
         g = lc2.trdata()
 
-        f = [u, u]
+        #f = [u, u]
         f = g.dat2gauss(Z)
         G = TrData(f, u)
         
@@ -320,11 +320,11 @@ class LevelCrossings(WafoData):
         >>> g1, g1emp = lc.trdata(gvar=0.5 ) # Equal weight on all points
         >>> g2, g2emp = lc.trdata(gvar=[3.5, 0.5, 3.5])  # Less weight on the ends
         >>> int(S.tr.dist2gauss()*100)
-        593
+        141
         >>> int(g0emp.dist2gauss()*100)
-        492
+        1544
         >>> int(g0.dist2gauss()*100)
-        361
+        340
         >>> int(g1.dist2gauss()*100)
         352
         >>> int(g2.dist2gauss()*100)
@@ -855,12 +855,13 @@ class TimeSeries(WafoData):
         c0 = R[0]
         if norm:
             R = R / c0
+        r0 = R[0]
         if dt is None:
             dt = self.sampling_period()
         t = linspace(0, lag * dt, lag + 1)
         #cumsum = np.cumsum
         acf = _wafocov.CovData1D(R[lags], t)
-        acf.stdev = sqrt(r_[ 0, 1 , 1 + 2 * cumsum(R[1:] ** 2)] / Ncens)
+        acf.stdev = sqrt(r_[ 0, r0**2 , r0**2 + 2 * cumsum(R[1:] ** 2)] / Ncens)
         acf.children = [WafoData(-2. * acf.stdev[lags], t), WafoData(2. * acf.stdev[lags], t)]
         acf.plot_args_children = ['r:']
         acf.norm = norm
@@ -910,7 +911,7 @@ class TimeSeries(WafoData):
         fact = 2.0 * pi
         w = fact * f
         return _wafospec.SpecData1D(S / fact, w)
-    def tospecdata(self, L=None, tr=None, method='cov', detrend=detrend_mean, window=parzen, noverlap=0, pad_to=None, ftype='w', alpha=None):
+    def tospecdata(self, L=None, tr=None, method='cov', detrend=detrend_mean, window=parzen, noverlap=0, ftype='w', alpha=None):
         '''
         Estimate one-sided spectral density from data.
      
@@ -930,9 +931,14 @@ class TimeSeries(WafoData):
             'cov' :  Frequency smoothing using a parzen window function
                     on the estimated autocovariance function.  (default)
             'psd' : Welch's averaged periodogram method with no overlapping batches
-        dflag : string 
+        detrend : function
             defining detrending performed on the signal before estimation.
-            'mean','linear' or 'ma' (= moving average)  (default 'mean')   
+            (default detrend_mean)   
+        window : vector of length NFFT or function
+            To create window vectors see numpy.blackman, numpy.hamming,
+            numpy.bartlett, scipy.signal, scipy.signal.get_window etc.
+        noverlap : scalar int
+             gives the length of the overlap between segments.
         ftype : character
             defining frequency type: 'w' or 'f'  (default 'w')    
      
@@ -968,9 +974,9 @@ class TimeSeries(WafoData):
         
         #% Initialize constants 
         #%~~~~~~~~~~~~~~~~~~~~~
-        nugget = 0; #%10^-12;
+        nugget = 1e-12
         rate = 2; #% interpolationrate for frequency
-        tapery = 0; #% taper the data before the analysis
+        
         wdef = 1; #% 1=parzen window 2=hanning window, 3= bartlett window
           
         dt = self.sampling_period()
@@ -981,18 +987,17 @@ class TimeSeries(WafoData):
         L = min(L, n);
          
         max_L = min(300, n); #% maximum lag if L is undetermined
-        change_L = L is None
-        if change_L:
+        estimate_L = L is None
+        if estimate_L:
             L = min(n - 2, int(4. / 3 * max_L + 0.5))
-
             
-        if method == 'cov' or change_L:
+        if method == 'cov' or estimate_L:
             tsy = TimeSeries(yy, self.args)
             R = tsy.tocovdata() 
-            if  change_L:
+            if  estimate_L:
                 #finding where ACF is less than 2 st. deviations.
-                L = max_L - (np.abs(R.data[max_L::-1]) > 2 * R.stdev[max_L::-1]).argmax() # a better L value  
-                if wdef == 1:  # % modify L so that hanning and Parzen give appr. the same result
+                L = max_L + 2 - (np.abs(R.data[max_L::-1]) > 2 * R.stdev[max_L::-1]).argmax() # a better L value  
+                if wdef == 1:  # modify L so that hanning and Parzen give appr. the same result
                     L = min(int(4 * L / 3), n - 2)
                 print('The default L is set to %d' % L)       
         try:
@@ -1014,9 +1019,9 @@ class TimeSeries(WafoData):
             Be = None
               
         if method == 'psd':
-            nf = rate * 2 ** nextpow2(2 * L - 2) #  Interpolate the spectrum with rate 
-            nfft = 2 * nf 
-            S, f = psd(yy, Fs=1. / dt, NFFT=nfft, detrend=detrend, window=window,
+            nfft =  2 ** nextpow2(L) 
+            pad_to = rate*nfft #  Interpolate the spectrum with rate 
+            S, f = psd(yy, Fs=1. / dt, NFFT=nfft, detrend=detrend, window=window(nfft),
                    noverlap=noverlap, pad_to=pad_to, scale_by_freq=True)
             fact = 2.0 * pi
             w = fact * f
@@ -1025,10 +1030,13 @@ class TimeSeries(WafoData):
             # add a nugget effect to ensure that round off errors
             # do not result in negative spectral estimates
              
-            R.data = R.data[:L] * win[L - 1::] 
-            R.args = R.args[:L]
-            
-            spec = R.tospecdata(rate=2, nugget=nugget)
+            R.data[:L] = R.data[:L] * win[L - 1::]
+            R.data[L] = 0.0
+            R.data = R.data[:L+1]
+            R.args = R.args[:L+1]
+            #R.plot()
+            #R.show()
+            spec = R.tospecdata(rate=rate, nugget=nugget)
              
         spec.Bw = Be
         if ftype == 'f':
@@ -1356,7 +1364,9 @@ class TimeSeries(WafoData):
             t = self.args[ind]
         except:
             t = ind
-        return TurningPoints(self.data[ind], t)
+        mean = self.data.mean()
+        stdev = self.data.std()
+        return TurningPoints(self.data[ind], t, mean=mean, stdev=stdev)
     
     def wave_periods(self, vh=None, pdef='d2d', wdef=None, index=None, rate=1):
         """ 
