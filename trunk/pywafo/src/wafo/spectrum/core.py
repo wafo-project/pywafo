@@ -876,7 +876,7 @@ class SpecData1D(WafoData):
         acf.norm = spec.norm
 
         if nr > 0:
-            w = r_[w , zeros(nfft - 2 * n_f + 2) , -w[n_f - 1:0:-1] ]
+            w = r_[w , zeros(nfft - 2 * n_f + 2) , -w[n_f - 2:0:-1] ]
             fieldname = 'R' + lagtype[0] * nr 
             for i in range(1, nr + 1):
                 rper = -1j * w * rper
