@@ -2032,7 +2032,7 @@ class rv_continuous(rv_generic):
         if (any(cond0)):
             return inf
         else:
-            linfo = numpy.finfo(float)
+            #linfo = numpy.finfo(float)
             realmax = floatinfo.machar.xmax
 
             lowertail = True
@@ -2059,7 +2059,7 @@ class rv_continuous(rv_generic):
                 i_tie = nonzero(tie)
                 tiedata = x[i_tie]
 
-                logD[i_tie + 1] = log(self._pdf(tiedata, *args)) + log(scale)
+                logD[i_tie + 1] = log(self._pdf(tiedata, *args)) - log(scale)
 
             finiteD = numpy.isfinite(logD)
             nonfiniteD = 1 - finiteD

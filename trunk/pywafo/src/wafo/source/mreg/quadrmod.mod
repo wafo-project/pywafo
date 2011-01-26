@@ -1,4 +1,4 @@
-GFORTRAN module version '0' created from mregmodule.f on Wed Aug 05 19:15:05 2009
+GFORTRAN module version '0' created from mregmodule.f on Tue Jan 25 23:52:18 2011
 MD5:447301769c212f228b6cfa086ba1d48a -- If you edit this, you'll get what you deserve.
 
 (() () () () () () () () () () () () () () () () () () () () () () () ()
