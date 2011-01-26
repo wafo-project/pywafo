@@ -25,7 +25,7 @@ import warnings
 import numpy as np
 
 from numpy import (inf, pi, zeros, ones, sqrt, where, log, exp, sin, arcsin, mod, finfo, interp, #@UnresolvedImport
-                   newaxis, linspace, arange, sort, all, abs, vstack, hstack, atleast_1d, #@UnresolvedImport
+                   linspace, arange, sort, all, abs, vstack, hstack, atleast_1d, #@UnresolvedImport
                    finfo, polyfit, r_, nonzero, cumsum, ravel, size, isnan, nan, floor, ceil, diff, array) #@UnresolvedImport
 from numpy.fft import fft
 from numpy.random import randn
@@ -34,7 +34,7 @@ from pylab import stineman_interp
 from matplotlib.mlab import psd, detrend_mean
 import scipy.signal
 
-from wafo.misc import (nextpow2, findtp, findtc, findcross, sub_dict_select,
+from wafo.misc import (nextpow2, findtp, findtc, findcross,  
                        ecross, JITImport, DotDict)
 from wafodata import WafoData
 from plotbackend import plotbackend

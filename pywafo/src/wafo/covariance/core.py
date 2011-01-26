@@ -17,7 +17,7 @@ date : Date and time of creation or change.
 from __future__ import division
 import warnings
 #import numpy as np
-from numpy import (zeros, sqrt, dot, newaxis, inf, where, pi, nan, #@UnresolvedImport
+from numpy import (zeros, sqrt, dot, inf, where, pi, nan, #@UnresolvedImport
                    atleast_1d, hstack, vstack, r_, linspace, flatnonzero, size, #@UnresolvedImport
                    isnan, finfo, diag, ceil, floor, random, pi) #@UnresolvedImport
 from numpy.fft import fft #as fft
@@ -810,7 +810,7 @@ def sptoeplitz(x):
             data = data[1::, :]
         return y + spdiags((data, -offsets), shape=(n, n))
 
-def test_covdata():
+def _test_covdata():
     import wafo.data
     x = wafo.data.sea()
     ts = wafo.objects.mat2timeseries(x)

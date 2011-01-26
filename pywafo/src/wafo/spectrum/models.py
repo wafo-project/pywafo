@@ -1965,7 +1965,7 @@ class Spreading(object):
         #Snew.note = specdata.note + ', spreading: %s' % self.type
         return Snew
 
-def test_some_spectra():
+def _test_some_spectra():
     S = Jonswap()
 
     w = arange(3.0)
@@ -2024,7 +2024,7 @@ def test_some_spectra():
     plb.show()
     plb.close('all')
 
-def test_spreading():
+def _test_spreading():
     import pylab as plb
     pi = plb.pi
     w = plb.linspace(0, 3, 257)
@@ -2045,7 +2045,7 @@ def test_spreading():
 
 def main():
     if False: # True: #
-        test_some_spectra()
+        _test_some_spectra()
     else:
         import doctest
         doctest.testmod()

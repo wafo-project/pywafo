@@ -195,7 +195,7 @@ ylabel('(m)')
 
 #! Formation of 5 min maxima
 yura = xn[:85500, 1]
-yura = np.reshape(yura, (300, 285))
+yura = np.reshape(yura, (285,300)).T
 maxyura = yura.max(axis=0)
 subplot(212)
 plot(xn[299:85500:300, 0] / 3600, maxyura, '.')
@@ -207,7 +207,7 @@ show()
 #! Estimation of GEV for yuramax
 clf()
 import wafo.stats as ws
-phat = ws.genextreme.fit2(maxyura, method='mps')
+phat = ws.genextreme.fit2(maxyura, method='ml')
 phat.plotfitsummary()
 show()
 #disp('Block = 11, Last block')

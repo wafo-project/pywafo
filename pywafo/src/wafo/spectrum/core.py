@@ -803,6 +803,9 @@ class SpecData1D(WafoData):
         >>> S.data[100:-1] = 0.0
         >>> Nt = len(S.data)-1
         >>> acf = S.tocovdata(nr=0, nt=Nt)
+        >>> S1 = acf.tospecdata()
+        >>> h = S.plot('r')
+        >>> h1 = S1.plot('b:')
 
         R   = spec2cov(spec,0,Nt)
         win = parzen(2*Nt+1)
@@ -2345,8 +2348,8 @@ class SpecData1D(WafoData):
 
             newNfft = 2 ** nextpow2(ceil(wnNew / dwMin)) + 1
             if newNfft > nfft:
-                if (nfft <= 2 ** 15 + 1) and (newNfft > 2 ** 15 + 1):
-                    warnings.warn('Spectrum matrix is very large (>33k). Memory problems may occur.')
+                #if (nfft <= 2 ** 15 + 1) and (newNfft > 2 ** 15 + 1):
+                #    warnings.warn('Spectrum matrix is very large (>33k). Memory problems may occur.')
 
                 nfft = newNfft
             self.args = linspace(0, wnNew, nfft)
@@ -2442,18 +2445,16 @@ class SpecData1D(WafoData):
         >>> Sj = sm.Jonswap(Hm0=3, Tp=7)
         >>> w = np.linspace(0,4,256)
         >>> S = SpecData1D(Sj(w),w) #Make spectrum object from numerical values
-        >>> S.bandwidth([0,1,2,3])
+        >>> S.bandwidth([0,'eps2',2,3])
         array([ 0.73062845,  0.34476034,  0.68277527,  2.90817052])
         '''
-
-#        if self.freqtype in 'k':
-#            vari = 'k'
-#        else:
-#            vari = 'w'
-
         m, unused_mtxt = self.moment(nr=4, even=False)
         
-        fact = atleast_1d(factors)
+        fact_dict=dict(alpha=0,eps2=1,eps4=3,qp=3,Qp=3)
+        fun = lambda fact: fact_dict.get(fact,fact)
+        fact = atleast_1d(map(fun,list(factors)))
+        
+        #fact = atleast_1d(fact)
         alpha = m[2] / sqrt(m[0] * m[4])
         eps2 = sqrt(m[0] * m[2] / m[1] ** 2. - 1.)
         eps4 = sqrt(1. - m[2] ** 2. / m[0] / m[4])
@@ -2956,8 +2957,8 @@ class SpecData2D(WafoData):
         >>> SD = D.tospecdata2d(sm.Jonswap().tospecdata(),nt=101)
         >>> m,mtext = SD.moment(nr=2,vari='xyt')
         >>> np.round(m,3),mtext
-        (array([ 3.061,  0.132,  0.   ,  2.13 ,  0.011,  0.008,  1.677, -0.   ,
-            0.109,  0.109]), ['m0', 'mx', 'my', 'mt', 'mxx', 'myy', 'mtt', 'mxy', 'mxt', 'myt'])
+        (array([ 3.061,  0.132, -0.   ,  2.13 ,  0.011,  0.008,  1.677, -0.   ,
+                0.109,  0.109]), ['m0', 'mx', 'my', 'mt', 'mxx', 'myy', 'mtt', 'mxy', 'mxt', 'myt'])
 
         References
         ----------
@@ -3137,7 +3138,7 @@ class SpecData2D(WafoData):
         self.labels.ylab = labels[1]
         self.labels.zlab = labels[2]
         
-def test_specdata():
+def _test_specdata():
     import wafo.spectrum.models as sm
     Sj = sm.Jonswap()
     S = Sj.tospecdata()
