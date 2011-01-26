@@ -901,8 +901,25 @@ class FitDistribution(rv_frozen):
         If so the histogram should resemble the model density.
         Other distribution types will introduce deviations in the plot.
         '''
-
-        bin, limits = numpy.histogram(self.data, normed=True) #, new=True)
+        odd = False
+        x = np.atleast_1d(self.data)
+        n = np.ceil(4 * np.sqrt(np.sqrt(len(x))))
+         
+        mn = x.min()
+        mx = x.max()
+        d = (mx - mn) / n * 2
+        e = np.floor(np.log(d) / np.log(10));
+        m = np.floor(d / 10 ** e)
+        if m > 5:
+            m = 5
+        elif m > 2:
+            m = 2
+        
+        d = m * 10 ** e
+        mn = (np.floor(mn / d) - 1) * d - odd * d / 2
+        mx = (np.ceil(mx / d) + 1) * d + odd * d / 2
+        limits = np.arange(mn, mx, d)
+        bin, limits = numpy.histogram(self.data, bins=limits, normed=True) #, new=True)
         limits.shape = (-1, 1)
         xx = limits.repeat(3, axis=1)
         xx.shape = (-1,)
