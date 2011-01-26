@@ -1942,20 +1942,25 @@ def tranproc(x, f, x0, *xi):
     return y #y0,y1,y2,y3,y4
 
 def histgrm(data, n=None, odd=False, scale=False, lintype='b-'):
-    '''HISTGRM Plot histogram
-     
-     CALL:  binwidth = histgrm(x,N,odd,scale)
-            binwidth = the width of each bin
-            
+    '''
+    Plot histogram
+             
     Parameters
     -----------
-    x = the data
-    n = approximate number of bins wanted 
-        (default depending on length(x))  
-    odd = placement of bins (0 or 1) (default 0)
-    scale = argument for scaling (default 0)
-    scale = 1 yields the area 1 under the histogram
+    data : array-like
+        the data
+    n : scalar integer
+        approximate number of bins wanted  (default depending on length(data))  
+    odd : bool
+        placement of bins (0 or 1) (default 0)
+    scale : bool
+        argument for scaling (default 0)
+        scale = 1 yields the area 1 under the histogram
     lintype : specify color and lintype, see PLOT for possibilities.
+    
+    Returns
+    -------
+    binwidth = the width of each bin
     
      Example:
        R=rndgumb(2,2,1,100);
@@ -1984,8 +1989,6 @@ def histgrm(data, n=None, odd=False, scale=False, lintype='b-'):
     mn = (np.floor(mn / d) - 1) * d - odd * d / 2
     mx = (np.ceil(mx / d) + 1) * d + odd * d / 2
     limits = np.arange(mn, mx, d)
-    
-   
     
     bin, limits = np.histogram(data, bins=limits, normed=scale) #, new=True)
     limits.shape = (-1, 1)

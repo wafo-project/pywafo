@@ -11,7 +11,6 @@ def compile_all():
         os.system(compile1_format % file)
     file_objects = format1  % tuple(files)
     
-    #os.system('f2py.py -m rindmod  -c %s rind_interface.f --fcompiler=gnu95 --compiler=mingw32 -lmsvcr71' % file_objects)
     os.system('f2py.py -m rindmod  -c %s rind_interface.f ' % file_objects)
     
 if __name__=='__main__':

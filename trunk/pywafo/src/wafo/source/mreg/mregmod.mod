@@ -1,5 +1,5 @@
-GFORTRAN module version '0' created from mregmodule.f on Wed Aug 05 19:21:17 2009
-MD5:35f9c2506fae455bf63c0bcfadd75d2e -- If you edit this, you'll get what you deserve.
+GFORTRAN module version '0' created from mregmodule.f on Tue Jan 25 20:12:17 2011
+MD5:a058cc3e6c0e8bedef8f214da2f5fbdc -- If you edit this, you'll get what you deserve.
 
 (()
 () () () () () () () () () () () () () () () () () () () () () () () ()
@@ -61,8 +61,6 @@ INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '40401')) 0 ()
 DUMMY) (REAL 8 0 0 REAL ()) 0 0 () (1 EXPLICIT (CONSTANT (INTEGER 4 0 0
 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '201')) 0 () ()
 () 0 0)
-18 'n' '' 'n' 7 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN DUMMY) (
-INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
 11 'db' '' 'db' 7 ((VARIABLE INOUT UNKNOWN-PROC UNKNOWN UNKNOWN
 DIMENSION DUMMY) (REAL 8 0 0 REAL ()) 0 0 () (1 EXPLICIT (CONSTANT (
 INTEGER 4 0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0
@@ -76,14 +74,10 @@ INTEGER 4 0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0
 DIMENSION DUMMY) (REAL 8 0 0 REAL ()) 0 0 () (1 EXPLICIT (CONSTANT (
 INTEGER 4 0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0
 '7')) 0 () () () 0 0)
-19 'nit' '' 'nit' 7 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN DUMMY) (
-INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
 14 'a' '' 'a' 7 ((VARIABLE INOUT UNKNOWN-PROC UNKNOWN UNKNOWN DIMENSION
 DUMMY) (REAL 8 0 0 REAL ()) 0 0 () (1 EXPLICIT (CONSTANT (INTEGER 4 0 0
 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1407')) 0 ()
 () () 0 0)
-20 'infr' '' 'infr' 7 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN DUMMY)
-(INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
 15 'da' '' 'da' 7 ((VARIABLE INOUT UNKNOWN-PROC UNKNOWN UNKNOWN
 DIMENSION DUMMY) (REAL 8 0 0 REAL ()) 0 0 () (1 EXPLICIT (CONSTANT (
 INTEGER 4 0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0
@@ -92,6 +86,12 @@ INTEGER 4 0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0
 (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
 17 'm' '' 'm' 7 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN DUMMY) (
 INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+18 'n' '' 'n' 7 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN DUMMY) (
+INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+19 'nit' '' 'nit' 7 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN DUMMY) (
+INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+20 'infr' '' 'infr' 7 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN DUMMY)
+(INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
 )
 
 ('fi' 0 2 'mreg' 0 4 'rind' 0 3)
