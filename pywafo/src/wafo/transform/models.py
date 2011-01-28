@@ -26,19 +26,20 @@ from core import TrCommon, TrData
 __all__ = ['TrHermite', 'TrLinear', 'TrOchi']
 
 _example = '''
-    >>> std = 7./4
-    >>> g = <generic>(sigma=std, ysigma=std)
-    
-    Simulate a Transformed Gaussian process:
     >>> import numpy as np
     >>> import wafo.spectrum.models as sm
+    >>> import wafo.transform.models as tm
+    >>> std = 7./4
+    >>> g = tm.<generic>(sigma=std, ysigma=std)
+    
+    Simulate a Transformed Gaussian process:
     >>> Sj = sm.Jonswap(Hm0=4*std, Tp=11)
     >>> w = np.linspace(0,4,256)
-    >>> S = Sj.tospecdata(w) #Make spectrum object from numerical values
+    >>> S = Sj.tospecdata(w) # Make spectrum object from numerical values
     >>> ys = S.sim(ns=15000) # Simulated in the Gaussian world
     
     >>> me, va, sk, ku = S.stats_nl(moments='mvsk')
-    >>> g2 = <generic>(mean=me, var=va, skew=sk, kurt=ku, ysigma=std)
+    >>> g2 = tm.<generic>(mean=me, var=va, skew=sk, kurt=ku, ysigma=std)
     >>> xs = g2.gauss2dat(ys[:,1:]) # Transformed to the real world 
     '''
 class TrCommon2(TrCommon):
@@ -111,7 +112,9 @@ class TrHermite(TrCommon2):
     --------
     """ + _example.replace('<generic>', 'TrHermite') + """
     >>> g.dist2gauss()
-     3.9858776379926808
+    0.88230868748851499
+    >>> g2.dist2gauss()
+    1.1411663205144991
     
     See also
     --------  
@@ -337,6 +340,8 @@ class TrLinear(TrCommon2):
     """ + _example.replace('<generic>', 'TrLinear') + """
     >>> g.dist2gauss()
     0.0
+    >>> g2.dist2gauss()
+    3.8594770921678001e-31
     
     See also
     --------  
@@ -399,7 +404,9 @@ class TrOchi(TrCommon2):
     -------
     """ + _example.replace('<generic>', 'TrOchi') + """
     >>> g.dist2gauss()
-    5.9322684525265501
+    1.410698801056657
+    >>> g2.dist2gauss()
+    1.988807188766706
     
     See also
     --------
@@ -486,7 +493,8 @@ class TrOchi(TrCommon2):
         mean = self.mean
         sigma = self.sigma
         xn = atleast_1d(x)
-        xn = (xn - mean) / sigma
+        shape0 = xn.shape
+        xn = (xn.ravel() - mean) / sigma
         igp, = where(0 <= xn)
         igm, = where(xn < 0)
         
@@ -498,6 +506,7 @@ class TrOchi(TrCommon2):
         if gb != 0:
             np.put(g, igm, (-expm1(-gb * xn[igm])) / gb)
 
+        g.shape = shape0
         return (g - mean2) * self.ysigma / sigma2 + self.ymean
 
     def _gauss2dat(self, y, *yi):
@@ -509,7 +518,7 @@ class TrOchi(TrCommon2):
         sigma = self.sigma
         
         yn = (atleast_1d(y) - self.ymean) / self.ysigma
-        xn = sigma2 * yn + mean2
+        xn = sigma2 * yn.ravel() + mean2
 
         igp, = where(0 <= xn)
         igm, = where(xn < 0)
@@ -519,7 +528,8 @@ class TrOchi(TrCommon2):
 
         if gb != 0:
             np.put(xn, igm, -log1p(-gb * xn[igm]) / gb)
-
+        
+        xn.shape = yn.shape
         return  sigma * xn + mean
 
 def main():

@@ -179,7 +179,8 @@ class LevelCrossings(WafoData):
         L0 = vstack((L0, r1 * L0 + sqrt(1 - r2 ** 2) * randn(1)))
         #%Simulate the process, starting in L0
         lfilter = scipy.signal.lfilter
-        L = lfilter(1, [1, a1, a2], e, lfilter([1, a1, a2], 1, L0))
+        # TODO: lfilter crashes the example
+        L = lfilter(ones(1), [1, a1, a2], e, lfilter([1, a1, a2], ones(1), L0))
 
         epsilon = 1.01
         min_L = min(L)
@@ -322,20 +323,20 @@ class LevelCrossings(WafoData):
         >>> int(S.tr.dist2gauss()*100)
         141
         >>> int(g0emp.dist2gauss()*100)
-        1544
+        380995
         >>> int(g0.dist2gauss()*100)
-        340
+        143
         >>> int(g1.dist2gauss()*100)
-        352
+        162
         >>> int(g2.dist2gauss()*100)
-        365
+        120
         
-         hold on, trplot(g1,g)                          # Check the fit
-         trplot(g2)
+        g0.plot() # Check the fit.
+         
+        See also
+          troptset, dat2tr, trplot, findcross, smooth
         
-         See also  troptset, dat2tr, trplot, findcross, smooth
-        
-         NB! the transformated data will be N(0,1)
+        NB! the transformated data will be N(0,1)
         
         Reference
         --------- 
@@ -345,22 +346,14 @@ class LevelCrossings(WafoData):
         Marine structures, Design, Construction and Safety, 
         Vol 10, pp 13--47
         ''' 
-        
-        
-        # Tested on: Matlab 5.3, 5.2, 5.1
-        # History:
-        # by pab 29.12.2000
-        # based on lc2tr, but the inversion is faster.
-        # by IR and PJ
+ 
         if mean is None:
             mean = self.mean
         if sigma is None:
             sigma = self.stdev
         
         opt = DotDict(chkder=True, plotflag=False, csm=0.9, gsm=.05,
-            param=(-5, 5, 513), delay=2, linextrap=True, ntr=inf, ne=7, cvar=1, gvar=1)
-        # If just 'defaults' passed in, return the default options in g
-        
+            param=(-5, 5, 513), delay=2, linextrap=True, ntr=10000, ne=7, gvar=1)
         opt.update(options)
         param = opt.param
         Ne = opt.ne
@@ -380,20 +373,10 @@ class LevelCrossings(WafoData):
             gvar = opt.gvar * ones(ncr)
         else:
             gvar = interp1d(linspace(0, 1, ng) , opt.gvar, kind='linear')(linspace(0, 1, ncr))  
+          
         
-        ng = len(atleast_1d(opt.cvar))
-        if ng == 1:
-            cvar = opt.cvar * ones(ncr)
-        else:
-            cvar = interp1d(linspace(0, 1, ng), opt.cvar, kind='linear')(linspace(0, 1, ncr))  
-        
-        
-       
         uu = linspace(*param)
-        
         g1 = sigma * uu + mean
-        
-        g22 = lc2.copy() 
         
         if Ner > 0: # Compute correction factors
             cor1 = trapz(lc2[0:Ner + 1], lc1[0:Ner + 1])
@@ -402,27 +385,11 @@ class LevelCrossings(WafoData):
             cor1 = 0
             cor2 = 0
         
-    
         lc22 = hstack((0, cumtrapz(lc2, lc1) + cor1))
         lc22 = (lc22 + 0.5) / (lc22[-1] + cor2 + 1)
         lc11 = (lc1 - mean) / sigma
         
-        # find the mode
-        imin = abs(lc22 - 0.15).argmin()
-        imax = abs(lc22 - 0.85).argmin()
-        
-        inde = slice(imin, imax + 1)
-        lc222 = SmoothSpline(lc11[inde], g22[inde], opt.csm, opt.linextrap, cvar[inde])(lc11[inde])
-        
-        #tmp = smooth(cros(inde,1),g2(inde,2),opt.csm,cros(inde,1),def,cvar(inde));
-        
-        imax = lc222.argmax()
-        u0 = lc22[inde][imax]
-        #u0 = interp1q(cros(:,2),cros(:,1),.5)
-        
-        
-        #lc22 = ndtri(lc22) - u0 #
-        lc22 = invnorm(lc22) - u0
+        lc22 = invnorm(lc22)  #- ymean
         
         g2 = TrData(lc22.copy(), lc1.copy(), mean=mean, sigma=sigma)
         g2.setplotter('step')
@@ -432,9 +399,9 @@ class LevelCrossings(WafoData):
         # to be linear outside the edges or choosing a lower value for csm2.
         
         inds = slice(Ne, ncr - Ne) # indices to points we are smoothing over
-        scros2 = SmoothSpline(lc11[inds], lc22[inds], opt.gsm, opt.linextrap, gvar[inds])(uu)
+        slc22 = SmoothSpline(lc11[inds], lc22[inds], opt.gsm, opt.linextrap, gvar[inds])(uu)
         
-        g = TrData(scros2, g1, mean=mean, sigma=sigma)  #*sa; #multiply with stdev 
+        g = TrData(slc22.copy(), g1.copy(), mean=mean, sigma=sigma)  #*sa; #multiply with stdev 
         
         if opt.chkder:
             for ix in range(5):
@@ -739,7 +706,7 @@ class TimeSeries(WafoData):
     >>> h = rf.plot()
     
     >>> S = ts.tospecdata()
-    The default L is set to 68
+    The default L is set to 325
     
     >>> tp = ts.turning_points()
     >>> mm = tp.cycle_pairs()
@@ -1215,29 +1182,20 @@ class TimeSeries(WafoData):
         >>> g1, g1emp = ts.trdata(method='m', gvar=0.5 ) # Equal weight on all points
         >>> g2, g2emp = ts.trdata(method='n', gvar=[3.5, 0.5, 3.5])  # Less weight on the ends
         >>> int(S.tr.dist2gauss()*100)
-        593
+        141
         >>> int(g0emp.dist2gauss()*100)
-        439
+        217949
         >>> int(g0.dist2gauss()*100)
-        432
+        93
         >>> int(g1.dist2gauss()*100)
-        234
+        66
         >>> int(g2.dist2gauss()*100)
-        437
-        
-         Hm0 = 7;
-         S = jonswap([],Hm0); g=ochitr([],[Hm0/4]); 
-         S.tr=g;S.tr(:,2)=g(:,2)*Hm0/4;
-         xs = spec2sdat(S,2^13);
-         g0 = dat2tr(xs,[],'plot','iter');             % Monitor the development
-         g1 = dat2tr(xs,'mnon','gvar', .5 );           % More weight on all points
-         g2 = dat2tr(xs,'nonl','gvar', [3.5 .5 3.5]);  % Less weight on the ends
-         hold on, trplot(g1,g)                                   % Check the fit
-         trplot(g2)
-        
+        84
+         
         See also
         --------
-        troptset, lc2tr, cdf2tr, trplot
+        LevelCrossings.trdata 
+        wafo.transform.models
            
         References
         ----------
@@ -1259,7 +1217,7 @@ class TimeSeries(WafoData):
         #    'cvar',1,'gvar',1,'multip',0);
         
         opt = DotDict(chkder=True, plotflag=False, csm=.95, gsm=.05,
-            param=[-5, 5, 513], delay=2, ntr=inf, linextrap=True, ne=7, cvar=1, gvar=1,
+            param=[-5, 5, 513], delay=2, ntr=1000, linextrap=True, ne=7, cvar=1, gvar=1,
             multip=False, crossdef='uM')
         opt.update(**options)
         
