@@ -97,9 +97,10 @@ def _gengamspec(wn, N=5, M=4):
 
     Examples
     --------
+    >>> import wafo.spectrum.models as wsm
     >>> import numpy as np
     >>> wn = np.linspace(0,4,5)
-    >>> _gengamspec(wn, N=6, M=2)
+    >>> wsm._gengamspec(wn, N=6, M=2)
     array([ 0.        ,  1.16765216,  0.17309961,  0.02305179,  0.00474686])
 
     See also
@@ -232,7 +233,8 @@ class Bretschneider(ModelSpectrum):
 
     Examples
     --------
-    >>> S = Bretschneider(Hm0=6.5,Tp=10)
+    >>> import wafo.spectrum.models as wsm
+    >>> S = wsm.Bretschneider(Hm0=6.5,Tp=10)
     >>> S((0,1,2,3))
     array([ 0.        ,  1.69350993,  0.06352698,  0.00844783])
 
@@ -289,21 +291,22 @@ def jonswap_peakfact(Hm0, Tp):
 
     Examples
     --------
+    >>> import wafo.spectrum.models as wsm
     >>> import pylab as plb
     >>> Tp,Hs = plb.meshgrid(range(4,8),range(2,6))
-    >>> gam = jonswap_peakfact(Hs,Tp)
+    >>> gam = wsm.jonswap_peakfact(Hs,Tp)
 
     >>> Hm0 = plb.linspace(1,20)
     >>> Tp = Hm0
     >>> [T,H] = plb.meshgrid(Tp,Hm0)
-    >>> gam = jonswap_peakfact(H,T)
+    >>> gam = wsm.jonswap_peakfact(H,T)
     >>> v = plb.arange(0,8)
     >>> h = plb.contourf(Tp,Hm0,gam,v);h=plb.colorbar()
 
     >>> Hm0 = plb.arange(1,11)
     >>> Tp  = plb.linspace(2,16)
     >>> T,H = plb.meshgrid(Tp,Hm0)
-    >>> gam = jonswap_peakfact(H,T)
+    >>> gam = wsm.jonswap_peakfact(H,T)
     >>> h = plb.plot(Tp,gam.T)
     >>> h = plb.xlabel('Tp [s]')
     >>> h = plb.ylabel('Peakedness parameter')
@@ -356,8 +359,9 @@ def jonswap_seastate(u10, fetch=150000., method='lewis', g=9.81, output='dict'):
 
     Example
     --------
+    >>> import wafo.spectrum.models as wsm
     >>> fetch = 10000; u10 = 10
-    >>> ss = jonswap_seastate(u10, fetch, output='dict')
+    >>> ss = wsm.jonswap_seastate(u10, fetch, output='dict')
     >>> ss
     {'Ag': 0.016257903375341734,
      'Hm0': 0.51083679198275533,
@@ -365,13 +369,13 @@ def jonswap_seastate(u10, fetch=150000., method='lewis', g=9.81, output='dict'):
      'gamma': 2.4824142635861119,
      'sigmaA': 0.075317331395172021,
      'sigmaB': 0.091912084512251344}
-    >>> S = Jonswap(**ss)
+    >>> S = wsm.Jonswap(**ss)
     >>> S.Hm0
     0.51083679198275533
 
     # Alternatively
-    >>> ss1 = jonswap_seastate(u10, fetch, output='list')
-    >>> S1 = Jonswap(*ss1)
+    >>> ss1 = wsm.jonswap_seastate(u10, fetch, output='list')
+    >>> S1 = wsm.Jonswap(*ss1)
     >>> S1.Hm0
     0.51083679198275533
 
@@ -484,12 +488,14 @@ class Jonswap(ModelSpectrum):
     Examples
     ---------
     >>> import pylab as plb
-    >>> S = Jonswap(Hm0=7, Tp=11,gamma=1)
+    >>> import wafo.spectrum.models as wsm
+    >>> S = wsm.Jonswap(Hm0=7, Tp=11,gamma=1)
     >>> w = plb.linspace(0,5)
     >>> h = plb.plot(w,S(w))
 
-    >>> S2 = Bretschneider(Hm0=7, Tp=11)
-    >>> assert(all(abs(S(w)-S2(w))<1.e-7),'JONSWAP with gamma=1 differs from Bretscneider, should be equal!')
+    >>> S2 = wsm.Bretschneider(Hm0=7, Tp=11)
+    >>> all(abs(S(w)-S2(w))<1.e-7)
+    True
     >>> plb.close('all')
 
     See also
@@ -652,10 +658,10 @@ def phi1(wi, h, g=9.81):
     Example:
     -------
     Transform a JONSWAP spectrum to a spectrum for waterdepth = 30 m
-
-    >>> S = Jonswap()
+    >>> import wafo.spectrum.models as wsm
+    >>> S = wsm.Jonswap()
     >>> w = range(3.0)
-    >>> S(w)*phi1(w,30.0)
+    >>> S(w)*wsm.phi1(w,30.0)
     array([ 0.        ,  1.0358056 ,  0.03796281])
 
 
@@ -723,9 +729,10 @@ class Tmaspec(Jonswap):
 
     Example
     --------
+    >>> import wafo.spectrum.models as wsm
     >>> import pylab as plb
     >>> w = plb.linspace(0,2.5)
-    >>> S = Tmaspec(h=10,gamma=1) # Bretschneider spectrum Hm0=7, Tp=11
+    >>> S = wsm.Tmaspec(h=10,gamma=1) # Bretschneider spectrum Hm0=7, Tp=11
     >>> o=plb.plot(w,S(w))
     >>> o=plb.plot(w,S(w,h=21))
     >>> o=plb.plot(w,S(w,h=42))
@@ -812,9 +819,10 @@ class Torsethaugen(ModelSpectrum):
 
     Example
     -------
+    >>> import wafo.spectrum.models as wsm
     >>> import pylab as plb
     >>> w = plb.linspace(0,4)
-    >>> S = Torsethaugen(Hm0=6, Tp=8)
+    >>> S = wsm.Torsethaugen(Hm0=6, Tp=8)
     >>> h=plb.plot(w,S(w),w,S.wind(w),w,S.swell(w))
 
     See also
@@ -1034,7 +1042,8 @@ class McCormick(Bretschneider):
 
     Example:
     --------
-    >>> S = McCormick(Hm0=6.5,Tp=10)
+    >>> import wafo.spectrum.models as wsm
+    >>> S = wsm.McCormick(Hm0=6.5,Tp=10)
     >>> S(range(4))
     array([ 0.        ,  1.87865908,  0.15050447,  0.02994663])
 
@@ -1107,7 +1116,8 @@ class OchiHubble(ModelSpectrum):
 
     Examples
     --------
-    >>> S = OchiHubble(par=2)
+    >>> import wafo.spectrum.models as wsm
+    >>> S = wsm.OchiHubble(par=2)
     >>> S(range(4))
     array([ 0.        ,  0.90155636,  0.04185445,  0.00583207])
 
@@ -1239,7 +1249,8 @@ class Wallop(Bretschneider):
 
     Example:
     --------
-    >>> S = Wallop(Hm0=6.5, Tp=10)
+    >>> import wafo.spectrum.models as wsm
+    >>> S = wsm.Wallop(Hm0=6.5, Tp=10)
     >>> S(range(4))
     array([  0.00000000e+00,   9.36921871e-01,   2.76991078e-03,
              7.72996150e-05])
@@ -1360,8 +1371,9 @@ class Spreading(object):
 
     Examples
     --------
+    >>> import wafo.spectrum.models as wsm
     >>> import pylab as plb
-    >>> D = Spreading('cos2s',s_a=10.0)
+    >>> D = wsm.Spreading('cos2s',s_a=10.0)
 
     >>> w = plb.linspace(0,3,257)
     >>> theta = plb.linspace(-pi,pi,129)
@@ -1369,13 +1381,13 @@ class Spreading(object):
 
        # Make frequency dependent direction
     >>> theta0 = lambda w: w*plb.pi/6.0
-    >>> D2 = Spreading('cos2s',theta0=theta0)
+    >>> D2 = wsm.Spreading('cos2s',theta0=theta0)
     >>> t = plb.contour(D2(theta,w)[0])
 
     # Plot all spreading functions
     >>> alltypes = ('cos2s','box','mises','poisson','sech2','wrap_norm')
     >>> for ix in range(len(alltypes)):
-    ...     D3 = Spreading(alltypes[ix])
+    ...     D3 = wsm.Spreading(alltypes[ix])
     ...     t = plb.figure(ix)
     ...     t = plb.contour(D3(theta,w)[0])
     ...     t = plb.title(alltypes[ix])
@@ -1927,10 +1939,11 @@ class Spreading(object):
         
          Example 
          -------
-         >>> S = Jonswap().tospecdata()
-         >>> D = Spreading('cos2s')
+         >>> import wafo.spectrum.models as wsm
+         >>> S = wsm.Jonswap().tospecdata()
+         >>> D = wsm.Spreading('cos2s')
          >>> SD = D.tospecdata2d(S)
-         >>> SD.plot() 
+         >>> h = SD.plot() 
           
          See also  spreading, rotspec, jonswap, torsethaugen  
         '''  

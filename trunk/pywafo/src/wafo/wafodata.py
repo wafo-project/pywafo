@@ -2,6 +2,7 @@ import warnings
 from plotbackend import plotbackend
 from time import gmtime, strftime
 import numpy as np
+from scipy.integrate.quadrature import cumtrapz #@UnresolvedImport
 
 __all__ = ['WafoData', 'AxisLabels']
 
@@ -66,19 +67,21 @@ class WafoData(object):
         self.data = data
         self.args = args
         self.date = now()
-        self.plotter = None
+        self.plotter = kwds.pop('plotter', None)
         self.children = None
-        self.plot_args_children = kwds.get('plot_args_children',[])
-        self.plot_kwds_children = kwds.get('plot_kwds_children',{})
-        self.plot_args = kwds.get('plot_args',[])
-        self.plot_kwds = kwds.get('plot_kwds',{})
+        self.plot_args_children = kwds.pop('plot_args_children',[])
+        self.plot_kwds_children = kwds.pop('plot_kwds_children',{})
+        self.plot_args = kwds.pop('plot_args',[])
+        self.plot_kwds = kwds.pop('plot_kwds',{})
         
         self.labels = AxisLabels(**kwds)
-        self.setplotter()
+        if not self.plotter:
+            self.setplotter()
 
     def plot(self, *args, **kwds):
         tmp = None
-        if self.children != None:
+        plotflag = kwds.get('plotflag', None)
+        if not plotflag and self.children != None:
             plotbackend.hold('on')
             tmp = []
             child_args = args if len(args) else tuple(self.plot_args_children)
@@ -106,12 +109,10 @@ class WafoData(object):
         newcopy.__dict__.update(self.__dict__)
         return newcopy
 
-
     def setplotter(self, plotmethod=None):
         '''
             Set plotter based on the data type data_1d, data_2d, data_3d or data_nd
         '''
-
         if isinstance(self.args, (list, tuple)): # Multidimensional data
             ndim = len(self.args)
             if ndim < 2:
@@ -140,10 +141,6 @@ class AxisLabels:
         newcopy = empty_copy(self)
         newcopy.__dict__.update(self.__dict__)
         return newcopy
-        #lbkwds = self.labels.__dict__.copy()
-        #labels = AxisLabels(**lbkwds)
-        #return labels
-
     def labelfig(self):
         try:
             h1 = plotbackend.title(self.title)
@@ -178,7 +175,6 @@ class Plotter_1d(object):
             plotmethod = 'plot'
         self.plotbackend = plotbackend
         try:
-            #self.plotfun = plotbackend.__dict__[plotmethod]
             self.plotfun = getattr(plotbackend, plotmethod)
         except:
             pass
@@ -190,9 +186,136 @@ class Plotter_1d(object):
             args1 = tuple((wdata.args)) + (wdata.data,) + args
         else:
             args1 = tuple((wdata.args,)) + (wdata.data,) + args
-        h1 = self.plotfun(*args1, **kwds)
+        plotflag = kwds.pop('plotflag', None)
+        if plotflag:
+            h1 = self._plot(plotflag, *args1, **kwds)
+        else:
+            h1 = self.plotfun(*args1, **kwds)
         h2 = wdata.labels.labelfig()
         return h1, h2
+    
+    def _plot(self, plotflag, *args1, **kwds):
+        x = args1[0]
+        data = transformdata(x,args1[1], plotflag)
+        dataCI = ()
+        h1 = plot1d(x,data, dataCI, plotflag, *args1[2:], **kwds)
+        return h1
+def plot1d(args,data,dataCI,plotflag,*varargin, **kwds):
+     
+    plottype = np.mod(plotflag,10)
+    if plottype==0: # %  No plotting
+        return []
+    elif plottype==1: 
+        H = plotbackend.plot(args,data,*varargin, **kwds)
+    elif plottype==2: 
+        H = plotbackend.step(args,data,*varargin, **kwds)
+    elif plottype==3: 
+        H = plotbackend.stem(args,data,*varargin, **kwds)
+    elif plottype==4: 
+        H = plotbackend.errorbar(args,data,dataCI[:,0]-data,dataCI[:,1]-data,*varargin, **kwds)
+    elif plottype==5: 
+        H = plotbackend.bar(args,data,*varargin, **kwds)
+    elif plottype==6:  
+        level = 0
+        if np.isfinite(level):
+            H = plotbackend.fill_between(args,data,level,*varargin, **kwds);
+        else:
+            H = plotbackend.fill_between(args,data,*varargin, **kwds);
+        
+    scale = plotscale(plotflag);
+    logXscale = any(scale=='x');
+    logYscale = any(scale=='y');
+    logZscale = any(scale=='z');
+    ax = plotbackend.gca()
+    if logXscale: 
+        plotbackend.setp(ax,xscale='log')
+    if logYscale:
+        plotbackend.setp(ax,yscale='log') 
+    if logZscale: 
+        plotbackend.setp(ax,zscale='log')
+    
+    transFlag = np.mod(plotflag//10,10)
+    logScale = logXscale or logYscale or logZscale
+    if  logScale or (transFlag ==5 and  not logScale):
+        ax = list(plotbackend.axis())
+        fmax1 = data.max()
+        if transFlag==5 and not logScale:
+            ax[3] = 11*np.log10(fmax1)
+            ax[2] = ax[3]-40
+        else:
+            ax[3] = 1.15*fmax1;
+            ax[2] = ax[3]*1e-4;
+      
+        plotbackend.axis(ax)
+    
+    if dataCI and plottype < 3:
+        plotbackend.hold('on')
+       
+        plot1d(args,dataCI,(),plotflag,'r--');
+    return H
+
+def plotscale(plotflag):
+    '''
+    Return plotscale from plotflag
+    
+     CALL scale = plotscale(plotflag)
+    
+     plotflag = integer defining plotscale.
+       Let scaleId = floor(plotflag/100). 
+       If scaleId < 8 then:
+          0 'linear' : Linear scale on all axes.
+          1 'xlog'   : Log scale on x-axis.
+          2 'ylog'   : Log scale on y-axis.
+          3 'xylog'  : Log scale on xy-axis.
+          4 'zlog'   : Log scale on z-axis.
+          5 'xzlog'  : Log scale on xz-axis.
+          6 'yzlog'  : Log scale on yz-axis.
+          7 'xyzlog' : Log scale on xyz-axis.
+      otherwise
+       if (mod(scaleId,10)>0)            : Log scale on x-axis.
+       if (mod(floor(scaleId/10),10)>0)  : Log scale on y-axis.
+       if (mod(floor(scaleId/100),10)>0) : Log scale on z-axis.
+    
+     scale    = string defining plotscale valid options are:
+           'linear', 'xlog', 'ylog', 'xylog', 'zlog', 'xzlog',
+           'yzlog',  'xyzlog' 
+    
+     Example
+     plotscale(100)  % xlog
+     plotscale(200)  % xlog
+     plotscale(1000) % ylog
+    
+     See also plotscale
+    '''
+    scaleId = plotflag//100
+    if scaleId>7:
+        logXscaleId = np.mod(scaleId,10)>0
+        logYscaleId = (np.mod(scaleId//10, 10)>0)*2
+        logZscaleId = (np.mod(scaleId//100, 10)>0)*4
+        scaleId = logYscaleId +logXscaleId+logZscaleId
+    
+    scales = ['linear','xlog','ylog','xylog','zlog','xzlog','yzlog','xyzlog']
+    
+    return scales[scaleId]
+
+def transformdata(x,f,plotflag):
+    transFlag = np.mod(plotflag//10,10)    
+    if transFlag==0:
+        data = f
+    elif transFlag==1:
+        data = 1-f
+    elif transFlag==2:
+        data = cumtrapz(f,x)
+    elif transFlag==3:
+        data = 1-cumtrapz(f,x)
+    if transFlag in (4,5):
+        if transFlag==4:
+            data = -np.log1p(-cumtrapz(f,x))
+        else:
+            if any(f<0):
+                raise ValueError('Invalid plotflag: Data or dataCI is negative, but must be positive')     
+            data = 10*np.log10(f)
+    return data
 
 class Plotter_2d(Plotter_1d):
     """
@@ -201,6 +324,7 @@ class Plotter_2d(Plotter_1d):
     plotmethod : string
         defining type of plot. Options are:
         contour (default)
+        contourf
         mesh
         surf
     """
@@ -209,7 +333,9 @@ class Plotter_2d(Plotter_1d):
         if plotmethod is None:
             plotmethod = 'contour'
         super(Plotter_2d, self).__init__(plotmethod)
-        #self.plotfun = plotbackend.__dict__[plotmethod]
+        
+    def _plot(self,*args,**kwds):
+        pass
 
        
 def main():

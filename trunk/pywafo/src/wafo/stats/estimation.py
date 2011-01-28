@@ -837,9 +837,10 @@ class FitDistribution(rv_frozen):
         plotbackend.subplot(2, 2, 2)
         self.plotepdf()
         plotbackend.subplot(2, 2, 3)
-        self.plotresprb()
-        plotbackend.subplot(2, 2, 4)
         self.plotresq()
+        plotbackend.subplot(2, 2, 4)
+        self.plotresprb()
+        
         fixstr = ''
         if not self.par_fix == None:
             numfix = len(self.i_fixed)

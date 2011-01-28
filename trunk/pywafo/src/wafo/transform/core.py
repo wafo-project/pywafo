@@ -145,15 +145,16 @@ class TrData(WafoData, TrCommon):
     -------
     Construct a linear transformation model
     >>> import numpy as np
+    >>> import wafo.transorm as wt
     >>> sigma = 5; mean = 1
     >>> u = np.linspace(-5,5); x = sigma*u+mean; y = u
-    >>> g = TrData(y,x)
+    >>> g = wt.TrData(y,x)
     >>> g.mean
     array([ 1.])
     >>> g.sigma
     array([ 5.])
     
-    >>> g = TrData(y,x,mean=1,sigma=5)
+    >>> g = wt.TrData(y,x,mean=1,sigma=5)
     >>> g.mean
     1
     >>> g.sigma
