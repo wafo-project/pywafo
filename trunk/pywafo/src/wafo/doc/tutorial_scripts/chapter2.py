@@ -2,7 +2,7 @@ import numpy as np
 from scipy import *
 from pylab import *
 
-# pyreport -o chapter1.html chapter1.py
+# pyreport -o chapter2.html chapter2.py
 
 #! CHAPTER2 Modelling random loads and stochastic waves
 #!=======================================================
@@ -18,21 +18,7 @@ from pylab import *
 #! process.
 #!
 #! Some of the commands are edited for fast computation. 
-#! Each set of commands is followed by a 'pause' command.
 #! 
-
-#!
-#! Tested on Matlab 5.3, 7.01
-#! History
-#! Revised by Georg Lindgren sept 2009 for WAFO ver 2.5 on Matlab 7.1
-#! Revised pab sept2005
-#! Added sections -> easier to evaluate using cellmode evaluation.
-#! Revised pab Dec2004
-#! Created by GL July 13, 2000
-#! from commands used in Chapter 2
-#!
-
-
 #! Section 2.1 Introduction and preliminary analysis
 #!====================================================
 #! Example 1: Sea data
@@ -42,12 +28,11 @@ from pylab import *
 import wafo
 import wafo.objects as wo
 xx = wafo.data.sea()
-me = xx[:,1].mean()
-sa = xx[:,1].std()
-xx[:,1] -=  me
+me = xx[:, 1].mean()
+sa = xx[:, 1].std()
+xx[:, 1] -= me
 ts = wo.mat2timeseries(xx)
 tp = ts.turning_points()
-
 
 cc = tp.cycle_pairs()
 lc = cc.level_crossings()
@@ -59,15 +44,18 @@ show()
 #! Next we compute the mean frequency as the average number of upcrossings 
 #! per time unit of the mean level (= 0); this may require interpolation in the 
 #! crossing intensity curve, as follows.  
-T = xx[:,0].max()-xx[:,0].min()
-f0 = np.interp(0,lc.args,lc.data,0)/T  #! zero up-crossing frequency 
+T = xx[:, 0].max() - xx[:, 0].min()
+f0 = np.interp(0, lc.args, lc.data, 0) / T  #! zero up-crossing frequency 
+print('f0 = %g' % f0)
 
 #! Turningpoints and irregularity factor
 #!----------------------------------------
 
-fm = len(tp.data)/(2*T)           #! frequency of maxima
-alfa = f0/fm                     #! approx Tm24/Tm02
- 
+fm = len(tp.data) / (2 * T)   # frequency of maxima
+alfa = f0 / fm                # approx Tm24/Tm02
+
+print('fm = %g, alpha = %g, ' % (fm, alfa))
+
 #! Visually examine data
 #!------------------------
 #! We finish this section with some remarks about the quality
@@ -79,7 +67,7 @@ alfa = f0/fm                     #! approx Tm24/Tm02
 #! First we shall plot the data and zoom in on a specific region. 
 #! A part of sea data is visualized with the following commands
 clf()
-ts.plot_wave('k-',tp,'*',nfig=1, nsub=1)
+ts.plot_wave('k-', tp, '*', nfig=1, nsub=1)
 
 axis([0, 2, -2, 2])
 show()
@@ -94,10 +82,10 @@ show()
 import wafo.misc as wm
 dt = ts.sampling_period()
 # dt = np.diff(xx[:2,0])
-dcrit = 5*dt
-ddcrit = 9.81/2*dt*dt
+dcrit = 5 * dt
+ddcrit = 9.81 / 2 * dt * dt
 zcrit = 0
-inds, indg = wm.findoutliers(xx[:,1],zcrit,dcrit,ddcrit, verbose=True)
+inds, indg = wm.findoutliers(ts.data, zcrit, dcrit, ddcrit, verbose=True)
 
 #! Section 2.2 Frequency Modeling of Load Histories
 #!----------------------------------------------------
@@ -112,13 +100,13 @@ show()
 
 #! Calculate moments  
 #!-------------------
-mom, text= S.moment(nr=4)
-[sa, sqrt(mom[0])]
+mom, text = S.moment(nr=4)
+print('sigma = %g, m0 = %g' % (sa, sqrt(mom[0])))
 
 #! Section 2.2.1 Random functions in Spectral Domain - Gaussian processes
 #!--------------------------------------------------------------------------
 #! Smoothing of spectral estimate 
-#1----------------------------------
+#!----------------------------------
 #! By decreasing Lmax the spectrum estimate becomes smoother.
 
 clf()
@@ -132,7 +120,7 @@ show()
 #! Estimated autocovariance
 #!----------------------------
 #! Obviously knowing the spectrum one can compute the covariance
-#! function. The following matlab code will compute the covariance for the 
+#! function. The following code will compute the covariance for the 
 #! unimodal spectral density S1 and compare it with estimated 
 #! covariance of the signal xx.
 clf()
@@ -141,7 +129,7 @@ R1 = S1.tocovdata(nr=1)
 Rest = ts.tocovdata(lag=Lmax)
 R1.plot('.')
 Rest.plot()
-axis([0,25,-0.1,0.25])
+axis([0, 25, -0.1, 0.25])
 show()
 
 #! We can see in Figure below that the covariance function corresponding to 
@@ -162,33 +150,30 @@ show()
 #! for the data set xx and compare it with the second order wave approximation
 #! proposed by Winterstein:
 import wafo.stats as ws
-rho3 = ws.skew(xx[:,1])
-rho4 = ws.kurtosis(xx[:,1])
+rho3 = ws.skew(xx[:, 1])
+rho4 = ws.kurtosis(xx[:, 1])
 
-sk, ku=S1.stats_nl(moments='sk' )
+sk, ku = S1.stats_nl(moments='sk')
  
 #! Comparisons of 3 transformations
 clf()
 import wafo.transform.models as wtm
-gh = wtm.TrHermite(mean=me, sigma=sa, skew=sk, kurt=ku ).trdata()
-g = wtm.TrLinear(mean=me, sigma=sa ).trdata()
-
-
-#! Linear transformation
- 
+gh = wtm.TrHermite(mean=me, sigma=sa, skew=sk, kurt=ku).trdata()
+g = wtm.TrLinear(mean=me, sigma=sa).trdata() # Linear transformation 
 glc, gemp = lc.trdata(mean=me, sigma=sa)
-g.plot('r')
+
 glc.plot('b-') #! Transf. estimated from level-crossings
-gh.plot('b-.')  #! Hermite Transf. estimated from moments
+gh.plot('b-.') #! Hermite Transf. estimated from moments
+g.plot('r')
 grid('on')
 show()
  
-#!  Test Gaussianity of a stochastic process.
-#!---------------------------------------------
+#! Test Gaussianity of a stochastic process
+#!------------------------------------------
 #! TESTGAUSSIAN simulates  e(g(u)-u) = int (g(u)-u)^2 du  for Gaussian processes 
 #!  given the spectral density, S. The result is plotted if test0 is given.
 #!  This is useful for testing if the process X(t) is Gaussian.
-#!  If 95#! of TEST1 is less than TEST0 then X(t) is not Gaussian at a 5#! level.
+#!  If 95% of TEST1 is less than TEST0 then X(t) is not Gaussian at a 5% level.
 #! 
 #! As we see from the figure below: none of the simulated values of test1 is 
 #! above 1.00. Thus the data significantly departs from a Gaussian distribution. 
@@ -196,8 +181,9 @@ clf()
 test0 = glc.dist2gauss()
 #! the following test takes time
 N = len(xx)
-test1 = S1.testgaussian(ns=N,cases=50,t0=test0)
-sum(test1>test0)<5
+test1 = S1.testgaussian(ns=N, cases=50, test0=test0)
+is_gaussian = sum(test1 > test0) < 5 
+print(is_gaussian)
 show()
 
 #! Normalplot of data xx
@@ -223,7 +209,7 @@ show()
 #! Directional spectrum
 clf()
 D = wsm.Spreading('cos2s')
-Sd = D.tospecdata2d(S)
+Sd = D.tospecdata2d(spec)
 Sd.plot()
 show()
 

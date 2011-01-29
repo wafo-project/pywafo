@@ -2088,9 +2088,9 @@ class SpecData1D(WafoData):
             print('  ... be patient this may take a while')
         
        
-        rep = int(np.floor(ns * cases / maxsize) + 1)
+        rep = int(ns * cases / maxsize) + 1
         
-        Nstep = np.floor(cases / rep);
+        Nstep = int(cases / rep)
         
         acf = self.tocovdata()
         #R = spec2cov(S);

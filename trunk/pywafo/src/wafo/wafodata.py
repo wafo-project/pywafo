@@ -76,7 +76,7 @@ class WafoData(object):
         
         self.labels = AxisLabels(**kwds)
         if not self.plotter:
-            self.setplotter()
+            self.setplotter(kwds.get('plotmethod', None))
 
     def plot(self, *args, **kwds):
         tmp = None
