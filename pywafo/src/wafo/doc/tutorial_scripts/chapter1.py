@@ -1,28 +1,6 @@
 from scipy import *
 from pylab import *
 
-#import wafo.spectrum.models as sm
-#Sj = sm.Jonswap()
-#S = Sj.tospecdata()
-#S.data[0:40] = 0.0
-#S.data[100:-1] = 0.0
-#Nt = len(S.data)-1
-#acf = S.tocovdata(nr=0, nt=Nt)
-#S2 = acf.tospecdata()
-#S.plot('r')
-#S2.plot('b:')
-#
-#show()
-#        
-#import wafo
-#import wafo.objects as wo
-#xn = wafo.data.sea()
-#ts = wo.mat2timeseries(xn)
-#Sest = ts.tospecdata(method='cov')
-#Sest.setplotter('semilogy')
-#Sest.plot()
-#show()
-
 # pyreport -o chapter1.html chapter1.py
 
 #! CHAPTER1 demonstrates some applications of WAFO
@@ -42,8 +20,8 @@ from pylab import *
 #! Simulation of the sea surface from spectrum
 #! The following code generates 200 seconds of data sampled with 10Hz from
 #! the Torsethaugen spectrum
-import wafo.spectrum.models as sm
-S = sm.Torsethaugen(Hm0=6, Tp=8);
+import wafo.spectrum.models as wsm
+S = wsm.Torsethaugen(Hm0=6, Tp=8);
 S1 = S.tospecdata()
 S1.plot()
 show()
@@ -103,8 +81,8 @@ Nt = 101;   # number of angles
 th0 = pi / 2; # primary direction of waves
 Sp = 15;   # spreading parameter
 
-D1 = sm.Spreading(type='cos', theta0=th0, method=None) # frequency independent
-D12 = sm.Spreading(type='cos', theta0=0, method='mitsuyasu') # frequency dependent
+D1 = wsm.Spreading(type='cos', theta0=th0, method=None) # frequency independent
+D12 = wsm.Spreading(type='cos', theta0=0, method='mitsuyasu') # frequency dependent
 
 SD1 = D1.tospecdata2d(S1)
 SD12 = D12.tospecdata2d(S1)
@@ -165,11 +143,12 @@ show()
 #! which damage calculations and fatigue life predictions can be
 #! performed.
 #!
-#! The matlab commands below computes the intensity of rainflowcycles for 
-#! the Gaussian model with spectrum S1 using the Markow approximation. 
+#! The commands below computes the intensity of rainflowcycles for 
+#! the Gaussian model with spectrum S1 using the Markov approximation. 
 #! The rainflow cycles found in the simulated load signal are shown in the 
-# figure.
-#clf
+#! figure.
+
+#clf()
 #paramu = [-6 6 61];
 #frfc = spec2cmat(S1, [], 'rfc', [], paramu);
 #pdfplot(frfc);
@@ -195,7 +174,7 @@ ylabel('(m)')
 
 #! Formation of 5 min maxima
 yura = xn[:85500, 1]
-yura = np.reshape(yura, (285,300)).T
+yura = np.reshape(yura, (285, 300)).T
 maxyura = yura.max(axis=0)
 subplot(212)
 plot(xn[299:85500:300, 0] / 3600, maxyura, '.')

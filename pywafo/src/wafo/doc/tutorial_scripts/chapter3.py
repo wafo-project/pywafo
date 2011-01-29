@@ -1,40 +1,39 @@
-%% CHAPTER3  Demonstrates distributions of wave characteristics
-%
-% Chapter3 contains the commands used in Chapter3 in the tutorial.
-% 
-% Some of the commands are edited for fast computation. 
-% Each set of commands is followed by a 'pause' command.
-% 
+import numpy as np
+from scipy import *
+from pylab import *
 
-% Tested on Matlab 5.3
-% History
-% Revised pab sept2005
-%  Added sections -> easier to evaluate using cellmode evaluation.
-% Revised by pab Feb 2005
-% -updated calls to kdetools+spec2XXpdf programs
-% Created by GL July 12, 2000
-% from commands used in Chapter 3, written by IR
-%
-
-
-%% Section 3.2 Estimation of wave characteristics from data
-%% Example 1
-pstate = 'off';
+#! CHAPTER3  Demonstrates distributions of wave characteristics
+#!=============================================================
+#!
+#! Chapter3 contains the commands used in Chapter3 in the tutorial.
+#! 
+#! Some of the commands are edited for fast computation. 
+#!
+#! Section 3.2 Estimation of wave characteristics from data
+#!----------------------------------------------------------
+#! Example 1
+#!~~~~~~~~~~ 
+ 
 speed = 'fast'
-%speed = 'slow'
+#speed = 'slow'
 
-xx = load('sea.dat');
-xx(:,2) = detrend(xx(:,2));
-rate = 8;
-Tcrcr = dat2wa(xx,0,'c2c','tw',rate);
-Tc = dat2wa(xx,0,'u2d','tw',rate);
-disp('Block = 1'), pause(pstate)
-
-%% Histogram of crestperiod compared to the kernel density estimate
-clf
-mean(Tc)
-max(Tc)
+import wafo.data as wd
+import wafo.misc as wm
+import wafo.objects as wo
+xx = wd.sea() 
+xx[:,1] = wm.detrend(xx[:,1])
+ts = wo.mat2timeseries(xx)
+Tcrcr, ix = ts.wave_periods(vh=0, pdef='c2c', wdef='tw', rate=8)
+Tc, ixc = ts.wave_periods(vh=0, pdef='u2d', wdef='tw', rate=8)
+ 
+#! Histogram of crestperiod compared to the kernel density estimate
+#!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+import wafo.kdetools as wk
+clf()
+print(Tc.mean())
+print(Tc.max())
 t = linspace(0.01,8,200);
+
 kopt = kdeoptset('L2',0);
 tic
 ftc1 = kde(Tc,kopt,t);
@@ -44,7 +43,7 @@ histgrm(Tc,[],[],1)
 axis([0 8 0 0.5])
 wafostamp([],'(ER)')
 disp('Block = 2'), pause(pstate)
-%%
+#!#!
 tic
 kopt.inc = 128;
 ftc2 = kdebin(Tc,kopt);
@@ -54,7 +53,7 @@ title('Kernel Density Estimates')
 hold off
 disp('Block = 3'), pause(pstate)
 
-%% Extreme waves - model check: the highest and steepest wave
+#!#! Extreme waves - model check: the highest and steepest wave
 clf
 method = 0;
 rate = 8;
@@ -69,9 +68,9 @@ spwaveplot(yn,[indA indS],'k.')
 wafostamp([],'(ER)')
 disp('Block = 5'), pause(pstate)
 
-%% Does the highest wave contradict a transformed Gaussian model?
+#!#! Does the highest wave contradict a transformed Gaussian model?
 clf
-inds1 = (5965:5974)'; % points to remove
+inds1 = (5965:5974)'; #! points to remove
 Nsim = 10;
 [y1, grec1, g2, test, tobs, mu1o, mu1oStd] = ...
    reconstruct(xx,inds1,Nsim);
@@ -87,28 +86,28 @@ wafostamp([],'(ER)')
 disp('Block = 6'), 
 pause(pstate)
 
-%% Expected value (solid) compared to data removed
+#!#! Expected value (solid) compared to data removed
 clf
 plot(xx(inds1,1),xx(inds1,2),'+'), hold on
 mu = tranproc(mu1o,fliplr(grec1));
 plot(y1(inds1,1), mu), hold off
 disp('Block = 7'), pause(pstate)
 
-%% Crest height PDF
-% Transform data so that kde works better
+#!#! Crest height PDF
+#! Transform data so that kde works better
 clf
 L2 = 0.6;
 plotnorm(Ac.^L2)
 
-%%
-%
+#!#!
+#!
 fac = kde(Ac,{'L2',L2},linspace(0.01,3,200));
 pdfplot(fac)
 wafostamp([],'(ER)')
 simpson(fac.x{1},fac.f)
 disp('Block = 8'), pause(pstate)
 
-%% Empirical crest height CDF
+#!#! Empirical crest height CDF
 clf
 Fac = flipud(cumtrapz(fac.x{1},flipud(fac.f)));
 Fac = [fac.x{1} 1-Fac];
@@ -117,7 +116,7 @@ axis([0 2 0 1])
 wafostamp([],'(ER)')
 disp('Block = 9'), pause(pstate)
 
-%% Empirical crest height CDF compared to a Transformed Rayleigh approximation
+#!#! Empirical crest height CDF compared to a Transformed Rayleigh approximation
 facr = trraylpdf(fac.x{1},'Ac',grec1);
 Facr = cumtrapz(facr.x{1},facr.f);
 hold on
@@ -126,7 +125,7 @@ axis([1.25 2.25 0.95 1])
 wafostamp([],'(ER)')
 disp('Block = 10'), pause(pstate)
 
-%% Joint pdf of crest period and crest amplitude
+#!#! Joint pdf of crest period and crest amplitude
 clf
 kopt2 = kdeoptset('L2',0.5,'inc',256);
 Tc = Tcf+Tcb;
@@ -139,7 +138,7 @@ hold off
 wafostamp([],'(ER)')
 disp('Block = 11'), pause(pstate)
 
-%% Example 4:  Simple wave characteristics obtained from Jonswap spectrum 
+#!#! Example 4:  Simple wave characteristics obtained from Jonswap spectrum 
 clf
 S = jonswap([],[5 10]);
 [m,  mt]= spec2mom(S,4,[],0);
@@ -150,15 +149,15 @@ spec2bw(S)
 [ch Sa2] = spec2char(S,[1  3])
 disp('Block = 13'), pause(pstate)
 
-%% Section 3.3.2 Explicit form approximations of wave characteristic densities
-%% Longuett-Higgins model for Tc and Ac
+#!#! Section 3.3.2 Explicit form approximations of wave characteristic densities
+#!#! Longuett-Higgins model for Tc and Ac
 clf
 t = linspace(0,15,100);
 h = linspace(0,6,100);
 flh = lh83pdf(t,h,[m(1),m(2),m(3)]);
 disp('Block = 14'), pause(pstate)
 
-%% Transformed Longuett-Higgins model for Tc and Ac
+#!#! Transformed Longuett-Higgins model for Tc and Ac
 clf
 [sk, ku ]=spec2skew(S);
 sa = sqrt(m(1));
@@ -166,14 +165,14 @@ gh = hermitetr([],[sa sk ku 0]);
 flhg = lh83pdf(t,h,[m(1),m(2),m(3)],gh);
 disp('Block = 15'), pause(pstate)
 
-%% Cavanie model for Tc and Ac
+#!#! Cavanie model for Tc and Ac
 clf
 t = linspace(0,10,100);
 h = linspace(0,7,100);
 fcav = cav76pdf(t,h,[m(1) m(2) m(3) m(5)],[]);
 disp('Block = 16'), pause(pstate)
 
-%% Example 5 Transformed Rayleigh approximation of crest- vs trough- amplitude
+#!#! Example 5 Transformed Rayleigh approximation of crest- vs trough- amplitude
 clf
 xx = load('sea.dat');
 x = xx;
@@ -194,7 +193,7 @@ hold off
 wafostamp([],'(ER)')
 disp('Block = 17'), pause(pstate)
 
-%%
+#!#!
 clf
 TC = dat2tc(xx, me);
 tc = tp2mm(TC);
@@ -203,7 +202,7 @@ At = -tc(:,1);
 AcAt = Ac+At;
 disp('Block = 18'), pause(pstate)
 
-%%
+#!#!
 clf
 Fac_h = [fac_h.x{1} cumtrapz(fac_h.x{1},fac_h.f)];
 subplot(3,1,1)
@@ -232,8 +231,8 @@ title('At+Ac CDF')
 wafostamp([],'(ER)')
 disp('Block = 19'), pause(pstate)
 
-%% Section 3.4 Exact wave distributions in transformed Gaussian Sea
-%% Section 3.4.1 Density of crest period, crest length or encountered crest period
+#!#! Section 3.4 Exact wave distributions in transformed Gaussian Sea
+#!#! Section 3.4.1 Density of crest period, crest length or encountered crest period
 clf
 S1 = torsethaugen([],[6 8],1);
 D1 = spreading(101,'cos',pi/2,[15],[],0);
@@ -242,7 +241,7 @@ SD1 = mkdspec(S1,D1);
 SD12 = mkdspec(S1,D12);
 disp('Block = 20'), pause(pstate)
 
-%% Crest period
+#!#! Crest period
 clf
 tic 
 f_tc = spec2tpdf(S1,[],'Tc',[0 11 56],[],4);
@@ -252,13 +251,13 @@ wafostamp([],'(ER)')
 simpson(f_tc.x{1},f_tc.f)
 disp('Block = 21'), pause(pstate)
 
-%% Crest length
+#!#! Crest length
 
 if strncmpi(speed,'slow',1)
   opt1 = rindoptset('speed',5,'method',3);
   opt2 = rindoptset('speed',5,'nit',2,'method',0);
 else
-  % fast
+  #! fast
   opt1 = rindoptset('speed',7,'method',3);
   opt2 = rindoptset('speed',7,'nit',2,'method',0);
 end
@@ -271,7 +270,7 @@ else
   disp('NIT=5 may take time, running with NIT=3 in the following')
   NITa = 3;
 end
-%f_Lc = spec2tpdf2(S1,[],'Lc',[0 200 81],opt1); % Faster and more accurate
+#!f_Lc = spec2tpdf2(S1,[],'Lc',[0 200 81],opt1); #! Faster and more accurate
 f_Lc = spec2tpdf(S1,[],'Lc',[0 200 81],[],NITa);
 pdfplot(f_Lc,'-.')
 wafostamp([],'(ER)')
@@ -279,27 +278,27 @@ disp('Block = 22'), pause(pstate)
 
 
 f_Lc_1 = spec2tpdf(S1,[],'Lc',[0 200 81],1.5,NITa);
-%f_Lc_1 = spec2tpdf2(S1,[],'Lc',[0 200 81],1.5,opt1);
+#!f_Lc_1 = spec2tpdf2(S1,[],'Lc',[0 200 81],1.5,opt1);
 
 hold on
 pdfplot(f_Lc_1)
 wafostamp([],'(ER)')
 
 disp('Block = 23'), pause(pstate)
-%%
+#!#!
 clf
 simpson(f_Lc.x{1},f_Lc.f)
 simpson(f_Lc_1.x{1},f_Lc_1.f)
       
 disp('Block = 24'), pause(pstate)
-%%
+#!#!
 clf
 tic
 
 f_Lc_d1 = spec2tpdf(rotspec(SD1,pi/2),[],'Lc',[0 300 121],[],NITa);
 f_Lc_d12 = spec2tpdf(SD12,[],'Lc',[0 200 81],[],NITa);
-% f_Lc_d1 = spec2tpdf2(rotspec(SD1,pi/2),[],'Lc',[0 300 121],opt1);
-% f_Lc_d12 = spec2tpdf2(SD12,[],'Lc',[0 200 81],opt1);
+#! f_Lc_d1 = spec2tpdf2(rotspec(SD1,pi/2),[],'Lc',[0 300 121],opt1);
+#! f_Lc_d12 = spec2tpdf2(SD12,[],'Lc',[0 200 81],opt1);
 toc
 pdfplot(f_Lc_d1,'-.'), hold on
 pdfplot(f_Lc_d12),     hold off
@@ -307,7 +306,7 @@ wafostamp([],'(ER)')
 
 disp('Block = 25'), pause(pstate)
 
-%%
+#!#!
 
 
 clf
@@ -317,26 +316,26 @@ if strncmpi(speed,'slow',1)
   f_Lc_d1_5 = spec2tpdf(SD1r,[], 'Lc',[0 300 121],[],5);
   pdfplot(f_Lc_d1_5),     hold on
 else
-  % fast
+  #! fast
   disp('Run the following example only if you want a check on computing time')
-  disp('Edit the command file and remove %')
+  disp('Edit the command file and remove #!')
 end
 f_Lc_d1_3 = spec2tpdf(SD1r,[],'Lc',[0 300 121],[],3);
 f_Lc_d1_2 = spec2tpdf(SD1r,[],'Lc',[0 300 121],[],2);
 f_Lc_d1_0 = spec2tpdf(SD1r,[],'Lc',[0 300 121],[],0);
-%f_Lc_d1_n4 = spec2tpdf2(SD1r,[],'Lc',[0 400 161],opt1);
+#!f_Lc_d1_n4 = spec2tpdf2(SD1r,[],'Lc',[0 400 161],opt1);
 
 pdfplot(f_Lc_d1_3), hold on
 pdfplot(f_Lc_d1_2)
 pdfplot(f_Lc_d1_0)
-%pdfplot(f_Lc_d1_n4)
+#!pdfplot(f_Lc_d1_n4)
 
-%simpson(f_Lc_d1_n4.x{1},f_Lc_d1_n4.f)
+#!simpson(f_Lc_d1_n4.x{1},f_Lc_d1_n4.f)
 
 disp('Block = 26'), pause(pstate)
 
-%% Section 3.4.2 Density of wave period, wave length or encountered wave period
-%% Example 7: Crest period and high crest waves
+#!#! Section 3.4.2 Density of wave period, wave length or encountered wave period
+#!#! Example 7: Crest period and high crest waves
 clf
 tic
 xx = load('sea.dat');
@@ -354,7 +353,7 @@ t = linspace(0.01,8,200);
 ftc1 = kde(Tc,{'L2',0},t);
 pdfplot(ftc1)
 hold on
-%      f_t = spec2tpdf(SS,[],'Tc',[0 8 81],0,4);
+#!      f_t = spec2tpdf(SS,[],'Tc',[0 8 81],0,4);
 f_t = spec2tpdf(SS,[],'Tc',[0 8 81],0,2);
 simpson(f_t.x{1},f_t.f)
 pdfplot(f_t,'-.')
@@ -363,7 +362,7 @@ wafostamp([],'(ER)')
 toc
 disp('Block = 27'), pause(pstate)
 
-%%
+#!#!
 clf
 tic
 
@@ -372,7 +371,7 @@ if strncmpi(speed,'slow',1)
 else
   NIT = 2;
 end
-%      f_t2 = spec2tpdf(SS,[],'Tc',[0 8 81],[Hs/2],4);
+#!      f_t2 = spec2tpdf(SS,[],'Tc',[0 8 81],[Hs/2],4);
 tic
 f_t2 = spec2tpdf(SS,[],'Tc',[0 8 81],Hs/2,NIT);
 toc
@@ -390,14 +389,14 @@ wafostamp([],'(ER)')
 toc
 disp('Block = 28'), pause(pstate)
 
-%% Example 8: Wave period for high crest waves 
-%      clf
+#!#! Example 8: Wave period for high crest waves 
+#!      clf
       tic 
       f_tcc2 = spec2tccpdf(SS,[],'t>',[0 12 61],[Hs/2],[0],-1);
 toc
       simpson(f_tcc2.x{1},f_tcc2.f)
       f_tcc3 = spec2tccpdf(SS,[],'t>',[0 12 61],[Hs/2],[0],3,5);
-%      f_tcc3 = spec2tccpdf(SS,[],'t>',[0 12 61],[Hs/2],[0],1,5);
+#!      f_tcc3 = spec2tccpdf(SS,[],'t>',[0 12 61],[Hs/2],[0],1,5);
       simpson(f_tcc3.x{1},f_tcc3.f)
       pdfplot(f_tcc2,'-.')
       hold on
@@ -406,7 +405,7 @@ toc
        toc
 disp('Block = 29'), pause(pstate)
 
-%%
+#!#!
 clf
 [TC tc_ind v_ind] = dat2tc(yn,[],'dw');
 N = length(tc_ind);
@@ -418,7 +417,7 @@ spwaveplot(yn,ind(2:4))
 wafostamp([],'(ER)')
 disp('Block = 30'), pause(pstate)
 
-%%
+#!#!
 clf
 Tcc = yn(v_ind(1+2*ind),1)-yn(v_ind(1+2*(ind-1)),1);
 t = linspace(0.01,14,200);
@@ -441,10 +440,10 @@ disp('Block = 32'), pause(pstate)
 disp('The rest of this chapter deals with joint densities.')
 disp('Some calculations may take some time.') 
 disp('You could experiment with other NIT.')
-%return
+#!return
 
-%% Section 3.4.3 Joint density of crest period and crest height
-%% Example 9. Some preliminary analysis of the data
+#!#! Section 3.4.3 Joint density of crest period and crest height
+#!#! Example 9. Some preliminary analysis of the data
 clf
 tic
 yy = load('gfaksr89.dat');
@@ -457,7 +456,7 @@ v = v(2)
 toc
 disp('Block = 33'), pause(pstate)
 
-%%
+#!#!
 clf
 tic
 [TC, tc_ind, v_ind] = dat2tc(yy,v,'dw');
@@ -477,7 +476,7 @@ At = v-yy(t_ind,2);
 toc
 disp('Block = 34'), pause(pstate)
 
-%%
+#!#!
 clf
 tic
 t = linspace(0.01,15,200);
@@ -497,8 +496,8 @@ wafostamp([],'(ER)')
 toc
 disp('Block = 35'), pause(pstate)
 
-%% Example 10: Joint characteristics of a half wave:
-%% position and height of a crest for a wave with given period
+#!#! Example 10: Joint characteristics of a half wave:
+#!#! position and height of a crest for a wave with given period
 clf
 tic
 ind = find(4.4<Tc & Tc<4.6);
@@ -510,7 +509,7 @@ wafostamp([],'(ER)')
 toc
 disp('Block = 36'), pause(pstate)
 
-%%
+#!#!
 clf
 tic
 opt1 = rindoptset('speed',5,'method',3);
@@ -532,7 +531,7 @@ toc
 wafostamp([],'(ER)')
 disp('Block = 37'), pause(pstate)
 
-%%
+#!#!
 clf
 f_tcac_s = spec2thpdf(SS,[],'TcAc',[0 12 81],[Hs/2:0.1:2*Hs],opt1);
 disp('Block = 38'), pause(pstate)
@@ -553,16 +552,16 @@ toc
 wafostamp([],'(ER)')
 disp('Block = 39'), pause(pstate)
 
-%%
+#!#!
 clf
-%      f_tcac = spec2thpdf(SS,[],'TcAc',[0 12 81],[0:0.2:8],opt1);
-%      pdfplot(f_tcac)
+#!      f_tcac = spec2thpdf(SS,[],'TcAc',[0 12 81],[0:0.2:8],opt1);
+#!      pdfplot(f_tcac)
 disp('Block = 40'), pause(pstate)
 
-%% Section 3.4.4 Joint density of crest and trough height
-%% Section 3.4.5 Min-to-max distributions – Markov method
-%% Example 11. (min-max problems with Gullfaks data)
-%% Joint density of maximum and the following minimum
+#!#! Section 3.4.4 Joint density of crest and trough height
+#!#! Section 3.4.5 Min-to-max distributions ï¿½ Markov method
+#!#! Example 11. (min-max problems with Gullfaks data)
+#!#! Joint density of maximum and the following minimum
 clf
 tic
 tp = dat2tp(yy);
@@ -578,7 +577,7 @@ wafostamp([],'(ER)')
 toc
 disp('Block = 41'), pause(pstate)
 
-%% The joint density of ”still water separated”  maxima and minima.
+#!#! The joint density of ï¿½still water separatedï¿½  maxima and minima.
 clf
 tic
 ind = find(Mm(:,1)>v & Mm(:,2)<v);
@@ -595,7 +594,7 @@ toc
 disp('Block = 42'), pause(pstate)
 
 
-%%
+#!#!
 clf
 tic
 facat = kde([Ac At]);

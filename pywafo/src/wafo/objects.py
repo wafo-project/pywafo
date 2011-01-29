@@ -16,6 +16,9 @@ from __future__ import division
 from wafo.transform.core import TrData
 from wafo.transform.models import TrHermite, TrOchi, TrLinear
 from wafo.stats import edf
+from wafo.misc import (nextpow2, findtp, findtc, findcross,  
+                       ecross, JITImport, DotDict, gravity)
+from wafodata import WafoData
 from wafo.interpolate import SmoothSpline
 from scipy.interpolate.interpolate import interp1d
 from scipy.integrate.quadrature import cumtrapz  #@UnresolvedImport
@@ -26,7 +29,7 @@ import numpy as np
 
 from numpy import (inf, pi, zeros, ones, sqrt, where, log, exp, sin, arcsin, mod, finfo, interp, #@UnresolvedImport
                    linspace, arange, sort, all, abs, vstack, hstack, atleast_1d, #@UnresolvedImport
-                   finfo, polyfit, r_, nonzero, cumsum, ravel, size, isnan, nan, floor, ceil, diff, array) #@UnresolvedImport
+                   finfo, polyfit, r_, nonzero, cumsum, ravel, size, isnan, nan, ceil, diff, array) #@UnresolvedImport
 from numpy.fft import fft
 from numpy.random import randn
 from scipy.integrate import trapz
@@ -34,14 +37,13 @@ from pylab import stineman_interp
 from matplotlib.mlab import psd, detrend_mean
 import scipy.signal
 
-from wafo.misc import (nextpow2, findtp, findtc, findcross,  
-                       ecross, JITImport, DotDict)
-from wafodata import WafoData
+
 from plotbackend import plotbackend
 import matplotlib
 from scipy.stats.stats import skew, kurtosis
 from scipy.signal.windows import parzen
 from scipy import special
+
 
 floatinfo = finfo(float) 
 matplotlib.interactive(True)
@@ -64,7 +66,8 @@ class LevelCrossings(WafoData):
         number of upcrossings
     args : array-like
         crossing levels
-      Examples
+        
+    Examples
     --------
     >>> import wafo.data
     >>> import wafo.objects as wo
@@ -80,29 +83,30 @@ class LevelCrossings(WafoData):
     def __init__(self, *args, **kwds):
         options = dict(title='Level crossing spectrum',
                             xlab='Levels', ylab='Count',
+                            plotmethod='semilogy',
                             plot_args=['b'],
                             plot_args_children=['r--'],)
         options.update(**kwds)
         super(LevelCrossings, self).__init__(*args, **options)
       
-        self.stdev = kwds.get('stdev', None)
+        self.sigma = kwds.get('sigma', None)
         self.mean = kwds.get('mean', None)
-        self.setplotter(plotmethod='step')
+        #self.setplotter(plotmethod='step')
 
         icmax = self.data.argmax()
         if self.data != None:
-            if self.stdev is None or self.mean is None:
+            if self.sigma is None or self.mean is None:
                 logcros = where(self.data == 0.0, inf, -log(self.data))
                 logcmin = logcros[icmax]
                 logcros = sqrt(2 * abs(logcros - logcmin))
                 logcros[0:icmax + 1] = 2 * logcros[icmax] - logcros[0:icmax + 1]
                 p = polyfit(self.args[10:-9], logcros[10:-9], 1) #least square fit
-                if self.stdev is None:
-                    self.stdev = 1.0 / p[0] #estimated standard deviation of x
+                if self.sigma is None:
+                    self.sigma = 1.0 / p[0] #estimated standard deviation of x
                 if self.mean is None:
                     self.mean = -p[1] / p[0] #self.args[icmax]
             cmax = self.data[icmax]
-            x = (self.args - self.mean) / self.stdev
+            x = (self.args - self.mean) / self.sigma
             y = cmax * exp(-x ** 2 / 2.0)
             self.children = [WafoData(y, self.args)]
 
@@ -212,7 +216,7 @@ class LevelCrossings(WafoData):
         scr = trapz(lc1 ** 2 * lc, lc1)
         scr = sqrt(scr - mcr ** 2)
         
-        lc2 = LevelCrossings(lc, lc1, mean=mcr, stdev=scr)
+        lc2 = LevelCrossings(lc, lc1, mean=mcr, sigma=scr)
         
         g = lc2.trdata()
 
@@ -350,7 +354,7 @@ class LevelCrossings(WafoData):
         if mean is None:
             mean = self.mean
         if sigma is None:
-            sigma = self.stdev
+            sigma = self.sigma
         
         opt = DotDict(chkder=True, plotflag=False, csm=0.9, gsm=.05,
             param=(-5, 5, 513), delay=2, linextrap=True, ntr=10000, ne=7, gvar=1)
@@ -401,7 +405,7 @@ class LevelCrossings(WafoData):
         inds = slice(Ne, ncr - Ne) # indices to points we are smoothing over
         slc22 = SmoothSpline(lc11[inds], lc22[inds], opt.gsm, opt.linextrap, gvar[inds])(uu)
         
-        g = TrData(slc22.copy(), g1.copy(), mean=mean, sigma=sigma)  #*sa; #multiply with stdev 
+        g = TrData(slc22.copy(), g1.copy(), mean=mean, sigma=sigma) 
         
         if opt.chkder:
             for ix in range(5):
@@ -433,7 +437,7 @@ class CyclePairs(WafoData):
     data : array_like
     args : vector for 1D
 
-      Examples
+    Examples
     --------
     >>> import wafo.data
     >>> import wafo.objects as wo
@@ -446,7 +450,7 @@ class CyclePairs(WafoData):
     '''
     def __init__(self, *args, **kwds):
         self.kind = kwds.pop('kind', 'max2min')
-        self.stdev = kwds.pop('stdev', None)
+        self.sigma = kwds.pop('sigma', None)
         self.mean = kwds.pop('mean', None)
         
         options = dict(title=self.kind + ' cycle pairs',
@@ -590,7 +594,7 @@ class CyclePairs(WafoData):
             dcount = cumsum(extr[1, 0:nx]) - extr[3, 0:nx]
         elif defnr == 3: ## This are upcrossings + minima + maxima
             dcount = cumsum(extr[1, 0:nx]) + extr[2, 0:nx]
-        return LevelCrossings(dcount, levels, mean=self.mean, stdev=self.stdev)
+        return LevelCrossings(dcount, levels, mean=self.mean, sigma=self.sigma)
 
 class TurningPoints(WafoData):
     '''
@@ -613,7 +617,7 @@ class TurningPoints(WafoData):
     '''
     def __init__(self, *args, **kwds):
         self.name_ = kwds.pop('name', 'WAFO TurningPoints Object')
-        self.stdev = kwds.pop('stdev', None)
+        self.sigma = kwds.pop('sigma', None)
         self.mean = kwds.pop('mean', None)
         
         options = dict(title='Turning points')
@@ -672,7 +676,7 @@ class TurningPoints(WafoData):
             kind = 'max2min'
             M = self.data[iM:-1:2]
             m = self.data[iM + 1::2]
-        return CyclePairs(M, m, kind=kind, mean=self.mean, stdev=self.stdev)
+        return CyclePairs(M, m, kind=kind, mean=self.mean, sigma=self.sigma)
 
 def mat2timeseries(x):
     """
@@ -772,7 +776,7 @@ class TimeSeries(WafoData):
             with attributes:
             data : ACF vector length L+1
             args : time lags  length L+1
-            stdev : estimated large lag standard deviation of the estimate
+            sigma : estimated large lag standard deviation of the estimate
                      assuming x is a Gaussian process:
                      if R(k)=0 for all lags k>q then an approximation
                      of the variance for large samples due to Bartlett
@@ -828,14 +832,15 @@ class TimeSeries(WafoData):
         t = linspace(0, lag * dt, lag + 1)
         #cumsum = np.cumsum
         acf = _wafocov.CovData1D(R[lags], t)
-        acf.stdev = sqrt(r_[ 0, r0**2 , r0**2 + 2 * cumsum(R[1:] ** 2)] / Ncens)
-        acf.children = [WafoData(-2. * acf.stdev[lags], t), WafoData(2. * acf.stdev[lags], t)]
+        acf.sigma = sqrt(r_[ 0, r0**2 , r0**2 + 2 * cumsum(R[1:] ** 2)] / Ncens)
+        acf.children = [WafoData(-2. * acf.sigma[lags], t), WafoData(2. * acf.sigma[lags], t)]
         acf.plot_args_children = ['r:']
         acf.norm = norm
         return acf
 
-    def specdata(self, L=None, tr=None, method='cov', detrend=detrend_mean, window=parzen, noverlap=0, pad_to=None):
+    def _specdata(self, L=None, tr=None, method='cov', detrend=detrend_mean, window=parzen, noverlap=0, pad_to=None):
         """ 
+        Obsolete: Delete?
         Return power spectral density by Welches average periodogram method.
 
         Parameters
@@ -963,7 +968,7 @@ class TimeSeries(WafoData):
             R = tsy.tocovdata() 
             if  estimate_L:
                 #finding where ACF is less than 2 st. deviations.
-                L = max_L + 2 - (np.abs(R.data[max_L::-1]) > 2 * R.stdev[max_L::-1]).argmax() # a better L value  
+                L = max_L + 2 - (np.abs(R.data[max_L::-1]) > 2 * R.sigma[max_L::-1]).argmax() # a better L value  
                 if wdef == 1:  # modify L so that hanning and Parzen give appr. the same result
                     L = min(int(4 * L / 3), n - 2)
                 print('The default L is set to %d' % L)       
@@ -1024,6 +1029,157 @@ class TimeSeries(WafoData):
 #        S.L    = L;
 #        S.S = zeros(nf+1,m-1);
         return spec
+
+    def wave_height_steepness(self, rate=1, method=1, g=None):
+        '''
+        Returns waveheights and steepnesses from data.
+
+        Parameters
+        ----------
+        rate : scalar integer
+            interpolation rate. Interpolates with spline if greater than one.
+                                  
+        method : scalar integer
+            0 max(Vcf, Vcb) and corresponding wave height Hd or Hu in H
+            1 crest front (rise) speed (Vcf) in S and wave height Hd in H. (default)
+           -1 crest back (fall) speed (Vcb) in S and waveheight Hu in H.
+            2 crest front steepness in S and the wave height Hd in H.
+           -2 crest back steepness in S and the wave height Hu in H.
+            3 total wave steepness in S and the wave height Hd in H
+                for zero-downcrossing waves.
+           -3 total wave steepness in S and the wave height Hu in H.
+                for zero-upcrossing waves.
+        Returns
+        -------
+        S, H = Steepness and the corresponding wave height according to method
+ 
+
+        The parameters are calculated as follows:
+          Crest front speed (velocity) = Vcf = Ac/Tcf
+          Crest back speed  (velocity) = Vcb = Ac/Tcb
+          Crest front steepness  =  2*pi*Ac./Td/Tcf/g
+          Crest back steepness   =  2*pi*Ac./Tu/Tcb/g
+          Total wave steepness (zero-downcrossing wave) =  2*pi*Hd./Td.^2/g
+          Total wave steepness (zero-upcrossing wave)   =  2*pi*Hu./Tu.^2/g
+           
+        The definition of g, Ac,At, Tcf, etc. are given in gravity and 
+        wafo.definitions. 
+          
+        Example
+        -------
+        >>> import wafo.data as wd
+        >>> import wafo.objects as wo
+        >>> x = wd.sea()
+        >>> ts = wo.mat2timeseries(x)
+        >>> for i in xrange(-3,4):
+        ...     S, H = ts.wave_height_steepness(method=i)
+        ...     print(S[:2],H[:2])
+        (array([ 0.01186982,  0.04852534]), array([ 0.69,  0.86]))
+        (array([ 0.02918363,  0.06385979]), array([ 0.69,  0.86]))
+        (array([ 0.27797411,  0.33585743]), array([ 0.69,  0.86]))
+        (array([ 0.60835634,  0.60930197]), array([ 0.42,  0.78]))
+        (array([ 0.60835634,  0.60930197]), array([ 0.42,  0.78]))
+        (array([ 0.10140867,  0.06141156]), array([ 0.42,  0.78]))
+        (array([ 0.01821413,  0.01236672]), array([ 0.42,  0.78]))
+        
+        >>> import pylab as plt
+        >>> h = plt.plot(S,H,'.')
+        >>> h = plt.xlabel('S')
+        >>> h = plt.ylabel('Hd [m]')
+         
+        
+        See also  
+        --------
+        wafo.definitions
+        '''
+  
+#           Ac,At = crest and trough amplitude, respectively
+#           Tcf,
+#            Tcb = Crest front and crest (rear) back period, respectively
+#          z_ind = indices to the zero-crossings (d,u) of the defining  
+#                  trough to trough waves (tw). If M>1 then 
+#                  z_ind=[N1 z_ind1 N2 z_ind2 ...NM z_indM] where 
+#                  Ni = length(z_indi) and z_indi are the indices to 
+#                  the zero-crossings of xi, i=1,2...M.
+#        
+#             yn = interpolated signal
+#        
+#             xn = [ti x1 x2 ... xM], where 
+#                  ti = time and x1 x2 ... xM are M column vectors of 
+#                  sampled surface elevation.
+        #[S,H,z_ind2,AC1,AT1,TFRONT1,TREAR1]=deal([]); % Initialize to []
+        dT    = self.sampling_period() 
+        #[N M] = size(xx);
+        if g is None:
+            g = gravity()  #% acceleration of gravity
+          
+        if rate>1:
+            dT = dT/rate
+            t0, tn = self.args[0], self.args[-1]
+            n = len(self.args)
+            ti = linspace(t0, tn, int(rate*n))
+            xi = interp1d(self.args , self.data.ravel(), kind='cubic')(ti)  
+            
+        else:
+            ti, xi = self.args, self.data.ravel()
+             
+         
+        #for ix=2:M
+        tc_ind, z_ind = findtc(xi,v=0,kind='tw')
+        tc_a = xi[tc_ind]
+        tc_t = ti[tc_ind]
+        AC = tc_a[1::2] # crest amplitude
+        AT= -tc_a[0::2] # trough  amplitude
+    
+        if (0<= method and method <=2):
+            # time between zero-upcrossing and  crest  [s]
+            tu = ecross(ti, xi, z_ind[1:-1:2],v=0)
+            TFRONT = tc_t[1::2]-tu
+            TFRONT[(TFRONT==0)]=dT # avoiding division by zero
+      
+        if (0 >= method and method>=-2): 
+            # time between  crest and zero-downcrossing [s]
+            td = ecross(ti,xi, z_ind[2::2],v=0)
+            TREAR = td-tc_t[1::2] 
+            TREAR[(TREAR==0)]=dT;  #% avoiding division by zero
+      
+        if  method==0:
+            # max(Vcf, Vcr) and the corresponding wave height Hd or Hu in H
+            HU = AC+AT[1:]
+            HD = AC+AT[:-1]
+            T = np.where(TFRONT<TREAR, TFRONT, TREAR)
+            S = AC/T
+            H = np.where(TFRONT<TREAR, HD, HU)
+           
+        elif method==1: # extracting crest front velocity [m/s] and  
+            # Zero-downcrossing wave height [m]
+            H = AC+AT[:-1] # Hd
+            S = AC/TFRONT
+        elif method== -1: # extracting crest rear velocity [m/s] and  
+            # Zero-upcrossing wave height [m]
+            H =  AC+AT[1:] #Hu  
+            S = AC/TREAR
+        elif method== 2: #crest front steepness in S and the wave height Hd in H.
+            H = AC + AT[:-1] #Hd
+            T = diff(ecross(ti,xi, z_ind[::2],v=0))
+            S = 2*pi*AC/T/TFRONT/g
+        elif method== -2: # crest back steepness in S and the wave height Hu in H.
+            H = AC+AT[1:]
+            T = diff(ecross(ti,xi, z_ind[1::2],v=0))
+            S = 2*pi*AC/T/TREAR/g
+        elif method==3: # total steepness in S and the wave height Hd in H
+            # for zero-doewncrossing waves.
+            H =  AC+AT[:-1]
+            T = diff(ecross(ti,xi , z_ind[::2],v=0))# Period zero-downcrossing waves
+            S = 2*pi*H/T**2/g
+        elif method== -3: # total steepness in S and the wave height Hu in H for
+            # zero-upcrossing waves.
+            H =  AC+AT[1::] 
+            T = diff(ecross(ti, xi, z_ind[1::2],v=0))# Period zero-upcrossing waves
+            S = 2*pi*H/T**2/g 
+         
+        return S, H
+
 
     def _trdata_cdf(self, **options):
         '''
@@ -1293,8 +1449,8 @@ class TimeSeries(WafoData):
         except:
             t = ind
         mean = self.data.mean()
-        stdev = self.data.std()
-        return TurningPoints(self.data[ind], t, mean=mean, stdev=stdev)
+        sigma = self.data.std()
+        return TurningPoints(self.data[ind], t, mean=mean, sigma=sigma)
 
     def trough_crest(self, v=None, wavetype=None):
         """ 
@@ -1323,8 +1479,8 @@ class TimeSeries(WafoData):
         except:
             t = ind
         mean = self.data.mean()
-        stdev = self.data.std()
-        return TurningPoints(self.data[ind], t, mean=mean, stdev=stdev)
+        sigma = self.data.std()
+        return TurningPoints(self.data[ind], t, mean=mean, sigma=sigma)
     
     def wave_periods(self, vh=None, pdef='d2d', wdef=None, index=None, rate=1):
         """ 
@@ -1502,7 +1658,7 @@ class TimeSeries(WafoData):
         # TODO: finish reconstruct
         pass
     def plot_wave(self, sym1='k.', ts=None, sym2='k+', nfig=None, nsub=None,
-                  stdev=None, vfact=3):
+                  sigma=None, vfact=3):
         '''   
         Plots the surface elevation of timeseries.
         
@@ -1520,7 +1676,7 @@ class TimeSeries(WafoData):
             changed to nsub=min(6,ceil(nsub/nfig))
         nfig : scalar integer
             Number of figures. By default nfig=ceil(Nsub/6). 
-        stdev : real scalar
+        sigma : real scalar
             standard deviation of data. 
         vfact : real scalar
             how large in stdev the vertical scale should be (default 3)
@@ -1552,22 +1708,22 @@ class TimeSeries(WafoData):
             xn2 = ts.data
             tn2 = ts.args 
         
-        if stdev is None:
-            stdev = xn[indg].std()
+        if sigma is None:
+            sigma = xn[indg].std()
             
         if nsub is None:
-            nsub = int(floor(len(xn2) / (2 * nw))) + 1 # about Nw mdc waves in each plot
+            nsub = int(len(xn2) / (2 * nw)) + 1 # about Nw mdc waves in each plot
         if nfig is None:
             nfig = int(ceil(nsub / 6)) 
             nsub = min(6, int(ceil(nsub / nfig)))
         
         n = len(xn)
-        Ns = int(floor(n / (nfig * nsub)))
+        Ns = int(n / (nfig * nsub))
         ind = r_[0:Ns]
         if all(xn >= 0):
-            vscale = [0, 2 * stdev * vfact]
+            vscale = [0, 2 * sigma * vfact]
         else:
-            vscale = array([-1, 1]) * vfact * stdev
+            vscale = array([-1, 1]) * vfact * sigma
         
         
         XlblTxt = 'Time [sec]'
@@ -1580,7 +1736,7 @@ class TimeSeries(WafoData):
             dT = 1 / 60
             XlblTxt = 'Time (minutes)'   
          
-        if np.max(abs(xn[indg])) > 5 * stdev:
+        if np.max(abs(xn[indg])) > 5 * sigma:
             XlblTxt = XlblTxt + ' (Spurious data since max > 5 std.)'
         
         plot = plotbackend.plot
@@ -1602,7 +1758,7 @@ class TimeSeries(WafoData):
                 #plotbackend.axis([h_scale*dT, v_scale])
           
                 for iy in [-2, 2]:
-                    plot(h_scale * dT, iy * stdev * ones(2), ':')
+                    plot(h_scale * dT, iy * sigma * ones(2), ':')
               
                 ind = ind + Ns
             #end
@@ -1629,7 +1785,6 @@ class TimeSeries(WafoData):
         >>> x = wafo.data.sea()
         >>> ts = wafo.objects.mat2timeseries(x[0:500,...])
         >>> h = ts.plot_sp_wave(np.r_[6:9,12:18])
-
 
         See also
         --------

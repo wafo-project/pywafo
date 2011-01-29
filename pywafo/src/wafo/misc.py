@@ -199,7 +199,7 @@ def detrendma(x, L):
     y[n - L::] = x1[n - L::] - trend[-1]
     return y
 
-def ecross(t, f, ind, v):
+def ecross(t, f, ind, v=0):
     '''
     Extracts exact level v crossings
 
