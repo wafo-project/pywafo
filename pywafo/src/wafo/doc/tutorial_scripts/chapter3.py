@@ -32,29 +32,19 @@ import wafo.kdetools as wk
 clf()
 print(Tc.mean())
 print(Tc.max())
+
 t = linspace(0.01,8,200);
+ftc = wk.TKDE(Tc, L2=0, inc=128)
 
-kopt = kdeoptset('L2',0);
-tic
-ftc1 = kde(Tc,kopt,t);
-toc
-pdfplot(ftc1), hold on
-histgrm(Tc,[],[],1)
-axis([0 8 0 0.5])
-wafostamp([],'(ER)')
-disp('Block = 2'), pause(pstate)
-#!#!
-tic
-kopt.inc = 128;
-ftc2 = kdebin(Tc,kopt);
-toc
-pdfplot(ftc2,'-.')
+plot(t,ftc.eval_grid(t), t, ftc.eval_grid_fast(t),'-.') 
+wm.histgrm(Tc,scale=True)
 title('Kernel Density Estimates')
-hold off
-disp('Block = 3'), pause(pstate)
-
-#!#! Extreme waves - model check: the highest and steepest wave
-clf
+axis([0, 8, 0, 0.5])
+show() 
+ 
+#! Extreme waves - model check: the highest and steepest wave
+#!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+clf()
 method = 0;
 rate = 8;
 [S, H, Ac, At, Tcf, Tcb, z_ind, yn] = ...

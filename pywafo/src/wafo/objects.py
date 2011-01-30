@@ -16,7 +16,7 @@ from __future__ import division
 from wafo.transform.core import TrData
 from wafo.transform.models import TrHermite, TrOchi, TrLinear
 from wafo.stats import edf
-from wafo.misc import (nextpow2, findtp, findtc, findcross,  
+from wafo.misc import (nextpow2, findtp, findtc, findcross,
                        ecross, JITImport, DotDict, gravity)
 from wafodata import WafoData
 from wafo.interpolate import SmoothSpline
@@ -722,7 +722,7 @@ class TimeSeries(WafoData):
     '''
     def __init__(self, *args, **kwds):
         self.name_ = kwds.pop('name', 'WAFO TimeSeries Object')
-        self.sensortypes = kwds.pop('sensortypes',['n', ])
+        self.sensortypes = kwds.pop('sensortypes', ['n', ])
         self.position = kwds.pop('position', [zeros(3), ])
         
         super(TimeSeries, self).__init__(*args, **kwds)
@@ -832,7 +832,7 @@ class TimeSeries(WafoData):
         t = linspace(0, lag * dt, lag + 1)
         #cumsum = np.cumsum
         acf = _wafocov.CovData1D(R[lags], t)
-        acf.sigma = sqrt(r_[ 0, r0**2 , r0**2 + 2 * cumsum(R[1:] ** 2)] / Ncens)
+        acf.sigma = sqrt(r_[ 0, r0 ** 2 , r0 ** 2 + 2 * cumsum(R[1:] ** 2)] / Ncens)
         acf.children = [WafoData(-2. * acf.sigma[lags], t), WafoData(2. * acf.sigma[lags], t)]
         acf.plot_args_children = ['r:']
         acf.norm = norm
@@ -991,8 +991,8 @@ class TimeSeries(WafoData):
             Be = None
               
         if method == 'psd':
-            nfft =  2 ** nextpow2(L) 
-            pad_to = rate*nfft #  Interpolate the spectrum with rate 
+            nfft = 2 ** nextpow2(L) 
+            pad_to = rate * nfft #  Interpolate the spectrum with rate 
             S, f = psd(yy, Fs=1. / dt, NFFT=nfft, detrend=detrend, window=window(nfft),
                    noverlap=noverlap, pad_to=pad_to, scale_by_freq=True)
             fact = 2.0 * pi
@@ -1004,8 +1004,8 @@ class TimeSeries(WafoData):
              
             R.data[:L] = R.data[:L] * win[L - 1::]
             R.data[L] = 0.0
-            R.data = R.data[:L+1]
-            R.args = R.args[:L+1]
+            R.data = R.data[:L + 1]
+            R.args = R.args[:L + 1]
             #R.plot()
             #R.show()
             spec = R.tospecdata(rate=rate, nugget=nugget)
@@ -1030,155 +1030,7 @@ class TimeSeries(WafoData):
 #        S.S = zeros(nf+1,m-1);
         return spec
 
-    def wave_height_steepness(self, rate=1, method=1, g=None):
-        '''
-        Returns waveheights and steepnesses from data.
-
-        Parameters
-        ----------
-        rate : scalar integer
-            interpolation rate. Interpolates with spline if greater than one.
-                                  
-        method : scalar integer
-            0 max(Vcf, Vcb) and corresponding wave height Hd or Hu in H
-            1 crest front (rise) speed (Vcf) in S and wave height Hd in H. (default)
-           -1 crest back (fall) speed (Vcb) in S and waveheight Hu in H.
-            2 crest front steepness in S and the wave height Hd in H.
-           -2 crest back steepness in S and the wave height Hu in H.
-            3 total wave steepness in S and the wave height Hd in H
-                for zero-downcrossing waves.
-           -3 total wave steepness in S and the wave height Hu in H.
-                for zero-upcrossing waves.
-        Returns
-        -------
-        S, H = Steepness and the corresponding wave height according to method
  
-
-        The parameters are calculated as follows:
-          Crest front speed (velocity) = Vcf = Ac/Tcf
-          Crest back speed  (velocity) = Vcb = Ac/Tcb
-          Crest front steepness  =  2*pi*Ac./Td/Tcf/g
-          Crest back steepness   =  2*pi*Ac./Tu/Tcb/g
-          Total wave steepness (zero-downcrossing wave) =  2*pi*Hd./Td.^2/g
-          Total wave steepness (zero-upcrossing wave)   =  2*pi*Hu./Tu.^2/g
-           
-        The definition of g, Ac,At, Tcf, etc. are given in gravity and 
-        wafo.definitions. 
-          
-        Example
-        -------
-        >>> import wafo.data as wd
-        >>> import wafo.objects as wo
-        >>> x = wd.sea()
-        >>> ts = wo.mat2timeseries(x)
-        >>> for i in xrange(-3,4):
-        ...     S, H = ts.wave_height_steepness(method=i)
-        ...     print(S[:2],H[:2])
-        (array([ 0.01186982,  0.04852534]), array([ 0.69,  0.86]))
-        (array([ 0.02918363,  0.06385979]), array([ 0.69,  0.86]))
-        (array([ 0.27797411,  0.33585743]), array([ 0.69,  0.86]))
-        (array([ 0.60835634,  0.60930197]), array([ 0.42,  0.78]))
-        (array([ 0.60835634,  0.60930197]), array([ 0.42,  0.78]))
-        (array([ 0.10140867,  0.06141156]), array([ 0.42,  0.78]))
-        (array([ 0.01821413,  0.01236672]), array([ 0.42,  0.78]))
-        
-        >>> import pylab as plt
-        >>> h = plt.plot(S,H,'.')
-        >>> h = plt.xlabel('S')
-        >>> h = plt.ylabel('Hd [m]')
-         
-        
-        See also  
-        --------
-        wafo.definitions
-        '''
-  
-#           Ac,At = crest and trough amplitude, respectively
-#           Tcf,
-#            Tcb = Crest front and crest (rear) back period, respectively
-#          z_ind = indices to the zero-crossings (d,u) of the defining  
-#                  trough to trough waves (tw). If M>1 then 
-#                  z_ind=[N1 z_ind1 N2 z_ind2 ...NM z_indM] where 
-#                  Ni = length(z_indi) and z_indi are the indices to 
-#                  the zero-crossings of xi, i=1,2...M.
-#        
-#             yn = interpolated signal
-#        
-#             xn = [ti x1 x2 ... xM], where 
-#                  ti = time and x1 x2 ... xM are M column vectors of 
-#                  sampled surface elevation.
-        #[S,H,z_ind2,AC1,AT1,TFRONT1,TREAR1]=deal([]); % Initialize to []
-        dT    = self.sampling_period() 
-        #[N M] = size(xx);
-        if g is None:
-            g = gravity()  #% acceleration of gravity
-          
-        if rate>1:
-            dT = dT/rate
-            t0, tn = self.args[0], self.args[-1]
-            n = len(self.args)
-            ti = linspace(t0, tn, int(rate*n))
-            xi = interp1d(self.args , self.data.ravel(), kind='cubic')(ti)  
-            
-        else:
-            ti, xi = self.args, self.data.ravel()
-             
-         
-        #for ix=2:M
-        tc_ind, z_ind = findtc(xi,v=0,kind='tw')
-        tc_a = xi[tc_ind]
-        tc_t = ti[tc_ind]
-        AC = tc_a[1::2] # crest amplitude
-        AT= -tc_a[0::2] # trough  amplitude
-    
-        if (0<= method and method <=2):
-            # time between zero-upcrossing and  crest  [s]
-            tu = ecross(ti, xi, z_ind[1:-1:2],v=0)
-            TFRONT = tc_t[1::2]-tu
-            TFRONT[(TFRONT==0)]=dT # avoiding division by zero
-      
-        if (0 >= method and method>=-2): 
-            # time between  crest and zero-downcrossing [s]
-            td = ecross(ti,xi, z_ind[2::2],v=0)
-            TREAR = td-tc_t[1::2] 
-            TREAR[(TREAR==0)]=dT;  #% avoiding division by zero
-      
-        if  method==0:
-            # max(Vcf, Vcr) and the corresponding wave height Hd or Hu in H
-            HU = AC+AT[1:]
-            HD = AC+AT[:-1]
-            T = np.where(TFRONT<TREAR, TFRONT, TREAR)
-            S = AC/T
-            H = np.where(TFRONT<TREAR, HD, HU)
-           
-        elif method==1: # extracting crest front velocity [m/s] and  
-            # Zero-downcrossing wave height [m]
-            H = AC+AT[:-1] # Hd
-            S = AC/TFRONT
-        elif method== -1: # extracting crest rear velocity [m/s] and  
-            # Zero-upcrossing wave height [m]
-            H =  AC+AT[1:] #Hu  
-            S = AC/TREAR
-        elif method== 2: #crest front steepness in S and the wave height Hd in H.
-            H = AC + AT[:-1] #Hd
-            T = diff(ecross(ti,xi, z_ind[::2],v=0))
-            S = 2*pi*AC/T/TFRONT/g
-        elif method== -2: # crest back steepness in S and the wave height Hu in H.
-            H = AC+AT[1:]
-            T = diff(ecross(ti,xi, z_ind[1::2],v=0))
-            S = 2*pi*AC/T/TREAR/g
-        elif method==3: # total steepness in S and the wave height Hd in H
-            # for zero-doewncrossing waves.
-            H =  AC+AT[:-1]
-            T = diff(ecross(ti,xi , z_ind[::2],v=0))# Period zero-downcrossing waves
-            S = 2*pi*H/T**2/g
-        elif method== -3: # total steepness in S and the wave height Hu in H for
-            # zero-upcrossing waves.
-            H =  AC+AT[1::] 
-            T = diff(ecross(ti, xi, z_ind[1::2],v=0))# Period zero-upcrossing waves
-            S = 2*pi*H/T**2/g 
-         
-        return S, H
 
 
     def _trdata_cdf(self, **options):
@@ -1481,7 +1333,212 @@ class TimeSeries(WafoData):
         mean = self.data.mean()
         sigma = self.data.std()
         return TurningPoints(self.data[ind], t, mean=mean, sigma=sigma)
+    def wave_parameters(self, rate=1):
+        '''
+        Returns several wave parameters from data.
+
+        Parameters
+        ----------
+        rate : scalar integer
+            interpolation rate. Interpolates with spline if greater than one.
+ 
+        Returns
+        -------
+        parameters : dict
+            wave parameters such as
+            Ac, At : Crest and trough amplitude, respectively
+            Tcf, Tcb : Crest front and crest (rear) back period, respectively
+            Hu, Hd : zero-up-crossing and zero-downcrossing wave height, respectively.
+            Tu, Td : zero-up-crossing and zero-downcrossing wave period, respectively.
+           
+        The definition of g, Ac,At, Tcf, etc. are given in gravity and 
+        wafo.definitions. 
+          
+        Example
+        -------
+        >>> import wafo.data as wd
+        >>> import wafo.objects as wo
+        >>> x = wd.sea()
+        >>> ts = wo.mat2timeseries(x)
+        >>> wp = ts.wave_parameters()
+        >>> for name in ['Ac', 'At', 'Hu', 'Hd', 'Tu', 'Td', 'Tcf', 'Tcb']:
+        ...    print('%s' % name, wp[name][:2])
+        ('Ac', array([ 0.25950546,  0.34950546]))
+        ('At', array([ 0.16049454,  0.43049454]))
+        ('Hu', array([ 0.69,  0.86]))
+        ('Hd', array([ 0.42,  0.78]))
+        ('Tu', array([ 6.10295202,  3.36978685]))
+        ('Td', array([ 3.84377468,  6.35707656]))
+        ('Tcf', array([ 0.42656819,  0.57361617]))
+        ('Tcb', array([ 0.93355982,  1.04063638]))
+        
+        >>> import pylab as plt
+        >>> h = plt.plot(wp['Td'],wp['Hd'],'.')
+        >>> h = plt.xlabel('Td [s]')
+        >>> h = plt.ylabel('Hd [m]')
+         
+        
+        See also  
+        --------
+        wafo.definitions
+        '''
+        dT = self.sampling_period() 
+        if rate > 1:
+            dT = dT / rate
+            t0, tn = self.args[0], self.args[-1]
+            n = len(self.args)
+            ti = linspace(t0, tn, int(rate * n))
+            xi = interp1d(self.args , self.data.ravel(), kind='cubic')(ti)  
+            
+        else:
+            ti, xi = self.args, self.data.ravel()
+             
+        tc_ind, z_ind = findtc(xi, v=0, kind='tw')
+        tc_a = xi[tc_ind]
+        tc_t = ti[tc_ind]
+        Ac = tc_a[1::2] # crest amplitude
+        At = -tc_a[0::2] # trough  amplitude
+        Hu = Ac + At[1:]
+        Hd = Ac + At[:-1]
+        tu = ecross(ti, xi, z_ind[1::2], v=0)
+        Tu = diff(tu)# Period zero-upcrossing waves
+        td = ecross(ti, xi , z_ind[::2], v=0)
+        Td = diff(td)# Period zero-downcrossing waves
+        Tcf = tc_t[1::2] - tu[:-1]
+        Tcf[(Tcf == 0)] = dT # avoiding division by zero
+        Tcb = td[1:] - tc_t[1::2] 
+        Tcb[(Tcb == 0)] = dT;  #% avoiding division by zero
+        return dict(Ac=Ac, At=At, Hu=Hu, Hd=Hd, Tu=Tu, Td=Td, Tcf=Tcf, Tcb=Tcb)
+         
+    def wave_height_steepness(self, method=1, rate=1, g=None):
+        '''
+        Returns waveheights and steepnesses from data.
+
+        Parameters
+        ----------
+        rate : scalar integer
+            interpolation rate. Interpolates with spline if greater than one.
+                                  
+        method : scalar integer
+            0 max(Vcf, Vcb) and corresponding wave height Hd or Hu in H
+            1 crest front (rise) speed (Vcf) in S and wave height Hd in H. (default)
+           -1 crest back (fall) speed (Vcb) in S and waveheight Hu in H.
+            2 crest front steepness in S and the wave height Hd in H.
+           -2 crest back steepness in S and the wave height Hu in H.
+            3 total wave steepness in S and the wave height Hd in H
+                for zero-downcrossing waves.
+           -3 total wave steepness in S and the wave height Hu in H.
+                for zero-upcrossing waves.
+        Returns
+        -------
+        S, H = Steepness and the corresponding wave height according to method
+ 
+
+        The parameters are calculated as follows:
+          Crest front speed (velocity) = Vcf = Ac/Tcf
+          Crest back speed  (velocity) = Vcb = Ac/Tcb
+          Crest front steepness  =  2*pi*Ac./Td/Tcf/g
+          Crest back steepness   =  2*pi*Ac./Tu/Tcb/g
+          Total wave steepness (zero-downcrossing wave) =  2*pi*Hd./Td.^2/g
+          Total wave steepness (zero-upcrossing wave)   =  2*pi*Hu./Tu.^2/g
+           
+        The definition of g, Ac,At, Tcf, etc. are given in gravity and 
+        wafo.definitions. 
+          
+        Example
+        -------
+        >>> import wafo.data as wd
+        >>> import wafo.objects as wo
+        >>> x = wd.sea()
+        >>> ts = wo.mat2timeseries(x)
+        >>> for i in xrange(-3,4):
+        ...     S, H = ts.wave_height_steepness(method=i)
+        ...     print(S[:2],H[:2])
+        (array([ 0.01186982,  0.04852534]), array([ 0.69,  0.86]))
+        (array([ 0.02918363,  0.06385979]), array([ 0.69,  0.86]))
+        (array([ 0.27797411,  0.33585743]), array([ 0.69,  0.86]))
+        (array([ 0.60835634,  0.60930197]), array([ 0.42,  0.78]))
+        (array([ 0.60835634,  0.60930197]), array([ 0.42,  0.78]))
+        (array([ 0.10140867,  0.06141156]), array([ 0.42,  0.78]))
+        (array([ 0.01821413,  0.01236672]), array([ 0.42,  0.78]))
+        
+        >>> import pylab as plt
+        >>> h = plt.plot(S,H,'.')
+        >>> h = plt.xlabel('S')
+        >>> h = plt.ylabel('Hd [m]')
+         
+        
+        See also  
+        --------
+        wafo.definitions
+        '''
+  
+        dT = self.sampling_period() 
+        if g is None:
+            g = gravity()  #% acceleration of gravity
+          
+        if rate > 1:
+            dT = dT / rate
+            t0, tn = self.args[0], self.args[-1]
+            n = len(self.args)
+            ti = linspace(t0, tn, int(rate * n))
+            xi = interp1d(self.args , self.data.ravel(), kind='cubic')(ti)  
+            
+        else:
+            ti, xi = self.args, self.data.ravel()
+        
+        tc_ind, z_ind = findtc(xi, v=0, kind='tw')
+        tc_a = xi[tc_ind]
+        tc_t = ti[tc_ind]
+        Ac = tc_a[1::2] # crest amplitude
+        At = -tc_a[0::2] # trough  amplitude
     
+        if (0 <= method and method <= 2):
+            # time between zero-upcrossing and  crest  [s]
+            tu = ecross(ti, xi, z_ind[1:-1:2], v=0)
+            Tcf = tc_t[1::2] - tu
+            Tcf[(Tcf == 0)] = dT # avoiding division by zero
+        if (0 >= method and method >= -2): 
+            # time between  crest and zero-downcrossing [s]
+            td = ecross(ti, xi, z_ind[2::2], v=0)
+            Tcb = td - tc_t[1::2] 
+            Tcb[(Tcb == 0)] = dT;  #% avoiding division by zero
+      
+        if  method == 0:
+            # max(Vcf, Vcr) and the corresponding wave height Hd or Hu in H
+            Hu = Ac + At[1:]
+            Hd = Ac + At[:-1]
+            T = np.where(Tcf < Tcb, Tcf, Tcb)
+            S = Ac / T
+            H = np.where(Tcf < Tcb, Hd, Hu)
+        elif method == 1: # extracting crest front velocity [m/s] and  
+            # Zero-downcrossing wave height [m]
+            H = Ac + At[:-1] # Hd
+            S = Ac / Tcf
+        elif method == -1: # extracting crest rear velocity [m/s] and  
+            # Zero-upcrossing wave height [m]
+            H = Ac + At[1:] #Hu  
+            S = Ac / Tcb
+        elif method == 2: #crest front steepness in S and the wave height Hd in H.
+            H = Ac + At[:-1] #Hd
+            Td = diff(ecross(ti, xi, z_ind[::2], v=0))
+            S = 2 * pi * Ac / Td / Tcf / g
+        elif method == -2: # crest back steepness in S and the wave height Hu in H.
+            H = Ac + At[1:]
+            Tu = diff(ecross(ti, xi, z_ind[1::2], v=0))
+            S = 2 * pi * Ac / Tu / Tcb / g
+        elif method == 3: # total steepness in S and the wave height Hd in H
+            # for zero-doewncrossing waves.
+            H = Ac + At[:-1]
+            Td = diff(ecross(ti, xi , z_ind[::2], v=0))# Period zero-downcrossing waves
+            S = 2 * pi * H / Td ** 2 / g
+        elif method == -3: # total steepness in S and the wave height Hu in H for
+            # zero-upcrossing waves.
+            H = Ac + At[1:] 
+            Tu = diff(ecross(ti, xi, z_ind[1::2], v=0))# Period zero-upcrossing waves
+            S = 2 * pi * H / Tu ** 2 / g 
+         
+        return S, H
     def wave_periods(self, vh=None, pdef='d2d', wdef=None, index=None, rate=1):
         """ 
         Return sequence of wave periods/lengths from data.
@@ -1540,10 +1597,11 @@ class TimeSeries(WafoData):
         Example:
         --------
         Histogram of crest2crest waveperiods
-        >>> import wafo
+        >>> import wafo.data as wd
+        >>> import wafo.objects as wo
         >>> import pylab as plb
-        >>> x = wafo.data.sea()
-        >>> ts = wafo.objects.mat2timeseries(x[0:400,:])
+        >>> x = wd.sea()
+        >>> ts = wo.mat2timeseries(x[0:400,:])
         >>> T, ix = ts.wave_periods(vh=0.0,pdef='c2c')
         >>> h = plb.hist(T)
 
