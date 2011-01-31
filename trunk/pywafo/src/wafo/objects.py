@@ -16,7 +16,7 @@ from __future__ import division
 from wafo.transform.core import TrData
 from wafo.transform.models import TrHermite, TrOchi, TrLinear
 from wafo.stats import edf
-from wafo.misc import (nextpow2, findtp, findtc, findcross,
+from wafo.misc import (nextpow2, findtp, findrfc, findtc, findcross,
                        ecross, JITImport, DotDict, gravity)
 from wafodata import WafoData
 from wafo.interpolate import SmoothSpline
@@ -632,7 +632,50 @@ class TurningPoints(WafoData):
             self.args = ravel(self.args)
         self.data = ravel(self.data)
 
-    def cycle_pairs(self, kind='min2max'):
+    def rainflow_filter(self, h=0.0, method='clib'):
+        ''' 
+        Return rainflow filtered turning points (tp).
+
+        Parameters
+        ----------
+        h  : scalar
+            a threshold
+             if  h<=0, then  tp  is a sequence of turning points (default)
+             if  h>0, then all rainflow cycles with height smaller than
+                      h  are removed.
+
+        Returns
+        -------
+        tp : TurningPoints object
+            with times and turning points.
+
+        Example:
+        >>> import wafo.data
+        >>> x = wafo.data.sea()
+        >>> x1 = x[:200,:]
+        >>> ts1 = mat2timeseries(x1)
+        >>> tp = ts1.turning_points(wavetype='Mw')
+        >>> tph = tp.rainflow_filter(h=0.3)
+        >>> hs = ts1.plot()
+        >>> hp = tp.plot('ro')
+        >>> hph = tph.plot('k.')
+
+        See also
+        ---------
+        findcross,
+        findrfc
+        findtp
+        '''
+        ind = findrfc(self.data, max(h, 0.0), method)
+        try:
+            t = self.args[ind]
+        except:
+            t = ind
+        mean = self.mean()
+        sigma = self.sigma
+        return TurningPoints(self.data[ind], t, mean=mean, sigma=sigma)
+    
+    def cycle_pairs(self, h=0, kind='min2max', method='clib'):
         """ Return min2Max or Max2min cycle pairs from turning points
 
         Parameters
@@ -660,7 +703,12 @@ class TurningPoints(WafoData):
         TurningPoints
         SurvivalCycleCount
         """
-        if self.data[0] > self.data[1]:
+        if h>0:
+            ind = findrfc(self.data, h, method=method)
+            data = self.data(ind)
+        else:
+            data = self.data
+        if data[0] > data[1]:
             im = 1
             iM = 0
         else:
@@ -670,12 +718,12 @@ class TurningPoints(WafoData):
         # Extract min-max and max-min cycle pairs
         #n = len(self.data)
         if kind.lower().startswith('min2max'):
-            m = self.data[im:-1:2]
-            M = self.data[im + 1::2]
+            m = data[im:-1:2]
+            M = data[im + 1::2]
         else:
             kind = 'max2min'
-            M = self.data[iM:-1:2]
-            m = self.data[iM + 1::2]
+            M = data[iM:-1:2]
+            m = data[iM + 1::2]
         return CyclePairs(M, m, kind=kind, mean=self.mean, sigma=self.sigma)
 
 def mat2timeseries(x):
