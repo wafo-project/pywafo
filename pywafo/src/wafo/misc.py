@@ -1,12 +1,12 @@
 '''
-Misc lsdkfalsdflasdfl
+Misc 
 '''
 from __future__ import division
 
 import sys
 import fractions
 import numpy as np
-from numpy import (abs, amax, any, logical_and, arange, linspace, atleast_1d,
+from numpy import (abs, amax, any, logical_and, arange, linspace, atleast_1d,atleast_2d,
                    array, asarray, broadcast_arrays, ceil, floor, frexp, hypot,
                    sqrt, arctan2, sin, cos, exp, log, mod, diff, empty_like,
                    finfo, inf, pi, interp, isnan, isscalar, zeros, ones,
@@ -15,6 +15,7 @@ from scipy.special import gammaln
 import types
 import warnings
 from wafo import plotbackend
+
 
 try:
     import wafo.c_library as clib
@@ -30,6 +31,7 @@ __all__ = ['is_numlike','JITImport', 'DotDict', 'Bunch', 'printf', 'sub_dict_sel
     'stirlerr', 'getshipchar', 'betaloge', 'gravity', 'nextpow2',
     'discretize', 'discretize2', 'pol2cart', 'cart2pol',  'meshgrid', 'ndgrid', 
     'trangood', 'tranproc', 'histgrm', 'num2pistr']
+
 
 def is_numlike(obj):
     'return true if *obj* looks like a number'
@@ -2038,6 +2040,173 @@ def num2pistr(x, n=3):
         format = '%0.' +'%dg' % n
         xtxt = format % x
     return xtxt     
+
+def fourier(x,t,T=None,M=None,N=None, method='trapz'):
+    '''
+    Returns Fourier coefficients.
+    
+      CALL:  [a,b] = fourier(t,x,T,M);
+    
+        
+    Parameters
+    ----------
+    x : array-like
+        vector or matrix of row vectors with data points shape p x n.
+    t : array-like
+        vector with n values indexed from 1 to N.
+    T : real scalar
+        primitive period of signal, i.e., smallest period. (default T = t[-1]-t[0] 
+    M : scalar integer
+        defines no of harmonics desired (default M = N)
+    N : scalar integer 
+        no of data points (default len(t))
+    
+    Returns
+    -------
+    a,b  = Fourier coefficients size M x P
+    
+    FOURIER finds the coefficients for a Fourier series representation
+    of the signal x(t) (given in digital form).  It is assumed the signal
+    is periodic over T.  N is the number of data points, and M-1 is the
+    number of coefficients.
+    
+    The signal can be estimated by using M-1 harmonics by:
+                        M-1
+     x[i] = 0.5*a[0] + sum (a[n]*c[n,i] + b[n]*s[n,i])
+                       n=1
+    where
+       c[n,i] = cos(2*pi*(n-1)*t[i]/T)
+       s[n,i] = sin(2*pi*(n-1)*t[i]/T)
+    
+    Note that a[0] is the "dc value".
+    Remaining values are a[1], a[2], ... , a[M-1].
+     
+    Example
+    -------
+    >>> t = linspace(0,4*T) 
+    >>> x = sin(t);
+    >>> a, b = fourier(t, x, T=2*pi, M=5)
+    
+    See also
+    --------
+    fft
+    '''
+    x = np.atleast_2d(x)
+    p, n = x.shape
+    if t is None:
+        t = np.arange(n)
+    else:
+        t = np.atleast_1d(t)
+    
+    n = len(t) if n is None else n
+    m = n if n is none else m
+    T = t[-1]-t[0] if T is None else T
+    
+     
+    
+#    switch 0
+#      case -1,
+#           % Define the vectors for computing the Fourier coefficients
+#      %
+#      a = zeros(M,P);
+#      b = zeros(M,P);
+#      a(1,:) = simpson(x);
+#    
+#      %
+#      % Compute M-1 more coefficients
+#      tmp  = 2*pi*t(:,ones(1,P))/T;
+#      % tmp =  2*pi*(0:N-1).'/(N-1); 
+#      for n1 = 1:M-1,
+#        n = n1+1;
+#        a(n,:) = simpson(x.*cos(n1*tmp));
+#        b(n,:) = simpson(x.*sin(n1*tmp));
+#      end
+#      
+#      a = 2*a/N;
+#      b = 2*b/N;
+#      
+#      case 0,
+#         %
+#      a = zeros(M,P);
+#      b = zeros(M,P);
+#      a(1,:) = trapz(t,x);
+#    
+#      %
+#      % Compute M-1 more coefficients
+#      tmp  = 2*pi*t(:,ones(1,P))/T;
+#      % tmp =  2*pi*(0:N-1).'/(N-1); 
+#      for n1 = 1:M-1,
+#        n = n1+1;
+#        a(n,:) = trapz(t,x.*cos(n1*tmp));
+#        b(n,:) = trapz(t,x.*sin(n1*tmp));
+#      end
+#      a = a/pi;
+#      b = b/pi;
+#      
+#      case 1,
+#      % Define the vectors for computing the Fourier coefficients
+#      %
+#      a = zeros(M,P);
+#      b = zeros(M,P);
+#      
+#      %
+#      % Compute the dc-level (the a(0) component).
+#      %
+#      % Note: the index has to begin with "1".
+#      %
+#      
+#      a(1,:) = sum(x);
+#    
+#      %
+#      % Compute M-1 more coefficients
+#      tmp  = 2*pi*t(:,ones(1,P))/T;
+#      % tmp =  2*pi*(0:N-1).'/(N-1); 
+#      for n1 = 1:M-1,
+#        n = n1+1;
+#        a(n,:) = sum(x.*cos(n1*tmp));
+#        b(n,:) = sum(x.*sin(n1*tmp));
+#      end
+#      a = 2*a/N;
+#      b = 2*b/N;
+#    case 2,
+#       % Define the vectors for computing the Fourier coefficients
+#      %
+#      a = zeros(M,P);
+#      b = zeros(M,P);
+#      a(1,:) = trapz(x);
+#    
+#      %
+#      % Compute M-1 more coefficients
+#      tmp  = 2*pi*t(:,ones(1,P))/T;
+#      % tmp =  2*pi*(0:N-1).'/(N-1); 
+#      for n1 = 1:M-1,
+#        n = n1+1;
+#        a(n,:) = trapz(x.*cos(n1*tmp));
+#        b(n,:) = trapz(x.*sin(n1*tmp));
+#      end
+#      
+#      a = 2*a/N;
+#      b = 2*b/N;
+#    case 3
+#      % Alternative:  faster for large M, but gives different results than above.
+#      nper = diff(t([1 end]))/T; %No of periods given
+#      if nper == round(nper), 
+#        N1 = N/nper;
+#      else
+#        N1 = N;
+#      end
+#    
+#      % Fourier coefficients by fft
+#      Fcof1 = 2*ifft(x(1:N1,:),[],1);
+#      Pcor = [1; exp(sqrt(-1)*(1:M-1).'*t(1))]; % correction term to get
+#                                                  % the correct integration limits
+#      Fcof = Fcof1(1:M,:).*Pcor(:,ones(1,P));
+#      a = real(Fcof(1:M,:));
+#      b = imag(Fcof(1:M,:));
+#    end
+#    return
+
+ 
 
 def _test_find_cross():
     t = findcross([0, 0, 1, -1, 1], 0)
