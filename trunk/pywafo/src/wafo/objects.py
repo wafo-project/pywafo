@@ -100,7 +100,8 @@ class LevelCrossings(WafoData):
                 logcmin = logcros[icmax]
                 logcros = sqrt(2 * abs(logcros - logcmin))
                 logcros[0:icmax + 1] = 2 * logcros[icmax] - logcros[0:icmax + 1]
-                p = polyfit(self.args[10:-9], logcros[10:-9], 1) #least square fit
+                ncr = 10
+                p = polyfit(self.args[ncr:-ncr], logcros[ncr:-ncr], 1) #least square fit
                 if self.sigma is None:
                     self.sigma = 1.0 / p[0] #estimated standard deviation of x
                 if self.mean is None:
@@ -449,9 +450,10 @@ class CyclePairs(WafoData):
     >>> h1 = mm.plot(marker='x')
     '''
     def __init__(self, *args, **kwds):
-        self.kind = kwds.pop('kind', 'max2min')
+        self.kind = kwds.pop('kind', 'min2max')
         self.sigma = kwds.pop('sigma', None)
         self.mean = kwds.pop('mean', None)
+        self.time = kwds.pop('time', 1)
         
         options = dict(title=self.kind + ' cycle pairs',
                             xlab='min', ylab='max',
@@ -505,8 +507,8 @@ class CyclePairs(WafoData):
         amp = abs(self.amplitudes())
         return atleast_1d([K * np.sum(amp ** betai) for betai in beta])
 
-    def level_crossings(self, kind='uM'):
-        """ Return number of upcrossings from a cycle count.
+    def level_crossings(self, kind='uM', intensity=False):
+        """ Return level crossing spectrum from a cycle count.
 
         Parameters
         ----------
@@ -516,6 +518,9 @@ class CyclePairs(WafoData):
             1,'uM' : upcrossings and maxima (default).
             2,'umM': upcrossings, minima, and maxima.
             3,'um' : upcrossings and minima.
+        intensity : bool
+            True if level crossing intensity spectrum
+            False if level crossing count spectrum
         Return
         ------
         lc : level crossing object
@@ -594,7 +599,11 @@ class CyclePairs(WafoData):
             dcount = cumsum(extr[1, 0:nx]) - extr[3, 0:nx]
         elif defnr == 3: ## This are upcrossings + minima + maxima
             dcount = cumsum(extr[1, 0:nx]) + extr[2, 0:nx]
-        return LevelCrossings(dcount, levels, mean=self.mean, sigma=self.sigma)
+        ylab='Count'
+        if intensity:
+            dcount = dcount/self.time
+            ylab = 'Intensity [count/sec]'
+        return LevelCrossings(dcount, levels, mean=self.mean, sigma=self.sigma, ylab=ylab)
 
 class TurningPoints(WafoData):
     '''
@@ -705,7 +714,7 @@ class TurningPoints(WafoData):
         """
         if h>0:
             ind = findrfc(self.data, h, method=method)
-            data = self.data(ind)
+            data = self.data[ind]
         else:
             data = self.data
         if data[0] > data[1]:
@@ -724,7 +733,8 @@ class TurningPoints(WafoData):
             kind = 'max2min'
             M = data[iM:-1:2]
             m = data[iM + 1::2]
-        return CyclePairs(M, m, kind=kind, mean=self.mean, sigma=self.sigma)
+        time = self.args[-1]-self.args[0]
+        return CyclePairs(M, m, kind=kind, mean=self.mean, sigma=self.sigma, time=time)
 
 def mat2timeseries(x):
     """
