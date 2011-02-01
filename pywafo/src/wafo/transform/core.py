@@ -166,19 +166,17 @@ class TrData(WafoData, TrCommon):
     >>> g.dist2gauss() < 1e-16
     True
     """
-    def __init__(self, *args, **kwds):
-        self.ymean = kwds.pop('ymean', 0e0)
-        self.ysigma = kwds.pop('ysigma', 1e0)
-        self.mean = kwds.pop('mean', None)
-        self.sigma = kwds.pop('sigma', None)
-        
+    def __init__(self, *args, **kwds): 
         options = dict(title='Transform',
                             xlab='x', ylab='g(x)',
                             plot_args=['r'],
                             plot_args_children=['g--'],)
         options.update(**kwds)
         super(TrData, self).__init__(*args, **options)
-        
+        self.ymean = kwds.get('ymean', 0e0)
+        self.ysigma = kwds.get('ysigma', 1e0)
+        self.mean = kwds.get('mean', None)
+        self.sigma = kwds.get('sigma', None)
         
         if self.mean is None: 
             #self.mean = np.mean(self.args) # 

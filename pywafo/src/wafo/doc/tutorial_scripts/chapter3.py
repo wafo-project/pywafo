@@ -45,49 +45,51 @@ show()
 #! Extreme waves - model check: the highest and steepest wave
 #!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 clf()
-method = 0;
-rate = 8;
-[S, H, Ac, At, Tcf, Tcb, z_ind, yn] = ...
-   dat2steep(xx,rate,method);
-disp('Block = 4'), pause(pstate)
+S, H = ts.wave_height_steepness(method=0)
+indS = S.argmax()
+indH = H.argmax()
+ts.plot_sp_wave([indH, indS],'k.')
+show()
 
-clf
-[Smax indS]=max(S)
-[Amax indA]=max(Ac)
-spwaveplot(yn,[indA indS],'k.')
-wafostamp([],'(ER)')
-disp('Block = 5'), pause(pstate)
+#! Does the highest wave contradict a transformed Gaussian model?
+#!----------------------------------------------------------------
 
-#!#! Does the highest wave contradict a transformed Gaussian model?
-clf
-inds1 = (5965:5974)'; #! points to remove
-Nsim = 10;
-[y1, grec1, g2, test, tobs, mu1o, mu1oStd] = ...
-   reconstruct(xx,inds1,Nsim);
-spwaveplot(y1,indA-10)
-hold on
-plot(xx(inds1,1),xx(inds1,2),'+')
-lamb = 2.;
-muLstd = tranproc(mu1o-lamb*mu1oStd,fliplr(grec1));
-muUstd = tranproc(mu1o+lamb*mu1oStd,fliplr(grec1));
-plot (y1(inds1,1), [muLstd muUstd],'b-')
-axis([1482 1498 -1 3]), 
-wafostamp([],'(ER)')
-disp('Block = 6'), 
-pause(pstate)
+# TODO: Fix this
 
-#!#! Expected value (solid) compared to data removed
-clf
-plot(xx(inds1,1),xx(inds1,2),'+'), hold on
-mu = tranproc(mu1o,fliplr(grec1));
-plot(y1(inds1,1), mu), hold off
-disp('Block = 7'), pause(pstate)
+#clf
+#inds1 = (5965:5974)'; #! points to remove
+#Nsim = 10;
+#[y1, grec1, g2, test, tobs, mu1o, mu1oStd] = ...
+#   reconstruct(xx,inds1,Nsim);
+#spwaveplot(y1,indA-10)
+#hold on
+#plot(xx(inds1,1),xx(inds1,2),'+')
+#lamb = 2.;
+#muLstd = tranproc(mu1o-lamb*mu1oStd,fliplr(grec1));
+#muUstd = tranproc(mu1o+lamb*mu1oStd,fliplr(grec1));
+#plot (y1(inds1,1), [muLstd muUstd],'b-')
+#axis([1482 1498 -1 3]), 
+#wafostamp([],'(ER)')
+#disp('Block = 6'), 
+#pause(pstate)
+#
+##!#! Expected value (solid) compared to data removed
+#clf
+#plot(xx(inds1,1),xx(inds1,2),'+'), hold on
+#mu = tranproc(mu1o,fliplr(grec1));
+#plot(y1(inds1,1), mu), hold off
+#disp('Block = 7'), pause(pstate)
 
-#!#! Crest height PDF
+#! Crest height PDF
+#!------------------
 #! Transform data so that kde works better
-clf
+clf()
+wave_data = ts.wave_parameters()
+Ac = wave_data['Ac']
 L2 = 0.6;
-plotnorm(Ac.^L2)
+import pylab
+ws.probplot(Ac**L2, dist='norm', plot=pylab)
+show()
 
 #!#!
 #!
