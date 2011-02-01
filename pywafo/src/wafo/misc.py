@@ -12,6 +12,7 @@ from numpy import (abs, amax, any, logical_and, arange, linspace, atleast_1d,atl
                    finfo, inf, pi, interp, isnan, isscalar, zeros, ones,
                    r_, sign, unique, hstack, vstack, nonzero, where, extract)
 from scipy.special import gammaln
+from scipy.integrate import trapz, simps
 import types
 import warnings
 from wafo import plotbackend
@@ -30,7 +31,7 @@ __all__ = ['is_numlike','JITImport', 'DotDict', 'Bunch', 'printf', 'sub_dict_sel
     'findoutliers', 'common_shape', 'argsreduce',
     'stirlerr', 'getshipchar', 'betaloge', 'gravity', 'nextpow2',
     'discretize', 'discretize2', 'pol2cart', 'cart2pol',  'meshgrid', 'ndgrid', 
-    'trangood', 'tranproc', 'histgrm', 'num2pistr']
+    'trangood', 'tranproc', 'plot_histgrm', 'num2pistr']
 
 
 def is_numlike(obj):
@@ -59,7 +60,7 @@ class JITImport(object):
         except:
             if self._module is None:
                 self._module = __import__(self._module_name, None, None, ['*'])
-                assert(isinstance(self._module, types.ModuleType), 'module')
+                #assert(isinstance(self._module, types.ModuleType), 'module')
                 return getattr(self._module, attr)
             else:
                 raise
@@ -1942,44 +1943,46 @@ def tranproc(x, f, x0, *xi):
                     if N > 4:
                         warnings.warn('Transformation of derivatives of order>4 not supported.')
     return y #y0,y1,y2,y3,y4
-
-def histgrm(data, n=None, odd=False, scale=False, lintype='b-'):
-    '''
-    Plot histogram
-             
+def good_bins(data=None, range=None, num_bins=None, num_data=None, odd=False, loose=True):
+    ''' Return good bins for histogram
+    
     Parameters
-    -----------
+    ----------
     data : array-like
         the data
-    n : scalar integer
-        approximate number of bins wanted  (default depending on length(data))  
+    range : (float, float)
+        minimum and maximum range of bins (default data.min(), data.max())
+    num_bins : scalar integer
+        approximate number of bins wanted  (default depending on num_data=len(data))  
     odd : bool
         placement of bins (0 or 1) (default 0)
-    scale : bool
-        argument for scaling (default 0)
-        scale = 1 yields the area 1 under the histogram
-    lintype : specify color and lintype, see PLOT for possibilities.
-    
-    Returns
+    loose : bool
+        if True add extra space to min and max
+        if False the bins are made tight to the min and max
+        
+    Example
     -------
-    binwidth = the width of each bin
-    
-     Example:
-       R=rndgumb(2,2,1,100);
-       histgrm(R,20,0,1)
-       hold on
-       x=linspace(-3,16,200);
-       plot(x,pdfgumb(x,2,2),'r')
-       hold off
+    >>> import wafo.misc as wm
+    >>> wm.good_bins(range=(0,5), num_bins=6)
+    array([-1.,  0.,  1.,  2.,  3.,  4.,  5.,  6.])
+    >>> wm.good_bins(range=(0,5), num_bins=6, loose=False)
+    array([ 0.,  1.,  2.,  3.,  4.,  5.])
+    >>> wm.good_bins(range=(0,5), num_bins=6, odd=True)
+    array([-1.5, -0.5,  0.5,  1.5,  2.5,  3.5,  4.5,  5.5,  6.5])
+    >>> wm.good_bins(range=(0,5), num_bins=6, odd=True, loose=False)
+    array([-0.5,  0.5,  1.5,  2.5,  3.5,  4.5,  5.5])
     '''
     
-    x = np.atleast_1d(data)
-    if n is None:
-        n = np.ceil(4 * np.sqrt(np.sqrt(len(x))))
+    if data:
+        x = np.atleast_1d(data)
+        num_data = len(x)
     
-    mn = x.min()
-    mx = x.max()
-    d = (mx - mn) / n * 2
+    mn, mx = range if range else (x.min(), x.max()) 
+    
+    if num_bins is None:
+        num_bins = np.ceil(4 * np.sqrt(np.sqrt(num_data)))
+    
+    d = float(mx - mn) / num_bins * 2
     e = np.floor(np.log(d) / np.log(10));
     m = np.floor(d / 10 ** e)
     if m > 5:
@@ -1988,11 +1991,65 @@ def histgrm(data, n=None, odd=False, scale=False, lintype='b-'):
         m = 2
     
     d = m * 10 ** e
-    mn = (np.floor(mn / d) - 1) * d - odd * d / 2
-    mx = (np.ceil(mx / d) + 1) * d + odd * d / 2
-    limits = np.arange(mn, mx, d)
+    mn = (np.floor(mn / d) - loose) * d - odd * d / 2
+    mx = (np.ceil(mx / d) + loose) * d + odd * d / 2
+    limits = np.arange(mn, mx+d/2, d)
+    return limits
+
+def plot_histgrm(data, bins=None, range=None, normed=False, weights=None, lintype='b-'):
+    '''
+    Plot histogram
+             
+    Parameters
+    -----------
+    data : array-like
+        the data
+    bins : int or sequence of scalars, optional
+        If an int, it defines the number of equal-width
+        bins in the given range (4 * sqrt(sqrt(len(data)), by default). 
+        If a sequence, it defines the bin edges, including the 
+        rightmost edge, allowing for non-uniform bin widths.
+    range : (float, float), optional
+        The lower and upper range of the bins.  If not provided, range
+        is simply ``(data.min(), data.max())``.  Values outside the range are
+        ignored.
+    normed : bool, optional
+        If False, the result will contain the number of samples in each bin.  
+        If True, the result is the value of the probability *density* function 
+        at the bin, normalized such that the *integral* over the range is 1. 
+    weights : array_like, optional
+        An array of weights, of the same shape as `data`.  Each value in `data`
+        only contributes its associated weight towards the bin count
+        (instead of 1).  If `normed` is True, the weights are normalized,
+        so that the integral of the density over the range remains 1
+    lintype : specify color and lintype, see PLOT for possibilities.
     
-    bin, limits = np.histogram(data, bins=limits, normed=scale) #, new=True)
+    Returns
+    -------
+    h : list
+        of plot-objects 
+    
+    Example
+    -------
+    >>> import pylab as plb
+    >>> import wafo.misc as wm
+    >>> import wafo.stats as ws
+    >>> R = ws.weibull_min.rvs(2,loc=0,scale=2, size=100)
+    >>> h0 = wm.plot_histgrm(R, 20, normed=True)
+    >>> x = linspace(-3,16,200)
+    >>> h1 = plb.plot(x,ws.weibull_min.pdf(x,2,0,2),'r')
+            
+    See also
+    --------
+    wafo.misc.good_bins
+    numpy.histogram
+    '''
+    
+    x = np.atleast_1d(data)
+    if bins is None:
+        bins = np.ceil(4 * np.sqrt(np.sqrt(len(x))))
+     
+    bin, limits = np.histogram(data, bins=bins, normed=normed, weights=weights) #, new=True)
     limits.shape = (-1, 1)
     xx = limits.repeat(3, axis=1)
     xx.shape = (-1,)
@@ -2003,10 +2060,8 @@ def histgrm(data, n=None, odd=False, scale=False, lintype='b-'):
     yy[:, 0] = 0.0 # histogram
     yy.shape = (-1,)
     yy = np.hstack((yy, 0.0))
-    plotbackend.plotbackend.plot(xx, yy, lintype, limits, limits * 0)
-    binwidth = d
-    return binwidth
-
+    return plotbackend.plotbackend.plot(xx, yy, lintype, limits, limits * 0)
+     
 def num2pistr(x, n=3):
     ''' 
     Convert a scalar to a text string in fractions of pi
@@ -2041,29 +2096,28 @@ def num2pistr(x, n=3):
         xtxt = format % x
     return xtxt     
 
-def fourier(x,t,T=None,M=None,N=None, method='trapz'):
+def fourier(data,t=None,T=None,m=None,n=None, method='trapz'):
     '''
     Returns Fourier coefficients.
-    
-      CALL:  [a,b] = fourier(t,x,T,M);
-    
-        
+ 
     Parameters
     ----------
-    x : array-like
+    data : array-like
         vector or matrix of row vectors with data points shape p x n.
     t : array-like
         vector with n values indexed from 1 to N.
     T : real scalar
         primitive period of signal, i.e., smallest period. (default T = t[-1]-t[0] 
-    M : scalar integer
+    m : scalar integer
         defines no of harmonics desired (default M = N)
-    N : scalar integer 
+    n : scalar integer 
         no of data points (default len(t))
+    method : string
+        integration method used
     
     Returns
     -------
-    a,b  = Fourier coefficients size M x P
+    a,b  = Fourier coefficients size m x p
     
     FOURIER finds the coefficients for a Fourier series representation
     of the signal x(t) (given in digital form).  It is assumed the signal
@@ -2083,15 +2137,20 @@ def fourier(x,t,T=None,M=None,N=None, method='trapz'):
      
     Example
     -------
-    >>> t = linspace(0,4*T) 
-    >>> x = sin(t);
-    >>> a, b = fourier(t, x, T=2*pi, M=5)
+    >>> import wafo.misc as wm
+    >>> import numpy as np 
+    >>> T = 2*np.pi
+    >>> t = np.linspace(0,4*T) 
+    >>> x = np.sin(t)
+    >>> a, b = wm.fourier(x, t, T=T, m=5)
+    >>> (np.round(a.ravel()), np.round(b.ravel()))
+    (array([ 0., -0.,  0., -0.,  0.]), array([ 0.,  4., -0., -0.,  0.]))
     
     See also
     --------
     fft
     '''
-    x = np.atleast_2d(x)
+    x = np.atleast_2d(data)
     p, n = x.shape
     if t is None:
         t = np.arange(n)
@@ -2099,112 +2158,48 @@ def fourier(x,t,T=None,M=None,N=None, method='trapz'):
         t = np.atleast_1d(t)
     
     n = len(t) if n is None else n
-    m = n if n is none else m
+    m = n if n is None else m
     T = t[-1]-t[0] if T is None else T
     
+    if method.startswith('trapz'):
+        intfun = trapz     
+    elif method.startswith('simp'):
+        intfun = simps
+
+    # Define the vectors for computing the Fourier coefficients
+    t.shape = (1,-1) 
+    a = zeros((m,p))
+    b = zeros((m,p))
+    a[0] = intfun(x,t, axis=-1)
      
-    
-#    switch 0
-#      case -1,
-#           % Define the vectors for computing the Fourier coefficients
-#      %
-#      a = zeros(M,P);
-#      b = zeros(M,P);
-#      a(1,:) = simpson(x);
+    # Compute M-1 more coefficients
+    tmp  = 2*pi*t/T
+    #% tmp =  2*pi*(0:N-1).'/(N-1); 
+    for i in range(1,m):
+        a[i] = intfun(x*cos(i*tmp),t, axis=-1)
+        b[i] = intfun(x*sin(i*tmp),t, axis=-1)
+      
+    a = a/pi
+    b = b/pi
+     
+    # Alternative:  faster for large M, but gives different results than above.
+#    nper = diff(t([1 end]))/T; %No of periods given
+#    if nper == round(nper):
+#        N1 = n/nper
+#    else:
+#        N1 = n
+#      
+#
 #    
-#      %
-#      % Compute M-1 more coefficients
-#      tmp  = 2*pi*t(:,ones(1,P))/T;
-#      % tmp =  2*pi*(0:N-1).'/(N-1); 
-#      for n1 = 1:M-1,
-#        n = n1+1;
-#        a(n,:) = simpson(x.*cos(n1*tmp));
-#        b(n,:) = simpson(x.*sin(n1*tmp));
-#      end
-#      
-#      a = 2*a/N;
-#      b = 2*b/N;
-#      
-#      case 0,
-#         %
-#      a = zeros(M,P);
-#      b = zeros(M,P);
-#      a(1,:) = trapz(t,x);
-#    
-#      %
-#      % Compute M-1 more coefficients
-#      tmp  = 2*pi*t(:,ones(1,P))/T;
-#      % tmp =  2*pi*(0:N-1).'/(N-1); 
-#      for n1 = 1:M-1,
-#        n = n1+1;
-#        a(n,:) = trapz(t,x.*cos(n1*tmp));
-#        b(n,:) = trapz(t,x.*sin(n1*tmp));
-#      end
-#      a = a/pi;
-#      b = b/pi;
-#      
-#      case 1,
-#      % Define the vectors for computing the Fourier coefficients
-#      %
-#      a = zeros(M,P);
-#      b = zeros(M,P);
-#      
-#      %
-#      % Compute the dc-level (the a(0) component).
-#      %
-#      % Note: the index has to begin with "1".
-#      %
-#      
-#      a(1,:) = sum(x);
-#    
-#      %
-#      % Compute M-1 more coefficients
-#      tmp  = 2*pi*t(:,ones(1,P))/T;
-#      % tmp =  2*pi*(0:N-1).'/(N-1); 
-#      for n1 = 1:M-1,
-#        n = n1+1;
-#        a(n,:) = sum(x.*cos(n1*tmp));
-#        b(n,:) = sum(x.*sin(n1*tmp));
-#      end
-#      a = 2*a/N;
-#      b = 2*b/N;
-#    case 2,
-#       % Define the vectors for computing the Fourier coefficients
-#      %
-#      a = zeros(M,P);
-#      b = zeros(M,P);
-#      a(1,:) = trapz(x);
-#    
-#      %
-#      % Compute M-1 more coefficients
-#      tmp  = 2*pi*t(:,ones(1,P))/T;
-#      % tmp =  2*pi*(0:N-1).'/(N-1); 
-#      for n1 = 1:M-1,
-#        n = n1+1;
-#        a(n,:) = trapz(x.*cos(n1*tmp));
-#        b(n,:) = trapz(x.*sin(n1*tmp));
-#      end
-#      
-#      a = 2*a/N;
-#      b = 2*b/N;
-#    case 3
-#      % Alternative:  faster for large M, but gives different results than above.
-#      nper = diff(t([1 end]))/T; %No of periods given
-#      if nper == round(nper), 
-#        N1 = N/nper;
-#      else
-#        N1 = N;
-#      end
-#    
-#      % Fourier coefficients by fft
-#      Fcof1 = 2*ifft(x(1:N1,:),[],1);
-#      Pcor = [1; exp(sqrt(-1)*(1:M-1).'*t(1))]; % correction term to get
+#    # Fourier coefficients by fft
+#    Fcof1 = 2*ifft(x(1:N1,:),[],1);
+#    Pcor = [1; exp(sqrt(-1)*(1:M-1).'*t(1))]; % correction term to get
 #                                                  % the correct integration limits
-#      Fcof = Fcof1(1:M,:).*Pcor(:,ones(1,P));
-#      a = real(Fcof(1:M,:));
-#      b = imag(Fcof(1:M,:));
-#    end
-#    return
+#    Fcof = Fcof1(1:M,:).*Pcor(:,ones(1,P));
+#    a = real(Fcof(1:M,:));
+#    b = imag(Fcof(1:M,:));
+    
+    return a, b
 
  
 

@@ -37,7 +37,7 @@ t = linspace(0.01,8,200);
 ftc = wk.TKDE(Tc, L2=0, inc=128)
 
 plot(t,ftc.eval_grid(t), t, ftc.eval_grid_fast(t),'-.') 
-wm.histgrm(Tc,scale=True)
+wm.plot_histgrm(Tc,normed=True)
 title('Kernel Density Estimates')
 axis([0, 8, 0, 0.5])
 show() 
