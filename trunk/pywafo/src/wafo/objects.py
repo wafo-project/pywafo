@@ -63,7 +63,7 @@ class LevelCrossings(WafoData):
     Member variables
     ----------------
     data : array-like
-        number of upcrossings
+        number of upcrossings or upcrossingintensity
     args : array-like
         crossing levels
         
@@ -1858,7 +1858,7 @@ class TimeSeries(WafoData):
         plot = plotbackend.plot
         subplot = plotbackend.subplot
         figs = []
-        for iz in xrange(nfig):
+        for unused_iz in xrange(nfig):
             figs.append(plotbackend.figure())
             plotbackend.title('Surface elevation from mean water level (MWL).')
             for ix in xrange(nsub):
@@ -1883,10 +1883,12 @@ class TimeSeries(WafoData):
         return figs
         
 
-    def plot_sp_wave(self, wave_idx_, tz_idx=None, *args, **kwds):
+    def plot_sp_wave(self, wave_idx_, *args, **kwds):
         """
         Plot specified wave(s) from timeseries
-
+        
+        Parameters
+        ----------
         wave_idx : integer vector
             of indices to waves we want to plot, i.e., wave numbers.
         tz_idx : integer vector
@@ -1907,8 +1909,9 @@ class TimeSeries(WafoData):
         plot_wave, findtc
         """
         wave_idx = atleast_1d(wave_idx_).flatten()
+        tz_idx = kwds.pop('tz_idx', None)
         if tz_idx is None:
-            tc_ind, tz_idx = findtc(self.data, 0, 'tw') # finding trough to trough waves
+            unused_tc_ind, tz_idx = findtc(self.data, 0, 'tw') # finding trough to trough waves
 
         dw = nonzero(abs(diff(wave_idx)) > 1)[0]
         Nsub = dw.size + 1
@@ -1932,7 +1935,7 @@ class TimeSeries(WafoData):
         Nfig = int(ceil(Nsub / 6))
         Nsub = min(6, int(ceil(Nsub / Nfig)))
         figs = []
-        for iy in range(Nfig):
+        for unused_iy in range(Nfig):
             figs.append(plotbackend.figure())
             for ix in range(Nsub):
                 plotbackend.subplot(Nsub, 1, mod(ix, Nsub) + 1)

@@ -65,10 +65,10 @@ mM_rfc = tp.cycle_pairs(h=0.3)
 clf()
 subplot(122), 
 mM.plot() 
-title('min-max cycle count')
+title('min-max cycle pairs')
 subplot(121), 
 mM_rfc.plot()
-title('Rainflow cycle count')
+title('Rainflow filtered cycles')
 show()
 
 #! Min-max and rainflow cycle distributions

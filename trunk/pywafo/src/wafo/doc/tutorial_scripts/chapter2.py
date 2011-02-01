@@ -171,9 +171,9 @@ show()
 #! Test Gaussianity of a stochastic process
 #!------------------------------------------
 #! TESTGAUSSIAN simulates  e(g(u)-u) = int (g(u)-u)^2 du  for Gaussian processes 
-#!  given the spectral density, S. The result is plotted if test0 is given.
-#!  This is useful for testing if the process X(t) is Gaussian.
-#!  If 95% of TEST1 is less than TEST0 then X(t) is not Gaussian at a 5% level.
+#! given the spectral density, S. The result is plotted if test0 is given.
+#! This is useful for testing if the process X(t) is Gaussian.
+#! If 95% of TEST1 is less than TEST0 then X(t) is not Gaussian at a 5% level.
 #! 
 #! As we see from the figure below: none of the simulated values of test1 is 
 #! above 1.00. Thus the data significantly departs from a Gaussian distribution. 
@@ -182,7 +182,7 @@ test0 = glc.dist2gauss()
 #! the following test takes time
 N = len(xx)
 test1 = S1.testgaussian(ns=N, cases=50, test0=test0)
-is_gaussian = sum(test1 > test0) < 5 
+is_gaussian = sum(test1 > test0) > 5 
 print(is_gaussian)
 show()
 
@@ -295,49 +295,31 @@ show()
 ##!wafostamp('','(CR)')
 #disp('Block = 24'),pause(pstate)
 # 
-##!#! Estimated spectrum compared to Torsethaugen spectrum
-#clf
-#Tp = 1.1;
-#H0 = 4*sqrt(spec2mom(S1,1))
-#St = torsethaugen([0:0.01:5],[H0  2*pi/Tp]);
-#plotspec(S1)
-#hold on
-#plotspec(St,'-.')
-#axis([0 6 0 0.4])
-##!wafostamp('','(ER)')
-#disp('Block = 25'),pause(pstate)
-#
-##!#!
-#clf
-#Snorm = St;
-#Snorm.S = Snorm.S/sa^2;
-#dt = spec2dt(Snorm)
-#disp('Block = 26'),pause(pstate)
-#
-##!#!
-#clf
-#[Sk Su] = spec2skew(St);
-#sa = sqrt(spec2mom(St,1));
-#gh = hermitetr([],[sa sk ku me]);
-#Snorm.tr = gh;
-#disp('Block = 27'),pause(pstate)
-#
-##!#! Transformed Gaussian model compared to Gaussian model
-#clf
-#dt = 0.5;
-#ysim_t = spec2sdat(Snorm,240,dt);
-#xsim_t = dat2gaus(ysim_t,Snorm.tr);
-#disp('Block = 28'),pause(pstate)
-#
-##!#! Compare
-##! In order to compare the Gaussian and non-Gaussian models we need to scale  
-##! \verb+xsim_t+ #!{\tt xsim$_t$} 
-##! to have the same first spectral moment as 
-##! \verb+ysim_t+,  #!{\tt ysim$_t$},  Since the process xsim_t has variance one
-##! which will be done by the following commands. 
-#clf
-#xsim_t(:,2) = sa*xsim_t(:,2);
-#waveplot(xsim_t,ysim_t,5,1,sa,4.5,'r.','b')
-##!wafostamp('','(CR)')
-#disp('Block = 29, Last block'),pause(pstate)
+#! Estimated spectrum compared to Torsethaugen spectrum
+#!-------------------------------------------------------
+ 
+clf()
+fp = 1.1;dw = 0.01
+H0 = S1.characteristic('Hm0')[0]
+St = wsm.Torsethaugen(Hm0=H0,Tp=2*pi/fp).tospecdata(np.arange(0,5+dw/2,dw))  
+S1.plot()
+St.plot('-.')
+axis([0, 6, 0, 0.4])
+show()
+ 
 
+#! Transformed Gaussian model compared to Gaussian model
+#!--------------------------------------------------------
+dt = St.sampling_period()
+va, sk, ku = St.stats_nl(moments='vsk' )
+#sa = sqrt(va)
+gh = wtm.TrHermite(mean=me, sigma=sa, skew=sk, kurt=ku, ysigma=sa)
+ 
+ysim_t = St.sim(ns=240, dt=0.5)
+xsim_t = ysim_t.copy()
+xsim_t[:,1] = gh.gauss2dat(ysim_t[:,1])
+
+ts_y = wo.mat2timeseries(ysim_t)
+ts_x = wo.mat2timeseries(xsim_t)
+ts_y.plot_wave(sym1='r.', ts=ts_x, sym2='b', sigma=sa, nsub=5, nfig=1)
+show()
