@@ -1973,7 +1973,7 @@ def good_bins(data=None, range=None, num_bins=None, num_data=None, odd=False, lo
     array([-0.5,  0.5,  1.5,  2.5,  3.5,  4.5,  5.5])
     '''
     
-    if data:
+    if data is not None:
         x = np.atleast_1d(data)
         num_data = len(x)
     

@@ -15,7 +15,7 @@ from scipy.integrate import simps, trapz
 from scipy.special import erf
 from scipy.linalg import toeplitz
 import scipy.interpolate as interpolate
-from pylab import stineman_interp
+from wafo.interpolate import stineman_interp
 
 from dispersion_relation import w2k #, k2w
 from wafo.wafodata import WafoData, now
@@ -1530,16 +1530,7 @@ class SpecData1D(WafoData):
             else:
                 for i in range(cases):
                     x[:, i + 1] = g.gauss2dat(x[:, i + 1])
-#            G = fliplr(g) #% the invers of g
-#            if derivative:
-#                for i in range(cases):
-#                    tmp = tranproc(hstack((x[:, i + 1], xder[:, i + 1])), G)
-#                    x[:, i + 1] = tmp[:, 0]
-#                    xder[:, i + 1] = tmp[:, 1]
-#
-#            else:
-#                for i in range(cases):
-#                    x[:, i + 1] = tranproc(x[:, i + 1], G)
+
 
         if derivative:
             return x, xder
@@ -2249,13 +2240,11 @@ class SpecData1D(WafoData):
 
         Parameters
         ----------
-        dt : scalar
+        dt : real scalar
             wanted sampling interval (default as given by S, see spec2dt)
             unit: [s] if frequency-spectrum, [m] if wave number spectrum
-        Nmin : scalar
-            minimum number of frequencies.
-        Nmax : scalar
-            minimum number of frequencies
+        Nmin, Nmax : scalar integers
+            minimum and maximum number of frequencies, respectively.
         method : string
             interpolation method (options are 'linear', 'cubic' or 'stineman')
 
@@ -2281,15 +2270,14 @@ class SpecData1D(WafoData):
         n = w.size
 
         #%doInterpolate = 0
-
-        if ftype == 'f':
-            Cnf2dt = 0.5 # Nyquist to sampling interval factor
-        else: #% ftype == w og ftype == k
-            Cnf2dt = pi
+        # Nyquist to sampling interval factor
+        Cnf2dt = 0.5 if ftype == 'f' else pi  #% ftype == w og ftype == k
+            
 
         wnOld = w[-1]         # Old Nyquist frequency
         dTold = Cnf2dt / wnOld # sampling interval=1/Fs
-
+        
+        #dTold = self.sampling_period()
 
         if dt is None:
             dt = dTold
@@ -2333,7 +2321,6 @@ class SpecData1D(WafoData):
                     w = hstack((0, w))
 
                 S1 = hstack((zeros(Nz), S1))
-
 
             #% Do a final check on spacing in order to check that the gridding is
             #% sufficiently dense:
