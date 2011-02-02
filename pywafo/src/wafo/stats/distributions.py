@@ -2356,27 +2356,46 @@ class rv_continuous(rv_generic):
         Parameters
         ----------
         data : array-like
-            data used in fitting
-        arg1, arg2, arg3,... : array-like
-            initial non-fixed distribution parameter-values
-            including loc and scale (see docstring of the
-            instance object for more information)
-        method : String, optional
-            describing the method of estimation. Options are
+            Data to use in calculating the ML or MPS estimators
+        args : optional
+            Starting values for any shape arguments (those not specified
+            will be determined by dist._fitstart(data))
+        kwds : loc, scale
+            Starting values for the location and scale parameters
+            Special keyword arguments are recognized as holding certain
+            parameters fixed:
+                f0..fn : hold respective shape paramters fixed
+                floc : hold location parameter fixed to specified value
+                fscale : hold scale parameter fixed to specified value
+            method : of estimation. Options are
                 'ml' : Maximum Likelihood method (default)
                 'mps': Maximum Product Spacing method
-        alpha : scalar, optional
-             Confidence coefficent  (default=0.05)
-        par_fix : list , optional
-            of fixed parameters. Non fixed parameters must be given as NaN's.
-            (Must have the same length as the number of parameters or be None)
-            (default None)
-        search : bool
-            If true search for best estimator (default),
-            otherwise return object with initial distribution parameters
-        copydata : bool
-            If true copydata (default)
-
+            alpha : scalar, optional
+                Confidence coefficent  (default=0.05)
+            search : bool
+                If true search for best estimator (default),
+                otherwise return object with initial distribution parameters
+            copydata : bool
+                If true copydata (default)
+            optimizer : The optimizer to use.  The optimizer must take func,
+                         and starting position as the first two arguments,
+                         plus args (for extra arguments to pass to the
+                         function to be optimized) and disp=0 to suppress
+                         output as keyword arguments.
+        
+        Return
+        ------
+        phat : FitDistribution object
+            Fitted distribution object with following member variables:
+            LLmax  : loglikelihood function evaluated using par
+            LPSmax : log product spacing function evaluated using par
+            pvalue : p-value for the fit
+            par : distribution parameters (fixed and fitted)
+            par_cov : covariance of distribution parameters
+            par_fix : fixed distribution parameters
+            par_lower : lower (1-alpha)% confidence bound for the parameters
+            par_upper : upper (1-alpha)% confidence bound for the parameters
+         
         Note
         ----
         `data` is sorted using this function, so if `copydata`==False the data

@@ -65,7 +65,7 @@ dtyest = Sest.to_t_pdf(pdef='Tt', paramt=(0, 10, 51), nit=3)
 
 T, index = ts.wave_periods(vh=0, pdef='d2u')
 bins = wm.good_bins(T, num_bins=25, odd=True)
-wm.plot_histgrm(T, bins=bins, scale=True)
+wm.plot_histgrm(T, bins=bins, normed=True)
 
 dtyex.plot()
 dtyest.plot('-.')
