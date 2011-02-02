@@ -118,9 +118,24 @@ if __name__=='__main__':
     				if  not (f.startswith('.') or f.endswith('~') or
                            f.endswith('.old') or f.endswith('.bak') or 
                            f.endswith('.py') or f.endswith('test') )]
-    libs = [f   for f in os.listdir(os.path.join(root_dir)) if  f.endswith('.pyd') ]
-    packagedata = testscripts + datafiles + libs #['c_library.pyd'] #,'disufq1.c','diffsumfunq.pyd','diffsumfunq.pyf','findrfc.c','rfc.pyd','rfc.pyf']
     
+    # executable library on Linux has extension .so
+    if os.name == 'posix':
+        lib_ext = '.so'
+    
+    # extension on Windows is .pyd
+    elif os.name == 'nt':
+        lib_ext = '.pyd'
+    
+    # give an Error for other OS-es
+    else:
+        raise UserWarning, \
+        'Platform not supported:', os.name                       
+    
+    libs = [f   for f in os.listdir(os.path.join(root_dir)) if  f.endswith(lib_ext) ]
+#    libs = [f   for f in os.listdir(os.path.join(root_dir)) if  f.endswith('.pyd') ]
+    
+    packagedata = testscripts + datafiles + libs #['c_library.pyd'] #,'disufq1.c','diffsumfunq.pyd','diffsumfunq.pyf','findrfc.c','rfc.pyd','rfc.pyf']
     
     setup(
         version = VERSION,
