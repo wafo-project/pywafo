@@ -183,9 +183,9 @@ class LevelCrossings(WafoData):
                 u_min = self.args[i.min()]
             if u_max is None:
                 u_max = self.args[i.max()] 
-          
-#        # Extrapolate LC for high levels
-#        [lcEst.High,Est.High] = self._extrapolate(lc,u_max,u_max-lc_max,method, dist);
+        lcf, lcx = self.data, self.args
+        # Extrapolate LC for high levels
+        [lcEst.High,Est.High] = self._extrapolate(lcx,lcf,u_max,u_max-lc_max,method, dist);
 #        
 #        # Extrapolate LC for low levels
 #        
@@ -199,137 +199,120 @@ class LevelCrossings(WafoData):
 #          semilogx(lc(:,2),lc(:,1),lcEst.High(:,2),lcEst.High(:,1),lcEst.Low(:,2),lcEst.Low(:,1))
 #        end
 #        
-        ###
-#    def _extrapolate(self, lcx,lcf,u,offset,method,dist)
-#        # Extrapolate the level crossing spectra for high levels
-#          
-#        method = method.lower()
-#        dist = dist.lower()
-#           
-#        # Excedences over level u
-#        Iu = lcx>u;
-#        lcx1, lcf1 = lcx[Iu], lcf[Iu]
-#        lcf3,lcx3 = _make_increasing(lcf1[::-1],lcx1[::-1])
-#          
-#        # Corrected by PJ 17-Feb-2004
-#        lc3=[0 0; lc3]; 
-#        x=[];
-#        for k=2:length(lc3(:,1))
-#            nk = lc3(k,2)-lc3(k-1,2);
-#            x = [x; ones(nk,1)*lc3(k,1)];
-#            #end
-#        x = x-u;   
-#          
-#        # Estimate tail
-#          
-#        if dist=='genpareto': 
-#              genpareto = distributions.genpareto
-#              phat = genpareto.fit2(x, floc=0, method=method)
-#             
-##            Est.k = phat.params(1);
-##            Est.s = phat.params(2);
-##            if isnan(phat.fixpar(3))
-##              Est.cov = phat.covariance;
-##            else
-##              Est.cov = phat.covariance(1:2,1:2);
-##            end
-##            if Est.k>0,
-##              Est.UpperLimit = u+Est.s/Est.k;
-##            end
-#            df = 0.01    
-#            xF = np.arange(0.0,4+df/2,df)
-#            F = phat.cdf(xF)
-#            Est.lcu = interp1(lcx,lcf,u)+1
-#            
-#            # Calculate 90 # confidence region, an ellipse, for (k,s)
-#            [B,D] = eig(Est.cov);
-#            b = [Est.k; Est.s];
-#            
-#            r = sqrt(-2*log(1-90/100)); # 90 # confidence sphere
-#            Nc = 16+1;
-#            ang = linspace(0,2*pi,Nc);
-#            c0 = [r*sqrt(D(1,1))*sin(ang); r*sqrt(D(2,2))*cos(ang)]; # 90# Circle
-#        #    plot(c0(1,:),c0(2,:))
-#            
-#            c1 = B*c0+b*ones(1,length(c0)); # Transform to ellipse for (k,s)
-#        #    plot(c1(1,:),c1(2,:)), hold on
-#            
-#            # Calculate conf.int for lcu
-#            # Assumtion: lcu is Poisson distributed
-#            # Poissin distr. approximated by normal when calculating conf. int.
-#            dXX = 1.64*sqrt(Est.lcu); # 90 # quantile for lcu
-#            
-#            lcEstCu = zeros(length(xF),Nc); 
-#            lcEstCl = lcEstCu;
-#            for i=1:Nc
-#              k=c1(1,i);
-#              s=c1(2,i);
-#              F2 = cdfgenpar(xF,k,s);
-#              lcEstCu(:,i) = (Est.lcu+dXX)*(1-F2);
-#              lcEstCl(:,i) = (Est.lcu-dXX)*(1-F2);
-#            end
-#            
-#            lcEstCI = [min(lcEstCl')' max(lcEstCu')'];
-#            
-#            lcEst = [xF+u Est.lcu*(1-F) lcEstCI];
-#            
-#          case 'exp'
-#            
-#            n = length(x);
-#            s = mean(x);
-#            cov = s/n;
-#            Est.s = s;
-#            Est.cov = cov;
-#            
-#            xF = (0.0:0.01:4)';
-#            F = 1-exp(-xF/s);
-#            Est.lcu = interp1(lc(:,1),lc(:,2),u)+1;
-#            
-#            lcEst = [xF+u Est.lcu*(1-F)];
-#            
-#          case 'ray'
-#            
-#            n = length(x);
-#            Sx = sum((x+offset).^2-offset^2);
-#            s=sqrt(Sx/n);  # Shape parameter
-#            
-#            Est.s = s;
-#            Est.cov = NaN;
-#            
-#            xF = (0.0:0.01:4)';
-#            F = 1 - exp(-((xF+offset).^2-offset^2)/s^2);
-#            Est.lcu = interp1(lc(:,1),lc(:,2),u)+1;
-#            
-#            lcEst = [xF+u Est.lcu*(1-F)];
-#            
-#          otherwise
-#            
-#            error(['Unknown method: ' method]);
-#            
-#          end
-#          
-#            
-#        ## End extrapolate
-#          
-#        def _make_increasing(f, t=None):
-#            # Makes the signal x strictly increasing. 
-#            #
-#            # x = two column matrix with times in first column and values in the second.
-#          
-#            n = len(f)
-#            if t is None:
-#                t = np.arange(n)
-#            ff = []
-#            tt = []
-#            ff.append(f[0])
-#            tt.append(t[0])
-#        
-#            for i in xrange(1,n):
-#                if f[i]>ff[-1]
-#                    ff.append(f[i])
-#                    tt.append(t[i])
-#          
-#            return np.asarray(ff), np.asarray(tt)
+        ##
+    def _extrapolate(self, lcx,lcf,u,offset,method,dist):
+        # Extrapolate the level crossing spectra for high levels
+
+        method = method.lower()
+        dist = dist.lower()
+           
+        # Excedences over level u
+        Iu = lcx>u;
+        lcx1, lcf1 = lcx[Iu], lcf[Iu]
+        lcf2,lcx2 = _make_increasing(lcf1[::-1],lcx1[::-1])
+        
+        nim1 = 0 
+        x=[]
+        for k, ni in enumerate(lcf2.tolist()): 
+            nk = ni - nim1 
+            x.append(ones(nk)*lcx2[k])
+            #end
+            
+        x = np.hstack(x)-u   
+          
+        # Estimate tail
+          
+        if dist=='genpareto': 
+            genpareto = distributions.genpareto
+            phat = genpareto.fit2(x, floc=0, method=method)
+              
+            df = 0.01    
+            xF = np.arange(0.0,4+df/2,df)
+            F = phat.cdf(xF)
+            lcu = np.interp(u,lcx,lcf)+1
+            covar = phat.par_cov[::2,::2]
+            # Calculate 90 # confidence region, an ellipse, for (k,s)
+            B, D = np.linalg.eig(covar);
+            b = phat.par[::2] 
+            if b[0]>0:
+                upperlimit = u + b[1]/b[0]
+            
+            r = sqrt(-2*log(1-90/100)); # 90 # confidence sphere
+            Nc = 16+1;
+            ang = linspace(0,2*pi,Nc);
+            c0 = np.vstack((r*sqrt(D[0,0])*sin(ang), r*sqrt(D[1,1])*cos(ang))) # 90# Circle
+        #    plot(c0(1,:),c0(2,:))
+            
+            c1 = B*c0+b*ones((1,len(c0))); # Transform to ellipse for (k,s)
+        #    plot(c1(1,:),c1(2,:)), hold on
+            
+            # Calculate conf.int for lcu
+            # Assumtion: lcu is Poisson distributed
+            # Poissin distr. approximated by normal when calculating conf. int.
+            dXX = 1.64*sqrt(lcu); # 90 # quantile for lcu
+            
+            lcEstCu = zeros((len(xF),Nc)); 
+            lcEstCl = lcEstCu;
+            for i in range(Nc):
+                k=c1[0,i]
+                s=c1[2,i]
+                F2 = genpareto.cdf(xF,k,scale=s)
+                lcEstCu[:,i] = (lcu+dXX)*(1-F2);
+                lcEstCl[:,i] = (lcu-dXX)*(1-F2);
+            #end
+            
+            lcEstCI = [min(lcEstCl), max(lcEstCu)]
+            
+            lcEst = [xF+u, lcu*(1-F), lcEstCI];
+            
+        elif dist=='expon':
+            n = len(x)
+            s = mean(x);
+            cov = s/n;
+            Est.s = s;
+            Est.cov = cov;
+            
+            xF = np.arange(0.0,4+df/2,df) #xF = (0.0:0.01:4)';
+            F = -expm1(-xF/s)
+            lcu = np.interp(u,lcx,lcf)+1
+            
+            lcEst = [xF+u, Est.lcu*(1-F)]
+            
+        elif dist== 'ray':
+            
+            n = len(x)
+            Sx = sum((x+offset)**2-offset**2)
+            s = sqrt(Sx/n);  # Shape parameter
+        
+            cov = NaN;
+            
+            xF = np.arange(0.0,4+df/2,df) #xF = (0.0:0.01:4)';
+            F = -expm1(-((xF+offset)**2-offset**2)/s**2);
+            lcu = np.interp(u,lcx,lcf,u)+1
+            
+            lcEst = [xF+u, Est.lcu*(1-F)];
+            
+        else: 
+            raise ValueError()
+          
+            
+        ## End extrapolate
+          
+        def _make_increasing(f, t=None):
+            # Makes the signal f strictly increasing. 
+             
+            n = len(f)
+            if t is None:
+                t = np.arange(n)
+            ff = [f[0],]
+            tt = [t[0],]
+             
+            for i in xrange(1,n):
+                if f[i]>ff[-1]:
+                    ff.append(f[i])
+                    tt.append(t[i])
+          
+            return np.asarray(ff), np.asarray(tt)
          
     def sim(self, ns, alpha):
         """
