@@ -872,7 +872,6 @@ class FitDistribution(rv_frozen):
         SF = (arange(n, 0, -1)) / n
         plotbackend.semilogy(self.data, SF, 'b.', self.data, self.sf(self.data), 'r-')
         #plotbackend.plot(self.data,SF,'b.',self.data,self.sf(self.data),'r-')
-
         plotbackend.xlabel('x');
         plotbackend.ylabel('F(x) (%s)' % self.dist.name)
         plotbackend.title('Empirical SF plot')
@@ -888,8 +887,6 @@ class FitDistribution(rv_frozen):
         n = len(self.data)
         F = (arange(1, n + 1)) / n
         plotbackend.plot(self.data, F, 'b.', self.data, self.cdf(self.data), 'r-')
-
-
         plotbackend.xlabel('x');
         plotbackend.ylabel('F(x) (%s)' % self.dist.name)
         plotbackend.title('Empirical CDF plot')
@@ -934,7 +931,6 @@ class FitDistribution(rv_frozen):
 
         #plotbackend.hist(self.data,normed=True,fill=False)
         plotbackend.plot(self.data, self.pdf(self.data), 'r-', xx, yy, 'b-')
-
         plotbackend.xlabel('x');
         plotbackend.ylabel('f(x) (%s)' % self.dist.name)
         plotbackend.title('Density plot')
@@ -953,7 +949,6 @@ class FitDistribution(rv_frozen):
         y = self.ppf(eprob)
         y1 = self.data[[0, -1]]
         plotbackend.plot(self.data, y, 'b.', y1, y1, 'r-')
-
         plotbackend.xlabel('Empirical')
         plotbackend.ylabel('Model (%s)' % self.dist.name)
         plotbackend.title('Residual Quantile Plot');
@@ -974,15 +969,12 @@ class FitDistribution(rv_frozen):
         mcdf = self.cdf(self.data)
         p1 = [0, 1]
         plotbackend.plot(ecdf, mcdf, 'b.', p1, p1, 'r-')
-
-
         plotbackend.xlabel('Empirical')
         plotbackend.ylabel('Model (%s)' % self.dist.name)
         plotbackend.title('Residual Probability Plot');
-        plotbackend.axis([0, 1, 0, 1])
         plotbackend.axis('equal')
-
-
+        plotbackend.axis([0, 1, 0, 1])
+        
 
     def _pvalue(self, theta, x, unknown_numpar=None):
         ''' Return the P-value for the fit using Moran's negative log Product Spacings statistic
