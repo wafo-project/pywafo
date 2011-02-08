@@ -26,8 +26,8 @@ def test_rind():
     >>> E1, err1, terr1  = rind(np.triu(Sc),m,A,B); #same as E0
     >>> np.abs(E1-Et)< err0+terr0
     array([ True], dtype=bool)
-    >>> 'E1 = %2.6f' % E1  
-    'E1 = 0.001946'
+    >>> 'E1 = %2.5f' % E1  
+    'E1 = 0.00195'
     
     Compute expectation E( abs(X1*X2*...*X5) )
     >>> xc = np.zeros((0,1))
@@ -109,22 +109,17 @@ def test_prbnormndpc():
     
 def test_prbnormnd():
     '''
+    >>> import numpy as np
     >>> Et = 0.001946 # #  exact prob.
-    >>> n = 5; nt = n
-    >>> Blo =-np.inf; Bup=0; indI=[-1, n-1]  # Barriers
-    >>> m = 1.2*np.ones(n); rho = 0.3;
+    >>> n = 5 
+    >>> Blo =-np.inf; Bup=-1.2
+    >>> m = np.zeros(n); rho = 0.3;
     >>> Sc =(np.ones((n,n))-np.eye(n))*rho+np.eye(n)
-    >>> rind = Rind()
-    >>> E0, err0, terr0 = rind(Sc,m,Blo,Bup,indI, nt=nt) 
-    
     >>> A = np.repeat(Blo,n)
     >>> B = np.repeat(Bup,n)-m 
-    >>> [val,err,inform] = prbnormnd(Sc,A,B);val;err;inform
-    0.0019456719705212067
-    1.0059406844578488e-05
-    0
-    >>> np.abs(val-Et)< err0+terr0
-    array([ True], dtype=bool)
+    >>> [val,err,inform] = prbnormnd(Sc,A,B) 
+    >>> np.abs(val-Et)< err
+    True
     >>> 'val = %2.5f' % val  
     'val = 0.00195'
     '''

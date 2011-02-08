@@ -18,9 +18,10 @@ def test_timeseries():
     
     Estimate spectrum
     >>> S = ts.tospecdata()
+    The default L is set to 325
     >>> S.data[:10]
-    array([ 0.01350817,  0.0050932 ,  0.00182003,  0.00534806,  0.049407  ,
-            0.25144845,  0.28264622,  0.21398405,  0.18563258,  0.25878918])
+    array([ 0.00913087,  0.00881073,  0.00791944,  0.00664244,  0.00522429,
+            0.00389816,  0.00282753,  0.00207843,  0.00162678,  0.0013916 ])
             
     Estimated covariance function
     >>> rf = ts.tocovdata(lag=150)
@@ -37,21 +38,19 @@ def test_timeseries_trdata():
     >>> Sj = sm.Jonswap(Hm0=Hs)
     >>> S = Sj.tospecdata()   #Make spectrum object from numerical values
     >>> S.tr = tm.TrOchi(mean=0, skew=0.16, kurt=0, sigma=Hs/4, ysigma=Hs/4)
-    >>> xs = S.sim(ns=2**16)
+    >>> xs = S.sim(ns=2**20)
     >>> ts = mat2timeseries(xs)
     >>> g0, gemp = ts.trdata(monitor=True) # Monitor the development
     >>> g1, gemp = ts.trdata(method='m', gvar=0.5 ) # Equal weight on all points
     >>> g2, gemp = ts.trdata(method='n', gvar=[3.5, 0.5, 3.5])  # Less weight on the ends
     >>> S.tr.dist2gauss()
-    5.9322684525265501
-    >>> np.round(gemp.dist2gauss())
-    6.0
+    1.4106988010566603
     >>> np.round(g0.dist2gauss())
-    4.0
+    1.0
     >>> np.round(g1.dist2gauss())
-    4.0
+    1.0
     >>> np.round(g2.dist2gauss())
-    4.0
+    1.0
   
     '''
 if __name__=='__main__':
