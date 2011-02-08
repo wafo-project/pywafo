@@ -350,10 +350,10 @@ class LevelCrossings(WafoData):
         >>> Se  = ts2.tospecdata(L=324)
         
         >>> alpha2 = Se.characteristic('alpha')[0]
-        >>> alpha2
-        array([ 0.68382343])
-        >>> alpha-alpha2
-        array([ 0.01620704])
+        >>> np.round(alpha2*10)
+        array([ 7.])
+        >>> np.abs(alpha-alpha2)<0.03
+        array([ True], dtype=bool)
         
         >>> h0 = S.plot('b')
         >>> h1 = Se.plot('r')
