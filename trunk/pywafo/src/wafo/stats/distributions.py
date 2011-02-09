@@ -6905,13 +6905,13 @@ for k*b >= 0
 
 class boltzmann_gen(rv_discrete):
     def _pmf(self, k, lambda_, N):
-        fact = (1-exp(-lambda_))/(1-exp(-lambda_*N))
+        fact = (expm1(-lambda_))/(expm1(-lambda_*N))
         return fact*exp(-lambda_*k)
     def _cdf(self, x, lambda_, N):
         k = floor(x)
-        return (1-exp(-lambda_*(k+1)))/(1-exp(-lambda_*N))
+        return (expm1(-lambda_*(k+1)))/(expm1(-lambda_*N))
     def _ppf(self, q, lambda_, N):
-        qnew = q*(1-exp(-lambda_*N))
+        qnew = -q*(expm1(-lambda_*N))
         vals = ceil(-1.0/lambda_ * log1p(-qnew)-1)
         vals1 = (vals-1).clip(0.0, np.inf)
         temp = self._cdf(vals1, lambda_, N)
