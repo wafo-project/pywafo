@@ -14,7 +14,7 @@ import wafo.stats as stats
 from wafo.stats.distributions import argsreduce
 
 def kolmogorov_check(diststr, args=(), N=20, significance=0.01):
-    qtest = stats.ksoneisf(significance, N)
+    qtest = stats.ksone.isf(significance, N)
     cdf = eval('stats.'+diststr+'.cdf')
     dist = eval('stats.'+diststr)
     # Get random numbers
@@ -242,6 +242,10 @@ class TestDLaplace(TestCase):
         assert_(isinstance(val, numpy.ndarray))
         assert_(val.dtype.char in typecodes['AllInteger'])
 
+def test_rvgeneric_std():
+    """Regression test for #1191"""
+    assert_array_almost_equal(stats.t.std([5, 6]), [1.29099445, 1.22474487])
+
 class TestRvDiscrete(TestCase):
     def test_rvs(self):
         states = [-1,0,1,2,3,4]
@@ -260,7 +264,7 @@ class TestRvDiscrete(TestCase):
 class TestExpon(TestCase):
     def test_zero(self):
         assert_equal(stats.expon.pdf(0),1)
-        
+
     def test_tail(self):  # Regression test for ticket 807
         assert_equal(stats.expon.cdf(1e-18),  1e-18)
         assert_equal(stats.expon.isf(stats.expon.sf(40)),  40)
@@ -277,7 +281,7 @@ class TestGenExpon(TestCase):
         # CDF should always be positive
         cdf = stats.genexpon.cdf(numpy.arange(0, 10, 0.01), 0.5, 0.5, 2.0)
         assert_(numpy.all((0 <= cdf) & (cdf <= 1)))
-        
+
 class TestExponpow(TestCase):
     def test_tail(self):
         assert_almost_equal(stats.exponpow.cdf(1e-10,  2.),  1e-20)
@@ -303,9 +307,9 @@ class TestSkellam(TestCase):
                     4.3268692953013159e-002, 3.0248159818374226e-002,
                     1.9991434305603021e-002, 1.2516877303301180e-002,
                     7.4389876226229707e-003])
-        
+
         assert_almost_equal(stats.skellam.pmf(k, mu1, mu2), skpmfR, decimal=15)
-        
+
     def test_cdf(self):
         #comparison to R, only 5 decimals
         k = numpy.arange(-10, 15)
@@ -328,7 +332,7 @@ class TestSkellam(TestCase):
         assert_almost_equal(stats.skellam.cdf(k, mu1, mu2), skcdfR, decimal=5)
 
 
-class TestHypergeom(TestCase):
+class TestHypergeom2(TestCase):
     def test_precision(self):
         # comparison number from mpmath
         M = 2500
@@ -407,7 +411,7 @@ class TestFitMethod(TestCase):
             else:
                 assert_(len(vals) == 2+len(args))
                 assert_(len(vals2)==2+len(args))
-                
+
     @dec.slow
     def test_fix_fit(self):
         for func, dist, args, alpha in test_all_distributions():
@@ -425,15 +429,15 @@ class TestFitMethod(TestCase):
             assert_(len(vals2) == 2+len(args))
             if len(args) > 0:
                 vals3 = distfunc.fit(res, f0=args[0])
-                assert_(len(vals3) == 2+len(args)) 
+                assert_(len(vals3) == 2+len(args))
                 assert_(vals3[0] == args[0])
             if len(args) > 1:
                 vals4 = distfunc.fit(res, f1=args[1])
-                assert_(len(vals4) == 2+len(args)) 
+                assert_(len(vals4) == 2+len(args))
                 assert_(vals4[1] == args[1])
             if len(args) > 2:
                 vals5 = distfunc.fit(res, f2=args[2])
-                assert_(len(vals5) == 2+len(args)) 
+                assert_(len(vals5) == 2+len(args))
                 assert_(vals5[2] == args[2])
 
 class TestFrozen(TestCase):
@@ -487,7 +491,7 @@ class TestFrozen(TestCase):
         assert_equal(result_f, result)
 
         result_f = frozen.moment(2)
-        result = dist.moment(2)
+        result = dist.moment(2,loc=10.0, scale=3.0)
         assert_equal(result_f, result)
 
     def test_gamma(self):
@@ -555,6 +559,100 @@ class TestFrozen(TestCase):
         # the focus of this test.
         assert_equal(m1, m2)
 
+class TestExpect(TestCase):
+    """Test for expect method.
+
+    Uses normal distribution and beta distribution for finite bounds, and
+    hypergeom for discrete distribution with finite support
+
+    """
+    def test_norm(self):
+        v = stats.norm.expect(lambda x: (x-5)*(x-5), loc=5, scale=2)
+        assert_almost_equal(v, 4, decimal=14)
+
+        m = stats.norm.expect(lambda x: (x), loc=5, scale=2)
+        assert_almost_equal(m, 5, decimal=14)
+
+        lb = stats.norm.ppf(0.05, loc=5, scale=2)
+        ub = stats.norm.ppf(0.95, loc=5, scale=2)
+        prob90 = stats.norm.expect(lambda x: 1, loc=5, scale=2, lb=lb, ub=ub)
+        assert_almost_equal(prob90, 0.9, decimal=14)
+
+        prob90c = stats.norm.expect(lambda x: 1, loc=5, scale=2, lb=lb, ub=ub,
+                                    conditional=True)
+        assert_almost_equal(prob90c, 1., decimal=14)
+
+    def test_beta(self):
+        #case with finite support interval
+##        >>> mtrue, vtrue = stats.beta.stats(10,5, loc=5., scale=2.)
+##        >>> mtrue, vtrue
+##        (array(6.333333333333333), array(0.055555555555555552))
+        v = stats.beta.expect(lambda x: (x-19/3.)*(x-19/3.), args=(10,5),
+                              loc=5, scale=2)
+        assert_almost_equal(v, 1./18., decimal=14)
+
+        m = stats.beta.expect(lambda x: x, args=(10,5), loc=5., scale=2.)
+        assert_almost_equal(m, 19/3., decimal=14)
+
+        ub = stats.beta.ppf(0.95, 10, 10, loc=5, scale=2)
+        lb = stats.beta.ppf(0.05, 10, 10, loc=5, scale=2)
+        prob90 = stats.beta.expect(lambda x: 1., args=(10,10), loc=5.,
+                                   scale=2.,lb=lb, ub=ub, conditional=False)
+        assert_almost_equal(prob90, 0.9, decimal=14)
+
+        prob90c = stats.beta.expect(lambda x: 1, args=(10,10), loc=5,
+                                    scale=2, lb=lb, ub=ub, conditional=True)
+        assert_almost_equal(prob90c, 1., decimal=14)
+
+
+    def test_hypergeom(self):
+        #test case with finite bounds
+
+        #without specifying bounds
+        m_true, v_true = stats.hypergeom.stats(20, 10, 8, loc=5.)
+        m = stats.hypergeom.expect(lambda x: x, args=(20, 10, 8), loc=5.)
+        assert_almost_equal(m, m_true, decimal=13)
+
+        v = stats.hypergeom.expect(lambda x: (x-9.)**2, args=(20, 10, 8),
+                                   loc=5.)
+        assert_almost_equal(v, v_true, decimal=14)
+
+        #with bounds, bounds equal to shifted support
+        v_bounds = stats.hypergeom.expect(lambda x: (x-9.)**2, args=(20, 10, 8),
+                                          loc=5., lb=5, ub=13)
+        assert_almost_equal(v_bounds, v_true, decimal=14)
+
+        #drop boundary points
+        prob_true = 1-stats.hypergeom.pmf([5, 13], 20, 10, 8, loc=5).sum()
+        prob_bounds = stats.hypergeom.expect(lambda x: 1, args=(20, 10, 8),
+                                          loc=5., lb=6, ub=12)
+        assert_almost_equal(prob_bounds, prob_true, decimal=13)
+
+        #conditional
+        prob_bc = stats.hypergeom.expect(lambda x: 1, args=(20, 10, 8), loc=5.,
+                                           lb=6, ub=12, conditional=True)
+        assert_almost_equal(prob_bc, 1, decimal=14)
+
+        #check simple integral
+        prob_b = stats.hypergeom.expect(lambda x: 1, args=(20, 10, 8),
+                                        lb=0, ub=8)
+        assert_almost_equal(prob_b, 1, decimal=13)
+
+    def test_poisson(self):
+        #poisson, use lower bound only
+        prob_bounds = stats.poisson.expect(lambda x: 1, args=(2,), lb=3,
+                                      conditional=False)
+        prob_b_true = 1-stats.poisson.cdf(2,2)
+        assert_almost_equal(prob_bounds, prob_b_true, decimal=14)
+
+
+        prob_lb = stats.poisson.expect(lambda x: 1, args=(2,), lb=2,
+                                       conditional=True)
+        assert_almost_equal(prob_lb, 1, decimal=14)
+
+
+
+
 
 def test_regression_ticket_1316():
     """Regression test for ticket #1316."""
@@ -562,6 +660,27 @@ def test_regression_ticket_1316():
     # did not handle the default keyword extradoc=None.  See ticket #1316.
     g = stats.distributions.gamma_gen(name='gamma')
 
+
+def test_regression_ticket_1326():
+    """Regression test for ticket #1326."""
+    #adjust to avoid nan with 0*log(0)
+    assert_almost_equal(stats.chi2.pdf(0.0, 2), 0.5, 14)
+
+def test_regression_tukey_lambda():
+    """ Make sure that Tukey-Lambda distribution correctly handles non-positive lambdas.
+    """
+    x = np.linspace(-5.0, 5.0, 101)
+    for lam in [0.0, -1.0, -2.0, np.array([[-1.0], [0.0], [-2.0]])]:
+        p = stats.tukeylambda.pdf(x, lam)
+        assert_((p != 0.0).all())
+        assert_(~np.isnan(p).all())
+    lam = np.array([[-1.0], [0.0], [2.0]])
+    p = stats.tukeylambda.pdf(x, lam)
+    assert_(~np.isnan(p).all())
+    assert_((p[0] != 0.0).all())
+    assert_((p[1] != 0.0).all())
+    assert_((p[2] != 0.0).any())
+    assert_((p[2] == 0.0).any())
 
 if __name__ == "__main__":
     run_module_suite()
