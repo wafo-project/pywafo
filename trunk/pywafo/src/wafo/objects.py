@@ -976,7 +976,21 @@ class TurningPoints(WafoData):
             sig_rfc[:,0] Cycles amplitude
             sig_rfc[:,1] Cycles mean value
             sig_rfc[:,2] Cycle type, half (=0.5) or full (=1.0)
-            
+        
+        References
+        ----------
+        Adam Niesłony, “Determination of fragments of multiaxial service loading 
+        strongly influencing the fatigue of machine components,” 
+        Mechanical Systems and Signal Processing 23, no. 8 (2009): 2712-2721.
+        
+        and is based on the following standard:
+        ASTM E 1049-85 (Reapproved 1997), Standard practices for cycle counting
+        in fatigue analysis, in: Annual Book of ASTM Standards,  
+        vol. 03.01, ASTM, Philadelphia, 1999, pp. 710–718.
+        
+        Copyright (c) 1999-2002 by Adam Nieslony
+        Ported to Python by David Verelst
+        
         Example
         -------
         >>> import wafo
