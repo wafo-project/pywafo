@@ -477,6 +477,36 @@ def findpeaks(data, n=2, min_h=None, min_p=0.0):
     
     return ind
     
+def findrfc_astm(tp):
+    """
+    Return rainflow counted cycles
+    ==============================
+    
+    Nieslony's Matlab implementation of the ASTM standard practice for rainflow
+    counting ported to a Python C module.
+    
+    Parameters
+    ----------
+    tp : array-like
+        vector of turningpoints (NB! Only values, not sampled times)
+        
+    Returns
+    -------
+    sig_rfc : array-like
+        array of shape (n,3) with:
+        sig_rfc[:,0] Cycles amplitude
+        sig_rfc[:,1] Cycles mean value
+        sig_rfc[:,2] Cycle type, half (=0.5) or full (=1.0)
+    """
+    
+    y1 = atleast_1d(tp).ravel()
+    sig_rfc, cnr = clib.findrfc3_astm(y1)
+    # the sig_rfc was constructed too big in rainflow.rf3, so
+    # reduce the sig_rfc array as done originally by a matlab mex c function
+    n = len(sig_rfc)
+    sig_rfc = sig_rfc.__getslice__(0,n-cnr[0])
+    # sig_rfc holds the actual rainflow counted cycles, not the indices
+    return sig_rfc
 
 def findrfc(tp, hmin=0.0, method='clib'):
     '''
@@ -489,6 +519,10 @@ def findrfc(tp, hmin=0.0, method='clib'):
     h : real scalar
         rainflow threshold. If h>0, then all rainflow cycles with height
         smaller than h are removed.
+    method : string, optional
+        'clib' 'None'
+        Specify 'clib' for calling the c_functions, otherwise fallback to 
+        the Python implementation.
         
     Returns
     -------
@@ -513,8 +547,9 @@ def findrfc(tp, hmin=0.0, method='clib'):
     rfcfilter,
     findtp.
     '''
-    # TODO merge rfcfilter and findrfc
+    # TODO: merge rfcfilter and findrfc
     y1 = atleast_1d(tp).ravel()
+    
     n = len(y1)
     ind = zeros(0, dtype=np.int)
     ix = 0
@@ -539,7 +574,7 @@ def findrfc(tp, hmin=0.0, method='clib'):
         warnings.warn('This is not a sequence of turningpoints, exit')
         return ind
 
-    if clib is None or method!='clib':
+    if clib is None or method not in ('clib'):
         ind = zeros(n, dtype=np.int)
         NC = np.int(NC)
         for i in xrange(NC):
@@ -717,8 +752,8 @@ def findtp(x, h=0.0, kind=None):
          if  h>0, then all rainflow cycles with height smaller than
                   h  are removed.
     kind : string
-        defines the type of wave. Possible options are
-        'mw' 'Mw' or 'none'.
+        defines the type of wave or indicate the ASTM rainflow counting method.
+        Possible options are 'astm' 'mw' 'Mw' or 'none'.
         If None all rainflow filtered min and max
         will be returned, otherwise only the rainflow filtered
         min and max, which define a wave according to the
@@ -765,23 +800,32 @@ def findtp(x, h=0.0, kind=None):
 
     if ind.size < 2:
         return None
-
-
+    
     #% In order to get the exact up-crossing intensity from rfc by
     #% mm2lc(tp2mm(rfc))  we have to add the indices
     #% to the last value (and also the first if the
     #% sequence of turning points does not start with a minimum).
-
-    if  x[ind[0]] > x[ind[1]]:
-        #% adds indices to  first and last value
-        ind = r_[0, ind, n - 1]
-    else: # adds index to the last value
-        ind = r_[ind, n - 1]
-
+    
+    if kind == 'astm':
+        # the Nieslony approach always put the first loading point as the first
+        # turning point.
+        if x[ind[0]] != x[0]:
+            # add the first turning point is the first of the signal
+            ind = np.r_[0, ind, n - 1]
+        else:
+            # only add the last point of the signal
+            ind = np.r_[ind, n - 1]
+    else:
+        if  x[ind[0]] > x[ind[1]]:
+            #% adds indices to  first and last value
+            ind = r_[0, ind, n - 1]
+        else: # adds index to the last value
+            ind = r_[ind, n - 1]
+        
     if h > 0.0:
         ind1 = findrfc(x[ind], h)
         ind = ind[ind1]
-
+    
     if kind in ('mw', 'Mw'):
         xor = lambda a, b: a ^ b
         # make sure that the first is a Max if wdef == 'Mw'
@@ -791,9 +835,9 @@ def findtp(x, h=0.0, kind=None):
         remove_first = xor(first_is_max, kind.startswith('Mw'))
         if remove_first:
             ind = ind[1::]
-
-        # make sure the number of minima and Maxima are according to the wavedef.
-        # i.e., make sure Nm=length(ind) is odd
+        
+        # make sure the number of minima and Maxima are according to the 
+        # wavedef. i.e., make sure Nm=length(ind) is odd
         if (mod(ind.size, 2)) != 1:
             ind = ind[:-1]
     return ind

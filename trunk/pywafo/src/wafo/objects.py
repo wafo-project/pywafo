@@ -17,7 +17,7 @@ from wafo.transform.core import TrData
 from wafo.transform.models import TrHermite, TrOchi, TrLinear
 from wafo.stats import edf, distributions
 from wafo.misc import (nextpow2, findtp, findrfc, findtc, findcross,
-                       ecross, JITImport, DotDict, gravity)
+                       ecross, JITImport, DotDict, gravity, findrfc_astm)
 from wafodata import WafoData
 from wafo.interpolate import SmoothSpline
 from scipy.interpolate.interpolate import interp1d
@@ -909,6 +909,10 @@ class TurningPoints(WafoData):
         ----------
         kind : string
             type of cycles to return options are 'min2max' or 'max2min'
+        method : string
+            specify which library to use
+            'clib' for wafo's c_library
+            'None' for wafo's Python functions
 
         Return
         ------
@@ -930,6 +934,7 @@ class TurningPoints(WafoData):
         TurningPoints
         SurvivalCycleCount
         """
+        
         if h>0:
             ind = findrfc(self.data, h, method=method)
             data = self.data[ind]
@@ -951,8 +956,41 @@ class TurningPoints(WafoData):
             kind = 'max2min'
             M = data[iM:-1:2]
             m = data[iM + 1::2]
+        
         time = self.args[-1]-self.args[0]
-        return CyclePairs(M, m, kind=kind, mean=self.mean, sigma=self.sigma, time=time)
+        
+        return CyclePairs(M, m, kind=kind, mean=self.mean, sigma=self.sigma, 
+                          time=time)
+
+    def cycle_astm(self):
+        """
+        Rainflow counted cycles according to Nieslony's ASTM implementation
+        
+        Parameters
+        ----------
+        
+        Returns
+        -------
+        sig_rfc : array-like
+            array of shape (n,3) with:
+            sig_rfc[:,0] Cycles amplitude
+            sig_rfc[:,1] Cycles mean value
+            sig_rfc[:,2] Cycle type, half (=0.5) or full (=1.0)
+            
+        Example
+        -------
+        >>> import wafo
+        >>> x = wafo.data.sea()
+        >>> sig_ts = wafo.objects.mat2timeseries(x)
+        >>> sig_tp = sig_ts.turning_points(h=0, wavetype='astm')
+        >>> sig_cp = sig_tp.cycle_astm()
+        """
+        
+        # output of Nieslony's algorithm is organised differently with 
+        # respect to wafo's approach
+        # TODO: integrate ASTM method into the CyclyPairs class?
+        return findrfc_astm(self.data)
+
 
 def mat2timeseries(x):
     """
@@ -1543,11 +1581,14 @@ class TimeSeries(WafoData):
 
         wavetype : string
             defines the type of wave. Possible options are
-            'mw' 'Mw' or 'none'.
+            'astm' 'mw' 'Mw' or 'none'.
             If None all rainflow filtered min and max
             will be returned, otherwise only the rainflow filtered
             min and max, which define a wave according to the
             wave definition, will be returned.
+            'astm' forces to have the first data point of the load history as
+            the first turning point. To be used in combination with
+            TurningPoints.cycle_astm()
 
         Returns
         -------
