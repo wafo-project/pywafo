@@ -41,5 +41,46 @@ interface
 	integer intent(in) :: nmin, nmax
     double precision dimension(n*m), intent(out) :: rsvec, isvec, rdvec, idvec         ! output array,                                                  
   end subroutine disufq2
+
+    ! ===== START NIESLONY RAINFLOW FUNCTIONS
+    !  RAINFLOW Revision: 1.1
+    !  by Adam Nieslony, 2009     
+    subroutine findrfc3_astm(array_ext, array_out, n, nout)
+        intent(c) findrfc3_astm       ! rf3 is a C function
+        intent(c)                     ! all rf3 arguments are 
+                                      ! considered as C based
+        
+        ! n is the length of the input array array_ext
+        integer intent(hide), depend(array_ext) :: n=len(array_ext)
+        
+        ! of input array x
+        double precision intent(in) :: array_ext(n)
+        
+        ! the output array
+        double precision intent(out) :: array_out(n,3)
+        
+        ! nout array, to output additional ints
+        integer dimension(2), intent(out) :: nout        
+    end subroutine findrfc3_astm
+
+    subroutine findrfc5_astm(array_ext, array_t, array_out, n, nout)
+        intent(c) findrfc5_astm       ! rf5 is a C function
+        intent(c)                     ! all rf5 arguments are 
+                                      ! considered as C based
+        
+        ! n is the length of the input array array_ext
+        integer intent(hide), depend(array_ext) :: n=len(array_ext)
+        
+        ! of input array x
+        double precision intent(in) :: array_ext(n), array_t(n)
+        
+        ! the output array
+        double precision intent(out) :: array_out(n,5)
+        
+        ! nout array, to output additional ints
+        integer dimension(2), intent(out) :: nout        
+    end subroutine findrfc5_astm
+    ! ===== END NIESLONY RAINFLOW FUNCTIONS
+
 end interface
 end python module c_library
