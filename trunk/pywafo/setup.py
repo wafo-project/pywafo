@@ -143,7 +143,7 @@ if __name__=='__main__':
         author_email='wafo@maths.lth.se',
         description = 'Statistical analysis and simulation of random waves and random loads',
         long_description = info.__doc__,
-    	 install_requires = ['numpy>=1.4','numdifftools>=0.2'],
+    	install_requires = ['numpy>=1.4','numdifftools>=0.2'],
         license = "GPL",
         url='http://code.google.com/p/pywafo/',
     	name = pkg_name,
