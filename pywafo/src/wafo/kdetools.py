@@ -16,11 +16,12 @@ from numpy import pi, sqrt, atleast_2d, exp, newaxis #@UnresolvedImport
 from scipy import interpolate, linalg
 from scipy.special import gamma
 from wafo.misc import meshgrid
+from wafo.wafodata import WafoData
+
 import copy
 import numpy as np
 import scipy
 import warnings
-from wafo.wafodata import WafoData
 import pylab
 
 _stats_epan = (1. / 5, 3. / 5, np.inf)
@@ -32,7 +33,7 @@ _stats_lapl = (2, 1. / 4, np.inf)
 _stats_logi = (pi ** 2 / 3, 1. / 6, 1 / 42)
 _stats_gaus = (1, 1. / (2 * sqrt(pi)), 3. / (8 * sqrt(pi)))
               
-__all__ =['sphere_volume','TKDE', 'KDE', 'Kernel', 'accum', 'qlevels',
+__all__ = ['sphere_volume', 'TKDE', 'KDE', 'Kernel', 'accum', 'qlevels',
            'iqrange', 'gridcount', 'kde_demo1', 'kde_demo2']
 def sphere_volume(d, r=1.0):
     """
@@ -191,7 +192,7 @@ class _KDE(object):
                 args = args[0]
             elif self.d > 1:
                 PL = np.r_[10:90:20, 95, 99, 99.9]
-                ql = qlevels(f,p=PL)
+                ql = qlevels(f, p=PL)
                 kwds2.setdefault('levels', ql)
             return WafoData(f, args, **kwds2)
 
@@ -1842,86 +1843,114 @@ def qlevels(pdf, p=(10, 30, 50, 70, 90, 95, 99, 99.9), x1=None, x2=None):
 
     return ui
 
-#def qlevels2(r, p=(10,30,50,70,90, 95, 99, 99.9), method=1):
-#    '''
-#    QLEVELS2 Calculates quantile levels which encloses P% of data
-#    
-#     CALL: [ql PL] = qlevels2(data,PL,method);
-#    
-#       ql   = the discrete quantile levels, size Np x D
-#       data = data matrix, size N x D (D = # of dimensions)
-#       PL   = percent level vector, length Np (default [10:20:90 95 99 99.9])
-#     method = 1 Interpolation so that F(X_(k)) == (k-0.5)/n. (default)
-#            2 Interpolation so that F(X_(k)) == k/(n+1).
-#            3 Based on the empirical distribution.
-#    
-#    QLEVELS2 sort the columns of data in ascending order and find the  
-#             quantile levels for each column which encloses  P% of the data.  
-#     
-#    Examples : % Finding quantile levels enclosing P% of data: 
-#      xs  = rndnorm(0,1,100000,1);
-#      qls = qlevels2(pdfnorm(xs),[10:20:90 95 99 99.9]);
-#               % compared with the exact values
-#      ql  = pdfnorm(invnorm((100-[10:20:90 95 99 99.9])/200));
-#    
-#    % Finding the median of xs:
-#      ql  = qlevels2(xs,50); 
-#    
-#    See also  qlevels
-#    '''
-#    [n, d]=size(r);
-#    p = np.atleast_1d(p)
-#    if np.any((p<0) | (100<p)):
-#        ValueError('PL must satisfy 0 <= PL <= 100')
-#    
-#    if (n==1) && (d>1)
-#      r=r(:);
-#      n=d;
-#      d=1;
-#    end
-#    if d>1
-#      if min(size(p)) > 1 
-#        error('Not both matrix r and matrix p input')
-#      end
-#      q = zeros(length(p),d);
-#    else
-#      q = zeros(size(p));
-#    end
-#    p = 1-p(:)/100;
-#    x = sort(r);
-#    
-#    
-#    if method == 3
-#       qq1 = x(ceil(max(1,p*n)),:); 
-#       qq2 = x(floor(min(p*n+1,n)),:);
-#       qq = (qq1+qq2)/2;
-#    else                         
-#       x = [x(1,:); x; x(n,:)];
-#       if method == 2
-#          % This method is from Hjort's "Computer
-#          % intensive statistical methods" page 102
-#          i = p*(n+1)+1;
-#       else % Metod 1
-#          i = p*n+1.5;
-#       end
-#       iu = ceil(i);
-#       il = floor(i);
-#       d1 = (i-il)*ones(1,d);
-#       qq = x(il,:).*(1-d1)+x(iu,:).*d1;
-#    end
-#    
-#    q(:) = qq;
-#    
-#    return
+def qlevels2(r, p=(10,30,50,70,90, 95, 99, 99.9), method=1):
+    '''
+    QLEVELS2 Calculates quantile levels which encloses P% of data
+    
+     CALL: [ql PL] = qlevels2(data,PL,method);
+    
+       ql   = the discrete quantile levels, size D X Np 
+       data = data matrix, size D x N (D = # of dimensions)
+       PL   = percent level vector, length Np (default [10:20:90 95 99 99.9])
+     method = 1 Interpolation so that F(X_(k)) == (k-0.5)/n. (default)
+            2 Interpolation so that F(X_(k)) == k/(n+1).
+            3 Based on the empirical distribution.
+    
+    QLEVELS2 sort the columns of data in ascending order and find the  
+             quantile levels for each column which encloses  P% of the data.  
+     
+    Examples : % Finding quantile levels enclosing P% of data:
+    -------- 
+    >>> import wafo.stats as ws
+    >>> PL = np.r_[10:90:20, 90, 95, 99, 99.9]
+    >>> xs = ws.norm.rvs(size=2000000)
+    >>> np.round(qlevels2(ws.norm.pdf(xs), p=PL), decimals=3)
+    array([ 0.396,  0.37 ,  0.318,  0.233,  0.103,  0.058,  0.014,  0.002])
+            
+    # compared with the exact values
+    >>> ws.norm.pdf(ws.norm.ppf((100-PL)/200))
+    array([ 0.39580488,  0.370399  ,  0.31777657,  0.23315878,  0.10313564,
+            0.05844507,  0.01445974,  0.00177719])
+           
+    # Finding the median of xs:
+    >>> np.round(qlevels2(xs,50), decimals=2)
+    array([ 0.])
+    
+    See also  
+    --------
+    qlevels
+    '''
+    q = 100-np.atleast_1d(p)
+    return percentile(r, q, axis=-1, method=method)
+    
 
+_PKDICT = {1: lambda k, w, n: (k - w) / (n - 1),
+           2: lambda k, w, n: (k - w / 2) / n,
+           3: lambda k, w, n: k / n,
+           4: lambda k, w, n: k / (n + 1),
+           5: lambda k, w, n: (k - w / 3) / (n + 1 / 3),
+           6: lambda k, w, n: (k - w * 3 / 8) / (n + 1 / 4)}
+def _compute_qth_weighted_percentile(a, q, axis, out, method, weights, overwrite_input):
+    # normalise weight vector such that sum of the weight vector equals to n
+    q = np.atleast_1d(q) / 100.0
+    if (q < 0).any() or (q > 1).any():
+        raise ValueError, "percentile must be in the range [0,100]"
+    
+    shape0 = a.shape
+    if axis is None:
+        sorted = a.ravel()
+    else:
+        taxes = range(a.ndim) 
+        taxes[-1], taxes[axis] = taxes[axis], taxes[-1] 
+        sorted = np.transpose(a, taxes).reshape(-1, shape0[axis])
+        
+    ind = sorted.argsort(axis= -1)
+    if overwrite_input:
+        sorted.sort(axis= -1)
+    else:
+        sorted = np.sort(sorted, axis= -1)
+     
+    w = np.atleast_1d(weights)
+    n = len(w)
+    w = w * n / w.sum()
+    
+    # Work on each column separately because of weight vector
+    m = sorted.shape[0]
+    nq = len(q)
+    y = np.zeros((m, nq))
+    pk_fun = _PKDICT.get(method, 1)
+    for i in range(m):
+        sortedW = w[ind[i]]            # rearrange the weight according to ind
+        k = sortedW.cumsum()           # cumulative weight
+        pk = pk_fun(k, sortedW, n)     # different algorithm to compute percentile
+        # Interpolation between pk and sorted for given value of q
+        y[i] = np.interp(q, pk, sorted[i])
+    if axis is None:
+        return np.squeeze(y)
+    else:
+        shape1 = list(shape0)
+        shape1[axis], shape1[-1] = shape1[-1], nq
+        return np.squeeze(np.transpose(y.reshape(shape1), taxes))
+    
+#method=1: p(k) = k/(n-1)
+#method=2: p(k) = (k+0.5)/n.
+#method=3: p(k) = (k+1)/n
+#method=4: p(k) = (k+1)/(n+1)
+#method=5: p(k) = (k+2/3)/(n+1/3)
+#method=6: p(k) = (k+5/8)/(n+1/4)
+
+_KDICT = {1:lambda p, n: p * (n - 1),
+          2:lambda p, n: p * n - 0.5,
+          3:lambda p, n: p * n - 1,
+          4:lambda p, n: p * (n + 1) - 1,
+          5:lambda p, n: p * (n + 1. / 3) - 2. / 3,
+          6:lambda p, n: p * (n + 1. / 4) - 5. / 8}
 def _compute_qth_percentile(sorted, q, axis, out, method):
     if not np.isscalar(q):
-        p = [_compute_qth_percentile(sorted, qi, axis, None, method)
+        p = [_compute_qth_percentile(sorted, qi, axis, None, method) 
              for qi in q]
-
         if out is not None:
             out.flat = p
-
         return p
 
     q = q / 100.0
@@ -1930,38 +1959,29 @@ def _compute_qth_percentile(sorted, q, axis, out, method):
 
     indexer = [slice(None)] * sorted.ndim
     Nx = sorted.shape[axis]
-    if method==1:
-        index = q*(Nx-1) # p(k) = k/n
-    elif method==2:
-        index = q*(Nx-1) + 0.5 # p(k) = (k-0.5)/n. 
-    elif method==3:
-        index = q*Nx  # p(k) = k/(n+1)
-    elif method==4:
-        index = q*(Nx-2) + 1 # p(k) = (k-1)/(n-1)
-    elif method==5:
-        index = q*(Nx-2./3) + 1./3 #p(k) = (k-1/3)/(n+1/3)
-        
+    k_fun = _KDICT.get(method, 1)
+    index = np.clip(k_fun(q, Nx), 0, Nx - 1)    
     i = int(index)
     if i == index:
-        indexer[axis] = slice(i, i+1)
-        weights = np.array(1)
+        indexer[axis] = slice(i, i + 1)
+        weights1 = np.array(1)
         sumval = 1.0
     else:
-        indexer[axis] = slice(i, i+2)
+        indexer[axis] = slice(i, i + 2)
         j = i + 1
-        weights = np.array([(j - index), (index - i)],float)
-        wshape = [1]*sorted.ndim
+        weights1 = np.array([(j - index), (index - i)], float)
+        wshape = [1] * sorted.ndim
         wshape[axis] = 2
-        weights.shape = wshape
-        sumval = weights.sum()
+        weights1.shape = wshape
+        sumval = weights1.sum()
 
     # Use add.reduce in both cases to coerce data type as well as
-    #   check and use out array.
-    return np.add.reduce(sorted[indexer]*weights, axis=axis, out=out)/sumval
+    # check and use out array.
+    return np.add.reduce(sorted[indexer] * weights1, axis=axis, out=out) / sumval
 
 
 
-def percentile(a, q, axis=None, out=None, overwrite_input=False, method=1):
+def percentile(a, q, axis=None, out=None, overwrite_input=False, method=1, weights=None):
     """
     Compute the qth percentile of the data along the specified axis.
 
@@ -1980,23 +2000,6 @@ def percentile(a, q, axis=None, out=None, overwrite_input=False, method=1):
         Alternative output array in which to place the result. It must
         have the same shape and buffer length as the expected output,
         but the type (of the output) will be cast if necessary.
-    method : scalar integer
-        defining the interpolation method. Valid options are
-        1 : p(k) = k/n. That is, linear interpolation of the empirical cdf. 
-        2 : p(k) = (k-0.5)/n. That is a piecewise linear function where
-                 the knots are the values midway through the steps of the 
-                 empirical cdf. This is popular amongst hydrologists. (default)
-                 PRCTILE also uses this formula.
-        3 : p(k) = k/(n+1). Thus p(k) = E[F(x[k])]. 
-                 This is used by Minitab and by SPSS. 
-        4 : p(k) = (k-1)/(n-1). In this case, p(k) = mode[F(x[k])]. 
-                 This is used by S. 
-        5 : p(k) = (k-1/3)/(n+1/3). Then p(k) =~ median[F(x[k])]. 
-                 The resulting quantile estimates are approximately 
-                 median-unbiased regardless of the distribution of x. 
-        6 : p(k) = (k-3/8)/(n+1/4). The resulting quantile estimates are 
-                 approximately unbiased for the expected order statistics 
-                 if x is normally distributed.
     overwrite_input : {False, True}, optional
        If True, then allow use of memory of input array (a) for
        calculations. The input array will be modified by the call to
@@ -2005,6 +2008,23 @@ def percentile(a, q, axis=None, out=None, overwrite_input=False, method=1):
        but it will probably be fully or partially sorted. Default is
        False. Note that, if `overwrite_input` is True and the input
        is not already an ndarray, an error will be raised.
+    method : scalar integer
+        defining the interpolation method. Valid options are
+        1 : p[k] = k/(n-1). In this case, p[k] = mode[F(x[k])]. 
+                 This is used by S. (default)
+        2 : p[k] = (k+0.5)/n. That is a piecewise linear function where
+                 the knots are the values midway through the steps of the 
+                 empirical cdf. This is popular amongst hydrologists. 
+                 Matlab also uses this formula.
+        3 : p[k] = (k+1)/n. That is, linear interpolation of the empirical cdf. 
+        4 : p[k] = (k+1)/(n+1). Thus p[k] = E[F(x[k])]. 
+                 This is used by Minitab and by SPSS. 
+        5 : p[k] = (k+2/3)/(n+1/3). Then p[k] =~ median[F(x[k])]. 
+                 The resulting quantile estimates are approximately 
+                 median-unbiased regardless of the distribution of x. 
+        6 : p[k] = (k+5/8)/(n+1/4). The resulting quantile estimates are 
+                 approximately unbiased for the expected order statistics 
+                 if x is normally distributed.
 
     Returns
     -------
@@ -2029,40 +2049,48 @@ def percentile(a, q, axis=None, out=None, overwrite_input=False, method=1):
 
     Examples
     --------
+    >>> import wafo.kdetools as wk
     >>> a = np.array([[10, 7, 4], [3, 2, 1]])
     >>> a
     array([[10,  7,  4],
            [ 3,  2,  1]])
-    >>> np.percentile(a, 50)
+    >>> wk.percentile(a, 50)
     3.5
-    >>> np.percentile(a, 50, axis=0)
+    >>> wk.percentile(a, 50, axis=0)
     array([ 6.5,  4.5,  2.5])
-    >>> np.percentile(a, 50, axis=1)
+    >>> wk.percentile(a, 50, axis=0, weights=np.ones(2))
+    array([ 6.5,  4.5,  2.5])
+    >>> wk.percentile(a, 50, axis=1)
     array([ 7.,  2.])
-    >>> m = np.percentile(a, 50, axis=0)
+    >>> wk.percentile(a, 50, axis=1, weights=np.ones(3))
+    array([ 7.,  2.])
+    >>> m = wk.percentile(a, 50, axis=0)
     >>> out = np.zeros_like(m)
-    >>> np.percentile(a, 50, axis=0, out=m)
+    >>> wk.percentile(a, 50, axis=0, out=m)
     array([ 6.5,  4.5,  2.5])
     >>> m
     array([ 6.5,  4.5,  2.5])
     >>> b = a.copy()
-    >>> np.percentile(b, 50, axis=1, overwrite_input=True)
+    >>> wk.percentile(b, 50, axis=1, overwrite_input=True)
     array([ 7.,  2.])
     >>> assert not np.all(a==b)
     >>> b = a.copy()
-    >>> np.percentile(b, 50, axis=None, overwrite_input=True)
+    >>> wk.percentile(b, 50, axis=None, overwrite_input=True)
     3.5
     >>> assert not np.all(a==b)
 
     """
     a = np.asarray(a)
-
-    if q == 0:
-        return a.min(axis=axis, out=out)
-    elif q == 100:
-        return a.max(axis=axis, out=out)
-
-    if overwrite_input:
+    try:
+        if q == 0:
+            return a.min(axis=axis, out=out)
+        elif q == 100:
+            return a.max(axis=axis, out=out)
+    except:
+        pass
+    if weights is not None:
+        return _compute_qth_weighted_percentile(a, q, axis, out, method, weights, overwrite_input)
+    elif overwrite_input:
         if axis is None:
             sorted = a.ravel()
             sorted.sort()

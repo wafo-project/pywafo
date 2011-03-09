@@ -1,5 +1,5 @@
-GFORTRAN module version '0' created from intmodule.f on Fri Aug 07 03:21:27 2009
-MD5:aec1e548e8264e60a27019892ee3cddd -- If you edit this, you'll get what you deserve.
+GFORTRAN module version '0' created from intmodule.f on Mon Mar 07 09:38:08 2011
+MD5:6f82304120060b1026ed5eb64a44a657 -- If you edit this, you'll get what you deserve.
 
 (() () () () () () () () () () () () () () () () () () () () () () () ()
 () () ())
@@ -42,17 +42,17 @@ UNKNOWN DUMMY FUNCTION ALWAYS_EXPLICIT) (REAL 8 0 0 REAL ()) 26 0 (27 28)
 DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
 10 'relreq' '' 'relreq' 4 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN
 DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
-12 'finest' '' 'finest' 4 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN
-DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
 11 'absest' '' 'absest' 4 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN
 DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
+12 'finest' '' 'finest' 4 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN
+DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
+13 'inform' '' 'inform' 4 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN
+DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
 5 'ndim' '' 'ndim' 4 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN DUMMY) (
 INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
 6 'mincls' '' 'mincls' 4 ((VARIABLE INOUT UNKNOWN-PROC UNKNOWN UNKNOWN
 DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
 7 'maxcls' '' 'maxcls' 4 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN
-DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-13 'inform' '' 'inform' 4 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN
 DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
 27 'n' '' 'n' 26 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN DUMMY) (
 INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
