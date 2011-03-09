@@ -1,5 +1,5 @@
-GFORTRAN module version '0' created from rind71mod.f on Fri Jul 09 20:01:06 2010
-MD5:1f288e757358b6b93dec46af1aa38ca8 -- If you edit this, you'll get what you deserve.
+GFORTRAN module version '0' created from rind71mod.f on Mon Mar 07 09:38:12 2011
+MD5:1bad57d2f2489b66d6c5cedb9317e71b -- If you edit this, you'll get what you deserve.
 
 (() () () () () () () () () () () () () () () () () () () () () () ()
 () () () ())
@@ -25,10 +25,10 @@ DECL UNKNOWN SUBROUTINE GENERIC ALWAYS_EXPLICIT) (UNKNOWN 0 0 0 UNKNOWN
 5 'setdata' 'rind71mod' 'setdata' 1 ((PROCEDURE UNKNOWN-INTENT
 MODULE-PROC DECL UNKNOWN SUBROUTINE GENERIC) (UNKNOWN 0 0 0 UNKNOWN ())
 19 0 (20 21 22 23 24 25 26 27 28) () 0 () () () 0 0)
-24 'deps2' '' 'deps2' 19 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN
-DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
-25 'dnit' '' 'dnit' 19 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN DUMMY)
-(INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+7 'array' '' 'array' 6 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN DIMENSION DUMMY) (REAL 8 0 0 REAL ()) 0 0 () (2 ASSUMED_SHAPE (
+CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') () (CONSTANT (INTEGER 4 0 0
+INTEGER ()) 0 '1') ()) 0 () () () 0 0)
 26 'dxc' '' 'dxc' 19 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN DUMMY) (
 REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
 27 'dnint' '' 'dnint' 19 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN
@@ -43,12 +43,12 @@ DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
 DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
 23 'dreps' '' 'dreps' 19 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN
 DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
+24 'deps2' '' 'deps2' 19 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN
+DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
+25 'dnit' '' 'dnit' 19 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN DUMMY)
+(INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
 9 'speed' '' 'speed' 8 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN DUMMY)
 (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-7 'array' '' 'array' 6 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
-UNKNOWN DIMENSION DUMMY) (REAL 8 0 0 REAL ()) 0 0 () (2 ASSUMED_SHAPE (
-CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') () (CONSTANT (INTEGER 4 0 0
-INTEGER ()) 0 '1') ()) 0 () () () 0 0)
 11 'fxind' '' 'fxind' 10 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN
 DIMENSION DUMMY) (REAL 8 0 0 REAL ()) 0 0 () (1 ASSUMED_SHAPE (CONSTANT
 (INTEGER 4 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)

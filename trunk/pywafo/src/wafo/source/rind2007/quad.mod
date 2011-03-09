@@ -1,5 +1,5 @@
-GFORTRAN module version '0' created from rind71mod.f on Fri Jul 09 20:01:05 2010
-MD5:fc4ffe08c60cbfe3a121a63154dd2c49 -- If you edit this, you'll get what you deserve.
+GFORTRAN module version '0' created from rind71mod.f on Mon Mar 07 09:38:11 2011
+MD5:5fe7f8d121252e680c2bd7d7c177fa9d -- If you edit this, you'll get what you deserve.
 
 (() () () () () () () () () () () () () () () () () () () () ()
 () () () () () ())
@@ -205,12 +205,12 @@ REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
 REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
 29 'n0' '' 'n0' 23 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN DUMMY) (
 INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-39 'bpout' '' 'bpout' 36 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN
-DIMENSION DUMMY) (REAL 8 0 0 REAL ()) 0 0 () (1 ASSUMED_SHAPE (CONSTANT
-(INTEGER 4 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
 37 'n' '' 'n' 36 ((VARIABLE INOUT UNKNOWN-PROC UNKNOWN UNKNOWN DUMMY) (
 INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
 38 'wfout' '' 'wfout' 36 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN
+DIMENSION DUMMY) (REAL 8 0 0 REAL ()) 0 0 () (1 ASSUMED_SHAPE (CONSTANT
+(INTEGER 4 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
+39 'bpout' '' 'bpout' 36 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN
 DIMENSION DUMMY) (REAL 8 0 0 REAL ()) 0 0 () (1 ASSUMED_SHAPE (CONSTANT
 (INTEGER 4 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
 40 'xmi' '' 'xmi' 36 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN DUMMY) (
