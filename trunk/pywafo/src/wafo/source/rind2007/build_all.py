@@ -1,5 +1,9 @@
 """
 Builds rindmod.pyd
+
+See also
+http://www.scipy.org/Cookbook/CompilingExtensionsOnWindowsWithMinGW
+
 """
 import os
 
