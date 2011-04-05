@@ -52,7 +52,7 @@ from numpy import (inf, atleast_1d, newaxis, any, minimum, maximum, array, #@Unr
     asarray, exp, log, sqrt, where, pi, arange, linspace, sin, cos, abs, sinh, #@UnresolvedImport
     isfinite, mod, expm1, tanh, cosh, finfo, ones, ones_like, isnan, #@UnresolvedImport
     zeros_like, flatnonzero, sinc, hstack, vstack, real, flipud, clip) #@UnresolvedImport
-from dispersion_relation import w2k
+from dispersion_relation import w2k, k2w
 from wafo.spectrum import SpecData1D, SpecData2D
 sech = lambda x: 1.0 / cosh(x)
 
