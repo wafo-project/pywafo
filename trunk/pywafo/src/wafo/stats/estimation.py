@@ -290,7 +290,7 @@ class Profile(object):
             phatfree = optimize.fmin(mylogfun, phatfree, args=(p_opt,) , disp=0)
             LLt = -mylogfun(phatfree, p_opt)
             if LLt>Lmax:
-                foundNewphat = True
+                #foundNewphat = True
                 warnings.warn('The fitted parameters does not provide the optimum fit. Something wrong with fit')
                 dL = Lmax-LLt
                 self.alpha_cross_level -= dL
