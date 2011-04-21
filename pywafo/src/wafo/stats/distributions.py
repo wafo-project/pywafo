@@ -106,7 +106,7 @@ __all__ = [
            'levy_stable', 'logistic', 'loggamma', 'loglaplace', 'lognorm',
            'gilbrat', 'maxwell', 'mielke', 'nakagami', 'ncx2', 'ncf', 't',
            'nct', 'pareto', 'lomax', 'powerlaw', 'powerlognorm', 'powernorm',
-           'rdist', 'rayleigh', 'reciprocal', 'rice', 'recipinvgauss',
+           'rdist', 'rayleigh', 'truncrayleigh','reciprocal', 'rice', 'recipinvgauss',
            'semicircular', 'triang', 'truncexpon', 'truncnorm',
            'tukeylambda', 'uniform', 'vonmises', 'wald', 'wrapcauchy',
            'entropy', 'rv_discrete',
@@ -5173,6 +5173,40 @@ rayleigh = rayleigh_gen(a=0.0, name="rayleigh",
 Rayleigh distribution
 
 rayleigh.pdf(r) = r * exp(-r**2/2)
+for x >= 0.
+"""
+                        )
+
+class truncrayleigh_gen(rv_continuous):
+    def link(self, x, logSF, phat, ix):
+        rv_continuous.link.__doc__
+        c = phat[0]
+        if ix == 1:
+            return x - phat[1] / sqrt(-2.0 * logSF)
+        else:
+            return x - phat[2] * sqrt(-2.0 * logSF)
+    def _pdf(self, r, c):
+        rc = r+c
+        return rc*exp(-(rc*rc-c*c)/2.0)
+    def _cdf(self, r, c):
+        rc = r+c
+        return - expm1(-(rc*rc-c*c)/ 2.0)
+    def _ppf(self, q, c):
+        return sqrt(c*c - 2 * log1p(-q)) - c
+    def _stats(self, c):
+        val = 4-pi
+        return np.sqrt(pi/2), val/2, 2*(pi-3)*sqrt(pi)/val**1.5, \
+               6*pi/val-16/val**2
+    def _entropy(self, c):
+        return _EULER/2.0 + 1 - 0.5*log(2)
+truncrayleigh = truncrayleigh_gen(a=0.0, name="truncrayleigh",
+                        longname="A truncated Rayleigh",
+                        shapes='c',
+                        extradoc="""
+
+Truncated Rayleigh distribution
+
+truncrayleigh.cdf(r) = 1 - exp(-((r+c)**2-c**2)/2)
 for x >= 0.
 """
                         )
