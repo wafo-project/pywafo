@@ -27,8 +27,8 @@ from scipy.special import ndtr as cdfnorm, ndtri as invnorm
 import warnings
 import numpy as np
 
-from numpy import (inf, pi, zeros, ones, sqrt, where, log, exp, sin, arcsin, mod, finfo, interp, #@UnresolvedImport
-                   linspace, arange, sort, all, abs, vstack, hstack, atleast_1d, #@UnresolvedImport
+from numpy import (inf, pi, zeros, ones, sqrt, where, log, exp, cos, sin, arcsin, mod, finfo, interp, #@UnresolvedImport
+                   linspace, arange, sort, all, abs, vstack, hstack, atleast_1d, sign, expm1, #@UnresolvedImport
                    finfo, polyfit, r_, nonzero, cumsum, ravel, size, isnan, nan, ceil, diff, array) #@UnresolvedImport
 from numpy.fft import fft
 from numpy.random import randn
@@ -111,7 +111,7 @@ class LevelCrossings(WafoData):
             y = cmax * exp(-x ** 2 / 2.0)
             self.children = [WafoData(y, self.args)]
     
-    def extrapolate(self, u_min=None, u_max=None, method='ml',dist='genpar', plotflag=0):
+    def extrapolate(self, u_min=None, u_max=None, method='ml', dist='genpar', plotflag=0):
         ''' 
         Returns an extrapolated level crossing spectrum
         
@@ -127,7 +127,7 @@ class LevelCrossings(WafoData):
             defining distribution function. Options are:
             genpareto : Generalized Pareto distribution (GPD)
             expon : Exponential distribution (GPD with k=0)
-            rayleigh : Rayleigh distribution 
+            rayleigh : truncated Rayleigh distribution 
         plotflag : scalar integer 
             1: Diagnostic plots. (default)
             0: Don't plot diagnostic plots.
@@ -139,29 +139,43 @@ class LevelCrossings(WafoData):
             Est      = Estimated parameters. [struct array]
         
         Extrapolates the level crossing spectrum (LC) for high and for low levels. 
-        The tails of the LC is fited to a survival function of a GPD. 
+        The tails of the LC is fitted to a survival function of a GPD. 
            H(x) = (1-k*x/s)^(1/k)               (GPD)
         The use of GPD is motivated by POT methods in extreme value theory. 
         For k=0 the GPD is the exponential distribution
            H(x) = exp(-x/s),  k=0               (expon)
-        The tails with the survival function of a Rayleigh distribution.
+        The tails with the survival function of a truncated Rayleigh distribution.
            H(x) = exp(-((x+x0).^2-x0^2)/s^2)    (rayleigh)
-        where x0 is the value where the LC has its maximum.
+        where x0 is the distance from the truncation level to where the LC has its maximum.
         The method 'gpd' uses the GPD. We recommend the use of 'gpd,ml'.
         The method 'exp' uses the Exp. 
         The method 'ray' uses Ray, and should be used if the load is a Gaussian process.
         
-         Example: 
-           S = jonswap;
-           x = spec2sdat(S,100000,0.1,[],'random');
-           lc = dat2lc(x); s = std(x(:,2));
-           [lcEst,Est] = extralc(lc,s*[-2 2]);
-           [lcEst,Est] = extralc(lc,s*[-2 2],'exp,ml');
-           [lcEst,Est] = extralc(lc,s*[-2 2],'ray,ml');
+        Example
+        -------
+        >>> import wafo.data
+        >>> import wafo.objects as wo
+        >>> x = wafo.data.sea()
+        >>> ts = wo.mat2timeseries(x)
+    
+        >>> tp = ts.turning_points()
+        >>> mm = tp.cycle_pairs()
+        >>> lc = mm.level_crossings()
         
-         See also  
-         --------
-         cmat2extralc, rfmextrapolate, lc2rfmextreme, extralc, fitgenpar
+        >>> s = x[:,1].std()
+        >>> lc_gpd = lc.extrapolate(-2*s, 2*s)
+        >>> lc_exp = lc.extrapolate(-2*s, 2*s, dist='expon')
+        >>> lc_ray = lc.extrapolate(-2*s, 2*s, dist='rayleigh')
+        
+        lc_gpd.plot()
+        lc_exp.plot()
+        lc_ray.plot()
+        
+        
+        
+        See also  
+        --------
+        cmat2extralc, rfmextrapolate, lc2rfmextreme, extralc, fitgenpar
         
         References
         ----------
@@ -178,141 +192,131 @@ class LevelCrossings(WafoData):
         
         if u_min is None or u_max is None:     
             fraction = sqrt(c_max)
-            i = np.flatnonzero(self.data>fraction)
+            i = np.flatnonzero(self.data > fraction)
             if u_min is None :
                 u_min = self.args[i.min()]
             if u_max is None:
                 u_max = self.args[i.max()] 
         lcf, lcx = self.data, self.args
         # Extrapolate LC for high levels
-        [lcEst.High,Est.High] = self._extrapolate(lcx,lcf,u_max,u_max-lc_max,method, dist);
+        [lc_High, phat_high] = self._extrapolate(lcx, lcf, u_max, u_max - lc_max, method, dist);
 #        
 #        # Extrapolate LC for low levels
-#        
-#        lc1 = [-flipud(lc(:,1)) flipud(lc(:,2))];
-#        
-#        [lcEst1,Est1] = extrapolate(lc1,-u(1),method,lc_max-u(1));
-#        lcEst.Low = [-flipud(lcEst1(:,1)) flipud(lcEst1(:,2:end))];
+        [lcEst1, phat_low] = self._extrapolate(-lcx[::-1], lcf[::-1], -u_min,  lc_max - u_min, method, dist)
+        lc_Low = lcEst1[::-1, :] #[-lcEst1[::-1, 0], lcEst1[::-1, 1::]]
+        lc_Low[:,0] *= -1
 #        Est.Low = Est1;
 #        
-#        if plotflag
-#          semilogx(lc(:,2),lc(:,1),lcEst.High(:,2),lcEst.High(:,1),lcEst.Low(:,2),lcEst.Low(:,1))
-#        end
-#        
+        if plotflag:
+            plotbackend.semilogx(lcf, lcx,
+                                 lc_High[:, 1], lc_High[:, 0],
+                                 lc_Low[:, 1], lc_Low[:, 0])
+        i_mask = (u_min<lcx) & (lcx<u_max)
+        f = np.hstack((lc_Low[:,1],lcf[i_mask],lc_High[:, 1]))
+        x = np.hstack((lc_Low[:,0],lcx[i_mask],lc_High[:, 0]))
+        lc_out = LevelCrossings(f,x, sigma=self.sigma, mean=self.mean)
+        lc_out.phat_high = phat_high
+        lc_out.phat_low = phat_low
+        return lc_out
         ##
-    def _extrapolate(self, lcx,lcf,u,offset,method,dist):
+    def _extrapolate(self, lcx, lcf, u, offset, method, dist):
         # Extrapolate the level crossing spectra for high levels
 
         method = method.lower()
         dist = dist.lower()
            
         # Excedences over level u
-        Iu = lcx>u;
+        Iu = lcx > u
         lcx1, lcf1 = lcx[Iu], lcf[Iu]
-        lcf2,lcx2 = _make_increasing(lcf1[::-1],lcx1[::-1])
+        lcf2, lcx2 = self._make_increasing(lcf1[::-1], lcx1[::-1])
         
         nim1 = 0 
-        x=[]
-        for k, ni in enumerate(lcf2.tolist()): 
-            nk = ni - nim1 
-            x.append(ones(nk)*lcx2[k])
-            #end
+        x = []
+        for xk, ni in zip(lcx2.tolist(),lcf2.tolist()): 
+            x.append(ones(ni - nim1) * xk)
+            nim1 = ni
             
-        x = np.hstack(x)-u   
-          
+            
+        x = np.hstack(x) - u   
+        
+        df = 0.01    
+        xF = np.arange(0.0, 4 + df / 2, df)
+        lcu = np.interp(u, lcx, lcf) + 1
         # Estimate tail
-          
-        if dist=='genpareto': 
+        if dist.startswith('gen'): 
             genpareto = distributions.genpareto
             phat = genpareto.fit2(x, floc=0, method=method)
-              
-            df = 0.01    
-            xF = np.arange(0.0,4+df/2,df)
             F = phat.cdf(xF)
-            lcu = np.interp(u,lcx,lcf)+1
-            covar = phat.par_cov[::2,::2]
-            # Calculate 90 # confidence region, an ellipse, for (k,s)
-            B, D = np.linalg.eig(covar);
-            b = phat.par[::2] 
-            if b[0]>0:
-                upperlimit = u + b[1]/b[0]
             
-            r = sqrt(-2*log(1-90/100)); # 90 # confidence sphere
-            Nc = 16+1;
-            ang = linspace(0,2*pi,Nc);
-            c0 = np.vstack((r*sqrt(D[0,0])*sin(ang), r*sqrt(D[1,1])*cos(ang))) # 90# Circle
+            covar = phat.par_cov[::2, ::2]
+            # Calculate 90 # confidence region, an ellipse, for (k,s)
+            D, B = np.linalg.eig(covar);
+            b = phat.par[::2] 
+            if b[0] > 0:
+                phat.upperlimit = u + b[1] / b[0]
+            
+            r = sqrt(-2 * log(1 - 90 / 100)) # 90 # confidence sphere
+            Nc = 16 + 1
+            ang = linspace(0, 2 * pi, Nc)
+            c0 = np.vstack((r * sqrt(D[0]) * sin(ang), r * sqrt(D[1]) * cos(ang))) # 90# Circle
         #    plot(c0(1,:),c0(2,:))
             
-            c1 = B*c0+b*ones((1,len(c0))); # Transform to ellipse for (k,s)
+            c1 = np.dot(B, c0) + b[:,None]  #* ones((1, len(c0))) # Transform to ellipse for (k,s)
         #    plot(c1(1,:),c1(2,:)), hold on
             
             # Calculate conf.int for lcu
             # Assumtion: lcu is Poisson distributed
             # Poissin distr. approximated by normal when calculating conf. int.
-            dXX = 1.64*sqrt(lcu); # 90 # quantile for lcu
+            dXX = 1.64 * sqrt(lcu) # 90 # quantile for lcu
             
-            lcEstCu = zeros((len(xF),Nc)); 
-            lcEstCl = lcEstCu;
+            lcEstCu = zeros((len(xF), Nc))
+            lcEstCl = zeros((len(xF), Nc))
             for i in range(Nc):
-                k=c1[0,i]
-                s=c1[2,i]
-                F2 = genpareto.cdf(xF,k,scale=s)
-                lcEstCu[:,i] = (lcu+dXX)*(1-F2);
-                lcEstCl[:,i] = (lcu-dXX)*(1-F2);
+                k = c1[0, i]
+                s = c1[1, i]
+                F2 = genpareto.cdf(xF, k, scale=s)
+                lcEstCu[:, i] = (lcu + dXX) * (1 - F2)
+                lcEstCl[:, i] = (lcu - dXX) * (1 - F2)
             #end
             
-            lcEstCI = [min(lcEstCl), max(lcEstCu)]
+            lcEst = np.vstack((xF + u, lcu * (1 - F),
+                                 lcEstCl.min(axis=1), lcEstCu.max(axis=1))).T            
+        elif dist.startswith('exp'):
+            expon = distributions.expon
+            phat = expon.fit2(x, floc=0, method=method)           
+            F = phat.cdf(xF) 
+            lcEst =  np.vstack((xF + u, lcu * (1 - F))).T
             
-            lcEst = [xF+u, lcu*(1-F), lcEstCI];
-            
-        elif dist=='expon':
-            n = len(x)
-            s = mean(x);
-            cov = s/n;
-            Est.s = s;
-            Est.cov = cov;
-            
-            xF = np.arange(0.0,4+df/2,df) #xF = (0.0:0.01:4)';
-            F = -expm1(-xF/s)
-            lcu = np.interp(u,lcx,lcf)+1
-            
-            lcEst = [xF+u, Est.lcu*(1-F)]
-            
-        elif dist== 'ray':
-            
-            n = len(x)
-            Sx = sum((x+offset)**2-offset**2)
-            s = sqrt(Sx/n);  # Shape parameter
-        
-            cov = NaN;
-            
-            xF = np.arange(0.0,4+df/2,df) #xF = (0.0:0.01:4)';
-            F = -expm1(-((xF+offset)**2-offset**2)/s**2);
-            lcu = np.interp(u,lcx,lcf,u)+1
-            
-            lcEst = [xF+u, Est.lcu*(1-F)];
-            
+        elif dist.startswith('ray') or dist.startswith('trun'):
+            phat = distributions.truncrayleigh.fit2(x, floc=0, method=method)
+            F = phat.cdf(xF)
+            if False:
+                n = len(x)
+                Sx = sum((x + offset) ** 2 - offset ** 2)
+                s = sqrt(Sx / n);  # Shape parameter
+                F = -np.expm1(-((xF + offset) ** 2 - offset ** 2) / s ** 2)
+            lcEst = np.vstack((xF + u, lcu * (1 - F))).T
         else: 
             raise ValueError()
           
-            
+        return lcEst, phat
         ## End extrapolate
           
-        def _make_increasing(f, t=None):
-            # Makes the signal f strictly increasing. 
-             
-            n = len(f)
-            if t is None:
-                t = np.arange(n)
-            ff = [f[0],]
-            tt = [t[0],]
-             
-            for i in xrange(1,n):
-                if f[i]>ff[-1]:
-                    ff.append(f[i])
-                    tt.append(t[i])
-          
-            return np.asarray(ff), np.asarray(tt)
+    def _make_increasing(self, f, t=None):
+        # Makes the signal f strictly increasing. 
+         
+        n = len(f)
+        if t is None:
+            t = np.arange(n)
+        ff = [f[0], ]
+        tt = [t[0], ]
+         
+        for i in xrange(1, n):
+            if f[i] > ff[-1]:
+                ff.append(f[i])
+                tt.append(t[i])
+      
+        return np.asarray(ff), np.asarray(tt)
          
     def sim(self, ns, alpha):
         """
@@ -605,7 +609,7 @@ class LevelCrossings(WafoData):
         lc22 = hstack((0, cumtrapz(lc2, lc1) + cor1))
           
         if self.intensity:
-            lc22 = (lc22 + 0.5/ncr) / (lc22[-1] + cor2 + 1./ncr)
+            lc22 = (lc22 + 0.5 / ncr) / (lc22[-1] + cor2 + 1. / ncr)
         else:
             lc22 = (lc22 + 0.5) / (lc22[-1] + cor2 + 1)
         
@@ -646,7 +650,19 @@ class LevelCrossings(WafoData):
             g2.plot()
         
         return g, g2
-
+def test_levelcrossings_extrapolate():
+    import wafo.data
+    #import wafo.objects as wo
+    x = wafo.data.sea()
+    ts = mat2timeseries(x)
+    
+    tp = ts.turning_points()
+    mm = tp.cycle_pairs()
+    lc = mm.level_crossings()
+        
+    s = x[:,1].std()
+    lc_gpd = lc.extrapolate(-2*s, 2*s, dist='rayleigh')
+    
 class CyclePairs(WafoData):
     '''
     Container class for Cycle Pairs data objects in WAFO
@@ -817,9 +833,9 @@ class CyclePairs(WafoData):
             dcount = cumsum(extr[1, 0:nx]) - extr[3, 0:nx]
         elif defnr == 3: ## This are upcrossings + minima + maxima
             dcount = cumsum(extr[1, 0:nx]) + extr[2, 0:nx]
-        ylab='Count'
+        ylab = 'Count'
         if intensity:
-            dcount = dcount/self.time
+            dcount = dcount / self.time
             ylab = 'Intensity [count/sec]'
         return LevelCrossings(dcount, levels, mean=self.mean, sigma=self.sigma, ylab=ylab, intensity=intensity)
 
@@ -935,7 +951,7 @@ class TurningPoints(WafoData):
         SurvivalCycleCount
         """
         
-        if h>0:
+        if h > 0:
             ind = findrfc(self.data, h, method=method)
             data = self.data[ind]
         else:
@@ -957,9 +973,9 @@ class TurningPoints(WafoData):
             M = data[iM:-1:2]
             m = data[iM + 1::2]
         
-        time = self.args[-1]-self.args[0]
+        time = self.args[-1] - self.args[0]
         
-        return CyclePairs(M, m, kind=kind, mean=self.mean, sigma=self.sigma, 
+        return CyclePairs(M, m, kind=kind, mean=self.mean, sigma=self.sigma,
                           time=time)
 
     def cycle_astm(self):
@@ -2548,7 +2564,7 @@ class TransferFunction(object):
         ind = np.flatnonzero(1 - np.isfinite(Hw))
         Hw.flat[ind] = 0
         
-        sgn = sign(Hw);
+        sgn = np.sign(Hw);
         k0 = np.flatnonzero(sgn < 0)
         if len(k0): # make sure Hw>=0 ie. transfer negative signs to Gwt
             Gwt[:, k0] = -Gwt[:, k0]
@@ -2826,9 +2842,10 @@ def main():
     sensortype(range(21))
     
 if __name__ == '__main__':
-    if  True: #False : #  
-        import doctest
-        doctest.testmod()
-    else:
-        main()
+    test_levelcrossings_extrapolate()
+#    if  True: #False : #  
+#        import doctest
+#        doctest.testmod()
+#    else:
+#        main()
        
