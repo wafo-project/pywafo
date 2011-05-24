@@ -3,7 +3,7 @@
       PUBLIC :: INITLEVELS, TRANSF, COVG
 
       CONTAINS
-      SUBROUTINE INITLEVELS(T,HT,N,NG,NU,Nv)
+      SUBROUTINE INITLEVELS(T,HT,N,NU,Nv)
       USE TBRMOD
       USE SIZEMOD
       IMPLICIT NONE
@@ -11,16 +11,16 @@ C     INTEGER, PARAMETER:: NMAX = 101, RDIM = 10201
 C      DIMENSION ULEVELS(1),Vlevels(1),T(1),HT(1),TG(1),XG(1),HH(101)
       REAL*8, DIMENSION(:), intent(in) :: T
       REAL*8, DIMENSION(:), intent(out) :: HT
-      INTEGER, intent(in) :: NG
+C      INTEGER, intent(in) :: NG
       REAL*8 :: UMIN,UMAX,VMIN,VMAX, HU,HV
       integer :: N, I, NU, NV
 C     REAL*8, DIMENSION(NMAX) :: HH
 C      COMMON/TBR/HH
 
-      IF (NG.GT.501) THEN
-      PRINT *,'Vector defining transformation of data > 501, stop'
-      STOP
-      END IF
+C      IF (NG.GT.501) THEN
+C      PRINT *,'Vector defining transformation of data > 501, stop'
+C      STOP
+C      END IF
 
 
       IF(N.ge.NMAX) then

@@ -2516,7 +2516,7 @@ class TransferFunction(object):
                                X_p=self._x_p, x_p=self._x_p,
                                Y_p=self._y_p, y_p=self._y_p,
                                Z_p=self._z_p, z_p=self._z_p)
-    __call__ = tran 
+    
     def tran(self, w, theta=0, kw=None):
         '''
         Return transfer functions based on linear wave theory
@@ -2572,7 +2572,7 @@ class TransferFunction(object):
             #  Changing igam by 2 should affect the directional result in the same way that changing eta by -eta!
             Gwt = -Gwt
         return Hw, Gwt
-    
+    __call__ = tran 
 #---Private member methods
     def _get_ee_cthxy(self, theta, kw):
         # convert from angle in degrees to radians
