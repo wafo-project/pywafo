@@ -7,7 +7,7 @@ gfortran -W -Wall -pedantic-errors -fbounds-check -Werror -c dsvdc.f mregmodule.
 import os
 
 def compile_all():
-    files = ['dsvdc','mregmodule']
+    files = ['dsvdc','mregmodule', 'intfcmod']
     compile1_format = 'gfortran -fPIC -c %s.f'
     format1 = '%s.o ' * len(files)
     for file in files:

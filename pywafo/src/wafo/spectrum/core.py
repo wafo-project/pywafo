@@ -30,6 +30,12 @@ try:
 except ImportError:
     warnings.warn('Compile the c_library.pyd again!')
     c_library = None
+try:
+    from wafo import cov2mod
+except ImportError:
+    warnings.warn('Compile the cov2mod.pyd again!')
+    cov2mod = None
+
     
 #from wafo.transform import TrData
 from wafo.transform.models import TrLinear
@@ -255,8 +261,8 @@ def plotspec(specdata, linetype='b-', flag=1):
     
     spectype = specdata.type.lower()
     stype = spectype[-3::]
-    if stype in ('enc','req','k1d') : #1D plot
-        Fn   = freq[-1] # Nyquist frequency
+    if stype in ('enc', 'req', 'k1d') : #1D plot
+        Fn = freq[-1] # Nyquist frequency
         indm = findpeaks(data, n=4)
         maxS = data.max()
 #        if isfield(S,'CI') && ~isempty(S.CI),
@@ -266,19 +272,19 @@ def plotspec(specdata, linetype='b-', flag=1):
         
         Fp = freq[indm]# %peak frequency/wave number
         
-        if len(indm)==1:
+        if len(indm) == 1:
             txt = [('fp = %0.2g' % Fp) + funit]
         else:
             txt = []
-            for i,fp in enumerate(Fp.tolist()):
-                txt.append(('fp%d = %0.2g' % (i,fp)) + funit)
+            for i, fp in enumerate(Fp.tolist()):
+                txt.append(('fp%d = %0.2g' % (i, fp)) + funit)
           
         
         if (flag == 3):
-            plotbackend.subplot(2,1,1) 
-        if (flag == 1) or (flag ==3):#% Plot in normal scale
-            plotbackend.plot(np.vstack([Fp, Fp]),np.vstack([zeros(len(indm)), data.take(indm)]),':',
-                             freq,data,linetype)
+            plotbackend.subplot(2, 1, 1) 
+        if (flag == 1) or (flag == 3):#% Plot in normal scale
+            plotbackend.plot(np.vstack([Fp, Fp]), np.vstack([zeros(len(indm)), data.take(indm)]), ':',
+                             freq, data, linetype)
             
 #          if isfield(S,'CI'),
 #            plot(freq,S.S*S.CI(1), 'r:' )
@@ -287,29 +293,29 @@ def plotspec(specdata, linetype='b-', flag=1):
             a = plotbackend.axis() 
           
             a1 = Fn
-            if (Fp>0): 
-                a1 = max(min(Fn,10*max(Fp)),a[1]);
+            if (Fp > 0): 
+                a1 = max(min(Fn, 10 * max(Fp)), a[1]);
           
-            plotbackend.axis([0, a1 ,0, max(1.01*maxS,a[3])]) 
+            plotbackend.axis([0, a1 , 0, max(1.01 * maxS, a[3])]) 
             plotbackend.title('Spectral density')
             plotbackend.xlabel(xlbl_txt)
-            plotbackend.ylabel(ylbl1_txt )
+            plotbackend.ylabel(ylbl1_txt)
         
         
-        if (flag==3):
-            plotbackend.subplot(2,1,2)    
+        if (flag == 3):
+            plotbackend.subplot(2, 1, 2)    
         
-        if (flag == 2) or (flag ==3) : # Plot in logaritmic scale
-            ind = np.flatnonzero(data>0)
+        if (flag == 2) or (flag == 3) : # Plot in logaritmic scale
+            ind = np.flatnonzero(data > 0)
             
-            plotbackend.plot(np.vstack([Fp,Fp]),np.vstack((min(10*log10(data.take(ind)/maxS)).repeat(len(Fp)),
-                                                            10*log10(data.take(indm)/maxS))),':')
+            plotbackend.plot(np.vstack([Fp, Fp]), np.vstack((min(10 * log10(data.take(ind) / maxS)).repeat(len(Fp)),
+                                                            10 * log10(data.take(indm) / maxS))), ':')
 #          hold on 
 #          if isfield(S,'CI'),
 #            plot(freq(ind),10*log10(S.S(ind)*S.CI(1)/maxS), 'r:' )
 #            plot(freq(ind),10*log10(S.S(ind)*S.CI(2)/maxS), 'r:' )
 #          end
-            plotbackend.plot(freq[ind],10*log10(data[ind]/maxS),linetype)
+            plotbackend.plot(freq[ind], 10 * log10(data[ind] / maxS), linetype)
           
 #            if ih, a=axis; else a=[0 0 0 0]; end
 #            axis([0 max(min(Fn,max(10*Fp)),a(2)) -20 max(1.01*10*log10(1),a(4))]) % log10(maxS)
@@ -650,14 +656,14 @@ class SpecData1D(WafoData):
 
     def __init__(self, *args, **kwds):
         self.name_ = kwds.pop('name', 'WAFO Spectrum Object') 
-        self.type = kwds.pop('type','freq')
-        self.freqtype = kwds.pop('freqtype','w')
+        self.type = kwds.pop('type', 'freq')
+        self.freqtype = kwds.pop('freqtype', 'w')
         self.angletype = ''
-        self.h = kwds.pop('h',inf)
-        self.tr = kwds.pop('tr',None) #TrLinear()
-        self.phi = kwds.pop('phi',0.0)
-        self.v = kwds.pop('v',0.0)
-        self.norm = kwds.pop('norm',False)
+        self.h = kwds.pop('h', inf)
+        self.tr = kwds.pop('tr', None) #TrLinear()
+        self.phi = kwds.pop('phi', 0.0)
+        self.v = kwds.pop('v', 0.0)
+        self.norm = kwds.pop('norm', False)
         super(SpecData1D, self).__init__(*args, **kwds)
         
         self.setlabels()
@@ -1113,7 +1119,114 @@ class SpecData1D(WafoData):
         
         return SL, SN
 
+    def to_mm_pdf(self, paramt=None, paramu=None, utc=None, nit=2, EPS=5e-5, 
+                  EPSS=1e-6, C=4.5, EPS0=1e-5, IAC=1, ISQ=0, verbose=False):
+        '''
+        nit    = order of numerical integration: 0,1,2,3,4,5.
+        paramu = parameter vector defining discretization of min/max values.
+        t      = grid of time points between maximum and minimum (to
+             integrate out). interval between maximum and the following
+             minimum,
+        The variable ISQ marks which type of conditioning will be used ISQ=0
+        means random time where the probability is minimum, ISQ=1 is the time
+        where the variance of the residual process is minimal(ISQ=1 is faster).
+        
+        NIT, IAC are  described in CROSSPACK paper, EPS0 is the accuracy constant
+        used in choosing the number of nodes in numerical integrations
+        (XX1, H1 vectors). The nodes and weights and other parameters are
+        read in the subroutine INITINTEG from files Z.DAT, H.DAT and ACCUR.DAT.
+        
+        
+        NIT=0, IAC=1 then one uses RIND0 - subroutine, all other cases
+        goes through RIND1, ...,RIND5. NIT=0, here means explicite formula
+        approximation for XIND=E[Y^+1{ HH<BU(I)<0 for all I, I=1,...,N}], where
+        BU(I) is deterministic function.
+        
+        NIT=1, leads tp call RIND1, IAC=0 is also explicit form approximation,
+        while IAC=1 leads to maximum one dimensional integral.
+        .......
+        NIT=5, leads tp call RIND5, IAC is maximally 4-dimensional integral,
+        while IAC=1 leads to maximum 5 dimensional integral.
 
+        '''
+     
+        S = self.copy()
+        S.normalize()
+        m, unused_mtxt = self.moment(nr=4, even=True)
+        A = sqrt(m[0] / m[1])
+        
+        if paramt is None: 
+            distanceBetweenExtremes = 5*pi*sqrt(m[1]/m[2]) #(2.5 * mean distance between extremes)
+            paramt = [0, distanceBetweenExtremes, 43]   
+        
+        if paramu is None:  
+            paramu = [-4*sqrt(m[0]), 4*sqrt(m[0]), 41] 
+        
+        if self.tr is None:
+            g = TrLinear(var=m[0])
+        else:
+            g = self.tr
+            
+        if  utc is None:
+            utc = g.gauss2dat(0) # most frequent crossed level 
+            
+        # transform reference level into Gaussian level
+        u = g.dat2gauss(utc)
+        if verbose:
+            print('The level u for Gaussian process = %g' % u)
+        
+    
+        unused_t0, tn, Nt = paramt 
+        t      = linspace(0, tn/A, Nt) # normalized times 
+        
+        #Transform amplitudes to Gaussian levels:    
+        h   = linspace(*paramu); 
+        dt = t[1] - t[0]
+        nr = 4
+        R = S.tocov_matrix(nr, Nt-1, dt)
+        
+        #ulev = linspace(*paramu)
+        #vlev = linspace(*paramu)
+        
+        trdata = g.trdata()
+        Tg = trdata.args
+        Xg = trdata.data
+        
+        cov2mod.initinteg(EPS, EPSS, EPS0, C, IAC, ISQ)
+        uvdens = cov2mod.cov2mmpdfreg(t, R, h, h, Tg, Xg, nit)
+        
+        dh = h[1]-h[0]
+        uvdens *= dh*dh
+    
+#        if (defnr==0)
+#          f.f      =fliplr(mctp2rfc(fliplr(ftmp)));%* sqrt(-R(1,6)/R(1,4))/2/pi;
+#          f.title  ='Joint density of maximum and rainflow minimum';
+#          f.labx{1}='max [m]';
+#          f.labx{2}='rainflow min [m]';
+#        elseif (defnr==-1)   
+#           %CC= normalizing constant= 1/ expected number of u-up-crossings of X
+#           %CC = 2*pi*sqrt(L0/L2)*exp(0.5D0*u*u/L0); 
+#           % CC = normalizing constant = 1/ expected number of zero-up-crossings of X' 
+#           %CC = 2*pi*sqrt(L2/L4); 
+#          fact = sqrt(L0/L4);
+#           
+#          f.f    = fliplr(mctp2tc(fliplr(ftmp*fact),utc,paramu));
+#          index1 = find(f.x{1}>0);
+#          index2 = find(f.x{2}<0);
+#          f.f    = flipud(f.f(index2,index1));
+#          f.x{1} = f.x{1}(index1);
+#          f.x{2} = abs(flipud(f.x{2}(index2)));
+#          f.title  ='Joint density of crest and trough';  
+#          f.labx{1}='Crest [m]';
+#          f.labx{2}='Trough [m]';
+#        else  %(defnr==1)
+        mmpdf = WafoData(uvdens,args=(h,h), title='Joint density of maximum and minimum',
+                 xlab='max [m]',ylab='min [m]')
+        return mmpdf
+
+        #[f.cl,f.pl] = qlevels(f.f,[10, 30, 50, 70, 90, 95, 99, 99.9],f.x{1},f.x{2})
+ 
+            
     def to_t_pdf(self, u=None, pdef='Tc', paramt=None, **options):
         '''
         Density of crest/trough- period or length, version 2. 
@@ -1254,7 +1367,7 @@ class SpecData1D(WafoData):
             indI[3] = Ntd - 1
             
             #% positive wave period  
-            BIG = self._covinput(pt, R) 
+            BIG = self._covinput_t_pdf(pt, R) 
           
             tmp = rind(BIG, ex[:Ntdc], B_lo, B_up, indI, xc, Nt)
             f[pt], err[pt] = tmp[:2]
@@ -1279,7 +1392,7 @@ class SpecData1D(WafoData):
         return pdf
 
 
-    def _covinput(self, pt, R):
+    def _covinput_t_pdf(self, pt, R):
         """
         Return covariance matrix for Tc or Tt period problems
     
@@ -1813,7 +1926,7 @@ class SpecData1D(WafoData):
             svec = rvec + 1J * ivec
         else:
             amp = amp.T
-            svec=[]
+            svec = []
             for i in range(cases):
                 rvec, ivec = c_library.disufq(amp[i].real, amp[i].imag, w, kw, water_depth,
                                       g, nmin, nmax, 1, ns)
@@ -2329,7 +2442,7 @@ class SpecData1D(WafoData):
             #%wnc = min(wnNew,wnOld-1e-5)
             wnc = wnNew
             #specfun = lambda xi : stineman_interp(xi, w, S1)
-            specfun = interpolate.interp1d(w,S1, kind='cubic')
+            specfun = interpolate.interp1d(w, S1, kind='cubic')
             x, unused_y = discretize(specfun, 0, wnc)
             dwMin = minimum(min(diff(x)), dwMin)
 
@@ -2437,9 +2550,9 @@ class SpecData1D(WafoData):
         '''
         m, unused_mtxt = self.moment(nr=4, even=False)
         
-        fact_dict=dict(alpha=0,eps2=1,eps4=3,qp=3,Qp=3)
-        fun = lambda fact: fact_dict.get(fact,fact)
-        fact = atleast_1d(map(fun,list(factors)))
+        fact_dict = dict(alpha=0, eps2=1, eps4=3, qp=3, Qp=3)
+        fun = lambda fact: fact_dict.get(fact, fact)
+        fact = atleast_1d(map(fun, list(factors)))
         
         #fact = atleast_1d(fact)
         alpha = m[2] / sqrt(m[0] * m[4])
@@ -2793,13 +2906,13 @@ class SpecData2D(WafoData):
 
     def toacf(self):
         pass
-    def tospecdata(self,type=None):
+    def tospecdata(self, type=None):
         pass
     def sim(self):
         pass
     def sim_nl(self):
         pass
-    def rotate(self, phi=0,rotateGrid=False,method='linear'):
+    def rotate(self, phi=0, rotateGrid=False, method='linear'):
         '''
         Rotate spectrum clockwise around the origin. 
          
@@ -2837,58 +2950,58 @@ class SpecData2D(WafoData):
         #Snew=S;
         
         
-        self.phi = mod(self.phi+phi+pi,2*pi)-pi
+        self.phi = mod(self.phi + phi + pi, 2 * pi) - pi
         stype = self.type.lower()[-3::]
-        if stype=='dir':
+        if stype == 'dir':
             #% any of the directinal types 
             #% Make sure theta is from -pi to pi
             theta = self.args[0]
-            phi0 = theta[0]+pi; 
-            self.args[0] = theta-phi0
+            phi0 = theta[0] + pi; 
+            self.args[0] = theta - phi0
            
             # make sure -pi<phi<pi
-            self.phi   = mod(self.phi+phi0+pi,2*pi)-pi
-            if (rotateGrid and (self.phi!=0)):
+            self.phi = mod(self.phi + phi0 + pi, 2 * pi) - pi
+            if (rotateGrid and (self.phi != 0)):
                 # Do a physical rotation of spectrum
                 #theta = Snew.args[0]
                 ntOld = len(theta);
-                if (mod(theta[0]-theta[-1],2*pi)==0):
-                    nt = ntOld-1
+                if (mod(theta[0] - theta[-1], 2 * pi) == 0):
+                    nt = ntOld - 1
                 else:
                     nt = ntOld
              
-                theta[0:nt] = mod(theta[0:nt]-self.phi+pi,2*pi)-pi
+                theta[0:nt] = mod(theta[0:nt] - self.phi + pi, 2 * pi) - pi
                 self.phi = 0
                 ind = theta.argsort()
-                self.data           = self.data[ind,:]
+                self.data = self.data[ind, :]
                 self.args[0] = theta[ind]
-                if (nt<ntOld):
-                    if (self.args[0][0]==-pi):
-                        self.data[ntOld,:] = self.data[0,:]
+                if (nt < ntOld):
+                    if (self.args[0][0] == -pi):
+                        self.data[ntOld, :] = self.data[0, :]
                     else:    
                         #ftype = self.freqtype 
-                        freq  = self.args[1]
-                        theta = linspace(-pi,pi,ntOld)
-                        [F,T] = meshgrid(freq,theta)
+                        freq = self.args[1]
+                        theta = linspace(-pi, pi, ntOld)
+                        [F, T] = meshgrid(freq, theta)
                  
-                        dtheta           = self.theta[1]-self.theta[0]
-                        self.theta[nt] = self.theta[nt-1]+dtheta;
-                        self.data[nt,:]   = self.data[0,:]
-                        self.data = interp2(freq,np.vstack([self.theta[0]-dtheta,self.theta]),
-                                            np.vstack([self.data[nt,:],self.data]),F,T,method)
+                        dtheta = self.theta[1] - self.theta[0]
+                        self.theta[nt] = self.theta[nt - 1] + dtheta;
+                        self.data[nt, :] = self.data[0, :]
+                        self.data = interp2(freq, np.vstack([self.theta[0] - dtheta, self.theta]),
+                                            np.vstack([self.data[nt, :], self.data]), F, T, method)
                         self.args[0] = theta
                  
-        elif stype=='k2d': 
+        elif stype == 'k2d': 
             #any of the 2D wave number types
             #Snew.phi   = mod(Snew.phi+phi+pi,2*pi)-pi;  
-            if (rotateGrid and (self.phi!=0)):
+            if (rotateGrid and (self.phi != 0)):
                 # Do a physical rotation of spectrum
                 
-                [k,k2] = meshgrid(*self.args)
-                [th,r] = cart2pol(k,k2)
-                [k,k2] = pol2cart(th+self.phi,r)
+                [k, k2] = meshgrid(*self.args)
+                [th, r] = cart2pol(k, k2)
+                [k, k2] = pol2cart(th + self.phi, r)
                 ki1, ki2 = self.args
-                Sn = interp2(ki1,ki2,self.data,k,k2,method)
+                Sn = interp2(ki1, ki2, self.data, k, k2, method)
                 self.data = np.where(np.isnan(Sn), 0, Sn)
                 
                 self.phi = 0;
@@ -2958,107 +3071,107 @@ class SpecData2D(WafoData):
         if self.type not in two_dim_spectra:
             raise ValueError('Unknown 2D spectrum type!')
 
-        if vari==None and nr<=1:
-            vari='x'
-        elif vari==None:
-            vari='xt'
+        if vari == None and nr <= 1:
+            vari = 'x'
+        elif vari == None:
+            vari = 'xt'
         else: #% secure the mutual order ('xyt')
-            vari=''.join(sorted(vari.lower()))
-            Nv=len(vari)
+            vari = ''.join(sorted(vari.lower()))
+            Nv = len(vari)
 
-            if vari[0]=='t' and Nv>1:
-                vari = vari[1::]+ vari[0]
+            if vari[0] == 't' and Nv > 1:
+                vari = vari[1::] + vari[0]
 
         Nv = len(vari)
 
         if not self.type.endswith('dir'):
-            S1 = self.tospecdata(self.type[:-2]+'dir')
+            S1 = self.tospecdata(self.type[:-2] + 'dir')
         else:
             S1 = self
         w = ravel(S1.args[0])
-        theta = S1.args[1]-S1.phi
+        theta = S1.args[1] - S1.phi
         S = S1.data
-        Sw = simps(S,x=theta,axis=0)
-        m = [simps(Sw,x=w)]
-        mtext=['m0']
+        Sw = simps(S, x=theta, axis=0)
+        m = [simps(Sw, x=w)]
+        mtext = ['m0']
         
-        if nr>0:
+        if nr > 0:
             vec = []
             g = np.atleast_1d(S1.__dict__.get('g', gravity()))
-            kx=w**2/g[0] # maybe different normalization in x and y => diff. g
-            ky=w**2/g[-1]
+            kx = w ** 2 / g[0] # maybe different normalization in x and y => diff. g
+            ky = w ** 2 / g[-1]
             
-            nw=w.size
+            nw = w.size
             
             if 'x' in vari:
-                ct = np.cos(theta[:,None])
-                Sc = simps(S*ct,x=theta, axis=0)
-                vec.append(kx*Sc)
+                ct = np.cos(theta[:, None])
+                Sc = simps(S * ct, x=theta, axis=0)
+                vec.append(kx * Sc)
                 mtext.append('mx')
             if 'y' in vari:
-                st = np.sin(theta[:,None])
-                Ss = simps(S*st,x=theta, axis=0)    
-                vec.append(ky*Ss)
+                st = np.sin(theta[:, None])
+                Ss = simps(S * st, x=theta, axis=0)    
+                vec.append(ky * Ss)
                 mtext.append('my')
             if 't' in vari:
-                vec.append(w*Sw)
+                vec.append(w * Sw)
                 mtext.append('mt')
             
-            if nr>1:
+            if nr > 1:
                 if 'x' in vari:
-                    Sc2 = simps(S*ct**2,x=theta, axis=0)
-                    vec.append(kx**2*Sc2)
+                    Sc2 = simps(S * ct ** 2, x=theta, axis=0)
+                    vec.append(kx ** 2 * Sc2)
                     mtext.append('mxx')
                 if 'y' in vari: 
-                    Ss2 = simps(S*st**2,x=theta, axis=0)
-                    vec.append(ky**2*Ss2)
+                    Ss2 = simps(S * st ** 2, x=theta, axis=0)
+                    vec.append(ky ** 2 * Ss2)
                     mtext.append('myy')
                 if 't' in vari:
-                    vec.append(w**2*Sw)
+                    vec.append(w ** 2 * Sw)
                     mtext.append('mtt')
                 if 'x' in vari and 'y' in vari:
-                    Scs = simps(S*ct*st,x=theta, axis=0)
-                    vec.append(kx*ky*Scs)
+                    Scs = simps(S * ct * st, x=theta, axis=0)
+                    vec.append(kx * ky * Scs)
                     mtext.append('mxy')
                 if 'x' in vari and 't' in vari:
-                    vec.append(kx*w*Sc)
+                    vec.append(kx * w * Sc)
                     mtext.append('mxt')
                 if 'y' in vari and 't' in vari:
-                    vec.append(ky*w*Sc)
+                    vec.append(ky * w * Sc)
                     mtext.append('myt')
               
-                if nr>3:
+                if nr > 3:
                     if 'x' in vari:
-                        Sc3 = simps(S*ct**3,x=theta, axis=0)
-                        Sc4 = simps(S*ct**4,x=theta, axis=0)
-                        vec.append(kx**4*Sc4)
+                        Sc3 = simps(S * ct ** 3, x=theta, axis=0)
+                        Sc4 = simps(S * ct ** 4, x=theta, axis=0)
+                        vec.append(kx ** 4 * Sc4)
                         mtext.append('mxxxx')
                     if 'y' in vari:
-                        Ss3 = simps(S*st**3,x=theta, axis=0)
-                        Ss4 = simps(S*st**4,x=theta, axis=0)
-                        vec.append(ky**4*Ss4)
+                        Ss3 = simps(S * st ** 3, x=theta, axis=0)
+                        Ss4 = simps(S * st ** 4, x=theta, axis=0)
+                        vec.append(ky ** 4 * Ss4)
                         mtext.append('myyyy')
                     if 't' in vari:
-                        vec.append(w**4*Sw)
+                        vec.append(w ** 4 * Sw)
                         mtext.append('mtttt')
                         
                     if 'x' in vari and 'y' in vari:
-                        Sc2s = simps(S*ct**2*st,x=theta, axis=0)
-                        Sc3s = simps(S*ct**3*st,x=theta, axis=0)
-                        Scs2 = simps(S*ct*st**2,x=theta, axis=0)
-                        Scs3 = simps(S*ct*st**3,x=theta, axis=0)
-                        Sc2s2 = simps(S*ct**2*st**2,x=theta, axis=0)
-                        vec.extend((kx**3*ky*Sc3s,kx**2*ky**2*Sc2s2, kx*ky**3*Scs3))
-                        mtext.extend(('mxxxy','mxxyy','mxyyy'))
+                        Sc2s = simps(S * ct ** 2 * st, x=theta, axis=0)
+                        Sc3s = simps(S * ct ** 3 * st, x=theta, axis=0)
+                        Scs2 = simps(S * ct * st ** 2, x=theta, axis=0)
+                        Scs3 = simps(S * ct * st ** 3, x=theta, axis=0)
+                        Sc2s2 = simps(S * ct ** 2 * st ** 2, x=theta, axis=0)
+                        vec.extend((kx ** 3 * ky * Sc3s, kx ** 2 * ky ** 2 * Sc2s2, kx * ky ** 3 * Scs3))
+                        mtext.extend(('mxxxy', 'mxxyy', 'mxyyy'))
                     if 'x' in vari and 't' in vari:
-                        vec.extend((kx**3*w*Sc3, kx**2*w**2*Sc2, kx*w**3*Sc))
-                        mtext.extend(('mxxxt','mxxtt','mxttt'))
+                        vec.extend((kx ** 3 * w * Sc3, kx ** 2 * w ** 2 * Sc2, kx * w ** 3 * Sc))
+                        mtext.extend(('mxxxt', 'mxxtt', 'mxttt'))
                     if 'y' in vari and 't' in vari:
-                        vec.extend((ky**3*w*Ss3, ky**2*w**2*Ss2, ky*w**3*Ss))
-                        mtext.extend(('myyyt','myytt','myttt'))
+                        vec.extend((ky ** 3 * w * Ss3, ky ** 2 * w ** 2 * Ss2, ky * w ** 3 * Ss))
+                        mtext.extend(('myyyt', 'myytt', 'myttt'))
                     if 'x' in vari and 'y' in vari and 't' in vari:
-                        vec.extend((kx**2*ky*w*Sc2s, kx*ky**2*w*Scs2, kx*ky*w**2*Scs))
-                        mtext.extend(('mxxyt','mxyyt','mxytt'))
+                        vec.extend((kx ** 2 * ky * w * Sc2s, kx * ky ** 2 * w * Scs2, kx * ky * w ** 2 * Scs))
+                        mtext.extend(('mxxyt', 'mxyyt', 'mxytt'))
             #end % if nr>1
             m.extend([simps(vals, x=w) for vals in vec])
         return np.asarray(m), mtext
