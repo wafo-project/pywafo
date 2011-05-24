@@ -10,26 +10,44 @@ C     revised pab July 2007
 !     -renamed from sp2mmpdfreg to cov2mmpdfreg
 ! gfortran -W -Wall -pedantic-errors -fbounds-check -Werror -c dsvdc.f  mregmodule.f cov2mmpdfreg.f
 
-      module cov2mmpdfmod
-      IMPLICIT NONE
-      PRIVATE
-      PUBLIC cov2mmpdfreg, EPS_, EPSS_, EPS0_, C_, IAC_, ISQ_
-      DOUBLE PRECISION :: EPS_ = 1.d-2   
-      DOUBLE PRECISION :: EPSS_ = 5.d-5 
-! used in GAUSSLE1 to implicitly  ! determ. # nodes  
-      DOUBLE PRECISION :: EPS0_ = 5.d-5 
-      DOUBLE PRECISION :: C_ = 4.5d0
-      INTEGER :: IAC_=1
-      INTEGER :: ISQ_=0
+      SUBROUTINE INITINTEG(EPS_,EPSS_,EPS0_,C_,IAC_,ISQ_)
+!      Initiation of all constants and integration nodes 'INITINTEG'
+      USE RINTMOD
+      USE EPSMOD
+      USE INFCMOD
+      USE MREGMOD
+      REAL*8 :: EPS_,EPSS_,EPS0_,C_
+      INTEGER :: IAC_,ISQ_
+Cf2py real*8, optional :: EPS_ = 0.01
+Cf2py real*8, optional :: EPSS_ = 0.00005
+Cf2py real*8, optional  :: EPS0_ = 0.00005
+Cf2py real*8, optional  :: C_ = 4.5
+Cf2py integer, optional :: IAC_ = 1
+Cf2py integer, optional :: ISQ_ = 0
+!     IMPLICIT NONE
+C      COMMON /RINT/   C,FC
+C      COMMON /EPS/    EPS,EPSS,CEPSS
+C      COMMON /INFC/   ISQ,INF,INFO
 
-      contains
+      IAC = IAC_
+      ISQ = ISQ_
+      EPS = EPS_
+      EPSS = EPSS_
+      EPS0 = EPS0_
+      C = C_
+
+      FC = FI(C)-FI(-C)
+!      CEPSS = 1.0d0-EPSS
+      RETURN
+      END SUBROUTINE INITINTEG
 
       subroutine cov2mmpdfreg(UVdens,t,COV,ULev,VLev,Tg,Xg,Nt,Nu,Nv,Ng,
-     !   NIT)
+     &   NIT)
       USE SIZEMOD
       USE EPSMOD
       USE CHECKMOD
       USE MREGMOD
+      USE INTFCMOD
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: Nt, Nu, Nv, Ng, NIT
       REAL*8, DIMENSION(Nt,5), intent(in):: COV
@@ -45,13 +63,9 @@ Cf2py integer, intent(hide), depend(Tg) :: Ng = len(Tg)
 Cf2py integer, optional :: NIT = 2
 Cf2py real*8, intent(out), depend(Nu,Nv) :: UVdens
 Cf2py depend(Ng)  Xg
-Cf2py depend(Nt,5)  COV 
-
-
-
-
+Cf2py depend(Nt,5)  COV
       real*8 Q0,SQ0,Q1,SQ1, U,V,VV, XL0, XL2, XL4
-      REAL*8 VDERI, CDER,SDER, DER, CONST, F, HHHH,FM, VALUE
+      REAL*8 VDERI, CDER,SDER, DER, CONST1, F, HHHH,FM, VALUE
 C     INTEGER, PARAMETER :: MMAX = 5, NMAX = 101, RDIM = 10201
       REAL*8, DIMENSION(NMAX) :: HHT,VT,UT,Vdd,Udd
       REAL*8, DIMENSION(RDIM) :: R,R1,R2,R3
@@ -94,7 +108,7 @@ C      COMMON /EPS/  EPS,EPSS,CEPSS
 C
 C  Initiation of all constants and integration nodes 'INITINTEG'
 C
-      CALL INITINTEG()
+!      CALL INITINTEG()
 
 !     OPEN(UNIT=8,FILE='min.out')
 !      OPEN(UNIT=9,FILE='Max.out')
@@ -120,7 +134,6 @@ C      CALL INITLEVELS(Ulev,NU,Vlev,NV,T,HHT,Nt,R1,R2,NG)
          CALL TRANSF(NG,V,Xg,Tg,VALUE,DER) 
          VT(IV)=VALUE
          Vdd(IV)=DER
-14    continue
       enddo
       DO IU=1,Nu
          U = Ulev(IU)
@@ -129,7 +142,6 @@ C      CALL INITLEVELS(Ulev,NU,Vlev,NV,T,HHT,Nt,R1,R2,NG)
          Udd(IU) = DER
          do IV=1,Nv
              UVdens(IU,IV)=0.0d0
-16           CONTINUE
          enddo
       enddo
       
@@ -183,7 +195,7 @@ C
           VDER(I)=VDER(I) - (DDB2(I)*DDB2(I))/Q(I)
         end if
       
-10    CONTINUE
+c10    CONTINUE
       enddo
       DO I=1,Nt
       DO J=1,Nt
@@ -203,7 +215,7 @@ C   R3 contains Cov(X''(T(I)),X'(T(J))|X'(0),X''(0),X(0))
 C
       R3(J+(I-1)*N) = R3(J+(I-1)*N) - COV(I,4)*(COV(J,3)/XL2) 
      1   - DB0(J)*(DDB0(I)/Q0)  - DDB1(I)*(DB1(J)/Q1) 
-15    CONTINUE
+c15    CONTINUE
       enddo
       enddo
 
@@ -221,20 +233,17 @@ C  on T=T(I), U=Ulevels(IU), V=Ulevels(IV), U>V.
 C     Cov(X'(T(I1)),X(T(i))|X'(0),X''(0),X(0)) 
 C     DDB2(I) contains Cov(X''(T(i)),X(T(i))|X'(0),X''(0),X(0))
 
- 30      CONTINUE
          enddo
       
          DO I3=1,I
             DBI(I3) = R3(I3+(I-1)*N) - (DDB2(I)*DB2(I3)/Q(I)) 
             BI(I3)  = R2(I3+(I-1)*N) - (DB2(I)*DB2(I3)/Q(I))
- 50      CONTINUE
          enddo
          DO I3=1,I-1
             AI(I3)=0.0d0
             AI(I3+I-1)=DB0(I3)/SQ0 
             AI(I3+2*(I-1))=DB1(I3)/SQ1
             AI(I3+3*(I-1))=DB2(I3)/SQ(I)
- 51      CONTINUE
          enddo
          VDERI=VDER(I)
          DAI(1)=0.0d0
@@ -255,12 +264,9 @@ C     DDB2(I) contains Cov(X''(T(i)),X(T(i))|X'(0),X''(0),X(0))
             IF(I.LT.1) GO TO 41
             DO I1=1,I-1
                DO I2=1,I-1
-
 C   R contains Cov(X'(T(I1)),X'(T(I2))|X'(0),X''(0),X(0),X(I)) 
-
       R(I2+(I1-1)*(I-1))=R2(I2+(I1-1)*N)-(DB2(I1)*DB2(I2)/Q(I)) 
 
- 40         CONTINUE
             enddo
             enddo
  41         CONTINUE
@@ -327,16 +333,16 @@ C  Here the covariance of the problem would be innitiated
       
 C      sder=sqrt(XL4-XL2*XL2/XL0)
 C      cder=-XL2/sqrt(XL0)
-C      const=1/sqrt(XL0*XL4)
+C      const1=1/sqrt(XL0*XL4)
 C      DO 95 IU=1,NU     
 C        U=UT(IU)
-C        FM=Udd(IU)*const*exp(-0.5*U*U/XL0)*PMEAN(-cder*U,sder)
+C        FM=Udd(IU)*const1*exp(-0.5*U*U/XL0)*PMEAN(-cder*U,sder)
 C        WRITE(9,300) Ulev(IU),FM
 C 95   continue      
 C      DO 105 IV=1,NV     
 C        V=VT(IV)
 C        VV=cder*V
-C        Fm=Vdd(IV)*const*exp(-0.5*V*V/XL0)*PMEAN(VV,sder)
+C        Fm=Vdd(IV)*const1*exp(-0.5*V*V/XL0)*PMEAN(VV,sder)
 C        WRITE(8,300) Vlev(IV),Fm
 C 105   continue 
       if (III0.eq.0) III0=1
@@ -353,207 +359,5 @@ C 105   continue
       PRINT *, 'Rate of calls RINDT9:',float(iii91)/float(III0)
       PRINT *, 'Rate of calls RINDT10:',float(iii101)/float(III0)
       PRINT *, 'Number of calls of RINDT*',III0
-
-
       return
       END subroutine cov2mmpdfreg
-
-      SUBROUTINE INITLEVELS(T,HT,N,NG,NU,Nv)
-      USE TBRMOD
-      USE SIZEMOD
-      IMPLICIT NONE
-C     INTEGER, PARAMETER:: NMAX = 101, RDIM = 10201
-C      DIMENSION ULEVELS(1),Vlevels(1),T(1),HT(1),TG(1),XG(1),HH(101)
-      REAL*8, DIMENSION(:), intent(in) :: T
-      REAL*8, DIMENSION(:), intent(out) :: HT
-      INTEGER, intent(in) :: NG
-      REAL*8 :: UMIN,UMAX,VMIN,VMAX, HU,HV
-      integer :: N, I, NU, NV
-C     REAL*8, DIMENSION(NMAX) :: HH
-C      COMMON/TBR/HH
-      
-      IF (NG.GT.501) THEN
-      PRINT *,'Vector defining transformation of data > 501, stop'
-      STOP
-      END IF
-
-      
-      IF(N.ge.NMAX) then
-      print *,'The number of wavelength points >',NMAX-1, ' stop'
-      stop
-      end if
-      IF(N.lt.2) then
-      print *,'The number of wavelength points < 2, stop'
-      stop
-      end if
-
-      HT(1)=0.5d0*(T(2)-T(1))
-      HT(N)=0.5d0*(T(N)-T(N-1))
-      HH(1)=-100.0d0
-      HH(N)=-100.0d0
-      DO I=2,N-1
-         HT(I)=0.5d0*(T(I+1)-T(I-1))
-         HH(I)=-100.0d0
-10    CONTINUE
-      enddo
-
-
-      IF(NU.gt.NMAX) then
-      print *,'The number of maxima >',NMAX,' stop'
-      stop
-      end if
-      IF(NV.gt.NMAX) then
-      print *,'The number of minima >',NMAX,' stop'
-      stop
-      end if
-
-      IF(NU.LT.1) Then
-      print *,'The number of maxima < 1, stop'
-      stop
-      end if
-      IF(NV.LT.1) Then
-      print *,'The number of minima < 1, stop'
-      stop
-      end if
-
-      RETURN
-      END SUBROUTINE INITLEVELS
-
-
-      SUBROUTINE TRANSF(N,T,A,TIMEV,VALUE,DER) 
-C
-C N number of data points
-C TIMEV vector of time points
-C A a vector of values of a function G(TIME)
-C T independent time point
-C VALUE is a value of a function at T, i.e. VALUE=G(T).
-c DER=G'(t)
-C
-      USE SIZEMOD
-      IMPLICIT NONE
-      REAL*8, intent(inout):: VALUE, DER,T
-C      INTEGER, PARAMETER :: RDIM = 10201
-      REAL*8, DIMENSION(:), intent(in) :: A,TIMEV
-      integer, intent(in) :: N
-      REAL*8:: T1
-      integer :: I
-      
-      IF (T.LT.TIMEV(1))  then
-      der=(A(2)-A(1))/(TIMEV(2)-TIMEV(1))
-      T1=T-TIMEV(1)
-      VALUE=A(1)+T1*DER
-      return
-      end if
-      IF (T.GT.TIMEV(N)) then
-      der = (A(N)-A(N-1))/(TIMEV(N)-TIMEV(N-1))
-      T1  = T-TIMEV(N)
-      VALUE=A(N)+T1*DER
-      return
-      end if
-      DO 5 I=2,N
-      IF (T.LT.TIMEV(I)) GO TO 10
-5     CONTINUE
-10    I=I-1
-      T1=T-TIMEV(I)
-      DER=(A(I+1)-A(I))/(TIMEV(i+1)-TIMEV(I))
-      VALUE=A(I)+T1*DER
-      RETURN
-      END SUBROUTINE TRANSF
-
-      REAL*8 FUNCTION SPLE(N,T,A,TIMEV)
-C
-C N number of data points
-C TIME vector of time points
-C A a vector of values of a function G(TIME)
-C T independent time point
-C SPLE is a value of a function at T, i.e. SPLE=G(T).
-C
-      USE SIZEMOD
-      IMPLICIT NONE
-      INTEGER, INTENT(IN):: N
-
-      REAL*8, INTENT(IN) :: T
-      REAL*8, DIMENSION(:), INTENT(IN) :: A,TIMEV
-      REAL*8 :: T1
-      INTEGER :: I
-      SPLE=-9.9d0
-      IF (T.LT.TIMEV(1) .OR. T.GT.TIMEV(N)) RETURN
-      DO 5 I=2,N
-      IF (T.LT.TIMEV(I)) GO TO 10
-5     CONTINUE
-10    I=I-1
-      T1=T-TIMEV(I)
-      SPLE=A(I)+T1*(A(I+1)-A(I))/(TIMEV(i+1)-TIMEV(I))
-      RETURN
-      END FUNCTION SPLE
-
-
-
-      SUBROUTINE COVG(XL0,XL2,XL4,COV,T,N)
-C
-C  COVG  evaluates: 
-C
-C  XL0,XL2,XL4 - spectral moments.
-C
-C  Covariance function and its four derivatives for a vector T of length N. 
-C  It is saved in a vector COV; COV(1,...,N)=r(T), COV(N+1,...,2N)=r'(T), etc.
-C  The vector COV should be of the length 5*N.
-C
-C  Covariance matrices COV1=r'(T-T), COV2=r''(T-T) and COV3=r'''(T-T) 
-C  Dimension of  COV1, COV2  should be   N*N.
-C
-!      USE SIZEMOD
-!     IMPLICIT NONE
-C     INTEGER, PARAMETER:: NMAX = 101, RDIM = 10201
-      REAL*8, PARAMETER:: ZERO = 0.0d0
-      REAL*8, intent(inout) :: XL0,XL2,XL4
-      REAL*8, DIMENSION(N,5), intent(in) :: COV
-      REAL*8, DIMENSION(N), intent(in) :: T
-      INTEGER, intent(in) :: N
-      
-      
-C
-C   COV(Y(T),Y(0)) = COV(:,1)
-C
-      XL0 = COV(1,1) 
-!     XL0 = SPLE(NT,ZERO,COV(:,1),T)
-C      
-C    DERIVATIVE  COV(Y(T),Y(0)) = COV(:,2)
-C
-C    2-DERIVATIVE  COV(Y(T),Y(0)) = COV(:,3)
-      XL2 = -COV(1,3) 
-!     XL2 = -SPLE(NT,ZERO,COV(:,3),T)
-C    3-DERIVATIVE  COV(Y(T),Y(0)) = COV(:,4)
-
-C    4-DERIVATIVE  COV(Y(T),Y(0)) = COV(:,5)
-      
-      XL4 = COV(1,5) 
-!     XL4 = SPLE(NT,ZERO,COV(:,5),T)
-
-      RETURN
-      END SUBROUTINE COVG
-
-      SUBROUTINE INITINTEG()
-      USE RINTMOD
-      USE EPSMOD
-      USE INFCMOD
-      USE MREGMOD
-!     IMPLICIT NONE      
-C      COMMON /RINT/   C,FC
-C      COMMON /EPS/    EPS,EPSS,CEPSS
-C      COMMON /INFC/   ISQ,INF,INFO
-     
-      IAC = IAC_
-      ISQ = ISQ_
-      EPS = EPS_
-      EPSS = EPSS_
-      EPS0 = EPS0_
-      C = C_
-      
-      FC = FI(C)-FI(-C)
-!      CEPSS = 1.0d0-EPSS
-
-      RETURN
-      END SUBROUTINE INITINTEG
-
-      END module cov2mmpdfmod

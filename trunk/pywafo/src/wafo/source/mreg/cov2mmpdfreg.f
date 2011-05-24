@@ -10,18 +10,18 @@ C     revised pab July 2007
 !     -renamed from sp2mmpdfreg to cov2mmpdfreg
 
       PROGRAM cov2mmpdfreg
-	USE SIZEMOD
-	USE EPSMOD
-	USE CHECKMOD
-	USE MREGMOD
-	IMPLICIT NONE
+      USE SIZEMOD
+      USE EPSMOD
+      USE CHECKMOD
+      USE MREGMOD
+      IMPLICIT NONE
       real*8 Q0,SQ0,Q1,SQ1, AA, BB, DAI, AI , U,V,VV, XL0, XL2, XL4
-	REAL*8 VDERI, CDER,SDER, DER, CONST, F, HHHH,FM, VALUE
+      REAL*8 VDERI, CDER,SDER, DER, CONST, F, HHHH,FM, VALUE
 C	INTEGER, PARAMETER :: MMAX = 5, NMAX = 101, RDIM = 10201
-	REAL*8, DIMENSION(NMAX) :: HHT,T,Ulev,Vlev,VT,UT,Vdd,Udd
-	REAL*8, DIMENSION(RDIM) :: R,R1,R2,R3
-	REAL*8, DIMENSION(5*NMAX) :: COV
-	REAL*8, DIMENSION(NMAX,NMAX) :: UVdens
+      REAL*8, DIMENSION(NMAX) :: HHT,T,Ulev,Vlev,VT,UT,Vdd,Udd
+      REAL*8, DIMENSION(RDIM) :: R,R1,R2,R3
+      REAL*8, DIMENSION(5*NMAX) :: COV
+      REAL*8, DIMENSION(NMAX,NMAX) :: UVdens
 C      DIMENSION UVdens(NMAX,NMAX),HHT(NMAX)
 C      DIMENSION T(NMAX),Ulev(NMAX),Vlev(NMAX)
 C      DIMENSION VT(NMAX),UT(NMAX),Vdd(NMAX),Udd(NMAX)
@@ -40,14 +40,14 @@ C   The Max values are defined by subroutine Gauss_M with the accuracy
 C   input  epsu. The principle is that the integral of the marginal density 
 C   of f_Max is computed with sufficient accuracy.
 C
-	REAL*8, DIMENSION(NMAX) :: B0,DB0,DDB0,B1,DB1,DDB1,DB2,DDB2
-	REAL*8, DIMENSION(NMAX) :: Q,SQ,VDER,DBI,BI
+      REAL*8, DIMENSION(NMAX) :: B0,DB0,DDB0,B1,DB1,DDB1,DB2,DDB2
+      REAL*8, DIMENSION(NMAX) :: Q,SQ,VDER,DBI,BI
 C      DIMENSION B0(NMAX),DB0(NMAX),DDB0(NMAX)
 C      DIMENSION B1(NMAX),DB1(NMAX),DDB1(NMAX)
 C      DIMENSION DB2(NMAX),DDB2(NMAX)
 C      DIMENSION Q(NMAX),SQ(NMAX),VDER(NMAX),DBI(NMAX),BI(NMAX)
       INTEGER :: J,I,I1,I2,I3,IU, IV, NU,NV,NG,N,NIT, NNIT, INF
-	INTEGER ::  fffff
+	  INTEGER ::  fffff
 C	REAL*8 EPS0
 C	INTEGER III01,III11,III21,III31,III41,III51
 C     *,III61,III71,III81,III91,III101 , III0
@@ -316,16 +316,16 @@ C 105   continue
       END
 
       SUBROUTINE INITLEVELS(ULEVELS,NU,Vlevels,Nv,T,HT,N,TG,XG,NG)
-	USE TBRMOD
-	USE SIZEMOD
-	IMPLICIT NONE
+      USE TBRMOD
+      USE SIZEMOD
+      IMPLICIT NONE
 C	INTEGER, PARAMETER:: NMAX = 101, RDIM = 10201
 C      DIMENSION ULEVELS(1),Vlevels(1),T(1),HT(1),TG(1),XG(1),HH(101)
       REAL*8, DIMENSION(NMAX), intent(inout) :: ULEVELS,Vlevels,T,HT
-	REAL*8, DIMENSION(RDIM), intent(inout) :: TG,XG
-	INTEGER, intent(inout) :: NG
-	REAL*8 :: UMIN,UMAX,VMIN,VMAX, HU,HV
-	integer :: N, I, NU, NV
+      REAL*8, DIMENSION(RDIM), intent(inout) :: TG,XG
+      INTEGER, intent(inout) :: NG
+      REAL*8 :: UMIN,UMAX,VMIN,VMAX, HU,HV
+      integer :: N, I, NU, NV
 C	REAL*8, DIMENSION(NMAX) :: HH
 C      COMMON/TBR/HH
       OPEN(UNIT=2,FILE='transf.in')
@@ -424,14 +424,14 @@ C T independent time point
 C VALUE is a value of a function at T, i.e. VALUE=G(T).
 c DER=G'(t)
 C
-	USE SIZEMOD
-	IMPLICIT NONE
-	REAL*8, intent(inout):: VALUE, DER,T
+      USE SIZEMOD
+      IMPLICIT NONE
+      REAL*8, intent(inout):: VALUE, DER,T
 C      INTEGER, PARAMETER :: RDIM = 10201
       REAL*8, DIMENSION(RDIM), intent(in) :: A,TIMEV
-	integer, intent(in) :: N
-	REAL*8:: T1
-	integer :: I
+      integer, intent(in) :: N
+      REAL*8:: T1
+      integer :: I
       
       IF (T.LT.TIMEV(1))  then
       der=(A(2)-A(1))/(TIMEV(2)-TIMEV(1))
@@ -455,7 +455,7 @@ C      INTEGER, PARAMETER :: RDIM = 10201
       RETURN
       END
 
-	REAL*8 FUNCTION SPLE(N,T,A,TIMEV)
+      REAL*8 FUNCTION SPLE(N,T,A,TIMEV)
 C
 C N number of data points
 C TIME vector of time points
@@ -464,13 +464,13 @@ C T independent time point
 C SPLE is a value of a function at T, i.e. SPLE=G(T).
 C
       USE SIZEMOD
-	IMPLICIT NONE
-	INTEGER, INTENT(IN):: N
+      IMPLICIT NONE
+      INTEGER, INTENT(IN):: N
 
-	REAL*8, INTENT(IN) :: T
+      REAL*8, INTENT(IN) :: T
       REAL*8, DIMENSION(5*NMAX), INTENT(IN) :: A,TIMEV
-	REAL*8 :: T1
-	INTEGER :: I
+      REAL*8 :: T1
+      INTEGER :: I
       SPLE=-9.9d0
       IF (T.LT.TIMEV(1) .OR. T.GT.TIMEV(N)) RETURN
       DO 5 I=2,N
@@ -500,15 +500,15 @@ C
       USE SIZEMOD
 !	IMPLICIT NONE
 C	INTEGER, PARAMETER:: NMAX = 101, RDIM = 10201
-	REAL*8, PARAMETER:: ZERO = 0.0d0
-	REAL*8, intent(inout) :: XL0,XL2,XL4
+      REAL*8, PARAMETER:: ZERO = 0.0d0
+      REAL*8, intent(inout) :: XL0,XL2,XL4
       REAL*8, DIMENSION(5*NMAX), intent(inout) :: COV
-	REAL*8, DIMENSION(5*NMAX) :: A, TIMEV
-	REAL*8, DIMENSION(RDIM), intent(inout) :: COV1,COV2,COV3
-	REAL*8, DIMENSION(NMAX), intent(in) :: T
-	INTEGER, intent(in) :: N
-	integer :: NT, I, J, II
-	REAL*8 :: TT, T0
+      REAL*8, DIMENSION(5*NMAX) :: A, TIMEV
+      REAL*8, DIMENSION(RDIM), intent(inout) :: COV1,COV2,COV3
+      REAL*8, DIMENSION(NMAX), intent(in) :: T
+      INTEGER, intent(in) :: N
+      integer :: NT, I, J, II
+      REAL*8 :: TT, T0
       OPEN(UNIT=32,FILE='Cd0.in')
       OPEN(UNIT=33,FILE='Cd1.in')
       OPEN(UNIT=34,FILE='Cd2.in')
@@ -620,12 +620,12 @@ C    4-DERIVATIVE  COV(Y(T),Y(0))
       END
 
       SUBROUTINE INITINTEG(NIT)
-	USE RINTMOD
-	USE EPSMOD
-	USE INFCMOD
-	USE MREGMOD
+      USE RINTMOD
+      USE EPSMOD
+      USE INFCMOD
+      USE MREGMOD
 !	IMPLICIT NONE
-	INTEGER, intent(inout) :: NIT
+      INTEGER, intent(inout) :: NIT
 !	INTEGER ISQ1
 C      dimension  INF(10),INFO(10)
       
