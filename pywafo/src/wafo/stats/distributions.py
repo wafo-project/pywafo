@@ -282,7 +282,7 @@ _doc_default_example = \
 """Examples
 --------
 >>> import matplotlib.pyplot as plt
->>> from scipy.stats import %(name)s
+>>> from wafo.stats import %(name)s
 >>> numargs = %(name)s.numargs
 >>> [ %(shapes)s ] = [0.9,] * numargs
 >>> rv = %(name)s(%(shapes)s)
@@ -5151,13 +5151,16 @@ class rayleigh_gen(rv_continuous):
             return x - phat[0] / sqrt(-2.0 * logSF)
         else:
             return x - phat[1] * sqrt(-2.0 * logSF)
-
     def _rvs(self):
         return chi.rvs(2,size=self._size)
     def _pdf(self, r):
         return r*exp(-r*r/2.0)
+    def _logpdf(self, r):
+        return log(r) - r*r/2.0
     def _cdf(self, r):
         return - expm1(-r * r / 2.0)
+    def _sf(self, r):
+        return exp(-r * r / 2.0)
     def _ppf(self, q):
         return sqrt(-2 * log1p(-q))
     def _stats(self):
@@ -5178,26 +5181,45 @@ for x >= 0.
                         )
 
 class truncrayleigh_gen(rv_continuous):
+    def _argcheck(self, c):
+        return (c>=0)
     def link(self, x, logSF, phat, ix):
         rv_continuous.link.__doc__
         c = phat[0]
-        if ix == 1:
-            return x - phat[1] / sqrt(-2.0 * logSF)
-        else:
-            return x - phat[2] * sqrt(-2.0 * logSF)
+        if ix == 2:
+            return x - phat[1] / (sqrt(c*c - 2 * logSF) - c)
+        elif ix == 1:
+            return x - phat[2] * (sqrt(c*c - 2 * logSF) - c)
+        elif ix==0:
+            xn = (x - phat[1])/phat[2]
+            return - 2 * logSF / xn - xn / 2.0
+    def _fitstart(self, data, args=None):
+        if args is None:
+            args = (0.0,)*self.numargs
+        return args + self.fit_loc_scale(data, *args)
     def _pdf(self, r, c):
         rc = r+c
         return rc*exp(-(rc*rc-c*c)/2.0)
+    def _logpdf(self, r, c):
+        rc = r+c
+        return log(rc)-(rc*rc-c*c)/2.0
     def _cdf(self, r, c):
         rc = r+c
         return - expm1(-(rc*rc-c*c)/ 2.0)
+    def _logsf(self, r, c):
+        rc = r+c
+        return -(rc*rc-c*c)/ 2.0
+    def _sf(self, r, c):
+        return exp(self._logsf(r, c))
     def _ppf(self, q, c):
         return sqrt(c*c - 2 * log1p(-q)) - c
     def _stats(self, c):
+        # TODO: correct this it is wrong!
         val = 4-pi
         return np.sqrt(pi/2), val/2, 2*(pi-3)*sqrt(pi)/val**1.5, \
                6*pi/val-16/val**2
     def _entropy(self, c):
+        # TODO: correct this it is wrong!
         return _EULER/2.0 + 1 - 0.5*log(2)
 truncrayleigh = truncrayleigh_gen(a=0.0, name="truncrayleigh",
                         longname="A truncated Rayleigh",
@@ -5207,7 +5229,7 @@ truncrayleigh = truncrayleigh_gen(a=0.0, name="truncrayleigh",
 Truncated Rayleigh distribution
 
 truncrayleigh.cdf(r) = 1 - exp(-((r+c)**2-c**2)/2)
-for x >= 0.
+for x >= 0, c>=0.
 """
                         )
 
@@ -7352,6 +7374,31 @@ Skellam distribution
                       )
                         
 
+def test_truncrayleigh():
+    import matplotlib.pyplot as plt
+    from wafo.stats import truncrayleigh
+    numargs = truncrayleigh.numargs
+    [ c ] = [0.9,] * numargs
+    rv = truncrayleigh(c)
+
+#Display frozen pdf
+
+    x = np.linspace(0, np.minimum(rv.dist.b, 3))
+    h = plt.plot(x, rv.pdf(x))
+
+#Check accuracy of cdf and ppf
+
+    prb = truncrayleigh.cdf(x, c)
+    h = plt.semilogy(np.abs(x - truncrayleigh.ppf(prb, c)) + 1e-20)
+
+#Random number generation
+
+    R = truncrayleigh.rvs(c, size=100)
+
+#Compare ML and MPS method
+    phat = truncrayleigh.fit2(R, method='ml');
+
+ 
 def main():
     import matplotlib
     matplotlib.interactive(True)
@@ -7402,4 +7449,5 @@ def main():
     pht = genpareto.fit(r, 1, par_fix=[0, 0, nan])
     lp = pht.profile()
 if __name__ == '__main__':
-    main()
+    #main()
+    test_truncrayleigh()

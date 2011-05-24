@@ -188,6 +188,9 @@ class TrData(WafoData, TrCommon):
             
         self.children = [WafoData((self.args-self.mean)/self.sigma, self.args)]
 
+    def trdata(self):
+        return self
+    
     def _gauss2dat(self, y, *yi):
         return tranproc(self.data, self.args, y, *yi)
     
