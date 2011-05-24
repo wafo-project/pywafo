@@ -44,7 +44,7 @@ _example = '''
     '''
 class TrCommon2(TrCommon):
     __doc__ = TrCommon.__doc__
-    def trdata(self,x=None, xnmin=-5, xnmax=5, n=513):
+    def trdata(self, x=None, xnmin= -5, xnmax=5, n=513):
         """
         Return a discretized transformation model.
 
@@ -66,11 +66,11 @@ class TrCommon2(TrCommon):
         """
         if x is None:
             xn = np.linspace(xnmin, xnmax, n)
-            x = self.sigma*xn+self.mean
+            x = self.sigma * xn + self.mean
         else:
-            xn = (x-self.mean)/self.sigma
+            xn = (x - self.mean) / self.sigma
 
-        yn = (self._dat2gauss(x)-self.ymean)/self.ysigma
+        yn = (self._dat2gauss(x) - self.ymean) / self.ysigma
         
         return TrData(yn, x, mean=self.mean, sigma=self.sigma)
 

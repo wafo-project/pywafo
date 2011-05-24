@@ -167,10 +167,10 @@ class LevelCrossings(WafoData):
         >>> lc_exp = lc.extrapolate(-2*s, 2*s, dist='expon')
         >>> lc_ray = lc.extrapolate(-2*s, 2*s, dist='rayleigh')
         
+        lc.plot()
         lc_gpd.plot()
         lc_exp.plot()
         lc_ray.plot()
-        
         
         
         See also  
@@ -246,7 +246,7 @@ class LevelCrossings(WafoData):
         if dist.startswith('gen'): 
             genpareto = distributions.genpareto
             phat = genpareto.fit2(x, floc=0, method=method)
-            F = phat.cdf(xF)
+            SF = phat.sf(xF)
             
             covar = phat.par_cov[::2, ::2]
             # Calculate 90 # confidence region, an ellipse, for (k,s)
@@ -274,28 +274,28 @@ class LevelCrossings(WafoData):
             for i in range(Nc):
                 k = c1[0, i]
                 s = c1[1, i]
-                F2 = genpareto.cdf(xF, k, scale=s)
-                lcEstCu[:, i] = (lcu + dXX) * (1 - F2)
-                lcEstCl[:, i] = (lcu - dXX) * (1 - F2)
+                SF2 = genpareto.sf(xF, k, scale=s)
+                lcEstCu[:, i] = (lcu + dXX) * (SF2)
+                lcEstCl[:, i] = (lcu - dXX) * (SF2)
             #end
             
-            lcEst = np.vstack((xF + u, lcu * (1 - F),
+            lcEst = np.vstack((xF + u, lcu * (SF),
                                  lcEstCl.min(axis=1), lcEstCu.max(axis=1))).T            
         elif dist.startswith('exp'):
             expon = distributions.expon
             phat = expon.fit2(x, floc=0, method=method)           
-            F = phat.cdf(xF) 
-            lcEst =  np.vstack((xF + u, lcu * (1 - F))).T
+            SF = phat.sf(xF) 
+            lcEst =  np.vstack((xF + u, lcu * (SF))).T
             
         elif dist.startswith('ray') or dist.startswith('trun'):
             phat = distributions.truncrayleigh.fit2(x, floc=0, method=method)
-            F = phat.cdf(xF)
+            SF = phat.sf(xF)
             if False:
                 n = len(x)
                 Sx = sum((x + offset) ** 2 - offset ** 2)
                 s = sqrt(Sx / n);  # Shape parameter
                 F = -np.expm1(-((xF + offset) ** 2 - offset ** 2) / s ** 2)
-            lcEst = np.vstack((xF + u, lcu * (1 - F))).T
+            lcEst = np.vstack((xF + u, lcu * (SF))).T
         else: 
             raise ValueError()
           
@@ -2393,7 +2393,7 @@ def sensor_type(*sensorids):
 
     See also 
     --------
-    sensortypeid, tran
+    sensor_typeid, tran
     '''
     valid_names = ('n', 'n_t', 'n_tt', 'n_x', 'n_y', 'n_xx', 'n_yy', 'n_xy',
                   'p', 'u', 'v', 'w', 'u_t', 'v_t', 'w_t', 'x_p', 'y_p', 'z_p',
@@ -2403,12 +2403,8 @@ def sensor_type(*sensorids):
         ids = hstack(ids)
     n = len(valid_names) - 1
     ids = where(((ids < 0) | (n < ids)), n , ids)
-    
-    #try:
     return tuple(valid_names[i] for i in ids)
-    #except:
-    #    raise ValueError('Input must be an integer!')
-
+    
 class TransferFunction(object):
     '''
     Class for computing transfer functions based on linear wave theory
@@ -2520,6 +2516,7 @@ class TransferFunction(object):
                                X_p=self._x_p, x_p=self._x_p,
                                Y_p=self._y_p, y_p=self._y_p,
                                Z_p=self._z_p, z_p=self._z_p)
+    __call__ = tran 
     def tran(self, w, theta=0, kw=None):
         '''
         Return transfer functions based on linear wave theory
@@ -2578,7 +2575,7 @@ class TransferFunction(object):
     
 #---Private member methods
     def _get_ee_cthxy(self, theta, kw):
-        # convert to from angle in degrees to radians
+        # convert from angle in degrees to radians
         bet = self.bet
         thxr = self.thetax * pi / 180
         thyr = self.thetay * pi / 180
