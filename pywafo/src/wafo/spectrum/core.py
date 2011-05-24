@@ -646,7 +646,7 @@ class SpecData1D(WafoData):
     >>> Sj = sm.Jonswap(Hm0=3)
     >>> w = np.linspace(0,4,256)
     >>> S1 = Sj.tospecdata(w)   #Make spectrum object from numerical values
-    >>> S = SpecData1D(Sj(w),w) # Alternatively do it manually
+    >>> S = sm.SpecData1D(Sj(w),w) # Alternatively do it manually
 
     See also
     --------

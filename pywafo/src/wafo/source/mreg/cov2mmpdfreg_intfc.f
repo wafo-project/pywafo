@@ -119,7 +119,7 @@ c   OBS. we are using the variables R,R1,R2 R3 as a temporary storage
 C   for transformation  g  of the process.
 
 c
-      CALL INITLEVELS(T,HHT,Nt,NG,NU,Nv)
+      CALL INITLEVELS(T,HHT,Nt,NU,Nv)
 C      CALL INITLEVELS(Ulev,NU,Vlev,NV,T,HHT,Nt,R1,R2,NG)
       IF( Tg(1) .gt. Tg(ng))  then
        print *,'Error Tg must be strictly increasing'
@@ -272,10 +272,10 @@ C   R contains Cov(X'(T(I1)),X'(T(I2))|X'(0),X''(0),X(0),X(I))
  41         CONTINUE
          END IF
 
-C  Here the covariance of the problem would be innitiated
+C  Here the covariance of the problem would be initiated
 
             INF=0
-            Print *,'   Laps to go:',N-I+1
+            Print *,'   Laps to go:',Nt-I+1
          DO IV=1,Nv
             V=VT(IV)
 !            IF (ABS(V).GT.5.0D0) GO TO 80                  
