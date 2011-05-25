@@ -1148,6 +1148,13 @@ class SpecData1D(WafoData):
         NIT=5, leads tp call RIND5, IAC is maximally 4-dimensional integral,
         while IAC=1 leads to maximum 5 dimensional integral.
 
+        >>> import numpy as np
+        >>> import wafo.spectrum.models as sm
+        >>> Sj = sm.Jonswap(Hm0=3)
+        >>> w = np.linspace(0,4,256)
+        >>> S1 = Sj.tospecdata(w)   #Make spectrum object from numerical values
+        >>> S = sm.SpecData1D(Sj(w),w) # Alternatively do it manually
+        S.to_mm_pdf()
         '''
      
         S = self.copy()
@@ -1177,7 +1184,7 @@ class SpecData1D(WafoData):
         
     
         unused_t0, tn, Nt = paramt 
-        t      = linspace(0, tn/A, Nt) # normalized times 
+        t = linspace(0, tn/A, Nt) # normalized times 
         
         #Transform amplitudes to Gaussian levels:    
         h   = linspace(*paramu); 
@@ -1197,29 +1204,8 @@ class SpecData1D(WafoData):
         
         dh = h[1]-h[0]
         uvdens *= dh*dh
-    
-#        if (defnr==0)
-#          f.f      =fliplr(mctp2rfc(fliplr(ftmp)));%* sqrt(-R(1,6)/R(1,4))/2/pi;
-#          f.title  ='Joint density of maximum and rainflow minimum';
-#          f.labx{1}='max [m]';
-#          f.labx{2}='rainflow min [m]';
-#        elseif (defnr==-1)   
-#           %CC= normalizing constant= 1/ expected number of u-up-crossings of X
-#           %CC = 2*pi*sqrt(L0/L2)*exp(0.5D0*u*u/L0); 
-#           % CC = normalizing constant = 1/ expected number of zero-up-crossings of X' 
-#           %CC = 2*pi*sqrt(L2/L4); 
-#          fact = sqrt(L0/L4);
-#           
-#          f.f    = fliplr(mctp2tc(fliplr(ftmp*fact),utc,paramu));
-#          index1 = find(f.x{1}>0);
-#          index2 = find(f.x{2}<0);
-#          f.f    = flipud(f.f(index2,index1));
-#          f.x{1} = f.x{1}(index1);
-#          f.x{2} = abs(flipud(f.x{2}(index2)));
-#          f.title  ='Joint density of crest and trough';  
-#          f.labx{1}='Crest [m]';
-#          f.labx{2}='Trough [m]';
-#        else  %(defnr==1)
+        uvdens = np.rot90(uvdens,-2)
+
         mmpdf = WafoData(uvdens,args=(h,h), title='Joint density of maximum and minimum',
                  xlab='max [m]',ylab='min [m]')
         return mmpdf
@@ -3287,9 +3273,19 @@ def main():
     pylab.close('all')
     print('done')
 
+def test_mm_pdf():
+    import numpy as np
+    import wafo.spectrum.models as sm
+    Sj = sm.Jonswap(Hm0=7, Tp=11)
+    w = np.linspace(0,4,256)
+    S1 = Sj.tospecdata(w)   #Make spectrum object from numerical values
+    S = sm.SpecData1D(Sj(w),w) # Alternatively do it manually
+    mm = S.to_mm_pdf()
+    
 if __name__ == '__main__':
-    if  True: #False : #  
+    if  False : #True: #  
         import doctest
         doctest.testmod()
     else:
-        main()
+        test_mm_pdf()
+        #main()
