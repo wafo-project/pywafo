@@ -132,49 +132,58 @@ C
       RETURN
       END FUNCTION SPLE
 
-
-
-      SUBROUTINE COVG(XL0,XL2,XL4,COV,T,N)
+      SUBROUTINE COVG(XL0,XL2,XL4,COV1,COV2,COV3,COV,T,N)
 C
-C  COVG  evaluates:
+C  Covariance function and its four derivatives for a vector T of length N
+C  is assumed in a vector COV; COV(1,...,N,1)=r(T), COV(1,...,N, 2)=r'(T), etc.
+C  The vector COV should be of the shape N x 5.
 C
+C  COVG  Returns:
 C  XL0,XL2,XL4 - spectral moments.
 C
-C  Covariance function and its four derivatives for a vector T of length N.
-C  It is saved in a vector COV; COV(1,...,N)=r(T), COV(N+1,...,2N)=r'(T), etc.
-C  The vector COV should be of the length 5*N.
-C
 C  Covariance matrices COV1=r'(T-T), COV2=r''(T-T) and COV3=r'''(T-T)
-C  Dimension of  COV1, COV2  should be   N*N.
+C  Dimension of  COV1, COV2  should be atleast  N*N.
 C
-!      USE SIZEMOD
-!     IMPLICIT NONE
-C     INTEGER, PARAMETER:: NMAX = 101, RDIM = 10201
+      USE SIZEMOD
+!	IMPLICIT NONE
+C	INTEGER, PARAMETER:: NMAX = 101, RDIM = 10201
       REAL*8, PARAMETER:: ZERO = 0.0d0
       REAL*8, intent(inout) :: XL0,XL2,XL4
       REAL*8, DIMENSION(N,5), intent(in) :: COV
       REAL*8, DIMENSION(N), intent(in) :: T
+      REAL*8, DIMENSION(RDIM), intent(inout) :: COV1,COV2,COV3
       INTEGER, intent(in) :: N
-
-
+      integer :: I, J, II
+      REAL*8 :: TT, T0
 C
-C   COV(Y(T),Y(0)) = COV(:,1)
-C
-      XL0 = COV(1,1)
-!     XL0 = SPLE(NT,ZERO,COV(:,1),T)
-C
-C    DERIVATIVE  COV(Y(T),Y(0)) = COV(:,2)
-C
+C                  COV(Y(T),Y(0)) = COV(:,1)
+C      DERIVATIVE  COV(Y(T),Y(0)) = COV(:,2)
 C    2-DERIVATIVE  COV(Y(T),Y(0)) = COV(:,3)
-      XL2 = -COV(1,3)
-!     XL2 = -SPLE(NT,ZERO,COV(:,3),T)
 C    3-DERIVATIVE  COV(Y(T),Y(0)) = COV(:,4)
-
 C    4-DERIVATIVE  COV(Y(T),Y(0)) = COV(:,5)
 
+      XL0 = COV(1,1)
+      XL2 = -COV(1,3)
       XL4 = COV(1,5)
-!     XL4 = SPLE(NT,ZERO,COV(:,5),T)
+!     XL0 =  SPLE(NT, ZERO, COV(:,1), T)
+!     XL2 = -SPLE(NT, ZERO, COV(:,3), T)
+!     XL4 =  SPLE(NT, ZERO, COV(:,5), T)
 
+      II=0
+      DO I=1,N
+      DO J=1,N
+      II = II+1
+      T0 = T(J)-T(I)
+      TT = ABS(T0)
+      COV1(II) = SPLE(N, TT, COV(:,2), T)
+      COV2(II) = SPLE(N, TT, COV(:,3), T)
+      COV3(II) = SPLE(N, TT, COV(:,4), T)
+      IF (T0.LT.0.0d0) then
+      COV1(II)=-COV1(II)
+      COV3(II)=-COV3(II)
+      endif
+      enddo
+      enddo
       RETURN
       END SUBROUTINE COVG
       END module intfcmod

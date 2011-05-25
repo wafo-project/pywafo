@@ -65,7 +65,7 @@ Cf2py real*8, intent(out), depend(Nu,Nv) :: UVdens
 Cf2py depend(Ng)  Xg
 Cf2py depend(Nt,5)  COV
       real*8 Q0,SQ0,Q1,SQ1, U,V,VV, XL0, XL2, XL4
-      REAL*8 VDERI, CDER,SDER, DER, CONST1, F, HHHH,FM, VALUE
+      REAL*8 VDERI, CDER,SDER, DER, CONST1, F, HHHH, FM, VALUE
 C     INTEGER, PARAMETER :: MMAX = 5, NMAX = 101, RDIM = 10201
       REAL*8, DIMENSION(NMAX) :: HHT,VT,UT,Vdd,Udd
       REAL*8, DIMENSION(RDIM) :: R,R1,R2,R3
@@ -118,7 +118,7 @@ c
 c   OBS. we are using the variables R,R1,R2 R3 as a temporary storage 
 C   for transformation  g  of the process.
 
-c
+      N = Nt
       CALL INITLEVELS(T,HHT,Nt,NU,Nv)
 C      CALL INITLEVELS(Ulev,NU,Vlev,NV,T,HHT,Nt,R1,R2,NG)
       IF( Tg(1) .gt. Tg(ng))  then
@@ -127,8 +127,13 @@ C      CALL INITLEVELS(Ulev,NU,Vlev,NV,T,HHT,Nt,R1,R2,NG)
       end if
       if(abs(Tg(ng)-Tg(1))*abs(Xg(ng)-Xg(1)).lt.0.01d0) then
        print *,'The transformation  g is singular, stop'
-       stop
+       return
       end if
+
+!      do IV=1,Nt
+!      print *, 'Cov', COV(IV,:)
+!      end do
+
       DO IV=1,Nv
          V=Vlev(IV)
          CALL TRANSF(NG,V,Xg,Tg,VALUE,DER) 
@@ -145,19 +150,19 @@ C      CALL INITLEVELS(Ulev,NU,Vlev,NV,T,HHT,Nt,R1,R2,NG)
          enddo
       enddo
       
-      CALL COVG(XL0,XL2,XL4,COV,T,Nt)
+      CALL COVG(XL0,XL2,XL4,R1,R2,R3,COV,T,Nt)
       
-      
+
       Q0=XL4
       IF (Q0.le.1.0D0+EPS) then
       Print *,'Covariance structure is singular, stop.'
-      stop
+      return
       end if
       SQ0 = SQRT(Q0)
       Q1  = XL0-XL2*XL2/XL4
       IF (Q1.le.EPS) then
       Print *,'Covariance structure is singular, stop.'
-      stop
+      return
       end if
       SQ1 = SQRT(Q1)
       DO I=1,Nt
@@ -202,8 +207,8 @@ c10    CONTINUE
 C      
 C   R1 contains Cov(X(T(I)),X'(T(J))|X'(0),X''(0),X(0)) 
 C
-      R1(J+(I-1)*N)=R1(J+(I-1)*N) -  COV(I,2)*(COV(J,3)/XL2) 
-     1 -  (B0(I)*DB0(J)/Q0) -  (B1(I)*DB1(J)/Q1) 
+      R1(J+(I-1)*N) = R1(J+(I-1)*N) -  COV(I,2)*(COV(J,3)/XL2)
+     1   - (B0(I)*DB0(J)/Q0) -  (B1(I)*DB1(J)/Q1)
       
 C      
 C   R2 contains Cov(X'(T(I)),X'(T(J))|X'(0),X''(0),X(0))
@@ -320,16 +325,17 @@ C  Here the covariance of the problem would be initiated
  20   CONTINUE
       enddo
 
-!       hhhh=0.0d0
-!       do 90 Iu=1,Nu
-!       do 90 Iv=1,Nv
+      hhhh=0.0d0
+      do Iu=1,Nu
+      do Iv=1,Nv
 !       WRITE(10,300) Ulev(iu),Vlev(iv),UVdens(iu,iv)
-!       hhhh=hhhh+UVdens(iu,iv)
-! 90    continue
-!      if (nu.gt.1.and.nv.gt.1) then
-!      write(11,*) 'SumSum f_uv *du*dv='
-!     1,(Ulev(2)-Ulev(1))*(Vlev(2)-Vlev(1))*hhhh
-!      end if
+        hhhh=hhhh+UVdens(iu,iv)
+      enddo
+      enddo
+      if (nu.gt.1.and.nv.gt.1) then
+      VALUE = (Ulev(2)-Ulev(1))*(Vlev(2)-Vlev(1))*hhhh
+      print *,'SumSum f_uv *du*dv=', VALUE
+      end if
       
 C      sder=sqrt(XL4-XL2*XL2/XL0)
 C      cder=-XL2/sqrt(XL0)
