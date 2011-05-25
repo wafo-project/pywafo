@@ -1,4 +1,5 @@
 import warnings
+from graphutil import cltext
 from plotbackend import plotbackend
 from time import gmtime, strftime
 import numpy as np
@@ -182,25 +183,25 @@ class Plotter_1d(object):
         plotbackend.show()
 
     def plot(self, wdata, *args, **kwds):
-        if isinstance(wdata.args, (list, tuple)):
-            args1 = tuple((wdata.args)) + (wdata.data,) + args
-        else:
-            args1 = tuple((wdata.args,)) + (wdata.data,) + args
         plotflag = kwds.pop('plotflag', None)
         if plotflag:
-            h1 = self._plot(plotflag, *args1, **kwds)
+            h1 = self._plot(plotflag, wdata, **kwds)
         else:
+            if isinstance(wdata.args, (list, tuple)):
+                args1 = tuple((wdata.args)) + (wdata.data,) + args
+            else:
+                args1 = tuple((wdata.args,)) + (wdata.data,) + args
             h1 = self.plotfun(*args1, **kwds)
         h2 = wdata.labels.labelfig()
         return h1, h2
     
-    def _plot(self, plotflag, *args1, **kwds):
-        x = args1[0]
-        data = transformdata(x,args1[1], plotflag)
+    def _plot(self, plotflag, wdata, *args, **kwds):
+        x = wdata.args 
+        data = transformdata(x, wdata.data, plotflag)
         dataCI = ()
-        h1 = plot1d(x,data, dataCI, plotflag, *args1[2:], **kwds)
+        h1 = plot1d(x,data, dataCI, plotflag, *args, **kwds)
         return h1
-def plot1d(args,data,dataCI,plotflag,*varargin, **kwds):
+def plot1d(args,data, dataCI,plotflag,*varargin, **kwds):
      
     plottype = np.mod(plotflag,10)
     if plottype==0: # %  No plotting
@@ -334,8 +335,60 @@ class Plotter_2d(Plotter_1d):
             plotmethod = 'contour'
         super(Plotter_2d, self).__init__(plotmethod)
         
-    def _plot(self,*args,**kwds):
-        pass
+    def _plot(self, plotflag, wdata, *args, **kwds):
+        h1 = plot2d(wdata, plotflag, *args, **kwds)
+        return h1
+    
+def plot2d(wdata, plotflag, *args, **kwds):
+    f = wdata
+    if plotflag in (1,6,7,8,9):
+        PL=0
+        if hasattr(f,'cl') and len(f.cl)>0:  # check if contour levels is submitted
+            CL = f.cl
+            if hasattr(f,'pl'):
+                PL = f.pl # levels defines quantile levels? 0=no 1=yes
+        else:
+            dmax = np.max(f.data)
+            dmin = np.min(f.data)
+            CL = dmax-(dmax-dmin)*(1-np.r_[0.01, 0.025, 0.05, 0.1, 0.2, 0.4, 0.5, 0.75])
+        clvec = np.sort(CL)
+         
+        if plotflag in [1, 8, 9]:
+            h = plotbackend.contour(f.args,f.data,levels=CL);
+        #else:
+        #  [cs hcs] = contour3(f.x{:},f.f,CL,sym);
+        
+        if plotflag in (1,6):
+            ncl = len(clvec)
+            if ncl>12:
+                ncl=12
+                warnings.warn('Only the first 12 levels will be listed in table.')
+            axcl = cltext(clvec[:ncl], percent=PL)  # print contour level text
+        elif any(plotflag==[7, 9]):
+            pass
+            #clabel(cs);
+        #else
+            #clabel(cs,hcs);
+        
+    elif plotflag== 2:
+        h = plotbackend.mesh(f.args,f.data)
+    elif plotflag==3:    
+        h = plotbackend.surf(f.args,f.data);  #shading interp % flat, faceted       % surfc
+    elif plotflag==4:    
+        h = plotbackend.waterfall(f.args,f.data);
+    elif plotflag==5: 
+        h =plotbackend.pcolor(f.args,f.data); #%shading interp % flat, faceted
+    elif plotflag==10:
+        h = plotbackend.contourf(f.args,f.f); clabel(cs,hcs); 
+        plotbackend.colorbar(h)
+    else:
+        raise ValueError('unknown option for plotflag')
+         
+    
+    #if any(plotflag==(2:5))
+    #   shading(shad);
+    #end
+    #    pass
 
        
 def main():
