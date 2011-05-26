@@ -36,14 +36,7 @@ def which(program):
 
     return None
 
-def compile_all():
-    files = ['intmodule',  'jacobmod', 'swapmod', 'fimod','rindmod','rind71mod']
-    compile1_format = 'gfortran -fPIC -c %s.f'
-    format1 = '%s.o ' * len(files)
-    for file in files:
-        os.system(compile1_format % file)
-    file_objects = format1  % tuple(files)
-    
+def f2py_call_str():
     # regardless of platform, try to figure out which f2py call is in the path
     # define possible options
     f2py_call_list = ('f2py','f2py2.6','f2py2.7','f2py.py',)
@@ -53,13 +46,13 @@ def compile_all():
         # if the call command exists in the path, it will return the path as
         # a string, otherwise it will return None
         f2py_path = which(k)
-        if not f2py_path:
+        no_f2py = not f2py_path
+        if no_f2py:
             # didn't find the current call k, continue looking
             pass
         else:
             # current call k is in the path
             f2py_call = k
-            no_f2py = False
             break
     
     # raise exception if f2py is not found
@@ -67,24 +60,35 @@ def compile_all():
         raise UserWarning, \
         'Couldn\'t locate f2py. Should be part of NumPy installation.'
     else:
-        print '='*75
-        print 'compiling rind2007'
-        print '='*75
         print 'found f2py in:', f2py_path
-    
-#    # this might vary among specific cases: f2py, f2py2.7, f2py3.2, ...
-#    # TODO: more robust approach, find out what f2py is in the users path
+        return f2py_call
+#        # this might vary among specific cases: f2py, f2py2.7, f2py3.2, ...
+#        # TODO: more robust approach, find out what f2py is in the users path
 #    if os.name == 'posix':
-#        f2py_call = 'f2py2.6'
+#        compile_format = 'f2py2.6 %s %s -c'
 #    
 #    # Install microsoft visual c++ .NET 2003 and run the following to build the module:
 #    elif os.name == 'nt':
-#        f2py_call = 'f2py.py'
+#        # compile_format = 'f2py.py %s %s -c --fcompiler=gnu95 --compiler=mingw32 -lmsvcr71'
+#        compile_format = 'f2py.py %s %s -c'
 #    
 #    # give an Error for other OS-es
 #    else:
 #        raise UserWarning, \
 #        'Untested platform:', os.name
+
+def compile_all():
+    f2py_call = f2py_call_str()    
+    print '='*75
+    print 'compiling rind2007'
+    print '='*75
+ 
+    files = ['intmodule',  'jacobmod', 'swapmod', 'fimod','rindmod','rind71mod']
+    compile1_format = 'gfortran -fPIC -c %s.f'
+    format1 = '%s.o ' * len(files)
+    for file in files:
+        os.system(compile1_format % file)
+    file_objects = format1  % tuple(files)
     
     os.system(f2py_call + ' -m rindmod  -c %s rind_interface.f ' % file_objects)
     
