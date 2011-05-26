@@ -637,6 +637,142 @@ def findrfc(tp, hmin=0.0, method='clib'):
         ind, ix = clib.findrfc(y, hmin)
     return np.sort(ind[:ix])
 
+def mctp2rfc(f_mM,f_Mm=None):
+    '''
+    Return Rainflow matrix given a Markov matrix of a Markov chain of turning points
+    
+      computes f_rfc = f_mM + F_mct(f_mM).
+    
+      CALL: f_rfc = mctp2rfc(f_mM);
+    
+      where
+    
+            f_rfc = the rainflow matrix,
+            f_mM =  the min2max Markov matrix, 
+    
+      Further optional input arguments;
+    
+      CALL:  f_rfc = mctp2rfc(f_mM,f_Mm,paramm,paramM);
+    
+            f_Mm  = the max2min Markov matrix, 
+           paramm = the parameter matrix defining discretization of minimas,
+           paramM = the parameter matrix defining discretization of maximas,
+    '''
+    # TODO:  Check this: paramm and paramM are never used?????
+    
+    if f_Mm is None:
+        f_Mm=f_mM
+    
+#     if nargin<3
+#       paramm=[-1, 1 ,length(f_mM)];
+#       paramM=paramm;
+#     end
+#     
+#     if nargin<4
+#       paramM=paramm;
+#     end
+    f_mM, f_Mm = np.atleast_1d(f_mM, f_Mm)
+    
+    N = max(f_mM.shape)
+    f_max = sum(f_mM,axis=1)
+    f_min = sum(f_mM, axis=0)
+    f_rfc = zeros((N,N))
+    f_rfc[N-1,0]=f_max[N-1]
+    f_rfc[1,N-1]=f_min[N-1]
+    for k in range(2,N-1):
+        for i in range(1,k-1):
+            AA = f_mM[N-k+1:N-k+i-1, k-i+1:k-1]
+            AA1 = f_Mm[N-k+1:N-k+i-1, k-i+1:k-1]
+            RAA = f_rfc[N-k+1:N-k+i-1, k-i+1:k-1]
+            nA = max(AA.shape);
+            MA = f_max[N-k+1:N-k+i-1]
+            mA = f_min[k-i+1:k-1]
+            SA = AA.sum() 
+            SRA = RAA.sum()
+            
+            DRFC = SA-SRA;
+            NT = min(mA[0]-sum(RAA[:,1]),MA[0]-sum(RAA[1,:])) # ?? check
+            NT = max(NT,0) # ??check
+            
+            if NT>1e-6*max(MA[0],mA[0]):
+                NN = MA-sum(AA,axis=1) # T
+                e = (mA-sum(AA, axis=0)) # T 
+                e = np.flipud(e)
+                PmM = np.rot90(AA)
+                for j in range(nA):
+                    norm=mA[nA-j+1]
+                    if norm!=0:
+                        PmM[j,:] = PmM[j,:]/norm
+                        e[j] = e[j]/norm
+                    #end
+                #end
+                fx=0.0;
+                if max(abs(e))>1e-6 and max(abs(NN))>1e-6*max(MA[0],mA[0]):
+                    PMm=AA1;
+                    for j in range(nA):
+                        norm=MA(j);
+                        if norm!=0:
+                            PMm[j,:]=PMm[j,:]/norm;
+                            #end
+                        #end
+                    PMm=fliplr(PMm)
+         
+                    A=PMm; B=PmM;
+                    I=eye(A.shape)
+        
+                    if nA==1:
+                        fx=NN*(A/(1-B*A)*e)
+                    else:
+                        fx=NN*(A*((I-B*A)\e)) #least squares
+                    #end
+                #end
+           
+                f_rfc[N-k+1,k-i+1] = fx+DRFC
+    
+                #  check2=[ DRFC  fx]
+                # pause
+            else:
+                f_rfc[N-k+1,k-i+1]=0.;
+            #end
+        #end
+        m0 = max(0,f_min[0]-sum(f_rfc[N-k+2:N,1]));
+        M0 = max(0,Max(N-k+1)-sum(f_rfc[N-k+1,2:k]));
+        f_rfc[N-k+1,1] = min(m0,M0)
+        #%  n_loops_left=N-k+1
+    #end
+    
+    for k in range(1,N):
+        M0 = max(0,f_max[0]-sum(f_rfc[1,N-k+2:N]));
+        m0 = max(0,f_min[N-k+1]-sum(f_rfc[2:k,N-k+1]));
+        f_rfc[1,N-k+1] = min(m0,M0)
+    #end
+    
+#    %clf
+#    %subplot(1,2,2)
+#    %pcolor(levels(paramm),levels(paramM),flipud(f_mM))
+#    %  title('Markov matrix')
+#    %  ylabel('max'), xlabel('min')                    
+#    %axis([paramm(1) paramm(2) paramM(1) paramM(2)])
+#    %axis('square')
+#    
+#    %subplot(1,2,1)
+#    %pcolor(levels(paramm),levels(paramM),flipud(f_rfc))
+#    %  title('Rainflow matrix')
+#    %  ylabel('max'), xlabel('rfc-min')                    
+#    %axis([paramm(1) paramm(2) paramM(1) paramM(2)])
+#    %axis('square')
+
+    return f_frfc
+
+
+
+
+
+
+
+
+
+
 def rfcfilter(x, h, method=0):
     """ 
     Rainflow filter a signal.

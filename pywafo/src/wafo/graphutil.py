@@ -5,6 +5,7 @@ Created on 20. jan. 2011
 
 license BSD
 '''
+from __future__ import division
 import warnings
 import numpy as np
 from wafo.plotbackend import plotbackend
@@ -83,8 +84,8 @@ def cltext(levels, percent=False, n=4, xs=0.036, ys=0.94, zs=0):
             except:
                 warnings.warn('Tried to delete a non-existing CL-text')
      
-    charHeight = 1 / 33;
-    delta_y = charHeight;
+    charHeight = 1.0 / 33.0
+    delta_y = charHeight
     
     if percent:
         titletxt = 'Level curves enclosing:';
