@@ -1808,7 +1808,7 @@ def qlevels(pdf, p=(10, 30, 50, 70, 90, 95, 99, 99.9), x1=None, x2=None):
     p2 = p / 100.0
     ind = np.argsort(pdf.ravel()) # sort by height of pdf
     ind = ind[::-1]
-    fi = pdf[ind]
+    fi = pdf.flat[ind]
 
     Fi = np.cumsum(fdfi[ind]) # integration in the order of decreasing height of pdf
               
