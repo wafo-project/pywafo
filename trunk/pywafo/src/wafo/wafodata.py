@@ -70,10 +70,10 @@ class WafoData(object):
         self.date = now()
         self.plotter = kwds.pop('plotter', None)
         self.children = None
-        self.plot_args_children = kwds.pop('plot_args_children',[])
-        self.plot_kwds_children = kwds.pop('plot_kwds_children',{})
-        self.plot_args = kwds.pop('plot_args',[])
-        self.plot_kwds = kwds.pop('plot_kwds',{})
+        self.plot_args_children = kwds.pop('plot_args_children', [])
+        self.plot_kwds_children = kwds.pop('plot_kwds_children', {})
+        self.plot_args = kwds.pop('plot_args', [])
+        self.plot_kwds = kwds.pop('plot_kwds', {})
         
         self.labels = AxisLabels(**kwds)
         if not self.plotter:
@@ -199,60 +199,60 @@ class Plotter_1d(object):
         x = wdata.args 
         data = transformdata(x, wdata.data, plotflag)
         dataCI = ()
-        h1 = plot1d(x,data, dataCI, plotflag, *args, **kwds)
+        h1 = plot1d(x, data, dataCI, plotflag, *args, **kwds)
         return h1
-def plot1d(args,data, dataCI,plotflag,*varargin, **kwds):
+def plot1d(args, data, dataCI, plotflag, *varargin, **kwds):
      
-    plottype = np.mod(plotflag,10)
-    if plottype==0: # %  No plotting
+    plottype = np.mod(plotflag, 10)
+    if plottype == 0: # %  No plotting
         return []
-    elif plottype==1: 
-        H = plotbackend.plot(args,data,*varargin, **kwds)
-    elif plottype==2: 
-        H = plotbackend.step(args,data,*varargin, **kwds)
-    elif plottype==3: 
-        H = plotbackend.stem(args,data,*varargin, **kwds)
-    elif plottype==4: 
-        H = plotbackend.errorbar(args,data,dataCI[:,0]-data,dataCI[:,1]-data,*varargin, **kwds)
-    elif plottype==5: 
-        H = plotbackend.bar(args,data,*varargin, **kwds)
-    elif plottype==6:  
+    elif plottype == 1: 
+        H = plotbackend.plot(args, data, *varargin, **kwds)
+    elif plottype == 2: 
+        H = plotbackend.step(args, data, *varargin, **kwds)
+    elif plottype == 3: 
+        H = plotbackend.stem(args, data, *varargin, **kwds)
+    elif plottype == 4: 
+        H = plotbackend.errorbar(args, data, dataCI[:, 0] - data, dataCI[:, 1] - data, *varargin, **kwds)
+    elif plottype == 5: 
+        H = plotbackend.bar(args, data, *varargin, **kwds)
+    elif plottype == 6:  
         level = 0
         if np.isfinite(level):
-            H = plotbackend.fill_between(args,data,level,*varargin, **kwds);
+            H = plotbackend.fill_between(args, data, level, *varargin, **kwds);
         else:
-            H = plotbackend.fill_between(args,data,*varargin, **kwds);
+            H = plotbackend.fill_between(args, data, *varargin, **kwds);
         
     scale = plotscale(plotflag);
-    logXscale = any(scale=='x');
-    logYscale = any(scale=='y');
-    logZscale = any(scale=='z');
+    logXscale = any(scale == 'x');
+    logYscale = any(scale == 'y');
+    logZscale = any(scale == 'z');
     ax = plotbackend.gca()
     if logXscale: 
-        plotbackend.setp(ax,xscale='log')
+        plotbackend.setp(ax, xscale='log')
     if logYscale:
-        plotbackend.setp(ax,yscale='log') 
+        plotbackend.setp(ax, yscale='log') 
     if logZscale: 
-        plotbackend.setp(ax,zscale='log')
+        plotbackend.setp(ax, zscale='log')
     
-    transFlag = np.mod(plotflag//10,10)
+    transFlag = np.mod(plotflag // 10, 10)
     logScale = logXscale or logYscale or logZscale
-    if  logScale or (transFlag ==5 and  not logScale):
+    if  logScale or (transFlag == 5 and  not logScale):
         ax = list(plotbackend.axis())
         fmax1 = data.max()
-        if transFlag==5 and not logScale:
-            ax[3] = 11*np.log10(fmax1)
-            ax[2] = ax[3]-40
+        if transFlag == 5 and not logScale:
+            ax[3] = 11 * np.log10(fmax1)
+            ax[2] = ax[3] - 40
         else:
-            ax[3] = 1.15*fmax1;
-            ax[2] = ax[3]*1e-4;
+            ax[3] = 1.15 * fmax1;
+            ax[2] = ax[3] * 1e-4;
       
         plotbackend.axis(ax)
     
     if dataCI and plottype < 3:
         plotbackend.hold('on')
        
-        plot1d(args,dataCI,(),plotflag,'r--');
+        plot1d(args, dataCI, (), plotflag, 'r--');
     return H
 
 def plotscale(plotflag):
@@ -288,34 +288,34 @@ def plotscale(plotflag):
     
      See also plotscale
     '''
-    scaleId = plotflag//100
-    if scaleId>7:
-        logXscaleId = np.mod(scaleId,10)>0
-        logYscaleId = (np.mod(scaleId//10, 10)>0)*2
-        logZscaleId = (np.mod(scaleId//100, 10)>0)*4
-        scaleId = logYscaleId +logXscaleId+logZscaleId
+    scaleId = plotflag // 100
+    if scaleId > 7:
+        logXscaleId = np.mod(scaleId, 10) > 0
+        logYscaleId = (np.mod(scaleId // 10, 10) > 0) * 2
+        logZscaleId = (np.mod(scaleId // 100, 10) > 0) * 4
+        scaleId = logYscaleId + logXscaleId + logZscaleId
     
-    scales = ['linear','xlog','ylog','xylog','zlog','xzlog','yzlog','xyzlog']
+    scales = ['linear', 'xlog', 'ylog', 'xylog', 'zlog', 'xzlog', 'yzlog', 'xyzlog']
     
     return scales[scaleId]
 
-def transformdata(x,f,plotflag):
-    transFlag = np.mod(plotflag//10,10)    
-    if transFlag==0:
+def transformdata(x, f, plotflag):
+    transFlag = np.mod(plotflag // 10, 10)    
+    if transFlag == 0:
         data = f
-    elif transFlag==1:
-        data = 1-f
-    elif transFlag==2:
-        data = cumtrapz(f,x)
-    elif transFlag==3:
-        data = 1-cumtrapz(f,x)
-    if transFlag in (4,5):
-        if transFlag==4:
-            data = -np.log1p(-cumtrapz(f,x))
+    elif transFlag == 1:
+        data = 1 - f
+    elif transFlag == 2:
+        data = cumtrapz(f, x)
+    elif transFlag == 3:
+        data = 1 - cumtrapz(f, x)
+    if transFlag in (4, 5):
+        if transFlag == 4:
+            data = -np.log1p(-cumtrapz(f, x))
         else:
-            if any(f<0):
+            if any(f < 0):
                 raise ValueError('Invalid plotflag: Data or dataCI is negative, but must be positive')     
-            data = 10*np.log10(f)
+            data = 10 * np.log10(f)
     return data
 
 class Plotter_2d(Plotter_1d):
@@ -341,45 +341,52 @@ class Plotter_2d(Plotter_1d):
     
 def plot2d(wdata, plotflag, *args, **kwds):
     f = wdata
-    if plotflag in (1,6,7,8,9):
-        PL=0
-        if hasattr(f,'cl') and len(f.cl)>0:  # check if contour levels is submitted
+    if isinstance(wdata.args, (list, tuple)):
+        args1 = tuple((wdata.args)) + (wdata.data,) + args
+    else:
+        args1 = tuple((wdata.args,)) + (wdata.data,) + args
+    if plotflag in (1, 6, 7, 8, 9):
+        PL = 0
+        if hasattr(f, 'cl') and len(f.cl) > 0:  # check if contour levels is submitted
             CL = f.cl
-            if hasattr(f,'pl'):
+            if hasattr(f, 'pl'):
                 PL = f.pl # levels defines quantile levels? 0=no 1=yes
         else:
             dmax = np.max(f.data)
             dmin = np.min(f.data)
-            CL = dmax-(dmax-dmin)*(1-np.r_[0.01, 0.025, 0.05, 0.1, 0.2, 0.4, 0.5, 0.75])
+            CL = dmax - (dmax - dmin) * (1 - np.r_[0.01, 0.025, 0.05, 0.1, 0.2, 0.4, 0.5, 0.75])
         clvec = np.sort(CL)
          
         if plotflag in [1, 8, 9]:
-            h = plotbackend.contour(f.args,f.data,levels=CL);
+            h = plotbackend.contour(*args1, levels=CL, **kwds);
         #else:
         #  [cs hcs] = contour3(f.x{:},f.f,CL,sym);
         
-        if plotflag in (1,6):
+        if plotflag in (1, 6):
             ncl = len(clvec)
-            if ncl>12:
-                ncl=12
+            if ncl > 12:
+                ncl = 12
                 warnings.warn('Only the first 12 levels will be listed in table.')
-            axcl = cltext(clvec[:ncl], percent=PL)  # print contour level text
-        elif any(plotflag==[7, 9]):
-            pass
-            #clabel(cs);
-        #else
-            #clabel(cs,hcs);
-        
-    elif plotflag== 2:
-        h = plotbackend.mesh(f.args,f.data)
-    elif plotflag==3:    
-        h = plotbackend.surf(f.args,f.data);  #shading interp % flat, faceted       % surfc
-    elif plotflag==4:    
-        h = plotbackend.waterfall(f.args,f.data);
-    elif plotflag==5: 
-        h =plotbackend.pcolor(f.args,f.data); #%shading interp % flat, faceted
-    elif plotflag==10:
-        h = plotbackend.contourf(f.args,f.f); clabel(cs,hcs); 
+            if PL:
+                clvals, isPL = PL[:ncl], True
+            else:
+                clvals, isPL =  clvec[:ncl], False
+            unused_axcl = cltext(clvals, percent=isPL) # print contour level text
+        elif any(plotflag == [7, 9]):
+            plotbackend.clabel(h)
+        else:
+            plotbackend.clabel(h)
+    elif plotflag == 2:
+        h = plotbackend.mesh(*args1, **kwds)
+    elif plotflag == 3:    
+        h = plotbackend.surf(*args1, **kwds)  #shading interp % flat, faceted       % surfc
+    elif plotflag == 4:    
+        h = plotbackend.waterfall(*args1, **kwds)
+    elif plotflag == 5: 
+        h = plotbackend.pcolor(*args1, **kwds) #%shading interp % flat, faceted
+    elif plotflag == 10:
+        h = plotbackend.contourf(*args1, **kwds)
+        plotbackend.clabel(h)
         plotbackend.colorbar(h)
     else:
         raise ValueError('unknown option for plotflag')
