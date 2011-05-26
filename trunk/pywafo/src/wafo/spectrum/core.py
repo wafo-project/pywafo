@@ -21,6 +21,8 @@ from dispersion_relation import w2k #, k2w
 from wafo.wafodata import WafoData, now
 from wafo.misc import sub_dict_select, nextpow2, discretize, JITImport, findpeaks #, tranproc
 from wafo.graphutil import cltext
+from wafo.kdetools import qlevels
+from wafo import wafodata
 try:
     from wafo.gaussian import Rind
 except ImportError:
@@ -1118,8 +1120,8 @@ class SpecData1D(WafoData):
         SL.note = SL.note + ' linear component (spec2linspec)'
         
         return SL, SN
-
-    def to_mm_pdf(self, paramt=None, paramu=None, utc=None, nit=2, EPS=5e-5, 
+ 
+    def to_mm_pdf(self, paramt=None, paramu=None, utc=None, nit=2, EPS=5e-5,
                   EPSS=1e-6, C=4.5, EPS0=1e-5, IAC=1, ISQ=0, verbose=False):
         '''
         nit    = order of numerical integration: 0,1,2,3,4,5.
@@ -1154,7 +1156,9 @@ class SpecData1D(WafoData):
         >>> w = np.linspace(0,4,256)
         >>> S1 = Sj.tospecdata(w)   #Make spectrum object from numerical values
         >>> S = sm.SpecData1D(Sj(w),w) # Alternatively do it manually
-        S.to_mm_pdf()
+        mm = S.to_mm_pdf()
+        mm.plot()
+        mm.plot(plotflag=1)
         '''
      
         S = self.copy()
@@ -1163,11 +1167,11 @@ class SpecData1D(WafoData):
         A = sqrt(m[0] / m[1])
         
         if paramt is None: 
-            distanceBetweenExtremes = 5*pi*sqrt(m[1]/m[2]) #(2.5 * mean distance between extremes)
+            distanceBetweenExtremes = 5 * pi * sqrt(m[1] / m[2]) #(2.5 * mean distance between extremes)
             paramt = [0, distanceBetweenExtremes, 43]   
         
         if paramu is None:  
-            paramu = [-4*sqrt(m[0]), 4*sqrt(m[0]), 41] 
+            paramu = [-5 * sqrt(m[0]), 5 * sqrt(m[0]), 41] 
         
         if self.tr is None:
             g = TrLinear(var=m[0])
@@ -1184,13 +1188,13 @@ class SpecData1D(WafoData):
         
     
         unused_t0, tn, Nt = paramt 
-        t = linspace(0, tn/A, Nt) # normalized times 
+        t = linspace(0, tn / A, Nt) # normalized times 
         
         #Transform amplitudes to Gaussian levels:    
-        h   = linspace(*paramu); 
+        h = linspace(*paramu); 
         dt = t[1] - t[0]
         nr = 4
-        R = S.tocov_matrix(nr, Nt-1, dt)
+        R = S.tocov_matrix(nr, Nt - 1, dt)
         
         #ulev = linspace(*paramu)
         #vlev = linspace(*paramu)
@@ -1201,19 +1205,23 @@ class SpecData1D(WafoData):
         
         cov2mod.initinteg(EPS, EPSS, EPS0, C, IAC, ISQ)
         uvdens = cov2mod.cov2mmpdfreg(t, R, h, h, Tg, Xg, nit)
+        uvdens = np.rot90(uvdens, -2)
         
-        dh = h[1]-h[0]
-        uvdens *= dh*dh
-        uvdens = np.rot90(uvdens,-2)
-
-        mmpdf = WafoData(uvdens,args=(h,h), title='Joint density of maximum and minimum',
-                 xlab='max [m]',ylab='min [m]')
+        dh = h[1] - h[0]
+        uvdens *= dh * dh
+        
+        mmpdf = WafoData(uvdens, args=(h, h), xlab='max [m]', ylab='min [m]',
+                         title='Joint density of maximum and minimum')
+        try:
+            pl = [10, 30, 50, 70, 90, 95, 99, 99.9]
+            mmpdf.cl = qlevels(uvdens, pl, h, h)
+            mmpdf.pl = pl
+        except:
+            pass
         return mmpdf
-
-        #[f.cl,f.pl] = qlevels(f.f,[10, 30, 50, 70, 90, 95, 99, 99.9],f.x{1},f.x{2})
- 
+    
             
-    def to_t_pdf(self, u=None, pdef='Tc', paramt=None, **options):
+    def to_t_pdf(self, u=None, kind='Tc', paramt=None, **options):
         '''
         Density of crest/trough- period or length, version 2. 
        
@@ -1221,7 +1229,7 @@ class SpecData1D(WafoData):
         ----------
         u : real scalar
             reference level (default the most frequently crossed level).
-        pdef : string, 'Tc', Tt', 'Lc' or 'Lt'
+        kind : string, 'Tc', Tt', 'Lc' or 'Lt'
             'Tc',    gives half wave period, Tc (default).
             'Tt',    gives half wave period, Tt
             'Lc' and 'Lt' ditto for wave length.
@@ -1267,23 +1275,23 @@ class SpecData1D(WafoData):
 
         opts = dict(speed=9)
         opts.update(options)
-        if pdef[0] in ('l', 'L'):
+        if kind[0] in ('l', 'L'):
             if self.type != 'k1d':
                 raise ValueError('Must be spectrum of type: k1d')
-        elif pdef[0] in ('t', 'T'):
+        elif kind[0] in ('t', 'T'):
             if self.type != 'freq':
                 raise ValueError('Must be spectrum of type: freq')
         else:
             raise ValueError('pdef must be Tc,Tt or Lc, Lt')
-#        if strncmpi('l',def,1)
+#        if strncmpi('l',kind,1)
 #          spec=spec2spec(spec,'k1d')
-#        elseif strncmpi('t',def,1)
+#        elseif strncmpi('t',kind,1)
 #          spec=spec2spec(spec,'freq')
 #        else
-#          error('Unknown def')
+#          error('Unknown kind')
 #        end
-        pdef2defnr = dict(tc=1, lc=1, tt= -1, lt= -1)
-        defnr = pdef2defnr[pdef.lower()]
+        kind2defnr = dict(tc=1, lc=1, tt= -1, lt= -1)
+        defnr = kind2defnr[kind.lower()]
          
         S = self.copy()
         S.normalize()
@@ -1363,9 +1371,9 @@ class SpecData1D(WafoData):
         
         
         titledict = dict(tc='Density of Tc', tt='Density of Tt', lc='Density of Lc', lt='Density of Lt')
-        Htxt = titledict.get(pdef.lower())
+        Htxt = titledict.get(kind.lower())
         
-        if pdef[0].lower() == 'l':
+        if kind[0].lower() == 'l':
             xtxt = 'wave length [m]'
         else:
             xtxt = 'period [s]'
@@ -1441,6 +1449,347 @@ class SpecData1D(WafoData):
                                     hstack((Scd, Scc))))
         return big
 
+    def to_mmt_pdf(self, paramt=None,paramu=None,utc=None,kind='mm',verbose=False,**options):
+        ''' Returns joint density of Maximum, minimum and period.
+               
+        Parameters
+        ---------- 
+        u    = reference level (default the most frequently crossed level).
+        kind : string 
+            defining density returned
+            'Mm'    : maximum and the following minimum. (M,m) (default)
+            'rfc'   : maximum and the rainflow minimum height.
+            'AcAt'  : (crest,trough) heights. 
+            'vMm'   : level v separated Maximum and minimum   (M,m)_v 
+            'MmTMm' : maximum, minimum and period between (M,m,TMm)
+            'vMmTMm': level v separated Maximum, minimum and period
+                         between (M,m,TMm)_v
+            'MmTMd' : level v separated Maximum, minimum and the period
+                         from Max to level v-down-crossing (M,m,TMd)_v.
+            'MmTdm' : level v separated Maximum, minimum and the period from 
+                         level v-down-crossing to min. (M,m,Tdm)_v
+            NB! All 'T' above can be replaced by 'L' to get wave length
+               instead.   
+        paramt : [0 tn Nt] 
+            defines discretization of half period: tn is the longest period 
+            considered while Nt is the number of points, i.e. (Nt-1)/tn is the 
+            sampling frequnecy. paramt= [0 10 51] implies that the halfperiods 
+            are considered at 51 linearly spaced points in the interval [0,10], 
+            i.e. sampling frequency is 5 Hz.  
+        paramu : [u v N] 
+            defines discretization of maxima and minima ranges:  u is the lowest 
+            minimum considered, v the highest maximum and N is the number of 
+            levels (u,v) included. 
+        options :  
+            rind-options structure containing optional parameters controlling 
+            the performance of the integration. See rindoptset for details.
+        []    = default values are used. 
+        
+        Returns
+        -------
+        f    = pdf (density structure) of crests (trough) heights 
+        
+        TO_MMT_PDF calculates densities of wave characteristics in a
+        stationary Gaussian transform process X(t) where 
+        Y(t) = g(X(t)) (Y zero-mean Gaussian with spectrum given in input spec). 
+        The tr. g can be estimated using lc2tr, dat2tr, hermitetr or ochitr.
+        
+        Examples
+        --------
+        The joint density of zero separated Max2min cycles in time (a);
+        in space (b); AcAt in time for nonlinear sea model (c): 
+        
+        Hm0=7;Tp=11;
+        S = jonswap(4*pi/Tp,[Hm0 Tp]); 
+        Sk = spec2spec(S,'k1d');     
+        L0 = spec2mom(S,1); 
+        paramu = [sqrt(L0)*[-4 4] 41]; 
+        ft = spec2mmtpdf(S,0,'vmm',[],paramu); pdfplot(ft)         % a)
+        fs = spec2mmtpdf(Sk,0,'vmm');  figure, pdfplot(fs)         % b)
+        [sk, ku, me]=spec2skew(S); 
+        g = hermitetr([],[sqrt(L0) sk ku me]);
+        Snorm=S; Snorm.S=S.S/L0; Snorm.tr=g;
+        ftg=spec2mmtpdf(Snorm,0,'AcAt',[],paramu); pdfplot(ftg)    % c)
+        
+        See also
+        --------
+        rindoptset, dat2tr, datastructures, wavedef, perioddef
+        
+        References
+        ---------
+        Podgorski et al. (2000)
+        "Exact distributions for apparent waves in irregular seas"
+        Ocean Engineering,  Vol 27, no 1, pp979-1016.
+        
+        P. A. Brodtkorb (2004), 
+        Numerical evaluation of multinormal expectations
+        In Lund university report series
+        and in the Dr.Ing thesis: 
+        The probability of Occurrence of dangerous Wave Situations at Sea.
+        Dr.Ing thesis, Norwegian University of Science and Technolgy, NTNU,
+        Trondheim, Norway.
+        
+        Per A. Brodtkorb (2006)
+        "Evaluating Nearly Singular Multinormal Expectations with Application to
+        Wave Distributions",
+        Methodology And Computing In Applied Probability, Volume 8, Number 1, pp. 65-91(27) 
+        '''
+        
+        opts = dict(speed=4, nit=2, method=0)
+        opts.update(**options)
+        
+        ftype = self.freqtype
+        kind2defnr = dict( ac=-2,at=-2,
+                           rfc=-1, 
+                           mm=0, 
+                           mmtmm=1, mmlmm=1,
+                           vmm=2, 
+                           vmmtmm=3, vmmlmm=3, 
+                           mmtmd=4, vmmtmd=4,  mmlmd=4,vmmlmd=4,
+                           mmtdm=5, vmmtdm=5, mmldm=5, vmmldm=5)
+        defnr = kind2defnr.get(kind, 0)
+        in_space = (ftype=='k') # distribution in space or time 
+        if defnr>=3 or defnr==1:
+            in_space = (kind[-2].upper()=='L')
+          
+        if in_space:
+            #spec = spec2spec(spec,'k1d') ;  
+            ptxt = 'space';
+        else:
+            #spec = spec2spec(spec,'freq');  
+            ptxt='time';
+         
+        S = self.copy()
+        S.normalize()
+        m, unused_mtxt = self.moment(nr=4, even=True)
+        A = sqrt(m[0] / m[1])
+        
+        if paramt is None: 
+            distanceBetweenExtremes = 5 * pi * sqrt(m[1] / m[2]) #(2.5 * mean distance between extremes)
+            paramt = [0, distanceBetweenExtremes, 43]   
+        
+        if paramu is None:  
+            paramu = [-5 * sqrt(m[0]), 5 * sqrt(m[0]), 41] 
+        
+        if self.tr is None:
+            g = TrLinear(var=m[0])
+        else:
+            g = self.tr
+            
+        if  utc is None:
+            utc = g.gauss2dat(0) # most frequent crossed level 
+            
+        # transform reference level into Gaussian level
+        u = g.dat2gauss(utc)
+        if verbose:
+            print('The level u for Gaussian process = %g' % u)
+        
+    
+        t0, tn, Nt = paramt 
+        t = linspace(0, tn / A, Nt) # normalized times 
+        
+        Nstart = 1 + round(t0/tn*(Nt-1)) # the starting point to evaluate 
+        
+        
+        Nx = paramu[2]
+        if (defnr>1):
+            paramu[0] = max(0,paramu[0])
+            if (paramu[1]<0): 
+                raise ValueError('Discretization levels must be larger than zero') 
+         
+        #Transform amplitudes to Gaussian levels:    
+        #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        h = linspace(*paramu)
+       
+        
+        if defnr>1: # level v separated Max2min densities
+            hg = np.hstack((utc+h,utc-h))
+            hg, der = g.dat2gauss(utc+h, ones(Nx))
+            hg1, der1 = g.dat2gauss(utc-h, ones(Nx))
+            der, der1 = np.abs(der), np.abs(der1)
+            hg = np.hstack((hg,hg1))
+        else: # Max2min densities
+            hg, der = np.abs(g.dat2gauss(h, ones(Nx)))
+            der = der1 = np.abs(der)
+ 
+        dt = t[1] - t[0]
+        nr = 4
+        R = S.tocov_matrix(nr, Nt - 1, dt)
+         
+        #NB!!! the spec2XXpdf.exe programmes is very sensitive to how you interpolate  
+        #      the covariances, especially where the process is very dependent 
+        #      and the covariance matrix is nearly singular. (i.e. for small t 
+        #      and high levels of u if Tc and low levels of u if Tt) 
+        #     The best is to interpolate the spectrum linearly so that S.S>=0
+        #     This makes sure that the covariance matrix is positive
+        #     semi-definitt, since the circulant spectrum are the eigenvalues of
+        #     the circulant covariance matrix.
+        
+        
+        callFortran = 0; # %options.method<0;  
+        #if callFortran, % call fortran
+        #ftmp = cov2mmtpdfexe(R,dt,u,defnr,Nstart,hg,options);
+        #err = repmat(nan,size(ftmp));
+        #else
+        [ftmp,err,terr,options] = cov2mmtpdf(R,dt,u,defnr,Nstart,hg,options)
+        
+        #end
+        note = ''
+        if hasattr(self,'note'):
+            note  = note + self.note
+        tmp = 'L' if in_space else 'T'
+        if Nx>2:
+            titledict = {'-2':'Joint density of (Ac,At) in %s' % ptxt,
+                     '-1':'Joint density of (M,m_{rfc}) in %s' % ptxt,
+                     '0':'Joint density of (M,m) in %s' % ptxt,
+                     '1':'Joint density of (M,m,%sMm) in %s' % (tmp, ptxt),
+                     '2':'Joint density of (M,m)_{v=%2.5g} in %s' % (utc, ptxt),
+                     '3':'Joint density of (M,m,%sMm)_{v=%2.5g} in %s' % (tmp,utc, ptxt),
+                     '4':'Joint density of (M,m,%sMd)_{v=%2.5g} in %s' % (tmp,utc, ptxt),
+                     '5':'Joint density of (M,m,%sdm)_{v=%2.5g} in %s' % (tmp,utc, ptxt)}
+            title = titledict[defnr]
+            labx = 'Max [m]'
+            laby = 'min [m]';
+            args = (h,h)
+        else:
+            note = note + 'Density is not scaled to unity'
+            if defnr in (-2,-1,0,1):
+                title = 'Density of (%sMm, M = %2.5g, m = %2.5g)' % (tmp,h[1],h[0])
+            elif defnr in (2,3):
+                title = 'Density of (%sMm, M = %2.5g, m = %2.5g)_{v=%2.5g}' % (tmp,h[1],-h[1],utc)
+            elif defnr==4:
+                title = 'Density of (%sMd, %sMm, M = %2.5g, m = %2.5g)_{v=%2.5g}' % (tmp,tmp,h[1],-h[1],utc)
+            elif defnr==5: 
+                title = 'Density of (%sdm, %sMm, M = %2.5g, m = %2.5g)_{v=%2.5g}' % (tmp,tmp,h[1],-h[1],utc)
+                      
+    
+        
+        f       = wafodata(); 
+#        f.options = options;
+#        if defnr>1 or defnr==-2:
+#            f.u  = utc # save level u
+#        
+#        if Nx>2  % amplitude distributions wanted
+#        f.x{2}    = h;
+#        f.labx{2} = 'min [m]';
+#        
+#        
+#        if defnr>2 || defnr==1
+#            der0 = der1[:,None] * der[None,:]
+#            ftmp = np.reshape(ftmp,Nx,Nx,Nt) * der0[:,:, None] / A
+#            err  = np.reshape(err,Nx,Nx,Nt) * der0[:,:, None] / A
+#              
+#            f.x{3} = t(:)*A
+#            labz = 'wave length [m]' if in_space else 'period [sec]'
+#             
+#        else
+#            der0 = der[:,None] * der[None,:]
+#            ftmp  = np.reshape(ftmp,Nx,Nx) * der0
+#            err   = np.reshape(err,Nx,Nx) * der0
+#             
+#            if (defnr==-1):
+#                ftmp0 = fliplr(mctp2rfc(fliplr(ftmp)));
+#                err  = abs(ftmp0-fliplr(mctp2rfc(fliplr(ftmp+err))));
+#                ftmp = ftmp0;
+#            elif (defnr==-2):
+#              ftmp0=fliplr(mctp2tc(fliplr(ftmp),utc,paramu))*sqrt(L4*L0)/L2;
+#              err =abs(ftmp0-fliplr(mctp2tc(fliplr(ftmp+err),utc,paramu))*sqrt(L4*L0)/L2);
+#              index1=find(f.x{1}>0);
+#              index2=find(f.x{2}<0);
+#              ftmp=flipud(ftmp0(index2,index1));
+#              err =flipud(err(index2,index1));
+#              f.x{1} = f.x{1}(index1);
+#              f.x{2} = abs(flipud(f.x{2}(index2)));
+#            end
+#        end
+#        f.f = ftmp;
+#        f.err = err;
+#        else % Only time or wave length distributions wanted
+#        f.f = ftmp/A;
+#        f.err = err/A;
+#        f.x{1}=A*t';
+#        if strcmpi(def(1),'t')
+#        f.labx{1} = 'period [sec]';
+#        else
+#        f.labx{1} = 'wave length [m]';
+#        end
+#        if defnr>3,
+#        f.f   = reshape(f.f,[Nt, Nt]);
+#        f.err = reshape(f.err,[Nt, Nt]);
+#        f.x{2}= A*t';
+#        if strcmpi(def(1),'t')
+#          f.labx{2} = 'period [sec]';
+#        else
+#          f.labx{2} = 'wave length [m]';
+#        end
+#        end 
+#        end
+#        
+#        
+#        try
+#        [f.cl,f.pl]=qlevels(f.f,[10 30 50 70 90 95 99 99.9],f.x{1},f.x{2});
+#        catch
+#        warning('WAFO:SPEC2MMTPDF','Singularity likely in pdf')
+#        end
+#        %pdfplot(f) 
+#        
+#        %Test of spec2mmtpdf
+#        % cd  f:\matlab\matlab\wafo\source\sp2thpdfalan
+#        % addpath f:\matlab\matlab\wafo ,initwafo, addpath f:\matlab\matlab\graphutil
+#        % Hm0=7;Tp=11; S = jonswap(4*pi/Tp,[Hm0 Tp]);
+#        % ft = spec2mmtpdf(S,0,'vMmTMm',[0.3,.4,11],[0 .00005 2]);
+        
+        return f #% main
+        
+#        function dens  = cov2mmtpdfexe(R,dt,u,defnr,Nstart,hg,options)
+#        % Write parameters to file
+#        %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#        Nx    = max(1,length(hg));
+#        if (defnr>1) 
+#        Nx = Nx/2; %level v separated max2min densities wanted     
+#        end
+#        Ntime = size(R,1);
+#        
+#        filenames = {'h.in','reflev.in'};
+#        cleanup(filenames{:}) 
+#        
+#        fid = fopen('h.in','wt');
+#        fprintf(fid,'%12.10f\n',hg);
+#        fclose(fid);
+#        
+#        %XSPLT = options.xsplit;
+#        nit   = options.nit;
+#        speed = options.speed;
+#        seed  = options.seed;
+#        SCIS  = abs(options.method); % method<=0
+#        
+#        disp('writing data') 
+#        fid=fopen('reflev.in','wt'); 
+#        fprintf(fid,'%2.0f \n',Ntime); 
+#        fprintf(fid,'%2.0f \n',Nstart); 
+#        fprintf(fid,'%2.0f \n',nit); 
+#        fprintf(fid,'%2.0f \n',speed); 
+#        fprintf(fid,'%2.0f \n',SCIS); 
+#        fprintf(fid,'%2.0f \n',seed);  % select a random seed for rind  
+#        fprintf(fid,'%2.0f \n',Nx); 
+#        fprintf(fid,'%12.10E \n',dt);
+#        fprintf(fid,'%12.10E \n',u);
+#        fprintf(fid,'%2.0f \n',defnr); % def
+#        fclose(fid);  
+#        
+#        filenames2 = writecov(R);
+#        
+#        disp('   Starting Fortran executable.') 
+#        
+#        dos([ wafoexepath 'cov2mmtpdf.exe']); %compiled cov2mmtpdf.f with rind70.f
+#        
+#        dens = load('dens.out');
+#        
+#        cleanup(filenames{:},filenames2{:})
+#        
+#        %% Clean up
+#        
+#        return
     def to_specnorm(self):
         S = self.copy()
         S.normalize()
@@ -3277,9 +3626,9 @@ def test_mm_pdf():
     import numpy as np
     import wafo.spectrum.models as sm
     Sj = sm.Jonswap(Hm0=7, Tp=11)
-    w = np.linspace(0,4,256)
+    w = np.linspace(0, 4, 256)
     S1 = Sj.tospecdata(w)   #Make spectrum object from numerical values
-    S = sm.SpecData1D(Sj(w),w) # Alternatively do it manually
+    S = sm.SpecData1D(Sj(w), w) # Alternatively do it manually
     mm = S.to_mm_pdf()
     
 if __name__ == '__main__':
