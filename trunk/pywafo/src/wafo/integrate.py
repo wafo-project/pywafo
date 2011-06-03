@@ -10,6 +10,7 @@ import pylab as plb
 from scipy.integrate import simps, trapz
 from wafo.misc import is_numlike
 from wafo.demos import humps
+
 _POINTS_AND_WEIGHTS = {}
 
 __all__ = ['dea3', 'clencurt', 'romberg', 

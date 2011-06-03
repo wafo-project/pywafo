@@ -1,5 +1,5 @@
-GFORTRAN module version '0' created from intmodule.f on Mon Mar 07 09:38:08 2011
-MD5:6f82304120060b1026ed5eb64a44a657 -- If you edit this, you'll get what you deserve.
+GFORTRAN module version '0' created from intmodule.f on Wed Jun 01 13:58:08 2011
+MD5:49682d06ef7be297d13abb52c9f1dbaa -- If you edit this, you'll get what you deserve.
 
 (() () () () () () () () () () () () () () () () () () () () () () () ()
 () () ())
@@ -18,6 +18,13 @@ DECL UNKNOWN SUBROUTINE GENERIC) (UNKNOWN 0 0 0 UNKNOWN ()) 4 0 (5 6 7 8
 3 'sadapt' 'adaptmod' 'sadapt' 1 ((PROCEDURE UNKNOWN-INTENT MODULE-PROC
 DECL UNKNOWN SUBROUTINE GENERIC) (UNKNOWN 0 0 0 UNKNOWN ()) 14 0 (15 16
 17 18 19 20 21 22) () 0 () () () 0 0)
+15 'n' '' 'n' 14 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN DUMMY) (
+INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+16 'maxpts' '' 'maxpts' 14 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN
+DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+17 'functn' '' 'functn' 14 ((PROCEDURE UNKNOWN-INTENT UNKNOWN-PROC BODY
+UNKNOWN DUMMY FUNCTION ALWAYS_EXPLICIT) (REAL 8 0 0 REAL ()) 23 0 (24 25)
+() 17 () () () 0 0)
 18 'abseps' '' 'abseps' 14 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN
 DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
 19 'releps' '' 'releps' 14 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN
@@ -28,13 +35,17 @@ DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
 DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
 22 'inform' '' 'inform' 14 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN
 DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-15 'n' '' 'n' 14 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN DUMMY) (
+24 'n' '' 'n' 23 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN DUMMY) (
 INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-16 'maxpts' '' 'maxpts' 14 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN
+25 'z' '' 'z' 23 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN DIMENSION
+DUMMY) (REAL 8 0 0 REAL ()) 0 0 () (1 ASSUMED_SHAPE (CONSTANT (INTEGER 4
+0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
+5 'ndim' '' 'ndim' 4 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN DUMMY) (
+INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+6 'mincls' '' 'mincls' 4 ((VARIABLE INOUT UNKNOWN-PROC UNKNOWN UNKNOWN
 DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-17 'functn' '' 'functn' 14 ((PROCEDURE UNKNOWN-INTENT UNKNOWN-PROC BODY
-UNKNOWN DUMMY FUNCTION ALWAYS_EXPLICIT) (REAL 8 0 0 REAL ()) 23 0 (24 25)
-() 17 () () () 0 0)
+7 'maxcls' '' 'maxcls' 4 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN
+DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
 8 'functn' '' 'functn' 4 ((PROCEDURE UNKNOWN-INTENT UNKNOWN-PROC BODY
 UNKNOWN DUMMY FUNCTION ALWAYS_EXPLICIT) (REAL 8 0 0 REAL ()) 26 0 (27 28)
 () 8 () () () 0 0)
@@ -48,20 +59,9 @@ DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
 DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
 13 'inform' '' 'inform' 4 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN
 DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-5 'ndim' '' 'ndim' 4 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN DUMMY) (
-INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-6 'mincls' '' 'mincls' 4 ((VARIABLE INOUT UNKNOWN-PROC UNKNOWN UNKNOWN
-DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-7 'maxcls' '' 'maxcls' 4 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN
-DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
 27 'n' '' 'n' 26 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN DUMMY) (
 INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
 28 'z' '' 'z' 26 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN DIMENSION
-DUMMY) (REAL 8 0 0 REAL ()) 0 0 () (1 ASSUMED_SHAPE (CONSTANT (INTEGER 4
-0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
-24 'n' '' 'n' 23 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN DUMMY) (
-INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-25 'z' '' 'z' 23 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN DIMENSION
 DUMMY) (REAL 8 0 0 REAL ()) 0 0 () (1 ASSUMED_SHAPE (CONSTANT (INTEGER 4
 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
 )

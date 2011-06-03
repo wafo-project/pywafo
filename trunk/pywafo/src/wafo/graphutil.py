@@ -10,7 +10,7 @@ import warnings
 import numpy as np
 from wafo.plotbackend import plotbackend
 
-__all__ = ['cltext']
+__all__ = ['cltext', 'test_docstrings']
 
 def cltext(levels, percent=False, n=4, xs=0.036, ys=0.94, zs=0):
     '''
@@ -40,11 +40,12 @@ def cltext(levels, percent=False, n=4, xs=0.036, ys=0.94, zs=0):
           set(h,'unit','data')
     
     Examples:
-    >>> from wafo.integrate import peaks
+    >>> import wafo.graphutil as wg
+    >>> from wafo.demos import peaks
     >>> import pylab as plt
     >>> x,y,z  = peaks();
     >>> h = plt.contour(x,y,z)
-    >>> h = cltext(h.levels)
+    >>> h = wg.cltext(h.levels)
     >>> plt.show()
     
     data = rndray(1,2000,2); f = kdebin(data,{'kernel','epan','L2',.5,'inc',128});
@@ -107,5 +108,10 @@ def cltext(levels, percent=False, n=4, xs=0.036, ys=0.94, zs=0):
     ha2 = plotbackend.figtext(xss, yss, cltxt, **txtProp)
         
     return ha1, ha2
+
+def test_docstrings():
+    import doctest
+    doctest.testmod()
+    
 if __name__ == '__main__':
-    pass
+    test_docstrings()

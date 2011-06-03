@@ -34,7 +34,7 @@ _stats_logi = (pi ** 2 / 3, 1. / 6, 1 / 42)
 _stats_gaus = (1, 1. / (2 * sqrt(pi)), 3. / (8 * sqrt(pi)))
               
 __all__ = ['sphere_volume', 'TKDE', 'KDE', 'Kernel', 'accum', 'qlevels',
-           'iqrange', 'gridcount', 'kde_demo1', 'kde_demo2']
+           'iqrange', 'gridcount', 'kde_demo1', 'kde_demo2', 'test_docstrings']
 def sphere_volume(d, r=1.0):
     """
     Returns volume of  d-dimensional sphere with radius r
@@ -869,8 +869,9 @@ class Kernel(object):
     ...        1.10419995,  0.77055114,  0.60288273,  1.36883635,  1.74754326,
     ...        1.09547561,  1.01671133,  0.73211143,  0.61891719,  0.75903487,
     ...        1.8919469 ,  0.72433808,  1.92973094,  0.44749838,  1.36508452])
-
-    >>> gauss = Kernel('gaussian')
+    
+    >>> import wafo.kdetools as wk
+    >>> gauss = wk.Kernel('gaussian')
     >>> gauss.stats()  
     (1, 0.28209479177387814, 0.21157109383040862)
     >>> gauss.hscv(data)
@@ -882,10 +883,10 @@ class Kernel(object):
     >>> gauss.hldpi(data)
     array([ 0.1718688])
     
-    >>> Kernel('laplace').stats()
+    >>> wk.Kernel('laplace').stats()
     (2, 0.25, inf)
     
-    >>> triweight = Kernel('triweight'); triweight.stats()
+    >>> triweight = wk.Kernel('triweight'); triweight.stats()
     (0.1111111111111111, 0.81585081585081587, inf)
     
     >>> triweight(np.linspace(-1,1,11))
@@ -1843,18 +1844,24 @@ def qlevels(pdf, p=(10, 30, 50, 70, 90, 95, 99, 99.9), x1=None, x2=None):
 
     return ui
 
-def qlevels2(r, p=(10,30,50,70,90, 95, 99, 99.9), method=1):
+def qlevels2(data, p=(10,30,50,70,90, 95, 99, 99.9), method=1):
     '''
     QLEVELS2 Calculates quantile levels which encloses P% of data
     
      CALL: [ql PL] = qlevels2(data,PL,method);
     
        ql   = the discrete quantile levels, size D X Np 
-       data = data matrix, size D x N (D = # of dimensions)
-       PL   = percent level vector, length Np (default [10:20:90 95 99 99.9])
-     method = 1 Interpolation so that F(X_(k)) == (k-0.5)/n. (default)
-            2 Interpolation so that F(X_(k)) == k/(n+1).
-            3 Based on the empirical distribution.
+    Parameters
+    ----------
+    data : data matrix, size D x N (D = # of dimensions)
+    p : percent level vector, length Np (default [10:20:90 95 99 99.9])
+    method : integer
+        1 Interpolation so that F(X_(k)) == (k-0.5)/n. (default)
+        2 Interpolation so that F(X_(k)) == k/(n+1).
+        3 Based on the empirical distribution.
+    
+    Returns
+    -------
     
     QLEVELS2 sort the columns of data in ascending order and find the  
              quantile levels for each column which encloses  P% of the data.  
@@ -1863,7 +1870,7 @@ def qlevels2(r, p=(10,30,50,70,90, 95, 99, 99.9), method=1):
     -------- 
     >>> import wafo.stats as ws
     >>> PL = np.r_[10:90:20, 90, 95, 99, 99.9]
-    >>> xs = ws.norm.rvs(size=2000000)
+    >>> xs = ws.norm.rvs(size=2500000)
     >>> np.round(qlevels2(ws.norm.pdf(xs), p=PL), decimals=3)
     array([ 0.396,  0.37 ,  0.318,  0.233,  0.103,  0.058,  0.014,  0.002])
             
@@ -1873,15 +1880,15 @@ def qlevels2(r, p=(10,30,50,70,90, 95, 99, 99.9), method=1):
             0.05844507,  0.01445974,  0.00177719])
            
     # Finding the median of xs:
-    >>> np.round(qlevels2(xs,50), decimals=2)
-    array([ 0.])
+    >>> '%2.2f' % np.abs(qlevels2(xs,50)[0])
+    '0.00'
     
     See also  
     --------
     qlevels
     '''
     q = 100-np.atleast_1d(p)
-    return percentile(r, q, axis=-1, method=method)
+    return percentile(data, q, axis=-1, method=method)
     
 
 _PKDICT = {1: lambda k, w, n: (k - w) / (n - 1),
@@ -1979,8 +1986,6 @@ def _compute_qth_percentile(sorted, q, axis, out, method):
     # check and use out array.
     return np.add.reduce(sorted[indexer] * weights1, axis=axis, out=out) / sumval
 
-
-
 def percentile(a, q, axis=None, out=None, overwrite_input=False, method=1, weights=None):
     """
     Compute the qth percentile of the data along the specified axis.
@@ -2077,7 +2082,8 @@ def percentile(a, q, axis=None, out=None, overwrite_input=False, method=1, weigh
     >>> b = a.copy()
     >>> wk.percentile(b, 50, axis=None, overwrite_input=True)
     3.5
-    >>> assert not np.all(a==b)
+    >>> np.all(a==b)
+    False
 
     """
     a = np.asarray(a)
@@ -2194,8 +2200,8 @@ def gridcount(data, X):
     >>> h = plb.plot(x,c,'.')   # 1D histogram
     >>> pdf = c/dx/N
     >>> h1 = plb.plot(x, pdf) #  1D probability density plot
-    >>> np.trapz(pdf, x)   
-    0.99999999999999956
+    >>> '%1.3f' % np.trapz(pdf, x)   
+    '1.000'
     
     See also
     --------
@@ -2342,10 +2348,10 @@ def kde_demo2():
 
     pylab.figure(0)
     
-def main():
+def test_docstrings():
     import doctest
     doctest.testmod()
     
 if __name__ == '__main__':
-    main()
+    test_docstrings()
     

@@ -30,8 +30,8 @@ __all__ = ['is_numlike','JITImport', 'DotDict', 'Bunch', 'printf', 'sub_dict_sel
     'findextrema', 'findpeaks', 'findrfc', 'rfcfilter', 'findtp', 'findtc', 
     'findoutliers', 'common_shape', 'argsreduce',
     'stirlerr', 'getshipchar', 'betaloge', 'gravity', 'nextpow2',
-    'discretize', 'discretize2', 'pol2cart', 'cart2pol',  'meshgrid', 'ndgrid', 
-    'trangood', 'tranproc', 'plot_histgrm', 'num2pistr']
+    'discretize', 'pol2cart', 'cart2pol',  'meshgrid', 'ndgrid', 
+    'trangood', 'tranproc', 'plot_histgrm', 'num2pistr', 'test_docstrings']
 
 
 def is_numlike(obj):
@@ -164,11 +164,12 @@ def detrendma(x, L):
 
     Examples
     --------
+    >>> import wafo.misc as wm
     >>> import pylab as plb
     >>> exp = plb.exp; cos = plb.cos; randn = plb.randn
     >>> x = plb.linspace(0,1,200)
     >>> y = exp(x)+cos(5*2*pi*x)+1e-1*randn(x.size)
-    >>> y0 = detrendma(y,20); tr = y-y0
+    >>> y0 = wm.detrendma(y,20); tr = y-y0
     >>> h = plb.plot(x, y, x, y0, 'r', x, exp(x), 'k', x, tr, 'm')
 
     >>> plb.close('all')
@@ -226,13 +227,14 @@ def ecross(t, f, ind, v=0):
     Example
     -------
     >>> from matplotlib import pylab as plb
+    >>> import wafo.misc as wm
     >>> ones = plb.ones
     >>> t = plb.linspace(0,7*plb.pi,250)
     >>> x = plb.sin(t)
-    >>> ind = findcross(x,0.75)
+    >>> ind = wm.findcross(x,0.75)
     >>> ind
     array([  9,  25,  80,  97, 151, 168, 223, 239])
-    >>> t0 = ecross(t,x,ind,0.75)
+    >>> t0 = wm.ecross(t,x,ind,0.75)
     >>> t0
     array([  0.84910514,   2.2933879 ,   7.13205663,   8.57630119,
             13.41484739,  14.85909194,  19.69776067,  21.14204343])
@@ -312,17 +314,18 @@ def findcross(x, v=0.0, kind=None):
     Example
     -------
     >>> from matplotlib import pylab as plb
+    >>> import wafo.misc as wm
     >>> ones = plb.ones
     >>> findcross([0, 1, -1, 1],0)
     array([0, 1, 2])
     >>> v = 0.75
     >>> t = plb.linspace(0,7*plb.pi,250)
     >>> x = plb.sin(t)
-    >>> ind = findcross(x,v) # all crossings
+    >>> ind = wm.findcross(x,v) # all crossings
     >>> ind
     array([  9,  25,  80,  97, 151, 168, 223, 239])
     >>> t0 = plb.plot(t,x,'.',t[ind],x[ind],'r.', t, ones(t.shape)*v)
-    >>> ind2 = findcross(x,v,'u')
+    >>> ind2 = wm.findcross(x,v,'u')
     >>> ind2
     array([  9,  80, 151, 223])
     >>> t0 = plb.plot(t[ind2],x[ind2],'o')
@@ -383,9 +386,10 @@ def findextrema(x):
     --------
     >>> import numpy as np
     >>> import pylab as pb
+    >>> import wafo.misc as wm
     >>> t = np.linspace(0,7*np.pi,250)
     >>> x = np.sin(t)
-    >>> ind = findextrema(x)
+    >>> ind = wm.findextrema(x)
     >>> a = pb.plot(t,x,'.',t[ind],x[ind],'r.')
     >>> pb.close('all')
 
@@ -419,9 +423,10 @@ def findpeaks(data, n=2, min_h=None, min_p=0.0):
     less that 0.3*"global max" and have 
     rainflow amplitude larger than 5.
     >>> import numpy as np
+    >>> import wafo.misc as wm
     >>> x = np.arange(0,10,0.01) 
     >>> data = x**2+10*np.sin(3*x)+0.5*np.sin(50*x)
-    >>> findpeaks(data, n=8, min_h=5, min_p=0.3) 
+    >>> wm.findpeaks(data, n=8, min_h=5, min_p=0.3) 
     array([908, 694, 481])
     
     See also  
@@ -480,7 +485,6 @@ def findpeaks(data, n=2, min_h=None, min_p=0.0):
 def findrfc_astm(tp):
     """
     Return rainflow counted cycles
-    ==============================
     
     Nieslony's Matlab implementation of the ASTM standard practice for rainflow
     counting ported to a Python C module.
@@ -532,12 +536,13 @@ def findrfc(tp, hmin=0.0, method='clib'):
     Example:
     --------
     >>> import pylab as pb
+    >>> import wafo.misc as wm
     >>> t = pb.linspace(0,7*np.pi,250)
     >>> x = pb.sin(t)+0.1*np.sin(50*t)
-    >>> ind = findextrema(x)
+    >>> ind = wm.findextrema(x)
     >>> ti, tp = t[ind], x[ind]
     >>> a = pb.plot(t,x,'.',ti,tp,'r.')
-    >>> ind1 = findrfc(tp,0.3); ind1
+    >>> ind1 = wm.findrfc(tp,0.3); ind1
     array([  0,   9,  32,  53,  74,  95, 116, 137])
     >>> a = pb.plot(ti[ind1],tp[ind1])
     >>> pb.close('all')
@@ -795,13 +800,14 @@ def rfcfilter(x, h, method=0):
     ---------
     # 1. Filtered signal y is the turning points of x.
     >>> import wafo.data
+    >>> import wafo.misc as wm
     >>> x = wafo.data.sea()
-    >>> y = rfcfilter(x[:,1], h=0, method=1)
+    >>> y = wm.rfcfilter(x[:,1], h=0, method=1)
     >>> y[0:5]
     array([-1.2004945 ,  0.83950546, -0.09049454, -0.02049454, -0.09049454])
 
     # 2. This removes all rainflow cycles with range less than 0.5.
-    >>> y1 = rfcfilter(x[:,1], h=0.5)
+    >>> y1 = wm.rfcfilter(x[:,1], h=0.5)
     >>> y1[0:5]
     array([-1.2004945 ,  0.83950546, -0.43049454,  0.34950546, -0.51049454])
     
@@ -1273,12 +1279,13 @@ def common_shape(*args, ** kwds):
     Examples
     --------
     >>> import numpy as np
+    >>> import wafo.misc as wm
     >>> A = np.ones((4,1))
     >>> B = 2
     >>> C = np.ones((1,5))*5
-    >>> common_shape(A,B,C)
+    >>> wm.common_shape(A,B,C)
     (4, 5)
-    >>> common_shape(A,B,C,shape=(3,4,1))
+    >>> wm.common_shape(A,B,C,shape=(3,4,1))
     (3, 4, 5)
 
     See also
@@ -1348,17 +1355,18 @@ def argsreduce(condition, * args):
 
     Example
     -------
+    >>> import wafo.misc as wm
     >>> import numpy as np
     >>> rand = np.random.random_sample
     >>> A = rand((4,5))
     >>> B = 2
     >>> C = rand((1,5))
     >>> cond = np.ones(A.shape)
-    >>> [A1,B1,C1] = argsreduce(cond,A,B,C)
+    >>> [A1,B1,C1] = wm.argsreduce(cond,A,B,C)
     >>> B1.shape
     (20,)
     >>> cond[2,:] = 0
-    >>> [A2,B2,C2] = argsreduce(cond,A,B,C)
+    >>> [A2,B2,C2] = wm.argsreduce(cond,A,B,C)
     >>> B2.shape
     (15,)
 
@@ -1379,7 +1387,8 @@ def stirlerr(n):
 
     Example
     -------
-    >>> stirlerr(2)
+    >>> import wafo.misc as wm
+    >>> wm.stirlerr(2)
     array([ 0.0413407])
 
     See also
@@ -1543,7 +1552,9 @@ def betaloge(z, w):
     for large arguments
 
     Example
-    >>> betaloge(3,2)
+    -------
+    >>> import wafo.misc as wm
+    >>> wm.betaloge(3,2)
     array([-2.48490665])
 
     See also
@@ -1581,9 +1592,10 @@ def gravity(phi=45):
 
     Examples
     --------
+    >>> import wafo.misc as wm
     >>> import numpy as np
     >>> phi = np.linspace(0,45,5)
-    >>> gravity(phi)
+    >>> wm.gravity(phi)
     array([ 9.78049   ,  9.78245014,  9.78803583,  9.79640552,  9.80629387])
 
     See also
@@ -1609,9 +1621,10 @@ def nextpow2(x):
 
     Example
     -------
-    >>> nextpow2(10)
+    >>> import wafo.misc as wm
+    >>> wm.nextpow2(10)
     4
-    >>> nextpow2(np.arange(5))
+    >>> wm.nextpow2(np.arange(5))
     3
     '''
     t = isscalar(x) or len(x)
@@ -1624,7 +1637,7 @@ def nextpow2(x):
         n = n - 1
     return n
 
-def discretize(fun, a, b, tol=0.005, n=5):
+def discretize(fun, a, b, tol=0.005, n=5, method='linear'):
     '''
     Automatic discretization of function
 
@@ -1638,6 +1651,8 @@ def discretize(fun, a, b, tol=0.005, n=5):
         absoute error tolerance
     n : scalar integer
         number of values
+    method : string
+        defining method of gridding, options are 'linear' and 'adaptive'  
 
     Returns
     -------
@@ -1646,14 +1661,25 @@ def discretize(fun, a, b, tol=0.005, n=5):
 
     Example
     -------
+    >>> import wafo.misc as wm
     >>> import numpy as np
     >>> import pylab as plb
-    >>> x,y = discretize(np.cos,0,np.pi)
-    >>> t = plb.plot(x,y)
+    >>> x,y = wm.discretize(np.cos, 0, np.pi)
+    >>> xa,ya = wm.discretize(np.cos, 0, np.pi, method='adaptive')
+    >>> t = plb.plot(x, y, xa, ya, 'r.')
     >>> plb.show()
 
     >>> plb.close('all')
 
+    '''
+    if method.startswith('a'):
+        return _discretize_adaptive(fun, a, b, tol, n)
+    else:
+        return _discretize_linear(fun, a, b, tol, n)
+    
+def _discretize_linear(fun, a, b, tol=0.005, n=5):
+    '''
+    Automatic discretization of function, linear gridding
     '''
     tiny = floatinfo.tiny
     
@@ -1675,36 +1701,9 @@ def discretize(fun, a, b, tol=0.005, n=5):
         err = 0.5 * amax(abs((y00 - y) / (abs(y00 + y) + tiny)))
     return x, y
 
-def discretize2(fun, a, b, tol=0.005, n=5):
+def _discretize_adaptive(fun, a, b, tol=0.005, n=5):
     '''
-    Automatic adaptive discretization of function
-
-    Parameters
-    ----------
-    fun : callable
-        function to discretize
-    a,b : real scalars
-        evaluation limits
-    tol : real, scalar
-        absoute error tolerance
-    n : scalar integer
-        number of values
-
-    Returns
-    -------
-    x : discretized values
-    y : fun(x)
-
-    Example
-    -------
-    >>> import numpy as np
-    >>> import pylab as plb
-    >>> x,y = discretize2(np.cos,0,np.pi)
-    >>> t = plb.plot(x,y)
-    >>> plb.show()
-
-    >>> plb.close('all')
-
+    Automatic discretization of function, adaptive gridding.
     '''
     tiny = floatinfo.tiny
     n += (mod(n, 2) == 0) # make sure n is odd
@@ -2041,11 +2040,12 @@ def tranproc(x, f, x0, *xi):
     --------
     Derivative of g and the transformed Gaussian model.
     >>> import pylab as plb
+    >>> import wafo.misc as wm
     >>> import wafo.transform.models as wtm
     >>> tr = wtm.TrHermite()
     >>> x = linspace(-5,5,501) 
     >>> g = tr(x)
-    >>> gder = tranproc(x, g, x, ones(g.shape[0]))
+    >>> gder = wm.tranproc(x, g, x, ones(g.shape[0]))
     >>> h = plb.plot(x, g, x, gder[1])
     
     plb.plot(x,pdfnorm(g)*gder[1],x,pdfnorm(x))
@@ -2257,7 +2257,8 @@ def num2pistr(x, n=3):
     xtxt = a text string in fractions of pi
     
     Example
-    >>> num2pistr(np.pi*3/4)
+    >>> import wafo.misc as wm
+    >>> wm.num2pistr(np.pi*3/4)
     '3\\pi/4'
     '''
     
@@ -2466,14 +2467,7 @@ def _test_discretize():
     plb.show()
     plb.close('all')
     
-def _test_discretize2():
-    import numpy as np
-    import pylab as plb
-    x, y = discretize2(np.cos, 0, np.pi)
-    t = plb.plot(x, y)
-    plb.show()
-    plb.close('all')
-    
+     
 def _test_stirlerr():
     x = linspace(1, 5, 6)
     print stirlerr(x)
@@ -2499,9 +2493,9 @@ def _test_parse_kwargs():
     out1 = testfun(opt0['opt1'], **opt0)
     print out1
 
+def test_docstrings():
+    import doctest
+    doctest.testmod()
+    
 if __name__ == "__main__":
-    if True:#  False: # 
-        import doctest
-        doctest.testmod()
-    else:
-        _test_find_cross()
+    test_docstrings()

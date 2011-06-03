@@ -1,4 +1,4 @@
-from numpy import r_, minimum, maximum, atleast_1d, atleast_2d, mod, ones, floor, \
+from numpy import pi, r_, minimum, maximum, atleast_1d, atleast_2d, mod, ones, floor, \
     random, eye, nonzero, where, repeat, sqrt, exp, inf, diag, zeros, sin, arcsin, nan #@UnresolvedImport
 from numpy import triu #@UnresolvedImport
 from scipy.special import ndtr as cdfnorm, ndtri as invnorm
@@ -10,7 +10,9 @@ import wafo.rindmod as rindmod
 import warnings
 from wafo.misc import common_shape
 
-__all__ = ['Rind', 'rindmod', 'mvnprdmod', 'mvn', 'cdflomax' , 'prbnormtndpc', 'prbnormndpc', 'prbnormnd', 'cdfnornd2', 'prbnorm2d','cdfnorm','invnorm']
+__all__ = ['Rind', 'rindmod', 'mvnprdmod', 'mvn', 'cdflomax' , 'prbnormtndpc', 
+           'prbnormndpc', 'prbnormnd', 'cdfnorm2d', 'prbnorm2d','cdfnorm','invnorm', 
+           'test_docstring']
 class Rind(object):
     '''
     RIND Computes multivariate normal expectations
@@ -69,11 +71,12 @@ class Rind(object):
     Compute Prob{Xi<-1.2} for i=1:5 where Xi are zero mean Gaussian with
             Cov(Xi,Xj) = 0.3 for i~=j and
             Cov(Xi,Xi) = 1   otherwise
+    >>> import wafo.gaussian as wg
     >>> n = 5
     >>> Blo =-np.inf; Bup=-1.2; indI=[-1, n-1]  # Barriers
     >>> m = np.zeros(n); rho = 0.3;
     >>> Sc =(np.ones((n,n))-np.eye(n))*rho+np.eye(n)
-    >>> rind = Rind()
+    >>> rind = wg.Rind()
     >>> E0, err0, terr0 = rind(Sc,m,Blo,Bup,indI)  #  exact prob. 0.001946
 
     >>> A = np.repeat(Blo,n); B = np.repeat(Bup,n)  # Integration limits
@@ -95,7 +98,7 @@ class Rind(object):
     >>> m2  = [0, 0]; rho2 = np.random.rand(1)
     >>> Sc2 = [[1, rho2], [rho2 ,1]]
     >>> Blo2 = 0; Bup2 = np.inf; indI2 = [-1, 1]
-    >>> rind2 = Rind(method=1)
+    >>> rind2 = wg.Rind(method=1)
     >>> g2 = lambda x : (x*(np.pi/2+np.arcsin(x))+np.sqrt(1-x**2))/(2*np.pi)
     >>> E2 = g2(rho2)   # exact value
     >>> E3 = rind(Sc2,m2,Blo2,Bup2,indI2,nt=0)
@@ -396,7 +399,8 @@ def cdflomax(x, alpha, m0):
      
     Example 
     -------
-    >>> pylab
+    >>> import pylab
+    >>> import wafo.gaussian as wg
     >>> import wafo.spectrum.models as wsm
     >>> import wafo.objects as wo
     >>> import wafo.stats as ws
@@ -407,9 +411,9 @@ def cdflomax(x, alpha, m0):
     >>> mM = tp.cycle_pairs()
     >>> m0 = S.moment(1)[0]
     >>> alpha = S.characteristic('alpha')[0] 
-    >>> x = linspace(-10,10,200);
+    >>> x = np.linspace(-10,10,200);
     >>> mcdf = ws.edf(mM.data)
-    >>> mcdf.plot(), pylab.plot(x,cdflomax(x,alpha,m0))
+    >>> h = mcdf.plot(), pylab.plot(x,wg.cdflomax(x,alpha,m0))
      
     See also
     --------
@@ -460,10 +464,11 @@ def prbnormtndpc(rho, a, b, D=None, df=0, abseps=1e-4, IERC=0, HNC=0.24):
        
     Example:
     --------
+    >>> import wafo.gaussian as wg
     >>> rho2 = np.random.rand(2); 
     >>> a2   = np.zeros(2);
     >>> b2   = np.repeat(np.inf,2);
-    >>> [val2,err2, ift2] = prbnormtndpc(rho2,a2,b2)
+    >>> [val2,err2, ift2] = wg.prbnormtndpc(rho2,a2,b2)
     >>> g2 = lambda x : 0.25+np.arcsin(x[0]*x[1])/(2*pi)
     >>> E2 = g2(rho2)  #% exact value
     >>> np.abs(E2-val2)<err2
@@ -472,7 +477,7 @@ def prbnormtndpc(rho, a, b, D=None, df=0, abseps=1e-4, IERC=0, HNC=0.24):
     >>> rho3 = np.random.rand(3) 
     >>> a3   = np.zeros(3)
     >>> b3   = np.repeat(inf,3)
-    >>> [val3,err3, ift3] = prbnormtndpc(rho3,a3,b3)  
+    >>> [val3,err3, ift3] = wg.prbnormtndpc(rho3,a3,b3)  
     >>> g3 = lambda x : 0.5-sum(np.sort(np.arccos([x[0]*x[1],x[0]*x[2],x[1]*x[2]])))/(4*pi)
     >>> E3 = g3(rho3)   #  Exact value  
     >>> np.abs(E3-val3)<err2
@@ -481,7 +486,7 @@ def prbnormtndpc(rho, a, b, D=None, df=0, abseps=1e-4, IERC=0, HNC=0.24):
       
     See also
     --------  
-    prbnormndpc, prbnormnd, rind
+    prbnormndpc, prbnormnd, Rind
       
     Reference
     --------- 
@@ -521,10 +526,11 @@ def prbnormndpc(rho, a, b, abserr=1e-4, relerr=1e-4, usesimpson=True, usebreakpo
       
     Example:
     -------
+    >>> import wafo.gaussian as wg
     >>> rho2 = np.random.rand(2); 
     >>> a2   = np.zeros(2);
     >>> b2   = np.repeat(np.inf,2);
-    >>> [val2,err2, ift2] = prbnormndpc(rho2,a2,b2)
+    >>> [val2,err2, ift2] = wg.prbnormndpc(rho2,a2,b2)
     >>> g2 = lambda x : 0.25+np.arcsin(x[0]*x[1])/(2*pi)
     >>> E2 = g2(rho2)  #% exact value
     >>> np.abs(E2-val2)<err2
@@ -533,7 +539,7 @@ def prbnormndpc(rho, a, b, abserr=1e-4, relerr=1e-4, usesimpson=True, usebreakpo
     >>> rho3 = np.random.rand(3) 
     >>> a3   = np.zeros(3)
     >>> b3   = np.repeat(inf,3)
-    >>> [val3,err3, ift3] = prbnormndpc(rho3,a3,b3)  
+    >>> [val3,err3, ift3] = wg.prbnormndpc(rho3,a3,b3)  
     >>> g3 = lambda x : 0.5-sum(np.sort(np.arccos([x[0]*x[1],x[0]*x[2],x[1]*x[2]])))/(4*pi)
     >>> E3 = g3(rho3)   #  Exact value  
     >>> np.abs(E3-val3)<err2
@@ -541,7 +547,7 @@ def prbnormndpc(rho, a, b, abserr=1e-4, relerr=1e-4, usesimpson=True, usebreakpo
     
     See also
     --------
-    prbnormtndpc, prbnormnd, rind
+    prbnormtndpc, prbnormnd, Rind
       
     Reference
     ---------
@@ -648,16 +654,17 @@ def  prbnormnd(correl, a, b, abseps=1e-4, releps=1e-3, maxpts=None, method=0):
     
     >>> A = np.repeat(Blo,n)
     >>> B = np.repeat(Bup,n)-m 
-    >>> [val,err,inform] = prbnormnd(Sc,A,B);val;err;inform
+    >>> [val,err,inform] = prbnormnd(Sc,A,B);[val, err, inform]
+    [0.0019456719705212067, 1.0059406844578488e-05, 0]
     
     >>> np.abs(val-Et)< err0+terr0
     array([ True], dtype=bool)
-    >>> 'val = %2.6f' % val  
-    'val = 0.001945'
+    >>> 'val = %2.5f' % val  
+    'val = 0.00195'
     
-     See also
-     --------
-    prbnormndpc, rind
+    See also
+    --------
+    prbnormndpc, Rind
     '''
       
     
@@ -755,15 +762,18 @@ def cdfnorm2d(b1, b2, r):
     and for |r| close to 1.
     
     Example
-    ------- 
+    -------
+    >>> import wafo.gaussian as wg 
     >>> x = np.linspace(-5,5,20)  
     >>> [B1,B2] = np.meshgrid(x, x)
     >>> r  = 0.3;
-    >>> F = cdfnorm2d(B1,B2,r);  
-      surf(x,x,F)
+    >>> F = wg.cdfnorm2d(B1,B2,r)  
+      
+    surf(x,x,F)
     
     See also
-      cdfnorm
+    --------
+    cdfnorm
       
     Reference
     ---------
@@ -906,10 +916,12 @@ def prbnorm2d(a, b, r):
     
     Example
     -------
+    >>> import wafo.gaussian as wg
     >>> a = [-1, -2]
     >>> b = [1, 1] 
     >>> r = 0.3
-    >>> prbnorm2d(a,b,r)
+    >>> wg.prbnorm2d(a,b,r)
+    array([ 0.56659121])
     
     See also
     --------
@@ -953,10 +965,15 @@ def prbnorm2d(a, b, r):
 def bvd(lo, up, r):
     return cdfnorm2d(-lo, -up, r)
 
-       
+def test_docstrings():
+    import doctest
+    doctest.testmod()
+    
 if __name__ == '__main__':
-    if False: #True: #  
-        test_rind()
-    else:
-        import doctest
-        doctest.testmod()
+    test_docstrings()       
+#if __name__ == '__main__':
+#    if False: #True: #  
+#        test_rind()
+#    else:
+#        import doctest
+#        doctest.testmod()
