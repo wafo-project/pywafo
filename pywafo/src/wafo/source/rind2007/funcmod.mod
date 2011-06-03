@@ -1,5 +1,5 @@
-GFORTRAN module version '0' created from rind71mod.f on Wed Aug 05 05:36:49 2009
-MD5:d64139159f9b7d1a62e18500b19b3b23 -- If you edit this, you'll get what you deserve.
+GFORTRAN module version '0' created from rind71mod.f on Wed Jun 01 13:58:12 2011
+MD5:2c451be5c9893103ed0c8d39952ddead -- If you edit this, you'll get what you deserve.
 
 (() () () () () () () () () () () () () () () () () () () () () () ()
 () () () ())
@@ -39,20 +39,20 @@ UNKNOWN ALLOCATABLE DIMENSION) (REAL 8 0 0 REAL ()) 0 0 () (1 DEFERRED ()
 19 'xd' 'funcmod' 'xd' 1 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
 UNKNOWN ALLOCATABLE DIMENSION) (REAL 8 0 0 REAL ()) 0 0 () (1 DEFERRED ()
 ()) 0 () () () 0 0)
-9 'ndim' '' 'ndim' 8 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN DUMMY) (
-INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-10 'w' '' 'w' 8 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN DIMENSION
-DUMMY) (REAL 8 0 0 REAL ()) 0 0 () (1 ASSUMED_SHAPE (CONSTANT (INTEGER 4
-0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
-11 'xind' '' 'xind' 8 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
-UNKNOWN RESULT ALWAYS_EXPLICIT) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () ()
-0 0)
 13 'ndim' '' 'ndim' 12 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN DUMMY)
 (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
 14 'w' '' 'w' 12 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN DIMENSION
 DUMMY) (REAL 8 0 0 REAL ()) 0 0 () (1 ASSUMED_SHAPE (CONSTANT (INTEGER 4
 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
 15 'xind' '' 'xind' 12 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
+UNKNOWN RESULT ALWAYS_EXPLICIT) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () ()
+0 0)
+9 'ndim' '' 'ndim' 8 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN DUMMY) (
+INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+10 'w' '' 'w' 8 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN DIMENSION
+DUMMY) (REAL 8 0 0 REAL ()) 0 0 () (1 ASSUMED_SHAPE (CONSTANT (INTEGER 4
+0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
+11 'xind' '' 'xind' 8 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
 UNKNOWN RESULT ALWAYS_EXPLICIT) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () ()
 0 0)
 )

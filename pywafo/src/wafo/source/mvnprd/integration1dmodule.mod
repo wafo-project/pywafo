@@ -1,5 +1,5 @@
-GFORTRAN module version '0' created from mvnprodcorrprb.f on Fri Jul 31 00:49:14 2009
-MD5:0f4f78aeb56df870cb724a93e6facf93 -- If you edit this, you'll get what you deserve.
+GFORTRAN module version '0' created from mvnprodcorrprb.f on Wed Jun 01 13:58:04 2011
+MD5:7a05a34a9fc9c1c84b7469621565e798 -- If you edit this, you'll get what you deserve.
 
 (() () ()
 () () () () () () () () () () () () () () () () () () () () () () () ())
@@ -103,6 +103,20 @@ DIMENSION DUMMY) (REAL 8 0 0 REAL ()) 0 0 () (1 ASSUMED_SHAPE (CONSTANT
 DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
 20 'val' '' 'val' 11 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN DUMMY)
 (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
+23 'f' '' 'f' 22 ((PROCEDURE UNKNOWN-INTENT DUMMY-PROC UNKNOWN UNKNOWN
+EXTERNAL DUMMY FUNCTION) (REAL 8 0 0 REAL ()) 0 0 () () 23 () () () 0 0)
+24 'a' '' 'a' 22 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN DUMMY) (
+REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
+25 'b' '' 'b' 22 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN DUMMY) (
+REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
+26 'epsi' '' 'epsi' 22 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN DUMMY)
+(REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
+27 'iflg' '' 'iflg' 22 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN DUMMY)
+(INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+28 'abserr' '' 'abserr' 22 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN
+DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
+29 'val' '' 'val' 22 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN DUMMY)
+(REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
 48 'f' '' 'f' 47 ((PROCEDURE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN UNKNOWN
 EXTERNAL DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
 49 'a' '' 'a' 47 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN DUMMY) (
@@ -121,20 +135,6 @@ DIMENSION DUMMY) (REAL 8 0 0 REAL ()) 0 0 () (1 ASSUMED_SHAPE (CONSTANT
 55 'abserr' '' 'abserr' 47 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN
 DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
 56 'val' '' 'val' 47 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN DUMMY)
-(REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
-23 'f' '' 'f' 22 ((PROCEDURE UNKNOWN-INTENT DUMMY-PROC UNKNOWN UNKNOWN
-EXTERNAL DUMMY FUNCTION) (REAL 8 0 0 REAL ()) 0 0 () () 23 () () () 0 0)
-24 'a' '' 'a' 22 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN DUMMY) (
-REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
-25 'b' '' 'b' 22 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN DUMMY) (
-REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
-26 'epsi' '' 'epsi' 22 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN DUMMY)
-(REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
-27 'iflg' '' 'iflg' 22 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN DUMMY)
-(INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-28 'abserr' '' 'abserr' 22 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN
-DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
-29 'val' '' 'val' 22 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN DUMMY)
 (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
 31 'f' '' 'f' 30 ((PROCEDURE UNKNOWN-INTENT DUMMY-PROC UNKNOWN UNKNOWN
 EXTERNAL DUMMY FUNCTION) (REAL 8 0 0 REAL ()) 0 0 () () 31 () () () 0 0)
