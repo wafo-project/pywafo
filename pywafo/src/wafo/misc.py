@@ -6,10 +6,10 @@ from __future__ import division
 import sys
 import fractions
 import numpy as np
-from numpy import (abs, amax, any, logical_and, arange, linspace, atleast_1d,atleast_2d,
+from numpy import (abs, amax, any, logical_and, arange, linspace, atleast_1d, atleast_2d,
                    array, asarray, broadcast_arrays, ceil, floor, frexp, hypot,
                    sqrt, arctan2, sin, cos, exp, log, mod, diff, empty_like,
-                   finfo, inf, pi, interp, isnan, isscalar, zeros, ones,
+                   finfo, inf, pi, interp, isnan, isscalar, zeros, ones, linalg,
                    r_, sign, unique, hstack, vstack, nonzero, where, extract)
 from scipy.special import gammaln
 from scipy.integrate import trapz, simps
@@ -25,12 +25,12 @@ except:
 floatinfo = finfo(float) 
 
 
-__all__ = ['is_numlike','JITImport', 'DotDict', 'Bunch', 'printf', 'sub_dict_select',
+__all__ = ['is_numlike', 'JITImport', 'DotDict', 'Bunch', 'printf', 'sub_dict_select',
     'parse_kwargs', 'detrendma', 'ecross', 'findcross',
-    'findextrema', 'findpeaks', 'findrfc', 'rfcfilter', 'findtp', 'findtc', 
+    'findextrema', 'findpeaks', 'findrfc', 'rfcfilter', 'findtp', 'findtc',
     'findoutliers', 'common_shape', 'argsreduce',
     'stirlerr', 'getshipchar', 'betaloge', 'gravity', 'nextpow2',
-    'discretize', 'pol2cart', 'cart2pol',  'meshgrid', 'ndgrid', 
+    'discretize', 'pol2cart', 'cart2pol', 'meshgrid', 'ndgrid',
     'trangood', 'tranproc', 'plot_histgrm', 'num2pistr', 'test_docstrings']
 
 
@@ -437,7 +437,7 @@ def findpeaks(data, n=2, min_h=None, min_p=0.0):
     smax = S.max()
     if min_h is None:
         smin = S.min()
-        min_h = 0.05*(smax-smin)
+        min_h = 0.05 * (smax - smin)
     ndim = S.ndim
     S = np.atleast_2d(S)
     nrows, mcols = S.shape
@@ -453,20 +453,20 @@ def findpeaks(data, n=2, min_h=None, min_p=0.0):
         else: # % did not find any , try maximum
             ind = np.atleast_1d(S[iy].argmax())
       
-        if ndim>1:
-            if iy==0:
-                ind2 = np.flatnonzero(S[iy,ind]>S[iy+1,ind])
-            elif iy==nrows-1:
-                ind2 = np.flatnonzero(S[iy,ind]>S[iy-1,ind])
+        if ndim > 1:
+            if iy == 0:
+                ind2 = np.flatnonzero(S[iy, ind] > S[iy + 1, ind])
+            elif iy == nrows - 1:
+                ind2 = np.flatnonzero(S[iy, ind] > S[iy - 1, ind])
             else:
-                ind2 = np.flatnonzero((S[iy,ind]>S[iy-1,ind]) & (S[iy,ind]>S[iy+1,ind]))
+                ind2 = np.flatnonzero((S[iy, ind] > S[iy - 1, ind]) & (S[iy, ind] > S[iy + 1, ind]))
         
             if len(ind2):
-                indP.append((ind[ind2] + iy*mcols))
+                indP.append((ind[ind2] + iy * mcols))
       
-    if ndim>1:
+    if ndim > 1:
         ind = np.hstack(indP) if len(indP) else []
-    if len(ind)==0:
+    if len(ind) == 0:
         return []
     
     peaks = S.take(ind)
@@ -474,11 +474,11 @@ def findpeaks(data, n=2, min_h=None, min_p=0.0):
      
     
     # keeping only the Np most significant peak frequencies.
-    nmax = min(n,len(ind))
+    nmax = min(n, len(ind))
     ind = ind[ind2[:nmax]]
-    if (min_p >0 ) :
+    if (min_p > 0) :
         # Keeping only peaks larger than min_p percent relative to the maximum peak 
-        ind = ind[(S.take(ind) > min_p*smax)]
+        ind = ind[(S.take(ind) > min_p * smax)]
     
     return ind
     
@@ -508,7 +508,7 @@ def findrfc_astm(tp):
     # the sig_rfc was constructed too big in rainflow.rf3, so
     # reduce the sig_rfc array as done originally by a matlab mex c function
     n = len(sig_rfc)
-    sig_rfc = sig_rfc.__getslice__(0,n-cnr[0])
+    sig_rfc = sig_rfc.__getslice__(0, n - cnr[0])
     # sig_rfc holds the actual rainflow counted cycles, not the indices
     return sig_rfc
 
@@ -642,114 +642,121 @@ def findrfc(tp, hmin=0.0, method='clib'):
         ind, ix = clib.findrfc(y, hmin)
     return np.sort(ind[:ix])
 
-def mctp2rfc(f_mM,f_Mm=None):
+def mctp2rfc(f_mM, f_Mm=None):
     '''
     Return Rainflow matrix given a Markov matrix of a Markov chain of turning points
     
-      computes f_rfc = f_mM + F_mct(f_mM).
+    computes f_rfc = f_mM + F_mct(f_mM).
     
-      CALL: f_rfc = mctp2rfc(f_mM);
+    Parameters
+    ----------
+    f_mM =  the min2max Markov matrix, 
+    f_Mm  = the max2min Markov matrix,
     
-      where
+    Returns 
+    -------
+    f_rfc = the rainflow matrix,
     
-            f_rfc = the rainflow matrix,
-            f_mM =  the min2max Markov matrix, 
+    Example:
+    -------
+    >>> fmM = np.array([[ 0.0183,    0.0160,    0.0002,    0.0000,         0],
+    ...            [0.0178,    0.5405,    0.0952,         0,         0],
+    ...            [0.0002,    0.0813,         0,         0,         0],
+    ...            [0.0000,         0,         0,         0,         0],
+    ...            [     0,         0,         0,         0,         0]])   
     
-      Further optional input arguments;
+    >>> mctp2rfc(fmM)
+    array([[  2.66998090e-02,   7.79970042e-03,   4.90607697e-07,
+              0.00000000e+00,   0.00000000e+00],
+           [  9.59962873e-03,   5.48500862e-01,   9.53995094e-02,
+              0.00000000e+00,   0.00000000e+00],
+           [  5.62297379e-07,   8.14994377e-02,   0.00000000e+00,
+              0.00000000e+00,   0.00000000e+00],
+           [  0.00000000e+00,   0.00000000e+00,   0.00000000e+00,
+              0.00000000e+00,   0.00000000e+00],
+           [  0.00000000e+00,   0.00000000e+00,   0.00000000e+00,
+              0.00000000e+00,   0.00000000e+00]])
     
-      CALL:  f_rfc = mctp2rfc(f_mM,f_Mm,paramm,paramM);
-    
-            f_Mm  = the max2min Markov matrix, 
-           paramm = the parameter matrix defining discretization of minimas,
-           paramM = the parameter matrix defining discretization of maximas,
     '''
-    # TODO:  Check this: paramm and paramM are never used?????
-    
+     
     if f_Mm is None:
-        f_Mm=f_mM
-    
-#     if nargin<3
-#       paramm=[-1, 1 ,length(f_mM)];
-#       paramM=paramm;
-#     end
-#     
-#     if nargin<4
-#       paramM=paramm;
-#     end
-    f_mM, f_Mm = np.atleast_1d(f_mM, f_Mm)
+        f_mM = np.atleast_1d(f_mM)
+        f_Mm = f_mM.copy()
+    else:
+        f_mM, f_Mm = np.atleast_1d(f_mM, f_Mm)
     
     N = max(f_mM.shape)
-    f_max = sum(f_mM,axis=1)
-    f_min = sum(f_mM, axis=0)
-    f_rfc = zeros((N,N))
-    f_rfc[N-1,0]=f_max[N-1]
-    f_rfc[1,N-1]=f_min[N-1]
-    for k in range(2,N-1):
-        for i in range(1,k-1):
-            AA = f_mM[N-k+1:N-k+i-1, k-i+1:k-1]
-            AA1 = f_Mm[N-k+1:N-k+i-1, k-i+1:k-1]
-            RAA = f_rfc[N-k+1:N-k+i-1, k-i+1:k-1]
-            nA = max(AA.shape);
-            MA = f_max[N-k+1:N-k+i-1]
-            mA = f_min[k-i+1:k-1]
+    f_max = np.sum(f_mM, axis=1)
+    f_min = np.sum(f_mM, axis=0)
+    f_rfc = zeros((N, N))
+    f_rfc[N - 2, 0] = f_max[N - 2]
+    f_rfc[0, N - 2] = f_min[N - 2]
+    for k in range(2, N - 1):
+        for i in range(1, k):
+            AA = f_mM[N - 1 - k:N - 1 - k + i, k - i:k]
+            AA1 = f_Mm[N - 1 - k:N - 1 - k + i, k - i:k]
+            RAA = f_rfc[N - 1 - k:N - 1 - k + i, k - i:k]
+            nA = max(AA.shape)
+            MA = f_max[N - 1 - k:N - 1 - k + i]
+            mA = f_min[k - i:k]
             SA = AA.sum() 
             SRA = RAA.sum()
             
-            DRFC = SA-SRA;
-            NT = min(mA[0]-sum(RAA[:,1]),MA[0]-sum(RAA[1,:])) # ?? check
-            NT = max(NT,0) # ??check
+            DRFC = SA - SRA
+            NT = min(mA[0] - sum(RAA[:, 0]), MA[0] - sum(RAA[0, :])) # ?? check
+            NT = max(NT, 0) # ??check
             
-            if NT>1e-6*max(MA[0],mA[0]):
-                NN = MA-sum(AA,axis=1) # T
-                e = (mA-sum(AA, axis=0)) # T 
+            if NT > 1e-6 * max(MA[0], mA[0]):
+                NN = MA - np.sum(AA, axis=1) # T
+                e = (mA - np.sum(AA, axis=0)) # T 
                 e = np.flipud(e)
-                PmM = np.rot90(AA)
+                PmM = np.rot90(AA.copy())
                 for j in range(nA):
-                    norm=mA[nA-j+1]
-                    if norm!=0:
-                        PmM[j,:] = PmM[j,:]/norm
-                        e[j] = e[j]/norm
+                    norm = mA[nA - 1 - j]
+                    if norm != 0:
+                        PmM[j, :] = PmM[j, :] / norm
+                        e[j] = e[j] / norm
                     #end
                 #end
-                fx=0.0;
-                if max(abs(e))>1e-6 and max(abs(NN))>1e-6*max(MA[0],mA[0]):
-                    PMm=AA1;
+                fx = 0.0;
+                if max(abs(e)) > 1e-6 and max(abs(NN)) > 1e-6 * max(MA[0], mA[0]):
+                    PMm = AA1.copy()
                     for j in range(nA):
-                        norm=MA(j);
-                        if norm!=0:
-                            PMm[j,:]=PMm[j,:]/norm;
+                        norm = MA[j]
+                        if norm != 0:
+                            PMm[j, :] = PMm[j, :] / norm;
                             #end
                         #end
-                    PMm=fliplr(PMm)
+                    PMm = np.fliplr(PMm)
          
-                    A=PMm; B=PmM;
-                    I=eye(A.shape)
-        
-                    if nA==1:
-                        fx=NN*(A/(1-B*A)*e)
+                    A = PMm
+                    B = PmM
+                    
+                    if nA == 1:
+                        fx = NN * (A / (1 - B * A) * e)
                     else:
-                        fx=NN*(A*((I-B*A)\e)) #least squares
+                        rh = np.eye(A.shape[0]) - np.dot(B, A)
+                        fx = np.dot(NN, np.dot(A, linalg.solve(rh, e))) #least squares
                     #end
-                #end
-           
-                f_rfc[N-k+1,k-i+1] = fx+DRFC
+                #end           
+                f_rfc[N - 1 - k, k - i] = fx + DRFC
     
                 #  check2=[ DRFC  fx]
                 # pause
             else:
-                f_rfc[N-k+1,k-i+1]=0.;
+                f_rfc[N - 1 - k, k - i] = 0.0
             #end
         #end
-        m0 = max(0,f_min[0]-sum(f_rfc[N-k+2:N,1]));
-        M0 = max(0,Max(N-k+1)-sum(f_rfc[N-k+1,2:k]));
-        f_rfc[N-k+1,1] = min(m0,M0)
+        m0 = max(0, f_min[0] - np.sum(f_rfc[N - k + 1:N, 0]))
+        M0 = max(0, f_max[N - 1 - k] - np.sum(f_rfc[N - 1 - k, 1:k]))
+        f_rfc[N - 1 - k, 0] = min(m0, M0)
         #%  n_loops_left=N-k+1
     #end
     
-    for k in range(1,N):
-        M0 = max(0,f_max[0]-sum(f_rfc[1,N-k+2:N]));
-        m0 = max(0,f_min[N-k+1]-sum(f_rfc[2:k,N-k+1]));
-        f_rfc[1,N-k+1] = min(m0,M0)
+    for k in range(1, N):
+        M0 = max(0, f_max[0] - np.sum(f_rfc[0, N - k:N]));
+        m0 = max(0, f_min[N - 1 - k] - np.sum(f_rfc[1:k+1, N - 1 - k]));
+        f_rfc[0, N - 1 - k] = min(m0, M0)
     #end
     
 #    %clf
@@ -767,14 +774,7 @@ def mctp2rfc(f_mM,f_Mm=None):
 #    %axis([paramm(1) paramm(2) paramM(1) paramM(2)])
 #    %axis('square')
 
-    return f_frfc
-
-
-
-
-
-
-
+    return f_rfc
 
 
 
@@ -2173,7 +2173,7 @@ def good_bins(data=None, range=None, num_bins=None, num_data=None, odd=False, lo
     d = m * 10 ** e
     mn = (np.floor(mn / d) - loose) * d - odd * d / 2
     mx = (np.ceil(mx / d) + loose) * d + odd * d / 2
-    limits = np.arange(mn, mx+d/2, d)
+    limits = np.arange(mn, mx + d / 2, d)
     return limits
 
 def plot_histgrm(data, bins=None, range=None, normed=False, weights=None, lintype='b-'):
@@ -2262,22 +2262,22 @@ def num2pistr(x, n=3):
     '3\\pi/4'
     '''
     
-    frac = fractions.Fraction.from_float(x/pi).limit_denominator(10000000)
+    frac = fractions.Fraction.from_float(x / pi).limit_denominator(10000000)
     num = frac.numerator
     den = frac.denominator
-    if (den<10) and (num<10) and (num!=0):
-        dtxt = '' if abs(den)==1 else '/%d' % den
-        if abs(num)==1: # % numerator
-            ntxt='-' if num==-1 else ''
+    if (den < 10) and (num < 10) and (num != 0):
+        dtxt = '' if abs(den) == 1 else '/%d' % den
+        if abs(num) == 1: # % numerator
+            ntxt = '-' if num == -1 else ''
         else: 
             ntxt = '%d' % num 
-        xtxt= ntxt+r'\pi'+dtxt
+        xtxt = ntxt + r'\pi' + dtxt
     else:
-        format = '%0.' +'%dg' % n
+        format = '%0.' + '%dg' % n
         xtxt = format % x
     return xtxt     
 
-def fourier(data,t=None,T=None,m=None,n=None, method='trapz'):
+def fourier(data, t=None, T=None, m=None, n=None, method='trapz'):
     '''
     Returns Fourier coefficients.
  
@@ -2340,7 +2340,7 @@ def fourier(data,t=None,T=None,m=None,n=None, method='trapz'):
     
     n = len(t) if n is None else n
     m = n if n is None else m
-    T = t[-1]-t[0] if T is None else T
+    T = t[-1] - t[0] if T is None else T
     
     if method.startswith('trapz'):
         intfun = trapz     
@@ -2348,20 +2348,20 @@ def fourier(data,t=None,T=None,m=None,n=None, method='trapz'):
         intfun = simps
 
     # Define the vectors for computing the Fourier coefficients
-    t.shape = (1,-1) 
-    a = zeros((m,p))
-    b = zeros((m,p))
-    a[0] = intfun(x,t, axis=-1)
+    t.shape = (1, -1) 
+    a = zeros((m, p))
+    b = zeros((m, p))
+    a[0] = intfun(x, t, axis= -1)
      
     # Compute M-1 more coefficients
-    tmp  = 2*pi*t/T
+    tmp = 2 * pi * t / T
     #% tmp =  2*pi*(0:N-1).'/(N-1); 
-    for i in range(1,m):
-        a[i] = intfun(x*cos(i*tmp),t, axis=-1)
-        b[i] = intfun(x*sin(i*tmp),t, axis=-1)
+    for i in range(1, m):
+        a[i] = intfun(x * cos(i * tmp), t, axis= -1)
+        b[i] = intfun(x * sin(i * tmp), t, axis= -1)
       
-    a = a/pi
-    b = b/pi
+    a = a / pi
+    b = b / pi
      
     # Alternative:  faster for large M, but gives different results than above.
 #    nper = diff(t([1 end]))/T; %No of periods given
