@@ -40,57 +40,6 @@ try:
 except:
     vonmises_cython = None
 
-def _moment(data, n, mu=None):
-    if mu is None:
-        mu = data.mean()
-    return ((data - mu)**n).mean()
-
-def _moment_from_stats(n, mu, mu2, g1, g2, moment_func, args):
-    if (n==0):
-        return 1.0
-    elif (n==1):
-        if mu is None:
-            val = moment_func(1,*args)
-        else:
-            val = mu
-    elif (n==2):
-        if mu2 is None or mu is None:
-            val = moment_func(2,*args)
-        else:
-            val = mu2 + mu*mu
-    elif (n==3):
-        if g1 is None or mu2 is None or mu is None:
-            val = moment_func(3,*args)
-        else:
-            mu3 = g1*(mu2**1.5) # 3rd central moment
-            val = mu3+3*mu*mu2+mu**3 # 3rd non-central moment
-    elif (n==4):
-        if g1 is None or g2 is None or mu2 is None or mu is None:
-            val = moment_func(4,*args)
-        else:
-            mu4 = (g2+3.0)*(mu2**2.0) # 4th central moment
-            mu3 = g1*(mu2**1.5) # 3rd central moment
-            val = mu4+4*mu*mu3+6*mu*mu*mu2+mu**4
-    else:
-        val = moment_func(n, *args)
-
-    return val
-
-
-def _skew(data):
-    data = np.ravel(data)
-    mu = data.mean()
-    m2 = ((data - mu)**2).mean()
-    m3 = ((data - mu)**3).mean()
-    return m3 / m2**1.5
-
-def _kurtosis(data):
-    data = np.ravel(data)
-    mu = data.mean()
-    m2 = ((data - mu)**2).mean()
-    m4 = ((data - mu)**4).mean()
-    return m4 / m2**2 - 3
-
 __all__ = [
            'rv_continuous',
            'ksone', 'kstwobign', 'norm', 'alpha', 'anglit', 'arcsine',
@@ -246,15 +195,15 @@ _doc_default_callparams = \
 """
 Parameters
 ----------
-x : array-like
+x : array_like
     quantiles
-q : array-like
+q : array_like
     lower or upper tail probability
-%(shapes)s : array-like
+%(shapes)s : array_like
     shape parameters
-loc : array-like, optional
+loc : array_like, optional
     location parameter (default=0)
-scale : array-like, optional
+scale : array_like, optional
     scale parameter (default=1)
 size : int or tuple of ints, optional
     shape of random variates (default computed from input arguments )
@@ -380,7 +329,7 @@ docdict_discrete['longsummary'] = _doc_default_longsummary.replace(\
 _doc_default_frozen_note = \
 """
 Alternatively, the object may be called (as a function) to fix the shape and
-location parameters returning a "frozen" continuous RV object:
+location parameters returning a "frozen" discrete RV object:
 
 rv = %(name)s(%(shapes)s, loc=0)
     - Frozen RV object with the same methods but holding the given shape and
@@ -390,6 +339,12 @@ docdict_discrete['frozennote'] = _doc_default_frozen_note
 
 docdict_discrete['example'] = _doc_default_example.replace('[0.9,]',
                                   'Replace with reasonable value')
+
+_doc_default_before_notes = ''.join([docdict_discrete['longsummary'],
+                                     docdict_discrete['allmethods'],
+                                     docdict_discrete['callparams'],
+                                     docdict_discrete['frozennote']])
+docdict_discrete['before_notes'] = _doc_default_before_notes
 
 _doc_default_disc = ''.join([docdict_discrete['longsummary'],
                              docdict_discrete['allmethods'],
@@ -407,6 +362,58 @@ try:
 except NameError:
     # in Python 3, loop variables are not visible after the loop
     pass
+
+
+def _moment(data, n, mu=None):
+    if mu is None:
+        mu = data.mean()
+    return ((data - mu)**n).mean()
+
+def _moment_from_stats(n, mu, mu2, g1, g2, moment_func, args):
+    if (n==0):
+        return 1.0
+    elif (n==1):
+        if mu is None:
+            val = moment_func(1,*args)
+        else:
+            val = mu
+    elif (n==2):
+        if mu2 is None or mu is None:
+            val = moment_func(2,*args)
+        else:
+            val = mu2 + mu*mu
+    elif (n==3):
+        if g1 is None or mu2 is None or mu is None:
+            val = moment_func(3,*args)
+        else:
+            mu3 = g1*(mu2**1.5) # 3rd central moment
+            val = mu3+3*mu*mu2+mu**3 # 3rd non-central moment
+    elif (n==4):
+        if g1 is None or g2 is None or mu2 is None or mu is None:
+            val = moment_func(4,*args)
+        else:
+            mu4 = (g2+3.0)*(mu2**2.0) # 4th central moment
+            mu3 = g1*(mu2**1.5) # 3rd central moment
+            val = mu4+4*mu*mu3+6*mu*mu*mu2+mu**4
+    else:
+        val = moment_func(n, *args)
+
+    return val
+
+
+def _skew(data):
+    data = np.ravel(data)
+    mu = data.mean()
+    m2 = ((data - mu)**2).mean()
+    m3 = ((data - mu)**3).mean()
+    return m3 / m2**1.5
+
+def _kurtosis(data):
+    data = np.ravel(data)
+    mu = data.mean()
+    m2 = ((data - mu)**2).mean()
+    m4 = ((data - mu)**4).mean()
+    return m4 / m2**2 - 3
 
 
 
@@ -987,19 +994,19 @@ class rv_generic(object):
 
         Parameters
         ----------
-        arg1, arg2, arg3,... : array-like
+        arg1, arg2, arg3,... : array_like
             The shape parameter(s) for the distribution (see docstring of the
             instance object for more information)
-        loc : array-like, optional
+        loc : array_like, optional
             location parameter (default=0)
-        scale : array-like, optional
+        scale : array_like, optional
             scale parameter (default=1)
         size : int or tuple of ints, optional
             defining number of random variates (default=1)
 
         Returns
         -------
-        rvs : array-like
+        rvs : array_like
             random variates of given `size`
 
         """
@@ -1054,12 +1061,12 @@ class rv_generic(object):
 
         Parameters
         ----------
-        arg1, arg2, arg3,... : array-like
+        arg1, arg2, arg3,... : array_like
             The shape parameter(s) for the distribution (see docstring of the
             instance object for more information)
-        loc : array-like, optional
+        loc : array_like, optional
             location parameter (default=0)
-        scale : array-like, optional
+        scale : array_like, optional
             scale parameter (default=1)
 
         Returns
@@ -1079,12 +1086,12 @@ class rv_generic(object):
 
         Parameters
         ----------
-        arg1, arg2, arg3,... : array-like
+        arg1, arg2, arg3,... : array_like
             The shape parameter(s) for the distribution (see docstring of the
             instance object for more information)
-        loc : array-like, optional
+        loc : array_like, optional
             location parameter (default=0)
-        scale : array-like, optional
+        scale : array_like, optional
             scale parameter (default=1)
 
         Returns
@@ -1104,12 +1111,12 @@ class rv_generic(object):
 
         Parameters
         ----------
-        arg1, arg2, arg3,... : array-like
+        arg1, arg2, arg3,... : array_like
             The shape parameter(s) for the distribution (see docstring of the
             instance object for more information)
-        loc : array-like, optional
+        loc : array_like, optional
             location parameter (default=0)
-        scale : array-like, optional
+        scale : array_like, optional
             scale parameter (default=1)
 
         Returns
@@ -1130,12 +1137,12 @@ class rv_generic(object):
 
         Parameters
         ----------
-        arg1, arg2, arg3,... : array-like
+        arg1, arg2, arg3,... : array_like
             The shape parameter(s) for the distribution (see docstring of the
             instance object for more information)
-        loc : array-like, optional
+        loc : array_like, optional
             location parameter (default=0)
-        scale : array-like, optional
+        scale : array_like, optional
             scale parameter (default=1)
 
         Returns
@@ -1153,19 +1160,19 @@ class rv_generic(object):
 
         Parameters
         ----------
-        alpha : array-like float in [0,1]
+        alpha : array_like float in [0,1]
             Probability that an rv will be drawn from the returned range
-        arg1, arg2, ... : array-like
+        arg1, arg2, ... : array_like
             The shape parameter(s) for the distribution (see docstring of the instance
             object for more information)
-        loc: array-like, optioal
+        loc: array_like, optioal
             location parameter (deafult = 0)
-        scale : array-like, optional
+        scale : array_like, optional
             scale paramter (default = 1)
 
         Returns
         -------
-        a, b: array-like (float)
+        a, b: array_like (float)
             end-points of range that contain alpha % of the rvs
         """
         alpha = arr(alpha)
@@ -1290,15 +1297,15 @@ class rv_continuous(rv_generic):
 
     **Parameters for Methods**
 
-    x : array-like
+    x : array_like
         quantiles
-    q : array-like
+    q : array_like
         lower or upper tail probability
-    <shape(s)> : array-like
+    <shape(s)> : array_like
         shape parameters
-    loc : array-like, optional
+    loc : array_like, optional
         location parameter (default=0)
-    scale : array-like, optional
+    scale : array_like, optional
         scale parameter (default=1)
     size : int or tuple of ints, optional
         shape of random variates (default computed from input arguments )
@@ -1440,6 +1447,8 @@ class rv_continuous(rv_generic):
 
         if badvalue is None:
             badvalue = nan
+        if name is None:
+            name = 'Distribution'
         self.badvalue = badvalue
         self.name = name
         self.a = a
@@ -1519,7 +1528,7 @@ class rv_continuous(rv_generic):
             # remove shapes from call parameters if there are none
             for item in ['callparams', 'default', 'before_notes']:
                 tempdict[item] = tempdict[item].replace(\
-                        "\n%(shapes)s : array-like\n    shape parameters", "")
+                        "\n%(shapes)s : array_like\n    shape parameters", "")
         for i in range(2):
             if self.shapes is None:
                 # necessary because we use %(shapes)s in two forms (w w/o ", ")
@@ -1608,19 +1617,19 @@ class rv_continuous(rv_generic):
 
         Parameters
         ----------
-        x : array-like
+        x : array_like
             quantiles
-        arg1, arg2, arg3,... : array-like
+        arg1, arg2, arg3,... : array_like
             The shape parameter(s) for the distribution (see docstring of the
             instance object for more information)
-        loc : array-like, optional
+        loc : array_like, optional
             location parameter (default=0)
-        scale : array-like, optional
+        scale : array_like, optional
             scale parameter (default=1)
 
         Returns
         -------
-        pdf : array-like
+        pdf : ndarray
             Probability density function evaluated at x
 
         """
@@ -1650,19 +1659,19 @@ class rv_continuous(rv_generic):
 
         Parameters
         ----------
-        x : array-like
+        x : array_like
             quantiles
-        arg1, arg2, arg3,... : array-like
+        arg1, arg2, arg3,... : array_like
             The shape parameter(s) for the distribution (see docstring of the
             instance object for more information)
-        loc : array-like, optional
+        loc : array_like, optional
             location parameter (default=0)
-        scale : array-like, optional
+        scale : array_like, optional
             scale parameter (default=1)
 
         Returns
         -------
-        logpdf : array-like
+        logpdf : array_like
             Log of the probability density function evaluated at x
 
         """
@@ -1692,19 +1701,19 @@ class rv_continuous(rv_generic):
 
         Parameters
         ----------
-        x : array-like
+        x : array_like
             quantiles
-        arg1, arg2, arg3,... : array-like
+        arg1, arg2, arg3,... : array_like
             The shape parameter(s) for the distribution (see docstring of the
             instance object for more information)
-        loc : array-like, optional
+        loc : array_like, optional
             location parameter (default=0)
-        scale : array-like, optional
+        scale : array_like, optional
             scale parameter (default=1)
 
         Returns
         -------
-        cdf : array-like
+        cdf : array_like
             Cumulative distribution function evaluated at x
 
         """
@@ -1734,19 +1743,19 @@ class rv_continuous(rv_generic):
 
         Parameters
         ----------
-        x : array-like
+        x : array_like
             quantiles
-        arg1, arg2, arg3,... : array-like
+        arg1, arg2, arg3,... : array_like
             The shape parameter(s) for the distribution (see docstring of the
             instance object for more information)
-        loc : array-like, optional
+        loc : array_like, optional
             location parameter (default=0)
-        scale : array-like, optional
+        scale : array_like, optional
             scale parameter (default=1)
 
         Returns
         -------
-        logcdf : array-like
+        logcdf : array_like
             Log of the cumulative distribution function evaluated at x
 
         """
@@ -1776,19 +1785,19 @@ class rv_continuous(rv_generic):
 
         Parameters
         ----------
-        x : array-like
+        x : array_like
             quantiles
-        arg1, arg2, arg3,... : array-like
+        arg1, arg2, arg3,... : array_like
             The shape parameter(s) for the distribution (see docstring of the
             instance object for more information)
-        loc : array-like, optional
+        loc : array_like, optional
             location parameter (default=0)
-        scale : array-like, optional
+        scale : array_like, optional
             scale parameter (default=1)
 
         Returns
         -------
-        sf : array-like
+        sf : array_like
             Survival function evaluated at x
 
         """
@@ -1813,24 +1822,28 @@ class rv_continuous(rv_generic):
 
     def logsf(self,x,*args,**kwds):
         """
-        Log of the Survival function log(1-cdf) at x of the given RV.
+        Log of the survival function of the given RV.
+
+        Returns the log of the "survival function," defined as (1 - `cdf`),
+        evaluated at `x`.
 
         Parameters
         ----------
-        x : array-like
+        x : array_like
             quantiles
-        arg1, arg2, arg3,... : array-like
+        arg1, arg2, arg3,... : array_like
             The shape parameter(s) for the distribution (see docstring of the
             instance object for more information)
-        loc : array-like, optional
+        loc : array_like, optional
             location parameter (default=0)
-        scale : array-like, optional
+        scale : array_like, optional
             scale parameter (default=1)
 
         Returns
         -------
-        logsf : array-like
-            Log of the survival function evaluated at x
+        logsf : ndarray
+            Log of the survival function evaluated at `x`.
+
         """
         loc,scale=map(kwds.get,['loc','scale'])
         args, loc, scale = self.fix_loc_scale(args, loc, scale)
@@ -1858,19 +1871,19 @@ class rv_continuous(rv_generic):
 
         Parameters
         ----------
-        q : array-like
+        q : array_like
             lower tail probability
-        arg1, arg2, arg3,... : array-like
+        arg1, arg2, arg3,... : array_like
             The shape parameter(s) for the distribution (see docstring of the
             instance object for more information)
-        loc : array-like, optional
+        loc : array_like, optional
             location parameter (default=0)
-        scale : array-like, optional
+        scale : array_like, optional
             scale parameter (default=1)
 
         Returns
         -------
-        x : array-like
+        x : array_like
             quantile corresponding to the lower tail probability q.
 
         """
@@ -1912,19 +1925,19 @@ class rv_continuous(rv_generic):
 
         Parameters
         ----------
-        q : array-like
+        q : array_like
             upper tail probability
-        arg1, arg2, arg3,... : array-like
+        arg1, arg2, arg3,... : array_like
             The shape parameter(s) for the distribution (see docstring of the
             instance object for more information)
-        loc : array-like, optional
+        loc : array_like, optional
             location parameter (default=0)
-        scale : array-like, optional
+        scale : array_like, optional
             scale parameter (default=1)
 
         Returns
         -------
-        x : array-like
+        x : array_like
             quantile corresponding to the upper tail probability q.
 
         """
@@ -1970,12 +1983,12 @@ class rv_continuous(rv_generic):
 
         Parameters
         ----------
-        arg1, arg2, arg3,... : array-like
+        arg1, arg2, arg3,... : array_like
             The shape parameter(s) for the distribution (see docstring of the
             instance object for more information)
-        loc : array-like, optional
+        loc : array_like, optional
             location parameter (default=0)
-        scale : array-like, optional
+        scale : array_like, optional
             scale parameter (default=1)
 
         moments : string, optional
@@ -2098,16 +2111,14 @@ class rv_continuous(rv_generic):
         Parameters
         ----------
         n: int, n>=1
-            order of moment
+            Order of moment.
 
         arg1, arg2, arg3,... : float
             The shape parameter(s) for the distribution (see docstring of the
-            instance object for more information)
-
-        loc : float, optional
-            location parameter (default=0)
-        scale : float, optional
-            scale parameter (default=1)
+            instance object for more information).
+        kwds : keyword arguments, optional
+            These can include "loc" and "scale", as well as other keyword
+            arguments relevant for a given distribution.
 
         """
         loc, scale = map(kwds.get,['loc','scale'])
@@ -2454,8 +2465,6 @@ class rv_continuous(rv_generic):
 
             fscale : hold scale parameter fixed to specified value.
 
-            method : of estimation. Options are
-                'ml' : Maximum Likelihood method (default)
             optimizer : The optimizer to use.  The optimizer must take func,
                         and starting position as the first two arguments,
                         plus args (for extra arguments to pass to the
@@ -2471,7 +2480,7 @@ class rv_continuous(rv_generic):
         """
         Narg = len(args)
         if Narg > self.numargs:
-                raise ValueError("Too many input arguments.")
+            raise ValueError("Too many input arguments.")
         start = [None]*2
         if (Narg < self.numargs) or not (kwds.has_key('loc') and
                                          kwds.has_key('scale')):
@@ -2494,9 +2503,9 @@ class rv_continuous(rv_generic):
             except AttributeError:
                 raise ValueError("%s is not a valid optimizer" % optimizer)
         vals = optimizer(func,x0,args=(ravel(data),),disp=0)
-        vals = tuple(vals)
         if restore is not None:
             vals = restore(args, vals)
+        vals = tuple(vals)
         return vals
 
             
@@ -2603,12 +2612,12 @@ class rv_continuous(rv_generic):
 
         Parameters
         ----------
-        arg1, arg2, arg3,... : array-like
+        arg1, arg2, arg3,... : array_like
             The shape parameter(s) for the distribution (see docstring of the
             instance object for more information)
-        loc : array-like, optional
+        loc : array_like, optional
             location parameter (default=0)
-        scale : array-like, optional
+        scale : array_like, optional
             scale parameter (default=1)
 
         """
@@ -2686,30 +2695,30 @@ _ZETA3 = 1.202056903159594285399738161511449990765  # special.zeta(3,1)  Apery's
 ## Kolmogorov-Smirnov one-sided and two-sided test statistics
 
 class ksone_gen(rv_continuous):
+    """General Kolmogorov-Smirnov one-sided test.
+
+    %(default)s
+
+    """
     def _cdf(self,x,n):
         return 1.0-special.smirnov(n,x)
     def _ppf(self,q,n):
         return special.smirnovi(n,1.0-q)
-ksone = ksone_gen(a=0.0,name='ksone', longname="Kolmogorov-Smirnov "\
-                  "A one-sided test statistic.", shapes="n",
-                  extradoc="""
-
-General Kolmogorov-Smirnov one-sided test.
-"""
-                  )
+ksone = ksone_gen(a=0.0, name='ksone', shapes="n")
 
 class kstwobign_gen(rv_continuous):
+    """Kolmogorov-Smirnov two-sided test for large N.
+
+    %(default)s
+
+    """
     def _cdf(self,x):
         return 1.0-special.kolmogorov(x)
     def _sf(self,x):
         return special.kolmogorov(x)
     def _ppf(self,q):
         return special.kolmogi(1.0-q)
-kstwobign = kstwobign_gen(a=0.0,name='kstwobign', longname='Kolmogorov-Smirnov two-sided (for large N)', extradoc="""
-
-Kolmogorov-Smirnov two-sided test for large N
-"""
-                          )
+kstwobign = kstwobign_gen(a=0.0, name='kstwobign')
 
 
 ## Normal distribution
@@ -2730,6 +2739,22 @@ def _norm_logcdf(x):
 def _norm_ppf(q):
     return special.ndtri(q)
 class norm_gen(rv_continuous):
+    """A normal continuous random variable.
+
+    The location (loc) keyword specifies the mean.
+    The scale (scale) keyword specifies the standard deviation.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `norm` is::
+
+        norm.pdf(x) = exp(-x**2/2)/sqrt(2*pi)
+
+    %(example)s
+
+    """
     def _rvs(self):
         return mtrand.standard_normal(self._size)
     def _pdf(self,x):
@@ -2752,20 +2777,27 @@ class norm_gen(rv_continuous):
         return 0.0, 1.0, 0.0, 0.0
     def _entropy(self):
         return 0.5*(log(2*pi)+1)
-norm = norm_gen(name='norm',longname='A normal',extradoc="""
-
-Normal distribution
-
-The location (loc) keyword specifies the mean.
-The scale (scale) keyword specifies the standard deviation.
-
-normal.pdf(x) = exp(-x**2/2)/sqrt(2*pi)
-""")
+norm = norm_gen(name='norm')
 
 
 ## Alpha distribution
 ##
 class alpha_gen(rv_continuous):
+    """An alpha continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `alpha` is::
+
+        alpha.pdf(x,a) = 1/(x**2*Phi(a)*sqrt(2*pi)) * exp(-1/2 * (a-1/x)**2),
+
+    where ``Phi(alpha)`` is the normal CDF, ``x > 0``, and ``a > 0``.
+
+    %(example)s
+
+    """
     def _pdf(self, x, a):
         return 1.0/(x**2)/special.ndtr(a)*_norm_pdf(a-1.0/x)
     def _logpdf(self, x, a):
@@ -2776,17 +2808,27 @@ class alpha_gen(rv_continuous):
         return 1.0/arr(a-special.ndtri(q*special.ndtr(a)))
     def _stats(self, a):
         return [inf]*2 + [nan]*2
-alpha = alpha_gen(a=0.0,name='alpha',shapes='a',extradoc="""
+alpha = alpha_gen(a=0.0, name='alpha', shapes='a')
 
-Alpha distribution
-
-alpha.pdf(x,a) = 1/(x**2*Phi(a)*sqrt(2*pi)) * exp(-1/2 * (a-1/x)**2)
-where Phi(alpha) is the normal CDF, x > 0, and a > 0.
-""")
 
 ## Anglit distribution
 ##
 class anglit_gen(rv_continuous):
+    """An anglit continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `anglit` is::
+
+        anglit.pdf(x) = sin(2*x + pi/2) = cos(2*x),
+
+    for ``-pi/4 <= x <= pi/4``.
+
+    %(example)s
+
+    """
     def _pdf(self, x):
         return cos(2*x)
     def _cdf(self, x):
@@ -2797,17 +2839,26 @@ class anglit_gen(rv_continuous):
         return 0.0, pi*pi/16-0.5, 0.0, -2*(pi**4 - 96)/(pi*pi-8)**2
     def _entropy(self):
         return 1-log(2)
-anglit = anglit_gen(a=-pi/4,b=pi/4,name='anglit', extradoc="""
-
-Anglit distribution
-
-anglit.pdf(x) = sin(2*x+pi/2) = cos(2*x)    for -pi/4 <= x <= pi/4
-""")
+anglit = anglit_gen(a=-pi/4, b=pi/4, name='anglit')
 
 
 ## Arcsine distribution
 ##
 class arcsine_gen(rv_continuous):
+    """An arcsine continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `arcsine` is::
+
+        arcsine.pdf(x) = 1/(pi*sqrt(x*(1-x)))
+        for 0 < x < 1.
+
+    %(example)s
+
+    """
     def _pdf(self, x):
         return 1.0/pi/sqrt(x*(1-x))
     def _cdf(self, x):
@@ -2823,18 +2874,28 @@ class arcsine_gen(rv_continuous):
         return mu, mu2, g1, g2
     def _entropy(self):
         return -0.24156447527049044468
-arcsine = arcsine_gen(a=0.0,b=1.0,name='arcsine',extradoc="""
-
-Arcsine distribution
-
-arcsine.pdf(x) = 1/(pi*sqrt(x*(1-x)))
-for 0 < x < 1.
-""")
+arcsine = arcsine_gen(a=0.0, b=1.0, name='arcsine')
 
 
 ## Beta distribution
 ##
 class beta_gen(rv_continuous):
+    """A beta continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `beta` is::
+
+        beta.pdf(x, a, b) = gamma(a+b)/(gamma(a)*gamma(b)) * x**(a-1) *
+        (1-x)**(b-1),
+
+    for ``0 < x < 1``, ``a > 0``, ``b > 0``.
+
+    %(example)s
+
+    """
     def _rvs(self, a, b):
         return mtrand.beta(a,b,self._size)
     def _pdf(self, x, a, b):
@@ -2882,16 +2943,27 @@ class beta_gen(rv_continuous):
             return a, b, floc, fscale
         else: # do general fit
             return super(beta_gen, self).fit(data, *args, **kwds)
-beta = beta_gen(a=0.0, b=1.0, name='beta',shapes='a, b',extradoc="""
+beta = beta_gen(a=0.0, b=1.0, name='beta', shapes='a, b')
 
-Beta distribution
-
-beta.pdf(x, a, b) = gamma(a+b)/(gamma(a)*gamma(b)) * x**(a-1) * (1-x)**(b-1)
-for 0 < x < 1, a, b > 0.
-""")
 
 ## Beta Prime
 class betaprime_gen(rv_continuous):
+    """A beta prima continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `betaprime` is::
+
+        betaprime.pdf(x, a, b) =
+            gamma(a+b) / (gamma(a)*gamma(b)) * x**(a-1) * (1-x)**(-a-b)
+
+    for ``x > 0``, ``a > 0``, ``b > 0``.
+
+    %(example)s
+
+    """
     def _rvs(self, a, b):
         u1 = gamma.rvs(a,size=self._size)
         u2 = gamma.rvs(b,size=self._size)
@@ -2918,20 +2990,28 @@ class betaprime_gen(rv_continuous):
                                                     *(b-2.0)*(b-1.0)), inf)
         else:
             raise NotImplementedError
-betaprime = betaprime_gen(a=0.0, b=500.0, name='betaprime', shapes='a, b',
-                          extradoc="""
+betaprime = betaprime_gen(a=0.0, b=500.0, name='betaprime', shapes='a, b')
 
-Beta prime distribution
-
-betaprime.pdf(x, a, b) = gamma(a+b)/(gamma(a)*gamma(b))
-                     * x**(a-1) * (1-x)**(-a-b)
-for x > 0, a, b > 0.
-""")
 
 ## Bradford
 ##
 
 class bradford_gen(rv_continuous):
+    """A Bradford continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `bradford` is::
+
+        bradford.pdf(x, c) = c / (k * (1+c*x)),
+
+    for ``0 < x < 1``, ``c > 0`` and ``k = log(1+c)``.
+
+    %(example)s
+
+    """
     def _pdf(self, x, c):
         return  c / (c*x + 1.0) / log1p(c)
     def _cdf(self, x, c):
@@ -2955,20 +3035,28 @@ class bradford_gen(rv_continuous):
     def _entropy(self, c):
         k = log1p(c)
         return k / 2.0 - log(c / k)
-bradford = bradford_gen(a=0.0, b=1.0, name='bradford', longname="A Bradford",
-                        shapes='c', extradoc="""
-
-Bradford distribution
-
-bradford.pdf(x,c) = c/(k*(1+c*x))
-for 0 < x < 1, c > 0 and k = log(1+c).
-""")
+bradford = bradford_gen(a=0.0, b=1.0, name='bradford', shapes='c')
 
 
 ## Burr
 
 # burr with d=1 is called the fisk distribution
 class burr_gen(rv_continuous):
+    """A Burr continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `burr` is::
+
+        burr.pdf(x, c, d) = c * d * x**(-c-1) * (1+x**(-c))**(-d-1)
+
+    for ``x > 0``.
+
+    %(example)s
+
+    """
     def _pdf(self, x, c, d):
         return c*d*(x**(-c-1.0))*((1+x**(-c*1.0))**(-d-1.0))
     def _cdf(self, x, c, d):
@@ -2997,19 +3085,26 @@ class burr_gen(rv_continuous):
             g2 = 6*gd*g2c*g2cd * g1c**2 * g1cd**2 + gd**3 * g4c*g4cd
             g2 -= 3*g1c**4 * g1cd**4 -4*gd**2*g3c*g1c*g1cd*g3cd
         return mu, mu2, g1, g2
-burr = burr_gen(a=0.0, name='burr', longname="Burr",
-                shapes="c, d", extradoc="""
-
-Burr distribution
-
-burr.pdf(x,c,d) = c*d * x**(-c-1) * (1+x**(-c))**(-d-1)
-for x > 0.
-""")
+burr = burr_gen(a=0.0, name='burr', shapes="c, d")
 
 # Fisk distribution
 # burr is a generalization
 
 class fisk_gen(burr_gen):
+    """A Fisk continuous random variable.
+
+    The Fisk distribution is also known as the log-logistic distribution, and
+    equals the Burr distribution with ``d=1``.
+
+    %(before_notes)s
+
+    See Also
+    --------
+    burr
+
+    %(example)s
+
+    """
     def _pdf(self, x, c):
         return burr_gen._pdf(self, x, c, 1.0)
     def _cdf(self, x, c):
@@ -3020,22 +3115,26 @@ class fisk_gen(burr_gen):
         return burr_gen._stats(self, c, 1.0)
     def _entropy(self, c):
         return 2 - log(c)
-fisk = fisk_gen(a=0.0, name='fisk', longname="Fisk",
-                shapes='c', extradoc="""
-
-Fisk distribution.
-
-Also known as the log-logistic distribution.
-
-Burr distribution with d=1.
-"""
-                )
+fisk = fisk_gen(a=0.0, name='fisk', shapes='c')
 
 ## Cauchy
 
 # median = loc
 
 class cauchy_gen(rv_continuous):
+    """A Cauchy continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `cauchy` is::
+
+        cauchy.pdf(x) = 1 / (pi * (1 + x**2))
+
+    %(example)s
+
+    """
     def _pdf(self, x):
         return 1.0/pi/(1.0+x*x)
     def _cdf(self, x):
@@ -3050,15 +3149,8 @@ class cauchy_gen(rv_continuous):
         return inf, inf, nan, nan
     def _entropy(self):
         return log(4*pi)
-cauchy = cauchy_gen(name='cauchy',longname='Cauchy',extradoc="""
+cauchy = cauchy_gen(name='cauchy')
 
-Cauchy distribution
-
-cauchy.pdf(x) = 1/(pi*(1+x**2))
-
-This is the t distribution with one degree of freedom.
-"""
-                    )
 
 ## Chi
 ##   (positive square-root of chi-square)
@@ -3067,6 +3159,21 @@ This is the t distribution with one degree of freedom.
 ##   chi(3, 0, scale) = MaxWell
 
 class chi_gen(rv_continuous):
+    """A chi continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `chi` is::
+
+        chi.pdf(x,df) = x**(df-1) * exp(-x**2/2) / (2**(df/2-1) * gamma(df/2))
+
+    for ``x > 0``.
+
+    %(example)s
+
+    """
     def _rvs(self, df):
         return sqrt(chi2.rvs(df,size=self._size))
     def _pdf(self, x, df):
@@ -3082,18 +3189,24 @@ class chi_gen(rv_continuous):
         g2 = 2*df*(1.0-df)-6*mu**4 + 4*mu**2 * (2*df-1)
         g2 /= arr(mu2**2.0)
         return mu, mu2, g1, g2
-chi = chi_gen(a=0.0,name='chi',shapes='df',extradoc="""
-
-Chi distribution
-
-chi.pdf(x,df) = x**(df-1)*exp(-x**2/2)/(2**(df/2-1)*gamma(df/2))
-for x > 0.
-"""
-              )
+chi = chi_gen(a=0.0, name='chi', shapes='df')
 
 
 ## Chi-squared (gamma-distributed with loc=0 and scale=2 and shape=df/2)
 class chi2_gen(rv_continuous):
+    """A chi-squared continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `chi2` is::
+
+        chi2.pdf(x,df) = 1 / (2*gamma(df/2)) * (x/2)**(df/2-1) * exp(-x/2)
+
+    %(example)s
+
+    """
     def _rvs(self, df):
         return mtrand.chisquare(df,self._size)
     def _pdf(self, x, df):
@@ -3120,17 +3233,27 @@ class chi2_gen(rv_continuous):
         g1 = 2*sqrt(2.0/df)
         g2 = 12.0/df
         return mu, mu2, g1, g2
-chi2 = chi2_gen(a=0.0,name='chi2',longname='A chi-squared',shapes='df',
-                extradoc="""
+chi2 = chi2_gen(a=0.0, name='chi2', shapes='df')
 
-Chi-squared distribution
-
-chi2.pdf(x,df) = 1/(2*gamma(df/2)) * (x/2)**(df/2-1) * exp(-x/2)
-"""
-                )
 
 ## Cosine (Approximation to the Normal)
 class cosine_gen(rv_continuous):
+    """A cosine continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The cosine distribution is an approximation to the normal distribution.
+    The probability density function for `cosine` is::
+
+        cosine.pdf(x) = 1/(2*pi) * (1+cos(x))
+
+    for ``-pi <= x <= pi``.
+
+    %(example)s
+
+    """
     def _pdf(self, x):
         return 1.0/2/pi*(1+cos(x))
     def _cdf(self, x):
@@ -3139,16 +3262,26 @@ class cosine_gen(rv_continuous):
         return 0.0, pi*pi/3.0-2.0, 0.0, -6.0*(pi**4-90)/(5.0*(pi*pi-6)**2)
     def _entropy(self):
         return log(4*pi)-1.0
-cosine = cosine_gen(a=-pi,b=pi,name='cosine',extradoc="""
+cosine = cosine_gen(a=-pi, b=pi, name='cosine')
 
-Cosine distribution (approximation to the normal)
-
-cosine.pdf(x) = 1/(2*pi) * (1+cos(x))
-for -pi <= x <= pi.
-""")
 
 ## Double Gamma distribution
 class dgamma_gen(rv_continuous):
+    """A double gamma continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `dgamma` is::
+
+        dgamma.pdf(x, a) = 1 / (2*gamma(a)) * abs(x)**(a-1) * exp(-abs(x))
+
+    for ``a > 0``.
+
+    %(example)s
+
+    """
     def _rvs(self, a):
         u = random(size=self._size)
         return (gamma.rvs(a,size=self._size)*where(u>=0.5,1,-1))
@@ -3171,19 +3304,25 @@ class dgamma_gen(rv_continuous):
     def _stats(self, a):
         mu2 = a*(a+1.0)
         return 0.0, mu2, 0.0, (a+2.0)*(a+3.0)/mu2-3.0
-dgamma = dgamma_gen(name='dgamma',longname="A double gamma",
-                    shapes='a',extradoc="""
+dgamma = dgamma_gen(name='dgamma', shapes='a')
 
-Double gamma distribution
-
-dgamma.pdf(x,a) = 1/(2*gamma(a))*abs(x)**(a-1)*exp(-abs(x))
-for a > 0.
-"""
-                    )
 
 ## Double Weibull distribution
 ##
 class dweibull_gen(rv_continuous):
+    """A double Weibull continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `dweibull` is::
+
+        dweibull.pdf(x, c) = c / 2 * abs(x)**(c-1) * exp(-abs(x)**c)
+
+    %(example)s
+
+    """
     def _rvs(self, c):
         u = random(size=self._size)
         return weibull_min.rvs(c, size=self._size)*(where(u>=0.5,1,-1))
@@ -3204,20 +3343,26 @@ class dweibull_gen(rv_continuous):
     def _stats(self, c):
         var = gam(1+2.0/c)
         return 0.0, var, 0.0, gam(1+4.0/c)/var
-dweibull = dweibull_gen(name='dweibull',longname="A double Weibull",
-                        shapes='c',extradoc="""
+dweibull = dweibull_gen(name='dweibull', shapes='c')
 
-Double Weibull distribution
-
-dweibull.pdf(x,c) = c/2*abs(x)**(c-1)*exp(-abs(x)**c)
-"""
-                        )
 
 ## ERLANG
 ##
 ## Special case of the Gamma distribution with shape parameter an integer.
 ##
 class erlang_gen(rv_continuous):
+    """An Erlang continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The Erlang distribution is a special case of the Gamma distribution, with
+    the shape parameter an integer.
+
+    %(example)s
+
+    """
     def _rvs(self, n):
         return gamma.rvs(n,size=self._size)
     def _arg_check(self, n):
@@ -3238,17 +3383,30 @@ class erlang_gen(rv_continuous):
         return n, n, 2/sqrt(n), 6/n
     def _entropy(self, n):
         return special.psi(n)*(1-n) + 1 + gamln(n)
-erlang = erlang_gen(a=0.0,name='erlang',longname='An Erlang',
-                    shapes='n',extradoc="""
+erlang = erlang_gen(a=0.0, name='erlang', shapes='n')
 
-Erlang distribution (Gamma with integer shape parameter)
-"""
-                    )
 
 ## Exponential (gamma distributed with a=1.0, loc=loc and scale=scale)
 ## scale == 1.0 / lambda
 
 class expon_gen(rv_continuous):
+    """An exponential continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `expon` is::
+
+        expon.pdf(x) = exp(-x)
+
+    for ``x >= 0``.
+
+    The scale parameter is equal to ``scale = 1.0 / lambda``.
+
+    %(example)s
+
+    """
     def link(self, x, logSF, phat, ix):
         ''' Link for x,SF and parameters of Exponential distribution
 
@@ -3293,22 +3451,27 @@ class expon_gen(rv_continuous):
         return 1.0, 1.0, 2.0, 6.0
     def _entropy(self):
         return 1.0
-expon = expon_gen(a=0.0,name='expon',longname="An exponential",
-                  extradoc="""
-
-Exponential distribution
-
-expon.pdf(x) = exp(-x)
-for x >= 0.
-
-scale = 1.0 / lambda
-"""
-                  )
+expon = expon_gen(a=0.0, name='expon')
 
 
 ## Exponentiated Weibull
 class exponweib_gen(rv_continuous):
+    """An exponentiated Weibull continuous random variable.
 
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `exponweib` is::
+
+        exponweib.pdf(x, a, c) =
+            a * c * (1-exp(-x**c))**(a-1) * exp(-x**c)*x**(c-1)
+
+    for ``x > 0``, ``a > 0``, ``c > 0``.
+
+    %(example)s
+
+    """
     def _pdf(self, x, a, c):
         exc = exp(-x**c)
         return a*c*(1-exc)**arr(a-1) * exc * x**(c-1)
@@ -3320,20 +3483,27 @@ class exponweib_gen(rv_continuous):
         return arr((exm1c)**a)
     def _ppf(self, q, a, c):
         return (-log1p(-q**(1.0/a)))**arr(1.0/c)
-exponweib = exponweib_gen(a=0.0,name='exponweib',
-                          longname="An exponentiated Weibull",
-                          shapes="a, c",extradoc="""
+exponweib = exponweib_gen(a=0.0, name='exponweib', shapes="a, c")
 
-Exponentiated Weibull distribution
-
-exponweib.pdf(x,a,c) = a*c*(1-exp(-x**c))**(a-1)*exp(-x**c)*x**(c-1)
-for x > 0, a, c > 0.
-"""
-                          )
 
 ## Exponential Power
 
 class exponpow_gen(rv_continuous):
+    """An exponential power continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `exponpow` is::
+
+        exponpow.pdf(x, b) = b * x**(b-1) * exp(1+x**b - exp(x**b))
+
+    for ``x >= 0``, ``b > 0``.
+
+    %(example)s
+
+    """
     def _pdf(self, x, b):
         xbm1 = arr(x**(b-1.0))
         xb = xbm1 * x
@@ -3351,18 +3521,27 @@ class exponpow_gen(rv_continuous):
         return (log1p(-log(x)))**(1./b)
     def _ppf(self, q, b):
         return pow(log1p(-log1p(-q)), 1.0/b)
-exponpow = exponpow_gen(a=0.0,name='exponpow',longname="An exponential power",
-                        shapes='b',extradoc="""
+exponpow = exponpow_gen(a=0.0, name='exponpow', shapes='b')
 
-Exponential Power distribution
-
-exponpow.pdf(x,b) = b*x**(b-1) * exp(1+x**b - exp(x**b))
-for x >= 0, b > 0.
-"""
-                        )
 
 ## Fatigue-Life (Birnbaum-Sanders)
 class fatiguelife_gen(rv_continuous):
+    """A fatigue-life (Birnbaum-Sanders) continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `fatiguelife` is::
+
+        fatiguelife.pdf(x,c) =
+            (x+1) / (2*c*sqrt(2*pi*x**3)) * exp(-(x-1)**2/(2*x*c**2))
+
+    for ``x > 0``.
+
+    %(example)s
+
+    """
     def _rvs(self, c):
         z = norm.rvs(size=self._size)
         x = 0.5*c*z
@@ -3386,20 +3565,27 @@ class fatiguelife_gen(rv_continuous):
         g1 = 4*c*sqrt(11*c2+6.0)/den**1.5
         g2 = 6*c2*(93*c2+41.0) / den**2.0
         return mu, mu2, g1, g2
-fatiguelife = fatiguelife_gen(a=0.0,name='fatiguelife',
-                              longname="A fatigue-life (Birnbaum-Sanders)",
-                              shapes='c',extradoc="""
+fatiguelife = fatiguelife_gen(a=0.0, name='fatiguelife', shapes='c')
 
-Fatigue-life (Birnbaum-Sanders) distribution
-
-fatiguelife.pdf(x,c) = (x+1)/(2*c*sqrt(2*pi*x**3)) * exp(-(x-1)**2/(2*x*c**2))
-for x > 0.
-"""
-                              )
 
 ## Folded Cauchy
 
 class foldcauchy_gen(rv_continuous):
+    """A folded Cauchy continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `foldcauchy` is::
+
+        foldcauchy.pdf(x, c) = 1/(pi*(1+(x-c)**2)) + 1/(pi*(1+(x+c)**2))
+
+    for ``x >= 0``.
+
+    %(example)s
+
+    """
     def _rvs(self, c):
         return abs(cauchy.rvs(loc=c,size=self._size))
     def _pdf(self, x, c):
@@ -3409,20 +3595,29 @@ class foldcauchy_gen(rv_continuous):
     def _stats(self, c):
         return inf, inf, nan, nan
 # setting xb=1000 allows to calculate ppf for up to q=0.9993
-foldcauchy = foldcauchy_gen(a=0.0, name='foldcauchy',xb=1000,
-                            longname = "A folded Cauchy",
-                            shapes='c',extradoc="""
+foldcauchy = foldcauchy_gen(a=0.0, name='foldcauchy', xb=1000, shapes='c')
 
-A folded Cauchy distributions
-
-foldcauchy.pdf(x,c) = 1/(pi*(1+(x-c)**2)) + 1/(pi*(1+(x+c)**2))
-for x >= 0.
-"""
-                            )
 
 ## F
 
 class f_gen(rv_continuous):
+    """An F continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `f` is::
+
+                             df2**(df2/2) * df1**(df1/2) * x**(df1/2-1)
+        F.pdf(x, df1, df2) = --------------------------------------------
+                             (df2+df1*x)**((df1+df2)/2) * B(df1/2, df2/2)
+
+    for ``x > 0``.
+
+    %(example)s
+
+    """
     def _rvs(self, dfn, dfd):
         return mtrand.f(dfn, dfd, self._size)
     def _pdf(self, x, dfn, dfd):
@@ -3454,17 +3649,8 @@ class f_gen(rv_continuous):
         g2 = 3/(2*v2-16)*(8+g1*g1*(v2-6))
         g2 = where(v2 > 8, g2, nan)
         return mu, mu2, g1, g2
-f = f_gen(a=0.0,name='f',longname='An F',shapes="dfn, dfd",
-          extradoc="""
+f = f_gen(a=0.0, name='f', shapes="dfn, dfd")
 
-F distribution
-
-                   df2**(df2/2) * df1**(df1/2) * x**(df1/2-1)
-F.pdf(x,df1,df2) = --------------------------------------------
-                   (df2+df1*x)**((df1+df2)/2) * B(df1/2, df2/2)
-for x > 0.
-"""
-          )
 
 ## Folded Normal
 ##   abs(Z) where (Z is normal with mu=L and std=S so that c=abs(L)/S)
@@ -3475,6 +3661,21 @@ for x > 0.
 ##  Half-normal is folded normal with shape-parameter c=0.
 
 class foldnorm_gen(rv_continuous):
+    """A folded normal continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `foldnorm` is::
+
+        foldnormal.pdf(x, c) = sqrt(2/pi) * cosh(c*x) * exp(-(x**2+c**2)/2)
+
+    for ``c >= 0``.
+
+    %(example)s
+
+    """
     def _rvs(self, c):
         return abs(norm.rvs(loc=c,size=self._size))
     def _pdf(self, x, c):
@@ -3495,21 +3696,34 @@ class foldnorm_gen(rv_continuous):
         g2 -= 4*exp(-c2/2.0)*mu*(sqrt(2.0/pi)*(c2+2)+c*(c2+3)*exp(c2/2.0)*fac)
         g2 /= mu2**2.0
         return mu, mu2, g1, g2
-foldnorm = foldnorm_gen(a=0.0,name='foldnorm',longname='A folded normal',
-                        shapes='c',extradoc="""
+foldnorm = foldnorm_gen(a=0.0, name='foldnorm', shapes='c')
 
-Folded normal distribution
-
-foldnormal.pdf(x,c) = sqrt(2/pi) * cosh(c*x) * exp(-(x**2+c**2)/2)
-for c >= 0.
-"""
-                        )
 
 ## Extreme Value Type II or Frechet
 ## (defined in Regress+ documentation as Extreme LB) as
 ##   a limiting value distribution.
 ##
 class frechet_r_gen(rv_continuous):
+    """A Frechet right (or Weibull minimum) continuous random variable.
+
+    %(before_notes)s
+
+    See Also
+    --------
+    weibull_min : The same distribution as `frechet_r`.
+    frechet_l, weibull_max
+
+    Notes
+    -----
+    The probability density function for `frechet_r` is::
+
+        frechet_r.pdf(x, c) = c * x**(c-1) * exp(-x**c)
+
+    for ``x > 0``, ``c > 0``.
+
+    %(example)s
+
+    """
     def link(self, x, logSF, phat, ix):
         u = phat[1]
         if ix == 0:
@@ -3534,27 +3748,32 @@ class frechet_r_gen(rv_continuous):
         return special.gamma(1.0+n*1.0/c)
     def _entropy(self, c):
         return -_EULER / c - log(c) + _EULER + 1
-frechet_r = frechet_r_gen(a=0.0,name='frechet_r',longname="A Frechet right",
-                          shapes='c',extradoc="""
+frechet_r = frechet_r_gen(a=0.0, name='frechet_r', shapes='c')
+weibull_min = frechet_r_gen(a=0.0, name='weibull_min', shapes='c')
 
-A Frechet (right) distribution (also called Weibull minimum)
 
-frechet_r.pdf(x,c) = c*x**(c-1)*exp(-x**c)
-for x > 0, c > 0.
-"""
-                          )
-weibull_min = frechet_r_gen(a=0.0,name='weibull_min',
-                            longname="A Weibull minimum",
-                            shapes='c',extradoc="""
-
-A Weibull minimum distribution (also called a Frechet (right) distribution)
-
-weibull_min.pdf(x,c) = c*x**(c-1)*exp(-x**c)
-for x > 0, c > 0.
-"""
-                            )
 
 class frechet_l_gen(rv_continuous):
+    """A Frechet left (or Weibull maximum) continuous random variable.
+
+    %(before_notes)s
+
+    See Also
+    --------
+    weibull_max : The same distribution as `frechet_l`.
+    frechet_r, weibull_min
+
+    Notes
+    -----
+    The probability density function for `frechet_l` is::
+
+        frechet_l.pdf(x, c) = c * (-x)**(c-1) * exp(-(-x)**c)
+
+    for ``x < 0``, ``c > 0``.
+
+    %(example)s
+
+    """
     def _pdf(self, x, c):
         return c*pow(-x,c-1)*exp(-pow(-x,c))
     def _cdf(self, x, c):
@@ -3563,35 +3782,35 @@ class frechet_l_gen(rv_continuous):
         return -pow(-log(q),1.0/c)
     def _munp(self, n, c):
         val = special.gamma(1.0+n*1.0/c)
-        if (int(n) % 2): sgn = -1
-        else:            sgn = 1
-        return sgn*val
+        if (int(n) % 2):
+            sgn = -1
+        else:
+            sgn = 1
+        return sgn * val
     def _entropy(self, c):
         return -_EULER / c - log(c) + _EULER + 1
-frechet_l = frechet_l_gen(b=0.0,name='frechet_l',longname="A Frechet left",
-                          shapes='c',extradoc="""
-
-A Frechet (left) distribution (also called Weibull maximum)
-
-frechet_l.pdf(x,c) = c * (-x)**(c-1) * exp(-(-x)**c)
-for x < 0, c > 0.
-"""
-                          )
-weibull_max = frechet_l_gen(b=0.0,name='weibull_max',
-                            longname="A Weibull maximum",
-                            shapes='c',extradoc="""
-
-A Weibull maximum distribution (also called a Frechet (left) distribution)
-
-weibull_max.pdf(x,c) = c * (-x)**(c-1) * exp(-(-x)**c)
-for x < 0, c > 0.
-"""
-                            )
+frechet_l = frechet_l_gen(b=0.0, name='frechet_l', shapes='c')
+weibull_max = frechet_l_gen(b=0.0, name='weibull_max', shapes='c')
 
 
 ## Generalized Logistic
 ##
 class genlogistic_gen(rv_continuous):
+    """A generalized logistic continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `genlogistic` is::
+
+        genlogistic.pdf(x, c) = c * exp(-x) / (1 + exp(-x))**(c+1)
+
+    for ``x > 0``, ``c > 0``.
+
+    %(example)s
+
+    """
     def _pdf(self, x, c):
         Px = c*exp(-x)/(1+exp(-x))**(c+1.0)
         return Px
@@ -3612,16 +3831,8 @@ class genlogistic_gen(rv_continuous):
         g2 = pi**4/15.0 + 6*zeta(4,c)
         g2 /= mu2**2.0
         return mu, mu2, g1, g2
-genlogistic = genlogistic_gen(name='genlogistic',
-                              longname="A generalized logistic",
-                              shapes='c',extradoc="""
+genlogistic = genlogistic_gen(name='genlogistic', shapes='c')
 
-Generalized logistic distribution
-
-genlogistic.pdf(x,c) = c*exp(-x) / (1+exp(-x))**(c+1)
-for x > 0, c > 0.
-"""
-                              )
 
 def log1pxdx(x):
     '''Computes Log(1+x)/x
@@ -3636,6 +3847,26 @@ def log1pxdx(x):
 
 ## Generalized Pareto
 class genpareto_gen(rv_continuous):
+    """A generalized Pareto continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `genpareto` is::
+        
+        genpareto.pdf(x, c) = exp(-x) 
+
+    for c==0
+
+        genpareto.pdf(x, c) = (1 + c * x)**(-1 - 1/c)
+
+    for ``c != 0``, and for ``x >= 0`` for all c,
+    and ``x < 1/abs(c)`` for ``c < 0``.
+
+    %(example)s
+
+    """
     def link(self, x, logSF, phat, ix):
         # Reference
         # Stuart Coles (2004)
@@ -3666,18 +3897,19 @@ class genpareto_gen(rv_continuous):
         self.b = where(c < 0, 1.0 / abs(c), inf)
         return where(abs(c) == inf, 0, 1)
     def _pdf(self, x, c):
-        cx = where((c == 0) & (x == inf), 0.0, c * x).clip(min= -1.0)
-        #putmask(cx,cx<-1,-1.0)
-        logpdf = where((cx == inf) | (cx == -1), -inf, -(x + cx) * log1pxdx(cx))
-        putmask(logpdf, (c == -1) & (x == 1.0), 0.0)
-        return exp(logpdf)
-
-        #%f = exp(-xn)./s;                   % for  k==0
-        #%f = (1+k.*xn).^(-1./k-1)/s;        % for  k~=0
-        #%f = exp((-1./k-1).*log1p(kxn))/s  % for  k~=0
-        #%f = exp((-xn-kxn).*log1p(kxn)./(kxn))/s  % for any k kxn~=inf
+		#%f = exp(-xn)/s;                   % for  k==0
+        #%f = (1+k.*xn)**(-1./k-1)/s;        % for  k~=0
+        #%f = exp((-1./k-1)*log1p(kxn))/s  % for  k~=0
+        #%f = exp((-xn-kxn)*log1p(kxn)/(kxn))/s  % for any k kxn~=inf        
+        return exp(self._logpdf(x, c)
         #Px = pow(1+c*x,arr(-1.0-1.0/c))
         #return Px
+   def _logpdf(self, x, c):
+		cx = where((c == 0) & (x == inf), 0.0, c * x).clip(min= -1.0)
+        logpdf = where((cx == inf) | (cx == -1), -inf, -(x + cx) * log1pxdx(cx))
+        putmask(logpdf, (c == -1) & (x == 1.0), 0.0)
+		return logpdf
+        #return (-1.0-1.0/c) * np.log1p(c*x)
     def _chf(self, x, c):
         cx = c * x
         return where((0.0 < x) & (-1.0 <= cx) & (c != 0), log1p(cx) / c, x)
@@ -3696,7 +3928,6 @@ class genpareto_gen(rv_continuous):
     def _isf(self, q, c):
         log_sf = log(q)
         return self._isf2(log_sf, c)
-
         #vals = 1.0/c * (pow(1-q, -c)-1)
         #return vals
         
@@ -3790,21 +4021,36 @@ class genpareto_gen(rv_continuous):
             self.b = -1.0 / c
             return rv_continuous._entropy(self, c)
 
-genpareto = genpareto_gen(a=0.0,name='genpareto',
-                          longname="A generalized Pareto",
-                          shapes='c',extradoc="""
+genpareto = genpareto_gen(a=0.0, name='genpareto', shapes='c')
 
-Generalized Pareto distribution
-
-genpareto.pdf(x,c) = exp(-x) for c==0
-genpareto.pdf(x,c) = (1+c*x)**(-1-1/c)
-for c != 0, and for x >= 0 for all c, and x < 1/abs(c) for c < 0.
-"""
-                          )
 
 ## Generalized Exponential
 
 class genexpon_gen(rv_continuous):
+    """A generalized exponential continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `genexpon` is::
+
+        genexpon.pdf(x, a, b, c) = (a + b * (1 - exp(-c*x))) * \
+                                   exp(-a*x - b*x + b/c * (1-exp(-c*x)))
+
+    for ``x >= 0``, ``a,b,c > 0``.
+
+    References
+    ----------
+    "An Extension of Marshall and Olkin's Bivariate Exponential Distribution",
+    H.K. Ryu, Journal of the American Statistical Association, 1993.
+
+    "The Exponential Distribution: Theory, Methods and Applications",
+    N. Balakrishnan, Asit P. Basu.
+
+    %(example)s
+
+    """
     def link(self, x, logSF, phat, ix):
         xn = (x - phat[3]) / phat[4]
         b = phat[1]
@@ -3824,23 +4070,8 @@ class genexpon_gen(rv_continuous):
         return -expm1((-a-b)*x + b*(-expm1(-c*x))/c)
     def _logpdf(self, x, a, b, c):
         return np.log(a+b*(-expm1(-c*x))) + (-a-b)*x+b*(-expm1(-c*x))/c
-genexpon = genexpon_gen(a=0.0,name='genexpon',
-                        longname='A generalized exponential',
-                        shapes='a, b, c',extradoc="""
+genexpon = genexpon_gen(a=0.0, name='genexpon', shapes='a, b, c')
 
-Generalized exponential distribution (Ryu 1993)
-
-f(x,a,b,c) = (a+b*(1-exp(-c*x))) * exp(-a*x-b*x+b/c*(1-exp(-c*x)))
-for x >= 0, a,b,c > 0.
-
-a, b, c are the first, second and third shape parameters.
-
-References
-----------
-"The Exponential Distribution: Theory, Methods and Applications",
-N. Balakrishnan, Asit P. Basu
-"""
-                        )
 
 ## Generalized Extreme Value
 ##  c=0 is just gumbel distribution.
@@ -3852,6 +4083,26 @@ N. Balakrishnan, Asit P. Basu
 # increased precision for small c
 
 class genextreme_gen(rv_continuous):
+    """A generalized extreme value continuous random variable.
+
+    %(before_notes)s
+
+    See Also
+    --------
+    gumbel_r
+
+    Notes
+    -----
+    For ``c=0``, `genextreme` is equal to `gumbel_r`.
+    The probability density function for `genextreme` is::
+
+        genextreme.pdf(x, c) =
+            exp(-exp(-x))*exp(-x),                    for c==0
+            exp(-(1-c*x)**(1/c))*(1-c*x)**(1/c-1),    for x <= 1/c, c > 0
+
+    %(example)s
+
+    """
     def _argcheck(self, c):
         min = np.minimum
         max = np.maximum
@@ -3931,19 +4182,8 @@ class genextreme_gen(rv_continuous):
         shape = 7.8590 * z + 2.9554 * z ** 2
         scale = (2 * b1 - b0) * shape / (exp(gamln(1 + shape)) * (1 - 2 ** (-shape)))
         loc = b0 + scale * (expm1(gamln(1 + shape))) / shape
-        return shape, loc, scale 
-        
-genextreme = genextreme_gen(name='genextreme',
-                            longname="A generalized extreme value",
-                            shapes='c',extradoc="""
-
-Generalized extreme value (see gumbel_r for c=0)
-
-genextreme.pdf(x,c) = exp(-exp(-x))*exp(-x) for c==0
-genextreme.pdf(x,c) = exp(-(1-c*x)**(1/c))*(1-c*x)**(1/c-1)
-for x <= 1/c, c > 0
-"""
-                            )
+        return shape, loc, scale         
+genextreme = genextreme_gen(name='genextreme', shapes='c')
 
 ## Gamma (Use MATLAB and MATHEMATICA (b=theta=scale, a=alpha=shape) definition)
 
@@ -3952,10 +4192,32 @@ for x <= 1/c, c > 0
 ## gamma(df/2, 0, 2) is the chi2 distribution with df degrees of freedom.
 
 class gamma_gen(rv_continuous):
+    """A gamma continuous random variable.
+
+    %(before_notes)s
+
+    See Also
+    --------
+    erlang, expon
+
+    Notes
+    -----
+    When ``a`` is an integer, this is the Erlang distribution, and for ``a=1``
+    it is the exponential distribution.
+
+    The probability density function for `gamma` is::
+
+        gamma.pdf(x, a) = x**(a-1) * exp(-x) / gamma(a)
+
+    for ``x >= 0``, ``a > 0``.
+
+    %(example)s
+
+    """
     def _rvs(self, a):
         return mtrand.standard_gamma(a, self._size)
     def _pdf(self, x, a):
-        return x**(a-1)*exp(-x)/special.gamma(a)
+        return exp(self._logpdf(x, a))
     def _logpdf(self, x, a):
         return (a-1)*log(x) - x - gamln(a)
     def _cdf(self, x, a):
@@ -3985,21 +4247,26 @@ class gamma_gen(rv_continuous):
             return a, floc, scale
         else:
             return super(gamma_gen, self).fit(data, *args, **kwds)
-gamma = gamma_gen(a=0.0,name='gamma',longname='A gamma',
-                  shapes='a',extradoc="""
+gamma = gamma_gen(a=0.0, name='gamma', shapes='a')
 
-Gamma distribution
-
-For a = integer, this is the Erlang distribution, and for a=1 it is the
-exponential distribution.
-
-gamma.pdf(x,a) = x**(a-1)*exp(-x)/gamma(a)
-for x >= 0, a > 0.
-"""
-                  )
 
 # Generalized Gamma
 class gengamma_gen(rv_continuous):
+    """A generalized gamma continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `gengamma` is::
+
+        gengamma.pdf(x, a, c) = abs(c) * x**(c*a-1) * exp(-x**c) / gamma(a)
+
+    for ``x > 0``, ``a > 0``, and ``c != 0``.
+
+    %(example)s
+
+    """
     def _argcheck(self, a, c):
         return (a > 0) & (c != 0)
     def _pdf(self, x, a, c):
@@ -4019,21 +4286,28 @@ class gengamma_gen(rv_continuous):
     def _entropy(self, a,c):
         val = special.psi(a)
         return a*(1-val) + 1.0/c*val + gamln(a)-log(abs(c))
-gengamma = gengamma_gen(a=0.0, name='gengamma',
-                        longname='A generalized gamma',
-                        shapes="a, c", extradoc="""
+gengamma = gengamma_gen(a=0.0, name='gengamma', shapes="a, c")
 
-Generalized gamma distribution
-
-gengamma.pdf(x,a,c) = abs(c)*x**(c*a-1)*exp(-x**c)/gamma(a)
-for x > 0, a > 0, and c != 0.
-"""
-                        )
 
 ##  Generalized Half-Logistic
 ##
 
 class genhalflogistic_gen(rv_continuous):
+    """A generalized half-logistic continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `genhalflogistic` is::
+
+        genhalflogistic.pdf(x, c) = 2 * (1-c*x)**(1/c-1) / (1+(1-c*x)**(1/c))**2
+
+    for ``0 <= x <= 1/c``, and ``c > 0``.
+
+    %(example)s
+
+    """
     def _argcheck(self, c):
         self.b = 1.0 / c
         return (c > 0)
@@ -4053,20 +4327,28 @@ class genhalflogistic_gen(rv_continuous):
     def _entropy(self,c):
         return 2 - (2*c+1)*log(2)
 genhalflogistic = genhalflogistic_gen(a=0.0, name='genhalflogistic',
-                                      longname="A generalized half-logistic",
-                                      shapes='c',extradoc="""
+                                      shapes='c')
 
-Generalized half-logistic
-
-genhalflogistic.pdf(x,c) = 2*(1-c*x)**(1/c-1) / (1+(1-c*x)**(1/c))**2
-for 0 <= x <= 1/c, and c > 0.
-"""
-                                      )
 
 ## Gompertz (Truncated Gumbel)
 ##  Defined for x>=0
 
 class gompertz_gen(rv_continuous):
+    """A Gompertz (or truncated Gumbel) continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `gompertz` is::
+
+        gompertz.pdf(x, c) = c * exp(x) * exp(-c*(exp(x)-1))
+
+    for ``x >= 0``, ``c > 0``.
+
+    %(example)s
+
+    """
     def _pdf(self, x, c):
         ex = exp(x)
         return c*ex*exp(-c*(ex-1))
@@ -4076,22 +4358,35 @@ class gompertz_gen(rv_continuous):
         return log1p(-1.0/c*log1p(-q))
     def _entropy(self, c):
         return 1.0 - log(c) - exp(c)*special.expn(1,c)
-gompertz = gompertz_gen(a=0.0, name='gompertz',
-                        longname="A Gompertz (truncated Gumbel) distribution",
-                        shapes='c',extradoc="""
+gompertz = gompertz_gen(a=0.0, name='gompertz', shapes='c')
 
-Gompertz (truncated Gumbel) distribution
-
-gompertz.pdf(x,c) = c*exp(x) * exp(-c*(exp(x)-1))
-for x >= 0, c > 0.
-"""
-                        )
 
 ## Gumbel, Log-Weibull, Fisher-Tippett, Gompertz
 ## The left-skewed gumbel distribution.
 ## and right-skewed are available as gumbel_l  and gumbel_r
 
 class gumbel_r_gen(rv_continuous):
+    """A right-skewed Gumbel continuous random variable.
+
+    %(before_notes)s
+
+    See Also
+    --------
+    gumbel_l, gompertz, genextreme
+
+    Notes
+    -----
+    The probability density function for `gumbel_r` is::
+
+        gumbel_r.pdf(x) = exp(-(x + exp(-x)))
+
+    The Gumbel distribution is sometimes referred to as a type I Fisher-Tippett
+    distribution.  It is also related to the extreme value distribution,
+    log-Weibull and Gompertz distributions.
+
+    %(example)s
+
+    """
     def _pdf(self, x):
         ex = exp(-x)
         return ex*exp(-ex)
@@ -4108,15 +4403,31 @@ class gumbel_r_gen(rv_continuous):
                12*sqrt(6)/pi**3 * _ZETA3, 12.0/5
     def _entropy(self):
         return 1.0608407169541684911
-gumbel_r = gumbel_r_gen(name='gumbel_r',longname="A (right-skewed) Gumbel",
-                        extradoc="""
+gumbel_r = gumbel_r_gen(name='gumbel_r')
 
-Right-skewed Gumbel (Log-Weibull, Fisher-Tippett, Gompertz) distribution
 
-gumbel_r.pdf(x) = exp(-(x+exp(-x)))
-"""
-                        )
 class gumbel_l_gen(rv_continuous):
+    """A left-skewed Gumbel continuous random variable.
+
+    %(before_notes)s
+
+    See Also
+    --------
+    gumbel_r, gompertz, genextreme
+
+    Notes
+    -----
+    The probability density function for `gumbel_l` is::
+
+        gumbel_l.pdf(x) = exp(x - exp(x))
+
+    The Gumbel distribution is sometimes referred to as a type I Fisher-Tippett
+    distribution.  It is also related to the extreme value distribution,
+    log-Weibull and Gompertz distributions.
+
+    %(example)s
+
+    """
     def _pdf(self, x):
         ex = exp(x)
         return ex*exp(-ex)
@@ -4131,18 +4442,27 @@ class gumbel_l_gen(rv_continuous):
                -12*sqrt(6)/pi**3 * _ZETA3, 12.0/5
     def _entropy(self):
         return 1.0608407169541684911
-gumbel_l = gumbel_l_gen(name='gumbel_l',longname="A left-skewed Gumbel",
-                        extradoc="""
+gumbel_l = gumbel_l_gen(name='gumbel_l')
 
-Left-skewed Gumbel distribution
-
-gumbel_l.pdf(x) = exp(x - exp(x))
-"""
-                        )
 
 # Half-Cauchy
 
 class halfcauchy_gen(rv_continuous):
+    """A Half-Cauchy continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `halfcauchy` is::
+
+        halfcauchy.pdf(x) = 2 / (pi * (1 + x**2))
+
+    for ``x >= 0``.
+
+    %(example)s
+
+    """
     def _pdf(self, x):
         return 2.0/pi/(1.0+x*x)
     def _logpdf(self, x):
@@ -4155,21 +4475,28 @@ class halfcauchy_gen(rv_continuous):
         return inf, inf, nan, nan
     def _entropy(self):
         return log(2*pi)
-halfcauchy = halfcauchy_gen(a=0.0,name='halfcauchy',
-                            longname="A Half-Cauchy",extradoc="""
-
-Half-Cauchy distribution
-
-halfcauchy.pdf(x) = 2/(pi*(1+x**2))
-for x >= 0.
-"""
-                            )
+halfcauchy = halfcauchy_gen(a=0.0, name='halfcauchy')
 
 
 ## Half-Logistic
 ##
 
 class halflogistic_gen(rv_continuous):
+    """A half-logistic continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `halflogistic` is::
+
+        halflogistic.pdf(x) = 2 * exp(-x) / (1+exp(-x))**2 = 1/2 * sech(x/2)**2
+
+    for ``x >= 0``.
+
+    %(example)s
+
+    """
     def _pdf(self, x):
         return 0.5/(cosh(x/2.0))**2.0
     def _cdf(self, x):
@@ -4184,21 +4511,27 @@ class halflogistic_gen(rv_continuous):
         return 2*(1-pow(2.0,1-n))*special.gamma(n+1)*special.zeta(n,1)
     def _entropy(self):
         return 2-log(2)
-halflogistic = halflogistic_gen(a=0.0, name='halflogistic',
-                                longname="A half-logistic",
-                                extradoc="""
-
-Half-logistic distribution
-
-halflogistic.pdf(x) = 2*exp(-x)/(1+exp(-x))**2 = 1/2*sech(x/2)**2
-for x >= 0.
-"""
-                                )
+halflogistic = halflogistic_gen(a=0.0, name='halflogistic')
 
 
 ## Half-normal = chi(1, loc, scale)
 
 class halfnorm_gen(rv_continuous):
+    """A half-normal continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `halfnorm` is::
+
+        halfnorm.pdf(x) = sqrt(2/pi) * exp(-x**2/2)
+
+    for ``x > 0``.
+
+    %(example)s
+
+    """
     def _rvs(self):
         return abs(norm.rvs(size=self._size))
     def _pdf(self, x):
@@ -4214,20 +4547,25 @@ class halfnorm_gen(rv_continuous):
                8*(pi-3)/(pi-2)**2
     def _entropy(self):
         return 0.5*log(pi/2.0)+0.5
-halfnorm = halfnorm_gen(a=0.0, name='halfnorm',
-                        longname="A half-normal",
-                        extradoc="""
+halfnorm = halfnorm_gen(a=0.0, name='halfnorm')
 
-Half-normal distribution
-
-halfnorm.pdf(x) = sqrt(2/pi) * exp(-x**2/2)
-for x > 0.
-"""
-                        )
 
 ## Hyperbolic Secant
 
 class hypsecant_gen(rv_continuous):
+    """A hyperbolic secant continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `hypsecant` is::
+
+        hypsecant.pdf(x) = 1/pi * sech(x)
+
+    %(example)s
+
+    """
     def _pdf(self, x):
         return 1.0/(pi*cosh(x))
     def _cdf(self, x):
@@ -4238,18 +4576,29 @@ class hypsecant_gen(rv_continuous):
         return 0, pi*pi/4, 0, 2
     def _entropy(self):
         return log(2*pi)
-hypsecant = hypsecant_gen(name='hypsecant',longname="A hyperbolic secant",
-                          extradoc="""
+hypsecant = hypsecant_gen(name='hypsecant')
 
-Hyperbolic secant distribution
-
-hypsecant.pdf(x) = 1/pi * sech(x)
-"""
-                          )
 
 ## Gauss Hypergeometric
 
 class gausshyper_gen(rv_continuous):
+    """A Gauss hypergeometric continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `gausshyper` is::
+
+        gausshyper.pdf(x, a, b, c, z) =
+            C * x**(a-1) * (1-x)**(b-1) * (1+z*x)**(-c)
+
+    for ``0 <= x <= 1``, ``a > 0``, ``b > 0``, and
+    ``C = 1 / (B(a,b) F[2,1](c, a; a+b; -z))``
+
+    %(example)s
+
+    """
     def _argcheck(self, a, b, c, z):
         return (a > 0) & (b > 0) & (c==c) & (z==z)
     def _pdf(self, x, a, b, c, z):
@@ -4261,23 +4610,29 @@ class gausshyper_gen(rv_continuous):
         den = special.hyp2f1(c,a,a+b,-z)
         return fac*num / den
 gausshyper = gausshyper_gen(a=0.0, b=1.0, name='gausshyper',
-                            longname="A Gauss hypergeometric",
-                            shapes="a, b, c, z",
-                            extradoc="""
+                            shapes="a, b, c, z")
 
-Gauss hypergeometric distribution
-
-gausshyper.pdf(x,a,b,c,z) = C * x**(a-1) * (1-x)**(b-1) * (1+z*x)**(-c)
-for 0 <= x <= 1, a > 0, b > 0, and
-C = 1/(B(a,b)F[2,1](c,a;a+b;-z))
-"""
-                            )
 
 ##  Inverted Gamma
 #     special case of generalized gamma with c=-1
 #
 
 class invgamma_gen(rv_continuous):
+    """An inverted gamma continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `invgamma` is::
+
+        invgamma.pdf(x, a) = x**(-a-1) / gamma(a) * exp(-1/x)
+
+    for x > 0, a > 0.
+
+    %(example)s
+
+    """
     def _pdf(self, x, a):
         return exp(self._logpdf(x,a))
     def _logpdf(self, x, a):
@@ -4290,57 +4645,32 @@ class invgamma_gen(rv_continuous):
         return exp(gamln(a-n) - gamln(a))
     def _entropy(self, a):
         return a - (a+1.0)*special.psi(a) + gamln(a)
-invgamma = invgamma_gen(a=0.0, name='invgamma',longname="An inverted gamma",
-                        shapes='a',extradoc="""
+invgamma = invgamma_gen(a=0.0, name='invgamma', shapes='a')
 
-Inverted gamma distribution
-
-invgamma.pdf(x,a) = x**(-a-1)/gamma(a) * exp(-1/x)
-for x > 0, a > 0.
-"""
-                        )
-
-
-## Inverse Normal Distribution
-# scale is gamma from DATAPLOT and B from Regress
-
-_invnorm_msg = \
-"""The `invnorm` distribution will be renamed to `invgauss` after scipy 0.9"""
-class invnorm_gen(rv_continuous):
-    def _rvs(self, mu):
-        warnings.warn(_invnorm_msg, DeprecationWarning)
-        return mtrand.wald(mu, 1.0, size=self._size)
-    def _pdf(self, x, mu):
-        warnings.warn(_invnorm_msg, DeprecationWarning)
-        return 1.0/sqrt(2*pi*x**3.0)*exp(-1.0/(2*x)*((x-mu)/mu)**2)
-    def _logpdf(self, x, mu):
-        warnings.warn(_invnorm_msg, DeprecationWarning)
-        return -0.5*log(2*pi) - 1.5*log(x) - ((x-mu)/mu)**2/(2*x)
-    def _cdf(self, x, mu):
-        warnings.warn(_invnorm_msg, DeprecationWarning)
-        fac = sqrt(1.0/x)
-        C1 = norm.cdf(fac*(x-mu)/mu)
-        C1 += exp(2.0/mu)*norm.cdf(-fac*(x+mu)/mu)
-        return C1
-    def _stats(self, mu):
-        warnings.warn(_invnorm_msg, DeprecationWarning)
-        return mu, mu**3.0, 3*sqrt(mu), 15*mu
-invnorm = invnorm_gen(a=0.0, name='invnorm', longname="An inverse normal",
-                      shapes="mu",extradoc="""
-
-Inverse normal distribution
-
-NOTE: `invnorm` will be renamed to `invgauss` after scipy 0.9
-
-invnorm.pdf(x,mu) = 1/sqrt(2*pi*x**3) * exp(-(x-mu)**2/(2*x*mu**2))
-for x > 0.
-"""
-                      )
 
 ## Inverse Gaussian Distribution (used to be called 'invnorm'
 # scale is gamma from DATAPLOT and B from Regress
 
 class invgauss_gen(rv_continuous):
+    """An inverse Gaussian continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `invgauss` is::
+
+        invgauss.pdf(x, mu) = 1 / sqrt(2*pi*x**3) * exp(-(x-mu)**2/(2*x*mu**2))
+
+    for ``x > 0``.
+
+    When `mu` is too small, evaluating the cumulative density function will be
+    inaccurate due to ``cdf(mu -> 0) = inf * 0``.
+    NaNs are returned for ``mu <= 0.0028``.
+
+    %(example)s
+
+    """
     def _rvs(self, mu):
         return mtrand.wald(mu, 1.0, size=self._size)
     def _pdf(self, x, mu):
@@ -4349,25 +4679,33 @@ class invgauss_gen(rv_continuous):
         return -0.5*log(2*pi) - 1.5*log(x) - ((x-mu)/mu)**2/(2*x)
     def _cdf(self, x, mu):
         fac = sqrt(1.0/x)
+        # Numerical accuracy for small `mu` is bad.  See #869.
         C1 = norm.cdf(fac*(x-mu)/mu)
-        C1 += exp(2.0/mu)*norm.cdf(-fac*(x+mu)/mu)
+        C1 += exp(1.0/mu) * norm.cdf(-fac*(x+mu)/mu) * exp(1.0/mu)
         return C1
     def _stats(self, mu):
         return mu, mu**3.0, 3*sqrt(mu), 15*mu
-invgauss = invgauss_gen(a=0.0, name='invgauss', longname="An inverse Gaussian",
-                        shapes="mu",extradoc="""
-
-Inverse Gaussian distribution
-
-invgauss.pdf(x,mu) = 1/sqrt(2*pi*x**3) * exp(-(x-mu)**2/(2*x*mu**2))
-for x > 0.
-"""
-                      )
+invgauss = invgauss_gen(a=0.0, name='invgauss', shapes="mu")
 
 
 ## Inverted Weibull
 
 class invweibull_gen(rv_continuous):
+    """An inverted Weibull continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `invweibull` is::
+
+        invweibull.pdf(x, c) = c * x**(-c-1) * exp(-x**(-c))
+
+    for ``x > 0``, ``c > 0``.
+
+    %(example)s
+
+    """
     def _pdf(self, x, c):
         xc1 = x**(-c-1.0)
         #xc2 = xc1*x
@@ -4381,20 +4719,31 @@ class invweibull_gen(rv_continuous):
         return pow(-log(q),arr(-1.0/c))
     def _entropy(self, c):
         return 1+_EULER + _EULER / c - log(c)
-invweibull = invweibull_gen(a=0,name='invweibull',
-                            longname="An inverted Weibull",
-                            shapes='c',extradoc="""
+invweibull = invweibull_gen(a=0, name='invweibull', shapes='c')
 
-Inverted Weibull distribution
-
-invweibull.pdf(x,c) = c*x**(-c-1)*exp(-x**(-c))
-for x > 0, c > 0.
-"""
-                            )
 
 ## Johnson SB
 
 class johnsonsb_gen(rv_continuous):
+    """A Johnson SB continuous random variable.
+
+    %(before_notes)s
+
+    See Also
+    --------
+    johnsonsu
+
+    Notes
+    -----
+    The probability density function for `johnsonsb` is::
+
+        johnsonsb.pdf(x, a, b) = b / (x*(1-x)) * phi(a + b * log(x/(1-x)))
+
+    for ``0 < x < 1`` and ``a,b > 0``, and ``phi`` is the normal pdf.
+
+    %(example)s
+
+    """
     def _argcheck(self, a, b):
         return (b > 0) & (a==a)
     def _pdf(self, x, a, b):
@@ -4404,19 +4753,31 @@ class johnsonsb_gen(rv_continuous):
         return norm.cdf(a+b*log(x/(1.0-x)))
     def _ppf(self, q, a, b):
         return 1.0/(1+exp(-1.0/b*(norm.ppf(q)-a)))
-johnsonsb = johnsonsb_gen(a=0.0,b=1.0,name='johnsonb',
-                          longname="A Johnson SB",
-                          shapes="a, b",extradoc="""
+johnsonsb = johnsonsb_gen(a=0.0, b=1.0, name='johnsonb', shapes="a, b")
 
-Johnson SB distribution
-
-johnsonsb.pdf(x,a,b) = b/(x*(1-x)) * phi(a + b*log(x/(1-x)))
-for 0 < x < 1 and a,b > 0, and phi is the normal pdf.
-"""
-                          )
 
 ## Johnson SU
 class johnsonsu_gen(rv_continuous):
+    """A Johnson SU continuous random variable.
+
+    %(before_notes)s
+
+    See Also
+    --------
+    johnsonsb
+
+    Notes
+    -----
+    The probability density function for `johnsonsu` is::
+
+        johnsonsu.pdf(x, a, b) = b / sqrt(x**2 + 1) *
+                                 phi(a + b * log(x + sqrt(x**2 + 1)))
+
+    for all ``x, a, b > 0``, and `phi` is the normal pdf.
+
+    %(example)s
+
+    """
     def _argcheck(self, a, b):
         return (b > 0) & (a==a)
     def _pdf(self, x, a, b):
@@ -4427,20 +4788,25 @@ class johnsonsu_gen(rv_continuous):
         return norm.cdf(a+b*log(x+sqrt(x*x+1)))
     def _ppf(self, q, a, b):
         return sinh((norm.ppf(q)-a)/b)
-johnsonsu = johnsonsu_gen(name='johnsonsu',longname="A Johnson SU",
-                          shapes="a, b", extradoc="""
-
-Johnson SU distribution
-
-johnsonsu.pdf(x,a,b) = b/sqrt(x**2+1) * phi(a + b*log(x+sqrt(x**2+1)))
-for all x, a,b > 0, and phi is the normal pdf.
-"""
-                          )
+johnsonsu = johnsonsu_gen(name='johnsonsu', shapes="a, b")
 
 
 ## Laplace Distribution
 
 class laplace_gen(rv_continuous):
+    """A Laplace continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `laplace` is::
+
+        laplace.pdf(x) = 1/2 * exp(-abs(x))
+
+    %(example)s
+
+    """
     def _rvs(self):
         return mtrand.laplace(0, 1, size=self._size)
     def _pdf(self, x):
@@ -4453,19 +4819,33 @@ class laplace_gen(rv_continuous):
         return 0, 2, 0, 3
     def _entropy(self):
         return log(2)+1
-laplace = laplace_gen(name='laplace', longname="A Laplace",
-                      extradoc="""
-
-Laplacian distribution
-
-laplace.pdf(x) = 1/2*exp(-abs(x))
-"""
-                      )
+laplace = laplace_gen(name='laplace')
 
 
 ## Levy Distribution
 
 class levy_gen(rv_continuous):
+    """A Levy continuous random variable.
+
+    %(before_notes)s
+
+    See Also
+    --------
+    levy_stable, levy_l
+
+    Notes
+    -----
+    The probability density function for `levy` is::
+
+        levy.pdf(x) = 1 / (x * sqrt(2*pi*x)) * exp(-1/(2*x))
+
+    for ``x > 0``.
+
+    This is the same as the Levy-stable distribution with a=1/2 and b=1.
+
+    %(example)s
+
+    """
     def _pdf(self, x):
         return 1/sqrt(2*pi*x)/x*exp(-1/(2*x))
     def _cdf(self, x):
@@ -4475,20 +4855,33 @@ class levy_gen(rv_continuous):
         return 1.0/(val*val)
     def _stats(self):
         return inf, inf, nan, nan
-levy = levy_gen(a=0.0,name="levy", longname = "A Levy", extradoc="""
+levy = levy_gen(a=0.0,name="levy")
 
-Levy distribution
-
-levy.pdf(x) = 1/(x*sqrt(2*pi*x)) * exp(-1/(2*x))
-for x > 0.
-
-This is the same as the Levy-stable distribution with a=1/2 and b=1.
-"""
-                )
 
 ## Left-skewed Levy Distribution
 
 class levy_l_gen(rv_continuous):
+    """A left-skewed Levy continuous random variable.
+
+    %(before_notes)s
+
+    See Also
+    --------
+    levy, levy_stable
+
+    Notes
+    -----
+    The probability density function for `levy_l` is::
+
+        levy_l.pdf(x) = 1 / (abs(x) * sqrt(2*pi*abs(x))) * exp(-1/(2*abs(x)))
+
+    for ``x < 0``.
+
+    This is the same as the Levy-stable distribution with a=1/2 and b=-1.
+
+    %(example)s
+
+    """
     def _pdf(self, x):
         ax = abs(x)
         return 1/sqrt(2*pi*ax)/ax*exp(-1/(2*ax))
@@ -4500,20 +4893,28 @@ class levy_l_gen(rv_continuous):
         return -1.0/(val*val)
     def _stats(self):
         return inf, inf, nan, nan
-levy_l = levy_l_gen(b=0.0,name="levy_l", longname = "A left-skewed Levy", extradoc="""
+levy_l = levy_l_gen(b=0.0, name="levy_l")
 
-Left-skewed Levy distribution
-
-levy_l.pdf(x) = 1/(abs(x)*sqrt(2*pi*abs(x))) * exp(-1/(2*abs(x)))
-for x < 0.
-
-This is the same as the Levy-stable distribution with a=1/2 and b=-1.
-"""
-                )
 
 ## Levy-stable Distribution (only random variates)
 
 class levy_stable_gen(rv_continuous):
+    """A Levy-stable continuous random variable.
+
+    %(before_notes)s
+
+    See Also
+    --------
+    levy, levy_l
+
+    Notes
+    -----
+    Levy-stable distribution (only random variates available -- ignore other
+    docs)
+
+    %(example)s
+
+    """
     def _rvs(self, alpha, beta):
         sz = self._size
         TH = uniform.rvs(loc=-pi/2.0,scale=pi,size=sz)
@@ -4542,18 +4943,26 @@ class levy_stable_gen(rv_continuous):
     def _pdf(self, x, alpha, beta):
         raise NotImplementedError
 
-levy_stable = levy_stable_gen(name='levy_stable', longname="A Levy-stable",
-                    shapes="alpha, beta", extradoc="""
-
-Levy-stable distribution (only random variates available -- ignore other docs)
-"""
-                    )
+levy_stable = levy_stable_gen(name='levy_stable', shapes="alpha, beta")
 
 
 ## Logistic (special case of generalized logistic with c=1)
 ## Sech-squared
 
 class logistic_gen(rv_continuous):
+    """A logistic continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `logistic` is::
+
+        logistic.pdf(x) = exp(-x) / (1+exp(-x))**2
+
+    %(example)s
+
+    """
     def _rvs(self):
         return mtrand.logistic(size=self._size)
     def _pdf(self, x):
@@ -4567,19 +4976,27 @@ class logistic_gen(rv_continuous):
         return 0, pi*pi/3.0, 0, 6.0/5.0
     def _entropy(self):
         return 1.0
-logistic = logistic_gen(name='logistic', longname="A logistic",
-                        extradoc="""
-
-Logistic distribution
-
-logistic.pdf(x) = exp(-x)/(1+exp(-x))**2
-"""
-                        )
+logistic = logistic_gen(name='logistic')
 
 
 ## Log Gamma
 #
 class loggamma_gen(rv_continuous):
+    """A log gamma continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `loggamma` is::
+
+        loggamma.pdf(x, c) = exp(c*x-exp(x)) / gamma(c)
+
+    for all ``x, c > 0``.
+
+    %(example)s
+
+    """
     def _rvs(self, c):
         return log(mtrand.gamma(c, size=self._size))
     def _pdf(self, x, c):
@@ -4591,19 +5008,28 @@ class loggamma_gen(rv_continuous):
     def _munp(self,n,*args):
         # use generic moment calculation using ppf
         return self._mom0_sc(n,*args)
-loggamma = loggamma_gen(name='loggamma', longname="A log gamma", shapes='c',
-                        extradoc="""
+loggamma = loggamma_gen(name='loggamma', shapes='c')
 
-Log gamma distribution
-
-loggamma.pdf(x,c) = exp(c*x-exp(x)) / gamma(c)
-for all x, c > 0.
-"""
-                        )
 
 ## Log-Laplace  (Log Double Exponential)
 ##
 class loglaplace_gen(rv_continuous):
+    """A log-Laplace continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `loglaplace` is::
+
+    loglaplace.pdf(x, c) = c / 2 * x**(c-1),   for 0 < x < 1
+                         = c / 2 * x**(-c-1),  for x >= 1
+
+    for ``c > 0``.
+
+    %(example)s
+
+    """
     def _pdf(self, x, c):
         cd2 = c/2.0
         c = where(x < 1, c, -c)
@@ -4614,17 +5040,8 @@ class loglaplace_gen(rv_continuous):
         return where(q < 0.5, (2.0*q)**(1.0/c), (2*(1.0-q))**(-1.0/c))
     def _entropy(self, c):
         return log(2.0/c) + 1.0
-loglaplace = loglaplace_gen(a=0.0, name='loglaplace',
-                            longname="A log-Laplace",shapes='c',
-                            extradoc="""
+loglaplace = loglaplace_gen(a=0.0, name='loglaplace', shapes='c')
 
-Log-Laplace distribution (Log Double Exponential)
-
-loglaplace.pdf(x,c) = c/2*x**(c-1) for 0 < x < 1
-                    = c/2*x**(-c-1) for x >= 1
-for c > 0.
-"""
-                            )
 
 ## Lognormal (Cobb-Douglass)
 ## std is a shape parameter and is the variance of the underlying
@@ -4632,6 +5049,25 @@ for c > 0.
 ## the mean of the underlying distribution is log(scale)
 
 class lognorm_gen(rv_continuous):
+    """A lognormal continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `lognorm` is::
+
+        lognorm.pdf(x, s) = 1 / (s*x*sqrt(2*pi)) * exp(-1/2*(log(x)/s)**2)
+
+    for ``x > 0``, ``s > 0``.
+
+    If log x is normally distributed with mean mu and variance sigma**2,
+    then x is log-normally distributed with shape paramter sigma and scale
+    parameter exp(mu).
+
+    %(example)s
+
+    """
     def _rvs(self, s):
         return exp(s * norm.rvs(size=self._size))
     def _pdf(self, x, s):
@@ -4650,24 +5086,25 @@ class lognorm_gen(rv_continuous):
         return mu, mu2, g1, g2
     def _entropy(self, s):
         return 0.5*(1+log(2*pi)+2*log(s))
-lognorm = lognorm_gen(a=0.0, name='lognorm',
-                      longname='A lognormal', shapes='s',
-                      extradoc="""
+lognorm = lognorm_gen(a=0.0, name='lognorm', shapes='s')
 
-Lognormal distribution
-
-lognorm.pdf(x,s) = 1/(s*x*sqrt(2*pi)) * exp(-1/2*(log(x)/s)**2)
-for x > 0, s > 0.
-
-If log x is normally distributed with mean mu and variance sigma**2,
-then x is log-normally distributed with shape paramter sigma and scale
-parameter exp(mu).
-"""
-                      )
 
 # Gibrat's distribution is just lognormal with s=1
 
 class gilbrat_gen(lognorm_gen):
+    """A Gilbrat continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `gilbrat` is::
+
+        gilbrat.pdf(x) = 1/(x*sqrt(2*pi)) * exp(-1/2*(log(x))**2)
+
+    %(example)s
+
+    """
     def _rvs(self):
         return lognorm_gen._rvs(self, 1.0)
     def _pdf(self, x):
@@ -4680,14 +5117,7 @@ class gilbrat_gen(lognorm_gen):
         return lognorm_gen._stats(self, 1.0)
     def _entropy(self):
         return 0.5*log(2*pi) + 0.5
-gilbrat = gilbrat_gen(a=0.0, name='gilbrat', longname='A Gilbrat',
-                      extradoc="""
-
-Gilbrat distribution
-
-gilbrat.pdf(x) = 1/(x*sqrt(2*pi)) * exp(-1/2*(log(x))**2)
-"""
-                      )
+gilbrat = gilbrat_gen(a=0.0, name='gilbrat')
 
 
 # MAXWELL
@@ -4703,7 +5133,10 @@ class maxwell_gen(rv_continuous):
     and given ``scale = 1.0 / sqrt(a)``, where a is the parameter used in
     the Mathworld description [1]_.
 
-    Probability density function. Given by :math:`\sqrt(2/\pi)x^2 exp(-x^2/2)`
+    The probability density function for `maxwell` is::
+
+        maxwell.pdf(x, a) = sqrt(2/pi)x**2 * exp(-x**2/2)
+
     for ``x > 0``.
 
     References
@@ -4726,18 +5159,27 @@ class maxwell_gen(rv_continuous):
                (-12*pi*pi + 160*pi - 384) / val**2.0
     def _entropy(self):
         return _EULER + 0.5*log(2*pi)-0.5
-maxwell = maxwell_gen(a=0.0, name='maxwell', extradoc="""
+maxwell = maxwell_gen(a=0.0, name='maxwell')
 
-Maxwell distribution
-
-maxwell.pdf(x) = sqrt(2/pi) * x**2 * exp(-x**2/2)
-for x > 0.
-"""
-                      )
 
 # Mielke's Beta-Kappa
 
 class mielke_gen(rv_continuous):
+    """A Mielke's Beta-Kappa continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `mielke` is::
+
+        mielke.pdf(x, k, s) = k * x**(k-1) / (1+x**s)**(1+k/s)
+
+    for ``x > 0``.
+
+    %(example)s
+
+    """
     def _pdf(self, x, k, s):
         return k*x**(k-1.0) / (1.0+x**s)**(1.0+k*1.0/s)
     def _cdf(self, x, k, s):
@@ -4745,19 +5187,28 @@ class mielke_gen(rv_continuous):
     def _ppf(self, q, k, s):
         qsk = pow(q,s*1.0/k)
         return pow(qsk/(1.0-qsk),1.0/s)
-mielke = mielke_gen(a=0.0, name='mielke', longname="A Mielke's Beta-Kappa",
-                    shapes="k, s", extradoc="""
+mielke = mielke_gen(a=0.0, name='mielke', shapes="k, s")
 
-Mielke's Beta-Kappa distribution
-
-mielke.pdf(x,k,s) = k*x**(k-1) / (1+x**s)**(1+k/s)
-for x > 0.
-"""
-                    )
 
 # Nakagami (cf Chi)
 
 class nakagami_gen(rv_continuous):
+    """A Nakagami continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `nakagami` is::
+
+        nakagami.pdf(x, nu) = 2 * nu**nu / gamma(nu) *
+                              x**(2*nu-1) * exp(-nu*x**2)
+
+    for ``x > 0``, ``nu > 0``.
+
+    %(example)s
+
+    """
     def _pdf(self, x, nu):
         return 2*nu**nu/gam(nu)*(x**(2*nu-1.0))*exp(-nu*x*x)
     def _cdf(self, x, nu):
@@ -4771,28 +5222,37 @@ class nakagami_gen(rv_continuous):
         g2 = -6*mu**4*nu + (8*nu-2)*mu**2-2*nu + 1
         g2 /= nu*mu2**2.0
         return mu, mu2, g1, g2
-nakagami = nakagami_gen(a=0.0, name="nakagami", longname="A Nakagami",
-                        shapes='nu', extradoc="""
-
-Nakagami distribution
-
-nakagami.pdf(x,nu) = 2*nu**nu/gamma(nu) * x**(2*nu-1) * exp(-nu*x**2)
-for x > 0, nu > 0.
-"""
-                        )
+nakagami = nakagami_gen(a=0.0, name="nakagami", shapes='nu')
 
 
 # Non-central chi-squared
 # nc is lambda of definition, df is nu
 
 class ncx2_gen(rv_continuous):
+    """A non-central chi-squared continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `ncx2` is::
+
+        ncx2.pdf(x, df, nc) = exp(-(nc+df)/2) * 1/2 * (x/nc)**((df-2)/4)
+                              * I[(df-2)/2](sqrt(nc*x))
+
+    for ``x > 0``.
+
+    %(example)s
+
+    """
     def _rvs(self, df, nc):
         return mtrand.noncentral_chisquare(df,nc,self._size)
-    def _pdf(self, x, df, nc):
+    def _logpdf(self, x, df, nc):
         a = arr(df/2.0)
-        Px = exp(-nc/2.0)*special.hyp0f1(a,nc*x/4.0)
-        Px *= exp(-x/2.0)*x**(a-1) / arr(2**a * special.gamma(a))
-        return Px
+        fac = -nc/2.0 - x/2.0 + (a-1)*np.log(x) - a*np.log(2) - special.gammaln(a)
+        return fac + np.nan_to_num(np.log(special.hyp0f1(a, nc * x/4.0)))
+    def _pdf(self, x, df, nc):
+        return np.exp(self._logpdf(x, df, nc))
     def _cdf(self, x, df, nc):
         return special.chndtr(x,df,nc)
     def _ppf(self, q, df, nc):
@@ -4801,20 +5261,32 @@ class ncx2_gen(rv_continuous):
         val = df + 2.0*nc
         return df + nc, 2*val, sqrt(8)*(val+nc)/val**1.5, \
                12.0*(val+2*nc)/val**2.0
-ncx2 = ncx2_gen(a=0.0, name='ncx2', longname="A non-central chi-squared",
-                shapes="df, nc", extradoc="""
+ncx2 = ncx2_gen(a=0.0, name='ncx2', shapes="df, nc")
 
-Non-central chi-squared distribution
-
-ncx2.pdf(x,df,nc) = exp(-(nc+df)/2)*1/2*(x/nc)**((df-2)/4)
-                        * I[(df-2)/2](sqrt(nc*x))
-for x > 0.
-"""
-                )
 
 # Non-central F
 
 class ncf_gen(rv_continuous):
+    """A non-central F distribution continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `ncf` is::
+
+    ncf.pdf(x, df1, df2, nc) = exp(nc/2 + nc*df1*x/(2*(df1*x+df2)))
+                    * df1**(df1/2) * df2**(df2/2) * x**(df1/2-1)
+                    * (df2+df1*x)**(-(df1+df2)/2)
+                    * gamma(df1/2)*gamma(1+df2/2)
+                    * L^{v1/2-1}^{v2/2}(-nc*v1*x/(2*(v1*x+v2)))
+                    / (B(v1/2, v2/2) * gamma((v1+v2)/2))
+
+    for ``df1, df2, nc > 0``.
+
+    %(example)s
+
+    """
     def _rvs(self, dfn, dfd, nc):
         return mtrand.noncentral_f(dfn,dfd,nc,self._size)
     def _pdf_skip(self, x, dfn, dfd, nc):
@@ -4844,24 +5316,29 @@ class ncf_gen(rv_continuous):
                     ((dfn+nc/2.0)**2.0 + (dfn+nc)*(dfd-2.0)) / \
                     ((dfd-2.0)**2.0 * (dfd-4.0)))
         return mu, mu2, None, None
-ncf = ncf_gen(a=0.0, name='ncf', longname="A non-central F distribution",
-              shapes="dfn, dfd, nc", extradoc="""
+ncf = ncf_gen(a=0.0, name='ncf', shapes="dfn, dfd, nc")
 
-Non-central F distribution
-
-ncf.pdf(x,df1,df2,nc) = exp(nc/2 + nc*df1*x/(2*(df1*x+df2)))
-                * df1**(df1/2) * df2**(df2/2) * x**(df1/2-1)
-                * (df2+df1*x)**(-(df1+df2)/2)
-                * gamma(df1/2)*gamma(1+df2/2)
-                * L^{v1/2-1}^{v2/2}(-nc*v1*x/(2*(v1*x+v2)))
-                / (B(v1/2, v2/2) * gamma((v1+v2)/2))
-for df1, df2, nc > 0.
-"""
-              )
 
 ## Student t distribution
 
 class t_gen(rv_continuous):
+    """A Student's T continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `t` is::
+
+                                       gamma((df+1)/2)
+        t.pdf(x, df) = ---------------------------------------------------
+                       sqrt(pi*df) * gamma(df/2) * (1+x**2/df)**((df+1)/2)
+
+    for ``df > 0``.
+
+    %(example)s
+
+    """
     def _rvs(self, df):
         return mtrand.standard_t(df, size=self._size)
         #Y = f.rvs(df, df, size=self._size)
@@ -4890,21 +5367,28 @@ class t_gen(rv_continuous):
         g1 = where(df > 3, 0.0, nan)
         g2 = where(df > 4, 6.0/(df-4.0), nan)
         return 0, mu2, g1, g2
-t = t_gen(name='t',longname="Student's T",
-          shapes="df", extradoc="""
 
-Student's T distribution
-
-                            gamma((df+1)/2)
-t.pdf(x,df) = -----------------------------------------------
-              sqrt(pi*df)*gamma(df/2)*(1+x**2/df)**((df+1)/2)
-for df > 0.
-"""
-          )
 
 ## Non-central T distribution
 
 class nct_gen(rv_continuous):
+    """A non-central Student's T continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `nct` is::
+
+                                            df**(df/2) * gamma(df+1)
+        nct.pdf(x, df, nc) = ----------------------------------------------------
+                             2**df*exp(nc**2/2) * (df+x**2)**(df/2) * gamma(df/2)
+
+    for ``df > 0``, ``nc > 0``.
+
+    %(example)s
+
+    """
     def _rvs(self, df, nc):
         return norm.rvs(loc=nc,size=self._size)*sqrt(df) / sqrt(chi2.rvs(df,size=self._size))
     def _pdf(self, x, df, nc):
@@ -4954,21 +5438,27 @@ class nct_gen(rv_continuous):
                                  2*(nc*nc+1)*val2)**2
             g2 = g2n / g2d
         return mu, mu2, g1, g2
-nct = nct_gen(name="nct", longname="A Noncentral T",
-              shapes="df, nc", extradoc="""
+nct = nct_gen(name="nct", shapes="df, nc")
 
-Non-central Student T distribution
-
-                                 df**(df/2) * gamma(df+1)
-nct.pdf(x,df,nc) = --------------------------------------------------
-                   2**df*exp(nc**2/2)*(df+x**2)**(df/2) * gamma(df/2)
-for df > 0, nc > 0.
-"""
-              )
 
 # Pareto
 
 class pareto_gen(rv_continuous):
+    """A Pareto continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `pareto` is::
+
+        pareto.pdf(x, b) = b / x**(b+1)
+
+    for ``x >= 1``, ``b > 0``.
+
+    %(example)s
+
+    """
     def _pdf(self, x, b):
         return b * x**(-b-1)
     def _cdf(self, x, b):
@@ -5003,20 +5493,30 @@ class pareto_gen(rv_continuous):
         return mu, mu2, g1, g2
     def _entropy(self, c):
         return 1 + 1.0/c - log(c)
-pareto = pareto_gen(a=1.0, name="pareto", longname="A Pareto",
-                    shapes="b", extradoc="""
+pareto = pareto_gen(a=1.0, name="pareto", shapes="b")
 
-Pareto distribution
-
-pareto.pdf(x,b) = b/x**(b+1)
-for x >= 1, b > 0.
-"""
-                    )
 
 # LOMAX (Pareto of the second kind.)
-#  Special case of Pareto of the first kind (location=-1.0)
 
 class lomax_gen(rv_continuous):
+    """A Lomax (Pareto of the second kind) continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The Lomax distribution is a special case of the Pareto distribution, with
+    (loc=-1.0).
+
+    The probability density function for `lomax` is::
+
+        lomax.pdf(x, c) = c / (1+x)**(c+1)
+
+    for ``x >= 0``, ``c > 0``.
+
+    %(example)s
+
+    """
     def _pdf(self, x, c):
         return c*1.0/(1.0+x)**(c+1.0)
     def _logpdf(self, x, c):
@@ -5034,20 +5534,28 @@ class lomax_gen(rv_continuous):
         return mu, mu2, g1, g2
     def _entropy(self, c):
         return 1+1.0/c-log(c)
-lomax = lomax_gen(a=0.0, name="lomax",
-                  longname="A Lomax (Pareto of the second kind)",
-                  shapes="c", extradoc="""
+lomax = lomax_gen(a=0.0, name="lomax", shapes="c")
 
-Lomax (Pareto of the second kind) distribution
 
-lomax.pdf(x,c) = c / (1+x)**(c+1)
-for x >= 0, c > 0.
-"""
-                  )
 ## Power-function distribution
 ##   Special case of beta dist. with d =1.0
 
 class powerlaw_gen(rv_continuous):
+    """A power-function continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `powerlaw` is::
+
+        powerlaw.pdf(x, a) = a * x**(a-1)
+
+    for ``0 <= x <= 1``, ``a > 0``.
+
+    %(example)s
+
+    """
     def _pdf(self, x, a):
         return a*x**(a-1.0)
     def _logpdf(self, x, a):
@@ -5064,20 +5572,29 @@ class powerlaw_gen(rv_continuous):
                6*polyval([1,-1,-6,2],a)/(a*(a+3.0)*(a+4))
     def _entropy(self, a):
         return 1 - 1.0/a - log(a)
-powerlaw = powerlaw_gen(a=0.0, b=1.0, name="powerlaw",
-                        longname="A power-function",
-                        shapes="a", extradoc="""
+powerlaw = powerlaw_gen(a=0.0, b=1.0, name="powerlaw", shapes="a")
 
-Power-function distribution
-
-powerlaw.pdf(x,a) = a*x**(a-1)
-for 0 <= x <= 1, a > 0.
-"""
-                        )
 
 # Power log normal
 
 class powerlognorm_gen(rv_continuous):
+    """A power log-normal continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `powerlognorm` is::
+
+        powerlognorm.pdf(x, c, s) = c / (x*s) * phi(log(x)/s) *
+                                                (Phi(-log(x)/s))**(c-1),
+
+    where ``phi`` is the normal pdf, and ``Phi`` is the normal cdf,
+    and ``x > 0``, ``s, c > 0``.
+
+    %(example)s
+
+    """
     def _pdf(self, x, c, s):
         return c/(x*s)*norm.pdf(log(x)/s)*pow(norm.cdf(-log(x)/s),c*1.0-1.0)
 
@@ -5085,20 +5602,28 @@ class powerlognorm_gen(rv_continuous):
         return 1.0 - pow(norm.cdf(-log(x)/s),c*1.0)
     def _ppf(self, q, c, s):
         return exp(-s*norm.ppf(pow(1.0-q,1.0/c)))
-powerlognorm = powerlognorm_gen(a=0.0, name="powerlognorm",
-                                longname="A power log-normal",
-                                shapes="c, s", extradoc="""
+powerlognorm = powerlognorm_gen(a=0.0, name="powerlognorm", shapes="c, s")
 
-Power log-normal distribution
-
-powerlognorm.pdf(x,c,s) = c/(x*s) * phi(log(x)/s) * (Phi(-log(x)/s))**(c-1)
-where phi is the normal pdf, and Phi is the normal cdf, and x > 0, s,c > 0.
-"""
-                                )
 
 # Power Normal
 
 class powernorm_gen(rv_continuous):
+    """A power normal continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `powernorm` is::
+
+        powernorm.pdf(x, c) = c * phi(x) * (Phi(-x))**(c-1)
+
+    where ``phi`` is the normal pdf, and ``Phi`` is the normal cdf,
+    and ``x > 0``, ``c > 0``.
+
+    %(example)s
+
+    """
     def _pdf(self, x, c):
         return c*_norm_pdf(x)* \
                (_norm_cdf(-x)**(c-1.0))
@@ -5108,21 +5633,29 @@ class powernorm_gen(rv_continuous):
         return 1.0-_norm_cdf(-x)**(c*1.0)
     def _ppf(self, q, c):
         return -norm.ppf(pow(1.0-q,1.0/c))
-powernorm = powernorm_gen(name='powernorm', longname="A power normal",
-                          shapes="c", extradoc="""
+powernorm = powernorm_gen(name='powernorm', shapes="c")
 
-Power normal distribution
-
-powernorm.pdf(x,c) = c * phi(x)*(Phi(-x))**(c-1)
-where phi is the normal pdf, and Phi is the normal cdf, and x > 0, c > 0.
-"""
-                          )
 
 # R-distribution ( a general-purpose distribution with a
 #  variety of shapes.
 
 # FIXME: PPF does not work.
 class rdist_gen(rv_continuous):
+    """An R-distributed continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `rdist` is::
+
+        rdist.pdf(x, c) = (1-x**2)**(c/2-1) / B(1/2, c/2)
+
+    for ``-1 <= x <= 1``, ``c > 0``.
+
+    %(example)s
+
+    """
     def _pdf(self, x, c):
         return np.power((1.0-x*x),c/2.0-1) / special.beta(0.5,c/2.0)
     def _cdf_skip(self, x, c):
@@ -5131,20 +5664,28 @@ class rdist_gen(rv_continuous):
                special.hyp2f1(0.5,1.0-c/2.0,1.5,x*x)
     def _munp(self, n, c):
         return (1-(n % 2))*special.beta((n+1.0)/2,c/2.0)
-rdist = rdist_gen(a=-1.0,b=1.0, name="rdist", longname="An R-distributed",
-                  shapes="c", extradoc="""
+rdist = rdist_gen(a=-1.0, b=1.0, name="rdist", shapes="c")
 
-R-distribution
-
-rdist.pdf(x,c) = (1-x**2)**(c/2-1) / B(1/2, c/2)
-for -1 <= x <= 1, c > 0.
-"""
-                  )
 
 # Rayleigh distribution (this is chi with df=2 and loc=0.0)
 # scale is the mode.
 
 class rayleigh_gen(rv_continuous):
+    """A Rayleigh continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `rayleigh` is::
+
+        rayleigh.pdf(r) = r * exp(-r**2/2)
+
+    for ``x >= 0``.
+
+    %(example)s
+
+    """
     def link(self, x, logSF, phat, ix):
         rv_continuous.link.__doc__
         if ix == 1:
@@ -5169,18 +5710,25 @@ class rayleigh_gen(rv_continuous):
                6*pi/val-16/val**2
     def _entropy(self):
         return _EULER/2.0 + 1 - 0.5*log(2)
-rayleigh = rayleigh_gen(a=0.0, name="rayleigh",
-                        longname="A Rayleigh",
-                        extradoc="""
+rayleigh = rayleigh_gen(a=0.0, name="rayleigh")
 
-Rayleigh distribution
-
-rayleigh.pdf(r) = r * exp(-r**2/2)
-for x >= 0.
-"""
-                        )
 
 class truncrayleigh_gen(rv_continuous):
+	"""A truncated Rayleigh continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `truncrayleigh` is::
+
+        truncrayleigh.cdf(r) = 1 - exp(-((r+c)**2-c**2)/2)
+	
+	for ``x >= 0, c>=0``.
+
+    %(example)s
+
+    """
     def _argcheck(self, c):
         return (c>=0)
     def link(self, x, logSF, phat, ix):
@@ -5221,20 +5769,25 @@ class truncrayleigh_gen(rv_continuous):
     def _entropy(self, c):
         # TODO: correct this it is wrong!
         return _EULER/2.0 + 1 - 0.5*log(2)
-truncrayleigh = truncrayleigh_gen(a=0.0, name="truncrayleigh",
-                        longname="A truncated Rayleigh",
-                        shapes='c',
-                        extradoc="""
-
-Truncated Rayleigh distribution
-
-truncrayleigh.cdf(r) = 1 - exp(-((r+c)**2-c**2)/2)
-for x >= 0, c>=0.
-"""
-                        )
+truncrayleigh = truncrayleigh_gen(a=0.0, name="truncrayleigh", shapes='c')
 
 # Reciprocal Distribution
 class reciprocal_gen(rv_continuous):
+    """A reciprocal continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `reciprocal` is::
+
+        reciprocal.pdf(x, a, b) = 1 / (x*log(b/a))
+
+    for ``a <= x <= b``, ``a, b > 0``.
+
+    %(example)s
+
+    """
     def _argcheck(self, a, b):
         self.a = a
         self.b = b
@@ -5253,21 +5806,28 @@ class reciprocal_gen(rv_continuous):
         return 1.0/self.d / n * (pow(b*1.0,n) - pow(a*1.0,n))
     def _entropy(self,a,b):
         return 0.5*log(a*b)+log(log(b/a))
-reciprocal = reciprocal_gen(name="reciprocal",
-                            longname="A reciprocal",
-                            shapes="a, b", extradoc="""
+reciprocal = reciprocal_gen(name="reciprocal", shapes="a, b")
 
-Reciprocal distribution
-
-reciprocal.pdf(x,a,b) = 1/(x*log(b/a))
-for a <= x <= b, a,b > 0.
-"""
-                            )
 
 # Rice distribution
 
 # FIXME: PPF does not work.
 class rice_gen(rv_continuous):
+    """A Rice continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `rice` is::
+
+        rice.pdf(x, b) = x * exp(-(x**2+b**2)/2) * I[0](x*b)
+
+    for ``x > 0``, ``b > 0``.
+
+    %(example)s
+
+    """
     def _pdf(self, x, b):
         return x*exp(-(x*x+b*b)/2.0)*special.i0(x*b)
     def _logpdf(self, x, b):
@@ -5278,20 +5838,28 @@ class rice_gen(rv_continuous):
         b2 = b*b/2.0
         return 2.0**(nd2)*exp(-b2)*special.gamma(n1) * \
                special.hyp1f1(n1,1,b2)
-rice = rice_gen(a=0.0, name="rice", longname="A Rice",
-                shapes="b", extradoc="""
+rice = rice_gen(a=0.0, name="rice", shapes="b")
 
-Rician distribution
-
-rice.pdf(x,b) = x * exp(-(x**2+b**2)/2) * I[0](x*b)
-for x > 0, b > 0.
-"""
-                )
 
 # Reciprocal Inverse Gaussian
 
 # FIXME: PPF does not work.
 class recipinvgauss_gen(rv_continuous):
+    """A reciprocal inverse Gaussian continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `recipinvgauss` is::
+
+        recipinvgauss.pdf(x, mu) = 1/sqrt(2*pi*x) * exp(-(1-mu*x)**2/(2*x*mu**2))
+
+    for ``x >= 0``.
+
+    %(example)s
+
+    """
     def _rvs(self, mu): #added, taken from invgauss
         return 1.0/mtrand.wald(mu, 1.0, size=self._size)
     def _pdf(self, x, mu):
@@ -5305,19 +5873,26 @@ class recipinvgauss_gen(rv_continuous):
         return 1.0-_norm_cdf(isqx*trm1)-exp(2.0/mu)*_norm_cdf(-isqx*trm2)
     # xb=50 or something large is necessary for stats to converge without exception
 recipinvgauss = recipinvgauss_gen(a=0.0, xb=50, name='recipinvgauss',
-                                  longname="A reciprocal inverse Gaussian",
-                                  shapes="mu", extradoc="""
-
-Reciprocal inverse Gaussian
-
-recipinvgauss.pdf(x, mu) = 1/sqrt(2*pi*x) * exp(-(1-mu*x)**2/(2*x*mu**2))
-for x >= 0.
-"""
-                                  )
+                                  shapes="mu")
 
 # Semicircular
 
 class semicircular_gen(rv_continuous):
+    """A semicircular continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `semicircular` is::
+
+        semicircular.pdf(x) = 2/pi * sqrt(1-x**2)
+
+    for ``-1 <= x <= 1``.
+
+    %(example)s
+
+    """
     def _pdf(self, x):
         return 2.0/pi*sqrt(1-x*x)
     def _cdf(self, x):
@@ -5326,23 +5901,29 @@ class semicircular_gen(rv_continuous):
         return 0, 0.25, 0, -1.0
     def _entropy(self):
         return 0.64472988584940017414
-semicircular = semicircular_gen(a=-1.0,b=1.0, name="semicircular",
-                                longname="A semicircular",
-                                extradoc="""
+semicircular = semicircular_gen(a=-1.0, b=1.0, name="semicircular")
 
-Semicircular distribution
-
-semicircular.pdf(x) = 2/pi * sqrt(1-x**2)
-for -1 <= x <= 1.
-"""
-                                )
 
 # Triangular
-# up-sloping line from loc to (loc + c*scale) and then downsloping line from
-#    loc + c*scale to loc + scale
 
-# _trstr = "Left must be <= mode which must be <= right with left < right"
 class triang_gen(rv_continuous):
+    """A triangular continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The triangular distribution can be represented with an up-sloping line from
+    ``loc`` to ``(loc + c*scale)`` and then downsloping for ``(loc + c*scale)``
+    to ``(loc+scale)``.
+
+    The standard form is in the range [0, 1] with c the mode.
+    The location parameter shifts the start to `loc`.
+    The scale parameter changes the width from 1 to `scale`.
+
+    %(example)s
+
+    """
     def _rvs(self, c):
         return mtrand.triangular(0, c, 1, self._size)
     def _argcheck(self, c):
@@ -5358,23 +5939,27 @@ class triang_gen(rv_continuous):
                (5*(1.0-c+c*c)**1.5), -3.0/5.0
     def _entropy(self,c):
         return 0.5-log(2)
-triang = triang_gen(a=0.0, b=1.0, name="triang", longname="A Triangular",
-                    shapes="c", extradoc="""
+triang = triang_gen(a=0.0, b=1.0, name="triang", shapes="c")
 
-Triangular distribution
-
-    up-sloping line from loc to (loc + c*scale) and then downsloping
-    for (loc + c*scale) to (loc+scale).
-
-    - standard form is in the range [0,1] with c the mode.
-    - location parameter shifts the start to loc
-    - scale changes the width from 1 to scale
-"""
-                    )
 
 # Truncated Exponential
 
 class truncexpon_gen(rv_continuous):
+    """A truncated exponential continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `truncexpon` is::
+
+        truncexpon.pdf(x, b) = exp(-x) / (1-exp(-b))
+
+    for ``0 < x < b``.
+
+    %(example)s
+
+    """
     def _argcheck(self, b):
         self.b = b
         return (b > 0)
@@ -5400,20 +5985,28 @@ class truncexpon_gen(rv_continuous):
     def _entropy(self, b):
         eB = exp(b)
         return log(eB-1)+(1+eB*(b-1.0))/(1.0-eB)
-truncexpon = truncexpon_gen(a=0.0, name='truncexpon',
-                            longname="A truncated exponential",
-                            shapes="b", extradoc="""
+truncexpon = truncexpon_gen(a=0.0, name='truncexpon', shapes="b")
 
-Truncated exponential distribution
-
-truncexpon.pdf(x,b) = exp(-x)/(1-exp(-b))
-for 0 < x < b.
-"""
-                            )
 
 # Truncated Normal
 
 class truncnorm_gen(rv_continuous):
+    """A truncated normal continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The standard form of this distribution is a standard normal truncated to
+    the range [a,b] --- notice that a and b are defined over the domain of the
+    standard normal.  To convert clip values for a specific mean and standard
+    deviation, use::
+
+        a, b = (myclip_a - my_mean) / my_std, (myclip_b - my_mean) / my_std
+
+    %(example)s
+
+    """
     def _argcheck(self, a, b):
         self.a = a
         self.b = b
@@ -5439,27 +6032,31 @@ class truncnorm_gen(rv_continuous):
         mu = (pA - pB) / d   #correction sign
         mu2 = 1 + (a*pA - b*pB) / d - mu*mu
         return mu, mu2, None, None
-truncnorm = truncnorm_gen(name='truncnorm', longname="A truncated normal",
-                          shapes="a, b", extradoc="""
+truncnorm = truncnorm_gen(name='truncnorm', shapes="a, b")
 
-Truncated Normal distribution.
-
-  The standard form of this distribution is a standard normal truncated to the
-  range [a,b] --- notice that a and b are defined over the domain
-  of the standard normal.  To convert clip values for a specific mean and
-  standard deviation use a,b = (myclip_a-my_mean)/my_std, (myclip_b-my_mean)/my_std
-"""
-                          )
 
 # Tukey-Lambda
-# A flexible distribution ranging from Cauchy (lam=-1)
-#   to logistic (lam=0.0)
-#   to approx Normal (lam=0.14)
-#   to u-shape (lam = 0.5)
-#   to Uniform from -1 to 1 (lam = 1)
 
 # FIXME: RVS does not work.
 class tukeylambda_gen(rv_continuous):
+    """A Tukey-Lamdba continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    A flexible distribution, able to represent and interpolate between the
+    following distributions:
+
+        - Cauchy                (lam=-1)
+        - logistic              (lam=0.0)
+        - approx Normal         (lam=0.14)
+        - u-shape               (lam = 0.5)
+        - uniform from -1 to 1  (lam = 1)
+
+    %(example)s
+
+    """
     def _argcheck(self, lam):
         # lam in RR.
         return np.ones(np.shape(lam), dtype=bool)
@@ -5490,23 +6087,21 @@ class tukeylambda_gen(rv_continuous):
         def integ(p):
             return log(pow(p,lam-1)+pow(1-p,lam-1))
         return integrate.quad(integ,0,1)[0]
-tukeylambda = tukeylambda_gen(name='tukeylambda', longname="A Tukey-Lambda",
-                              shapes="lam", extradoc="""
+tukeylambda = tukeylambda_gen(name='tukeylambda', shapes="lam")
 
-Tukey-Lambda distribution
-
-   A flexible distribution ranging from Cauchy (lam=-1)
-   to logistic (lam=0.0)
-   to approx Normal (lam=0.14)
-   to u-shape (lam = 0.5)
-   to Uniform from -1 to 1 (lam = 1)
-"""
-                              )
 
 # Uniform
-# loc to loc + scale
 
 class uniform_gen(rv_continuous):
+    """A uniform continuous random variable.
+
+    This distribution is constant between `loc` and ``loc = scale``.
+
+    %(before_notes)s
+
+    %(example)s
+
+    """
     def _rvs(self):
         return mtrand.uniform(0.0,1.0,self._size)
     def _pdf(self, x):
@@ -5519,14 +6114,8 @@ class uniform_gen(rv_continuous):
         return 0.5, 1.0/12, 0, -1.2
     def _entropy(self):
         return 0.0
-uniform = uniform_gen(a=0.0,b=1.0, name='uniform', longname="A uniform",
-                      extradoc="""
+uniform = uniform_gen(a=0.0, b=1.0, name='uniform')
 
-Uniform distribution
-
-   constant between loc and loc+scale
-"""
-                      )
 
 # Von-Mises
 
@@ -5536,6 +6125,24 @@ Uniform distribution
 eps = numpy.finfo(float).eps
 
 class vonmises_gen(rv_continuous):
+    """A Von Mises continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    If `x` is not in range or `loc` is not in range it assumes they are angles
+    and converts them to [-pi, pi] equivalents.
+
+    The probability density function for `vonmises` is::
+
+        vonmises.pdf(x, b) = exp(b*cos(x)) / (2*pi*I[0](b))
+
+    for ``-pi <= x <= pi``, ``b > 0``.
+
+    %(example)s
+
+    """
     def _rvs(self, b):
         return mtrand.vonmises(0.0, b, size=self._size)
     def _pdf(self, x, b):
@@ -5544,19 +6151,7 @@ class vonmises_gen(rv_continuous):
         return vonmises_cython.von_mises_cdf(b,x)
     def _stats_skip(self, b):
         return 0, None, 0, None
-vonmises = vonmises_gen(name='vonmises', longname="A Von Mises",
-                        shapes="b", extradoc="""
-
-Von Mises distribution
-
-  if x is not in range or loc is not in range it assumes they are angles
-     and converts them to [-pi, pi] equivalents.
-
-  vonmises.pdf(x,b) = exp(b*cos(x)) / (2*pi*I[0](b))
-  for -pi <= x <= pi, b > 0.
-
-"""
-                        )
+vonmises = vonmises_gen(name='vonmises', shapes="b")
 
 
 ## Wald distribution (Inverse Normal with shape parameter mu=1.0)
@@ -5568,8 +6163,11 @@ class wald_gen(invgauss_gen):
 
     Notes
     -----
-    The probability density function, `pdf`, is defined by
-    ``1/sqrt(2*pi*x**3) * exp(-(x-1)**2/(2*x))``, for ``x > 0``.
+    The probability density function for `wald` is::
+
+        wald.pdf(x, a) = 1/sqrt(2*pi*x**3) * exp(-(x-1)**2/(2*x))
+
+    for ``x > 0``.
 
     %(example)s
     """
@@ -5583,21 +6181,27 @@ class wald_gen(invgauss_gen):
         return invgauss._cdf(x, 1.0)
     def _stats(self):
         return 1.0, 1.0, 3.0, 15.0
-wald = wald_gen(a=0.0, name="wald", extradoc="""
+wald = wald_gen(a=0.0, name="wald")
 
-Wald distribution
-
-wald.pdf(x) = 1/sqrt(2*pi*x**3) * exp(-(x-1)**2/(2*x))
-for x > 0.
-"""
-                )
-
-## Weibull
-## See Frechet
 
 # Wrapped Cauchy
 
 class wrapcauchy_gen(rv_continuous):
+    """A wrapped Cauchy continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability density function for `wrapcauchy` is::
+
+        wrapcauchy.pdf(x, c) = (1-c**2) / (2*pi*(1+c**2-2*c*cos(x)))
+
+    for ``0 <= x <= 2*pi``, ``0 < c < 1``.
+
+    %(example)s
+
+    """
     def _argcheck(self, c):
         return (c > 0) & (c < 1)
     def _pdf(self, x, c):
@@ -5630,16 +6234,8 @@ class wrapcauchy_gen(rv_continuous):
         return where(q < 1.0/2, rcq, rcmq)
     def _entropy(self, c):
         return log(2*pi*(1-c*c))
-wrapcauchy = wrapcauchy_gen(a=0.0,b=2*pi, name='wrapcauchy',
-                            longname="A wrapped Cauchy",
-                            shapes="c", extradoc="""
+wrapcauchy = wrapcauchy_gen(a=0.0, b=2*pi, name='wrapcauchy', shapes="c")
 
-Wrapped Cauchy distribution
-
-wrapcauchy.pdf(x,c) = (1-c**2) / (2*pi*(1+c**2-2*c*cos(x)))
-for 0 <= x <= 2*pi, 0 < c < 1.
-"""
-                            )
 
 ### DISCRETE DISTRIBUTIONS
 ###
@@ -5975,6 +6571,8 @@ class rv_discrete(rv_generic):
         
         if badvalue is None:
             badvalue = nan
+        if name is None:
+            name = 'Distribution'
         self.badvalue = badvalue
         self.a = a
         self.b = b
@@ -6074,7 +6672,7 @@ class rv_discrete(rv_generic):
             # remove shapes from call parameters if there are none
             for item in ['callparams', 'default', 'before_notes']:
                 tempdict[item] = tempdict[item].replace(\
-                        "\n%(shapes)s : array-like\n    shape parameters", "")
+                        "\n%(shapes)s : array_like\n    shape parameters", "")
         for i in range(2):
             if self.shapes is None:
                 # necessary because we use %(shapes)s in two forms (w w/o ", ")
@@ -6136,17 +6734,17 @@ class rv_discrete(rv_generic):
 
         Parameters
         ----------
-        arg1, arg2, arg3,... : array-like
+        arg1, arg2, arg3,... : array_like
             The shape parameter(s) for the distribution (see docstring of the
             instance object for more information)
-        loc : array-like, optional
+        loc : array_like, optional
             location parameter (default=0)
         size : int or tuple of ints, optional
             defining number of random variates (default=1)
 
         Returns
         -------
-        rvs : array-like
+        rvs : array_like
             random variates of given `size`
 
         """
@@ -6160,17 +6758,17 @@ class rv_discrete(rv_generic):
 
         Parameters
         ----------
-        k : array-like
+        k : array_like
             quantiles
-        arg1, arg2, arg3,... : array-like
+        arg1, arg2, arg3,... : array_like
             The shape parameter(s) for the distribution (see docstring of the
             instance object for more information)
-        loc : array-like, optional
+        loc : array_like, optional
             location parameter (default=0)
 
         Returns
         -------
-        pmf : array-like
+        pmf : array_like
             Probability mass function evaluated at k
 
         """
@@ -6198,17 +6796,17 @@ class rv_discrete(rv_generic):
 
         Parameters
         ----------
-        k : array-like
+        k : array_like
             quantiles
-        arg1, arg2, arg3,... : array-like
+        arg1, arg2, arg3,... : array_like
             The shape parameter(s) for the distribution (see docstring of the
             instance object for more information)
-        loc : array-like, optional
-            location parameter (default=0)
+        loc : array_like, optional
+            Location parameter. Default is 0.
 
         Returns
         -------
-        logpmf : array-like
+        logpmf : array_like
             Log of the probability mass function evaluated at k
 
         """
@@ -6236,17 +6834,17 @@ class rv_discrete(rv_generic):
 
         Parameters
         ----------
-        k : array-like, int
+        k : array_like, int
             quantiles
-        arg1, arg2, arg3,... : array-like
+        arg1, arg2, arg3,... : array_like
             The shape parameter(s) for the distribution (see docstring of the
             instance object for more information)
-        loc : array-like, optional
+        loc : array_like, optional
             location parameter (default=0)
 
         Returns
         -------
-        cdf : array-like
+        cdf : array_like
             Cumulative distribution function evaluated at k
 
         """
@@ -6276,17 +6874,17 @@ class rv_discrete(rv_generic):
 
         Parameters
         ----------
-        k : array-like, int
+        k : array_like, int
             quantiles
-        arg1, arg2, arg3,... : array-like
+        arg1, arg2, arg3,... : array_like
             The shape parameter(s) for the distribution (see docstring of the
             instance object for more information)
-        loc : array-like, optional
+        loc : array_like, optional
             location parameter (default=0)
 
         Returns
         -------
-        logcdf : array-like
+        logcdf : array_like
             Log of the cumulative distribution function evaluated at k
 
         """
@@ -6317,17 +6915,17 @@ class rv_discrete(rv_generic):
 
         Parameters
         ----------
-        k : array-like
+        k : array_like
             quantiles
-        arg1, arg2, arg3,... : array-like
+        arg1, arg2, arg3,... : array_like
             The shape parameter(s) for the distribution (see docstring of the
             instance object for more information)
-        loc : array-like, optional
+        loc : array_like, optional
             location parameter (default=0)
 
         Returns
         -------
-        sf : array-like
+        sf : array_like
             Survival function evaluated at k
 
         """
@@ -6356,17 +6954,17 @@ class rv_discrete(rv_generic):
 
         Parameters
         ----------
-        k : array-like
+        k : array_like
             quantiles
-        arg1, arg2, arg3,... : array-like
+        arg1, arg2, arg3,... : array_like
             The shape parameter(s) for the distribution (see docstring of the
             instance object for more information)
-        loc : array-like, optional
+        loc : array_like, optional
             location parameter (default=0)
 
         Returns
         -------
-        sf : array-like
+        sf : array_like
             Survival function evaluated at k
 
         """
@@ -6396,19 +6994,19 @@ class rv_discrete(rv_generic):
 
         Parameters
         ----------
-        q : array-like
+        q : array_like
             lower tail probability
-        arg1, arg2, arg3,... : array-like
+        arg1, arg2, arg3,... : array_like
             The shape parameter(s) for the distribution (see docstring of the
             instance object for more information)
-        loc : array-like, optional
+        loc : array_like, optional
             location parameter (default=0)
-        scale: array-like, optional
+        scale: array_like, optional
             scale parameter (default=1)
 
         Returns
         -------
-        k : array-like
+        k : array_like
             quantile corresponding to the lower tail probability, q.
 
         """
@@ -6439,17 +7037,17 @@ class rv_discrete(rv_generic):
 
         Parameters
         ----------
-        q : array-like
+        q : array_like
             upper tail probability
-        arg1, arg2, arg3,... : array-like
+        arg1, arg2, arg3,... : array_like
             The shape parameter(s) for the distribution (see docstring of the
             instance object for more information)
-        loc : array-like, optional
+        loc : array_like, optional
             location parameter (default=0)
 
         Returns
         -------
-        k : array-like
+        k : array_like
             quantile corresponding to the upper tail probability, q.
 
         """
@@ -6491,10 +7089,10 @@ class rv_discrete(rv_generic):
 
         Parameters
         ----------
-        arg1, arg2, arg3,... : array-like
+        arg1, arg2, arg3,... : array_like
             The shape parameter(s) for the distribution (see docstring of the
             instance object for more information)
-        loc : array-like, optional
+        loc : array_like, optional
             location parameter (default=0)
         moments : string, optional
             composed of letters ['mvsk'] defining which moments to compute:
@@ -6981,6 +7579,25 @@ for k >= 1
 ## Hypergeometric distribution
 
 class hypergeom_gen(rv_discrete):
+    """A hypergeometric discrete random variable.
+
+    The hypergeometric distribution models drawing objects from a bin.
+    M is the total number of objects, n is total number of Type I objects.
+    The random variate represents the number of Type I objects in N drawn
+    without replacement from the total population.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability mass function is defined as::
+
+        pmf(k, M, n, N) = choose(n, k) * choose(M - n, N - k) / choose(M, N),
+                                               for N - (M-n) <= k <= min(m,N)
+
+    %(example)s
+
+    """
     def _rvs(self, M, n, N):
         return mtrand.hypergeometric(n,M-n,N,size=self._size)
     def _argcheck(self, M, n, N):
@@ -7022,20 +7639,21 @@ class hypergeom_gen(rv_discrete):
         vals = self.pmf(k,M,n,N)
         lvals = where(vals==0.0,0.0,log(vals))
         return -sum(vals*lvals,axis=0)
-hypergeom = hypergeom_gen(name='hypergeom',longname="A hypergeometric",
-                          shapes="M, n, N", extradoc="""
+    def _sf(self, k, M, n, N):
+        """More precise calculation, 1 - cdf doesn't cut it."""
+        # This for loop is needed because `k` can be an array. If that's the
+        # case, the sf() method makes M, n and N arrays of the same shape. We
+        # therefore unpack all inputs args, so we can do the manual integration.
+        res = []
+        for quant, tot, good, draw in zip(k, M, n, N):
+            # Manual integration over probability mass function. More accurate
+            # than integrate.quad.
+            k2 = np.arange(quant + 1, draw + 1)
+            res.append(np.sum(self._pmf(k2, tot, good, draw)))
+        return np.asarray(res)
 
-Hypergeometric distribution
+hypergeom = hypergeom_gen(name='hypergeom', shapes="M, n, N")
 
-   Models drawing objects from a bin.
-   M is total number of objects, n is total number of Type I objects.
-   RV counts number of Type I objects in N drawn without replacement from
-   population.
-
-   hypergeom.pmf(k, M, n, N) = choose(n,k)*choose(M-n,N-k)/choose(M,N)
-   for N - (M-n) <= k <= min(m,N)
-"""
-                          )
 
 ## Logarithmic (Log-Series), (Series) distribution
 # FIXME: Fails _cdfvec
@@ -7067,7 +7685,7 @@ logser = logser_gen(a=1,name='logser', longname='A logarithmic',
 
 Logarithmic (Log-Series, Series) distribution
 
-logser.pmf(k,p) = - p**k / (k*log1p(-p))
+logser.pmf(k,p) = - p**k / (k*log(1-p))
 for k >= 1
 """
                     )
