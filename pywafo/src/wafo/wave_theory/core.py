@@ -7,7 +7,6 @@ import numpy as np
 from numpy import exp, expm1, inf, nan, pi, hstack, where, atleast_1d, cos, sin
 from dispersion_relation import w2k, k2w
 
-
 def hyperbolic_ratio(a, b, sa, sb):
     '''
     Return ratio of hyperbolic functions

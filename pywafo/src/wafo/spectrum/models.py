@@ -1374,12 +1374,17 @@ class Spreading(object):
     >>> import wafo.spectrum.models as wsm
     >>> import pylab as plb
     >>> D = wsm.Spreading('cos2s',s_a=10.0)
+    
+    # Make directionale spectrum
+    >>> S = wsm.Jonswap().tospecdata() 
+    >>> SD = D.tospecdata2d(S)
+    >>> h = SD.plot()
 
     >>> w = plb.linspace(0,3,257)
     >>> theta = plb.linspace(-pi,pi,129)
     >>> t = plb.contour(D(theta,w)[0].squeeze())
 
-       # Make frequency dependent direction
+    # Make frequency dependent direction spreading
     >>> theta0 = lambda w: w*plb.pi/6.0
     >>> D2 = wsm.Spreading('cos2s',theta0=theta0)
     >>> t = plb.contour(D2(theta,w)[0])

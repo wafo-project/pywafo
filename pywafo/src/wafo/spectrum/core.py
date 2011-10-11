@@ -160,39 +160,40 @@ def plotspec(specdata, linetype='b-', flag=1):
     '''
     PLOTSPEC Plot a spectral density 
     
-     CALL:  plotspec(S,plotflag,linetype) 
-    
-        S       = an array of spectral density structs:
-                  1D  (see dat2spec)
-                  2D  (see createspec)
-       1D:
-       plotflag = 1 plots the density, S, (default)
-                  2 plot 10log10(S)
-               3 plots both the above plots 
-       2D:
-       Directional spectra: S(w,theta), S(f,theta)             
-       plotflag = 1 polar plot S (default)
-                  2 plots spectral density and the directional 
+    Parameters
+    ---------- 
+    S : SpecData1D or SpecData2D object      
+        defining spectral density.
+    linetype : string
+        defining color and linetype, see plot for possibilities
+    flag : scalar integer
+        defining the type of plot
+        1D:
+            1 plots the density, S, (default)
+            2 plot 10log10(S)
+            3 plots both the above plots 
+        2D:
+        Directional spectra: S(w,theta), S(f,theta)             
+            1 polar plot S (default)
+            2 plots spectral density and the directional 
                     spreading, int S(w,theta) dw or int S(f,theta) df
-                  3 plots spectral density and the directional 
+            3 plots spectral density and the directional 
                     spreading, int S(w,theta)/S(w) dw or int S(f,theta)/S(f) df
-                  4 mesh of S
-                  5 mesh of S in polar coordinates  
-                  6 contour plot of S
-                  7 filled contour plot of S
-       Wavenumber spectra: S(k1,k2)
-       plotflag = 1 contour plot of S (default)
-                  2 filled contour plot of S
-       lintype : specify color and lintype, see PLOT for possibilities.
-    
-     NOTE: - lintype may be given anywhere after S.
-    
-     Examples
+            4 mesh of S
+            5 mesh of S in polar coordinates  
+            6 contour plot of S
+            7 filled contour plot of S
+        Wavenumber spectra: S(k1,k2)
+            1 contour plot of S (default)
+            2 filled contour plot of S
+     
+    Example
+    -------
     >>> import numpy as np
-    >>> import wafo.spectrum.models as sm
-    >>> Sj = sm.Jonswap(Hm0=3, Tp=7)
+    >>> import wafo.spectrum as ws
+    >>> Sj = ws.models.Jonswap(Hm0=3, Tp=7)
     >>> S = Sj.tospecdata()
-    >>> plotspec(S,1)
+    >>> ws.plotspec(S,flag=1)
 
       S = demospec('dir'); S2 = mkdspec(jonswap,spreading);
       plotspec(S,2), hold on
@@ -205,8 +206,7 @@ def plotspec(specdata, linetype='b-', flag=1):
     
      See also  dat2spec, createspec, simpson
     '''
-    
-    
+  
     # label the contour levels
     txtFlag = 0;
     LegendOn = 1;
@@ -281,13 +281,13 @@ def plotspec(specdata, linetype='b-', flag=1):
             for i, fp in enumerate(Fp.tolist()):
                 txt.append(('fp%d = %0.2g' % (i, fp)) + funit)
           
-        
+        txt = ''.join(txt)
         if (flag == 3):
             plotbackend.subplot(2, 1, 1) 
         if (flag == 1) or (flag == 3):#% Plot in normal scale
-            plotbackend.plot(np.vstack([Fp, Fp]), np.vstack([zeros(len(indm)), data.take(indm)]), ':',
-                             freq, data, linetype)
-            
+            plotbackend.plot(np.vstack([Fp, Fp]), np.vstack([zeros(len(indm)), data.take(indm)]), ':', label=txt)
+            plotbackend.plot(freq, data, linetype)
+            specdata.labels.labelfig()
 #          if isfield(S,'CI'),
 #            plot(freq,S.S*S.CI(1), 'r:' )
 #            plot(freq,S.S*S.CI(2), 'r:' )
@@ -299,9 +299,9 @@ def plotspec(specdata, linetype='b-', flag=1):
                 a1 = max(min(Fn, 10 * max(Fp)), a[1]);
           
             plotbackend.axis([0, a1 , 0, max(1.01 * maxS, a[3])]) 
-            plotbackend.title('Spectral density')
-            plotbackend.xlabel(xlbl_txt)
-            plotbackend.ylabel(ylbl1_txt)
+            #plotbackend.title('Spectral density')
+            #plotbackend.xlabel(xlbl_txt)
+            #plotbackend.ylabel(ylbl1_txt)
         
         
         if (flag == 3):
@@ -310,8 +310,9 @@ def plotspec(specdata, linetype='b-', flag=1):
         if (flag == 2) or (flag == 3) : # Plot in logaritmic scale
             ind = np.flatnonzero(data > 0)
             
-            plotbackend.plot(np.vstack([Fp, Fp]), np.vstack((min(10 * log10(data.take(ind) / maxS)).repeat(len(Fp)),
-                                                            10 * log10(data.take(indm) / maxS))), ':')
+            plotbackend.plot(np.vstack([Fp, Fp]), 
+                            np.vstack((min(10 * log10(data.take(ind) / maxS)).repeat(len(Fp)),                                     
+                            10 * log10(data.take(indm) / maxS))), ':',label=txt)
 #          hold on 
 #          if isfield(S,'CI'),
 #            plot(freq(ind),10*log10(S.S(ind)*S.CI(1)/maxS), 'r:' )
@@ -319,13 +320,21 @@ def plotspec(specdata, linetype='b-', flag=1):
 #          end
             plotbackend.plot(freq[ind], 10 * log10(data[ind] / maxS), linetype)
           
-#            if ih, a=axis; else a=[0 0 0 0]; end
-#            axis([0 max(min(Fn,max(10*Fp)),a(2)) -20 max(1.01*10*log10(1),a(4))]) % log10(maxS)
-#            title('Spectral density')
-#            xlabel(xlbl_txt)
-#            ylabel(ylbl2_txt )
-#              
-#        if LegendOn
+            a = plotbackend.axis() 
+          
+            a1 = Fn
+            if (Fp > 0): 
+                a1 = max(min(Fn, 10 * max(Fp)), a[1]);
+          
+            plotbackend.axis([0, a1 , -20, max(1.01 * 10 * log10(1), a[3])]) 
+            
+            specdata.labels.labelfig()
+            #plotbackend.title('Spectral density')
+            #plotbackend.xlabel(xlbl_txt)
+            plotbackend.ylabel(ylbl2_txt)
+                      
+        if LegendOn:
+            plotbackend.legend()
 #            if isfield(S,'CI'),
 #                legend(txt{:},txtCI,1)
 #            else
@@ -3148,7 +3157,7 @@ class SpecData1D(WafoData):
             title = 'Directional Spectrum'
             if self.freqtype.startswith('w'):
                 labels[0] = 'Frequency [rad/s]'
-                labels[2] = r'S(w,$\theta$) $[m^2 s / rad^2]$'
+                labels[2] = r'S($\omega$,$\theta$) $[m^2 s / rad^2]$'
             else:
                 labels[0] = 'Frequency [Hz]'
                 labels[2] = r'S(f,$\theta$) $[m^2 s / rad]$'
@@ -3161,7 +3170,7 @@ class SpecData1D(WafoData):
             title = 'Spectral density'
             if self.freqtype.startswith('w'):
                 labels[0] = 'Frequency [rad/s]'
-                labels[1] = r'S(w) $[m^2 s/ rad]$'
+                labels[1] = r'S($\omega$) $[m^2 s/ rad]$'
             else:
                 labels[0] = 'Frequency [Hz]'
                 labels[1] = r'S(f) $[m^2 s]$'
