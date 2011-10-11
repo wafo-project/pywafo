@@ -50,7 +50,7 @@ __all__ = [
            'weibull_max', 'genlogistic', 'genpareto', 'genexpon', 'genextreme',
            'gamma', 'gengamma', 'genhalflogistic', 'gompertz', 'gumbel_r',
            'gumbel_l', 'halfcauchy', 'halflogistic', 'halfnorm', 'hypsecant',
-           'gausshyper', 'invgamma', 'invnorm', 'invgauss', 'invweibull',
+           'gausshyper', 'invgamma', 'invgauss', 'invweibull',
            'johnsonsb', 'johnsonsu', 'laplace', 'levy', 'levy_l',
            'levy_stable', 'logistic', 'loggamma', 'loglaplace', 'lognorm',
            'gilbrat', 'maxwell', 'mielke', 'nakagami', 'ncx2', 'ncf', 't',
@@ -3897,18 +3897,18 @@ class genpareto_gen(rv_continuous):
         self.b = where(c < 0, 1.0 / abs(c), inf)
         return where(abs(c) == inf, 0, 1)
     def _pdf(self, x, c):
-		#%f = exp(-xn)/s;                   % for  k==0
+        #%f = exp(-xn)/s;                   % for  k==0
         #%f = (1+k.*xn)**(-1./k-1)/s;        % for  k~=0
         #%f = exp((-1./k-1)*log1p(kxn))/s  % for  k~=0
         #%f = exp((-xn-kxn)*log1p(kxn)/(kxn))/s  % for any k kxn~=inf        
-        return exp(self._logpdf(x, c)
+        return exp(self._logpdf(x, c))
         #Px = pow(1+c*x,arr(-1.0-1.0/c))
         #return Px
-   def _logpdf(self, x, c):
-		cx = where((c == 0) & (x == inf), 0.0, c * x).clip(min= -1.0)
+    def _logpdf(self, x, c):
+        cx = where((c == 0) & (x == inf), 0.0, c * x).clip(min= -1.0)
         logpdf = where((cx == inf) | (cx == -1), -inf, -(x + cx) * log1pxdx(cx))
         putmask(logpdf, (c == -1) & (x == 1.0), 0.0)
-		return logpdf
+        return logpdf
         #return (-1.0-1.0/c) * np.log1p(c*x)
     def _chf(self, x, c):
         cx = c * x
@@ -5367,9 +5367,11 @@ class t_gen(rv_continuous):
         g1 = where(df > 3, 0.0, nan)
         g2 = where(df > 4, 6.0/(df-4.0), nan)
         return 0, mu2, g1, g2
+t = t_gen(name='t', shapes="df")
 
 
 ## Non-central T distribution
+
 
 class nct_gen(rv_continuous):
     """A non-central Student's T continuous random variable.
@@ -5714,7 +5716,7 @@ rayleigh = rayleigh_gen(a=0.0, name="rayleigh")
 
 
 class truncrayleigh_gen(rv_continuous):
-	"""A truncated Rayleigh continuous random variable.
+    """A truncated Rayleigh continuous random variable.
 
     %(before_notes)s
 
@@ -5727,7 +5729,7 @@ class truncrayleigh_gen(rv_continuous):
 	for ``x >= 0, c>=0``.
 
     %(example)s
-
+    
     """
     def _argcheck(self, c):
         return (c>=0)
