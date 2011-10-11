@@ -642,7 +642,7 @@ def findrfc(tp, hmin=0.0, method='clib'):
         ind, ix = clib.findrfc(y, hmin)
     return np.sort(ind[:ix])
 
-def mctp2rfc(f_mM, f_Mm=None):
+def mctp2rfc(fmM, fMm=None):
     '''
     Return Rainflow matrix given a Markov matrix of a Markov chain of turning points
     
@@ -650,8 +650,8 @@ def mctp2rfc(f_mM, f_Mm=None):
     
     Parameters
     ----------
-    f_mM =  the min2max Markov matrix, 
-    f_Mm  = the max2min Markov matrix,
+    fmM =  the min2max Markov matrix, 
+    fMm  = the max2min Markov matrix,
     
     Returns 
     -------
@@ -679,12 +679,12 @@ def mctp2rfc(f_mM, f_Mm=None):
     
     '''
      
-    if f_Mm is None:
-        f_mM = np.atleast_1d(f_mM)
-        f_Mm = f_mM.copy()
+    if fMm is None:
+        fmM = np.atleast_1d(fmM)
+        fMm = fmM.copy()
     else:
-        f_mM, f_Mm = np.atleast_1d(f_mM, f_Mm)
-    
+        fmM, fMm = np.atleast_1d(fmM, fMm)
+    f_mM, f_Mm = fmM.copy(), fMm.copy()
     N = max(f_mM.shape)
     f_max = np.sum(f_mM, axis=1)
     f_min = np.sum(f_mM, axis=0)
