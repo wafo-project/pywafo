@@ -1642,7 +1642,7 @@ class rv_continuous(rv_generic):
         cond1 = (scale > 0) & (x >= self.a) & (x <= self.b)
         cond = cond0 & cond1
         output = zeros(shape(cond),'d')
-        putmask(output,(1-cond0)*array(cond1,bool),self.badvalue)
+        putmask(output,(1-cond0)+np.isnan(x),self.badvalue)
         if any(cond):
             goodargs = argsreduce(cond, *((x,)+args+(scale,)))
             scale, goodargs = goodargs[-1], goodargs[:-1]
@@ -1685,7 +1685,7 @@ class rv_continuous(rv_generic):
         cond = cond0 & cond1
         output = empty(shape(cond),'d')
         output.fill(NINF)
-        putmask(output,(1-cond0)*array(cond1,bool),self.badvalue)
+        putmask(output,(1-cond0)+np.isnan(x),self.badvalue)
         if any(cond):
             goodargs = argsreduce(cond, *((x,)+args+(scale,)))
             scale, goodargs = goodargs[-1], goodargs[:-1]
@@ -1727,7 +1727,8 @@ class rv_continuous(rv_generic):
         cond2 = (x >= self.b) & cond0
         cond = cond0 & cond1
         output = zeros(shape(cond),'d')
-        place(output,(1-cond0)*(cond1==cond1),self.badvalue)
+        #place(output,(1-cond0)*(cond1==cond1),self.badvalue)
+        place(output,(1-cond0)+np.isnan(x),self.badvalue)
         place(output,cond2,1.0)
         if any(cond):  #call only if at least 1 entry
             goodargs = argsreduce(cond, *((x,)+args))
@@ -1770,7 +1771,7 @@ class rv_continuous(rv_generic):
         cond = cond0 & cond1
         output = empty(shape(cond),'d')
         output.fill(NINF)
-        place(output,(1-cond0)*(cond1==cond1),self.badvalue)
+        place(output,(1-cond0)+np.isnan(x),self.badvalue)
         place(output,cond2,0.0)
         if any(cond):  #call only if at least 1 entry
             goodargs = argsreduce(cond, *((x,)+args))
@@ -1811,7 +1812,7 @@ class rv_continuous(rv_generic):
         cond2 = cond0 & (x <= self.a)
         cond = cond0 & cond1
         output = zeros(shape(cond),'d')
-        place(output,(1-cond0)*(cond1==cond1),self.badvalue)
+        place(output,(1-cond0)+np.isnan(x),self.badvalue)
         place(output,cond2,1.0)
         if any(cond):
             goodargs = argsreduce(cond, *((x,)+args))
@@ -1856,7 +1857,7 @@ class rv_continuous(rv_generic):
         cond = cond0 & cond1
         output = empty(shape(cond),'d')
         output.fill(NINF)
-        place(output,(1-cond0)*(cond1==cond1),self.badvalue)
+        place(output,(1-cond0)+np.isnan(x),self.badvalue)
         place(output,cond2,0.0)
         if any(cond):
             goodargs = argsreduce(cond, *((x,)+args))
@@ -3897,10 +3898,10 @@ class genpareto_gen(rv_continuous):
         self.b = where(c < 0, 1.0 / abs(c), inf)
         return where(abs(c) == inf, 0, 1)
     def _pdf(self, x, c):
-        #%f = exp(-xn)/s;                   % for  k==0
-        #%f = (1+k.*xn)**(-1./k-1)/s;        % for  k~=0
-        #%f = exp((-1./k-1)*log1p(kxn))/s  % for  k~=0
-        #%f = exp((-xn-kxn)*log1p(kxn)/(kxn))/s  % for any k kxn~=inf        
+        #f = exp(-xn)/s;                   % for  k==0
+        #f = (1+k.*xn)**(-1./k-1)/s;        % for  k~=0
+        #f = exp((-1./k-1)*log1p(kxn))/s  % for  k~=0
+        #f = exp((-xn-kxn)*log1p(kxn)/(kxn))/s  % for any k kxn~=inf        
         return exp(self._logpdf(x, c))
         #Px = pow(1+c*x,arr(-1.0-1.0/c))
         #return Px
@@ -3920,14 +3921,12 @@ class genpareto_gen(rv_continuous):
     def _sf(self, x, c):
         log_sf = -self._chf(x, c)
         return exp(log_sf)
-    def _isf2(self, log_sf, c):
-        return where((c != 0) & (-inf < log_sf), expm1(-c * log_sf) / c, -log_sf)
     def _ppf(self, q, c):
         log_sf = log1p(-q)
-        return self._isf2(log_sf, c)
+        return where((c != 0) & (-inf < log_sf), expm1(-c * log_sf) / c, -log_sf)
     def _isf(self, q, c):
         log_sf = log(q)
-        return self._isf2(log_sf, c)
+        return where((c != 0) & (-inf < log_sf), expm1(-c * log_sf) / c, -log_sf)
         #vals = 1.0/c * (pow(1-q, -c)-1)
         #return vals
         
@@ -5071,8 +5070,11 @@ class lognorm_gen(rv_continuous):
     def _rvs(self, s):
         return exp(s * norm.rvs(size=self._size))
     def _pdf(self, x, s):
-        Px = exp(-log(x)**2 / (2*s**2))
-        return Px / (s*x*sqrt(2*pi))
+        return exp(self._logpdf(x, s))
+        #Px = exp(-log(x)**2 / (2*s**2)) -Px*2*log(x)/x
+        #return Px / (s*x*sqrt(2*pi))
+    def _logpdf(self, x, s):
+        return -log(x)**2 / (2*s**2) + np.where((x==0)*(s==s) , 0, - log(s*x*sqrt(2*pi)))
     def _cdf(self, x, s):
         return norm.cdf(log(x)/s)
     def _ppf(self, q, s):
@@ -6783,7 +6785,7 @@ class rv_discrete(rv_generic):
         cond1 = (k >= self.a) & (k <= self.b) & self._nonzero(k,*args)
         cond = cond0 & cond1
         output = zeros(shape(cond),'d')
-        place(output,(1-cond0)*(cond1==cond1),self.badvalue)
+        place(output,(1-cond0) + np.isnan(k),self.badvalue)
         if any(cond):
             goodargs = argsreduce(cond, *((k,)+args))
             place(output,cond,self._pmf(*goodargs))
@@ -6822,7 +6824,7 @@ class rv_discrete(rv_generic):
         cond = cond0 & cond1
         output = empty(shape(cond),'d')
         output.fill(NINF)
-        place(output,(1-cond0)*(cond1==cond1),self.badvalue)
+        place(output,(1-cond0) + np.isnan(k),self.badvalue)
         if any(cond):
             goodargs = argsreduce(cond, *((k,)+args))
             place(output,cond,self._logpmf(*goodargs))
@@ -6860,7 +6862,7 @@ class rv_discrete(rv_generic):
         cond2 = (k >= self.b)
         cond = cond0 & cond1
         output = zeros(shape(cond),'d')
-        place(output,(1-cond0)*(cond1==cond1),self.badvalue)
+        place(output,(1-cond0) + np.isnan(k),self.badvalue)
         place(output,cond2*(cond0==cond0), 1.0)
 
         if any(cond):
@@ -6901,7 +6903,7 @@ class rv_discrete(rv_generic):
         cond = cond0 & cond1
         output = empty(shape(cond),'d')
         output.fill(NINF)
-        place(output,(1-cond0)*(cond1==cond1),self.badvalue)
+        place(output,(1-cond0) + np.isnan(k),self.badvalue)
         place(output,cond2*(cond0==cond0), 0.0)
 
         if any(cond):
@@ -6941,7 +6943,7 @@ class rv_discrete(rv_generic):
         cond2 = (k < self.a) & cond0
         cond = cond0 & cond1
         output = zeros(shape(cond),'d')
-        place(output,(1-cond0)*(cond1==cond1),self.badvalue)
+        place(output,(1-cond0) + np.isnan(k),self.badvalue)
         place(output,cond2,1.0)
         if any(cond):
             goodargs = argsreduce(cond, *((k,)+args))
@@ -6981,7 +6983,7 @@ class rv_discrete(rv_generic):
         cond = cond0 & cond1
         output = empty(shape(cond),'d')
         output.fill(NINF)
-        place(output,(1-cond0)*(cond1==cond1),self.badvalue)
+        place(output,(1-cond0) + np.isnan(k),self.badvalue)
         place(output,cond2,0.0)
         if any(cond):
             goodargs = argsreduce(cond, *((k,)+args))
@@ -7993,7 +7995,12 @@ Skellam distribution
 """
                       )
                         
-
+def test_lognorm():
+    lognorm.cdf(np.nan, 0.5, loc=3, scale=1)
+    lognorm.ppf(np.nan, 0.5, loc=3, scale=1)
+    lognorm.cdf(lognorm.ppf([-0.5,0,1e-4,0.5,1-1e-4,1,2],0.5,loc=3,
+                                        scale=1),0.5,loc=3,scale=1)
+    
 def test_truncrayleigh():
     import matplotlib.pyplot as plt
     from wafo.stats import truncrayleigh
@@ -8070,4 +8077,5 @@ def main():
     lp = pht.profile()
 if __name__ == '__main__':
     #main()
-    test_truncrayleigh()
+    #test_truncrayleigh()
+    test_lognorm()
