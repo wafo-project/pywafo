@@ -4,7 +4,7 @@
 
 from numpy.testing import TestCase, run_module_suite, assert_equal, \
     assert_array_equal, assert_almost_equal, assert_array_almost_equal, \
-    assert_, rand, dec
+    assert_allclose, assert_, rand, dec
 
 
 import numpy
@@ -40,15 +40,7 @@ dists = ['uniform','norm','lognorm','expon','beta',
          'hypsecant', 'laplace', 'reciprocal','triang','tukeylambda',
          'vonmises']
 
-# check function for test generator
-def check_distribution(dist, args, alpha):
-    D,pval = stats.kstest(dist,'', args=args, N=1000)
-    if (pval < alpha):
-        D,pval = stats.kstest(dist,'',args=args, N=1000)
-        #if (pval < alpha):
-        #    D,pval = stats.kstest(dist,'',args=args, N=1000)
-        assert_(pval > alpha, msg="D = " + str(D) + "; pval = " + str(pval) + \
-               "; alpha = " + str(alpha) + "\nargs = " + str(args))
+
 
 # nose test generator
 def test_all_distributions():
@@ -75,6 +67,67 @@ def test_all_distributions():
         else:
             args = tuple(1.0+rand(nargs))
         yield check_distribution, dist, args, alpha
+
+class TestFitMethod(TestCase):
+    skip = ['ncf']
+
+    @dec.slow
+    def test_fit(self):
+        for func, dist, args, alpha in test_all_distributions():
+            if dist in self.skip:
+                continue
+            distfunc = getattr(stats, dist)
+            res = distfunc.rvs(*args, **{'size':200})
+            vals = distfunc.fit(res)
+            vals2 = distfunc.fit(res, optimizer='powell')
+            # Only check the length of the return
+            # FIXME: should check the actual results to see if we are 'close'
+            #   to what was created --- but what is 'close' enough
+            if dist in ['erlang', 'frechet']:
+                assert_(len(vals)==len(args))
+                assert_(len(vals2)==len(args))
+            else:
+                assert_(len(vals) == 2+len(args))
+                assert_(len(vals2)==2+len(args))
+
+    @dec.slow
+    def test_fix_fit(self):
+        for func, dist, args, alpha in test_all_distributions():
+            # Not sure why 'ncf', and 'beta' are failing
+            # erlang and frechet have different len(args) than distfunc.numargs
+            if dist in self.skip + ['erlang', 'frechet', 'beta']:
+                continue
+            distfunc = getattr(stats, dist)
+            res = distfunc.rvs(*args, **{'size':200})
+            vals = distfunc.fit(res,floc=0)
+            vals2 = distfunc.fit(res,fscale=1)
+            assert_(len(vals) == 2+len(args))
+            assert_(vals[-2] == 0)
+            assert_(vals2[-1] == 1)
+            assert_(len(vals2) == 2+len(args))
+            if len(args) > 0:
+                vals3 = distfunc.fit(res, f0=args[0])
+                assert_(len(vals3) == 2+len(args))
+                assert_(vals3[0] == args[0])
+            if len(args) > 1:
+                vals4 = distfunc.fit(res, f1=args[1])
+                assert_(len(vals4) == 2+len(args))
+                assert_(vals4[1] == args[1])
+            if len(args) > 2:
+                vals5 = distfunc.fit(res, f2=args[2])
+                assert_(len(vals5) == 2+len(args))
+                assert_(vals5[2] == args[2])
+
+# check function for test generator
+def check_distribution(dist, args, alpha):
+    D,pval = stats.kstest(dist,'', args=args, N=1000)
+    if (pval < alpha):
+        D,pval = stats.kstest(dist,'',args=args, N=1000)
+        #if (pval < alpha):
+        #    D,pval = stats.kstest(dist,'',args=args, N=1000)
+        assert_(pval > alpha, msg="D = " + str(D) + "; pval = " + str(pval) + \
+               "; alpha = " + str(alpha) + "\nargs = " + str(args))
+
 
 def check_vonmises_pdf_periodic(k,l,s,x):
     vm = stats.vonmises(k,loc=l,scale=s)
@@ -195,6 +248,37 @@ class TestHypergeom(TestCase):
         assert_(isinstance(val, numpy.ndarray))
         assert_(val.dtype.char in typecodes['AllInteger'])
 
+    def test_precision(self):
+        # comparison number from mpmath
+        M = 2500
+        n = 50
+        N = 500
+        tot = M
+        good = n
+        hgpmf = stats.hypergeom.pmf(2, tot, good, N)
+        assert_almost_equal(hgpmf, 0.0010114963068932233, 11)
+
+    def test_precision2(self):
+        """Test hypergeom precision for large numbers.  See #1218."""
+        # Results compared with those from R.
+        oranges = 9.9e4
+        pears = 1.1e5
+        fruits_eaten = np.array([3, 3.8, 3.9, 4, 4.1, 4.2, 5]) * 1e4
+        quantile = 2e4
+        res = []
+        for eaten in fruits_eaten:
+            res.append(stats.hypergeom.sf(quantile, oranges + pears, oranges, eaten))
+        expected = np.array([0, 1.904153e-114, 2.752693e-66, 4.931217e-32,
+                             8.265601e-11, 0.1237904, 1])
+        assert_allclose(res, expected, atol=0, rtol=5e-7)
+
+        # Test with array_like first argument
+        quantiles = [1.9e4, 2e4, 2.1e4, 2.15e4]
+        res2 = stats.hypergeom.sf(quantiles, oranges + pears, oranges, 4.2e4)
+        expected2 = [1, 0.1237904, 6.511452e-34, 3.277667e-69]
+        assert_allclose(res2, expected2, atol=0, rtol=5e-7)
+
+
 class TestLogser(TestCase):
     def test_rvs(self):
         vals = stats.logser.rvs(0.75, size=(2, 50))
@@ -246,6 +330,26 @@ def test_rvgeneric_std():
     """Regression test for #1191"""
     assert_array_almost_equal(stats.t.std([5, 6]), [1.29099445, 1.22474487])
 
+def test_nan_arguments_ticket835():
+    assert_(np.isnan(stats.t.logcdf(np.nan)))
+    assert_(np.isnan(stats.t.cdf(np.nan)))
+    assert_(np.isnan(stats.t.logsf(np.nan)))
+    assert_(np.isnan(stats.t.sf(np.nan)))
+    assert_(np.isnan(stats.t.pdf(np.nan)))
+    assert_(np.isnan(stats.t.logpdf(np.nan)))
+    assert_(np.isnan(stats.t.ppf(np.nan)))
+    assert_(np.isnan(stats.t.isf(np.nan)))
+
+    assert_(np.isnan(stats.bernoulli.logcdf(np.nan)))
+    assert_(np.isnan(stats.bernoulli.cdf(np.nan)))
+    assert_(np.isnan(stats.bernoulli.logsf(np.nan)))
+    assert_(np.isnan(stats.bernoulli.sf(np.nan)))
+    assert_(np.isnan(stats.bernoulli.pdf(np.nan)))
+    assert_(np.isnan(stats.bernoulli.logpdf(np.nan)))
+    assert_(np.isnan(stats.bernoulli.ppf(np.nan)))
+    assert_(np.isnan(stats.bernoulli.isf(np.nan)))
+
+    
 class TestRvDiscrete(TestCase):
     def test_rvs(self):
         states = [-1,0,1,2,3,4]
@@ -332,6 +436,16 @@ class TestSkellam(TestCase):
         assert_almost_equal(stats.skellam.cdf(k, mu1, mu2), skcdfR, decimal=5)
 
 
+class TestGamma(TestCase):
+
+    def test_pdf(self):
+        # a few test cases to compare with R
+        pdf = stats.gamma.pdf(90, 394, scale=1./5)
+        assert_almost_equal(pdf, 0.002312341)
+
+        pdf = stats.gamma.pdf(3, 10, scale=1./5)
+        assert_almost_equal(pdf, 0.1620358)
+
 class TestHypergeom2(TestCase):
     def test_precision(self):
         # comparison number from mpmath
@@ -364,6 +478,12 @@ class TestDocstring(TestCase):
         if stats.bernoulli.__doc__ is not None:
             self.assertTrue("bernoulli" in stats.bernoulli.__doc__.lower())
 
+    def test_no_name_arg(self):
+        """If name is not given, construction shouldn't fail.  See #1508."""
+        stats.rv_continuous()
+        stats.rv_discrete()
+
+
 class TestEntropy(TestCase):
     def test_entropy_positive(self):
         """See ticket #497"""
@@ -390,55 +510,6 @@ def TestArgsreduce():
     assert_array_equal(c, [2] * numpy.size(a))
 
 
-class TestFitMethod(TestCase):
-    skip = ['ncf']
-
-    @dec.slow
-    def test_fit(self):
-        for func, dist, args, alpha in test_all_distributions():
-            if dist in self.skip:
-                continue
-            distfunc = getattr(stats, dist)
-            res = distfunc.rvs(*args, **{'size':200})
-            vals = distfunc.fit(res)
-            vals2 = distfunc.fit(res, optimizer='powell')
-            # Only check the length of the return
-            # FIXME: should check the actual results to see if we are 'close'
-            #   to what was created --- but what is 'close' enough
-            if dist in ['erlang', 'frechet']:
-                assert_(len(vals)==len(args))
-                assert_(len(vals2)==len(args))
-            else:
-                assert_(len(vals) == 2+len(args))
-                assert_(len(vals2)==2+len(args))
-
-    @dec.slow
-    def test_fix_fit(self):
-        for func, dist, args, alpha in test_all_distributions():
-            # Not sure why 'ncf', and 'beta' are failing
-            # erlang and frechet have different len(args) than distfunc.numargs
-            if dist in self.skip + ['erlang', 'frechet', 'beta']:
-                continue
-            distfunc = getattr(stats, dist)
-            res = distfunc.rvs(*args, **{'size':200})
-            vals = distfunc.fit(res,floc=0)
-            vals2 = distfunc.fit(res,fscale=1)
-            assert_(len(vals) == 2+len(args))
-            assert_(vals[-2] == 0)
-            assert_(vals2[-1] == 1)
-            assert_(len(vals2) == 2+len(args))
-            if len(args) > 0:
-                vals3 = distfunc.fit(res, f0=args[0])
-                assert_(len(vals3) == 2+len(args))
-                assert_(vals3[0] == args[0])
-            if len(args) > 1:
-                vals4 = distfunc.fit(res, f1=args[1])
-                assert_(len(vals4) == 2+len(args))
-                assert_(vals4[1] == args[1])
-            if len(args) > 2:
-                vals5 = distfunc.fit(res, f2=args[2])
-                assert_(len(vals5) == 2+len(args))
-                assert_(vals5[2] == args[2])
 
 class TestFrozen(TestCase):
     """Test that a frozen distribution gives the same results as the original object.
@@ -666,21 +737,36 @@ def test_regression_ticket_1326():
     #adjust to avoid nan with 0*log(0)
     assert_almost_equal(stats.chi2.pdf(0.0, 2), 0.5, 14)
 
+
 def test_regression_tukey_lambda():
     """ Make sure that Tukey-Lambda distribution correctly handles non-positive lambdas.
     """
     x = np.linspace(-5.0, 5.0, 101)
-    for lam in [0.0, -1.0, -2.0, np.array([[-1.0], [0.0], [-2.0]])]:
+
+    olderr = np.seterr(divide='ignore')
+    try:
+        for lam in [0.0, -1.0, -2.0, np.array([[-1.0], [0.0], [-2.0]])]:
+            p = stats.tukeylambda.pdf(x, lam)
+            assert_((p != 0.0).all())
+            assert_(~np.isnan(p).all())
+
+        lam = np.array([[-1.0], [0.0], [2.0]])
         p = stats.tukeylambda.pdf(x, lam)
-        assert_((p != 0.0).all())
-        assert_(~np.isnan(p).all())
-    lam = np.array([[-1.0], [0.0], [2.0]])
-    p = stats.tukeylambda.pdf(x, lam)
+    finally:
+        np.seterr(**olderr)
+
     assert_(~np.isnan(p).all())
     assert_((p[0] != 0.0).all())
     assert_((p[1] != 0.0).all())
     assert_((p[2] != 0.0).any())
     assert_((p[2] == 0.0).any())
+
+
+def test_regression_ticket_1421():
+    """Regression test for ticket #1421 - correction discrete docs."""
+    assert_('pdf(x, mu, loc=0, scale=1)' not in stats.poisson.__doc__)
+    assert_('pmf(x,' in stats.poisson.__doc__)
+
 
 if __name__ == "__main__":
     run_module_suite()
