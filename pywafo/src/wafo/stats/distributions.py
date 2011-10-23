@@ -34,6 +34,7 @@ from numpy import flatnonzero as nonzero
 
 
 from wafo.stats.estimation import FitDistribution
+from scipy.stats.distributions import floatinfo
 
 try:
     from scipy.stats.distributions import vonmises_cython 
@@ -845,7 +846,7 @@ def valarray(shape,value=nan,typecode=None):
 def argsreduce(cond, *args):
     """Return the sequence of ravel(args[i]) where ravel(condition) is True in 1D
 
-       Parameters
+    Parameters
     ----------
     cond : array_like
         An array whose nonzero or True entries indicate the elements of each
@@ -3838,8 +3839,10 @@ genlogistic = genlogistic_gen(name='genlogistic', shapes='c')
 def log1pxdx(x):
     '''Computes Log(1+x)/x
     '''
-    y = where(x == 0, 1.0, log1p(x) / x)
+    xd = where((x == 0) | (x == inf), 1.0, x) # avoid 0/0 or inf/inf
+    y = where(x == 0, 1.0, log1p(x) / xd)
     return where(x == inf, 0.0, y)
+
 ##    y = ones(shape(x))
 ##    k = (x!=0.0)
 ##    y[k] = log1p(x[k])/x[k]
@@ -3895,7 +3898,8 @@ class genpareto_gen(rv_continuous):
 
     def _argcheck(self, c):
         c = arr(c)
-        self.b = where(c < 0, 1.0 / abs(c), inf)
+        sml = floatinfo.machar.xmin # pab avoid division by zero warning
+        self.b = where(c < 0, 1.0 / (abs(c) + sml), inf)
         return where(abs(c) == inf, 0, 1)
     def _pdf(self, x, c):
         #f = exp(-xn)/s;                   % for  k==0
@@ -3906,20 +3910,21 @@ class genpareto_gen(rv_continuous):
         #Px = pow(1+c*x,arr(-1.0-1.0/c))
         #return Px
     def _logpdf(self, x, c):
-        cx = where((c == 0) & (x == inf), 0.0, c * x).clip(min= -1.0)
+        x1 = where((c == 0) & (x == inf), 0.0, x)
+        cx = where((c == 0) & (x == inf), 0.0, c * x1)
         logpdf = where((cx == inf) | (cx == -1), -inf, -(x + cx) * log1pxdx(cx))
         putmask(logpdf, (c == -1) & (x == 1.0), 0.0)
         return logpdf
         #return (-1.0-1.0/c) * np.log1p(c*x)
-    def _chf(self, x, c):
+    def _logsf(self, x, c):
         cx = c * x
-        return where((0.0 < x) & (-1.0 <= cx) & (c != 0), log1p(cx) / c, x)
+        return where((0.0 < x) & (-1.0 <= cx) & (c != 0), -log1p(cx) / c, -x)
     def _cdf(self, x, c):
-        log_sf = -self._chf(x, c)
+        log_sf = self._logsf(x, c)
         return - expm1(log_sf)
         #return 1.0 - pow(1+c*x,arr(-1.0/c))
     def _sf(self, x, c):
-        log_sf = -self._chf(x, c)
+        log_sf = self._logsf(x, c)
         return exp(log_sf)
     def _ppf(self, q, c):
         log_sf = log1p(-q)
@@ -4116,23 +4121,30 @@ class genextreme_gen(rv_continuous):
         ##        pex2 = pow(ex2,1.0/c)
         ##        p2 = exp(-pex2)*pex2/ex2
         ##        return p2
-        cx = c*x
-
-        logex2 = where((c==0)*(x==x),0.0,log1p(-cx))
-        logpex2 = where((c==0)*(x==x),-x,logex2/c)
+        return exp(self._logpdf(x, c))
+    def _logpdf(self, x, c):
+        x1 = where((c == 0) & (x == inf), 0.0, x)
+        cx = where((c==0) & (x==inf), 0.0, c * x1)
+        cond1 = (c==0) * (x==x)
+        logex2 = where(cond1,0.0,log1p(-cx))
+        logpex2 = -x * log1pxdx(-cx)
+        #logpex2 = where(cond1,-x,logex2/c)
         pex2 = exp(logpex2)
         # % Handle special cases
         logpdf = where((cx==1) | (cx==-inf),-inf,-pex2+logpex2-logex2)
         putmask(logpdf,(c==1) & (x==1),0.0) # logpdf(c==1 & x==1) = 0; % 0^0 situation
-
-        return exp(logpdf)
-
-
+        return logpdf
     def _cdf(self, x, c):
         #return exp(-pow(1-c*x,1.0/c))
-        loglogcdf = where((c==0)*(x==x),-x,log1p(-c*x)/c)
-        return exp(-exp(loglogcdf))
-
+        return exp(self._logcdf(x, c))
+    def _logcdf(self, x, c):
+        x1 = where((c == 0) & (x == inf), 0.0, x)
+        cx = where((c == 0) & (x == inf), 0.0, c * x1)
+        loglogcdf = -x * log1pxdx(-cx)
+        #loglogcdf = where((c==0)*(x==x),-x,log1p(-cx)/c)
+        return -exp(loglogcdf)
+    def _sf(self, x, c):
+        return -expm1(self._logcdf(x, c))
     def _ppf(self, q, c):
         #return 1.0/c*(1.-(-log(q))**c)
         x = -log(-log(q))
@@ -5074,7 +5086,7 @@ class lognorm_gen(rv_continuous):
         #Px = exp(-log(x)**2 / (2*s**2)) -Px*2*log(x)/x
         #return Px / (s*x*sqrt(2*pi))
     def _logpdf(self, x, s):
-        return -log(x)**2 / (2*s**2) + np.where((x==0)*(s==s) , 0, - log(s*x*sqrt(2*pi)))
+        return -log(x)**2 / (2*s**2) + np.where(x==0 , 0, - log(s*x*sqrt(2*pi)))
     def _cdf(self, x, s):
         return norm.cdf(log(x)/s)
     def _ppf(self, q, s):
@@ -5111,6 +5123,8 @@ class gilbrat_gen(lognorm_gen):
         return lognorm_gen._rvs(self, 1.0)
     def _pdf(self, x):
         return lognorm_gen._pdf(self, x, 1.0)
+    def _logpdf(self, x):
+        return lognorm_gen._logpdf(self, x, 1.0)
     def _cdf(self, x):
         return lognorm_gen._cdf(self, x, 1.0)
     def _ppf(self, q):
@@ -7994,6 +8008,7 @@ Skellam distribution
 
 """
                       )
+
                         
 def test_lognorm():
     lognorm.cdf(np.nan, 0.5, loc=3, scale=1)
@@ -8075,7 +8090,12 @@ def main():
     r = genpareto.rvs(0, size=100)
     pht = genpareto.fit(r, 1, par_fix=[0, 0, nan])
     lp = pht.profile()
+
+def test_genpareto():
+    genextreme.pdf(np.inf,0)
+    
 if __name__ == '__main__':
     #main()
+    test_genpareto()
     #test_truncrayleigh()
-    test_lognorm()
+    #test_lognorm()

@@ -99,6 +99,7 @@ class TestFitMethod(TestCase):
                 continue
             distfunc = getattr(stats, dist)
             res = distfunc.rvs(*args, **{'size':200})
+            #print(distfunc.name)
             vals = distfunc.fit(res,floc=0)
             vals2 = distfunc.fit(res,fscale=1)
             assert_(len(vals) == 2+len(args))
