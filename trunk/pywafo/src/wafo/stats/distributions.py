@@ -34,7 +34,6 @@ from numpy import flatnonzero as nonzero
 
 
 from wafo.stats.estimation import FitDistribution
-from scipy.stats.distributions import floatinfo
 
 try:
     from scipy.stats.distributions import vonmises_cython 
@@ -3727,7 +3726,7 @@ class frechet_r_gen(rv_continuous):
 
     """
     def link(self, x, logSF, phat, ix):
-        u = phat[1]
+        #u = phat[1]
         if ix == 0:
             phati = log(-logSF) / log((x - phat[1]) / phat[2])
         elif ix == 1:
@@ -5314,8 +5313,8 @@ class ncf_gen(rv_continuous):
         Px *= (n2+n1*x)**(-(n1+n2)/2)
         Px *= special.assoc_laguerre(-nc*n1*x/(2.0*(n2+n1*x)),n2/2,n1/2-1)
         Px /= special.beta(n1/2,n2/2)
-         #this function does not have a return
-         #   drop it for now, the generic function seems to work ok
+        #this function does not have a return
+        #   drop it for now, the generic function seems to work ok
     def _cdf(self, x, dfn, dfd, nc):
         return special.ncfdtr(dfn,dfd,nc,x)
     def _ppf(self, q, dfn, dfd, nc):
