@@ -7,12 +7,19 @@ import numpy as np
 from numpy import inf
 from numpy import atleast_1d, nan, ndarray, sqrt, vstack, ones, where, zeros
 from numpy import arange, floor, linspace, asarray #, reshape, repeat, product
+from time import gmtime, strftime
 
 
 __all__ = ['edf', 'edfcnd','reslife', 'dispersion_idx','decluster','findpot', 
            'declustering_time','interexceedance_times', 'extremal_idx']
 
 arr = asarray
+
+def now():
+    '''
+    Return current date and time as a string
+    '''
+    return strftime("%a, %d %b %Y %H:%M:%S", gmtime())
 
 def valarray(shape, value=nan, typecode=None):
     """Return an array of all value.
@@ -645,6 +652,668 @@ def extremal_idx(ti):
     else:
         ei = min(1, 2*np.mean(t-1)**2/np.mean((t-1)*(t-2)))
     return ei
+
+class RegLogit(object):
+    '''
+    REGLOGIT Fit ordinal logistic regression model.
+    
+      CALL model = reglogit (options)
+    
+        model = fitted model object with methods
+          .compare() : Compare small LOGIT object versus large one
+          .predict() : Predict from a fitted LOGIT object
+          .summary() : Display summary of fitted LOGIT object.
+    
+           y = vector of K ordered categories
+           x = column vectors of covariates 
+     options = struct defining performance of REGLOGIT
+          .maxiter    : maximum number of iterations. 
+          .accuracy   : accuracy in convergence.
+          .betastart  : Start value for BETA           (default 0)
+          .thetastart : Start value for THETA          (default depends on Y)
+          .alpha      : Confidence coefficent          (default 0.05)
+          .verbose    : 1 display summary info about fitted model
+                        2 display convergence info in each iteration
+                          otherwise no action
+          .deletecolinear : If true delete colinear covarites (default)
+          
+
+     Methods
+      .predict   : Predict from a fitted LOGIT object
+      .summary   : Display summary of fitted LOGIT object.
+      .compare   : Compare small LOGIT versus large one
+ 
+ 
+
+    
+     Suppose Y takes values in K ordered categories, and let
+     gamma_i (x) be the cumulative probability that Y
+     falls in one of the first i categories given the covariate
+     X.  The ordinal logistic regression model is
+    
+     logit (mu_i (x)) = theta_i + beta' * x,   i = 1...k-1
+    
+     The number of ordinal categories, K, is taken to be the number
+     of distinct values of round (Y).  If K equals 2,
+     Y is binary and the model is ordinary logistic regression.  The
+     matrix X is assumed to have full column rank.
+    
+     Given Y only, theta = REGLOGIT(Y) fits the model with baseline logit odds
+     only. 
+     
+     Example
+      y=[1 1 2 1 3 2 3 2 3 3]'
+      x = (1:10)'
+      b = reglogit(y,x)
+      b.display() % members and methods
+      b.get()     % return members
+      b.summary()
+      [mu,plo,pup] = b.predict();
+      plot(x,mu,'g',x,plo,'r:',x,pup,'r:')
+    
+      y2 = [zeros(5,1);ones(5,1)];
+      x1 = [29,30,31,31,32,29,30,31,32,33];
+      x2 = [62,83,74,88,68,41,44,21,50,33];
+      X = [x1;x2].';
+      b2 = reglogit(y2,X);
+      b2.summary();
+      b21 = reglogit(y2,X(:,1));
+      b21.compare(b2)
+    
+     See also regglm, reglm, regnonlm
+    '''
+    
+    #% Copyright (C) 1995, 1996, 1997, 1998, 1999, 2000, 2002, 2005, 2007
+    #%               Kurt Hornik
+    #%
+    #% Reglogit is free software; you can redistribute it and/or modify it
+    #% under the terms of the GNU General Public License as published by
+    #% the Free Software Foundation; either version 3 of the License, or (at
+    #% your option) any later version.
+    #%
+    #% Reglogit is distributed in the hope that it will be useful, but
+    #% WITHOUT ANY WARRANTY; without even the implied warranty of
+    #% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+    #% General Public License for more details.
+    #%
+    #% You should have received a copy of the GNU General Public License
+    #% along with Reglogit; see the file COPYING.  If not, see
+    #% <http://www.gnu.org/licenses/>.
+    
+    
+    
+    #% Original for MATLAB written by Gordon K Smyth <gks@maths.uq.oz.au>,
+    #% U of Queensland, Australia, on Nov 19, 1990.  Last revision Aug 3,
+    #% 1992.
+    #
+    #% Author: Gordon K Smyth <gks@maths.uq.oz.au>,
+    #% Adapted-By: KH <Kurt.Hornik@wu-wien.ac.at>
+    #% Revised by: pab
+    #%  -renamed from  logistic_regression to reglogit
+    #%  -added predict, summary and compare
+    #% Description: Ordinal logistic regression
+    #
+    #% Uses the auxiliary functions logistic_regression_derivatives and
+    #% logistic_regression_likelihood.
+    
+    def __init__(self, maxiter=500,accuracy=1e-6, alpha=0.05, deletecolinear=True, verbose=False):
+         
+        self.maxiter =maxiter
+        self.accuracy = accuracy
+        self.alpha = alpha
+        self.deletcolinear =  deletecolinear
+        self.verbose = False
+        self.family = None
+        self.link = None
+        self.numvar = None
+        self.numobs = None 
+        self.numk = None
+        self.df = None
+        self.df_null = None
+        self.params = None
+        self.params_ci = None
+        self.params_cov = None
+        self.params_std = None
+        self.params_corr = None
+        self.params_tstat = None
+        self.params_pvalue = None
+        self.mu = None
+        self.eta = None
+        self.X = None
+        self.Y = None
+        self.theta = None
+        self.beta = None
+        self.residual = None
+        self.residual1d = None
+        self.deviance = None
+        self.deviance_null = None
+        self.d2L = None
+        self.dL = None
+        self.dispersionfit = None
+        self.dispersion = 1
+        self.R2 = None
+        self.R2adj = None
+        self.numiter = None
+        self.converged = None
+        self.note = ''
+        self.date = now()
+    
+    
+    def _logit(self, p):
+        return np.log(p)-np.log1p(-p) 
+    def _logitinv(self, x):
+        return 1.0/(np.exp(-x)+1)    
+      
+    def check_xy(self, y, X):    
+        y = np.round(np.atleast_2d(y))
+        my, ny = y.shape 
+        if X is None: 
+            X = np.zeros((my, 0))
+        elif self.deletecolinear:
+            X = np.atleast_2d(X)
+            # Make sure X is full rank
+            s = np.linalg.svd(X)[1]
+            tol = max(size(X)) * np.finfo(s.max()).eps
+            ix = np.flatnonzero(s>tol)
+            iy = np.flatnonzero(s<=tol)
+            if len(ix): 
+                X = X[:, ix]
+                txt = [' %d,' % i for i in iy]
+                txt[-1] = ' %d' % iy[-1]
+                warnings.warn('Covariate matrix is singular. Removing column(s):%s',txt)
+        [mx, nx] = X.shape
+        if (mx != my):
+            raise ValueError('x and y must have the same number of observations');
+        return y, X
+
+    
+    def fit(self, y, X=None, theta0=None, beta0=None):
+        '''
+        Member variables
+      .df           : degrees of freedom for error.
+      .params       : estimated model parameters
+      .params_ci    : 100(1-alpha)% confidence interval for model parameters
+      .params_tstat : t statistics for model's estimated parameters.
+      .params_pvalue: p value for model's estimated parameters.
+      .params_std   : standard errors for estimated parameters
+      .params_corr  : correlation matrix for estimated parameters.
+      .mu           : fitted values for the model.
+      .eta          : linear predictor for the model.
+      .residual     : residual for the model (Y-E(Y|X)).
+      .dispersnfit  : The estimated error variance
+      .deviance     : deviance for the model equal minus twice the log-likelihood.
+      .d2L          : Hessian matrix (double derivative of log-likelihood)
+      .dL           : First derivative of loglikelihood w.r.t. THETA and BETA.
+
+        '''
+        self.family = 'multinomial';
+        self.link = 'logit';
+        y, X = self.check_xy(y, X)
+    
+     
+        # initial calculations
+        tol = self.accuracy 
+        incr = 10 
+        decr = 2
+        ymin = y.min() 
+        ymax = y.max() 
+        yrange = ymax - ymin
+        z  = (y * ones((1, yrange))) == ((y * 0 + 1) * np.arange(ymin, ymax))
+        z1 = (y * ones((1, yrange))) == ((y * 0 + 1) * np.arange(ymin + 1, ymax+1))
+        z  = z[:, np.flatnonzero(z.any(axis=0))];
+        z1 = z1[:, np.flatnonzero(z1.any(axis=0))]
+        [mz, nz] = z.shape 
+        [mx, nx] = X.shape 
+        [my, ny] = y.shape 
+      
+        g = z.sum(axis=0).cumsum() / my
+        theta00 = np.log(g / (1 - g))
+        beta00 = np.zeros((nx, 1))
+        # starting values 
+        if theta0 is None:
+            theta0 = theta00
+        
+        if beta0 is None: 
+            beta0  = beta00
+      
+        tb = np.vstack((theta0, beta0))
+    
+        # likelihood and derivatives at starting values
+        [dev,p,g, g1] = logistic_regression_likelihood (y, X, tb, z, z1);
+        [dl, d2l] = logistic_regression_derivatives (X, z, z1, g, g1, p);
+        epsilon = std (d2l) / 1000;
+        if np.any(beta) or np.any(theta!=theta0):
+            tb0 = np.vstack((theta00,beta00))
+            nulldev = logistic_regression_likelihood (y, X, tb0, z, z1);
+        else:
+            nulldev = dev
+      
+      
+        # maximize likelihood using Levenberg modified Newton's method
+        iter = 0;
+        stop = False
+        while not stop:
+            iter += 1
+            tbold = tb;
+            devold = dev;
+            tb = tbold - np.linalg.lstsq(d2l, dl)
+            [dev,p,g, g1] = logistic_regression_likelihood (y, X, tb, z, z1);
+            if ((dev - devold) / (dl.T * (tb - tbold)) < 0):
+                epsilon = epsilon / decr
+            else:
+                while ((dev - devold) / (dl.T * (tb - tbold)) > 0):
+                    epsilon = epsilon * incr;
+                    if (epsilon > 1e+15):
+                        raise ValueError('epsilon too large');
+              
+                    tb = tbold - np.linalg.lstsq(d2l - epsilon * np.eye(d2l.shape), dl);
+                    [dev,p,g, g1] = logistic_regression_likelihood (y, X, tb, z, z1);
+                    print('epsilon %g' % epsilon) 
+                    #end %while
+                    #end else
+            [dl, d2l] = logistic_regression_derivatives (X, z, z1, g, g1, p);
+            if (self.verbose>1):
+                 
+                print('Iter: %d,  Deviance: %8.6f',iter,dev)
+                 
+                print('First derivative'); 
+                print(dl.T);
+                print('Eigenvalues of second derivative'); 
+                print(np.linalg.eig(d2l)[0].T);
+                #end
+                #end
+            stop = abs (dl.T * np.linalg.lstq(d2l, dl) / length (dl)) <= tol or iter>self.maxiter
+            #end %while
+        
+        #% tidy up output
+        
+        theta = tb[:nz, 0]
+        beta  = tb[nz:(nz + nx), 1]
+        pcov = np.linalg.pinv(-d2l)
+        se = sqrt(np.diag (pcov))
+        
+        
+        
+        
+        if (nx > 0):
+            eta = ((X * beta) * ones (1, nz)) + ((y * 0 + 1) * theta.T);
+        else:
+            eta = (y * 0 + 1) * theta.T;
+         #end
+        gammai = np.diff(np.hstack(((y * 0), self.logitinv(eta), (y * 0 + 1))),1,2)
+        k0 = min(y)
+        mu = (k0-1)+np.dot(gammai,np.arange(1,nz+2).T); #% E(Y|X)
+        r  = np.corrcoef(np.hstack((y,mu)))
+        R2 = r[0,1]**2; #coefficient of determination
+        R2adj = max(1 - (1-R2)* (my-1)/(my-nx-nz-1),0); # adjusted coefficient of determination
+        
+        res = y-mu;
+         
+        if nz==1:
+            self.family = 'binomial';
+        else:
+            self.family = 'multinomial';
+        
+        self.link   = 'logit';
+        
+        self.numvar = nx+nz;
+        self.numobs = my;
+        self.numk   = nz+1;
+        self.df     = max(my-nx-nz,0);
+        self.df_null = my-nz; #nulldf;  nulldf =  n - nz;
+        self.params = tb[:(nz + nx),0].T;
+        self.params_ci = 1;
+        self.params_std = se.T;  
+        self.params_cov = pcov
+        self.params_tstat = (self.params/self.params_std);
+        if False: # % options.estdispersn %dispersion_parameter=='mean_deviance'
+            self.params_pvalue=2.*cdft(-abs(self.params_tstat),self.df);
+            bcrit = -se.T*invt(self.alpha/2,self.df);
+        else:
+            self.params_pvalue=2.*cdfnorm(-abs(self.params_tstat));
+            bcrit = -se.T*invnorm(self.alpha/2);
+        #end
+        self.params_ci = np.vstack((self.params+bcrit,self.params-bcrit))
+        
+        self.mu = gammai;
+        self.eta = self.logit(gammai);
+        self.X = X;
+        
+        self.theta = theta;
+        self.beta  = beta;
+        self.gamma = gammai;
+        self.residual  = res.T; 
+        self.residualD = sign(self.residual)*sqrt(-2*log(p)).T;
+        self.deviance  = dev;
+        self.deviance_null = nulldev;
+        self.d2L = d2l;
+        self.dL = dl.T;
+        self.dispersnfit=1;
+        self.dispersn = 1;
+        self.R2 = R2;
+        self.R2adj = R2adj;
+        self.numiter = iter;
+        self.converged = iter<self.maxiter;
+        self.note = '';
+        self.date = now()
+        
+        if (self.verbose):
+            self.summary()
+
+
+    def compare(self, object2):
+        ''' Compare  small LOGIT versus large one
+
+        CALL     [pvalue] = compare(object2)
+
+        The standard hypothesis test of a larger linear regression 
+        model against a smaller one. The standard Chi2-test is used.
+        The output is the p-value, the residuals from the smaller 
+        model, and the residuals from the larger model.
+
+        See also fitls  
+        '''
+  
+        try:
+            if self.numvar>object2.numvar:
+                devL = self.deviance;
+                nL   = self.numvar;
+                dfL = self.df;
+                Al = self.X;
+                disprsn = self.dispersionfit;
+                devs = object2.deviance;
+                ns   = object2.numvar;
+                dfs = object2.df;
+                As = object2.X;
+            else:
+                devL = object2.deviance;
+                nL   = object2.numvar;
+                dfL = object2.df;
+                Al = object2.X;
+                disprsn = object2.dispersionfit;
+                devs = self.deviance;
+                ns   = self.numvar;
+                dfs = self.df;
+                As = self.X;
+            #end
+            
+            if  (((As-np.dot(Al*np.linalg.lstsq(Al,As)))>500*np.finfo(float).eps).any() or
+                 object2.family!=self.family or object2.link!=self.link):
+                warnings.warn('Small model not included in large model, result is rubbish!')
+            
+            
+        except:
+            raise ValueError('Apparently not a valid regression object')
+    
+        
+        
+        pmq = np.abs(nL-ns);
+        print(' ')
+        print('                       Analysis of Deviance')
+        if False: # %options.estdispersn   
+            localstat = abs(devL-devs)/disprsn/pmq;
+            localpvalue = 1-cdff(localstat, pmq, dfL)
+            print('Model    DF      Residual deviance      F-stat        Pr(>F)')
+        else:
+            localstat = abs(devL-devs)/disprsn;
+            localpvalue = 1-cdfchi2(localstat,pmq)
+            print('Model    DF      Residual deviance      Chi2-stat        Pr(>Chi2)')
+        #end
+        
+        
+        print('Small    %d       %12.4f       %12.4f    %12.4f' % (dfs,devs,localstat,localpvalue))
+        print('Full     %d       %12.4f' % (dfL,devL))
+        print(' ')
+        
+        return localpvalue
+
+    def anode(self):
+        print(' ')
+        print('                       Analysis of Deviance')
+        if False: # %options.estdispersn
+            localstat = abs(self.deviance_null-self.deviance)/self.dispersnfit/(self.numvar-1);
+            localpvalue = 1-cdff(localstat,self.numvar-1,self.df);
+            print('Model    DF      Residual deviance      F-stat        Pr(>F)')
+        else:
+            localstat = abs(self.deviance_null-self.deviance)/self.dispersnfit;
+            localpvalue = 1-cdfchi2(localstat,self.numvar-1);
+            print('Model    DF      Residual deviance      Chi2-stat        Pr(>Chi2)')
+        #end
+        
+       
+        print('Null     %d       %12.4f       %12.4f    %12.4f' % (self.df_null,self.deviance_null,localstat,localpvalue))
+        print('Full     %d       %12.4f' % (self.df,self.deviance))
+        print(' ')
+    
+        print(' R2 =  %2.4f,     R2adj = %2.4f' % (self.R2,self.R2adj))
+        print(' ')
+        return localpvalue
+    def summary(self):
+        txtlink = self.link;
+         
+        print('Call:')
+        print('reglogit(formula = %s(Pr(grp(y)<=i)) ~ theta_i+beta*x, family = %s)' %(txtlink,self.family))
+        print(' ')
+        print('Deviance Residuals:')
+        m,q1,me, q3,M = np.percentile(self.residualD,q=[0, 25, 50, 75, 100])
+        print('    Min       1Q         Median       3Q        Max  ')
+        print('%2.4f     %2.4f     %2.4f     %2.4f     %2.4f' % (m, q1, me, q3, M))
+        print(' ')
+        print(' Coefficients:')
+        if False: # %options.estdispersn
+            print('            Estimate      Std. Error     t value       Pr(>|t|)')
+        else:
+            print('            Estimate      Std. Error     z value       Pr(>|z|)')
+        #end
+        e, s, z, p = self.params, self.params_std, self.params_tstat, self.params_pvalue
+        for i in range(self.numk):
+            print('theta_%d         %2.4f        %2.4f        %2.4f        %2.4f' % (i,e[i],s[i], z[i], p[i]))
+        
+        for i in range(self.numk, self.numvar):
+            print(' beta_%d         %2.4f        %2.4f        %2.4f        %2.4f\n' % (i-self.numk,e[i],s[i], z[i], p[i]))
+        
+        print(' ')
+        print('(Dispersion parameter for %s family taken to be %2.2f)' % (self.family,self.dispersionfit))
+        print(' ')
+        if True: #%options.constant
+            printf('    Null deviance: %2.4f  on %d  degrees of freedom' % (self.deviance_null,self.df_null))
+        #end
+        print('Residual deviance: %2.4f  on %d  degrees of freedom' % (self.deviance,self.df))
+        
+        self.anode()
+        
+        #end % summary
+  
+    def predict(self, Xnew=None,alpha=0.05, fulloutput=False):
+'''LOGIT/PREDICT Predict from a fitted LOGIT object
+
+  CALL [y,ylo,yup] = predict(Xnew,options)
+
+  y        = predicted value
+  ylo,yup  = 100(1-alpha)% confidence interval for y
+  
+  Xnew     =  new covariate
+  options  = options struct defining the calculation
+         .alpha : confidence coefficient (default 0.05)
+         .size  : size if binomial family (default 1).    
+ 
+'''
+
+[mx, nx] = self.X.shape
+if Xnew is None:
+    Xnew = self.X;
+else:
+    Xnew = np.atleast_2d(Xnew)
+    notnans = np.flatnonzero(1-(1-np.isfinite(Xnew)).any(axis=1))
+    Xnew = Xnew[notnans,:]
+
+[n,p] = Xnew.shape
+
+  
+if p != nx
+    raise ValueError('Number of covariates must match the number of regression coefficients')
+
+
+nz = self.numk-1;
+one = ones((n,1))
+ if (nx > 0):
+     eta = np.dot(Xnew * self.beta)  + self.theta.T;
+ else:
+     eta = one * self.theta.T
+ #end
+ y = np.diff(np.hstack((zeros((n,1)), self.logitinv(eta), one),1,2);
+if fulloutput:
+  pcov = self.params_cov;
+  if (nx > 0)
+    np = size(pcov,1);
+
+    [U S V]= np.linalg.svd(pcov,0);
+    R=(U*sqrt(S)*V.T); #%squareroot of pcov
+    ixb = nz+1:np;
+
+    % Var(eta_i) = var(theta_i+Xnew*b)
+    vareta = zeros(n,nz);
+    for ix1 = 1:nz
+      vareta(:,ix1) = max(sum(([one Xnew]*R([ix1,ixb],[ix1,ixb])).^2,2),eps);
+    end
+  else
+    vareta = diag(pcov);
+  end
+  crit = -invnorm(alpha/2);
+
+  
+  ecrit = crit * sqrt(vareta);
+  mulo = logitinv(eta-ecrit);
+  muup = logitinv(eta+ecrit);
+  ylo1 = diff ([zeros(n,1), mulo , one],1,2);
+  yup1 = diff ([zeros(n,1), muup , one],1,2);
+  
+  ylo = min(ylo1,yup1);
+  yup = max(ylo1,yup1);
+
+  for ix1 = 2:self.numk-1
+    yup(:,ix1)  = max( [yup(:,ix1),muup(:,ix1)-mulo(:,ix1-1)],[],2);
+  end
+  return y,ylo,yup
+end
+
+
+
+
+
+def logistic_regression_derivatives (x, z, z1, g, g1, p)
+% [dl, d2l] = logistic_regression_derivatives (@var{x}, @var{z}, @var{z1}, @var{g}, @var{g1}, @var{p})
+% Called by logistic_regression.  Calculates derivates of the
+% log-likelihood for ordinal logistic regression model.
+
+
+% Copyright (C) 1995, 1996, 1997, 1998, 1999, 2000, 2002, 2005, 2007
+%               Kurt Hornik
+%
+%
+% Reglogit is free software; you can redistribute it and/or modify it
+% under the terms of the GNU General Public License as published by
+% the Free Software Foundation; either version 3 of the License, or (at
+% your option) any later version.
+%
+% Reglogit is distributed in the hope that it will be useful, but
+% WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+% General Public License for more details.
+%
+% You should have received a copy of the GNU General Public License
+% along with Reglogit; see the file COPYING.  If not, see
+% <http://www.gnu.org/licenses/>.
+
+% Author: Gordon K. Smyth <gks@maths.uq.oz.au>
+% Adapted-By: KH <Kurt.Hornik@wu-wien.ac.at>
+% Description: Derivates of log-likelihood in logistic regression
+
+
+  % first derivative
+  v = g .* (1 - g) ./ p; 
+  v1 = g1 .* (1 - g1) ./ p;
+  dlogp = [(dmult (v, z) - dmult (v1, z1)), (dmult (v - v1, x))];
+  dl = sum (dlogp)';
+
+  % second derivative
+  w = v .* (1 - 2 * g); w1 = v1 .* (1 - 2 * g1);
+  d2l = [z, x]' * dmult (w, [z, x]) - [z1, x]' * dmult (w1, [z1, x]) ...
+      - dlogp' * dlogp;
+
+return [dl, d2l]
+end %function
+
+def logistic_regression_likelihood (y, x, beta, z, z1)
+% [g, g1, p, dev] = logistic_regression_likelihood (y ,x,beta,z,z1)
+% Calculates likelihood for the ordinal logistic regression model.
+% Called by logistic_regression.
+
+
+
+% Copyright (C) 1995, 1996, 1997, 1998, 1999, 2000, 2002, 2005, 2007
+%               Kurt Hornik
+%
+%
+% Reglogit is free software; you can redistribute it and/or modify it
+% under the terms of the GNU General Public License as published by
+% the Free Software Foundation; either version 3 of the License, or (at
+% your option) any later version.
+%
+% Reglogit is distributed in the hope that it will be useful, but
+% WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+% General Public License for more details.
+%
+% You should have received a copy of the GNU General Public License
+% along with Reglogit; see the file COPYING.  If not, see
+% <http://www.gnu.org/licenses/>.
+
+% Author: Gordon K. Smyth <gks@maths.uq.oz.au>
+% Adapted-By: KH <Kurt.Hornik@wu-wien.ac.at>
+% Description: Likelihood in logistic regression
+  e = exp ([z, x] * beta); 
+  e1 = exp ([z1, x] * beta);
+  g = e ./ (1 + e); 
+  g1 = e1 ./ (1 + e1);
+  g = max (y == max (y), g);
+  g1 = min (y > min(y), g1);
+
+  p = g - g1;
+  dev = -2 * sum (log (p));
+return dev,p,g, g1
+end %function
+
+function M = dmult(A,B)
+% PURPOSE: computes the product of diag(A) and B
+% -----------------------------------------------------
+% USAGE:     m = dmult(a,b)
+%  where:    a = a matrix
+%            b = a matrix
+% -----------------------------------------------------
+% RETURNS:  m = diag(A) times B
+% -----------------------------------------------------             
+% NOTE: a Gauss compatability function
+% -----------------------------------------------------
+
+% written by:
+%  Gordon K Smyth, U of Queensland, Australia, gks@maths.uq.oz.au
+% Nov 19, 1990.  Last revision Aug 29, 1995.
+
+% documentation modifications made by:
+% James P. LeSage, Dept of Economics
+% University of Toledo
+% 2801 W. Bancroft St,
+% Toledo, OH 43606
+% jpl@jpl.econ.utoledo.edu
+
+
+[mb,nb] = size(B);
+M=A(:,ones(1,nb)).*B;
+end
+
+
+
 
 
 def _test_dispersion_idx():
