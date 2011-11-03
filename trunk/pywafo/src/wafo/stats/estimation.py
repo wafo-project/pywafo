@@ -640,7 +640,7 @@ class FitDistribution(rv_frozen):
         index = range(Nargs) 
         names = ['f%d' % n for n in range(Nargs-2)] + ['floc', 'fscale']
         x0 = args[:]
-        for n, key in zip(index, names):
+        for n, key in zip(index[::-1], names[::-1]):
             if kwds.has_key(key):
                 fixedn.append(n)
                 args[n] = kwds[key]

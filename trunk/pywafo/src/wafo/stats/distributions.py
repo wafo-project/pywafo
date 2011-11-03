@@ -2188,44 +2188,44 @@ class rv_continuous(rv_generic):
             return inf
         x = arr((x - loc) / scale)
         cond0 = (x <= self.a) | (x >= self.b)
-        if (any(cond0)):
-            return inf
+        Nbad = sum(cond0)
+        if Nbad>0:
+            x = argsreduce(1 - cond0, *((x,)))[0]
+            #return inf
+        #else:
+            
+        lowertail = True
+        if lowertail:
+            prb = numpy.hstack((0.0, self.cdf(x, *args), 1.0))
+            dprb = numpy.diff(prb)
         else:
-            #linfo = numpy.finfo(float)
+            prb = numpy.hstack((1.0, self.sf(x, *args), 0.0))
+            dprb = -numpy.diff(prb)
+
+        logD = log(dprb)
+        dx = numpy.diff(x, axis=0)
+        tie = (dx == 0)
+        if any(tie):
+            # TODO : implement this method for treating ties in data:
+            # Assume measuring error is delta. Then compute
+            # yL = F(xi-delta,theta)
+            # yU = F(xi+delta,theta)
+            # and replace
+            # logDj = log((yU-yL)/(r-1)) for j = i+1,i+2,...i+r-1
+
+            # The following is OK when only minimization of T is wanted
+            i_tie = nonzero(tie)
+            tiedata = x[i_tie]
+            logD[i_tie + 1] = log(self._pdf(tiedata, *args)) - log(scale)
+
+        finiteD = numpy.isfinite(logD)
+        nonfiniteD = 1 - finiteD
+        Nbad += sum(nonfiniteD, axis=0)
+        if Nbad>0:
             realmax = floatinfo.machar.xmax
-
-            lowertail = True
-            if lowertail:
-                prb = numpy.hstack((0.0, self.cdf(x, *args), 1.0))
-                dprb = numpy.diff(prb)
-            else:
-                prb = numpy.hstack((1.0, self.sf(x, *args), 0.0))
-                dprb = -numpy.diff(prb)
-
-            logD = log(dprb)
-            dx = numpy.diff(x, axis=0)
-            tie = (dx == 0)
-            if any(tie):
-                # TODO : implement this method for treating ties in data:
-                # Assume measuring error is delta. Then compute
-                # yL = F(xi-delta,theta)
-                # yU = F(xi+delta,theta)
-                # and replace
-                # logDj = log((yU-yL)/(r-1)) for j = i+1,i+2,...i+r-1
-
-                # The following is OK when only minimization of T is wanted
-
-                i_tie = nonzero(tie)
-                tiedata = x[i_tie]
-
-                logD[i_tie + 1] = log(self._pdf(tiedata, *args)) - log(scale)
-
-            finiteD = numpy.isfinite(logD)
-            nonfiniteD = 1 - finiteD
-            if any(nonfiniteD):
-                T = -sum(logD[finiteD], axis=0) + 100.0 * log(realmax) * sum(nonfiniteD, axis=0);
-            else:
-                T = -sum(logD, axis=0) #%Moran's negative log product spacing statistic
+            T = -sum(logD[finiteD], axis=0) + 100.0 * log(realmax) * Nbad;
+        else:
+            T = -sum(logD, axis=0) #%Moran's negative log product spacing statistic
         return T
 
     def link(self, x, logSF, theta, i):
@@ -2236,9 +2236,8 @@ class rv_continuous(rv_generic):
         raise ValueError('Link function not implemented for the %s distribution' % self.name)
         return None
     
-    def _nnlf(self, x, *args):
-        xmin = floatinfo.machar.xmin
-        return -sum(np.maximum(self._logpdf(x, *args),100*log(xmin)),axis=0)
+    def _nnlf(self, x, *args): 
+        return -sum(self._logpdf(x, *args),axis=0)
 
     def nnlf(self, theta, x):
         ''' Return negative loglikelihood function, i.e., - sum (log pdf(x, theta),axis=0)
@@ -2254,16 +2253,14 @@ class rv_continuous(rv_generic):
             return inf
         x = arr((x-loc) / scale)
         cond0 = (x <= self.a) | (self.b <= x)
-        newCall = True
-        if newCall:
+        if (any(cond0)):
+            # old call: return inf
             goodargs = argsreduce(1 - cond0, *((x,)))
             goodargs = tuple(goodargs + list(args))
             N = len(x)
             Nbad = sum(cond0)
-            xmin = floatinfo.machar.xmin
-            return self._nnlf(*goodargs) + N * log(scale) + Nbad * 100.0 * log(xmin)
-        elif (any(cond0)):
-            return inf
+            xmax = floatinfo.machar.xmax
+            return self._nnlf(*goodargs) + N * (log(scale) + Nbad * 100.0 * log(xmax))
         else:
             N = len(x)
             return self._nnlf(x, *args) + N*log(scale)
@@ -2399,7 +2396,7 @@ class rv_continuous(rv_generic):
         index = range(Nargs) 
         names = ['f%d' % n for n in range(Nargs - 2)] + ['floc', 'fscale']
         x0 = args[:]
-        for n, key in zip(index, names):
+        for n, key in zip(index[::-1], names[::-1]):
             if kwds.has_key(key):
                 fixedn.append(n)
                 args[n] = kwds[key]
@@ -8092,10 +8089,18 @@ def main():
     lp = pht.profile()
 
 def test_genpareto():
-    genextreme.pdf(np.inf,0)
+    
+    numargs = genpareto.numargs
+    [ c ] = [0.9,] * numargs
+    rv = genpareto(c)
+    R = genpareto.rvs(c, size=100)
+
+    phat = genpareto.fit2(R, floc=0, fscale=1,method='mps')
+    print(phat.par)
     
 if __name__ == '__main__':
     #main()
     test_genpareto()
     #test_truncrayleigh()
     #test_lognorm()
+
