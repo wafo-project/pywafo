@@ -2237,7 +2237,10 @@ class rv_continuous(rv_generic):
         return None
     
     def _nnlf(self, x, *args): 
-        return -sum(self._logpdf(x, *args),axis=0)
+        loginf = -log(floatinfo.machar.xmin)
+        logpdf = self._logpdf(x, *args).clip(min= -loginf)
+        return -sum(logpdf, axis=0)
+
 
     def nnlf(self, theta, x):
         ''' Return negative loglikelihood function, i.e., - sum (log pdf(x, theta),axis=0)
