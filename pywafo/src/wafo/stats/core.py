@@ -1209,12 +1209,13 @@ class RegLogit(object):
         Calculates likelihood for the ordinal logistic regression model.
         '''
         # Author: Gordon K. Smyth <gks@maths.uq.oz.au>
-        zx = np.hstack((z,x))
-        z1x = np.hstack((z1,x))
-        g = _logitinv(np.dot(zx,beta))
-        g1 = _logitinv(np.dot(z1x,beta))
+        zx = np.hstack((z, x))
+        z1x = np.hstack((z1, x))
+        g = _logitinv(np.dot(zx, beta))
+        g1 = _logitinv(np.dot(z1x, beta))
         g = np.maximum(y == y.max(), g)
         g1 = np.minimum(y > y.min(), g1)
+
         
         p = g - g1
         dev = -2 * sum (np.log(p));
@@ -1300,6 +1301,15 @@ def _test_reslife():
     mrl = reslife(R, nu=20)
     mrl.plot()
     
+def test_reglogit():
+    y=np.array([1, 1, 2, 1, 3, 2, 3, 2, 3, 3])
+    x = np.arange(10).T
+    b = reglogit(y,x)
+    b.display() % members and methods
+    
+    b.summary()
+    [mu,plo,pup] = b.predict();
+    plot(x,mu,'g',x,plo,'r:',x,pup,'r:')
 def main():
     #_test_dispersion_idx() 
     import doctest
@@ -1307,4 +1317,6 @@ def main():
     
     
 if __name__ == '__main__':
+    pass
     main()
+    
