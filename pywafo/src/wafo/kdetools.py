@@ -821,8 +821,8 @@ mkernel_laplace = _KernelLaplace(r=7.0, stats=_stats_lapl)
 
 class _KernelLogistic(_Kernel):
     def _kernel(self, x):
-        s = exp(x)
-        return np.prod(s / (s + 1) ** 2, axis=0)
+        s = exp(-x)
+        return np.prod(1.0 / (s + 1) ** 2, axis=0)
 mkernel_logistic = _KernelLogistic(r=7.0, stats=_stats_logi)
 
 _MKERNEL_DICT = dict(
@@ -1733,7 +1733,6 @@ def accum(accmap, a, func=None, size=None, fill_value=0, dtype=None):
             out[s] = fill_value
         else:
             out[s] = func(vals[s])
-
     return out
 
 def qlevels(pdf, p=(10, 30, 50, 70, 90, 95, 99, 99.9), x1=None, x2=None):
