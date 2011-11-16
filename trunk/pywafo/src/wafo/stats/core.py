@@ -1139,7 +1139,6 @@ class RegLogit(object):
          options  = options struct defining the calculation
                 .alpha : confidence coefficient (default 0.05)
                 .size  : size if binomial family (default 1).    
-        
         '''
         
         [mx, nx] = self.X.shape
