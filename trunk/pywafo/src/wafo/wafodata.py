@@ -137,11 +137,16 @@ class AxisLabels:
         self.title = title
         self.xlab = xlab
         self.ylab = ylab
-        self.zlab = zlab
+        self.zlab = zlab    
+    def __repr__(self):
+        return self.__str__()
+    def __str__(self):
+        return '%s\n%s\n%s\n%s\n' % (self.title, self.xlab, self.ylab, self.zlab)
     def copy(self):
         newcopy = empty_copy(self)
         newcopy.__dict__.update(self.__dict__)
         return newcopy
+    
     def labelfig(self):
         try:
             h1 = plotbackend.title(self.title)
@@ -169,7 +174,6 @@ class Plotter_1d(object):
         step : stair-step plot
         scatter : scatter plot
     """
-
     def __init__(self, plotmethod='plot'):
         self.plotfun = None
         if plotmethod is None:
@@ -179,11 +183,12 @@ class Plotter_1d(object):
             self.plotfun = getattr(plotbackend, plotmethod)
         except:
             pass
+        
     def show(self):
         plotbackend.show()
 
     def plot(self, wdata, *args, **kwds):
-        plotflag = kwds.pop('plotflag', None)
+        plotflag = kwds.pop('plotflag', False)
         if plotflag:
             h1 = self._plot(plotflag, wdata, **kwds)
         else:
@@ -201,6 +206,7 @@ class Plotter_1d(object):
         dataCI = ()
         h1 = plot1d(x, data, dataCI, plotflag, *args, **kwds)
         return h1
+    
 def plot1d(args, data, dataCI, plotflag, *varargin, **kwds):
      
     plottype = np.mod(plotflag, 10)
@@ -223,10 +229,10 @@ def plot1d(args, data, dataCI, plotflag, *varargin, **kwds):
         else:
             H = plotbackend.fill_between(args, data, *varargin, **kwds);
         
-    scale = plotscale(plotflag);
-    logXscale = any(scale == 'x');
-    logYscale = any(scale == 'y');
-    logZscale = any(scale == 'z');
+    scale = plotscale(plotflag)
+    logXscale = 'x' in scale
+    logYscale = 'y' in scale 
+    logZscale = 'z' in scale 
     ax = plotbackend.gca()
     if logXscale: 
         plotbackend.setp(ax, xscale='log')
@@ -346,11 +352,12 @@ def plot2d(wdata, plotflag, *args, **kwds):
     else:
         args1 = tuple((wdata.args,)) + (wdata.data,) + args
     if plotflag in (1, 6, 7, 8, 9):
-        PL = 0
-        if hasattr(f, 'cl') and len(f.cl) > 0:  # check if contour levels is submitted
-            CL = f.cl
-            if hasattr(f, 'pl'):
-                PL = f.pl # levels defines quantile levels? 0=no 1=yes
+        isPL = False
+        if hasattr(f, 'clevels') and len(f.clevels) > 0:  # check if contour levels is submitted
+            CL = f.clevels
+            isPL = hasattr(f, 'plevels') and f.plevels is not None 
+            if isPL:
+                PL = f.plevels # levels defines quantile levels? 0=no 1=yes
         else:
             dmax = np.max(f.data)
             dmin = np.min(f.data)
@@ -367,10 +374,8 @@ def plot2d(wdata, plotflag, *args, **kwds):
             if ncl > 12:
                 ncl = 12
                 warnings.warn('Only the first 12 levels will be listed in table.')
-            if PL:
-                clvals, isPL = PL[:ncl], True
-            else:
-                clvals, isPL =  clvec[:ncl], False
+            
+            clvals = PL[:ncl] if isPL else clvec[:ncl]
             unused_axcl = cltext(clvals, percent=isPL) # print contour level text
         elif any(plotflag == [7, 9]):
             plotbackend.clabel(h)
@@ -390,20 +395,19 @@ def plot2d(wdata, plotflag, *args, **kwds):
         plotbackend.colorbar(h)
     else:
         raise ValueError('unknown option for plotflag')
-         
-    
     #if any(plotflag==(2:5))
     #   shading(shad);
     #end
     #    pass
 
-       
+
+def test_docstrings():
+    import doctest
+    doctest.testmod()
+    
 def main():
     pass
 
 if __name__ == '__main__':
-    if  True: #False : #  
-        import doctest
-        doctest.testmod()
-    else:
-        main()
+    test_docstrings()
+    #main()
