@@ -142,6 +142,9 @@ class _KDE(object):
         arg_0,arg_1,... arg_d-1 : vectors
             Alternatively, if no vectors is passed in then
              arg_i = linspace(self.xmin[i], self.xmax[i], self.inc)
+        output : string optional
+            'value' if value output
+            'data' if object output
 
         Returns
         -------
@@ -149,6 +152,11 @@ class _KDE(object):
             The values evaluated at meshgrid(*args).
 
         """
+        if len(args) == 0:
+            args = []
+            for i in range(self.d):
+                args.append(np.linspace(self.xmin[i], self.xmax[i], self.inc))
+        self.args = args
         return self._eval_grid_fun(self._eval_grid_fast, *args, **kwds)
        
     def _eval_grid_fast(self, *args):
@@ -162,9 +170,9 @@ class _KDE(object):
         arg_0,arg_1,... arg_d-1 : vectors
             Alternatively, if no vectors is passed in then
              arg_i = linspace(self.xmin[i], self.xmax[i], self.inc)
-        output : string
+        output : string optional
             'value' if value output
-            'wafodata' if object output
+            'data' if object output
         
         Returns
         -------
@@ -172,15 +180,15 @@ class _KDE(object):
             The values evaluated at meshgrid(*args).
 
         """
-        return self._eval_grid_fun(self._eval_grid, *args, **kwds)
-    def _eval_grid(self, *args):
-        pass
-    def _eval_grid_fun(self, eval_grd, *args, **kwds):
         if len(args) == 0:
             args = []
             for i in range(self.d):
                 args.append(np.linspace(self.xmin[i], self.xmax[i], self.inc))
         self.args = args
+        return self._eval_grid_fun(self._eval_grid, *args, **kwds)
+    def _eval_grid(self, *args):
+        pass
+    def _eval_grid_fun(self, eval_grd, *args, **kwds):
         f = eval_grd(*args)
         if kwds.get('output', 'value') == 'value':
             return f
@@ -189,6 +197,7 @@ class _KDE(object):
             kwds2 = dict(title=titlestr)
             kwds2['plot_kwds'] = dict(plotflag=1)
             kwds2.update(**kwds)
+            args = self.args
             if self.d == 1:
                 args = args[0]
             wdata = WafoData(f, args, **kwds2)
@@ -390,24 +399,28 @@ class TKDE(_KDE):
         arg_0,arg_1,... arg_d-1 : vectors
            Alternatively, if no vectors is passed in then
             arg_i = gauss2dat(linspace(dat2gauss(self.xmin[i]), dat2gauss(self.xmax[i]), self.inc))
-        
+        output : string optional
+            'value' if value output
+            'data' if object output
+            
         Returns
         -------
         values : array-like
            The values evaluated at meshgrid(*args).
         
         """
-        f = self._eval_grid_fast(*args)
-        if kwds.get('output', 'value') == 'value':
-            return f
-        else:
-            args = self.args
-            titlestr = 'Kernel density estimate (%s)' % self.kernel.name
-            kwds2 = dict(title=titlestr)
-            kwds2.update(**kwds)
-            if self.d == 1:
-                args = args[0]        
-            return WafoData(f, args, **kwds2)
+        return self._eval_grid_fun(self._eval_grid_fast, *args, **kwds)
+#        f = self._eval_grid_fast(*args)
+#        if kwds.get('output', 'value') == 'value':
+#            return f
+#        else:
+#            args = self.args
+#            titlestr = 'Kernel density estimate (%s)' % self.kernel.name
+#            kwds2 = dict(title=titlestr)
+#            kwds2.update(**kwds)
+#            if self.d == 1:
+#                args = args[0]        
+#            return WafoData(f, args, **kwds2)
     
     def _eval_grid_fast(self, *args): 
         if self.L2 is None:
@@ -420,14 +433,18 @@ class TKDE(_KDE):
         points = meshgrid(*self.args) if self.d > 1 else self.args
         f = self._scale_pdf(tf, points)
         if len(args):
-            if self.d == 1:
-                pdf = interpolate.interp1d(points[0], f, bounds_error=False, fill_value=0.0)
-            elif self.d == 2:
-                pdf = interpolate.interp2d(points[0], points[1], f, bounds_error=False, fill_value=0.0)
-            #ipoints = meshgrid(*args) if self.d>1 else args
-            fi = pdf(*args)
+            ipoints = meshgrid(*args) if self.d>1 else args
+            #shape0 = points[0].shape
+            #shape0i = ipoints[0].shape
+            for i in range(self.d):
+                points[i].shape = (-1,)
+                #ipoints[i].shape = (-1,)
+            points = np.asarray(points).T
+            #ipoints = np.asarray(ipoints).T
+            fi = interpolate.griddata(points, f.ravel(), tuple(ipoints), method='linear', 
+                                      fill_value=0.0)
+            #fi.shape = shape0i
             self.args = args
-            #fi.shape = ipoints[0].shape
             return fi*(fi>0)
         return f
     def _eval_grid(self, *args):
@@ -1636,91 +1653,18 @@ def mkernel(X, kernel):
     fun = _MKERNEL_DICT[kernel[:4]]
     return fun(np.atleast_2d(X))
 
-def accumsum(accmap, a, size=None, dtype=None):
-    """
-    A sum accumulation function
-
-    Parameters
-    ----------
-    accmap : ndarray
-        This is the "accumulation map".  It maps input (i.e. indices into
-        `a`) to their destination in the output array.  The first `a.ndim`
-        dimensions of `accmap` must be the same as `a.shape`.  That is,
-        `accmap.shape[:a.ndim]` must equal `a.shape`.  For example, if `a`
-        has shape (15,4), then `accmap.shape[:2]` must equal (15,4).  In this
-        case `accmap[i,j]` gives the index into the output array where
-        element (i,j) of `a` is to be accumulated.  If the output is, say,
-        a 2D, then `accmap` must have shape (15,4,2).  The value in the
-        last dimension give indices into the output array. If the output is
-        1D, then the shape of `accmap` can be either (15,4) or (15,4,1) 
-    a : ndarray
-        The input data to be accumulated.
-    size : ndarray or None
-        The size of the output array.  If None, the size will be determined
-        from `accmap`.
-    dtype : numpy data type, or None
-        The data type of the output array.  If None, the data type of
-        `a` is used.
-
-    Returns
-    -------
-    out : ndarray
-        The accumulated results.
-
-        The shape of `out` is `size` if `size` is given.  Otherwise the
-        shape is determined by the (lexicographically) largest indices of
-        the output found in `accmap`.
-
-
-    Examples
-    --------
-    >>> from numpy import array, prod
-    >>> a = array([[1,2,3],[4,-1,6],[-1,8,9]])
-    >>> a
-    array([[ 1,  2,  3],
-           [ 4, -1,  6],
-           [-1,  8,  9]])
-    >>> # Sum the diagonals.
-    >>> accmap = array([[0,1,2],[2,0,1],[1,2,0]])
-    >>> s = accum(accmap, a)
-    >>> s
-    array([ 9,  7, 15])
-    >>> # A 2D output, from sub-arrays with shapes and positions like this:
-    >>> # [ (2,2) (2,1)]
-    >>> # [ (1,2) (1,1)]
-    >>> accmap = array([
-    ...        [[0,0],[0,0],[0,1]],
-    ...        [[0,0],[0,0],[0,1]],
-    ...        [[1,0],[1,0],[1,1]]])
-    >>> # Accumulate using a product.
-    >>> accum(accmap, a, func=prod, dtype=float)
-    array([[ -8.,  18.],
-           [ -8.,   9.]])
-    >>> # Same accmap, but create an array of lists of values.
-    >>> accum(accmap, a, func=lambda x: x, dtype='O')
-    array([[[1, 2, 4, -1], [3, 6]],
-           [[-1, 8], [9]]], dtype=object)
-    """
-
-    # Check for bad arguments and handle the defaults.
-    if accmap.shape[:a.ndim] != a.shape:
-        raise ValueError("The initial dimensions of accmap must be the same as a.shape")
+def accumsum(accmap, a, size, dtype=None):
     if dtype is None:
         dtype = a.dtype
-    
-    adims = tuple(range(a.ndim))
-    if size is None:
-        size = 1 + np.squeeze(np.apply_over_axes(np.max, accmap, axes=adims))
     size = np.atleast_1d(size)
     if len(size)>1:
         binx = accmap[:,0]
         biny = accmap[:,1]
-        out = np.asarray(sparse.coo_matrix((a.ravel(), (binx, biny)),shape=size, dtype=dtype).todense()).reshape(size)
+        out = sparse.coo_matrix((a.ravel(), (binx, biny)),shape=size, dtype=dtype).tocsr()
     else:
         binx = accmap.ravel()
         zero = np.zeros(len(binx))
-        out = np.asarray(sparse.coo_matrix((a.ravel(), (binx, zero)),shape=(size,1), dtype=dtype).todense()).reshape(size)
-   
+        out = sparse.coo_matrix((a.ravel(), (binx, zero)),shape=(size,1), dtype=dtype).tocsr()   
     return out
 
 def accumsum2(accmap, a, size):
@@ -2335,8 +2279,8 @@ def gridcount(data, X, use_sparse=False):
     abs = np.abs
     if  d == 1:
         x.shape = (-1,)
-        c = (acfun(binx, (x[binx + 1] - dat), size=[inc, ]) + 
-             acfun(binx+1, (dat - x[binx]), size=[inc, ])) / w
+        c = np.asarray((acfun(binx, (x[binx + 1] - dat), size=(inc, )) + 
+             acfun(binx+1, (dat - x[binx]), size=(inc, ))) / w).ravel()
 #    elif d == 2:
 #        b2 = binx[1]
 #        b1 = binx[0]
@@ -2350,6 +2294,9 @@ def gridcount(data, X, use_sparse=False):
     else: # % d>2
        
         Nc = csiz.prod()
+#        if use_sparse:
+#            c = sparse.csr_matrix((Nc,1))
+#        else:
         c = np.zeros((Nc,))
      
         fact2 = np.asarray(np.reshape(inc * np.arange(d), (d, -1)), dtype=int)
@@ -2368,12 +2315,12 @@ def gridcount(data, X, use_sparse=False):
                 bt2 = bt0[two] + fact2
                 b2 = binx + bt2                     # linear index to X
                 c += acfun(b1, abs(np.prod(X1[b2] - dat, axis=0)), size=(Nc,))
-                
-        c = np.reshape(c / w, csiz, order='F')
+#        if use_sparse:
+#            c = c.toarray().ravel()
+        c = np.reshape(c/w , csiz, order='F')
         
         T = range(d)
         T[1], T[0] = T[0], T[1]
-        #T[-2], T[-1] = T[-1], T[-2]
         c = c.transpose(*T) # make sure c is stored in the same way as meshgrid    
     return c
 
@@ -2477,5 +2424,5 @@ def test_docstrings():
     doctest.testmod()
     
 if __name__ == '__main__':
-    test_docstrings()
-    
+    #test_docstrings()
+    kde_demo3()
