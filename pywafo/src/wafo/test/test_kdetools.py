@@ -224,11 +224,8 @@ def test_gridcount_1D():
     
     >>> x = np.linspace(0, max(data.ravel()) + 1, 10)  
     >>> dx = x[1] - x[0]  
-    >>> c = wk.gridcount(data, x, use_sparse=False)
+    >>> c = wk.gridcount(data, x)
     >>> c 
-    array([ 0.78762626,  1.77520717,  7.99190087,  4.04054449,  1.67156643,
-            2.38228499,  1.05933195,  0.29153785,  0.        ,  0.        ])
-    >>> wk.gridcount(data, x, use_sparse=True)
     array([ 0.78762626,  1.77520717,  7.99190087,  4.04054449,  1.67156643,
             2.38228499,  1.05933195,  0.29153785,  0.        ,  0.        ])
             
@@ -289,7 +286,7 @@ def test_gridcount_3D():
     >>> x = np.linspace(0, max(data.ravel()) + 1, 3)  
     >>> dx = x[1] - x[0]
     >>> X = np.vstack((x, x, x))   
-    >>> c = wk.gridcount(data, X, use_sparse=True)
+    >>> c = wk.gridcount(data, X)
     >>> c 
     array([[[  8.74229894e-01,   1.27910940e+00,   1.42033973e-01],
             [  1.94778915e+00,   2.59536282e+00,   3.28213680e-01],
