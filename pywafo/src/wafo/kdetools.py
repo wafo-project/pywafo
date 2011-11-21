@@ -159,7 +159,7 @@ class _KDE(object):
         self.args = args
         return self._eval_grid_fun(self._eval_grid_fast, *args, **kwds)
        
-    def _eval_grid_fast(self, *args):
+    def _eval_grid_fast(self, *args, **kwds):
         pass
     
     def eval_grid(self, *args, **kwds):
@@ -189,7 +189,7 @@ class _KDE(object):
     def _eval_grid(self, *args):
         pass
     def _eval_grid_fun(self, eval_grd, *args, **kwds):
-        f = eval_grd(*args)
+        f = eval_grd(*args, **kwds)
         if kwds.get('output', 'value') == 'value':
             return f
         else:
@@ -223,7 +223,7 @@ class _KDE(object):
                     self.d)
                 raise ValueError(msg)
         return points   
-    def eval_points(self, points):
+    def eval_points(self, points, r=0):
         """Evaluate the estimated pdf on a set of points.
 
         Parameters
@@ -244,9 +244,9 @@ class _KDE(object):
         """
 
         points = self._check_shape(points)
-        return self._eval_points(points)
+        return self._eval_points(points, r=r)
     
-    def _eval_points(self, points):
+    def _eval_points(self, points, r=0):
         pass
 
     __call__ = eval_grid
@@ -624,7 +624,7 @@ class KDE(_KDE):
         self._norm_factor = deth * self.n
     
 
-    def _eval_grid_fast(self, *args):
+    def _eval_grid_fast(self, *args, **kwds):
         X = np.vstack(args)
         d, inc = X.shape
         dx = X[:, 1] - X[:, 0]
@@ -641,37 +641,42 @@ class KDE(_KDE):
         shape0 = Xnc[0].shape
         for i in range(d):
             Xnc[i].shape = (-1,)
- 
+            
         Xn = np.dot(self.inv_hs, np.vstack(Xnc))
         
         # Obtain the kernel weights.        
-        kw = self.kernel(Xn) / (self._norm_factor * self.kernel.norm_factor(d, self.n))
+        r = kwds.get('r', 0)
+        if r==0:
+            kw = self.kernel(Xn) / (self._norm_factor * self.kernel.norm_factor(d, self.n))
+        else:
+            kw = np.vstack(Xnc) ** r * self.kernel(Xn) / (self._norm_factor * self.kernel.norm_factor(d, self.n))
         kw.shape = shape0
         kw = np.fft.ifftshift(kw)
         fftn = np.fft.fftn
         ifftn = np.fft.ifftn
 
+        y = kwds.get('y', 1)
         # Find the binned kernel weights, c.
-        c = gridcount(self.dataset, X)
-
+        c = gridcount(self.dataset, X, y=y)
         # Perform the convolution.
         z = np.real(ifftn(fftn(c, s=nfft) * fftn(kw)))
 
         ix = (slice(0, inc),)*d
         return z[ix] * (z[ix] > 0.0)
    
-    def _eval_grid(self, *args):
+    def _eval_grid(self, *args, **kwds):
         
         grd = meshgrid(*args) if len(args) > 1 else list(args)
         shape0 = grd[0].shape
         d = len(grd)
         for i in range(d):
             grd[i] = grd[i].ravel()
-        f = self.eval_points(np.vstack(grd))
+        r = kwds.get('r', 0)
+        f = self.eval_points(np.vstack(grd), r=r)
         return f.reshape(shape0)
     
 
-    def _eval_points(self, points):
+    def _eval_points(self, points, r=0):
         """Evaluate the estimated pdf on a set of points.
 
         Parameters
@@ -693,19 +698,23 @@ class KDE(_KDE):
         d, m = points.shape
        
         result = np.zeros((m,))
+        if r==0:
+            fun = lambda xi : 1
+        else:
+            fun = lambda xi : xi ** r
 
         if m >= self.n:
             # there are more points than data, so loop over data
             for i in range(self.n):
                 diff = self.dataset[:, i, np.newaxis] - points
                 tdiff = np.dot(self.inv_hs / self._lambda[i], diff)
-                result += self.kernel(tdiff) / self._lambda[i] ** d
+                result += fun(diff) * self.kernel(tdiff) / self._lambda[i] ** d
         else:
             # loop over points
             for i in range(m):
                 diff = self.dataset - points[:, i, np.newaxis]
                 tdiff = np.dot(self.inv_hs, diff / self._lambda[np.newaxis, :])
-                tmp = self.kernel(tdiff) / self._lambda ** d
+                tmp = fun(diff) * self.kernel(tdiff) / self._lambda ** d
                 result[i] = tmp.sum(axis= -1)
 
         result /= (self._norm_factor * self.kernel.norm_factor(d, self.n))
@@ -2194,7 +2203,7 @@ def bitget(int_type, offset):
     return np.bitwise_and(int_type, 1 << offset) >> offset
     
 
-def gridcount(data, X, use_sparse=False):
+def gridcount(data, X, y=1):
     '''
     Returns D-dimensional histogram using linear binning.
       
@@ -2253,6 +2262,7 @@ def gridcount(data, X, use_sparse=False):
     '''  
     dat = np.atleast_2d(data)
     x = np.atleast_2d(X)
+    y = np.atleast_1d(y).ravel()
     d = dat.shape[0]
     d1, inc = x.shape
     
@@ -2269,6 +2279,7 @@ def gridcount(data, X, use_sparse=False):
         raise ValueError('X does not include whole range of the data!')
     
     csiz = np.repeat(inc, d)
+    use_sparse = False
     if use_sparse:
         acfun = accumsum # faster than accum
     else:
@@ -2279,8 +2290,9 @@ def gridcount(data, X, use_sparse=False):
     abs = np.abs
     if  d == 1:
         x.shape = (-1,)
-        c = np.asarray((acfun(binx, (x[binx + 1] - dat), size=(inc, )) + 
-             acfun(binx+1, (dat - x[binx]), size=(inc, ))) / w).ravel()
+        c = np.asarray((acfun(binx, (x[binx + 1] - dat) * y, size=(inc, )) + 
+                            acfun(binx+1, (dat - x[binx]) * y, size=(inc, ))) / w).ravel()
+                            
 #    elif d == 2:
 #        b2 = binx[1]
 #        b1 = binx[0]
@@ -2294,9 +2306,6 @@ def gridcount(data, X, use_sparse=False):
     else: # % d>2
        
         Nc = csiz.prod()
-#        if use_sparse:
-#            c = sparse.csr_matrix((Nc,1))
-#        else:
         c = np.zeros((Nc,))
      
         fact2 = np.asarray(np.reshape(inc * np.arange(d), (d, -1)), dtype=int)
@@ -2314,9 +2323,8 @@ def gridcount(data, X, use_sparse=False):
                 b1 = np.sum((binx + bt0[one]) * fact1, axis=0) #linear index to c
                 bt2 = bt0[two] + fact2
                 b2 = binx + bt2                     # linear index to X
-                c += acfun(b1, abs(np.prod(X1[b2] - dat, axis=0)), size=(Nc,))
-#        if use_sparse:
-#            c = c.toarray().ravel()
+                c += acfun(b1, abs(np.prod(X1[b2] - dat, axis=0)) * y, size=(Nc,))
+
         c = np.reshape(c/w , csiz, order='F')
         
         T = range(d)
