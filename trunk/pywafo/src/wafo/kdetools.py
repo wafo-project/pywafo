@@ -189,8 +189,9 @@ class _KDE(object):
     def _eval_grid(self, *args):
         pass
     def _eval_grid_fun(self, eval_grd, *args, **kwds):
+        output = kwds.pop('output', 'value')
         f = eval_grd(*args, **kwds)
-        if kwds.get('output', 'value') == 'value':
+        if output == 'value':
             return f
         else:
             titlestr = 'Kernel density estimate (%s)' % self.kernel.name
@@ -223,7 +224,7 @@ class _KDE(object):
                     self.d)
                 raise ValueError(msg)
         return points   
-    def eval_points(self, points, r=0):
+    def eval_points(self, points, **kwds):
         """Evaluate the estimated pdf on a set of points.
 
         Parameters
@@ -244,9 +245,9 @@ class _KDE(object):
         """
 
         points = self._check_shape(points)
-        return self._eval_points(points, r=r)
+        return self._eval_points(points, **kwds)
     
-    def _eval_points(self, points, r=0):
+    def _eval_points(self, points, **kwds):
         pass
 
     __call__ = eval_grid
@@ -410,21 +411,10 @@ class TKDE(_KDE):
         
         """
         return self._eval_grid_fun(self._eval_grid_fast, *args, **kwds)
-#        f = self._eval_grid_fast(*args)
-#        if kwds.get('output', 'value') == 'value':
-#            return f
-#        else:
-#            args = self.args
-#            titlestr = 'Kernel density estimate (%s)' % self.kernel.name
-#            kwds2 = dict(title=titlestr)
-#            kwds2.update(**kwds)
-#            if self.d == 1:
-#                args = args[0]        
-#            return WafoData(f, args, **kwds2)
     
-    def _eval_grid_fast(self, *args): 
+    def _eval_grid_fast(self, *args, **kwds): 
         if self.L2 is None:
-            f = self.tkde.eval_grid_fast(*args)
+            f = self.tkde.eval_grid_fast(*args, **kwds)
             self.args = self.tkde.args
             return f
         #targs = self._dat2gaus(list(args)) if len(args) else args
@@ -447,11 +437,11 @@ class TKDE(_KDE):
             self.args = args
             return fi*(fi>0)
         return f
-    def _eval_grid(self, *args):
+    def _eval_grid(self, *args, **kwds):
         if self.L2 is None:
-            return self.tkde.eval_grid(*args)
+            return self.tkde.eval_grid(*args, **kwds)
         targs = self._dat2gaus(list(args))
-        tf = self.tkde.eval_grid(*targs)
+        tf = self.tkde.eval_grid(*targs, **kwds)
         points = meshgrid(*args) if self.d > 1 else self.args
         f = self._scale_pdf(tf, points)
         return f
@@ -632,7 +622,7 @@ class KDE(_KDE):
         Xn = []
         nfft0 = 2 * inc
         nfft = (nfft0,)*d
-        x0 = np.linspace(-inc, inc, nfft0 + 1)
+        x0 = np.linspace(-inc, inc, nfft0+1)
         for i in range(d):
             Xn.append(x0[:-1] * dx[i])
         
@@ -671,12 +661,11 @@ class KDE(_KDE):
         d = len(grd)
         for i in range(d):
             grd[i] = grd[i].ravel()
-        r = kwds.get('r', 0)
-        f = self.eval_points(np.vstack(grd), r=r)
+        f = self.eval_points(np.vstack(grd), **kwds)
         return f.reshape(shape0)
     
 
-    def _eval_points(self, points, r=0):
+    def _eval_points(self, points, **kwds):
         """Evaluate the estimated pdf on a set of points.
 
         Parameters
@@ -698,29 +687,124 @@ class KDE(_KDE):
         d, m = points.shape
        
         result = np.zeros((m,))
+        
+        r = kwds.get('r', 0)
         if r==0:
             fun = lambda xi : 1
         else:
-            fun = lambda xi : xi ** r
+            fun = lambda xi : (xi ** r).sum(axis=0)
 
         if m >= self.n:
+            y = kwds.get('y', np.ones(self.n))
             # there are more points than data, so loop over data
             for i in range(self.n):
                 diff = self.dataset[:, i, np.newaxis] - points
                 tdiff = np.dot(self.inv_hs / self._lambda[i], diff)
-                result += fun(diff) * self.kernel(tdiff) / self._lambda[i] ** d
+                result += y[i] * fun(diff) * self.kernel(tdiff) / self._lambda[i] ** d
         else:
+            y = kwds.get('y', 1)
             # loop over points
             for i in range(m):
                 diff = self.dataset - points[:, i, np.newaxis]
                 tdiff = np.dot(self.inv_hs, diff / self._lambda[np.newaxis, :])
-                tmp = fun(diff) * self.kernel(tdiff) / self._lambda ** d
+                tmp = y * fun(diff) * self.kernel(tdiff) / self._lambda ** d
                 result[i] = tmp.sum(axis= -1)
 
         result /= (self._norm_factor * self.kernel.norm_factor(d, self.n))
 
         return result
 
+class KRegression(_KDE):
+    """ Kernel-Regression
+
+    Parameters
+    ----------
+    data : (# of dims, # of data)-array
+        datapoints to estimate from
+    y : # of data - array
+        response variable
+    p : scalar integer (0 or 1)
+        Nadaraya-Watson estimator if p=0, 
+        local linear estimator if p=1.
+    hs : array-like (optional) 
+        smooting parameter vector/matrix.
+        (default compute from data using kernel.get_smoothing function)
+    kernel :  kernel function object.
+        kernel must have get_smoothing method
+    alpha : real scalar (optional)
+        sensitivity parameter               (default 0 regular KDE)
+        A good choice might be alpha = 0.5 ( or 1/D)
+        alpha = 0      Regular  KDE (hs is constant)
+        0 < alpha <= 1 Adaptive KDE (Make hs change)  
+    xmin, xmax  : vectors 
+        specifying the default argument range for the kde.eval_grid methods. 
+        For the kde.eval_grid_fast methods the values must cover the range of the data. 
+        (default min(data)-range(data)/4, max(data)-range(data)/4)
+        If a single value of xmin or xmax is given then the boundary is the is 
+        the same for all dimensions.
+    inc :  scalar integer
+        defining the default dimension of the output from kde.eval_grid methods (default 128)
+        (For kde.eval_grid_fast: A value below 50 is very fast to compute but 
+        may give some inaccuracies. Values between 100 and 500 give very 
+        accurate results)  
+
+    Members
+    -------
+    d : int
+        number of dimensions
+    n : int
+        number of datapoints
+
+    Methods
+    -------
+    kde.eval_grid_fast(x0, x1,..., xd) : array
+        evaluate the estimated pdf on meshgrid(x0, x1,..., xd)
+    kde.eval_grid(x0, x1,..., xd) : array
+        evaluate the estimated pdf on meshgrid(x0, x1,..., xd)
+    kde.eval_points(points) : array
+        evaluate the estimated pdf on a provided set of points
+    kde(x0, x1,..., xd) : array
+        same as kde.eval_grid(x0, x1,..., xd)
+   
+    
+    Example
+    -------
+    >>> N = 100
+    >>> ei = np.random.normal(loc=0, scale=0.075, size=(N,))
+    
+    >>> x = np.linspace(0, 1, N) 
+    >>> import wafo.kdetools as wk 
+    
+    >>> y = 2*np.exp(-x**2/(2*0.3**2))+3*np.exp(-(x-1)**2/(2*0.7**2)) + ei
+    >>> kreg = wk.KRegression(x, y)
+    
+    """
+
+    def __init__(self, data, y, p=0, hs=None, kernel=None, alpha=0.0, xmin=None, xmax=None, inc=128, L2=None):
+        self.tkde = TKDE(data, hs, kernel, alpha, xmin, xmax, inc, L2)
+        self.y = y
+        self.p = p
+        
+    def eval_grid_fast(self, *args, **kwds):
+        self._grdfun = self.tkde.eval_grid_fast
+        return self.tkde._eval_grid_fun(self._eval_gridfun,  *args, **kwds)
+    
+    def eval_grid(self, *args, **kwds):
+        self._grdfun = self.tkde.eval_grid
+        return self.tkde._eval_grid_fun(self._eval_gridfun,  *args, **kwds)
+    
+    def _eval_gridfun(self, *args, **kwds):
+        grdfun = self._grdfun
+        s0 = grdfun(*args, r=0)
+        t0 = grdfun(*args, r=0, y=self.y)
+        if self.p==0:
+            return t0 / s0
+        elif self.p==1:
+            s1 = grdfun(*args, r=1)
+            s2 = grdfun(*args, r=2)
+            t1 = grdfun(*args, r=1, y=self.y)
+            return (s2 * t0 -s1 * t1) / (s2 * s0 - s1**2)
+    __call__ = eval_grid_fast
     
 class _Kernel(object):
     def __init__(self, r=1.0, stats=None):
@@ -956,6 +1040,8 @@ class Kernel(object):
     def _get_name(self):
         return self.kernel.__class__.__name__.replace('_Kernel', '').title()
     name = property(_get_name)
+    def get_smoothing(self, *args, **kwds):
+        pass
     def stats(self):
         ''' Return some 1D statistics of the kernel.
       
@@ -1298,16 +1384,20 @@ class Kernel(object):
          better for short tailed densities.
          However, STT method in contrast to LCV is insensitive to outliers.
          
-          Example: 
+        Example
+        ------- 
            x  = rndnorm(0,1,50,1);
            hs = hstt(x,'gauss');
         
-         See also  hste, hbcv, hboot, hos, hldpi, hlscv, hscv, kde, kdebin 
+        See also
+        --------
+        hste, hbcv, hboot, hos, hldpi, hlscv, hscv, kde, kdebin 
         
         
         
-         Reference:  
-          B. W. Silverman (1986) 
+        Reference
+        ---------
+        B. W. Silverman (1986) 
          'Density estimation for statistics and data analysis'  
           Chapman and Hall, pp 57--61 
         '''
@@ -2426,6 +2516,54 @@ def kde_demo3():
 
     pylab.figure(0)
 
+def kde_demo4(hs=None, fast=False):
+    N = 100
+    #ei = np.random.normal(loc=0, scale=0.075, size=(N,))
+    ei = np.array([-0.08508516,  0.10462496,  0.07694448, -0.03080661,  0.05777525,
+        0.06096313, -0.16572389,  0.01838912, -0.06251845, -0.09186784,
+       -0.04304887, -0.13365788, -0.0185279 , -0.07289167,  0.02319097,
+        0.06887854, -0.08938374, -0.15181813,  0.03307712,  0.08523183,
+       -0.0378058 , -0.06312874,  0.01485772,  0.06307944, -0.0632959 ,
+        0.18963205,  0.0369126 , -0.01485447,  0.04037722,  0.0085057 ,
+       -0.06912903,  0.02073998,  0.1174351 ,  0.17599277, -0.06842139,
+        0.12587608,  0.07698113, -0.0032394 , -0.12045792, -0.03132877,
+        0.05047314,  0.02013453,  0.04080741,  0.00158392,  0.10237899,
+       -0.09069682,  0.09242174, -0.15445323,  0.09190278,  0.07138498,
+        0.03002497,  0.02495252,  0.01286942,  0.06449978,  0.03031802,
+        0.11754861, -0.02322272,  0.00455867, -0.02132251,  0.09119446,
+       -0.03210086, -0.06509545,  0.07306443,  0.04330647,  0.078111  ,
+       -0.04146907,  0.05705476,  0.02492201, -0.03200572, -0.02859788,
+       -0.05893749,  0.00089538,  0.0432551 ,  0.04001474,  0.04888828,
+       -0.17708392,  0.16478644,  0.1171006 ,  0.11664846,  0.01410477,
+       -0.12458953, -0.11692081,  0.0413047 , -0.09292439, -0.07042327,
+        0.14119701, -0.05114335,  0.04994696, -0.09520663,  0.04829406,
+       -0.01603065, -0.1933216 ,  0.19352763,  0.11819496,  0.04567619,
+       -0.08348306,  0.00812816, -0.00908206,  0.14528945,  0.02901065])
+    x = np.linspace(0, 1, N) 
+     
+    
+    y0 = 2*np.exp(-x**2/(2*0.3**2))+3*np.exp(-(x-1)**2/(2*0.7**2)) 
+    y = y0 + ei
+    kreg = KRegression(x, y, p=0, hs=hs)
+    kreg.tkde.kernel.get_smooting = kreg.tkde.kernel.hste
+    if fast:
+        kreg.__call__ = kreg.eval_grid_fast
+         
+    f = kreg(output='plot', title='Kernel regression', plotflag=1)
+    pylab.figure(0)
+    f.plot(label='p=0')
+    
+    
+    kreg.p=1
+    f1 = kreg(output='plot', title='Kernel regression', plotflag=1)
+    f1.plot(label='p=1')
+    pylab.plot(x,y,'.', x,y0, 'k')
+    pylab.legend()
+    
+    pylab.show()
+    
+    print(kreg.tkde.tkde.inv_hs)
+    print(kreg.tkde.tkde.hs)
     
 def test_docstrings():
     import doctest
@@ -2433,4 +2571,4 @@ def test_docstrings():
     
 if __name__ == '__main__':
     #test_docstrings()
-    kde_demo3()
+    kde_demo4()
