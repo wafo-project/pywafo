@@ -575,13 +575,13 @@ class KDE(_KDE):
             
     def _initialize(self):
         self._compute_smoothing()
+        self._lambda = np.ones(self.n)
         if self.alpha > 0:
-            pilot = KDE(self.dataset, hs=self.hs, kernel=self.kernel, alpha=0)
-            f = pilot.eval_points(self.dataset) # get a pilot estimate by regular KDE (alpha=0)
+            #pilot = KDE(self.dataset, hs=self.hs, kernel=self.kernel, alpha=0)
+            #f = pilot.eval_points(self.dataset) # get a pilot estimate by regular KDE (alpha=0)
+            f = self.eval_points(self.dataset) # pilot estimate
             g = np.exp(np.mean(np.log(f)))
             self._lambda = (f / g) ** (-self.alpha)
-        else:
-            self._lambda = np.ones(self.n)
                 
     def _compute_smoothing(self):
         """Computes the smoothing matrix
@@ -621,7 +621,7 @@ class KDE(_KDE):
         
         Xn = []
         nfft0 = 2 * inc
-        nfft = (nfft0,)*d
+        nfft = (nfft0,) * d
         x0 = np.linspace(-inc, inc, nfft0+1)
         for i in range(d):
             Xn.append(x0[:-1] * dx[i])
@@ -645,7 +645,10 @@ class KDE(_KDE):
         fftn = np.fft.fftn
         ifftn = np.fft.ifftn
 
-        y = kwds.get('y', 1)
+        y = kwds.get('y', 1.0)
+        #if self.alpha>0:
+        #    y = y / self._lambda**d
+        
         # Find the binned kernel weights, c.
         c = gridcount(self.dataset, X, y=y)
         # Perform the convolution.
@@ -777,7 +780,8 @@ class KRegression(_KDE):
     
     >>> y = 2*np.exp(-x**2/(2*0.3**2))+3*np.exp(-(x-1)**2/(2*0.7**2)) + ei
     >>> kreg = wk.KRegression(x, y)
-    
+    >>> f = kreg(output='plotobj', title='Kernel regression', plotflag=1)
+    >>> f.plot(label='p=0')
     """
 
     def __init__(self, data, y, p=0, hs=None, kernel=None, alpha=0.0, xmin=None, xmax=None, inc=128, L2=None):
