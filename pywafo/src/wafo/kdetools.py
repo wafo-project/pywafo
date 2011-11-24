@@ -15,8 +15,11 @@ from misc import tranproc #, trangood
 from numpy import pi, sqrt, atleast_2d, exp, newaxis #@UnresolvedImport
 from scipy import interpolate, linalg, sparse
 from scipy.special import gamma
+from scipy.optimize import brentq
 from wafo.misc import meshgrid
 from wafo.wafodata import WafoData
+
+from dctpack import dct
 
 import copy
 import numpy as np
@@ -1034,7 +1037,7 @@ class Kernel(object):
     'Density estimation for statistics and data analysis'  
      Chapman and Hall, pp 31, 103,  175  
     '''
-    def __init__(self, name, fun='hns'):
+    def __init__(self, name, fun='hisj'): #'hns'):
         self.kernel = _MKERNEL_DICT[name[:4]]
         #self.name = self.kernel.__name__.replace('mkernel_', '').title()
         try:
@@ -1363,6 +1366,99 @@ class Kernel(object):
             h[dim] = h1
         #end % for dim loop
         return h
+    def hisj(self, data, inc=128):
+        '''
+        HISJ Improved Sheather-Jones estimate of smoothing parameter.
+        
+        Unlike many other implementations, this one is immune to problems
+        caused by multimodal densities with widely separated modes. The
+        estimation does not deteriorate for multimodal densities, because 
+        it do not assume a parametric model for the data.
+        
+        Parameters
+        ----------
+        data    - a vector of data from which the density estimate is constructed;
+        n  - the number of mesh points used in the uniform discretization 
+        
+        Returns
+        -------
+        bandwidth - the optimal bandwidth 
+         
+        Reference
+        --------- 
+        Kernel density estimation via diffusion
+        Z. I. Botev, J. F. Grotowski, and D. P. Kroese (2010)
+        Annals of Statistics, Volume 38, Number 5, pages 2916-2957. 
+        '''
+        A = np.atleast_2d(data)
+        d, n = A.shape
+        
+        # R= int(mkernel(x)^2),  mu2= int(x^2*mkernel(x))
+        mu2, R, unusedRdd = self.stats()
+        STEconstant = R / (mu2 ** (2) * n)
+          
+        amin = A.min(axis=1) # Find the minimum value of A.
+        amax = A.max(axis=1) # Find the maximum value of A.
+        arange = amax - amin # Find the range of A.
+        
+        #% xa holds the x 'axis' vector, defining a grid of x values where 
+        #% the k.d. function will be evaluated.
+        
+        ax1 = amin - arange / 8.0
+        bx1 = amax + arange / 8.0
+        
+        kernel2 = Kernel('gauss') 
+        mu2, R, unusedRdd = kernel2.stats()
+        STEconstant2 = R / (mu2 ** (2) * n)
+       
+        def fixed_point(t, N, I, a2):
+            ''' this implements the function t-zeta*gamma^[L](t)'''
+            
+            prod = np.prod
+            L = 7
+            logI = np.log(I)
+            f = 2 * pi**(2 * L) * (a2 * exp(L * logI -I * pi ** 2 * t)).sum()
+            for s in range(L - 1, 1, -1):
+                K0 = prod(np.r_[1:2*s:2]) / sqrt(2 * pi);  
+                const = (1 + (1. / 2) ** (s + 1. / 2)) / 3
+                time = (2 * const * K0 / N / f) ** (2. / (3 + 2 * s))
+                f = 2 * pi ** (2 * s) * (a2 * exp(s * logI-I * pi ** 2 * time)).sum()
+            return t - (2 * N * sqrt(pi) * f) ** (-2. / 5)
+          
+        h = np.empty(d)
+        for dim in range(d):
+            ax = ax1[dim]
+            bx = bx1[dim]
+            xa = np.linspace(ax, bx, inc) 
+            R = bx-ax
+            
+            c = gridcount(A[dim], xa)
+            N = len(set(A[dim]))
+            a = dct(c/c.sum(), norm=None)
+            
+            #% now compute the optimal bandwidth^2 using the referenced method
+            I = np.asfarray(np.arange(1, inc))**2 
+            a2 = (a[1:]/2)**2
+            fun = lambda t: fixed_point(t, N, I, a2)
+            # use  fzero to solve the equation t=zeta*gamma^[5](t)
+            try:
+                t_star = brentq(fun, a=0, b=.1)
+            except:
+                t_star = 0.28*N**(-2./5)
+
+            # smooth the discrete cosine transform of initial data using t_star
+            # a_t = a*exp(-np.arange(inc)**2*pi**2*t_star/2)
+            # now apply the inverse discrete cosine transform
+            #density = idct(a_t)/R;
+ 
+            # take the rescaling of the data into account
+            bandwidth = sqrt(t_star)*R
+
+            # Kernel other than Gaussian scale bandwidth
+            h[dim] = bandwidth * (STEconstant / STEconstant2) ** (1.0 / 5)
+        #end % for dim loop
+        return h
+
     def hstt(self, data, h0=None, inc=128, maxit=100, releps=0.01, abseps=0.0):
         '''HSTT Scott-Tapia-Thompson estimate of smoothing parameter.
         
@@ -2461,7 +2557,7 @@ def kde_demo1():
         pylab.axis([x.min(), x.max(), 0, 0.5])
      
 def kde_demo2(): 
-    '''Demonstrate the difference between transformation- and ordinary-KDE
+    '''Demonstrate the difference between transformation- and ordinary-KDE in 1D
 
     KDEDEMO2 shows that the transformation KDE is a better estimate for
     Rayleigh distributed data around 0 than the ordinary KDE.
@@ -2469,10 +2565,10 @@ def kde_demo2():
     import scipy.stats as st
     data = st.rayleigh.rvs(scale=1, size=300)
     
-    x = np.linspace(1.5e-3, 5, 55);
+    x = np.linspace(1.5e-2, 5, 55);
     
     kde = KDE(data)
-    f = kde(output='plot', title='Ordinary KDE')
+    f = kde(output='plot', title='Ordinary KDE (hs=%g)' % kde.hs)
     pylab.figure(0)
     f.plot()
     
@@ -2481,7 +2577,7 @@ def kde_demo2():
     #plotnorm((data).^(L2)) % gives a straight line => L2 = 0.5 reasonable
     
     tkde = TKDE(data, L2=0.5)
-    ft = tkde(x, output='plot', title='Transformation KDE')
+    ft = tkde(x, output='plot', title='Transformation KDE (hs=%g)' % tkde.tkde.hs)
     pylab.figure(1)
     ft.plot()
     
@@ -2490,7 +2586,7 @@ def kde_demo2():
     pylab.figure(0)
     
 def kde_demo3(): 
-    '''Demonstrate the difference between and ordinary-KDE
+    '''Demonstrate the difference between transformation and ordinary-KDE in 2D
 
     KDEDEMO3 shows that the transformation KDE is a better estimate for
     Rayleigh distributed data around 0 than the ordinary KDE.
@@ -2521,6 +2617,9 @@ def kde_demo3():
     pylab.figure(0)
 
 def kde_demo4(hs=None, fast=False):
+    '''
+    
+    '''
     N = 100
     #ei = np.random.normal(loc=0, scale=0.075, size=(N,))
     ei = np.array([-0.08508516,  0.10462496,  0.07694448, -0.03080661,  0.05777525,
@@ -2568,6 +2667,36 @@ def kde_demo4(hs=None, fast=False):
     
     print(kreg.tkde.tkde.inv_hs)
     print(kreg.tkde.tkde.hs)
+
+def kde_demo5(N=50): 
+    '''Demonstrate that the improved Sheather-Jones plug-in (hisj) is superior 
+       for multimodal distributions
+
+    KDEDEMO5 shows that the improved Sheather-Jones plug-in smoothing is a better 
+    compared to normal reference rules (in this case the hns)
+    '''
+    import scipy.stats as st
+    
+    data = np.hstack((st.norm.rvs(loc=5, scale=1, size=(N,)), st.norm.rvs(loc=-5, scale=1, size=(N,))))
+    
+    #x = np.linspace(1.5e-3, 5, 55)
+    
+    kde = KDE(data, kernel=Kernel('gauss', 'hns'))
+    f = kde(output='plot', title='Ordinary KDE', plotflag=1)
+    
+    
+    
+    kde1 = KDE(data, kernel=Kernel('gauss', 'hisj'))
+    f1 = kde1(output='plot', label='Ordinary KDE', plotflag=1)
+    
+    pylab.figure(0)
+    f.plot('r', label='hns=%g' % kde.hs)
+    #pylab.figure(2)
+    f1.plot('b', label='hisj=%g' % kde1.hs)
+    x = np.linspace(-4,4)
+    for loc in [-5,5]:
+        pylab.plot(x + loc, st.norm.pdf(x, 0, scale=1)/2, 'k:', label='True density')
+    pylab.legend()
     
 def test_docstrings():
     import doctest
@@ -2575,4 +2704,4 @@ def test_docstrings():
     
 if __name__ == '__main__':
     #test_docstrings()
-    kde_demo4()
+    kde_demo2()
