@@ -15,7 +15,7 @@ from misc import tranproc #, trangood
 from numpy import pi, sqrt, atleast_2d, exp, newaxis #@UnresolvedImport
 from scipy import interpolate, linalg, sparse
 from scipy.special import gamma
-from scipy.optimize import brentq
+import scipy.optimize as optimize
 from wafo.misc import meshgrid
 from wafo.wafodata import WafoData
 
@@ -1366,7 +1366,7 @@ class Kernel(object):
             h[dim] = h1
         #end % for dim loop
         return h
-    def hisj(self, data, inc=128):
+    def hisj(self, data, inc=512, L=5):
         '''
         HISJ Improved Sheather-Jones estimate of smoothing parameter.
         
@@ -1415,7 +1415,7 @@ class Kernel(object):
             ''' this implements the function t-zeta*gamma^[L](t)'''
             
             prod = np.prod
-            L = 7
+            #L = 7
             logI = np.log(I)
             f = 2 * pi**(2 * L) * (a2 * exp(L * logI -I * pi ** 2 * t)).sum()
             for s in range(L - 1, 1, -1):
@@ -1440,11 +1440,30 @@ class Kernel(object):
             I = np.asfarray(np.arange(1, inc))**2 
             a2 = (a[1:]/2)**2
             fun = lambda t: fixed_point(t, N, I, a2)
+            x =  np.linspace(0, 0.1, 150)
+            ai = x[0]
+            f0 = fun(ai)
+            for bi in  x[1:]:
+                f1 = fun(bi)
+                if f1*f0<=0:
+                    #print('ai = %g, bi = %g' % (ai,bi))
+                    break
+                else:
+                    ai = bi
+            y = np.asarray([fun(j) for j in x])
+            #pylab.figure(1)
+            #pylab.plot(x,y)
+            #pylab.show()
+            
             # use  fzero to solve the equation t=zeta*gamma^[5](t)
             try:
-                t_star = brentq(fun, a=0, b=.1)
+                t_star = optimize.brentq(fun, a=ai, b=bi)
             except:
+#                try:
+#                    t_star = optimize.bisect(fun, a=ai, b=bi+1)
+#                except:
                 t_star = 0.28*N**(-2./5)
+                warnings.warn('Failure in obtaining smoothing parameter')
 
             # smooth the discrete cosine transform of initial data using t_star
             # a_t = a*exp(-np.arange(inc)**2*pi**2*t_star/2)
@@ -2697,6 +2716,32 @@ def kde_demo5(N=50):
     for loc in [-5,5]:
         pylab.plot(x + loc, st.norm.pdf(x, 0, scale=1)/2, 'k:', label='True density')
     pylab.legend()
+    
+def kde_demo6(N=500): 
+    '''Demonstrate that the improved Sheather-Jones plug-in (hisj) is superior 
+       for multimodal distributions
+
+    KDEDEMO5 shows that the improved Sheather-Jones plug-in smoothing is a better 
+    compared to normal reference rules (in this case the hns)
+    '''
+    import scipy.stats as st
+    
+    data = np.hstack((st.norm.rvs(loc=5, scale=1, size=(2,N,)), 
+                      st.norm.rvs(loc=-5, scale=1, size=(2,N,))))
+    kde = KDE(data, kernel=Kernel('gauss', 'hns'))
+    f = kde(output='plot', title='Ordinary KDE (hns=%g %g)' % tuple(kde.hs.tolist()), plotflag=1)
+    
+    kde1 = KDE(data, kernel=Kernel('gauss', 'hisj'))
+    f1 = kde1(output='plot', title='Ordinary KDE (hisj=%g %g)' % tuple(kde1.hs.tolist()), plotflag=1)
+    
+    pylab.figure(0)
+    pylab.clf()
+    f.plot()
+    pylab.plot(data[0], data[1], '.')
+    pylab.figure(1)
+    pylab.clf()
+    f1.plot()
+    pylab.plot(data[0], data[1], '.')
     
 def test_docstrings():
     import doctest
