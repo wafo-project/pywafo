@@ -734,34 +734,14 @@ class RegLogit(object):
     
      See also regglm, reglm, regnonlm
     '''
-    
-    #% Copyright (C) 1995, 1996, 1997, 1998, 1999, 2000, 2002, 2005, 2007
-    #%               Kurt Hornik
-    #%
-    #% Reglogit is free software; you can redistribute it and/or modify it
-    #% under the terms of the GNU General Public License as published by
-    #% the Free Software Foundation; either version 3 of the License, or (at
-    #% your option) any later version.
-    #%
-    #% Reglogit is distributed in the hope that it will be useful, but
-    #% WITHOUT ANY WARRANTY; without even the implied warranty of
-    #% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    #% General Public License for more details.
-    #%
-    #% You should have received a copy of the GNU General Public License
-    #% along with Reglogit; see the file COPYING.  If not, see
-    #% <http://www.gnu.org/licenses/>.
-    
-    
-    
+        
     #% Original for MATLAB written by Gordon K Smyth <gks@maths.uq.oz.au>,
     #% U of Queensland, Australia, on Nov 19, 1990.  Last revision Aug 3,
     #% 1992.
     #
     #% Author: Gordon K Smyth <gks@maths.uq.oz.au>,
-    #% Adapted-By: KH <Kurt.Hornik@wu-wien.ac.at>
     #% Revised by: pab
-    #%  -renamed from  logistic_regression to reglogit
+    #%  -renamed from  oridinal to reglogit
     #%  -added predict, summary and compare
     #% Description: Ordinal logistic regression
     #
@@ -773,7 +753,7 @@ class RegLogit(object):
         self.maxiter =maxiter
         self.accuracy = accuracy
         self.alpha = alpha
-        self.deletcolinear =  deletecolinear
+        self.deletecolinear =  deletecolinear
         self.verbose = False
         self.family = None
         self.link = None
@@ -825,8 +805,8 @@ class RegLogit(object):
             if len(ix): 
                 X = X[:, ix]
                 txt = [' %d,' % i for i in iy]
-                txt[-1] = ' %d' % iy[-1]
-                warnings.warn('Covariate matrix is singular. Removing column(s):%s',txt)
+                #txt[-1] = ' %d' % iy[-1]
+                warnings.warn('Covariate matrix is singular. Removing column(s):%s' % txt)
         mx = X.shape[0]
         if (mx != my):
             raise ValueError('x and y must have the same number of observations');
@@ -872,7 +852,7 @@ class RegLogit(object):
         [mx, nx] = X.shape 
         [my, ny] = y.shape 
       
-        g = z.sum(axis=0).cumsum() / my
+        g = (z.sum(axis=0).cumsum() / my).reshape(-1,1)
         theta00 = np.log(g / (1 - g))
         beta00 = np.zeros((nx, 1))
         # starting values 
@@ -943,7 +923,7 @@ class RegLogit(object):
         else:
             eta = (y * 0 + 1) * theta.T;
             #end
-        gammai = np.diff(np.hstack(((y * 0), self.logitinv(eta), (y * 0 + 1))),1,2)
+        gammai = np.diff(np.hstack(((y * 0), self.logitinv(eta), (y * 0 + 1))),n=1,axis=1)
         k0 = min(y)
         mu = (k0-1)+np.dot(gammai,np.arange(1,nz+2).T); #% E(Y|X)
         r  = np.corrcoef(np.hstack((y,mu)))
@@ -1234,13 +1214,13 @@ class RegLogit(object):
         # first derivative
         v = g * (1 - g) / p; 
         v1 = g1 * (1 - g1) / p;
-        dlogp = np.hstack(((dmult(v, z) - dmult(v1, z1)), (dmult(v - v1, x))))
+        dlogp = np.hstack((((v*z) - (v1*z1)), ((v - v1)*x)))
         dl = np.sum(dlogp, axis=0).T
         
         # second derivative
         w = v * (1 - 2 * g)
         w1 = v1 * (1 - 2 * g1)
-        d2l = zx.T * dmult (w, zx) - z1x.T * dmult(w1, z1x) - dlogp.T * dlogp;
+        d2l = np.dot(zx.T, (w*zx)) - np.dot(z1x.T, (w1*z1x)) - np.dot(dlogp.T, dlogp)
         
         return dev, p, dl, d2l
         #end %function
@@ -1301,21 +1281,23 @@ def _test_reslife():
     mrl.plot()
     
 def test_reglogit():
-    y=np.array([1, 1, 2, 1, 3, 2, 3, 2, 3, 3])
-    x = np.arange(10).T
-    b = reglogit(y,x)
-    b.display() % members and methods
+    y=np.array([1, 1, 2, 1, 3, 2, 3, 2, 3, 3]).reshape(-1,1)
+    x = np.arange(10).reshape(-1,1)
+    b = RegLogit()
+    b.fit(y,x)
+    #b.display() #% members and methods
     
     b.summary()
     [mu,plo,pup] = b.predict();
     plot(x,mu,'g',x,plo,'r:',x,pup,'r:')
-def main():
+    
+def test_doctstrings():
     #_test_dispersion_idx() 
     import doctest
     doctest.testmod()
     
     
 if __name__ == '__main__':
-    pass
-    main()
+    test_reglogit()
+    #test_doctstrings()(
     

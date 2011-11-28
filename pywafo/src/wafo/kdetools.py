@@ -1450,7 +1450,7 @@ class Kernel(object):
                     break
                 else:
                     ai = bi
-            y = np.asarray([fun(j) for j in x])
+            #y = np.asarray([fun(j) for j in x])
             #pylab.figure(1)
             #pylab.plot(x,y)
             #pylab.show()
@@ -1459,9 +1459,6 @@ class Kernel(object):
             try:
                 t_star = optimize.brentq(fun, a=ai, b=bi)
             except:
-#                try:
-#                    t_star = optimize.bisect(fun, a=ai, b=bi+1)
-#                except:
                 t_star = 0.28*N**(-2./5)
                 warnings.warn('Failure in obtaining smoothing parameter')
 
@@ -2635,7 +2632,66 @@ def kde_demo3():
 
     pylab.figure(0)
 
-def kde_demo4(hs=None, fast=False):
+
+
+def kde_demo4(N=50): 
+    '''Demonstrate that the improved Sheather-Jones plug-in (hisj) is superior 
+       for 1D multimodal distributions
+
+    KDEDEMO4 shows that the improved Sheather-Jones plug-in smoothing is a better 
+    compared to normal reference rules (in this case the hns)
+    '''
+    import scipy.stats as st
+    
+    data = np.hstack((st.norm.rvs(loc=5, scale=1, size=(N,)), 
+                      st.norm.rvs(loc=-5, scale=1, size=(N,))))
+    
+    #x = np.linspace(1.5e-3, 5, 55)
+    
+    kde = KDE(data, kernel=Kernel('gauss', 'hns'))
+    f = kde(output='plot', title='Ordinary KDE', plotflag=1)
+    
+    
+    
+    kde1 = KDE(data, kernel=Kernel('gauss', 'hisj'))
+    f1 = kde1(output='plot', label='Ordinary KDE', plotflag=1)
+    
+    pylab.figure(0)
+    f.plot('r', label='hns=%g' % kde.hs)
+    #pylab.figure(2)
+    f1.plot('b', label='hisj=%g' % kde1.hs)
+    x = np.linspace(-4,4)
+    for loc in [-5,5]:
+        pylab.plot(x + loc, st.norm.pdf(x, 0, scale=1)/2, 'k:', label='True density')
+    pylab.legend()
+    
+def kde_demo5(N=500): 
+    '''Demonstrate that the improved Sheather-Jones plug-in (hisj) is superior 
+       for 2D multimodal distributions
+
+    KDEDEMO5 shows that the improved Sheather-Jones plug-in smoothing is better 
+    compared to normal reference rules (in this case the hns)
+    '''
+    import scipy.stats as st
+    
+    data = np.hstack((st.norm.rvs(loc=5, scale=1, size=(2,N,)), 
+                      st.norm.rvs(loc=-5, scale=1, size=(2,N,))))
+    kde = KDE(data, kernel=Kernel('gauss', 'hns'))
+    f = kde(output='plot', title='Ordinary KDE (hns=%g %g)' % tuple(kde.hs.tolist()), plotflag=1)
+    
+    kde1 = KDE(data, kernel=Kernel('gauss', 'hisj'))
+    f1 = kde1(output='plot', title='Ordinary KDE (hisj=%g %g)' % tuple(kde1.hs.tolist()), plotflag=1)
+    
+    pylab.figure(0)
+    pylab.clf()
+    f.plot()
+    pylab.plot(data[0], data[1], '.')
+    pylab.figure(1)
+    pylab.clf()
+    f1.plot()
+    pylab.plot(data[0], data[1], '.')
+ 
+def kreg_demo1(hs=None, fast=False, fun='hisj'):
     '''
     
     '''
@@ -2666,8 +2722,8 @@ def kde_demo4(hs=None, fast=False):
     
     y0 = 2*np.exp(-x**2/(2*0.3**2))+3*np.exp(-(x-1)**2/(2*0.7**2)) 
     y = y0 + ei
-    kreg = KRegression(x, y, p=0, hs=hs)
-    kreg.tkde.kernel.get_smooting = kreg.tkde.kernel.hste
+    kernel = Kernel('gauss',fun=fun)
+    kreg = KRegression(x, y, p=0, hs=hs, kernel=kernel)
     if fast:
         kreg.__call__ = kreg.eval_grid_fast
          
@@ -2685,68 +2741,13 @@ def kde_demo4(hs=None, fast=False):
     pylab.show()
     
     print(kreg.tkde.tkde.inv_hs)
-    print(kreg.tkde.tkde.hs)
-
-def kde_demo5(N=50): 
-    '''Demonstrate that the improved Sheather-Jones plug-in (hisj) is superior 
-       for multimodal distributions
-
-    KDEDEMO5 shows that the improved Sheather-Jones plug-in smoothing is a better 
-    compared to normal reference rules (in this case the hns)
-    '''
-    import scipy.stats as st
-    
-    data = np.hstack((st.norm.rvs(loc=5, scale=1, size=(N,)), st.norm.rvs(loc=-5, scale=1, size=(N,))))
-    
-    #x = np.linspace(1.5e-3, 5, 55)
-    
-    kde = KDE(data, kernel=Kernel('gauss', 'hns'))
-    f = kde(output='plot', title='Ordinary KDE', plotflag=1)
-    
-    
-    
-    kde1 = KDE(data, kernel=Kernel('gauss', 'hisj'))
-    f1 = kde1(output='plot', label='Ordinary KDE', plotflag=1)
-    
-    pylab.figure(0)
-    f.plot('r', label='hns=%g' % kde.hs)
-    #pylab.figure(2)
-    f1.plot('b', label='hisj=%g' % kde1.hs)
-    x = np.linspace(-4,4)
-    for loc in [-5,5]:
-        pylab.plot(x + loc, st.norm.pdf(x, 0, scale=1)/2, 'k:', label='True density')
-    pylab.legend()
-    
-def kde_demo6(N=500): 
-    '''Demonstrate that the improved Sheather-Jones plug-in (hisj) is superior 
-       for multimodal distributions
-
-    KDEDEMO5 shows that the improved Sheather-Jones plug-in smoothing is a better 
-    compared to normal reference rules (in this case the hns)
-    '''
-    import scipy.stats as st
-    
-    data = np.hstack((st.norm.rvs(loc=5, scale=1, size=(2,N,)), 
-                      st.norm.rvs(loc=-5, scale=1, size=(2,N,))))
-    kde = KDE(data, kernel=Kernel('gauss', 'hns'))
-    f = kde(output='plot', title='Ordinary KDE (hns=%g %g)' % tuple(kde.hs.tolist()), plotflag=1)
-    
-    kde1 = KDE(data, kernel=Kernel('gauss', 'hisj'))
-    f1 = kde1(output='plot', title='Ordinary KDE (hisj=%g %g)' % tuple(kde1.hs.tolist()), plotflag=1)
-    
-    pylab.figure(0)
-    pylab.clf()
-    f.plot()
-    pylab.plot(data[0], data[1], '.')
-    pylab.figure(1)
-    pylab.clf()
-    f1.plot()
-    pylab.plot(data[0], data[1], '.')
-    
+    print(kreg.tkde.tkde.hs) 
+   
 def test_docstrings():
     import doctest
     doctest.testmod()
     
 if __name__ == '__main__':
     #test_docstrings()
-    kde_demo2()
+    #kde_demo2()
+    kreg_demo1()
