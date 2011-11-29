@@ -853,8 +853,8 @@ class RegLogit(object):
         [my, ny] = y.shape 
       
         g = (z.sum(axis=0).cumsum() / my).reshape(-1,1)
-        theta00 = np.log(g / (1 - g))
-        beta00 = np.zeros((nx, 1))
+        theta00 = np.log(g / (1 - g)).ravel()
+        beta00 = np.zeros((nx,))
         # starting values 
         if theta0 is None:
             theta0 = theta00
@@ -862,7 +862,7 @@ class RegLogit(object):
         if beta0 is None: 
             beta0  = beta00
       
-        tb = np.vstack((theta0, beta0))
+        tb = np.hstack((theta0, beta0))
     
         # likelihood and derivatives at starting values
         [dev, dl, d2l] = self.loglike(tb, y, X, z, z1)
@@ -882,18 +882,18 @@ class RegLogit(object):
             iter += 1
             tbold = tb;
             devold = dev;
-            tb = tbold - np.linalg.lstsq(d2l, dl)
-            [dev,p,dl,d2l] = self.loglike(tb, y, X, z, z1)
-            if ((dev - devold) / (dl.T * (tb - tbold)) < 0):
+            tb = tbold - np.linalg.lstsq(d2l, dl)[0]
+            [dev, dl, d2l] = self.loglike(tb, y, X, z, z1)
+            if ((dev - devold) / np.dot(dl, tb - tbold) < 0):
                 epsilon = epsilon / decr
             else:
-                while ((dev - devold) / (dl.T * (tb - tbold)) > 0):
+                while ((dev - devold) / np.dot(dl, tb - tbold)  > 0):
                     epsilon = epsilon * incr;
                     if (epsilon > 1e+15):
                         raise ValueError('epsilon too large');
               
-                    tb = tbold - np.linalg.lstsq(d2l - epsilon * np.eye(d2l.shape), dl);
-                    [dev,p,dl,d2l] = self.loglike(tb, y, X, z, z1);
+                    tb = tbold - np.linalg.lstsq(d2l - epsilon * np.eye(d2l.shape), dl)
+                    [dev, dl, d2l] = self.loglike(tb, y, X, z, z1);
                     print('epsilon %g' % epsilon) 
                     #end %while
                     #end else
@@ -902,31 +902,31 @@ class RegLogit(object):
                  
                 print('Iter: %d,  Deviance: %8.6f',iter,dev)
                 print('First derivative'); 
-                print(dl.T);
+                print(dl);
                 print('Eigenvalues of second derivative'); 
                 print(np.linalg.eig(d2l)[0].T);
                 #end
                 #end
-            stop = abs (dl.T * np.linalg.lstsq(d2l, dl) / len(dl)) <= tol or iter>self.maxiter
+            stop = np.abs(np.dot(dl, np.linalg.lstsq(d2l, dl)[0]) / len(dl)) <= tol or iter>self.maxiter
             #end %while
         
         #% tidy up output
         
-        theta = tb[:nz, 0]
-        beta  = tb[nz:(nz + nx), 1]
+        theta = tb[:nz,]
+        beta  = tb[nz:(nz + nx)]
         pcov = np.linalg.pinv(-d2l)
-        se = sqrt(np.diag (pcov))
+        se = sqrt(np.diag(pcov))
         
         
         if (nx > 0):
-            eta = ((X * beta) * ones (1, nz)) + ((y * 0 + 1) * theta.T);
+            eta = ((X * beta) * ones((1, nz))) + ((y * 0 + 1) * theta)
         else:
-            eta = (y * 0 + 1) * theta.T;
+            eta = (y * 0 + 1) * theta;
             #end
-        gammai = np.diff(np.hstack(((y * 0), self.logitinv(eta), (y * 0 + 1))),n=1,axis=1)
+        gammai = np.diff(np.hstack(((y * 0), _logitinv(eta), (y * 0 + 1))),n=1,axis=1)
         k0 = min(y)
-        mu = (k0-1)+np.dot(gammai,np.arange(1,nz+2).T); #% E(Y|X)
-        r  = np.corrcoef(np.hstack((y,mu)))
+        mu = (k0-1)+np.dot(gammai,np.arange(1, nz+2)).reshape(-1,1)
+        r  = np.corrcoef(np.hstack((y,mu)).T)
         R2 = r[0,1]**2; #coefficient of determination
         R2adj = max(1 - (1-R2)* (my-1)/(my-nx-nz-1),0); # adjusted coefficient of determination
         
@@ -939,40 +939,40 @@ class RegLogit(object):
         
         self.link   = 'logit';
         
-        self.numvar = nx+nz;
-        self.numobs = my;
-        self.numk   = nz+1;
-        self.df     = max(my-nx-nz,0);
+        self.numvar = nx+nz
+        self.numobs = my
+        self.numk   = nz+1
+        self.df     = max(my-nx-nz,0)
         self.df_null = my-nz; #nulldf;  nulldf =  n - nz;
-        self.params = tb[:(nz + nx),0].T;
-        self.params_ci = 1;
-        self.params_std = se.T;  
+        self.params = tb[:(nz + nx)]
+        self.params_ci = 1
+        self.params_std = se  
         self.params_cov = pcov
-        self.params_tstat = (self.params/self.params_std);
+        self.params_tstat = (self.params/self.params_std)
         if False: # % options.estdispersn %dispersion_parameter=='mean_deviance'
-            self.params_pvalue=2.*_cdft(-abs(self.params_tstat),self.df);
-            bcrit = -se.T*_invt(self.alpha/2,self.df);
+            self.params_pvalue=2.*_cdft(-abs(self.params_tstat),self.df)
+            bcrit = -se*_invt(self.alpha/2,self.df);
         else:
-            self.params_pvalue=2.*_cdfnorm(-abs(self.params_tstat));
-            bcrit = -se.T*_invnorm(self.alpha/2);
+            self.params_pvalue=2.*_cdfnorm(-abs(self.params_tstat))
+            bcrit = -se*_invnorm(self.alpha/2);
         #end
         self.params_ci = np.vstack((self.params+bcrit,self.params-bcrit))
         
         self.mu = gammai;
-        self.eta = self.logit(gammai);
+        self.eta = _logit(gammai);
         self.X = X;
-        
+        [dev, dl, d2l, p] = self.loglike(tb, y, X, z, z1,numout=4)
         self.theta = theta;
         self.beta  = beta;
         self.gamma = gammai;
         self.residual  = res.T; 
-        self.residualD = np.sign(self.residual)*sqrt(-2*np.log(p)).T;
+        self.residualD = np.sign(self.residual)*sqrt(-2*np.log(p));
         self.deviance  = dev;
         self.deviance_null = nulldev;
         self.d2L = d2l;
         self.dL = dl.T;
-        self.dispersnfit=1;
-        self.dispersn = 1;
+        self.dispersionfit=1;
+        self.dispersion = 1;
         self.R2 = R2;
         self.R2adj = R2adj;
         self.numiter = iter;
@@ -1054,11 +1054,11 @@ class RegLogit(object):
         print(' ')
         print('                       Analysis of Deviance')
         if False: # %options.estdispersn
-            localstat = abs(self.deviance_null-self.deviance)/self.dispersnfit/(self.numvar-1);
+            localstat = abs(self.deviance_null-self.deviance)/self.dispersionfit/(self.numvar-1);
             localpvalue = 1-_cdff(localstat,self.numvar-1,self.df);
             print('Model    DF      Residual deviance      F-stat        Pr(>F)')
         else:
-            localstat = abs(self.deviance_null-self.deviance)/self.dispersnfit;
+            localstat = abs(self.deviance_null-self.deviance)/self.dispersionfit;
             localpvalue = 1-_cdfchi2(localstat,self.numvar-1);
             print('Model    DF      Residual deviance      Chi2-stat        Pr(>Chi2)')
         #end
@@ -1139,11 +1139,11 @@ class RegLogit(object):
         nz = self.numk-1;
         one = ones((n,1))
         if (nx > 0):
-            eta = np.dot(Xnew * self.beta)  + self.theta.T;
+            eta = np.dot(Xnew, self.beta).reshape(-1,1)  + self.theta
         else:
-            eta = one * self.theta.T
+            eta = one * self.theta
         #end
-        y = np.diff(np.hstack((zeros((n,1)), self.logitinv(eta), one)),1,2)
+        y = np.diff(np.hstack((zeros((n,1)), _logitinv(eta), one)),n=1, axis=1)
         if fulloutput:
             eps = np.finfo(float).eps
             pcov = self.params_cov;
@@ -1182,28 +1182,24 @@ class RegLogit(object):
             return y,ylo,yup
         return y
 
-    def loglike(self, beta, y, x, z, z1):
+    def loglike(self, beta, y, x, z, z1, numout=3):
         '''
-        [dev, p g, g1] = loglike( y ,x,beta,z,z1)
+        [dev, dl, d2l, p] = loglike( y ,x,beta,z,z1)
         Calculates likelihood for the ordinal logistic regression model.
         '''
         # Author: Gordon K. Smyth <gks@maths.uq.oz.au>
         zx = np.hstack((z, x))
         z1x = np.hstack((z1, x))
-        g = _logitinv(np.dot(zx, beta))
-        g1 = _logitinv(np.dot(z1x, beta))
+        g = _logitinv(np.dot(zx, beta)).reshape((-1,1))
+        g1 = _logitinv(np.dot(z1x, beta)).reshape((-1,1))
         g = np.maximum(y == y.max(), g)
         g1 = np.minimum(y > y.min(), g1)
 
         
         p = g - g1
-        dev = -2 * sum (np.log(p));
-        #return dev, p, g, g1
-##end %function
-#
-#
-#    def logistic_regression_derivatives(self, x, z, z1, g, g1, p):
-        '''% [dl, d2l] = logistic_regression_derivatives(x, z, z1, g, g1, p)
+        dev = -2 * np.log(p).sum()
+       
+        '''[dl, d2l] = derivatives of loglike(beta, y, x, z, z1)
         % Called by logistic_regression.  Calculates derivates of the
         % log-likelihood for ordinal logistic regression model.
         '''
@@ -1215,14 +1211,17 @@ class RegLogit(object):
         v = g * (1 - g) / p; 
         v1 = g1 * (1 - g1) / p;
         dlogp = np.hstack((((v*z) - (v1*z1)), ((v - v1)*x)))
-        dl = np.sum(dlogp, axis=0).T
+        dl = np.sum(dlogp, axis=0)
         
         # second derivative
         w = v * (1 - 2 * g)
         w1 = v1 * (1 - 2 * g1)
         d2l = np.dot(zx.T, (w*zx)) - np.dot(z1x.T, (w1*z1x)) - np.dot(dlogp.T, dlogp)
         
-        return dev, p, dl, d2l
+        if numout==4:
+            return dev, dl, d2l,  p
+        else:
+            return dev, dl, d2l
         #end %function
 
 
@@ -1282,14 +1281,14 @@ def _test_reslife():
     
 def test_reglogit():
     y=np.array([1, 1, 2, 1, 3, 2, 3, 2, 3, 3]).reshape(-1,1)
-    x = np.arange(10).reshape(-1,1)
+    x = np.arange(1,11).reshape(-1,1)
     b = RegLogit()
     b.fit(y,x)
     #b.display() #% members and methods
     
     b.summary()
-    [mu,plo,pup] = b.predict();
-    plot(x,mu,'g',x,plo,'r:',x,pup,'r:')
+    [mu,plo,pup] = b.predict(fulloutput=True);
+    #plot(x,mu,'g',x,plo,'r:',x,pup,'r:')
     
 def test_doctstrings():
     #_test_dispersion_idx() 
