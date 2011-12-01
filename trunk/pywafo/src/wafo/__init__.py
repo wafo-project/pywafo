@@ -11,6 +11,8 @@ import definitions
 import polynomial
 import stats
 import interpolate
+import fig
+import dctpack
 
 try:
     from wafo.version import version as __version__

@@ -1151,7 +1151,7 @@ class RegLogit(object):
                 np1 = pcov.shape[0]
         
                 [U, S, V]= np.linalg.svd(pcov,0);
-                R = np.dot(U,np.dot(sqrt(S),V.T)); #%squareroot of pcov
+                R = np.dot(U,np.dot(np.diag(sqrt(S)),V)) #%squareroot of pcov
                 ib = np.r_[0,nz:np1]
         
                 #% Var(eta_i) = var(theta_i+Xnew*b)
@@ -1159,7 +1159,7 @@ class RegLogit(object):
                 u = np.hstack((one,Xnew))
                 for i in range(nz):
                     ib[0] = i
-                    vareta[:,i] = np.maximum(sum((np.dot(u,R[ib,ib]))**2,axis=1),eps)
+                    vareta[:,i] = np.maximum(((np.dot(u,R[ib][:,ib]))**2).sum(axis=1),eps)
                     #end
             else:
                 vareta = np.diag(pcov)
@@ -1170,14 +1170,14 @@ class RegLogit(object):
             ecrit = crit * sqrt(vareta);
             mulo = _logitinv(eta-ecrit);
             muup = _logitinv(eta+ecrit);
-            ylo1 = np.diff(np.hstack((zeros((n,1)), mulo , one)),1,2);
-            yup1 = np.diff(np.hstack((zeros((n,1)), muup , one)),1,2);
+            ylo1 = np.diff(np.hstack((zeros((n,1)), mulo , one)),n=1,axis=1)
+            yup1 = np.diff(np.hstack((zeros((n,1)), muup , one)),n=1,axis=1)
          
-            ylo = np.minimum(ylo1,yup1);
-            yup = np.maximum(ylo1,yup1);
+            ylo = np.minimum(ylo1,yup1)
+            yup = np.maximum(ylo1,yup1)
         
             for i in range(1, nz): #= 2:self.numk-1
-                yup[:,i]  = np.hstack((yup[:,i],muup[:,i]-mulo[:,i-1])).max(axis=1)
+                yup[:,i]  = np.vstack((yup[:,i],muup[:,i]-mulo[:,i-1])).max(axis=0)
                 #end
             return y,ylo,yup
         return y
@@ -1225,26 +1225,6 @@ class RegLogit(object):
         #end %function
 
 
-def dmult(A,B):
-    ''' Return the product of diag(A) and B
-    
-     USAGE:     m = dmult(a,b)
-      where:    a = a matrix
-                b = a matrix
-     -----------------------------------------------------
-     RETURNS:  m = diag(A) times B
-     -----------------------------------------------------             
-     NOTE: a Gauss compatability function
-     -----------------------------------------------------
-    '''
-    #% written by:
-    #%  Gordon K Smyth, U of Queensland, Australia, gks@maths.uq.oz.au
-    #% Nov 19, 1990.  Last revision Aug 29, 1995.
-    
-    return A[:,None]*B;
-
-
-
 def _test_dispersion_idx():
     import wafo.data
     xn = wafo.data.sea()
@@ -1288,6 +1268,7 @@ def test_reglogit():
     
     b.summary()
     [mu,plo,pup] = b.predict(fulloutput=True);
+    pass
     #plot(x,mu,'g',x,plo,'r:',x,pup,'r:')
     
 def test_doctstrings():
