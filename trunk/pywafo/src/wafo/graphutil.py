@@ -9,8 +9,11 @@ from __future__ import division
 import warnings
 import numpy as np
 from wafo.plotbackend import plotbackend
-
+from matplotlib import mlab
 __all__ = ['cltext', 'test_docstrings']
+
+_TALLIBING_TAG = 'TALLIBING'
+
 
 def cltext(levels, percent=False, n=4, xs=0.036, ys=0.94, zs=0):
     '''
@@ -93,9 +96,9 @@ def cltext(levels, percent=False, n=4, xs=0.036, ys=0.94, zs=0):
     else:
         titletxt = 'Level curves at:';
 
-    format = '%0.' + ('%d' % n) + 'g\n'
+    format_ = '%0.' + ('%d' % n) + 'g\n'
      
-    cltxt = ''.join([format % level for level in clevels.tolist()])
+    cltxt = ''.join([format_ % level for level in clevels.tolist()])
     
     titleProp = dict(gid=_CLTEXT_TAG, horizontalalignment='left',
                      verticalalignment='center', fontweight='bold', axes=cax) # 
@@ -108,6 +111,71 @@ def cltext(levels, percent=False, n=4, xs=0.036, ys=0.94, zs=0):
     ha2 = plotbackend.figtext(xss, yss, cltxt, **txtProp)
         
     return ha1, ha2
+
+def tallibing(x, y, n, **kwds):
+    '''
+    TALLIBING  Display numbers on field-plot
+    
+    CALL h=tallibing(x,y,n,size,color)
+    
+    x,y    = position matrices
+    n      = the corresponding matrix of the values to be written
+             (non-integers are rounded)
+    size   = font size (optional) (default=8)
+    color  = color of text (optional) (default='white')
+    h      = column-vector of handles to TEXT objects
+    
+    TALLIBING writes the numbers in a matrix as text at the positions 
+    given by the x and y coordinate matrices.
+     When plotting binned results, the number of datapoints in each
+             bin can be written on the bins in the plot.
+    
+    EXAMPLE: 
+    [x,y,z]= wafo.demos.peaks(); 
+    epcolor(x,y,z); 
+    tallibing(x,y,z);
+      % pcolor(x,y,z); shading interp; 
+    
+    See also TEXT TALLIBING3
+    '''
+    x, y, n = np.atleast_1d(x, y, n)
+    if mlab.isvector(x) or mlab.isvector(y): 
+        x, y = np.meshgrid(x,y)
+    
+    cax = plotbackend.gca()
+    
+    x = x.ravel()
+    y = y.ravel()
+    n = n.ravel()
+    n = np.round(n)
+    def matchfun(x): 
+        if hasattr(x, 'get_gid'):
+            return x.get_gid() == _TALLIBING_TAG
+        return False
+    cf = plotbackend.gcf() # get current figure
+    h_cltxts = plotbackend.findobj(cf, matchfun); 
+    if len(h_cltxts):
+        for i in h_cltxts:
+            try:
+                cax.texts.remove(i)
+            except:
+                warnings.warn('Tried to delete a non-existing TALLIBING-text')
+     
+            try:
+                cf.texts.remove(i)
+            except:
+                warnings.warn('Tried to delete a non-existing TALLIBING-text')
+     
+    
+    txtProp = dict(gid=_TALLIBING_TAG, size=8, color='w', horizontalalignment='center',
+                     verticalalignment='center', fontweight='demi', axes=cax)
+     
+    txtProp.update(**kwds)
+    h = []
+    for xi,yi,ni in zip(x,y,n):
+        if ni:
+            h.append(plotbackend.text(xi, yi, str(ni), **txtProp))
+    return h
 
 def test_docstrings():
     import doctest
