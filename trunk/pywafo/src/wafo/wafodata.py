@@ -190,7 +190,7 @@ class Plotter_1d(object):
     def plot(self, wdata, *args, **kwds):
         plotflag = kwds.pop('plotflag', False)
         if plotflag:
-            h1 = self._plot(plotflag, wdata, **kwds)
+            h1 = self._plot(plotflag, wdata, *args, **kwds)
         else:
             if isinstance(wdata.args, (list, tuple)):
                 args1 = tuple((wdata.args)) + (wdata.data,) + args

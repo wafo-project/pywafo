@@ -41,10 +41,10 @@ import win32con
 import msvcrt
 import numpy
 
-__all__ = ['close','cycle','hide','keep','maximize','minimize','pile','restore','stack','tile']
+__all__ = ['close', 'cycle', 'hide', 'keep', 'maximize', 'minimize', 'pile', 'restore', 'stack', 'tile']
 
 # Figure format strings to recognize in window title
-_FIG_FORMATS = ('Figure','TVTK Scene','Chaco Plot Window: Figure')
+_FIG_FORMATS = ('Figure', 'TVTK Scene', 'Chaco Plot Window: Figure')
 _SCREENSIZE = None
 
 def _getScreenSize(wnds):
@@ -98,7 +98,7 @@ def _findTopWindows(wantedTitle=None):
     if wantedTitle == None:
         return topWindows
     else:
-        return [(hwnd,windowTxt) for hwnd, windowTxt in topWindows if windowTxt.startswith(wantedTitle)]
+        return [(hwnd, windowTxt) for hwnd, windowTxt in topWindows if windowTxt.startswith(wantedTitle)]
 
 def findallfigs():
     '''
@@ -120,10 +120,10 @@ def findallfigs():
 def _figparse(*args):
     figs = []
     for arg in args:
-        if  isinstance(arg,(list,tuple,set)):
+        if  isinstance(arg, (list, tuple, set)):
             for val in arg:
                 figs.append(int(val))
-        elif isinstance(arg,int):
+        elif isinstance(arg, int):
             figs.append(arg)
         elif arg == 'all':
             figs = 'all'
@@ -132,7 +132,7 @@ def _figparse(*args):
             raise TypeError('Only integers arguments accepted!')
             #raise TypeError('Unrecognized argument type (%s)!'%type(arg))
 
-    if len(figs)==0 or figs =='all':
+    if len(figs) == 0 or figs == 'all':
         figs = findallfigs()
     return figs
 
@@ -145,12 +145,12 @@ def _fig2wnd(figs):
     for fig in figs:
         for format_ in _FIG_FORMATS:
             winTitle = format_ + ' %d' % fig
-            hwnd = FindWindow(None,winTitle)
+            hwnd = FindWindow(None, winTitle)
             if not hwnd == 0:
                 wnd_handles.append(hwnd)
     return wnd_handles
 
-def _show_figure(figs,cmdshow):
+def _show_figure(figs, cmdshow):
     ''' sets the specified figure's show state.
 
     @param figs: vector for figure numbers
@@ -186,13 +186,13 @@ def _show_figure(figs,cmdshow):
     for fig in figs:
         for format_ in _FIG_FORMATS:
             winTitle = format_ + ' %d' % fig
-            hwnd = FindWindow(None,winTitle)
+            hwnd = FindWindow(None, winTitle)
             if not hwnd == 0:
                 #ShowWindow(hwnd,cmdshow)
                 BringWindowToTop(hwnd)
-                ShowWindow(hwnd,cmdshow)
+                ShowWindow(hwnd, cmdshow)
 
-def _show_windows(wnds,cmdshow):
+def _show_windows(wnds, cmdshow):
     ''' sets the specified window's show state.
 
     @param wnds: list of window handles numbers
@@ -228,7 +228,7 @@ def _show_windows(wnds,cmdshow):
         if not hwnd == 0:
             #ShowWindow(hwnd,cmdshow)
             BringWindowToTop(hwnd)
-            ShowWindow(hwnd,cmdshow)
+            ShowWindow(hwnd, cmdshow)
 
 def keep(*figs):
     ''' Keeps figure windows of your choice and closes the rest.
@@ -255,15 +255,15 @@ def keep(*figs):
     '''
     figs2keep = []
     for fig in figs:
-        if  isinstance(fig,(list,tuple,set)):
+        if  isinstance(fig, (list, tuple, set)):
             for val in fig:
                 figs2keep.append(int(val))
-        elif isinstance(fig,int):
+        elif isinstance(fig, int):
             figs2keep.append(fig)
         else:
             raise TypeError('Only integers arguments accepted!')
 
-    if len(figs2keep)>0:
+    if len(figs2keep) > 0:
         allfigs = set(findallfigs())
 
 # Remove figure handles in the "keep" list
@@ -476,16 +476,16 @@ def pile(*figs):
     figlist = _figparse(*figs)
     wnds = _fig2wnd(figlist)
     numfigs = len(wnds)
-    if numfigs>0:
+    if numfigs > 0:
         pos = _getScreenSize(wnds)
-        pos[3] = int(pos[3]/2)
-        pos[2] = int(pos[2]/2.5)
-        pos[1] = int(pos[3]/2)
-        pos[0] = int(pos[2]/2)
+        pos[3] = int(pos[3] / 2)
+        pos[2] = int(pos[2] / 2.5)
+        pos[1] = int(pos[3] / 2)
+        pos[0] = int(pos[2] / 2)
         BringWindowToTop = win32gui.BringWindowToTop
         MoveWindow = win32gui.MoveWindow
         for wnd in wnds:
-            MoveWindow(wnd, pos[0], pos[1], pos[2], pos[3],1)
+            MoveWindow(wnd, pos[0], pos[1], pos[2], pos[3], 1)
             BringWindowToTop(wnd)
 
 
@@ -521,17 +521,17 @@ def stack(*figs):
     figlist = _figparse(*figs)
     wnds = _fig2wnd(figlist)
     numfigs = len(wnds)
-    if numfigs>0:
+    if numfigs > 0:
         screenpos = _getScreenSize(wnds)
 
-        maxfigs = numpy.fix(screenpos[3]/20)
+        maxfigs = numpy.fix(screenpos[3] / 20)
 
-        if (numfigs>maxfigs):            # figure limit check
-            print(' More than %d requested '% maxfigs)
+        if (numfigs > maxfigs):            # figure limit check
+            print(' More than %d requested ' % maxfigs)
             return
         BringWindowToTop = win32gui.BringWindowToTop
         MoveWindow = win32gui.MoveWindow
-        GetWindowRect =  win32gui.GetWindowRect
+        GetWindowRect = win32gui.GetWindowRect
 #
 #
 #% tile figures by postiion
@@ -543,13 +543,13 @@ def stack(*figs):
             pos[3] -= pos[1]
             pos[2] -= pos[0]
             #print('[x, y, w, h] = ', pos)
-            ypos = screenpos[1]+iy*20 #int(screenpos[3] - iy*20 -pos[3] -70) # figure location (row)
-            xpos = int(iy*5 + 15+screenpos[0])     # figure location (column)
-            MoveWindow(wnds[iy],xpos,ypos, pos[2],pos[3],1)
+            ypos = screenpos[1] + iy * 20 #int(screenpos[3] - iy*20 -pos[3] -70) # figure location (row)
+            xpos = int(iy * 5 + 15 + screenpos[0])     # figure location (column)
+            MoveWindow(wnds[iy], xpos, ypos, pos[2], pos[3], 1)
             BringWindowToTop(wnds[iy])
 
 
-def tile(*figs,**kwds):
+def tile(*figs, **kwds):
     ''' Tile figure windows.
 
     Parameters
@@ -587,17 +587,17 @@ def tile(*figs,**kwds):
 
     nfigs = len(wnds);        # Number of windows.
 
-    if nfigs>0:
-        nfigspertile = kwds.get('pairs',nfigs)
+    if nfigs > 0:
+        nfigspertile = kwds.get('pairs', nfigs)
 
         ceil = numpy.ceil
         sqrt = numpy.sqrt
         maximum = numpy.maximum
 
-        nlayers = int(ceil(nfigs/nfigspertile))
+        nlayers = int(ceil(nfigs / nfigspertile))
 
         nh = int(ceil(sqrt(nfigspertile)))   # Number of figures horisontally.
-        nv = int(ceil(nfigspertile/nh));     # Number of figures vertically.
+        nv = int(ceil(nfigspertile / nh));     # Number of figures vertically.
 
 
         nh = maximum(nh, 2);
@@ -622,15 +622,15 @@ def tile(*figs,**kwds):
 #% 4 - Window vertical size
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         
-        hspc   = 10            # Horisontal space.
+        hspc = 10            # Horisontal space.
         topspc = 20;            # Space above top figure.
         medspc = 10;            # Space between figures.
         botspc = 20;            # Space below bottom figure.
 
         #print('scrwid = %d' % scrwid)
-        figwid = ( scrwid - (nh+1)*hspc )/nh
+        figwid = (scrwid - (nh + 1) * hspc) / nh
         #print('figwid = %d' % figwid)
-        fighgt = ( scrhgt - (topspc+botspc) - (nv-1)*medspc )/nv;
+        fighgt = (scrhgt - (topspc + botspc) - (nv - 1) * medspc) / nv;
 
         figwid = int(numpy.round(figwid))
         fighgt = int(numpy.round(fighgt))
@@ -642,19 +642,19 @@ def tile(*figs,**kwds):
         for unused_ix in xrange(nlayers):
             for row in xrange(nv):
                 for col in xrange(nh):
-                    if  (row)*nh + col < nfigspertile :      
-                        if idx<nfigs:
-                            figlft = int(screenpos[0]+(col+1)*hspc + col*figwid)
-                            figtop = int(screenpos[1]+topspc + row*(fighgt + medspc))
+                    if  (row) * nh + col < nfigspertile :      
+                        if idx < nfigs:
+                            figlft = int(screenpos[0] + (col + 1) * hspc + col * figwid)
+                            figtop = int(screenpos[1] + topspc + row * (fighgt + medspc))
                             #figpos = [ figlft figtop figwid fighgt ];    # Figure position.
                             #fighnd = FindWindow(0,'Figure %d' % figs[idx]) # Figure handle.
                             fighnd = wnds[idx]
-                            MoveWindow(fighnd, figlft,figtop, figwid, fighgt,1);     # Set position.
+                            MoveWindow(fighnd, figlft, figtop, figwid, fighgt, 1);     # Set position.
                             BringWindowToTop(fighnd)
                             #figure(figs[idx]);                              # Raise figure.
                         idx += 1
 
-def cycle(*figs,**kwds):
+def cycle(*figs, **kwds):
     ''' Cycle through figure windows.
 
     Parameters
@@ -697,9 +697,9 @@ def cycle(*figs,**kwds):
     wnds = _fig2wnd(figlist)
 
     numfigs = len(wnds)
-    if numfigs>0:
-        maximize = kwds.get('maximize',False)
-        pairs = kwds.get('pairs',1)
+    if numfigs > 0:
+        maximize = kwds.get('maximize', False)
+        pairs = kwds.get('pairs', 1)
 
         if maximize or pairs == None:
             nfigspercycle = 1
@@ -713,18 +713,18 @@ def cycle(*figs,**kwds):
         i = 0;
         escape_key = chr(27)
         backspace_key = chr(8)
-        while 0<=i and i<numfigs:
+        while 0 <= i and i < numfigs:
 
             if maximize:
                 cmdshow = win32con.SW_SHOWMAXIMIZED
             else:
                 cmdshow = win32con.SW_SHOWNORMAL
 
-            iu = min(i+nfigspercycle,numfigs)
+            iu = min(i + nfigspercycle, numfigs)
             wnd = wnds[i:iu]
             _show_windows(wnd, cmdshow)
 
-            if i + nfigspercycle-1< numfigs:
+            if i + nfigspercycle - 1 < numfigs:
                 print('Press escape to quit, backspace to display previous figure(s) and any other key to display next figure(s)');
 
             #time.sleep(0.5)
@@ -735,9 +735,9 @@ def cycle(*figs,**kwds):
                 _show_windows(wnd, win32con.SW_RESTORE)
 
 
-            if B==backspace_key: # Back space
+            if B == backspace_key: # Back space
                 i -= nfigspercycle
-            elif B==escape_key:
+            elif B == escape_key:
                 break
             else:
                 i += nfigspercycle
@@ -747,9 +747,7 @@ def cycle(*figs,**kwds):
         _show_windows(wnds, win32con.SW_SHOWNORMAL)
 
 
-
-
-if __name__=='__main__':
+if __name__ == '__main__':
     import doctest
     doctest.testmod()
 

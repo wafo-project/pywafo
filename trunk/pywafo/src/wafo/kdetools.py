@@ -19,7 +19,7 @@ import scipy.optimize as optimize
 from wafo.misc import meshgrid
 from wafo.wafodata import WafoData
 
-from dctpack import dct
+from dctpack import dct, dctn, idctn
 
 import copy
 import numpy as np
@@ -63,7 +63,220 @@ def sphere_volume(d, r=1.0):
     Chapman and Hall, pp 105
     """
     return (r ** d) * 2.0 * pi ** (d / 2.0) / (d * gamma(d / 2.0))
+class KDEgauss(object):
+    """ Kernel-Density Estimator base class.
 
+    Parameters
+    ----------
+    data : (# of dims, # of data)-array
+        datapoints to estimate from
+    hs : array-like (optional) 
+        smooting parameter vector/matrix.
+        (default compute from data using kernel.get_smoothing function)
+    alpha : real scalar (optional)
+        sensitivity parameter               (default 0 regular KDE)
+        A good choice might be alpha = 0.5 ( or 1/D)
+        alpha = 0      Regular  KDE (hs is constant)
+        0 < alpha <= 1 Adaptive KDE (Make hs change)  
+
+
+    Members
+    -------
+    d : int
+        number of dimensions
+    n : int
+        number of datapoints
+
+    Methods
+    -------
+    kde.eval_grid_fast(x0, x1,..., xd) : array
+        evaluate the estimated pdf on meshgrid(x0, x1,..., xd)
+    kde(x0, x1,..., xd) : array
+        same as kde.eval_grid_fast(x0, x1,..., xd)
+    """
+
+    def __init__(self, data, hs=None, kernel=None, alpha=0.0, xmin=None, xmax=None, inc=128):
+        self.dataset = atleast_2d(data)
+        self.hs = hs
+        self.kernel = kernel if kernel else Kernel('gauss')
+        self.alpha = alpha
+        self.xmin = xmin
+        self.xmax = xmax
+        self.inc = inc
+        self.initialize()
+
+    def initialize(self):
+        self.d, self.n = self.dataset.shape
+        self._set_xlimits()
+        self._initialize()
+        
+    def _initialize(self):
+        self._compute_smoothing()
+        
+    def _compute_smoothing(self):
+        """Computes the smoothing matrix
+        """
+        get_smoothing = self.kernel.get_smoothing
+        h = self.hs
+        if h is None:
+            h = get_smoothing(self.dataset)
+        h = np.atleast_1d(h)
+        hsiz = h.shape
+    
+        if (len(hsiz) == 1) or (self.d == 1):
+            if max(hsiz) == 1:
+                h = h * np.ones(self.d)
+            else:
+                h.shape = (self.d,) # make sure it has the correct dimension
+          
+            # If h negative calculate automatic values
+            ind, = np.where(h <= 0)
+            for i in ind.tolist(): # 
+                h[i] = get_smoothing(self.dataset[i])
+            deth = h.prod()
+            self.inv_hs = linalg.diag(1.0 / h)
+        else: #fully general smoothing matrix
+            deth = linalg.det(h)
+            if deth <= 0:
+                raise ValueError('bandwidth matrix h must be positive definit!')
+            self.inv_hs = linalg.inv(h)
+        self.hs = h
+        self._norm_factor = deth * self.n
+        
+    def _set_xlimits(self):
+        amin = self.dataset.min(axis= -1)
+        amax = self.dataset.max(axis= -1)
+        iqr = iqrange(self.dataset, axis= -1)
+        sigma = np.minimum(np.std(self.dataset, axis= -1, ddof=1), iqr / 1.34)
+        #xyzrange = amax - amin
+        #offset = xyzrange / 4.0
+        offset = 2 * sigma
+        if self.xmin is None:
+            self.xmin = amin - offset
+        else:
+            self.xmin = self.xmin * np.ones((self.d,1))
+        if self.xmax is None:
+            self.xmax = amax + offset
+        else:
+            self.xmax = self.xmax * np.ones((self.d,1))
+            
+    def eval_grid_fast(self, *args, **kwds):
+        """Evaluate the estimated pdf on a grid.
+
+        Parameters
+        ----------
+        arg_0,arg_1,... arg_d-1 : vectors
+            Alternatively, if no vectors is passed in then
+             arg_i = linspace(self.xmin[i], self.xmax[i], self.inc)
+        output : string optional
+            'value' if value output
+            'data' if object output
+
+        Returns
+        -------
+        values : array-like
+            The values evaluated at meshgrid(*args).
+
+        """
+        if len(args) == 0:
+            args = []
+            for i in range(self.d):
+                args.append(np.linspace(self.xmin[i], self.xmax[i], self.inc))
+        self.args = args
+        return self._eval_grid_fun(self._eval_grid_fast, *args, **kwds)
+       
+    def _eval_grid_fast(self, *args, **kwds):
+        X = np.vstack(args)
+        d, inc = X.shape
+        dx = X[:, 1] - X[:, 0]
+        R = X.max(axis=-1)- X.min(axis=-1)
+        
+        t_star = (self.hs/R)**2
+        I = (np.asfarray(np.arange(0, inc))*pi)**2 
+        In = []
+        
+        for i in range(d):
+            In.append(I * t_star[i] * 0.5)
+        
+        Inc = meshgrid(*In) if d > 1 else In
+        
+        kw = np.zeros((inc,)*d)
+        for i in range(d):
+            kw += exp(-Inc[i])
+        y = kwds.get('y', 1.0)
+        d, n = self.dataset.shape
+        # Find the binned kernel weights, c.
+        c = gridcount(self.dataset, X, y=y)/n
+        # Perform the convolution.
+        at = dctn(c) * kw
+        z = idctn(at)*at.size/np.prod(R)
+        return z*(z>0.0)
+        #ix = (slice(0, inc),)*d
+        #return z[ix] * (z[ix] > 0.0)
+    
+    def _eval_grid_fun(self, eval_grd, *args, **kwds):
+        output = kwds.pop('output', 'value')
+        f = eval_grd(*args, **kwds)
+        if output == 'value':
+            return f
+        else:
+            titlestr = 'Kernel density estimate (%s)' % self.kernel.name
+            kwds2 = dict(title=titlestr)
+            kwds2['plot_kwds'] = dict(plotflag=1)
+            kwds2.update(**kwds)
+            args = self.args
+            if self.d == 1:
+                args = args[0]
+            wdata = WafoData(f, args, **kwds2)
+            if self.d > 1:
+                PL = np.r_[10:90:20, 95, 99, 99.9]
+                try:
+                    ql = qlevels(f, p=PL)
+                    wdata.clevels = ql
+                    wdata.plevels = PL
+                except:
+                    pass
+            return wdata 
+
+    def _check_shape(self, points):
+        points = atleast_2d(points)
+        d, m = points.shape
+        if d != self.d:
+            if d == 1 and m == self.d:
+                # points was passed in as a row vector
+                points = np.reshape(points, (self.d, 1))
+            else:
+                msg = "points have dimension %s, dataset has dimension %s" % (d,
+                    self.d)
+                raise ValueError(msg)
+        return points   
+    def eval_points(self, points, **kwds):
+        """Evaluate the estimated pdf on a set of points.
+
+        Parameters
+        ----------
+        points : (# of dimensions, # of points)-array
+            Alternatively, a (# of dimensions,) vector can be passed in and
+            treated as a single point.
+
+        Returns
+        -------
+        values : (# of points,)-array
+            The values at each point.
+
+        Raises
+        ------
+        ValueError if the dimensionality of the input points is different than
+        the dimensionality of the KDE.
+        """
+
+        points = self._check_shape(points)
+        return self._eval_points(points, **kwds)
+    
+    def _eval_points(self, points, **kwds):
+        pass
+
+    __call__ = eval_grid_fast
 class _KDE(object):
     """ Kernel-Density Estimator base class.
 
@@ -341,7 +554,7 @@ class TKDE(_KDE):
     def __init__(self, data, hs=None, kernel=None, alpha=0.0, xmin=None,
                  xmax=None, inc=128, L2=None):
         self.L2 = L2
-        _KDE.__init__(self, data, hs, kernel, alpha, xmin, xmax, inc)
+        super(TKDE, self).__init__(data, hs, kernel, alpha, xmin, xmax, inc)
     
     def _initialize(self):
         self._check_xmin()
@@ -574,7 +787,7 @@ class KDE(_KDE):
     """
 
     def __init__(self, data, hs=None, kernel=None, alpha=0.0, xmin=None, xmax=None, inc=128):
-        _KDE.__init__(self, data, hs, kernel, alpha, xmin, xmax, inc)
+        super(KDE, self).__init__(data, hs, kernel, alpha, xmin, xmax, inc)
             
     def _initialize(self):
         self._compute_smoothing()
@@ -638,11 +851,14 @@ class KDE(_KDE):
         Xn = np.dot(self.inv_hs, np.vstack(Xnc))
         
         # Obtain the kernel weights.        
+        kw = self.kernel(Xn) 
+        norm_fact = (kw.sum()*dx.prod()*self.n)
+        norm_fact2 = (self._norm_factor * self.kernel.norm_factor(d, self.n))
+        
+        kw = kw/norm_fact
         r = kwds.get('r', 0)
-        if r==0:
-            kw = self.kernel(Xn) / (self._norm_factor * self.kernel.norm_factor(d, self.n))
-        else:
-            kw = np.vstack(Xnc) ** r * self.kernel(Xn) / (self._norm_factor * self.kernel.norm_factor(d, self.n))
+        if r!=0:
+            kw *= np.vstack(Xnc) ** r 
         kw.shape = shape0
         kw = np.fft.ifftshift(kw)
         fftn = np.fft.fftn
@@ -1434,7 +1650,8 @@ class Kernel(object):
             
             c = gridcount(A[dim], xa)
             N = len(set(A[dim]))
-            a = dct(c/c.sum(), norm=None)
+            #a = dct(c/c.sum(), norm=None)
+            a = dct(c/len(A[dim]), norm=None)
             
             #% now compute the optimal bandwidth^2 using the referenced method
             I = np.asfarray(np.arange(1, inc))**2 
@@ -2443,7 +2660,7 @@ def gridcount(data, X, y=1):
     >>> import numpy as np
     >>> import wafo.kdetools as wk
     >>> import pylab as plb
-    >>> N     = 20;
+    >>> N = 20;
     >>> data  = np.random.rayleigh(1,N)
     >>> x = np.linspace(0,max(data)+1,50)  
     >>> dx = x[1]-x[0]  
@@ -2551,8 +2768,8 @@ def kde_demo1():
     import scipy.stats as st
     x = np.linspace(-4, 4, 101)
     x0 = x / 2.0
-    data = np.random.normal(loc=0, scale=1.0, size=7) #rndnorm(0,1,7,1);
-    kernel = Kernel('gaus')
+    data = np.random.normal(loc=0, scale=1.0, size=7) 
+    kernel = Kernel('gauss')
     hs = kernel.hns(data)
     hVec = [hs / 2, hs, 2 * hs]
        
@@ -2742,7 +2959,59 @@ def kreg_demo1(hs=None, fast=False, fun='hisj'):
     
     print(kreg.tkde.tkde.inv_hs)
     print(kreg.tkde.tkde.hs) 
-   
+
+def kde_gauss_demo(n=50000):
+    '''
+    KDEDEMO Demonstrate the KDEgauss
+
+    KDEDEMO1 shows the true density (dotted) compared to KDE based on 7
+    observations (solid) and their individual kernels (dashed) for 3
+    different values of the smoothing parameter, hs.
+    '''
+    
+    import scipy.stats as st
+    #x = np.linspace(-4, 4, 101)
+    #data = np.random.normal(loc=0, scale=1.0, size=n) 
+    #data = np.random.exponential(scale=1.0, size=n)
+#    n1 = 128
+#    I = (np.arange(n1)*pi)**2 *0.01*0.5
+#    kw = exp(-I)
+#    pylab.plot(idctn(kw))
+#    return
+    dist = st.norm
+    dist = st.expon
+    data = dist.rvs(loc=0, scale=1.0, size=n)
+    d, N = np.atleast_2d(data).shape
+    
+    if d==1:
+        plot_options = [dict(color='red'), dict(color='green'), dict(color='black')]
+    else:
+        plot_options = [dict(colors='red'), dict(colors='green'), dict(colors='black')]
+    
+    pylab.figure(1)
+    kde0 = KDE(data, kernel=Kernel('gauss', 'hisj'))
+    f0 = kde0.eval_grid_fast(output='plot', ylab='Density')
+    f0.plot(**plot_options[0])
+    
+    kde1 = TKDE(data, kernel=Kernel('gauss', 'hisj'), L2=0)
+    f1 = kde1.eval_grid_fast(output='plot', ylab='Density')
+    f1.plot(**plot_options[1])
+    
+    kde2 = KDEgauss(data)
+    f2 = kde2(output='plot', ylab='Density')
+    x = f2.args
+    f2.plot(**plot_options[2])
+    
+    fmax = dist.pdf(x, 0, 1).max() 
+    if d==1:
+        pylab.plot(x, dist.pdf(x, 0, 1), 'k:')
+        pylab.axis([x.min(), x.max(), 0, fmax])
+    pylab.show()
+    print(fmax/f2.data.max())
+    format_ = ''.join(('%g, ')*d)
+    format_ = 'hs0=%s hs2=%s' % (format_,format_)
+    print(format_ % tuple(kde0.hs.tolist()+kde2.hs.tolist()))
+        
 def test_docstrings():
     import doctest
     doctest.testmod()
@@ -2750,4 +3019,5 @@ def test_docstrings():
 if __name__ == '__main__':
     #test_docstrings()
     #kde_demo2()
-    kreg_demo1()
+    #kreg_demo1(fast=True)
+    kde_gauss_demo()
