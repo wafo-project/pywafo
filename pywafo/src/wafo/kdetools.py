@@ -16,7 +16,7 @@ from numpy import pi, sqrt, atleast_2d, exp, newaxis #@UnresolvedImport
 from scipy import interpolate, linalg, sparse
 from scipy.special import gamma
 import scipy.optimize as optimize
-from wafo.misc import meshgrid
+from wafo.misc import meshgrid, nextpow2
 from wafo.wafodata import WafoData
 
 from dctpack import dct, dctn, idctn
@@ -25,7 +25,7 @@ import copy
 import numpy as np
 import scipy
 import warnings
-import pylab
+import matplotlib.pyplot as plt
 
 _stats_epan = (1. / 5, 3. / 5, np.inf)
 _stats_biwe = (1. / 7, 5. / 7, 45. / 2)
@@ -95,7 +95,7 @@ class KDEgauss(object):
         same as kde.eval_grid_fast(x0, x1,..., xd)
     """
 
-    def __init__(self, data, hs=None, kernel=None, alpha=0.0, xmin=None, xmax=None, inc=128):
+    def __init__(self, data, hs=None, kernel=None, alpha=0.0, xmin=None, xmax=None, inc=512):
         self.dataset = atleast_2d(data)
         self.hs = hs
         self.kernel = kernel if kernel else Kernel('gauss')
@@ -315,7 +315,7 @@ class _KDE(object):
         same as kde.eval_grid(x0, x1,..., xd)
     """
 
-    def __init__(self, data, hs=None, kernel=None, alpha=0.0, xmin=None, xmax=None, inc=128):
+    def __init__(self, data, hs=None, kernel=None, alpha=0.0, xmin=None, xmax=None, inc=512):
         self.dataset = atleast_2d(data)
         self.hs = hs
         self.kernel = kernel if kernel else Kernel('gauss')
@@ -337,10 +337,10 @@ class _KDE(object):
         amin = self.dataset.min(axis= -1)
         amax = self.dataset.max(axis= -1)
         iqr = iqrange(self.dataset, axis= -1)
-        sigma = np.minimum(np.std(self.dataset, axis= -1, ddof=1), iqr / 1.34)
+        self._sigma = np.minimum(np.std(self.dataset, axis= -1, ddof=1), iqr / 1.34)
         #xyzrange = amax - amin
         #offset = xyzrange / 4.0
-        offset = 2 * sigma
+        offset = 2 * self._sigma
         if self.xmin is None:
             self.xmin = amin - offset
         else:
@@ -349,6 +349,8 @@ class _KDE(object):
             self.xmax = amax + offset
         else:
             self.xmax = self.xmax * np.ones((self.d,1))
+        
+       
             
     def eval_grid_fast(self, *args, **kwds):
         """Evaluate the estimated pdf on a grid.
@@ -492,7 +494,7 @@ class TKDE(_KDE):
         If a single value of xmin or xmax is given then the boundary is the is 
         the same for all dimensions.
     inc :  scalar integer
-        defining the default dimension of the output from kde.eval_grid methods (default 128)
+        defining the default dimension of the output from kde.eval_grid methods (default 512)
         (For kde.eval_grid_fast: A value below 50 is very fast to compute but 
         may give some inaccuracies. Values between 100 and 500 give very 
         accurate results)  
@@ -552,7 +554,7 @@ class TKDE(_KDE):
     """
 
     def __init__(self, data, hs=None, kernel=None, alpha=0.0, xmin=None,
-                 xmax=None, inc=128, L2=None):
+                 xmax=None, inc=512, L2=None):
         self.L2 = L2
         super(TKDE, self).__init__(data, hs, kernel, alpha, xmin, xmax, inc)
     
@@ -567,6 +569,8 @@ class TKDE(_KDE):
             xmax = self._dat2gaus(np.reshape(xmax,(-1,1)))
         self.tkde = KDE(tdataset, self.hs, self.kernel, self.alpha, xmin, xmax,
                        self.inc)
+        if self.inc is None:
+            self.inc = self.tkde.inc
     def _check_xmin(self):
         if self.L2 is not None:
             amin = self.dataset.min(axis= -1)
@@ -713,7 +717,7 @@ class KDE(_KDE):
         If a single value of xmin or xmax is given then the boundary is the is 
         the same for all dimensions.
     inc :  scalar integer
-        defining the default dimension of the output from kde.eval_grid methods (default 128)
+        defining the default dimension of the output from kde.eval_grid methods (default 512)
         (For kde.eval_grid_fast: A value below 50 is very fast to compute but 
         may give some inaccuracies. Values between 100 and 500 give very 
         accurate results)  
@@ -786,7 +790,7 @@ class KDE(_KDE):
     t = np.trapz(f, x)   
     """
 
-    def __init__(self, data, hs=None, kernel=None, alpha=0.0, xmin=None, xmax=None, inc=128):
+    def __init__(self, data, hs=None, kernel=None, alpha=0.0, xmin=None, xmax=None, inc=512):
         super(KDE, self).__init__(data, hs, kernel, alpha, xmin, xmax, inc)
             
     def _initialize(self):
@@ -799,6 +803,12 @@ class KDE(_KDE):
             g = np.exp(np.mean(np.log(f)))
             self._lambda = (f / g) ** (-self.alpha)
                 
+        if self.inc is None:
+            unused_tau, tau = self.kernel.effective_support()
+            xyzrange = 8 * self._sigma
+            L1 = 10
+            self.inc = 2 ** nextpow2(max(48,(L1 * xyzrange/ (tau * self.hs) ).max()))
+            pass
     def _compute_smoothing(self):
         """Computes the smoothing matrix
         """
@@ -851,9 +861,16 @@ class KDE(_KDE):
         Xn = np.dot(self.inv_hs, np.vstack(Xnc))
         
         # Obtain the kernel weights.        
-        kw = self.kernel(Xn) 
-        norm_fact = (kw.sum()*dx.prod()*self.n)
-        norm_fact2 = (self._norm_factor * self.kernel.norm_factor(d, self.n))
+        kw = self.kernel(Xn)
+         
+        #plt.plot(kw)
+        #plt.draw()
+        #plt.show()
+        norm_fact0 = (kw.sum()*dx.prod()*self.n)
+        norm_fact = (self._norm_factor * self.kernel.norm_factor(d, self.n))
+        if np.abs(norm_fact0-norm_fact)>0.05*norm_fact:
+            warnings.warn('Numerical inaccuracy due to too low discretization. Increase the discretization (inc=%d)!' % self.inc)
+            norm_fact = norm_fact0
         
         kw = kw/norm_fact
         r = kwds.get('r', 0)
@@ -1668,9 +1685,9 @@ class Kernel(object):
                 else:
                     ai = bi
             #y = np.asarray([fun(j) for j in x])
-            #pylab.figure(1)
-            #pylab.plot(x,y)
-            #pylab.show()
+            #plt.figure(1)
+            #plt.plot(x,y)
+            #plt.show()
             
             # use  fzero to solve the equation t=zeta*gamma^[5](t)
             try:
@@ -2774,20 +2791,20 @@ def kde_demo1():
     hVec = [hs / 2, hs, 2 * hs]
        
     for ix, h in enumerate(hVec): 
-        pylab.figure(ix)
+        plt.figure(ix)
         kde = KDE(data, hs=h, kernel=kernel)
         f2 = kde(x, output='plot', title='h_s = %2.2f' % h, ylab='Density')
         f2.plot('k-')
        
-        pylab.plot(x, st.norm.pdf(x, 0, 1), 'k:')
+        plt.plot(x, st.norm.pdf(x, 0, 1), 'k:')
         n = len(data)
-        pylab.plot(data, np.zeros(data.shape), 'bx')
+        plt.plot(data, np.zeros(data.shape), 'bx')
         y = kernel(x0) / (n * h * kernel.norm_factor(d=1, n=n)) 
         for i in range(n):
-            pylab.plot(data[i] + x0 * h, y, 'b--')
-            pylab.plot([data[i], data[i]], [0, np.max(y)], 'b')
+            plt.plot(data[i] + x0 * h, y, 'b--')
+            plt.plot([data[i], data[i]], [0, np.max(y)], 'b')
         
-        pylab.axis([x.min(), x.max(), 0, 0.5])
+        plt.axis([x.min(), x.max(), 0, 0.5])
      
 def kde_demo2(): 
     '''Demonstrate the difference between transformation- and ordinary-KDE in 1D
@@ -2802,21 +2819,21 @@ def kde_demo2():
     
     kde = KDE(data)
     f = kde(output='plot', title='Ordinary KDE (hs=%g)' % kde.hs)
-    pylab.figure(0)
+    plt.figure(0)
     f.plot()
     
-    pylab.plot(x, st.rayleigh.pdf(x, scale=1), ':')
+    plt.plot(x, st.rayleigh.pdf(x, scale=1), ':')
     
     #plotnorm((data).^(L2)) % gives a straight line => L2 = 0.5 reasonable
     
     tkde = TKDE(data, L2=0.5)
     ft = tkde(x, output='plot', title='Transformation KDE (hs=%g)' % tkde.tkde.hs)
-    pylab.figure(1)
+    plt.figure(1)
     ft.plot()
     
-    pylab.plot(x, st.rayleigh.pdf(x, scale=1), ':')
+    plt.plot(x, st.rayleigh.pdf(x, scale=1), ':')
 
-    pylab.figure(0)
+    plt.figure(0)
     
 def kde_demo3(): 
     '''Demonstrate the difference between transformation and ordinary-KDE in 2D
@@ -2831,10 +2848,10 @@ def kde_demo3():
     
     kde = KDE(data)
     f = kde(output='plot', title='Ordinary KDE', plotflag=1)
-    pylab.figure(0)
+    plt.figure(0)
     f.plot()
     
-    pylab.plot(data[0], data[1], '.')
+    plt.plot(data[0], data[1], '.')
     
     #plotnorm((data).^(L2)) % gives a straight line => L2 = 0.5 reasonable
     
@@ -2842,12 +2859,12 @@ def kde_demo3():
     ft = tkde.eval_grid_fast(output='plot', title='Transformation KDE', plotflag=1)
     
     
-    pylab.figure(1)
+    plt.figure(1)
     ft.plot()
     
-    pylab.plot(data[0],data[1], '.')
+    plt.plot(data[0],data[1], '.')
 
-    pylab.figure(0)
+    plt.figure(0)
 
 
 
@@ -2873,14 +2890,14 @@ def kde_demo4(N=50):
     kde1 = KDE(data, kernel=Kernel('gauss', 'hisj'))
     f1 = kde1(output='plot', label='Ordinary KDE', plotflag=1)
     
-    pylab.figure(0)
+    plt.figure(0)
     f.plot('r', label='hns=%g' % kde.hs)
-    #pylab.figure(2)
+    #plt.figure(2)
     f1.plot('b', label='hisj=%g' % kde1.hs)
     x = np.linspace(-4,4)
     for loc in [-5,5]:
-        pylab.plot(x + loc, st.norm.pdf(x, 0, scale=1)/2, 'k:', label='True density')
-    pylab.legend()
+        plt.plot(x + loc, st.norm.pdf(x, 0, scale=1)/2, 'k:', label='True density')
+    plt.legend()
     
 def kde_demo5(N=500): 
     '''Demonstrate that the improved Sheather-Jones plug-in (hisj) is superior 
@@ -2899,14 +2916,14 @@ def kde_demo5(N=500):
     kde1 = KDE(data, kernel=Kernel('gauss', 'hisj'))
     f1 = kde1(output='plot', title='Ordinary KDE (hisj=%g %g)' % tuple(kde1.hs.tolist()), plotflag=1)
     
-    pylab.figure(0)
-    pylab.clf()
+    plt.figure(0)
+    plt.clf()
     f.plot()
-    pylab.plot(data[0], data[1], '.')
-    pylab.figure(1)
-    pylab.clf()
+    plt.plot(data[0], data[1], '.')
+    plt.figure(1)
+    plt.clf()
     f1.plot()
-    pylab.plot(data[0], data[1], '.')
+    plt.plot(data[0], data[1], '.')
  
 def kreg_demo1(hs=None, fast=False, fun='hisj'):
     '''
@@ -2945,22 +2962,22 @@ def kreg_demo1(hs=None, fast=False, fun='hisj'):
         kreg.__call__ = kreg.eval_grid_fast
          
     f = kreg(output='plot', title='Kernel regression', plotflag=1)
-    pylab.figure(0)
+    plt.figure(0)
     f.plot(label='p=0')
     
     
     kreg.p=1
     f1 = kreg(output='plot', title='Kernel regression', plotflag=1)
     f1.plot(label='p=1')
-    pylab.plot(x,y,'.', x,y0, 'k')
-    pylab.legend()
+    plt.plot(x,y,'.', x,y0, 'k')
+    plt.legend()
     
-    pylab.show()
+    plt.show()
     
     print(kreg.tkde.tkde.inv_hs)
     print(kreg.tkde.tkde.hs) 
 
-def kde_gauss_demo(n=50000):
+def kde_gauss_demo(n=50):
     '''
     KDEDEMO Demonstrate the KDEgauss
 
@@ -2976,7 +2993,7 @@ def kde_gauss_demo(n=50000):
 #    n1 = 128
 #    I = (np.arange(n1)*pi)**2 *0.01*0.5
 #    kw = exp(-I)
-#    pylab.plot(idctn(kw))
+#    plt.plot(idctn(kw))
 #    return
     dist = st.norm
     dist = st.expon
@@ -2988,12 +3005,12 @@ def kde_gauss_demo(n=50000):
     else:
         plot_options = [dict(colors='red'), dict(colors='green'), dict(colors='black')]
     
-    pylab.figure(1)
-    kde0 = KDE(data, kernel=Kernel('gauss', 'hisj'))
+    plt.figure(1)
+    kde0 = KDE(data, kernel=Kernel('gauss', 'hste'))
     f0 = kde0.eval_grid_fast(output='plot', ylab='Density')
     f0.plot(**plot_options[0])
     
-    kde1 = TKDE(data, kernel=Kernel('gauss', 'hisj'), L2=0)
+    kde1 = TKDE(data, kernel=Kernel('gauss', 'hisj'), L2=.5)
     f1 = kde1.eval_grid_fast(output='plot', ylab='Density')
     f1.plot(**plot_options[1])
     
@@ -3004,19 +3021,20 @@ def kde_gauss_demo(n=50000):
     
     fmax = dist.pdf(x, 0, 1).max() 
     if d==1:
-        pylab.plot(x, dist.pdf(x, 0, 1), 'k:')
-        pylab.axis([x.min(), x.max(), 0, fmax])
-    pylab.show()
+        plt.plot(x, dist.pdf(x, 0, 1), 'k:')
+        plt.axis([x.min(), x.max(), 0, fmax])
+    plt.show()
     print(fmax/f2.data.max())
     format_ = ''.join(('%g, ')*d)
-    format_ = 'hs0=%s hs2=%s' % (format_,format_)
-    print(format_ % tuple(kde0.hs.tolist()+kde2.hs.tolist()))
-        
+    format_ = 'hs0=%s hs1=%s hs2=%s' % (format_, format_, format_)
+    print(format_ % tuple(kde0.hs.tolist()+kde1.tkde.hs.tolist()+kde2.hs.tolist()))
+    print('inc0 = %d, inc1 = %d, inc2 = %d' % (kde0.inc, kde1.inc,kde2.inc))
 def test_docstrings():
     import doctest
     doctest.testmod()
     
 if __name__ == '__main__':
+    plt.ioff()
     #test_docstrings()
     #kde_demo2()
     #kreg_demo1(fast=True)
