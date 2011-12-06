@@ -211,8 +211,6 @@ class KDEgauss(object):
         at = dctn(c) * kw
         z = idctn(at)*at.size/np.prod(R)
         return z*(z>0.0)
-        #ix = (slice(0, inc),)*d
-        #return z[ix] * (z[ix] > 0.0)
     
     def _eval_grid_fun(self, eval_grd, *args, **kwds):
         output = kwds.pop('output', 'value')
@@ -655,7 +653,11 @@ class TKDE(_KDE):
                                       fill_value=0.0)
             #fi.shape = shape0i
             self.args = args
-            return fi*(fi>0)
+            r = kwds.get('r', 0)
+            if r==0:
+                return fi*(fi>0)
+            else:
+                return fi
         return f
     def _eval_grid(self, *args, **kwds):
         if self.L2 is None:
@@ -869,13 +871,13 @@ class KDE(_KDE):
         norm_fact0 = (kw.sum()*dx.prod()*self.n)
         norm_fact = (self._norm_factor * self.kernel.norm_factor(d, self.n))
         if np.abs(norm_fact0-norm_fact)>0.05*norm_fact:
-            warnings.warn('Numerical inaccuracy due to too low discretization. Increase the discretization (inc=%d)!' % self.inc)
+            warnings.warn('Numerical inaccuracy due to too low discretization. Increase the discretization of the evaluation grid (inc=%d)!' % inc)
             norm_fact = norm_fact0
         
         kw = kw/norm_fact
         r = kwds.get('r', 0)
         if r!=0:
-            kw *= np.vstack(Xnc) ** r 
+            kw *= np.vstack(Xnc) ** r if d>1 else Xnc[0]
         kw.shape = shape0
         kw = np.fft.ifftshift(kw)
         fftn = np.fft.fftn
@@ -891,8 +893,10 @@ class KDE(_KDE):
         z = np.real(ifftn(fftn(c, s=nfft) * fftn(kw)))
 
         ix = (slice(0, inc),)*d
-        return z[ix] * (z[ix] > 0.0)
-   
+        if r==0:
+            return z[ix] * (z[ix] > 0.0)
+        else:
+            return z[ix]
     def _eval_grid(self, *args, **kwds):
         
         grd = meshgrid(*args) if len(args) > 1 else list(args)
@@ -2957,7 +2961,8 @@ def kreg_demo1(hs=None, fast=False, fun='hisj'):
     y0 = 2*np.exp(-x**2/(2*0.3**2))+3*np.exp(-(x-1)**2/(2*0.7**2)) 
     y = y0 + ei
     kernel = Kernel('gauss',fun=fun)
-    kreg = KRegression(x, y, p=0, hs=hs, kernel=kernel)
+    hopt = kernel.hisj(x)
+    kreg = KRegression(x, y, p=0, hs=hs, kernel=kernel, xmin=-2*hopt, xmax=1+2*hopt)
     if fast:
         kreg.__call__ = kreg.eval_grid_fast
          
@@ -2969,14 +2974,26 @@ def kreg_demo1(hs=None, fast=False, fun='hisj'):
     kreg.p=1
     f1 = kreg(output='plot', title='Kernel regression', plotflag=1)
     f1.plot(label='p=1')
-    plt.plot(x,y,'.', x,y0, 'k')
+    print(f1.data)
+    plt.plot(x, y, '.', label='data')
+    plt.plot(x, y0, 'k', label='True model')
     plt.legend()
     
     plt.show()
     
     print(kreg.tkde.tkde.inv_hs)
     print(kreg.tkde.tkde.hs) 
+def kreg_demo2(n=100):
+    
 
+    x = np.sort(5*np.random.rand(n,1)-2.5, axis=0)
+    y = (np.cos(x)>2*np.random.rand(n, 1)-1).ravel()
+
+    kreg = KRegression(x.ravel(),y)
+    f = kreg(output='plotobj', title='Kernel regression', plotflag=1)
+    f.plot()
+    plt.show()
+    
 def kde_gauss_demo(n=50):
     '''
     KDEDEMO Demonstrate the KDEgauss
@@ -3029,6 +3046,8 @@ def kde_gauss_demo(n=50):
     format_ = 'hs0=%s hs1=%s hs2=%s' % (format_, format_, format_)
     print(format_ % tuple(kde0.hs.tolist()+kde1.tkde.hs.tolist()+kde2.hs.tolist()))
     print('inc0 = %d, inc1 = %d, inc2 = %d' % (kde0.inc, kde1.inc,kde2.inc))
+    
+
 def test_docstrings():
     import doctest
     doctest.testmod()
@@ -3038,4 +3057,5 @@ if __name__ == '__main__':
     #test_docstrings()
     #kde_demo2()
     #kreg_demo1(fast=True)
-    kde_gauss_demo()
+    #kde_gauss_demo()
+    kreg_demo1()

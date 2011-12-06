@@ -873,13 +873,10 @@ class RegLogit(object):
             nulldev = self.loglike (tb0, y, X, z, z1)[0]
         else:
             nulldev = dev
-      
-      
+
         # maximize likelihood using Levenberg modified Newton's method
-        iter = 0;
-        stop = False
-        while not stop:
-            iter += 1
+        for i in range(self.maxiter+1):
+            
             tbold = tb;
             devold = dev;
             tb = tbold - np.linalg.lstsq(d2l, dl)[0]
@@ -907,7 +904,9 @@ class RegLogit(object):
                 print(np.linalg.eig(d2l)[0].T);
                 #end
                 #end
-            stop = np.abs(np.dot(dl, np.linalg.lstsq(d2l, dl)[0]) / len(dl)) <= tol or iter>self.maxiter
+            stop = np.abs(np.dot(dl, np.linalg.lstsq(d2l, dl)[0]) / len(dl)) <= tol 
+            if stop:
+                break
             #end %while
         
         #% tidy up output
@@ -975,8 +974,8 @@ class RegLogit(object):
         self.dispersion = 1;
         self.R2 = R2;
         self.R2adj = R2adj;
-        self.numiter = iter;
-        self.converged = iter<self.maxiter;
+        self.numiter = i
+        self.converged = i<self.maxiter;
         self.note = '';
         self.date = now()
         
@@ -1270,6 +1269,93 @@ def test_reglogit():
     [mu,plo,pup] = b.predict(fulloutput=True);
     pass
     #plot(x,mu,'g',x,plo,'r:',x,pup,'r:')
+def test_reglogit2():
+    n = 40
+    x = np.sort(5*np.random.rand(n, 1)-2.5, axis=0)
+    y = (np.cos(x)>2*np.random.rand(n,1)-1)
+    b = RegLogit()
+    b.fit(y,x)
+    #b.display() #% members and methods
+    b.summary()
+    [mu,plo,pup] = b.predict(fulloutput=True);
+    import matplotlib.pyplot as pl
+    pl.plot(x,mu,'g',x,plo,'r:',x,pup,'r:')
+    pl.show()
+    
+def test_sklearn0():
+    from sklearn.linear_model import LogisticRegression
+    from sklearn import datasets
+    
+    # FIXME: the iris dataset has only 4 features!
+    iris = datasets.load_iris()
+    X = iris.data
+    y = iris.target
+    
+    X = np.sort(5*np.random.rand(40, 1)-2.5, axis=0)
+    y = (2*(np.cos(X)>2*np.random.rand(40, 1)-1)-1).ravel()
+    
+    score = []
+    # Set regularization parameter
+    cvals = np.logspace(-1,1,5)
+    for C in cvals:
+        clf_LR = LogisticRegression(C=C, penalty='l2')
+        clf_LR.fit(X, y)
+        score.append(clf_LR.score(X,y))
+            
+    plot(cvals, score)
+
+def test_sklearn():
+    X = np.sort(5*np.random.rand(40, 1)-2.5, axis=0)
+    y = (2*(np.cos(X)>2*np.random.rand(40, 1)-1)-1).ravel()
+    from sklearn.svm import SVR
+    
+    
+    
+    ###############################################################################
+    # look at the results
+    import pylab as pl
+    pl.scatter(X, .5*np.cos(X)+0.5, c='k', label='True model')
+    pl.hold('on')
+    cvals= np.logspace(-1,3,20)
+    score = []
+    for c in cvals:
+        svr_rbf = SVR(kernel='rbf', C=c, gamma=0.1, probability=True)
+        svrf = svr_rbf.fit(X, y)
+        y_rbf = svrf.predict(X)
+        score.append(svrf.score(X,y))
+        pl.plot(X, y_rbf, label='RBF model c=%g' % c)
+    pl.xlabel('data')
+    pl.ylabel('target')
+    pl.title('Support Vector Regression')
+    pl.legend()
+    pl.show()
+
+def test_sklearn1():
+    X = np.sort(5*np.random.rand(40, 1)-2.5, axis=0)
+    y = (2*(np.cos(X)>2*np.random.rand(40, 1)-1)-1).ravel()
+    from sklearn.svm import SVR
+    
+    cvals= np.logspace(-1,4,10)
+    svr_rbf = SVR(kernel='rbf', C=1e4, gamma=0.1, probability=True)
+    svr_lin = SVR(kernel='linear', C=1e4, probability=True)
+    svr_poly = SVR(kernel='poly', C=1e4, degree=2, probability=True)
+    y_rbf = svr_rbf.fit(X, y).predict(X)
+    y_lin = svr_lin.fit(X, y).predict(X)
+    y_poly = svr_poly.fit(X, y).predict(X)
+    
+    ###############################################################################
+    # look at the results
+    import pylab as pl
+    pl.scatter(X, .5*np.cos(X)+0.5, c='k', label='True model')
+    pl.hold('on')
+    pl.plot(X, y_rbf, c='g', label='RBF model')
+    pl.plot(X, y_lin, c='r', label='Linear model')
+    pl.plot(X, y_poly, c='b', label='Polynomial model')
+    pl.xlabel('data')
+    pl.ylabel('target')
+    pl.title('Support Vector Regression')
+    pl.legend()
+    pl.show()
     
 def test_doctstrings():
     #_test_dispersion_idx() 
@@ -1278,6 +1364,6 @@ def test_doctstrings():
     
     
 if __name__ == '__main__':
-    test_reglogit()
+    test_reglogit2()
     #test_doctstrings()(
     
