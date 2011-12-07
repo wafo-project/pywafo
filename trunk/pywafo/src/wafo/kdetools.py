@@ -15,6 +15,7 @@ from misc import tranproc #, trangood
 from numpy import pi, sqrt, atleast_2d, exp, newaxis #@UnresolvedImport
 from scipy import interpolate, linalg, sparse
 from scipy.special import gamma
+import scipy.special as special
 import scipy.optimize as optimize
 from wafo.misc import meshgrid, nextpow2
 from wafo.wafodata import WafoData
@@ -26,6 +27,9 @@ import numpy as np
 import scipy
 import warnings
 import matplotlib.pyplot as plt
+
+def _invnorm(q):
+    return special.ndtri(q)
 
 _stats_epan = (1. / 5, 3. / 5, np.inf)
 _stats_biwe = (1. / 7, 5. / 7, 45. / 2)
@@ -338,7 +342,7 @@ class _KDE(object):
         self._sigma = np.minimum(np.std(self.dataset, axis= -1, ddof=1), iqr / 1.34)
         #xyzrange = amax - amin
         #offset = xyzrange / 4.0
-        offset = 2 * self._sigma
+        offset = self._sigma
         if self.xmin is None:
             self.xmin = amin - offset
         else:
@@ -1042,7 +1046,7 @@ class KRegression(_KDE):
         s0 = grdfun(*args, r=0)
         t0 = grdfun(*args, r=0, y=self.y)
         if self.p==0:
-            return t0 / s0
+            return (t0 / s0).clip(min=-_REALMAX, max=_REALMAX)
         elif self.p==1:
             s1 = grdfun(*args, r=1)
             s2 = grdfun(*args, r=2)
@@ -2974,7 +2978,7 @@ def kreg_demo1(hs=None, fast=False, fun='hisj'):
     kreg.p=1
     f1 = kreg(output='plot', title='Kernel regression', plotflag=1)
     f1.plot(label='p=1')
-    print(f1.data)
+    #print(f1.data)
     plt.plot(x, y, '.', label='data')
     plt.plot(x, y0, 'k', label='True model')
     plt.legend()
@@ -2983,15 +2987,71 @@ def kreg_demo1(hs=None, fast=False, fun='hisj'):
     
     print(kreg.tkde.tkde.inv_hs)
     print(kreg.tkde.tkde.hs) 
-def kreg_demo2(n=100):
-    
 
-    x = np.sort(5*np.random.rand(n,1)-2.5, axis=0)
+_REALMIN = np.finfo(float).machar.xmin
+_REALMAX = np.finfo(float).machar.xmax
+_EPS = np.finfo(float).eps
+def _logit(p):
+    #pc = p.clip(min=_REALMIN)
+    return (np.log(p)-np.log1p(-p)).clip(min=-40,max=40) 
+def _logitinv(x):
+    return 1.0/(np.exp(-x)+1)    
+
+
+def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj'):
+    x = np.sort(6*np.random.rand(n,1)-3, axis=0)
     y = (np.cos(x)>2*np.random.rand(n, 1)-1).ravel()
-
-    kreg = KRegression(x.ravel(),y)
+    x = x.ravel()
+    
+    kernel = Kernel('gauss',fun=fun)
+    hopt = kernel.get_smoothing(x)/2
+    if hs is None:
+        hs = hopt
+    if symmetric:
+        xi = np.hstack((x.ravel(),-x.ravel()))
+        yi = np.hstack((y, y))
+        i = np.argsort(xi)
+        x = xi[i]
+        y = yi[i]
+    
+    xmin, xmax = x.min(), x.max()    
+    ni = int(2*(xmax-xmin)/hopt)
+    print(ni)
+     
+    xi = np.linspace(xmin-hopt,xmax+hopt, ni)
+    c = gridcount(x, xi)
+    c0 = gridcount(x[y==True],xi)
+    
+    yi = np.where(c==0, 0, c0/c)
+    logyi = np.log(yi).clip(min=-15)
+    #plt.scatter(xi,logyi)
+    #return
+    #print(logyi)
+    
+    gkreg = KRegression(xi, yi, hs=hs, xmin=xmin-2*hopt,xmax=xmax+2*hopt)
+    fg = gkreg.eval_grid(xi,output='plotobj', title='Kernel regression', plotflag=1)
+    pi = fg.data
+    
+    alpha=0.05
+    z0 = -_invnorm(alpha/2)
+    
+    pup = (pi + z0*np.sqrt(pi*(1-pi)/c)).clip(min=0,max=1)
+    plo = (pi - z0*np.sqrt(pi*(1-pi)/c)).clip(min=0,max=1)
+    #print(fg.data)
+    #fg.data = np.exp(fg.data)
+    
+    fg.plot(label='KReg grid')
+    
+    kreg = KRegression(x, y, hs=hs)
     f = kreg(output='plotobj', title='Kernel regression', plotflag=1)
-    f.plot()
+    f.plot(label='KRegression')
+    
+    plt.plot(xi, pup,'r--', xi, plo,'r--', label='%d CI' % (int(100*(1-alpha))))
+    plt.plot(xi, 0.5*np.cos(xi)+.5, label='True model')
+    plt.scatter(xi,yi, label='data')
+    print(np.nanmax(f.data))
+    print(kreg.tkde.tkde.hs)
+    plt.legend()
     plt.show()
     
 def kde_gauss_demo(n=50):
@@ -3058,4 +3118,4 @@ if __name__ == '__main__':
     #kde_demo2()
     #kreg_demo1(fast=True)
     #kde_gauss_demo()
-    kreg_demo1()
+    kreg_demo2()
