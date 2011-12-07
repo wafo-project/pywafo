@@ -205,6 +205,193 @@ def polyder(p, m=1):
             return poly1d(val)
         return val
     
+def unfinished_polydeg(x,y):
+    '''
+    Return optimal degree for polynomial fitting.
+    N = POLYDEG(X,Y) finds the optimal degree for polynomial fitting
+    according to the Akaike's information criterion.
+    
+    Assuming that you want to find the degree N of a polynomial that fits
+    the data Y(X) best in a least-squares sense, the Akaike's information
+    criterion is defined by:
+        2*(N+1) + n*(log(2*pi*RSS/n)+1)
+    where n is the number of points and RSS is the residual sum of squares.
+    The optimal degree N is defined here as that which minimizes <a
+    href="matlab:web('http://en.wikipedia.org/wiki/Akaike_Information_Criterion')">AIC</a>.
+    
+    Notes:
+    -----
+    If the number of data is small, POLYDEG may tend to return:
+    N = (number of points)-1.
+    
+    ORTHOFIT is more appropriate than POLYFIT for polynomial fitting with
+    relatively high degrees.
+    
+    Examples:
+    --------
+    load census
+    n = polydeg(cdate,pop)
+    
+    x = linspace(0,10,300);
+    y = sin(x.^3/100).^2 + 0.05*randn(size(x));
+    n = polydeg(x,y)
+    ys = orthofit(x,y,n);
+    plot(x,y,'.',x,ys,'k')
+    
+    Damien Garcia, 02/2008, revised 01/2010
+    
+    See also POLYFIT, ORTHOFIT.
+    '''
+    x, y = np.atleast_1d(x, y)
+    
+    N = len(x)
+    
+    
+    ## Search the optimal degree minimizing the Akaike's information criterion
+    # ---
+    #  y(x) are fitted in a least-squares sense using a polynomial of degree n
+    #  developed in a series of orthogonal polynomials.
+    
+    
+    p = y.mean()
+    ys = np.ones((N,))*p
+    AIC = 2+N*(np.log(2*pi*((ys-y)**2).sum()/N)+1)+ 4/(N-2)  #correction for small sample sizes
+    
+    p = zeros((2,2))
+    p[1,0] = x.mean()
+    PL = np.ones((2,N))
+    PL[1] = x-p[1,0]
+    
+    n = 1
+    nit = 0
+    
+    # While-loop is stopped when a minimum is detected. 3 more steps are
+    # required to take AIC noise into account and to ensure that this minimum
+    # is a (likely) global minimum.
+    
+    while nit<3:
+        if n>0:
+            p[0,n] = sum(x*PL[:,n]**2)/sum(PL[:,n]**2)
+            p[1,n] = sum(x*PL[:,n-1]*PL[:,n])/sum(PL[:,n-1]**2)
+            PL[:,n] = (x-p[0,n+1])*PL[:,n]-p[1,n+1]*PL[:,n-1]
+        #end
+        
+        tmp = sum(y*PL)/sum(PL**2)
+        ys = sum(PL*tmp,axis=-1)
+        
+        # -- Akaike's Information Criterion
+        aic = 2*(n+1)+N*(np.log(2*pi*sum((ys-y.ravel()**2)/N)+1)) + 2*(n+1)*(n+2)/(N-n-2)
+        
+        
+        if aic>=AIC:
+            nit += 1
+        else:
+            nit = 0
+            AIC = aic
+        
+        n = n+1
+            
+        if n>=N:
+            break
+    n = n-nit-1
+    
+    return n
+  
+def unfinished_orthofit(x,y,n):
+    '''
+    ORTHOFIT Fit polynomial to data.
+    YS = ORTHOFIT(X,Y,N) smooths/fits data Y(X) in a least-squares sense
+    using a polynomial of degree N and returns the smoothed data YS.
+    
+    [YS,YI] = ORTHOFIT(X,Y,N,XI) also returns the values YI of the fitting
+    polynomial at the points of a different XI array.
+    
+    YI = ORTHOFIT(X,Y,N,XI) returns only the values YI of the fitting
+    polynomial at the points of the XI array.
+    
+    [YS,P] = ORTHOFIT(X,Y,N) returns the polynomial coefficients P for use
+    with POLYVAL.
+    
+    Notes:
+    -----
+    ORTHOFIT smooths/fits data using a polynomial of degree N developed in
+    a sequence of orthogonal polynomials. ORTHOFIT is more appropriate than
+    POLYFIT for polynomial fitting and smoothing since this method does not
+    involve any matrix linear system but a simple recursive procedure.
+    Degrees much higher than 30 could be used with orthogonal polynomials,
+    whereas badly conditioned matrices may appear with a classical
+    polynomial fitting of degree typically higher than 10.
+    
+    To avoid using unnecessarily high degrees, you may let the function
+    POLYDEG choose it for you. POLYDEG finds an optimal polynomial degree
+    according to the Akaike's information criterion (available <a
+    href="matlab:web('http://www.biomecardio.com/matlab/polydeg.html')">here</a>).
+    
+    Example:
+    -------
+    x = linspace(0,10,300);
+    y = sin(x.^3/100).^2 + 0.05*randn(size(x));
+    ys = orthofit(x,y,25);
+    plot(x,y,'.',x,ys,'k')
+     try POLYFIT for comparison...
+    
+     Automatic degree determination with <a
+    href="matlab:web('http://www.biomecardio.com/matlab/polydeg.html')">POLYDEG</a>
+    n = polydeg(x,y);
+    ys = orthofit(x,y,n);
+    plot(x,y,'.',x,ys,'k')
+    
+    Reference: Méthodes de calcul numérique 2. JP Nougier. Hermes Science
+    Publications, 2001. Section 4.7 pp 116-121
+    
+    Damien Garcia, 09/2007, revised 01/2010
+    
+    See also POLYDEG, POLYFIT, POLYVAL.
+    '''
+    x, y = np.atleast_1d(x,y)
+    # Particular case: n=0
+    if n==0:
+        p = y.mean()
+        ys = np.ones(y.shape)*p   
+        return p, ys
+    
+    
+    # Reshape
+    x = x.ravel()
+    siz0 = y.shape
+    y = y.ravel()
+    
+    # Coefficients of the orthogonal polynomials
+    p = np.zeros((3,n+1))
+    p[1,1] = x.mean()
+    
+    N = len(x)
+    PL = np.ones((N,n+1))
+    PL[:,1] = x-p[1,1]
+    
+    for i in range(2,n+1):
+        p[1,i] = sum(x*PL[:,i-1]**2)/sum(PL[:,i-1]**2)
+        p[2,i] = sum(x*PL[:,i-2]*PL[:,i-1])/sum(PL[:,i-2]**2)
+        PL[:,i] = (x-p[1,i])*PL[:,i-1]-p[2,i]*PL[:,i-2]
+    #end
+    p[0,:] = sum(PL*y)/sum(PL**2);
+    
+    # ys = smoothed y
+    #ys = sum(PL*p(0,:) axis=1)
+    #ys.shape = siz0
+    
+    
+    # Coefficients of the polynomial in its final form
+    
+    yi = np.zeros((n+1,n+1))
+    yi[0,n] = 1
+    yi[1,n-1:n+1] = 1 -p[1,1]
+    for i in range(2, n+1):
+        yi[i,:] = np.hstack((yi[i-1,1:], 0))-p[1,i]*yi[i-1,:]-p[2,i]*yi[i-2,:];
+    
+    p = sum(p[0,:]*yi, axis=0)
+    return p
+   
 def polyreloc(p, x, y=0.0):
     """
     Relocate polynomial
