@@ -15,6 +15,7 @@ from misc import tranproc #, trangood
 from numpy import pi, sqrt, atleast_2d, exp, newaxis #@UnresolvedImport
 from scipy import interpolate, linalg, sparse
 from scipy.special import gamma
+from scipy.ndimage.morphology import distance_transform_edt
 import scipy.special as special
 import scipy.optimize as optimize
 from wafo.misc import meshgrid, nextpow2
@@ -3027,233 +3028,214 @@ def unfinished_smoothn(data,s=None, weight=None, robust=False, z0=None, tolz=1e-
    
     # Weights. Zero weights are assigned to not finite values (Inf or NaN),
     # (Inf/NaN values = missing data).
-    IsFinite = np.isfinite(y);
-    nof = sum(IsFinite) # number of finite elements
-    W = W*IsFinite
-    if any(W<0):
+    IsFinite = np.isfinite(y)
+    nof = IsFinite.sum() # number of finite elements
+    W = W * IsFinite
+    if (W<0).any():
         raise ValueError('Weights must all be >=0')
     else: 
         W = W/W.max()
     
+    # Weighted or missing data?
+    isweighted = (W<1).any()
     
-    #% Weighted or missing data?
-#    isweighted = any(W(:)<1);
-#    %---
-#    % Robust smoothing?
-#    isrobust = any(strcmpi(varargin,'robust'));
-#    %---
-#    % Automatic smoothing?
-#    isauto = isempty(s);
-#    %---
-#    % DCTN and IDCTN are required
-#    test4DCTNandIDCTN
-#    
-#    %% Creation of the Lambda tensor
-#    %---
-#    % Lambda contains the eingenvalues of the difference matrix used in this
-#    % penalized least squares process.
-#    d = ndims(y);
-#    Lambda = zeros(sizy);
-#    for i = 1:d
-#        siz0 = ones(1,d);
-#        siz0(i) = sizy(i);
-#        Lambda = bsxfun(@plus,Lambda,...
-#            cos(pi*(reshape(1:sizy(i),siz0)-1)/sizy(i)));
-#    end
-#    Lambda = -2*(d-Lambda);
-#    if ~isauto, Gamma = 1./(1+s*Lambda.^2); end
-#    
-#    %% Upper and lower bound for the smoothness parameter
-#    % The average leverage (h) is by definition in [0 1]. Weak smoothing occurs
-#    % if h is close to 1, while over-smoothing appears when h is near 0. Upper
-#    % and lower bounds for h are given to avoid under- or over-smoothing. See
-#    % equation relating h to the smoothness parameter (Equation #12 in the
-#    % referenced CSDA paper).
-#    N = sum(sizy~=1); % tensor rank of the y-array
-#    hMin = 1e-6; hMax = 0.99;
-#    sMinBnd = (((1+sqrt(1+8*hMax.^(2/N)))/4./hMax.^(2/N)).^2-1)/16;
-#    sMaxBnd = (((1+sqrt(1+8*hMin.^(2/N)))/4./hMin.^(2/N)).^2-1)/16;
-#    
-#    %% Initialize before iterating
-#    %---
-#    Wtot = W;
-#    %--- Initial conditions for z
-#    if isweighted
-#        %--- With weighted/missing data
-#        % An initial guess is provided to ensure faster convergence. For that
-#        % purpose, a nearest neighbor interpolation followed by a coarse
-#        % smoothing are performed.
-#        %---
-#        if isinitial % an initial guess (z0) has been provided
-#            z = z0;
-#        else
-#            z = InitialGuess(y,IsFinite);
-#        end
-#    else
-#        z = zeros(sizy);
-#    end
-#    %---
-#    z0 = z;
-#    y(~IsFinite) = 0; % arbitrary values for missing y-data
-#    %---
-#    tol = 1;
-#    RobustIterativeProcess = true;
-#    RobustStep = 1;
-#    nit = 0;
-#    %--- Error on p. Smoothness parameter s = 10^p
-#    errp = 0.1;
-#    opt = optimset('TolX',errp);
-#    %--- Relaxation factor RF: to speedup convergence
-#    RF = 1 + 0.75*isweighted;
-#    
-#    %% Main iterative process
-#    %---
-#    while RobustIterativeProcess
-#        %--- "amount" of weights (see the function GCVscore)
-#        aow = sum(Wtot(:))/noe; % 0 < aow <= 1
-#        %---
-#        while tol>TolZ && nit<MaxIter
-#            nit = nit+1;
-#            DCTy = dctn(Wtot.*(y-z)+z);
-#            if isauto && ~rem(log2(nit),1)
-#                %---
-#                % The generalized cross-validation (GCV) method is used.
-#                % We seek the smoothing parameter s that minimizes the GCV
-#                % score i.e. s = Argmin(GCVscore).
-#                % Because this process is time-consuming, it is performed from
-#                % time to time (when nit is a power of 2)
-#                %---
-#                fminbnd(@gcv,log10(sMinBnd),log10(sMaxBnd),opt);
-#            end
-#            z = RF*idctn(Gamma.*DCTy) + (1-RF)*z;
-#            
-#            % if no weighted/missing data => tol=0 (no iteration)
-#            tol = isweighted*norm(z0(:)-z(:))/norm(z(:));
-#           
-#            z0 = z; % re-initialization
-#        end
-#        exitflag = nit<MaxIter;
-#    
-#        if isrobust %-- Robust Smoothing: iteratively re-weighted process
-#            %--- average leverage
-#            h = sqrt(1+16*s); h = sqrt(1+h)/sqrt(2)/h; h = h^N;
-#            %--- take robust weights into account
-#            Wtot = W.*RobustWeights(y-z,IsFinite,h,weightstr);
-#            %--- re-initialize for another iterative weighted process
-#            isweighted = true; tol = 1; nit = 0; 
-#            %---
-#            RobustStep = RobustStep+1;
-#            RobustIterativeProcess = RobustStep<4; % 3 robust steps are enough.
-#        else
-#            RobustIterativeProcess = false; % stop the whole process
-#        end
-#    end
-#    
-#    %% Warning messages
-#    %---
-#    if isauto
-#        if abs(log10(s)-log10(sMinBnd))<errp
-#            warning('MATLAB:smoothn:SLowerBound',...
-#                ['s = ' num2str(s,'%.3e') ': the lower bound for s ',...
-#                'has been reached. Put s as an input variable if required.'])
-#        elseif abs(log10(s)-log10(sMaxBnd))<errp
-#            warning('MATLAB:smoothn:SUpperBound',...
-#                ['s = ' num2str(s,'%.3e') ': the upper bound for s ',...
-#                'has been reached. Put s as an input variable if required.'])
-#        end
-#    end
-#    if nargout<3 && ~exitflag
-#        warning('MATLAB:smoothn:MaxIter',...
-#            ['Maximum number of iterations (' int2str(MaxIter) ') has ',...
-#            'been exceeded. Increase MaxIter option or decrease TolZ value.'])
-#    end
-#    
-#    
-#    %% GCV score
-#    %---
-#    function GCVscore = gcv(p)
-#        % Search the smoothing parameter s that minimizes the GCV score
-#        %---
-#        s = 10^p;
-#        Gamma = 1./(1+s*Lambda.^2);
-#        %--- RSS = Residual sum-of-squares
-#        if aow>0.9 % aow = 1 means that all of the data are equally weighted
-#            % very much faster: does not require any inverse DCT
-#            RSS = norm(DCTy(:).*(Gamma(:)-1))^2;
-#        else
-#            % take account of the weights to calculate RSS:
-#            yhat = idctn(Gamma.*DCTy);
-#            RSS = norm(sqrt(Wtot(IsFinite)).*(y(IsFinite)-yhat(IsFinite)))^2;
-#        end
-#        %---
-#        TrH = sum(Gamma(:));
-#        GCVscore = RSS/nof/(1-TrH/noe)^2;
-#    end
-#    
-#    end
-#    
-#    %% Robust weights
-#    function W = RobustWeights(r,I,h,wstr)
-#        % weights for robust smoothing.
-#        MAD = median(abs(r(I)-median(r(I)))); % median absolute deviation
-#        u = abs(r/(1.4826*MAD)/sqrt(1-h)); % studentized residuals
-#        if strcmp(wstr,'cauchy')
-#            c = 2.385; W = 1./(1+(u/c).^2); % Cauchy weights
-#        elseif strcmp(wstr,'talworth')
-#            c = 2.795; W = u<c; % Talworth weights
-#        else
-#            c = 4.685; W = (1-(u/c).^2).^2.*((u/c)<1); % bisquare weights
-#        end
-#        W(isnan(W)) = 0;
-#    end
-#    
-#    %% Test for DCTN and IDCTN
-#    function test4DCTNandIDCTN
-#        if ~exist('dctn','file')
-#            error('MATLAB:smoothn:MissingFunction',...
-#                ['DCTN and IDCTN are required. Download DCTN <a href="matlab:web(''',...
-#                'http://www.biomecardio.com/matlab/dctn.html'')">here</a>.'])
-#        elseif ~exist('idctn','file')
-#            error('MATLAB:smoothn:MissingFunction',...
-#                ['DCTN and IDCTN are required. Download IDCTN <a href="matlab:web(''',...
-#                'http://www.biomecardio.com/matlab/idctn.html'')">here</a>.'])
-#        end
-#    end
-#    
-#    %% Initial Guess with weighted/missing data
-#    function z = InitialGuess(y,I)
-#        %-- nearest neighbor interpolation (in case of missing values)
-#        if any(~I(:))
-#            if license('test','image_toolbox')
-#                [z,L] = bwdist(I);
-#                z = y;
-#                z(~I) = y(L(~I));
-#            else
-#            % If BWDIST does not exist, NaN values are all replaced with the
-#            % same scalar. The initial guess is not optimal and a warning
-#            % message thus appears.
-#                z = y;
-#                z(~I) = mean(y(I));
-#                warning('MATLAB:smoothn:InitialGuess',...
-#                    ['BWDIST (Image Processing Toolbox) does not exist. ',...
-#                    'The initial guess may not be optimal; additional',...
-#                    ' iterations can thus be required to ensure complete',...
-#                    ' convergence. Increase ''MaxIter'' criterion if necessary.'])    
-#            end
-#        else
-#            z = y;
-#        end
-#        %-- coarse fast smoothing using one-tenth of the DCT coefficients
-#        siz = size(z);
-#        z = dctn(z);
-#        for k = 1:ndims(z)
-#            z(ceil(siz(k)/10)+1:end,:) = 0;
-#            z = reshape(z,circshift(siz,[0 1-k]));
-#            z = shiftdim(z,1);
-#        end
-#        z = idctn(z);
-#    end
-
+    
+    # Automatic smoothing?
+    isauto = s is None
+    # Creation of the Lambda tensor
+    # Lambda contains the eingenvalues of the difference matrix used in this
+    # penalized least squares process.
+    d = y.ndim
+    Lambda = zeros(sizy)
+    siz0 = (1,)*d
+    for i in range(d):
+        siz0[i] = sizy(i)
+        Lambda = Lambda + cos(pi*np.arange(sizy(i))/sizy[i]).reshape(siz0)
+        siz0[i] = 1
+    
+    Lambda = -2*(d-Lambda)
+    if not isauto: 
+        Gamma = 1./(1 + s * Lambda ** 2)
+    
+    # Upper and lower bound for the smoothness parameter
+    # The average leverage (h) is by definition in [0 1]. Weak smoothing occurs
+    # if h is close to 1, while over-smoothing appears when h is near 0. Upper
+    # and lower bounds for h are given to avoid under- or over-smoothing. See
+    # equation relating h to the smoothness parameter (Equation #12 in the
+    # referenced CSDA paper).
+    N = (np.array(sizy)!=1).sum() # tensor rank of the y-array
+    hMin = 1e-6; 
+    hMax = 0.99;
+    sMinBnd = (((1+sqrt(1+8*hMax**(2/N)))/4./hMax**(2/N))**2-1)/16
+    sMaxBnd = (((1+sqrt(1+8*hMin**(2/N)))/4./hMin**(2/N))**2-1)/16
+    
+    # Initialize before iterating
+    
+    Wtot = W;
+    # Initial conditions for z
+    if weight is None:
+        z = zeros(sizy)
+    else:
+        # With weighted/missing data
+        # An initial guess is provided to ensure faster convergence. For that
+        # purpose, a nearest neighbor interpolation followed by a coarse
+        # smoothing are performed.
+        
+        if z0 is None: 
+            z = InitialGuess(y,IsFinite);
+        else:
+            # an initial guess (z0) has been provided
+            z = z0    
+    z0 = z
+    y[1-IsFinite] = 0 # arbitrary values for missing y-data
+    
+    tol = 1
+    RobustIterativeProcess = True
+    RobustStep = 1;
+    nit = 0;
+    # Error on p. Smoothness parameter s = 10^p
+    errp = 0.1;
+    opt = optimset('TolX',errp);
+    # Relaxation factor RF: to speedup convergence
+    RF = 1 + 0.75 if weight else 1.0
+    
+    # Main iterative process
+    while RobustIterativeProcess
+        # "amount" of weights (see the function GCVscore)
+        aow = Wtot.sum()/noe # 0 < aow <= 1
+        
+        while tol>TolZ && nit<MaxIter
+            nit = nit+1;
+            DCTy = dctn(Wtot*(y-z)+z)
+            if isauto and not rem(log2(nit),1):
+            
+                # The generalized cross-validation (GCV) method is used.
+                # We seek the smoothing parameter s that minimizes the GCV
+                # score i.e. s = Argmin(GCVscore).
+                # Because this process is time-consuming, it is performed from
+                # time to time (when nit is a power of 2)
+                fminbnd(@gcv,log10(sMinBnd),log10(sMaxBnd),opt);
+            
+            z = RF*idctn(Gamma*DCTy) + (1-RF)*z
+            
+            # if no weighted/missing data => tol=0 (no iteration)
+            tol = norm(z0(:)-z(:))/norm(z(:)) if weight else 0.0
+           
+            z0 = z # re-initialization
+        end
+        exitflag = nit<MaxIter;
+    
+        if robust:  #-- Robust Smoothing: iteratively re-weighted process
+            #--- average leverage
+            h = sqrt(1+16*s) 
+            h = sqrt(1+h)/sqrt(2)/h; 
+            h = h**N
+            # take robust weights into account
+            Wtot = W*RobustWeights(y-z, IsFinite, h, weightstr)
+            #re-initialize for another iterative weighted process
+            isweighted = true; 
+            tol = 1; 
+            nit = 0; 
+            #%---
+            RobustStep = RobustStep+1;
+            RobustIterativeProcess = RobustStep<4; # 3 robust steps are enough.
+        else:
+            RobustIterativeProcess = False # stop the whole process
+        
+    
+    
+    # Warning messages
+    if isauto
+        if abs(log10(s)-log10(sMinBnd))<errp
+            warnings.warn('''s = %g: the lower bound for s has been reached. 
+            Put s as an input variable if required.''' % s)
+        elif abs(log10(s)-log10(sMaxBnd))<errp:
+             warnings.warn('''s = %g: the Upper bound for s has been reached. 
+            Put s as an input variable if required.''' % s)
+           
+    if nargout<3 && ~exitflag
+        warning('MATLAB:smoothn:MaxIter',...
+            ['Maximum number of iterations (' int2str(MaxIter) ') has ',...
+            'been exceeded. Increase MaxIter option or decrease TolZ value.'])
+    end
+    
+    def gcv(p, Lambda, DCTy, y, Wtot, IsFinite, nof, noe):
+        # Search the smoothing parameter s that minimizes the GCV score
+        s = 10**p
+        Gamma = 1./(1+s*Lambda**2)
+        # RSS = Residual sum-of-squares
+        if aow>0.9: # aow = 1 means that all of the data are equally weighted
+            # very much faster: does not require any inverse DCT
+            RSS = norm(DCTy.ravel()*(Gamma.ravel()-1))**2
+        else:
+            # take account of the weights to calculate RSS:
+            yhat = idctn(Gamma*DCTy)
+            RSS = norm(sqrt(Wtot[IsFinite])*(y[IsFinite]-yhat[IsFinite]))**2
+        end
+        
+        TrH = Gamma.sum()
+        GCVscore = RSS/nof/(1.0-TrH/noe)**2
+        return GCVScore
+    
+    
+    # Robust weights
+    def RobustWeights(r,I,h,wstr):
+        #weights for robust smoothing.
+        MAD = median(abs(r[I]-median(r[I]))) # median absolute deviation
+        u = abs(r/(1.4826*MAD)/sqrt(1-h)) # studentized residuals
+        if wstr == 'cauchy':
+            c = 2.385; 
+            W = 1./(1+(u/c).^2); % Cauchy weights
+        elif wstr=='talworth':
+            c = 2.795; 
+            W = u<c # Talworth weights
+        else:
+            c = 4.685
+            W = (1-(u/c)**2)**2*((u/c)<1) # bisquare weights
+        
+        W[isnan(W)] = 0
+        return W
+    
+    
+   
+    
+    # Initial Guess with weighted/missing data
+    def z = InitialGuess(y,I):
+        # nearest neighbor interpolation (in case of missing values)
+        if any(~I(:))
+            if license('test','image_toolbox')
+                z, L = distance_transform_edt(1-I,  return_indices=True)
+                [z,L] = bwdist(I);
+                z = y;
+                z(~I) = y(L(~I));
+            else
+            % If BWDIST does not exist, NaN values are all replaced with the
+            % same scalar. The initial guess is not optimal and a warning
+            % message thus appears.
+                z = y;
+                z(~I) = mean(y(I));
+                warning('MATLAB:smoothn:InitialGuess',...
+                    ['BWDIST (Image Processing Toolbox) does not exist. ',...
+                    'The initial guess may not be optimal; additional',...
+                    ' iterations can thus be required to ensure complete',...
+                    ' convergence. Increase ''MaxIter'' criterion if necessary.'])    
+            end
+        else
+            z = y;
+        end
+        %-- coarse fast smoothing using one-tenth of the DCT coefficients
+        siz = size(z);
+        z = dctn(z);
+        for k = 1:ndims(z)
+            z(ceil(siz(k)/10)+1:end,:) = 0;
+            z = reshape(z,circshift(siz,[0 1-k]));
+            z = shiftdim(z,1);
+        end
+        z = idctn(z);
+        
+        return z
+    
+    
 
 def kde_demo1():
     '''
