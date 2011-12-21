@@ -3046,11 +3046,11 @@ def unfinished_smoothn(data,s=None, weight=None, robust=False, z0=None, tolz=1e-
     # Lambda contains the eingenvalues of the difference matrix used in this
     # penalized least squares process.
     d = y.ndim
-    Lambda = zeros(sizy)
+    Lambda = np.zeros(sizy)
     siz0 = (1,)*d
     for i in range(d):
         siz0[i] = sizy(i)
-        Lambda = Lambda + cos(pi*np.arange(sizy(i))/sizy[i]).reshape(siz0)
+        Lambda = Lambda + np.cos(pi*np.arange(sizy(i))/sizy[i]).reshape(siz0)
         siz0[i] = 1
     
     Lambda = -2*(d-Lambda)
@@ -3074,7 +3074,7 @@ def unfinished_smoothn(data,s=None, weight=None, robust=False, z0=None, tolz=1e-
     Wtot = W;
     # Initial conditions for z
     if weight is None:
-        z = zeros(sizy)
+        z = np.zeros(sizy)
     else:
         # With weighted/missing data
         # An initial guess is provided to ensure faster convergence. For that
@@ -3146,10 +3146,10 @@ def unfinished_smoothn(data,s=None, weight=None, robust=False, z0=None, tolz=1e-
     
     # Warning messages
     if isauto
-        if abs(log10(s)-log10(sMinBnd))<errp
+        if abs(np.log10(s)-np.log10(sMinBnd))<errp
             warnings.warn('''s = %g: the lower bound for s has been reached. 
             Put s as an input variable if required.''' % s)
-        elif abs(log10(s)-log10(sMaxBnd))<errp:
+        elif abs(np.log10(s)-np.log10(sMaxBnd))<errp:
              warnings.warn('''s = %g: the Upper bound for s has been reached. 
             Put s as an input variable if required.''' % s)
            
@@ -3196,22 +3196,19 @@ def unfinished_smoothn(data,s=None, weight=None, robust=False, z0=None, tolz=1e-
         W[isnan(W)] = 0
         return W
     
-    
-   
-    
     # Initial Guess with weighted/missing data
     def z = InitialGuess(y,I):
         # nearest neighbor interpolation (in case of missing values)
-        if any(~I(:))
+        if (1-I).any():
             if license('test','image_toolbox')
                 z, L = distance_transform_edt(1-I,  return_indices=True)
                 [z,L] = bwdist(I);
                 z = y;
                 z(~I) = y(L(~I));
             else
-            % If BWDIST does not exist, NaN values are all replaced with the
-            % same scalar. The initial guess is not optimal and a warning
-            % message thus appears.
+            #% If BWDIST does not exist, NaN values are all replaced with the
+            #% same scalar. The initial guess is not optimal and a warning
+            #% message thus appears.
                 z = y;
                 z(~I) = mean(y(I));
                 warning('MATLAB:smoothn:InitialGuess',...
