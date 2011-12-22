@@ -193,7 +193,7 @@ class KDEgauss(object):
     def _eval_grid_fast(self, *args, **kwds):
         X = np.vstack(args)
         d, inc = X.shape
-        dx = X[:, 1] - X[:, 0]
+        #dx = X[:, 1] - X[:, 0]
         R = X.max(axis=-1)- X.min(axis=-1)
         
         t_star = (self.hs/R)**2
@@ -2401,24 +2401,24 @@ def _compute_qth_weighted_percentile(a, q, axis, out, method, weights, overwrite
     
     shape0 = a.shape
     if axis is None:
-        sorted = a.ravel()
+        sorted_ = a.ravel()
     else:
         taxes = range(a.ndim) 
         taxes[-1], taxes[axis] = taxes[axis], taxes[-1] 
-        sorted = np.transpose(a, taxes).reshape(-1, shape0[axis])
+        sorted_ = np.transpose(a, taxes).reshape(-1, shape0[axis])
         
-    ind = sorted.argsort(axis= -1)
+    ind = sorted_.argsort(axis= -1)
     if overwrite_input:
-        sorted.sort(axis= -1)
+        sorted_.sort(axis= -1)
     else:
-        sorted = np.sort(sorted, axis= -1)
+        sorted_ = np.sort(sorted_, axis= -1)
      
     w = np.atleast_1d(weights)
     n = len(w)
     w = w * n / w.sum()
     
     # Work on each column separately because of weight vector
-    m = sorted.shape[0]
+    m = sorted_.shape[0]
     nq = len(q)
     y = np.zeros((m, nq))
     pk_fun = _PKDICT.get(method, 1)
@@ -2426,8 +2426,8 @@ def _compute_qth_weighted_percentile(a, q, axis, out, method, weights, overwrite
         sortedW = w[ind[i]]            # rearrange the weight according to ind
         k = sortedW.cumsum()           # cumulative weight
         pk = pk_fun(k, sortedW, n)     # different algorithm to compute percentile
-        # Interpolation between pk and sorted for given value of q
-        y[i] = np.interp(q, pk, sorted[i])
+        # Interpolation between pk and sorted_ for given value of q
+        y[i] = np.interp(q, pk, sorted_[i])
     if axis is None:
         return np.squeeze(y)
     else:
@@ -2448,9 +2448,9 @@ _KDICT = {1:lambda p, n: p * (n - 1),
           4:lambda p, n: p * (n + 1) - 1,
           5:lambda p, n: p * (n + 1. / 3) - 2. / 3,
           6:lambda p, n: p * (n + 1. / 4) - 5. / 8}
-def _compute_qth_percentile(sorted, q, axis, out, method):
+def _compute_qth_percentile(sorted_, q, axis, out, method):
     if not np.isscalar(q):
-        p = [_compute_qth_percentile(sorted, qi, axis, None, method) 
+        p = [_compute_qth_percentile(sorted_, qi, axis, None, method) 
              for qi in q]
         if out is not None:
             out.flat = p
@@ -2460,8 +2460,8 @@ def _compute_qth_percentile(sorted, q, axis, out, method):
     if (q < 0) or (q > 1):
         raise ValueError, "percentile must be in the range [0,100]"
 
-    indexer = [slice(None)] * sorted.ndim
-    Nx = sorted.shape[axis]
+    indexer = [slice(None)] * sorted_.ndim
+    Nx = sorted_.shape[axis]
     k_fun = _KDICT.get(method, 1)
     index = np.clip(k_fun(q, Nx), 0, Nx - 1)    
     i = int(index)
@@ -2473,14 +2473,14 @@ def _compute_qth_percentile(sorted, q, axis, out, method):
         indexer[axis] = slice(i, i + 2)
         j = i + 1
         weights1 = np.array([(j - index), (index - i)], float)
-        wshape = [1] * sorted.ndim
+        wshape = [1] * sorted_.ndim
         wshape[axis] = 2
         weights1.shape = wshape
         sumval = weights1.sum()
 
     # Use add.reduce in both cases to coerce data type as well as
     # check and use out array.
-    return np.add.reduce(sorted[indexer] * weights1, axis=axis, out=out) / sumval
+    return np.add.reduce(sorted_[indexer] * weights1, axis=axis, out=out) / sumval
 
 def percentile(a, q, axis=None, out=None, overwrite_input=False, method=1, weights=None):
     """
@@ -2594,17 +2594,17 @@ def percentile(a, q, axis=None, out=None, overwrite_input=False, method=1, weigh
         return _compute_qth_weighted_percentile(a, q, axis, out, method, weights, overwrite_input)
     elif overwrite_input:
         if axis is None:
-            sorted = a.ravel()
-            sorted.sort()
+            sorted_ = a.ravel()
+            sorted_.sort()
         else:
             a.sort(axis=axis)
-            sorted = a
+            sorted_ = a
     else:
-        sorted = np.sort(a, axis=axis)
+        sorted_ = np.sort(a, axis=axis)
     if axis is None:
         axis = 0
 
-    return _compute_qth_percentile(sorted, q, axis, out, method)
+    return _compute_qth_percentile(sorted_, q, axis, out, method)
 
 def iqrange(data, axis=None):
     '''
@@ -2736,7 +2736,7 @@ def gridcount(data, X, y=1):
       
     binx = np.asarray(np.floor((dat - xlo[:, newaxis]) / dx), dtype=int)
     w = dx.prod()
-    abs = np.abs
+    abs = np.abs #@ReservedAssignment
     if  d == 1:
         x.shape = (-1,)
         c = np.asarray((acfun(binx, (x[binx + 1] - dat) * y, size=(inc, )) + 
@@ -2859,68 +2859,40 @@ def evar(y):
         return noisevar/M.mean()**2
     #fun = lambda x : score_fun(x, S2, dcty2)
     Lopt = optimize.fminbound(score_fun, -38, 38, args=(S2, dcty2))
-    M = 1-1./(1+10**Lopt*S2)
+    M = 1.0-1.0/(1+10**Lopt*S2)
     noisevar = (dcty2*M**2).mean()
     return noisevar
     
-def unfinished_smoothn(data,s=None, weight=None, robust=False, z0=None, tolz=1e-3, maxiter=100):
+def smoothn(data, s=None, weight=None, robust=False, z0=None, tolz=1e-3, maxiter=100, fulloutput=False):
     '''
-    SMOOTHN Robust spline smoothing for 1-D to N-D data.
-    SMOOTHN provides a fast, automatized and robust discretized smoothing
-    spline for data of any dimension.
+    SMOOTHN fast and robust spline smoothing for 1-D to N-D data.
     
-    Z = SMOOTHN(Y) automatically smoothes the uniformly-sampled array Y. Y
-    can be any N-D noisy array (time series, images, 3D data,...). Non
-    finite data (NaN or Inf) are treated as missing values.
     
-    Z = SMOOTHN(Y,S) smoothes the array Y using the smoothing parameter S.
-    S must be a real positive scalar. The larger S is, the smoother the
-    output will be. If the smoothing parameter S is omitted (see previous
-    option) or empty (i.e. S = []), it is automatically determined using
-    the generalized cross-validation (GCV) method.
-    
-    Z = SMOOTHN(Y,W) or Z = SMOOTHN(Y,W,S) specifies a weighting array W of
-    real positive values, that must have the same size as Y. Note that a
-    nil weight corresponds to a missing value.
-    
-    Robust smoothing
-    ----------------
-    Z = SMOOTHN(...,'robust') carries out a robust smoothing that minimizes
-    the influence of outlying data.
-    
-    [Z,S] = SMOOTHN(...) also returns the calculated value for S so that
-    you can fine-tune the smoothing subsequently if needed.
-    
-    An iteration process is used in the presence of weighted and/or missing
-    values. Z = SMOOTHN(...,OPTION_NAME,OPTION_VALUE) smoothes with the
-    termination parameters specified by OPTION_NAME and OPTION_VALUE. They
-    can contain the following criteria:
-        -----------------
-        TolZ:       Termination tolerance on Z (default = 1e-3)
-                    TolZ must be in ]0,1[
-        MaxIter:    Maximum number of iterations allowed (default = 100)
-        Initial:    Initial value for the iterative process (default =
-                    original data)
-        -----------------
-    Syntax: [Z,...] = SMOOTHN(...,'MaxIter',500,'TolZ',1e-4,'Initial',Z0);
-    
-    [Z,S,EXITFLAG] = SMOOTHN(...) returns a boolean value EXITFLAG that
-    describes the exit condition of SMOOTHN:
-        1       SMOOTHN converged.
-        0       Maximum number of iterations was reached.
-    
-    Class Support
-    -------------
-    Input array can be numeric or logical. The returned array is of class
-    double.
-    
-    Notes
-    -----
-    The N-D (inverse) discrete cosine transform functions <a
-    href="matlab:web('http://www.biomecardio.com/matlab/dctn.html')"
-    >DCTN</a> and <a
-    href="matlab:web('http://www.biomecardio.com/matlab/idctn.html')"
-    >IDCTN</a> are required.
+    Parameters
+    ----------
+    data : array like
+        uniformly-sampled data array to smooth. Non finite values (NaN or Inf) 
+        are treated as missing values.
+    s : real positive scalar 
+        smooting parameter. The larger S is, the smoother the output will be.
+        Default value is automatically determined using the generalized 
+        cross-validation (GCV) method.
+    weight : string or array weights
+        weighting array of real positive values, that must have the same size as DATA. 
+        Note that a zero weight corresponds to a missing value.
+    robust  : bool
+        If true carry out a robust smoothing that minimizes the influence of outlying data.
+    tolz : real positive scalar  
+        Termination tolerance on Z (default = 1e-3)
+    maxiter :  scalar integer
+        Maximum number of iterations allowed (default = 100)
+    z0 : array-like  
+        Initial value for the iterative process (default = original data)
+   
+    Returns
+    -------
+    z : array like
+        smoothed data
     
     To be made
     ----------
@@ -2930,30 +2902,35 @@ def unfinished_smoothn(data,s=None, weight=None, robust=False, z0=None, tolz=1e-
     --------- 
     Garcia D, Robust smoothing of gridded data in one and higher dimensions
     with missing values. Computational Statistics & Data Analysis, 2010. 
-    <a
-    href="matlab:web('http://www.biomecardio.com/pageshtm/publi/csda10.pdf')">PDF download</a>
+    http://www.biomecardio.com/pageshtm/publi/csda10.pdf
     
     Examples:
     --------
-     1-D example
-    x = linspace(0,100,2^8);
-    y = cos(x/10)+(x/50).^2 + randn(size(x))/10;
-    y([70 75 80]) = [5.5 5 6];
-    z = smoothn(y);  Regular smoothing
-    zr = smoothn(y,'robust');  Robust smoothing
-    subplot(121), plot(x,y,'r.',x,z,'k','LineWidth',2)
-    axis square, title('Regular smoothing')
-    subplot(122), plot(x,y,'r.',x,zr,'k','LineWidth',2)
-    axis square, title('Robust smoothing')
+    
+    1-D example
+    >>> import matplotlib.pyplot as plt
+    >>> x = np.linspace(0,100,2**8)
+    >>> y = cos(x/10)+(x/50)**2 + np.random.randn(x.shape)/10
+    >>> y[np.r_[70, 75, 80]] = np.array([5.5, 5, 6])
+    >>> z = smoothn(y) # Regular smoothing
+    >>> zr = smoothn(y,robust=True) #  Robust smoothing
+    >>> plt.subplot(121), 
+    >>> h = plt.plot(x,y,'r.',x,z,'k',LineWidth=2)
+    >>> plt.title('Regular smoothing')
+    >>> plt.subplot(122)
+    >>> plt.plot(x,y,'r.',x,zr,'k',LineWidth=2)
+    >>> plt.title('Robust smoothing')
     
      2-D example
-    xp = 0:.02:1;
-    [x,y] = meshgrid(xp);
-    f = exp(x+y) + sin((x-2*y)*3);
-    fn = f + randn(size(f))*0.5;
-    fs = smoothn(fn);
-    subplot(121), surf(xp,xp,fn), zlim([0 8]), axis square
-    subplot(122), surf(xp,xp,fs), zlim([0 8]), axis square
+    >>> xp = np.r_[0:1:.02]
+    >>> [x,y] = np.meshgrid(xp,xp)
+    >>> f = np.exp(x+y) + np.sin((x-2*y)*3);
+    >>> fn = f + randn(size(f))*0.5;
+    >>> fs = smoothn(fn);
+    >>> plt.subplot(121), 
+    >>> plt.contourf(xp,xp,fn)
+    >>> plt.subplot(122)
+    >>> plt.contourf(xp,xp,fs)
     
      2-D example with missing data
     n = 256;
@@ -2980,7 +2957,8 @@ def unfinished_smoothn(data,s=None, weight=None, robust=False, z0=None, tolz=1e-
     subplot(122), slice(x,y,z,v,xslice,yslice,zslice,'cubic')
     title('Smoothed data')
     
-     Cardioid
+    Cardioid
+    
     t = linspace(0,2*pi,1000);
     x = 2*cos(t).*(1-cos(t)) + randn(size(t))*0.1;
     y = 2*sin(t).*(1-cos(t)) + randn(size(t))*0.1;
@@ -3024,7 +3002,9 @@ def unfinished_smoothn(data,s=None, weight=None, robust=False, z0=None, tolz=1e-
     if weight is None:
         pass
     elif isinstance(weight, str):
-        weightstr = W.lower()
+        weightstr = weight.lower()
+    else:
+        W = weight
    
     # Weights. Zero weights are assigned to not finite values (Inf or NaN),
     # (Inf/NaN values = missing data).
@@ -3047,10 +3027,10 @@ def unfinished_smoothn(data,s=None, weight=None, robust=False, z0=None, tolz=1e-
     # penalized least squares process.
     d = y.ndim
     Lambda = np.zeros(sizy)
-    siz0 = (1,)*d
+    siz0 = [1,]*d
     for i in range(d):
-        siz0[i] = sizy(i)
-        Lambda = Lambda + np.cos(pi*np.arange(sizy(i))/sizy[i]).reshape(siz0)
+        siz0[i] = sizy[i]
+        Lambda = Lambda + np.cos(pi*np.arange(sizy[i])/sizy[i]).reshape(siz0)
         siz0[i] = 1
     
     Lambda = -2*(d-Lambda)
@@ -3066,66 +3046,70 @@ def unfinished_smoothn(data,s=None, weight=None, robust=False, z0=None, tolz=1e-
     N = (np.array(sizy)!=1).sum() # tensor rank of the y-array
     hMin = 1e-6; 
     hMax = 0.99;
-    sMinBnd = (((1+sqrt(1+8*hMax**(2/N)))/4./hMax**(2/N))**2-1)/16
-    sMaxBnd = (((1+sqrt(1+8*hMin**(2/N)))/4./hMin**(2/N))**2-1)/16
+    sMinBnd = (((1+sqrt(1+8*hMax**(2./N)))/4./hMax**(2./N))**2-1)/16
+    sMaxBnd = (((1+sqrt(1+8*hMin**(2./N)))/4./hMin**(2./N))**2-1)/16
     
     # Initialize before iterating
     
     Wtot = W;
     # Initial conditions for z
-    if weight is None:
-        z = np.zeros(sizy)
-    else:
+    if isweighted:
         # With weighted/missing data
         # An initial guess is provided to ensure faster convergence. For that
         # purpose, a nearest neighbor interpolation followed by a coarse
         # smoothing are performed.
         
         if z0 is None: 
-            z = InitialGuess(y,IsFinite);
+            z = InitialGuess(y,IsFinite)
         else:
             # an initial guess (z0) has been provided
-            z = z0    
+            z = z0
+    else:
+        z = np.zeros(sizy)    
     z0 = z
     y[1-IsFinite] = 0 # arbitrary values for missing y-data
     
     tol = 1
     RobustIterativeProcess = True
     RobustStep = 1;
-    nit = 0;
+    
     # Error on p. Smoothness parameter s = 10^p
     errp = 0.1;
-    opt = optimset('TolX',errp);
+    
     # Relaxation factor RF: to speedup convergence
     RF = 1 + 0.75 if weight else 1.0
     
+    norm = linalg.norm
     # Main iterative process
-    while RobustIterativeProcess
+    while RobustIterativeProcess:
         # "amount" of weights (see the function GCVscore)
         aow = Wtot.sum()/noe # 0 < aow <= 1
-        
-        while tol>TolZ && nit<MaxIter
-            nit = nit+1;
+        exitflag = True
+        for nit in range(1,maxiter+1):
             DCTy = dctn(Wtot*(y-z)+z)
-            if isauto and not rem(log2(nit),1):
+            if isauto and not np.remainder(np.log2(nit),1):
             
                 # The generalized cross-validation (GCV) method is used.
                 # We seek the smoothing parameter s that minimizes the GCV
                 # score i.e. s = Argmin(GCVscore).
                 # Because this process is time-consuming, it is performed from
                 # time to time (when nit is a power of 2)
-                fminbnd(@gcv,log10(sMinBnd),log10(sMaxBnd),opt);
-            
+                log10s = optimize.fminbound(gcv, np.log10(sMinBnd),np.log10(sMaxBnd), args=(aow, Lambda, DCTy, y, Wtot, IsFinite, nof, noe), 
+                                   xtol=errp, full_output=False, disp=False)
+                s = 10**log10s
+                Gamma = 1.0/(1+s*Lambda**2)
             z = RF*idctn(Gamma*DCTy) + (1-RF)*z
             
             # if no weighted/missing data => tol=0 (no iteration)
-            tol = norm(z0(:)-z(:))/norm(z(:)) if weight else 0.0
-           
+            tol = norm(z0.ravel()-z.ravel())/norm(z.ravel()) if isweighted else 0.0
+            if tol<=tolz:
+                break
             z0 = z # re-initialization
-        end
-        exitflag = nit<MaxIter;
+        else:
+            exitflag = False #nit<MaxIter;
     
-        if robust:  #-- Robust Smoothing: iteratively re-weighted process
+        if robust:  
+            #-- Robust Smoothing: iteratively re-weighted process
             #--- average leverage
             h = sqrt(1+16*s) 
             h = sqrt(1+h)/sqrt(2)/h; 
@@ -3133,107 +3117,142 @@ def unfinished_smoothn(data,s=None, weight=None, robust=False, z0=None, tolz=1e-
             # take robust weights into account
             Wtot = W*RobustWeights(y-z, IsFinite, h, weightstr)
             #re-initialize for another iterative weighted process
-            isweighted = true; 
-            tol = 1; 
-            nit = 0; 
+            isweighted = True 
+            tol = 1  
             #%---
             RobustStep = RobustStep+1;
             RobustIterativeProcess = RobustStep<4; # 3 robust steps are enough.
         else:
             RobustIterativeProcess = False # stop the whole process
         
-    
-    
     # Warning messages
-    if isauto
-        if abs(np.log10(s)-np.log10(sMinBnd))<errp
+    if isauto:
+        if abs(np.log10(s)-np.log10(sMinBnd))<errp:
             warnings.warn('''s = %g: the lower bound for s has been reached. 
             Put s as an input variable if required.''' % s)
         elif abs(np.log10(s)-np.log10(sMaxBnd))<errp:
-             warnings.warn('''s = %g: the Upper bound for s has been reached. 
+            warnings.warn('''s = %g: the Upper bound for s has been reached. 
             Put s as an input variable if required.''' % s)
            
-    if nargout<3 && ~exitflag
-        warning('MATLAB:smoothn:MaxIter',...
-            ['Maximum number of iterations (' int2str(MaxIter) ') has ',...
-            'been exceeded. Increase MaxIter option or decrease TolZ value.'])
-    end
-    
-    def gcv(p, Lambda, DCTy, y, Wtot, IsFinite, nof, noe):
-        # Search the smoothing parameter s that minimizes the GCV score
-        s = 10**p
-        Gamma = 1./(1+s*Lambda**2)
-        # RSS = Residual sum-of-squares
-        if aow>0.9: # aow = 1 means that all of the data are equally weighted
-            # very much faster: does not require any inverse DCT
-            RSS = norm(DCTy.ravel()*(Gamma.ravel()-1))**2
-        else:
-            # take account of the weights to calculate RSS:
-            yhat = idctn(Gamma*DCTy)
-            RSS = norm(sqrt(Wtot[IsFinite])*(y[IsFinite]-yhat[IsFinite]))**2
-        end
-        
-        TrH = Gamma.sum()
-        GCVscore = RSS/nof/(1.0-TrH/noe)**2
-        return GCVScore
-    
-    
-    # Robust weights
-    def RobustWeights(r,I,h,wstr):
-        #weights for robust smoothing.
-        MAD = median(abs(r[I]-median(r[I]))) # median absolute deviation
-        u = abs(r/(1.4826*MAD)/sqrt(1-h)) # studentized residuals
-        if wstr == 'cauchy':
-            c = 2.385; 
-            W = 1./(1+(u/c).^2); % Cauchy weights
-        elif wstr=='talworth':
-            c = 2.795; 
-            W = u<c # Talworth weights
-        else:
-            c = 4.685
-            W = (1-(u/c)**2)**2*((u/c)<1) # bisquare weights
-        
-        W[isnan(W)] = 0
-        return W
-    
-    # Initial Guess with weighted/missing data
-    def z = InitialGuess(y,I):
-        # nearest neighbor interpolation (in case of missing values)
-        if (1-I).any():
-            if license('test','image_toolbox')
-                z, L = distance_transform_edt(1-I,  return_indices=True)
-                [z,L] = bwdist(I);
-                z = y;
-                z(~I) = y(L(~I));
-            else
-            #% If BWDIST does not exist, NaN values are all replaced with the
-            #% same scalar. The initial guess is not optimal and a warning
-            #% message thus appears.
-                z = y;
-                z(~I) = mean(y(I));
-                warning('MATLAB:smoothn:InitialGuess',...
-                    ['BWDIST (Image Processing Toolbox) does not exist. ',...
-                    'The initial guess may not be optimal; additional',...
-                    ' iterations can thus be required to ensure complete',...
-                    ' convergence. Increase ''MaxIter'' criterion if necessary.'])    
-            end
-        else
-            z = y;
-        end
-        %-- coarse fast smoothing using one-tenth of the DCT coefficients
-        siz = size(z);
-        z = dctn(z);
-        for k = 1:ndims(z)
-            z(ceil(siz(k)/10)+1:end,:) = 0;
-            z = reshape(z,circshift(siz,[0 1-k]));
-            z = shiftdim(z,1);
-        end
-        z = idctn(z);
-        
+    if not exitflag:
+        warnings.warn('''Maximum number of iterations (%d) has been exceeded. 
+        Increase MaxIter option or decrease TolZ value.''' % (maxiter))
+    if fulloutput:
+        return z, s
+    else:
         return z
+def gcv(p, aow, Lambda, DCTy, y, Wtot, IsFinite, nof, noe):
+    # Search the smoothing parameter s that minimizes the GCV score
+    s = 10**p
+    Gamma = 1.0/(1+s*Lambda**2)
+    # RSS = Residual sum-of-squares
+    if aow>0.9: # aow = 1 means that all of the data are equally weighted
+        # very much faster: does not require any inverse DCT
+        RSS = linalg.norm(DCTy.ravel()*(Gamma.ravel()-1))**2
+    else:
+        # take account of the weights to calculate RSS:
+        yhat = idctn(Gamma*DCTy)
+        RSS = linalg.norm(sqrt(Wtot[IsFinite])*(y[IsFinite]-yhat[IsFinite]))**2
+        #end
     
-    
+    TrH = Gamma.sum()
+    GCVscore = RSS/nof/(1.0-TrH/noe)**2
+    return GCVscore
 
+
+# Robust weights
+def RobustWeights(r,I,h,wstr):
+    #weights for robust smoothing.
+    MAD = np.median(abs(r[I]-np.median(r[I]))) # median absolute deviation
+    u = abs(r/(1.4826*MAD)/sqrt(1-h)) # studentized residuals
+    if wstr == 'cauchy':
+        c = 2.385; 
+        W = 1./(1+(u/c)**2) # Cauchy weights
+    elif wstr=='talworth':
+        c = 2.795 
+        W = u<c # Talworth weights
+    else: # bisquare weights
+        c = 4.685
+        W = (1-(u/c)**2)**2*((u/c)<1) 
+    
+    W[np.isnan(W)] = 0
+    return W
+
+# Initial Guess with weighted/missing data
+def InitialGuess(y,I):
+    # nearest neighbor interpolation (in case of missing values)
+    z = y
+    if (1-I).any():
+        
+        if True: #license('test','image_toolbox')
+            z, L = distance_transform_edt(1-I,  return_indices=True)
+            #[z,L] = bwdist(I);
+            z[1-I] = y[L[1-I]]
+        else:
+        #% If BWDIST does not exist, NaN values are all replaced with the
+        #% same scalar. The initial guess is not optimal and a warning
+        #% message thus appears.
+            z[1-I] = y[I].mean()
+          
+
+    # coarse fast smoothing using one-tenth of the DCT coefficients
+    siz = z.shape
+    d = z.ndim
+    z = dctn(z)
+    for k in range(d):
+        z[int((siz[k]+0.5)/10)+1::,...] = 0;
+        z = z.reshape(np.roll(siz,-k))
+        z = z.transpose(np.roll(range(z.ndim), -1))
+        #z = shiftdim(z,1);
+    #end
+    z = idctn(z)
+    
+    return z
+
+def test_smoothn_1d():
+    import matplotlib.pyplot as plt
+    x = np.linspace(0,100,2**8)
+    y = np.cos(x/10)+(x/50)**2 + np.random.randn(x.size)/10
+    y[np.r_[70, 75, 80]] = np.array([5.5, 5, 6])
+    z = smoothn(y) # Regular smoothing
+    zr = smoothn(y,robust=True) #  Robust smoothing
+    plt.subplot(121), 
+    h = plt.plot(x,y,'r.',x,z,'k',linewidth=2)
+    plt.title('Regular smoothing')
+    plt.subplot(122)
+    plt.plot(x,y,'r.',x,zr,'k',linewidth=2)
+    plt.title('Robust smoothing')
+    plt.show()
+
+def test_smoothn_2d():
+    import matplotlib.pyplot as plt
+    #import mayavi.mlab as plt
+    xp = np.r_[0:1:.02]
+    [x,y] = np.meshgrid(xp,xp)
+    f = np.exp(x+y) + np.sin((x-2*y)*3)
+    fn = f + np.random.randn(*f.shape)*0.5
+    fs, s = smoothn(fn, fulloutput=True)
+    fs2 = smoothn(fn,s=2*s)
+    plt.subplot(131), 
+    plt.contourf(xp,xp,fn)
+    plt.subplot(132), 
+    plt.contourf(xp,xp,fs2)
+    plt.subplot(133), 
+    plt.contourf(xp,xp,f)
+    plt.show()
+    
+def test_smoothn_cardioid():
+    t = np.linspace(0,2*pi,1000)
+    cos = np.cos
+    sin = np.sin
+    randn = np.random.randn
+    x = 2*cos(t)*(1-cos(t)) + randn(t.size)*0.1;
+    y = 2*sin(t)*(1-cos(t)) + randn(t.size)*0.1;
+    z = smoothn(x+1j*y)
+    plt.plot(x,y,'r.',z.real,z.imag,'k',linewidth=2)
+    plt.show()
+    
+    
 def kde_demo1():
     '''
     KDEDEMO1 Demonstrate the smoothing parameter impact on KDE
@@ -3525,7 +3544,7 @@ def kde_gauss_demo(n=50):
 #    kw = exp(-I)
 #    plt.plot(idctn(kw))
 #    return
-    dist = st.norm
+    #dist = st.norm
     dist = st.expon
     data = dist.rvs(loc=0, scale=1.0, size=n)
     d, N = np.atleast_2d(data).shape
@@ -3571,4 +3590,6 @@ if __name__ == '__main__':
     #kde_demo2()
     #kreg_demo1(fast=True)
     #kde_gauss_demo()
-    kreg_demo2()
+    #kreg_demo2()
+    #test_smoothn_2d()
+    test_smoothn_cardioid()

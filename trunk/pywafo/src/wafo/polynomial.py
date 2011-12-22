@@ -341,7 +341,7 @@ def unfinished_orthofit(x,y,n):
     ys = orthofit(x,y,n);
     plot(x,y,'.',x,ys,'k')
     
-    Reference: Méthodes de calcul numérique 2. JP Nougier. Hermes Science
+    Reference: Methodes de calcul numerique 2. JP Nougier. Hermes Science
     Publications, 2001. Section 4.7 pp 116-121
     
     Damien Garcia, 09/2007, revised 01/2010
