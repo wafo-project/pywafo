@@ -3217,7 +3217,7 @@ def test_smoothn_1d():
     z = smoothn(y) # Regular smoothing
     zr = smoothn(y,robust=True) #  Robust smoothing
     plt.subplot(121), 
-    h = plt.plot(x,y,'r.',x,z,'k',linewidth=2)
+    unused_h = plt.plot(x,y,'r.',x,z,'k',linewidth=2)
     plt.title('Regular smoothing')
     plt.subplot(122)
     plt.plot(x,y,'r.',x,zr,'k',linewidth=2)
@@ -3476,7 +3476,7 @@ def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj'):
     x = x.ravel()
     
     kernel = Kernel('gauss',fun=fun)
-    hopt = kernel.get_smoothing(x)/2
+    hopt = kernel.get_smoothing(x)
     if hs is None:
         hs = hopt
     if symmetric:
@@ -3499,6 +3499,9 @@ def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj'):
     #plt.scatter(xi,logyi)
     #return
     #print(logyi)
+    dx = xi[1]-xi[0]
+    ckreg = KDE(x,hs=hs)
+    ci = ckreg.eval_grid(xi)*n*dx
     
     gkreg = KRegression(xi, yi, hs=hs, xmin=xmin-2*hopt,xmax=xmax+2*hopt)
     fg = gkreg.eval_grid(xi,output='plotobj', title='Kernel regression', plotflag=1)
@@ -3506,9 +3509,13 @@ def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj'):
     
     alpha=0.05
     z0 = -_invnorm(alpha/2)
-    
-    pup = (pi + z0*np.sqrt(pi*(1-pi)/c)).clip(min=0,max=1)
-    plo = (pi - z0*np.sqrt(pi*(1-pi)/c)).clip(min=0,max=1)
+    # ref Casella and Berger (1990) "Statistical inference" pp444
+    a = 2*pi + z0**2/(ci+1e-16)
+    b = 2*(1+z0**2/(ci+1e-16))
+    plo2 = ((a-sqrt(a**2-2*pi**2*b))/b).clip(min=0,max=1)
+    pup2 = ((a+sqrt(a**2-2*pi**2*b))/b).clip(min=0,max=1)
+    pup = (pi + z0*np.sqrt(pi*(1-pi)/ci)).clip(min=0,max=1)
+    plo = (pi - z0*np.sqrt(pi*(1-pi)/ci)).clip(min=0,max=1)
     #print(fg.data)
     #fg.data = np.exp(fg.data)
     
@@ -3519,6 +3526,7 @@ def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj'):
     f.plot(label='KRegression')
     
     plt.plot(xi, pup,'r--', xi, plo,'r--', label='%d CI' % (int(100*(1-alpha))))
+    plt.plot(xi, pup2,'r:', xi, plo2,'r:', label='%d CI2' % (int(100*(1-alpha))))
     plt.plot(xi, 0.5*np.cos(xi)+.5, label='True model')
     plt.scatter(xi,yi, label='data')
     print(np.nanmax(f.data))
@@ -3590,6 +3598,6 @@ if __name__ == '__main__':
     #kde_demo2()
     #kreg_demo1(fast=True)
     #kde_gauss_demo()
-    #kreg_demo2()
+    kreg_demo2(n=100)
     #test_smoothn_2d()
-    test_smoothn_cardioid()
+    #test_smoothn_cardioid()
