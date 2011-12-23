@@ -3067,7 +3067,7 @@ def smoothn(data, s=None, weight=None, robust=False, z0=None, tolz=1e-3, maxiter
     else:
         z = np.zeros(sizy)    
     z0 = z
-    y[1-IsFinite] = 0 # arbitrary values for missing y-data
+    y[~IsFinite] = 0 # arbitrary values for missing y-data
     
     tol = 1
     RobustIterativeProcess = True
@@ -3185,9 +3185,10 @@ def InitialGuess(y,I):
     if (1-I).any():
         
         if True: #license('test','image_toolbox')
-            z, L = distance_transform_edt(1-I,  return_indices=True)
+            notI = ~I
+            z, L = distance_transform_edt(notI,  return_indices=True)
             #[z,L] = bwdist(I);
-            z[1-I] = y[L[1-I]]
+            z[notI] = y[L.flat[notI]]
         else:
         #% If BWDIST does not exist, NaN values are all replaced with the
         #% same scalar. The initial guess is not optimal and a warning
@@ -3225,7 +3226,7 @@ def test_smoothn_1d():
     plt.show()
 
 def test_smoothn_2d():
-    import matplotlib.pyplot as plt
+    
     #import mayavi.mlab as plt
     xp = np.r_[0:1:.02]
     [x,y] = np.meshgrid(xp,xp)
@@ -3471,9 +3472,20 @@ def _logitinv(x):
 
 
 def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj'):
+    import scipy.stats as st
+    dist = st.norm
+    scale1 = 0.3
+    norm1 = dist.pdf(-1, loc=-1, scale=scale1) + dist.pdf(-1, loc=1, scale=scale1)
+    fun1 = lambda x : (dist.pdf(x, loc=-1, scale=scale1) + dist.pdf(x, loc=1, scale=scale1))/norm1 
+
     x = np.sort(6*np.random.rand(n,1)-3, axis=0)
-    y = (np.cos(x)>2*np.random.rand(n, 1)-1).ravel()
+    
+    y = (fun1(x)>np.random.rand(n, 1)).ravel()
+    #y = (np.cos(x)>2*np.random.rand(n, 1)-1).ravel()
     x = x.ravel()
+    
+    alpha=0.05
+    z0 = -_invnorm(alpha/2)
     
     kernel = Kernel('gauss',fun=fun)
     hopt = kernel.get_smoothing(x)
@@ -3487,28 +3499,64 @@ def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj'):
         y = yi[i]
     
     xmin, xmax = x.min(), x.max()    
-    ni = int(2*(xmax-xmin)/hopt)
+    ni = int((xmax-xmin)/hopt)
     print(ni)
+    print(xmin, xmax)
      
     xi = np.linspace(xmin-hopt,xmax+hopt, ni)
+    xiii = np.linspace(xmin-hopt,xmax+hopt, 4*ni)
     c = gridcount(x, xi)
     c0 = gridcount(x[y==True],xi)
     
     yi = np.where(c==0, 0, c0/c)
-    logyi = np.log(yi).clip(min=-15)
+    yi[yi==0] = yi[yi>0].min()/sqrt(n)
+    yi[yi==1] = 1-(1-yi[yi<1].max())/sqrt(n)
+    
+    logity =_logit(yi)
+    logity[logity==-40]=np.nan
+    slogity = smoothn(logity, robust=False)
+    sa1 = sqrt(evar(logity))
+    sa = (slogity-logity).std()
+    print('estd = %g %g' % (sa,sa1))
+    
+    plo3 = _logitinv(slogity-z0*sa)
+    pup3 = _logitinv(slogity+z0*sa)
+    syi = _logitinv(slogity)
+    
+    
+    ymin = np.log(yi[yi>0].min())-1
+    logyi = np.log(yi).clip(min=ymin)
     #plt.scatter(xi,logyi)
     #return
     #print(logyi)
     dx = xi[1]-xi[0]
     ckreg = KDE(x,hs=hs)
-    ci = ckreg.eval_grid(xi)*n*dx
+    ci = ckreg.eval_grid_fast(xiii)*n*dx
     
-    gkreg = KRegression(xi, yi, hs=hs, xmin=xmin-2*hopt,xmax=xmax+2*hopt)
+    gkreg = KRegression(xi, logity, hs=hs/2, xmin=xmin-2*hopt,xmax=xmax+2*hopt)
     fg = gkreg.eval_grid(xi,output='plotobj', title='Kernel regression', plotflag=1)
+    sa = (fg.data-logity).std()
+    sa2 = iqrange(fg.data-logity) / 1.349
+    print('sa=%g %g' % (sa, sa2))
+    sa = min(sa,sa2)
+    
+    plt.figure(1)
+    plt.plot(xi, slogity-logity,'r.')
+    #plt.plot(xi, logity-,'b.')
+    plt.plot(xi, fg.data-logity, 'b.')
+#    plt.show()
+#    return
+
+    
+    fg = gkreg.eval_grid(xiii,output='plotobj', title='Kernel regression', plotflag=1)
+    
+    
+    plo3 = _logitinv(fg.data-z0*sa)
+    pup3 = _logitinv(fg.data+z0*sa)
+    fg.data = _logitinv(fg.data)
     pi = fg.data
     
-    alpha=0.05
-    z0 = -_invnorm(alpha/2)
+    
     # ref Casella and Berger (1990) "Statistical inference" pp444
     a = 2*pi + z0**2/(ci+1e-16)
     b = 2*(1+z0**2/(ci+1e-16))
@@ -3519,15 +3567,18 @@ def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj'):
     #print(fg.data)
     #fg.data = np.exp(fg.data)
     
+    plt.figure(2)
     fg.plot(label='KReg grid')
     
     kreg = KRegression(x, y, hs=hs)
-    f = kreg(output='plotobj', title='Kernel regression', plotflag=1)
+    f = kreg(xiii,output='plotobj', title='Kernel regression n=%d, %s=%g' % (n,fun,hs), plotflag=1)
     f.plot(label='KRegression')
-    
-    plt.plot(xi, pup,'r--', xi, plo,'r--', label='%d CI' % (int(100*(1-alpha))))
-    plt.plot(xi, pup2,'r:', xi, plo2,'r:', label='%d CI2' % (int(100*(1-alpha))))
-    plt.plot(xi, 0.5*np.cos(xi)+.5, label='True model')
+    labtxt = '%d CI' % (int(100*(1-alpha)))
+    plt.plot(xi, syi, 'k', label='smoothn')
+    plt.fill_between(xiii, pup3, plo3, alpha=0.1,color='r', linestyle='--', label=labtxt)
+    plt.fill_between(xiii, pup2, plo2,alpha = 0.05, color='b', linestyle=':',label='%d CI2' % (int(100*(1-alpha))))
+    #plt.plot(xiii, 0.5*np.cos(xiii)+.5, 'r', label='True model')
+    plt.plot(xiii, fun1(xiii), 'r', label='True model')
     plt.scatter(xi,yi, label='data')
     print(np.nanmax(f.data))
     print(kreg.tkde.tkde.hs)
@@ -3598,6 +3649,6 @@ if __name__ == '__main__':
     #kde_demo2()
     #kreg_demo1(fast=True)
     #kde_gauss_demo()
-    kreg_demo2(n=100)
+    kreg_demo2(n=7000,symmetric=True,fun='hisj')
     #test_smoothn_2d()
     #test_smoothn_cardioid()
