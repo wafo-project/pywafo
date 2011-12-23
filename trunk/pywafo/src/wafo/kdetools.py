@@ -3473,10 +3473,12 @@ def _logitinv(x):
 
 def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj'):
     import scipy.stats as st
+    from sg_filter import SavitzkyGolay
     dist = st.norm
-    scale1 = 0.3
-    norm1 = dist.pdf(-1, loc=-1, scale=scale1) + dist.pdf(-1, loc=1, scale=scale1)
-    fun1 = lambda x : (dist.pdf(x, loc=-1, scale=scale1) + dist.pdf(x, loc=1, scale=scale1))/norm1 
+    scale1 = 0.4
+    loc1= 1
+    norm1 = dist.pdf(-loc1, loc=-loc1, scale=scale1) + dist.pdf(-loc1, loc=loc1, scale=scale1)
+    fun1 = lambda x : (dist.pdf(x, loc=-loc1, scale=scale1) + dist.pdf(x, loc=loc1, scale=scale1))/norm1 
 
     x = np.sort(6*np.random.rand(n,1)-3, axis=0)
     
@@ -3499,7 +3501,7 @@ def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj'):
         y = yi[i]
     
     xmin, xmax = x.min(), x.max()    
-    ni = int((xmax-xmin)/hopt)
+    ni = int(2*(xmax-xmin)/hopt)
     print(ni)
     print(xmin, xmax)
      
@@ -3510,18 +3512,25 @@ def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj'):
     
     yi = np.where(c==0, 0, c0/c)
     yi[yi==0] = yi[yi>0].min()/sqrt(n)
-    yi[yi==1] = 1-(1-yi[yi<1].max())/sqrt(n)
+    yi[yi==1] = 1-1.0/n #(1-yi[yi<1].max())/sqrt(n)
     
     logity =_logit(yi)
+#    plt.plot(xi, np.log(yi/(1-yi)), xi,logity,'.')
+#    plt.show()
+#    return
+    
     logity[logity==-40]=np.nan
-    slogity = smoothn(logity, robust=False)
+    slogity = smoothn(logity, robust=True)
+    slogity2 = SavitzkyGolay(n=3, degree=2).smooth(logity)
     sa1 = sqrt(evar(logity))
     sa = (slogity-logity).std()
     print('estd = %g %g' % (sa,sa1))
     
+   
     plo3 = _logitinv(slogity-z0*sa)
     pup3 = _logitinv(slogity+z0*sa)
     syi = _logitinv(slogity)
+    syi2 = _logitinv(slogity2)
     
     
     ymin = np.log(yi[yi>0].min())-1
@@ -3529,11 +3538,8 @@ def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj'):
     #plt.scatter(xi,logyi)
     #return
     #print(logyi)
-    dx = xi[1]-xi[0]
-    ckreg = KDE(x,hs=hs)
-    ci = ckreg.eval_grid_fast(xiii)*n*dx
     
-    gkreg = KRegression(xi, logity, hs=hs/2, xmin=xmin-2*hopt,xmax=xmax+2*hopt)
+    gkreg = KRegression(xi, logity, hs=hs/3.5, xmin=xmin-2*hopt,xmax=xmax+2*hopt)
     fg = gkreg.eval_grid(xi,output='plotobj', title='Kernel regression', plotflag=1)
     sa = (fg.data-logity).std()
     sa2 = iqrange(fg.data-logity) / 1.349
@@ -3548,22 +3554,29 @@ def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj'):
 #    return
 
     
+    
     fg = gkreg.eval_grid(xiii,output='plotobj', title='Kernel regression', plotflag=1)
     
+    dx = xi[1]-xi[0]
+    ckreg = KDE(x,hs=hs)
+    #ci = ckreg.eval_grid_fast(xi)*n*dx
+    ciii = ckreg.eval_grid_fast(xiii)*dx*n*(1+symmetric)
+    
+    pi = _logitinv(fg.data)
+    sa1 = np.sqrt(1./(ciii*pi*(1-pi)))
     
     plo3 = _logitinv(fg.data-z0*sa)
     pup3 = _logitinv(fg.data+z0*sa)
-    fg.data = _logitinv(fg.data)
-    pi = fg.data
+    fg.data = pi
     
     
     # ref Casella and Berger (1990) "Statistical inference" pp444
-    a = 2*pi + z0**2/(ci+1e-16)
-    b = 2*(1+z0**2/(ci+1e-16))
+    a = 2*pi + z0**2/(ciii+1e-16)
+    b = 2*(1+z0**2/(ciii+1e-16))
     plo2 = ((a-sqrt(a**2-2*pi**2*b))/b).clip(min=0,max=1)
     pup2 = ((a+sqrt(a**2-2*pi**2*b))/b).clip(min=0,max=1)
-    pup = (pi + z0*np.sqrt(pi*(1-pi)/ci)).clip(min=0,max=1)
-    plo = (pi - z0*np.sqrt(pi*(1-pi)/ci)).clip(min=0,max=1)
+    pup = (pi + z0*np.sqrt(pi*(1-pi)/ciii)).clip(min=0,max=1)
+    plo = (pi - z0*np.sqrt(pi*(1-pi)/ciii)).clip(min=0,max=1)
     #print(fg.data)
     #fg.data = np.exp(fg.data)
     
@@ -3574,9 +3587,9 @@ def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj'):
     f = kreg(xiii,output='plotobj', title='Kernel regression n=%d, %s=%g' % (n,fun,hs), plotflag=1)
     f.plot(label='KRegression')
     labtxt = '%d CI' % (int(100*(1-alpha)))
-    plt.plot(xi, syi, 'k', label='smoothn')
-    plt.fill_between(xiii, pup3, plo3, alpha=0.1,color='r', linestyle='--', label=labtxt)
-    plt.fill_between(xiii, pup2, plo2,alpha = 0.05, color='b', linestyle=':',label='%d CI2' % (int(100*(1-alpha))))
+    plt.plot(xi, syi, 'k',xi, syi2,'k--', label='smoothn')
+    plt.fill_between(xiii, pup, plo, alpha=0.15,color='r', linestyle='--', label=labtxt)
+    plt.fill_between(xiii, pup2, plo2,alpha = 0.10, color='b', linestyle=':',label='%d CI2' % (int(100*(1-alpha))))
     #plt.plot(xiii, 0.5*np.cos(xiii)+.5, 'r', label='True model')
     plt.plot(xiii, fun1(xiii), 'r', label='True model')
     plt.scatter(xi,yi, label='data')
@@ -3649,6 +3662,6 @@ if __name__ == '__main__':
     #kde_demo2()
     #kreg_demo1(fast=True)
     #kde_gauss_demo()
-    kreg_demo2(n=7000,symmetric=True,fun='hisj')
+    kreg_demo2(n=750,symmetric=True,fun='hisj')
     #test_smoothn_2d()
     #test_smoothn_cardioid()
