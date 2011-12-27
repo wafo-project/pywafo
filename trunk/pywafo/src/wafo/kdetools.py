@@ -3471,12 +3471,12 @@ def _logitinv(x):
     return 1.0/(np.exp(-x)+1)    
 
 
-def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj'):
+def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj', plotlog=False):
     import scipy.stats as st
     from sg_filter import SavitzkyGolay
     dist = st.norm
-    scale1 = 0.7
-    loc1= 2
+    scale1 = 0.3
+    loc1= 0
     norm1 = dist.pdf(-loc1, loc=-loc1, scale=scale1) + dist.pdf(-loc1, loc=loc1, scale=scale1)
     fun1 = lambda x : (dist.pdf(x, loc=-loc1, scale=scale1) + dist.pdf(x, loc=loc1, scale=scale1))/norm1 
 
@@ -3501,18 +3501,25 @@ def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj'):
         y = yi[i]
     
     xmin, xmax = x.min(), x.max()    
-    ni = int(2*(xmax-xmin)/hopt)
+    ni = 2*int((xmax-xmin)/hopt)+1
     print(ni)
     print(xmin, xmax)
      
     xi = np.linspace(xmin-hopt,xmax+hopt, ni)
-    xiii = np.linspace(xmin-hopt,xmax+hopt, 4*ni)
+    xiii = np.linspace(xmin-hopt,xmax+hopt, 4*ni+1)
+   
+    kreg = KRegression(x, y, hs=hs*0.5)
+    fi = kreg(xi)
+    f = kreg(xiii,output='plotobj', title='Kernel regression n=%d, %s=%g' % (n,fun,hs), plotflag=1)
+    
     c = gridcount(x, xi)
     c0 = gridcount(x[y==True],xi)
     
     yi = np.where(c==0, 0, c0/c)
-    yi[yi==0] = 1.0/(c.min()+4)#yi[yi>0].min()/sqrt(n)
-    yi[yi==1] = 1-1.0/(c.min()+4) #(1-yi[yi<1].max())/sqrt(n)
+    #yi[yi==0] = 1.0/(c[c!=0].min()+4)#
+    #yi[yi==1] = 1-1.0/(c[c!=0].min()+4) #
+    yi[yi==0] = fi[yi==0] #yi[yi>0].min()/sqrt(n)
+    yi[yi==1] =1-(1-yi[yi<1].max())/sqrt(n)
     
     logity =_logit(yi)
 #    plt.plot(xi, np.log(yi/(1-yi)), xi,logity,'.')
@@ -3521,7 +3528,7 @@ def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj'):
     
     logity[logity==-40]=np.nan
     slogity = smoothn(logity, robust=True)
-    slogity2 = SavitzkyGolay(n=3, degree=2).smooth(logity)
+    slogity2 = SavitzkyGolay(n=2, degree=2).smooth(logity)
     sa1 = sqrt(evar(logity))
     sa = (slogity-logity).std()
     print('estd = %g %g' % (sa,sa1))
@@ -3539,7 +3546,7 @@ def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj'):
     #return
     #print(logyi)
     
-    gkreg = KRegression(xi, logity, hs=hs/2, xmin=xmin-2*hopt,xmax=xmax+2*hopt)
+    gkreg = KRegression(xi, logity, hs=hs*0.4, xmin=xmin-2*hopt,xmax=xmax+2*hopt)
     fg = gkreg.eval_grid(xi,output='plotobj', title='Kernel regression', plotflag=1)
     sa = (fg.data-logity).std()
     sa2 = iqrange(fg.data-logity) / 1.349
@@ -3554,7 +3561,6 @@ def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj'):
 #    return
 
     
-    
     fg = gkreg.eval_grid(xiii,output='plotobj', title='Kernel regression', plotflag=1)
     
     dx = xi[1]-xi[0]
@@ -3568,6 +3574,9 @@ def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj'):
     plo3 = _logitinv(fg.data-z0*sa)
     pup3 = _logitinv(fg.data+z0*sa)
     fg.data = pi
+    
+   
+    #pi = f.data
     
     
     # ref Casella and Berger (1990) "Statistical inference" pp444
@@ -3590,9 +3599,6 @@ def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj'):
     
     plt.figure(2)
     fg.plot(label='KReg grid')
-    
-    kreg = KRegression(x, y, hs=hs*0.5)
-    f = kreg(xiii,output='plotobj', title='Kernel regression n=%d, %s=%g' % (n,fun,hs), plotflag=1)
     f.plot(label='KRegression')
     labtxt = '%d CI' % (int(100*(1-alpha)))
     plt.plot(xi, syi, 'k',xi, syi2,'k--', label='smoothn')
@@ -3605,7 +3611,8 @@ def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj'):
     print(kreg.tkde.tkde.hs)
     plt.legend()
     h = plt.gca()
-    #plt.setp(h,yscale='log')
+    if plotlog:
+        plt.setp(h,yscale='log')
     plt.show()
     
 def kde_gauss_demo(n=50):
@@ -3672,6 +3679,6 @@ if __name__ == '__main__':
     #kde_demo2()
     #kreg_demo1(fast=True)
     #kde_gauss_demo()
-    kreg_demo2(n=3800,symmetric=True,fun='hste')
+    kreg_demo2(n=180,symmetric=True,fun='hste', plotlog=False)
     #test_smoothn_2d()
     #test_smoothn_cardioid()
