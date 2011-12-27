@@ -3475,8 +3475,8 @@ def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj'):
     import scipy.stats as st
     from sg_filter import SavitzkyGolay
     dist = st.norm
-    scale1 = 0.4
-    loc1= 1
+    scale1 = 0.7
+    loc1= 2
     norm1 = dist.pdf(-loc1, loc=-loc1, scale=scale1) + dist.pdf(-loc1, loc=loc1, scale=scale1)
     fun1 = lambda x : (dist.pdf(x, loc=-loc1, scale=scale1) + dist.pdf(x, loc=loc1, scale=scale1))/norm1 
 
@@ -3511,8 +3511,8 @@ def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj'):
     c0 = gridcount(x[y==True],xi)
     
     yi = np.where(c==0, 0, c0/c)
-    yi[yi==0] = yi[yi>0].min()/sqrt(n)
-    yi[yi==1] = 1-1.0/n #(1-yi[yi<1].max())/sqrt(n)
+    yi[yi==0] = 1.0/(c.min()+4)#yi[yi>0].min()/sqrt(n)
+    yi[yi==1] = 1-1.0/(c.min()+4) #(1-yi[yi<1].max())/sqrt(n)
     
     logity =_logit(yi)
 #    plt.plot(xi, np.log(yi/(1-yi)), xi,logity,'.')
@@ -3539,7 +3539,7 @@ def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj'):
     #return
     #print(logyi)
     
-    gkreg = KRegression(xi, logity, hs=hs/3.5, xmin=xmin-2*hopt,xmax=xmax+2*hopt)
+    gkreg = KRegression(xi, logity, hs=hs/2, xmin=xmin-2*hopt,xmax=xmax+2*hopt)
     fg = gkreg.eval_grid(xi,output='plotobj', title='Kernel regression', plotflag=1)
     sa = (fg.data-logity).std()
     sa2 = iqrange(fg.data-logity) / 1.349
@@ -3577,25 +3577,35 @@ def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj'):
     pup2 = ((a+sqrt(a**2-2*pi**2*b))/b).clip(min=0,max=1)
     pup = (pi + z0*np.sqrt(pi*(1-pi)/ciii)).clip(min=0,max=1)
     plo = (pi - z0*np.sqrt(pi*(1-pi)/ciii)).clip(min=0,max=1)
+    
+    den = 1+(z0**2./ciii);
+    xc=(pi+(z0**2)/(2*ciii))/den;
+    halfwidth=(z0*sqrt((pi*(1-pi)/ciii)+(z0**2/(4*(ciii**2)))))/den
+    plo = xc-halfwidth # wilson score
+    pup = xc+halfwidth # wilson score
+
+    
     #print(fg.data)
     #fg.data = np.exp(fg.data)
     
     plt.figure(2)
     fg.plot(label='KReg grid')
     
-    kreg = KRegression(x, y, hs=hs)
+    kreg = KRegression(x, y, hs=hs*0.5)
     f = kreg(xiii,output='plotobj', title='Kernel regression n=%d, %s=%g' % (n,fun,hs), plotflag=1)
     f.plot(label='KRegression')
     labtxt = '%d CI' % (int(100*(1-alpha)))
     plt.plot(xi, syi, 'k',xi, syi2,'k--', label='smoothn')
-    plt.fill_between(xiii, pup, plo, alpha=0.15,color='r', linestyle='--', label=labtxt)
-    plt.fill_between(xiii, pup2, plo2,alpha = 0.10, color='b', linestyle=':',label='%d CI2' % (int(100*(1-alpha))))
+    plt.fill_between(xiii, pup, plo, alpha=0.20,color='r', linestyle='--', label=labtxt)
+    #plt.fill_between(xiii, pup2, plo2,alpha = 0.20, color='b', linestyle=':',label='%d CI2' % (int(100*(1-alpha))))
     #plt.plot(xiii, 0.5*np.cos(xiii)+.5, 'r', label='True model')
     plt.plot(xiii, fun1(xiii), 'r', label='True model')
     plt.scatter(xi,yi, label='data')
     print(np.nanmax(f.data))
     print(kreg.tkde.tkde.hs)
     plt.legend()
+    h = plt.gca()
+    #plt.setp(h,yscale='log')
     plt.show()
     
 def kde_gauss_demo(n=50):
@@ -3662,6 +3672,6 @@ if __name__ == '__main__':
     #kde_demo2()
     #kreg_demo1(fast=True)
     #kde_gauss_demo()
-    kreg_demo2(n=750,symmetric=True,fun='hisj')
+    kreg_demo2(n=3800,symmetric=True,fun='hste')
     #test_smoothn_2d()
     #test_smoothn_cardioid()
