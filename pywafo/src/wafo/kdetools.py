@@ -3475,8 +3475,8 @@ def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj', plotlog=False):
     import scipy.stats as st
     from sg_filter import SavitzkyGolay
     dist = st.norm
-    scale1 = 0.3
-    loc1= 1
+    scale1 = 0.5
+    loc1= 1.5
     norm1 = dist.pdf(-loc1, loc=-loc1, scale=scale1) + dist.pdf(-loc1, loc=loc1, scale=scale1)
     fun1 = lambda x : (dist.pdf(x, loc=-loc1, scale=scale1) + dist.pdf(x, loc=loc1, scale=scale1))/norm1 
 
@@ -3699,6 +3699,8 @@ def test_docstrings():
     doctest.testmod()
     
 if __name__ == '__main__':
+    import wafo.fig as fig
+    
     plt.ioff()
     #test_docstrings()
     #kde_demo2()
@@ -3708,6 +3710,8 @@ if __name__ == '__main__':
     for i, n in enumerate([10,100,1000,2000,4000]):
         plt.figure(i)
         kreg_demo2(n=n,symmetric=True,fun='hste', plotlog=False)
+    fig.tile(range(5))
     plt.show()
+    
     #test_smoothn_2d()
     #test_smoothn_cardioid()
