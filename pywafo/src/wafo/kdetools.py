@@ -3077,7 +3077,7 @@ def smoothn(data, s=None, weight=None, robust=False, z0=None, tolz=1e-3, maxiter
     errp = 0.1;
     
     # Relaxation factor RF: to speedup convergence
-    RF = 1 + 0.75 if weight else 1.0
+    RF = 1 + 0.75 if weight is None else 1.0
     
     norm = linalg.norm
     # Main iterative process
@@ -3476,7 +3476,7 @@ def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj', plotlog=False):
     from sg_filter import SavitzkyGolay
     dist = st.norm
     scale1 = 0.3
-    loc1= 0
+    loc1= 1
     norm1 = dist.pdf(-loc1, loc=-loc1, scale=scale1) + dist.pdf(-loc1, loc=loc1, scale=scale1)
     fun1 = lambda x : (dist.pdf(x, loc=-loc1, scale=scale1) + dist.pdf(x, loc=loc1, scale=scale1))/norm1 
 
@@ -3489,16 +3489,23 @@ def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj', plotlog=False):
     alpha=0.05
     z0 = -_invnorm(alpha/2)
     
-    kernel = Kernel('gauss',fun=fun)
-    hopt = kernel.get_smoothing(x)
-    if hs is None:
-        hs = hopt
     if symmetric:
         xi = np.hstack((x.ravel(),-x.ravel()))
         yi = np.hstack((y, y))
         i = np.argsort(xi)
         x = xi[i]
         y = yi[i]
+    hisj = Kernel('gauss', fun='hisj').get_smoothing(x)
+    hste = Kernel('gauss', fun='hste').get_smoothing(x)
+    #kernel = Kernel('gauss',fun=fun)
+    hopt = (hste+hisj)/2 #kernel.get_smoothing(x)
+    if hs is None:
+        hs = hopt
+        
+    forward = _logit
+    reverse = _logitinv
+    #forward = np.log
+    #reverse = np.exp
     
     xmin, xmax = x.min(), x.max()    
     ni = 2*int((xmax-xmin)/hopt)+1
@@ -3507,10 +3514,13 @@ def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj', plotlog=False):
      
     xi = np.linspace(xmin-hopt,xmax+hopt, ni)
     xiii = np.linspace(xmin-hopt,xmax+hopt, 4*ni+1)
-   
-    kreg = KRegression(x, y, hs=hs*0.5)
+    
+    from wafo.interpolate import stineman_interp
+    fact = stineman_interp([x.size], [0, 2000], [0.25, 1.0], yp=[0.75/2000,0.75/2000]).clip(min=0.25,max=1.3)
+    print("fact=%g" % (fact))
+    kreg = KRegression(x, y, hs=hs*fact, p=0)
     fi = kreg(xi)
-    f = kreg(xiii,output='plotobj', title='Kernel regression n=%d, %s=%g' % (n,fun,hs), plotflag=1)
+    f = kreg(xiii,output='plotobj', title='Kernel regression n=%d, hste=%g, hisj=%g' % (n,hste,hisj), plotflag=1)
     
     c = gridcount(x, xi)
     c0 = gridcount(x[y==True],xi)
@@ -3518,45 +3528,38 @@ def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj', plotlog=False):
     yi = np.where(c==0, 0, c0/c)
     #yi[yi==0] = 1.0/(c[c!=0].min()+4)#
     #yi[yi==1] = 1-1.0/(c[c!=0].min()+4) #
-    yi[yi==0] = fi[yi==0] #yi[yi>0].min()/sqrt(n)
+    #yi[yi==0] = fi[yi==0] 
+    
+    #yi[yi==0] = np.exp(stineman_interp(xi[yi==0], xi[yi>0],np.log(yi[yi>0]))) 
+    #yi[yi==0] = fun1(xi[yi==0]) 
+    yi[yi==0] = yi[yi>0].min()/sqrt(n)
     yi[yi==1] =1-(1-yi[yi<1].max())/sqrt(n)
     
-    logity =_logit(yi)
+    logity =forward(yi)
 #    plt.plot(xi, np.log(yi/(1-yi)), xi,logity,'.')
 #    plt.show()
 #    return
     
-    logity[logity==-40]=np.nan
-    slogity = smoothn(logity, robust=True)
-    slogity2 = SavitzkyGolay(n=2, degree=2).smooth(logity)
-    sa1 = sqrt(evar(logity))
-    sa = (slogity-logity).std()
-    print('estd = %g %g' % (sa,sa1))
-    
-   
-    plo3 = _logitinv(slogity-z0*sa)
-    pup3 = _logitinv(slogity+z0*sa)
-    syi = _logitinv(slogity)
-    syi2 = _logitinv(slogity2)
     
     
-    ymin = np.log(yi[yi>0].min())-1
-    logyi = np.log(yi).clip(min=ymin)
-    #plt.scatter(xi,logyi)
-    #return
+#    ymin = np.log(yi[yi>0].min())-1
+#    logyi = np.log(yi).clip(min=ymin)
+#    plt.scatter(xi,logyi)
+#    plt.show()
+#    return
     #print(logyi)
     
-    gkreg = KRegression(xi, logity, hs=hs*0.4, xmin=xmin-2*hopt,xmax=xmax+2*hopt)
+    gkreg = KRegression(xi, logity, hs=hs*fact, xmin=xmin-hopt,xmax=xmax+hopt)
     fg = gkreg.eval_grid(xi,output='plotobj', title='Kernel regression', plotflag=1)
     sa = (fg.data-logity).std()
     sa2 = iqrange(fg.data-logity) / 1.349
-    print('sa=%g %g' % (sa, sa2))
+    #print('sa=%g %g' % (sa, sa2))
     sa = min(sa,sa2)
     
-    plt.figure(1)
-    plt.plot(xi, slogity-logity,'r.')
-    #plt.plot(xi, logity-,'b.')
-    plt.plot(xi, fg.data-logity, 'b.')
+#    plt.figure(1)
+#    plt.plot(xi, slogity-logity,'r.')
+#    #plt.plot(xi, logity-,'b.')
+#    plt.plot(xi, fg.data-logity, 'b.')
 #    plt.show()
 #    return
 
@@ -3568,13 +3571,15 @@ def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj', plotlog=False):
     #ci = ckreg.eval_grid_fast(xi)*n*dx
     ciii = ckreg.eval_grid_fast(xiii)*dx*n*(1+symmetric)
     
-    pi = _logitinv(fg.data)
+    pi = reverse(fg.data)
+    
     sa1 = np.sqrt(1./(ciii*pi*(1-pi)))
     
-    plo3 = _logitinv(fg.data-z0*sa)
-    pup3 = _logitinv(fg.data+z0*sa)
+    plo3 = reverse(fg.data-z0*sa)
+    pup3 = reverse(fg.data+z0*sa)
     fg.data = pi
     
+    pi = f.data
    
     #pi = f.data
     
@@ -3584,36 +3589,56 @@ def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj', plotlog=False):
     b = 2*(1+z0**2/(ciii+1e-16))
     plo2 = ((a-sqrt(a**2-2*pi**2*b))/b).clip(min=0,max=1)
     pup2 = ((a+sqrt(a**2-2*pi**2*b))/b).clip(min=0,max=1)
-    pup = (pi + z0*np.sqrt(pi*(1-pi)/ciii)).clip(min=0,max=1)
-    plo = (pi - z0*np.sqrt(pi*(1-pi)/ciii)).clip(min=0,max=1)
     
+    # Jeffreys intervall a=b=0.5
+    #st.beta.isf(alpha/2, x+a, n-x+b)
+    ab = 0.05
+    pi1 = pi #fun1(xiii)
+    pup2 = np.where(pi==1, 1, st.beta.isf(alpha/2, ciii*pi1+ab, ciii*(1-pi1)+ab))
+    plo2 = np.where(pi==0, 0, st.beta.isf(1-alpha/2, ciii*pi1+ab, ciii*(1-pi1)+ab))
+    #pup = (pi + z0*np.sqrt(pi*(1-pi)/ciii)).clip(min=0,max=1)
+    #plo = (pi - z0*np.sqrt(pi*(1-pi)/ciii)).clip(min=0,max=1)
+    
+    # Wilson score
     den = 1+(z0**2./ciii);
-    xc=(pi+(z0**2)/(2*ciii))/den;
-    halfwidth=(z0*sqrt((pi*(1-pi)/ciii)+(z0**2/(4*(ciii**2)))))/den
-    plo = xc-halfwidth # wilson score
-    pup = xc+halfwidth # wilson score
+    xc=(pi1+(z0**2)/(2*ciii))/den;
+    halfwidth=(z0*sqrt((pi1*(1-pi1)/ciii)+(z0**2/(4*(ciii**2)))))/den
+    plo = (xc-halfwidth).clip(min=0) # wilson score
+    pup = (xc+halfwidth).clip(max=1.0) # wilson score
 
-    
+    logity[logity==-40] = np.nan
+    #saz = (logity-forward(stineman_interp(xi, xiii, plo)))/z0
+#    slogity = smoothn(logity, robust=False) #, weight=1./saz)
+#    slogity2 = SavitzkyGolay(n=2, degree=2).smooth(logity)
+#    sa1 = sqrt(evar(logity))
+#    sa = (slogity-logity).std()
+#    #print('estd = %g %g' % (sa,sa1))
+#    
+#   
+#    plo3 = reverse(slogity-z0*sa)
+#    pup3 = reverse(slogity+z0*sa)
+#    syi = reverse(slogity)
+#    syi2 = reverse(slogity2)
     #print(fg.data)
     #fg.data = np.exp(fg.data)
     
-    plt.figure(2)
+    #plt.figure(2)
     fg.plot(label='KReg grid')
     f.plot(label='KRegression')
     labtxt = '%d CI' % (int(100*(1-alpha)))
-    plt.plot(xi, syi, 'k',xi, syi2,'k--', label='smoothn')
+    #plt.plot(xi, syi, 'k',xi, syi2,'k--', label='smoothn')
     plt.fill_between(xiii, pup, plo, alpha=0.20,color='r', linestyle='--', label=labtxt)
-    #plt.fill_between(xiii, pup2, plo2,alpha = 0.20, color='b', linestyle=':',label='%d CI2' % (int(100*(1-alpha))))
+    plt.fill_between(xiii, pup2, plo2,alpha = 0.20, color='b', linestyle=':',label='%d CI2' % (int(100*(1-alpha))))
     #plt.plot(xiii, 0.5*np.cos(xiii)+.5, 'r', label='True model')
     plt.plot(xiii, fun1(xiii), 'r', label='True model')
     plt.scatter(xi,yi, label='data')
-    print(np.nanmax(f.data))
-    print(kreg.tkde.tkde.hs)
+    print('maxp = %g' % (np.nanmax(f.data)))
+    print('hs = %g' %( kreg.tkde.tkde.hs))
     plt.legend()
     h = plt.gca()
     if plotlog:
         plt.setp(h,yscale='log')
-    plt.show()
+    #plt.show()
     
 def kde_gauss_demo(n=50):
     '''
@@ -3679,6 +3704,10 @@ if __name__ == '__main__':
     #kde_demo2()
     #kreg_demo1(fast=True)
     #kde_gauss_demo()
-    kreg_demo2(n=180,symmetric=True,fun='hste', plotlog=False)
+    #kreg_demo2(n=120,symmetric=True,fun='hste', plotlog=True)
+    for i, n in enumerate([10,100,1000,2000,4000]):
+        plt.figure(i)
+        kreg_demo2(n=n,symmetric=True,fun='hste', plotlog=False)
+    plt.show()
     #test_smoothn_2d()
     #test_smoothn_cardioid()
