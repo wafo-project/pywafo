@@ -3471,13 +3471,13 @@ def _logitinv(x):
     return 1.0/(np.exp(-x)+1)    
 
 
-def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj', plotlog=False):
+def _get_data(n=100, symmetric=False, loc1=1.1, scale1=0.6, scale2=1.0):
     import scipy.stats as st
-    from sg_filter import SavitzkyGolay
+    #from sg_filter import SavitzkyGolay
     dist = st.norm
-    scale1 = 0.5
-    loc1= 1.5
-    norm1 = dist.pdf(-loc1, loc=-loc1, scale=scale1) + dist.pdf(-loc1, loc=loc1, scale=scale1)
+    
+    
+    norm1 = scale2*(dist.pdf(-loc1, loc=-loc1, scale=scale1) + dist.pdf(-loc1, loc=loc1, scale=scale1))
     fun1 = lambda x : (dist.pdf(x, loc=-loc1, scale=scale1) + dist.pdf(x, loc=loc1, scale=scale1))/norm1 
 
     x = np.sort(6*np.random.rand(n,1)-3, axis=0)
@@ -3486,19 +3486,39 @@ def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj', plotlog=False):
     #y = (np.cos(x)>2*np.random.rand(n, 1)-1).ravel()
     x = x.ravel()
     
-    alpha=0.05
-    z0 = -_invnorm(alpha/2)
-    
     if symmetric:
         xi = np.hstack((x.ravel(),-x.ravel()))
         yi = np.hstack((y, y))
         i = np.argsort(xi)
         x = xi[i]
         y = yi[i]
-    hisj = Kernel('gauss', fun='hisj').get_smoothing(x)
-    hste = Kernel('gauss', fun='hste').get_smoothing(x)
+    return x, y, fun1
+def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj', plotlog=False):
+    x,y, fun1 = _get_data(n, symmetric)
+    kreg_demo3(x,y,fun1, hs=None, fun='hisj', plotlog=False)
+    
+def kreg_demo3(x,y, fun1, hs=None, fun='hisj', plotlog=False):
+    import scipy.stats as st
+   
+    
+    alpha=0.25
+    z0 = -_invnorm(alpha/2)
+    
+    hs1 = Kernel('gauss', fun=fun).get_smoothing(x)
+    n = x.size
+    hx = np.median(np.abs(x-np.median(x)))/0.6745*(4.0/(3*n))**0.2
+    if (y==True).any():
+        hs2 = Kernel('gauss', fun=fun).get_smoothing(x[y==True])
+        hy = np.median(np.abs(y-np.mean(y)))/0.6745*(4.0/(3*n))**0.2
+    else:
+        hs2 = 4*hs1
+        hy = 4*hx
+        
+    #hy2 = Kernel('gauss', fun=fun).get_smoothing(y)
     #kernel = Kernel('gauss',fun=fun)
-    hopt = (hste+hisj)/2 #kernel.get_smoothing(x)
+    hopt = (hs1+2*hs2)/3 #kernel.get_smoothing(x)
+    #hopt = sqrt(hs1*hs2)
+    #hopt=sqrt(hx*hy);
     if hs is None:
         hs = hopt
         
@@ -3508,7 +3528,7 @@ def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj', plotlog=False):
     #reverse = np.exp
     
     xmin, xmax = x.min(), x.max()    
-    ni = 2*int((xmax-xmin)/hopt)+1
+    ni = max(2*int((xmax-xmin)/hopt)+1,5)
     print(ni)
     print(xmin, xmax)
      
@@ -3516,38 +3536,32 @@ def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj', plotlog=False):
     xiii = np.linspace(xmin-hopt,xmax+hopt, 4*ni+1)
     
     from wafo.interpolate import stineman_interp
-    fact = stineman_interp([x.size], [0, 2000], [0.25, 1.0], yp=[0.75/2000,0.75/2000]).clip(min=0.25,max=1.3)
+    fact = stineman_interp([x.size], [0, 2000], [0.25, 1.0], yp=[0.75/2000,0.75/2000]).clip(min=0.9,max=1.0)
     print("fact=%g" % (fact))
     kreg = KRegression(x, y, hs=hs*fact, p=0)
-    fi = kreg(xi)
-    f = kreg(xiii,output='plotobj', title='Kernel regression n=%d, hste=%g, hisj=%g' % (n,hste,hisj), plotflag=1)
+    #fi = kreg(xi)
+    f = kreg(xiii,output='plotobj', title='KRegr %s f=%g, n=%d, hs1=%g, hs2=%g' % (fun,fact,n,hs1,hs2), plotflag=1)
     
     c = gridcount(x, xi)
-    c0 = gridcount(x[y==True],xi)
-    
+    if (y==True).any():
+        c0 = gridcount(x[y==True],xi)
+    else:
+        c0 = np.zeros(xi.shape)
     yi = np.where(c==0, 0, c0/c)
-    #yi[yi==0] = 1.0/(c[c!=0].min()+4)#
-    #yi[yi==1] = 1-1.0/(c[c!=0].min()+4) #
+    #yi[yi==0] = 1.0/(c[c!=0].min()+4)
+    #yi[yi==1] = 1-1.0/(c[c!=0].min()+4) 
     #yi[yi==0] = fi[yi==0] 
     
     #yi[yi==0] = np.exp(stineman_interp(xi[yi==0], xi[yi>0],np.log(yi[yi>0]))) 
-    #yi[yi==0] = fun1(xi[yi==0]) 
-    yi[yi==0] = yi[yi>0].min()/sqrt(n)
+    #yi[yi==0] = fun1(xi[yi==0])
+    try: 
+        yi[yi==0] = yi[yi>0].min()/sqrt(n)
+    except:
+        yi[yi==0] = 1./n
     yi[yi==1] =1-(1-yi[yi<1].max())/sqrt(n)
     
-    logity =forward(yi)
-#    plt.plot(xi, np.log(yi/(1-yi)), xi,logity,'.')
-#    plt.show()
-#    return
-    
-    
-    
-#    ymin = np.log(yi[yi>0].min())-1
-#    logyi = np.log(yi).clip(min=ymin)
-#    plt.scatter(xi,logyi)
-#    plt.show()
-#    return
-    #print(logyi)
+    logity = forward(yi)
+
     
     gkreg = KRegression(xi, logity, hs=hs*fact, xmin=xmin-hopt,xmax=xmax+hopt)
     fg = gkreg.eval_grid(xi,output='plotobj', title='Kernel regression', plotflag=1)
@@ -3565,23 +3579,18 @@ def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj', plotlog=False):
 
     
     fg = gkreg.eval_grid(xiii,output='plotobj', title='Kernel regression', plotflag=1)
+    pi = reverse(fg.data)
     
     dx = xi[1]-xi[0]
     ckreg = KDE(x,hs=hs)
     #ci = ckreg.eval_grid_fast(xi)*n*dx
-    ciii = ckreg.eval_grid_fast(xiii)*dx*n*(1+symmetric)
+    ciii = ckreg.eval_grid_fast(xiii)*dx* x.size #n*(1+symmetric)
     
-    pi = reverse(fg.data)
-    
-    sa1 = np.sqrt(1./(ciii*pi*(1-pi)))
-    
-    plo3 = reverse(fg.data-z0*sa)
-    pup3 = reverse(fg.data+z0*sa)
-    fg.data = pi
-    
+#    sa1 = np.sqrt(1./(ciii*pi*(1-pi)))
+#    plo3 = reverse(fg.data-z0*sa)
+#    pup3 = reverse(fg.data+z0*sa)
+    fg.data = pi   
     pi = f.data
-   
-    #pi = f.data
     
     
     # ref Casella and Berger (1990) "Statistical inference" pp444
@@ -3592,12 +3601,11 @@ def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj', plotlog=False):
     
     # Jeffreys intervall a=b=0.5
     #st.beta.isf(alpha/2, x+a, n-x+b)
-    ab = 0.05
+    ab = 0.03
     pi1 = pi #fun1(xiii)
     pup2 = np.where(pi==1, 1, st.beta.isf(alpha/2, ciii*pi1+ab, ciii*(1-pi1)+ab))
     plo2 = np.where(pi==0, 0, st.beta.isf(1-alpha/2, ciii*pi1+ab, ciii*(1-pi1)+ab))
-    #pup = (pi + z0*np.sqrt(pi*(1-pi)/ciii)).clip(min=0,max=1)
-    #plo = (pi - z0*np.sqrt(pi*(1-pi)/ciii)).clip(min=0,max=1)
+    
     
     # Wilson score
     den = 1+(z0**2./ciii);
@@ -3605,31 +3613,14 @@ def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj', plotlog=False):
     halfwidth=(z0*sqrt((pi1*(1-pi1)/ciii)+(z0**2/(4*(ciii**2)))))/den
     plo = (xc-halfwidth).clip(min=0) # wilson score
     pup = (xc+halfwidth).clip(max=1.0) # wilson score
+    #pup = (pi + z0*np.sqrt(pi*(1-pi)/ciii)).clip(min=0,max=1) # dont use
+    #plo = (pi - z0*np.sqrt(pi*(1-pi)/ciii)).clip(min=0,max=1)
 
-    logity[logity==-40] = np.nan
-    #saz = (logity-forward(stineman_interp(xi, xiii, plo)))/z0
-#    slogity = smoothn(logity, robust=False) #, weight=1./saz)
-#    slogity2 = SavitzkyGolay(n=2, degree=2).smooth(logity)
-#    sa1 = sqrt(evar(logity))
-#    sa = (slogity-logity).std()
-#    #print('estd = %g %g' % (sa,sa1))
-#    
-#   
-#    plo3 = reverse(slogity-z0*sa)
-#    pup3 = reverse(slogity+z0*sa)
-#    syi = reverse(slogity)
-#    syi2 = reverse(slogity2)
-    #print(fg.data)
-    #fg.data = np.exp(fg.data)
-    
-    #plt.figure(2)
     fg.plot(label='KReg grid')
     f.plot(label='KRegression')
     labtxt = '%d CI' % (int(100*(1-alpha)))
-    #plt.plot(xi, syi, 'k',xi, syi2,'k--', label='smoothn')
     plt.fill_between(xiii, pup, plo, alpha=0.20,color='r', linestyle='--', label=labtxt)
     plt.fill_between(xiii, pup2, plo2,alpha = 0.20, color='b', linestyle=':',label='%d CI2' % (int(100*(1-alpha))))
-    #plt.plot(xiii, 0.5*np.cos(xiii)+.5, 'r', label='True model')
     plt.plot(xiii, fun1(xiii), 'r', label='True model')
     plt.scatter(xi,yi, label='data')
     print('maxp = %g' % (np.nanmax(f.data)))
@@ -3701,16 +3692,23 @@ def test_docstrings():
 if __name__ == '__main__':
     import wafo.fig as fig
     
-    plt.ioff()
+    plt.ion()
     #test_docstrings()
     #kde_demo2()
     #kreg_demo1(fast=True)
     #kde_gauss_demo()
     #kreg_demo2(n=120,symmetric=True,fun='hste', plotlog=True)
-    for i, n in enumerate([10,100,1000,2000,4000]):
-        plt.figure(i)
-        kreg_demo2(n=n,symmetric=True,fun='hste', plotlog=False)
-    fig.tile(range(5))
+    k = 0
+    for i, n in enumerate([50, 100,300,600, 4000]):
+        x,y, fun1 = _get_data(n, symmetric=True,loc1=1.2, scale1=0.3, scale2=1.25)
+        k0 = k
+        for j, fun in enumerate(['hste', 'hisj', 'hstt', 'hldpi']):
+            plt.figure(k)
+            k +=1
+            kreg_demo3(x,y,fun1, hs=None, fun=fun, plotlog=False)
+            #kreg_demo2(n=n,symmetric=True,fun='hste', plotlog=False)
+        fig.tile(range(k0,k))
+    plt.ioff()
     plt.show()
     
     #test_smoothn_2d()
