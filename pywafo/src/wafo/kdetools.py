@@ -1608,7 +1608,7 @@ class Kernel(object):
             h[dim] = h1
         #end % for dim loop
         return h
-    def hisj(self, data, inc=512, L=5):
+    def hisj(self, data, inc=512, L=7):
         '''
         HISJ Improved Sheather-Jones estimate of smoothing parameter.
         
@@ -1620,7 +1620,7 @@ class Kernel(object):
         Parameters
         ----------
         data    - a vector of data from which the density estimate is constructed;
-        n  - the number of mesh points used in the uniform discretization 
+        inc  - the number of mesh points used in the uniform discretization 
         
         Returns
         -------
@@ -1637,7 +1637,7 @@ class Kernel(object):
         
         # R= int(mkernel(x)^2),  mu2= int(x^2*mkernel(x))
         mu2, R, unusedRdd = self.stats()
-        STEconstant = R / (mu2 ** (2) * n)
+        STEconstant = R / (n * mu2 ** 2)
           
         amin = A.min(axis=1) # Find the minimum value of A.
         amax = A.max(axis=1) # Find the maximum value of A.
@@ -1679,7 +1679,7 @@ class Kernel(object):
             #a = dct(c/c.sum(), norm=None)
             a = dct(c/len(A[dim]), norm=None)
             
-            #% now compute the optimal bandwidth^2 using the referenced method
+            # now compute the optimal bandwidth^2 using the referenced method
             I = np.asfarray(np.arange(1, inc))**2 
             a2 = (a[1:]/2)**2
             fun = lambda t: fixed_point(t, N, I, a2)
@@ -1825,7 +1825,7 @@ class Kernel(object):
         return h
             
 
-    def hscv(self, data, hvec=None, inc=128, maxit=100):
+    def hscv(self, data, hvec=None, inc=128, maxit=100, fulloutput=False):
         '''
         HSCV Smoothed cross-validation estimate of smoothing parameter.
         
@@ -1954,7 +1954,10 @@ class Kernel(object):
                 warnings.warn('Optimum is probably higher than hs=%g for dim=%d' % (h[dim] * s, dim))
             
         hvec = hvec * (STEconstant / STEconstant2) ** (1 / 5)
-        return h * sigmaA
+        if fulloutput:
+            return h * sigmaA, score, hvec, sigmaA
+        else:
+            return h * sigmaA
     
     def hldpi(self, data, L=2, inc=128):
         '''HLDPI L-stage Direct Plug-In estimate of smoothing parameter.
@@ -1992,8 +1995,8 @@ class Kernel(object):
         # R= int(mkernel(x)^2),  mu2= int(x^2*mkernel(x))
         mu2, R, unusedRdd = self.stats()
         
-        AMISEconstant = (8 * sqrt(pi) * R / (3 * mu2 ** 2 * n)) ** (1. / 5)
-        STEconstant = R / (mu2 ** (2) * n)
+        AMISEconstant = (8 * sqrt(pi) * R / (3 * n * mu2 ** 2)) ** (1. / 5)
+        STEconstant = R / (n * mu2 ** 2)
         
         sigmaA = self.hns(A) / AMISEconstant
         
@@ -2055,11 +2058,7 @@ class Kernel(object):
                     #end
                 #end
             h[dim] =  (STEconstant / PSI) ** (1. / 5)
-
         return h
-
-
-
     def norm_factor(self, d=1, n=None):
         return  self.kernel.norm_factor(d, n)    
     def eval_points(self, points):
@@ -3478,7 +3477,7 @@ def _get_data(n=100, symmetric=False, loc1=1.1, scale1=0.6, scale2=1.0):
     
     
     norm1 = scale2*(dist.pdf(-loc1, loc=-loc1, scale=scale1) + dist.pdf(-loc1, loc=loc1, scale=scale1))
-    fun1 = lambda x : (dist.pdf(x, loc=-loc1, scale=scale1) + dist.pdf(x, loc=loc1, scale=scale1))/norm1 
+    fun1 = lambda x : ((dist.pdf(x, loc=-loc1, scale=scale1) + dist.pdf(x, loc=loc1, scale=scale1))/norm1).clip(max=1.0) 
 
     x = np.sort(6*np.random.rand(n,1)-3, axis=0)
     
@@ -3499,9 +3498,8 @@ def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj', plotlog=False):
     
 def kreg_demo3(x,y, fun1, hs=None, fun='hisj', plotlog=False):
     import scipy.stats as st
-   
     
-    alpha=0.25
+    alpha=0.1
     z0 = -_invnorm(alpha/2)
     
     hs1 = Kernel('gauss', fun=fun).get_smoothing(x)
@@ -3516,8 +3514,10 @@ def kreg_demo3(x,y, fun1, hs=None, fun='hisj', plotlog=False):
         
     #hy2 = Kernel('gauss', fun=fun).get_smoothing(y)
     #kernel = Kernel('gauss',fun=fun)
-    hopt = (hs1+2*hs2)/3 #kernel.get_smoothing(x)
-    #hopt = sqrt(hs1*hs2)
+    #hopt = (hs1+2*hs2)/3
+    #hopt = (hs1+4*hs2)/5 #kernel.get_smoothing(x)
+    #hopt = hs2
+    hopt = sqrt(hs1*hs2)
     #hopt=sqrt(hx*hy);
     if hs is None:
         hs = hopt
@@ -3535,19 +3535,26 @@ def kreg_demo3(x,y, fun1, hs=None, fun='hisj', plotlog=False):
     xi = np.linspace(xmin-hopt,xmax+hopt, ni)
     xiii = np.linspace(xmin-hopt,xmax+hopt, 4*ni+1)
     
-    from wafo.interpolate import stineman_interp
-    fact = stineman_interp([x.size], [0, 2000], [0.25, 1.0], yp=[0.75/2000,0.75/2000]).clip(min=0.9,max=1.0)
-    print("fact=%g" % (fact))
-    kreg = KRegression(x, y, hs=hs*fact, p=0)
-    #fi = kreg(xi)
-    f = kreg(xiii,output='plotobj', title='KRegr %s f=%g, n=%d, hs1=%g, hs2=%g' % (fun,fact,n,hs1,hs2), plotflag=1)
-    
     c = gridcount(x, xi)
     if (y==True).any():
         c0 = gridcount(x[y==True],xi)
     else:
         c0 = np.zeros(xi.shape)
     yi = np.where(c==0, 0, c0/c)
+    
+    from wafo.interpolate import stineman_interp
+    fact = 1.0 #stineman_interp([x.size], [0, 2000], [0.25, 1.0], yp=[0.75/2000,0.75/2000]).clip(min=0.75,max=1.0)
+    print("fact=%g" % (fact))
+    kreg = KRegression(x, y, hs=hs*fact, p=0)
+    fiii = kreg(xiii)
+    yiii = stineman_interp(xiii, x, y)
+    fit = fun1(xiii).clip(max=1.0)
+    df = np.diff(fiii)
+    eerr = np.abs(yiii-fiii).std()+ 0.5*(df[:-1]*df[1:]<0).sum()/n
+    err = (fiii-fit).std()
+    f = kreg(xiii,output='plotobj', title='%s err=%1.3f,eerr=%1.3f, n=%d, hs=%1.3f, hs1=%1.3f, hs2=%1.3f' % (fun,err,eerr,n,hs, hs1,hs2), plotflag=1)
+    
+    
     #yi[yi==0] = 1.0/(c[c!=0].min()+4)
     #yi[yi==1] = 1-1.0/(c[c!=0].min()+4) 
     #yi[yi==0] = fi[yi==0] 
@@ -3601,7 +3608,7 @@ def kreg_demo3(x,y, fun1, hs=None, fun='hisj', plotlog=False):
     
     # Jeffreys intervall a=b=0.5
     #st.beta.isf(alpha/2, x+a, n-x+b)
-    ab = 0.03
+    ab = 0.055
     pi1 = pi #fun1(xiii)
     pup2 = np.where(pi==1, 1, st.beta.isf(alpha/2, ciii*pi1+ab, ciii*(1-pi1)+ab))
     plo2 = np.where(pi==0, 0, st.beta.isf(1-alpha/2, ciii*pi1+ab, ciii*(1-pi1)+ab))
@@ -3630,7 +3637,7 @@ def kreg_demo3(x,y, fun1, hs=None, fun='hisj', plotlog=False):
     if plotlog:
         plt.setp(h,yscale='log')
     #plt.show()
-    
+    return hs1, hs2
 def kde_gauss_demo(n=50):
     '''
     KDEDEMO Demonstrate the KDEgauss
@@ -3700,12 +3707,21 @@ if __name__ == '__main__':
     #kreg_demo2(n=120,symmetric=True,fun='hste', plotlog=True)
     k = 0
     for i, n in enumerate([50, 100,300,600, 4000]):
-        x,y, fun1 = _get_data(n, symmetric=True,loc1=1.2, scale1=0.3, scale2=1.25)
+        x,y, fun1 = _get_data(n, symmetric=True,loc1=0.5, scale1=0.3, scale2=.75)
         k0 = k
-        for j, fun in enumerate(['hste', 'hisj', 'hstt', 'hldpi']):
-            plt.figure(k)
-            k +=1
-            kreg_demo3(x,y,fun1, hs=None, fun=fun, plotlog=False)
+        
+        for j, fun in enumerate(['hste']):
+            hs1 = Kernel('gauss', fun=fun).get_smoothing(x)
+            if (y==True).any():
+                hs2 = Kernel('gauss', fun=fun).get_smoothing(x[y==True])
+            else:
+                hs2 = 4*hs1
+            hsmax = sqrt(hs1*hs2)
+            for hi in np.linspace(hsmax*0.25,hsmax,9):
+                plt.figure(k)
+                k +=1
+                unused = kreg_demo3(x,y,fun1, hs=hi, fun=fun, plotlog=False)
+            
             #kreg_demo2(n=n,symmetric=True,fun='hste', plotlog=False)
         fig.tile(range(k0,k))
     plt.ioff()
