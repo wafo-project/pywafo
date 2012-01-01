@@ -86,8 +86,7 @@ class WafoData(object):
             plotbackend.hold('on')
             tmp = []
             child_args = args if len(args) else tuple(self.plot_args_children)
-            child_kwds = dict()
-            child_kwds.update(self.plot_kwds_children)
+            child_kwds = dict(self.plot_kwds_children).copy()
             child_kwds.update(**kwds)
             for child in self.children:
                 tmp1 = child.plot(*child_args, **kwds)
@@ -96,8 +95,7 @@ class WafoData(object):
             if len(tmp) == 0:
                 tmp = None
         main_args = args if len(args) else tuple(self.plot_args)
-        main_kwds = dict()
-        main_kwds.update(self.plot_kwds)
+        main_kwds = dict(self.plot_kwds).copy()
         main_kwds.update(kwds)
         tmp2 = self.plotter.plot(self, *main_args, **main_kwds)
         return tmp2, tmp
@@ -203,7 +201,7 @@ class Plotter_1d(object):
     def _plot(self, plotflag, wdata, *args, **kwds):
         x = wdata.args 
         data = transformdata(x, wdata.data, plotflag)
-        dataCI = ()
+        dataCI = getattr(wdata, 'dataCI', ())
         h1 = plot1d(x, data, dataCI, plotflag, *args, **kwds)
         return h1
     
@@ -219,7 +217,7 @@ def plot1d(args, data, dataCI, plotflag, *varargin, **kwds):
     elif plottype == 3: 
         H = plotbackend.stem(args, data, *varargin, **kwds)
     elif plottype == 4: 
-        H = plotbackend.errorbar(args, data, dataCI[:, 0] - data, dataCI[:, 1] - data, *varargin, **kwds)
+        H = plotbackend.errorbar(args, data, dataCI[:,0] - data, dataCI[:,1] - data, *varargin, **kwds)
     elif plottype == 5: 
         H = plotbackend.bar(args, data, *varargin, **kwds)
     elif plottype == 6:  
@@ -228,6 +226,9 @@ def plot1d(args, data, dataCI, plotflag, *varargin, **kwds):
             H = plotbackend.fill_between(args, data, level, *varargin, **kwds);
         else:
             H = plotbackend.fill_between(args, data, *varargin, **kwds);
+    elif plottype==7:
+        H = plotbackend.plot(args, data, *varargin, **kwds)
+        H = plotbackend.fill_between(args, dataCI[:,0], dataCI[:,1], alpha=0.2, color='r');
         
     scale = plotscale(plotflag)
     logXscale = 'x' in scale
@@ -255,9 +256,8 @@ def plot1d(args, data, dataCI, plotflag, *varargin, **kwds):
       
         plotbackend.axis(ax)
     
-    if dataCI and plottype < 3:
+    if np.any(dataCI) and plottype < 3:
         plotbackend.hold('on')
-       
         plot1d(args, dataCI, (), plotflag, 'r--');
     return H
 

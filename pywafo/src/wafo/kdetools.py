@@ -417,7 +417,8 @@ class _KDE(object):
         else:
             titlestr = 'Kernel density estimate (%s)' % self.kernel.name
             kwds2 = dict(title=titlestr)
-            kwds2['plot_kwds'] = dict(plotflag=1)
+            
+            kwds2['plot_kwds'] = kwds.pop('plot_kwds',dict(plotflag=1)) 
             kwds2.update(**kwds)
             args = self.args
             if self.d == 1:
@@ -1030,7 +1031,7 @@ class KRegression(_KDE):
     """
 
     def __init__(self, data, y, p=0, hs=None, kernel=None, alpha=0.0, xmin=None, xmax=None, inc=128, L2=None):
-        self.tkde = TKDE(data, hs, kernel, alpha, xmin, xmax, inc, L2)
+        self.tkde = TKDE(data, hs=hs, kernel=kernel, alpha=alpha, xmin=xmin,xmax=xmax, inc=inc, L2=L2) 
         self.y = y
         self.p = p
         
@@ -3492,6 +3493,24 @@ def _get_data(n=100, symmetric=False, loc1=1.1, scale1=0.6, scale2=1.0):
         x = xi[i]
         y = yi[i]
     return x, y, fun1
+
+def _get_regression_smooting(x,y,fun='hste'):
+    hs1 = Kernel('gauss', fun=fun).get_smoothing(x)
+    #hx = np.median(np.abs(x-np.median(x)))/0.6745*(4.0/(3*n))**0.2
+    if (y==True).any():
+        hs2 = Kernel('gauss', fun=fun).get_smoothing(x[y==True])
+        #hy = np.median(np.abs(y-np.mean(y)))/0.6745*(4.0/(3*n))**0.2
+    else:
+        hs2 = 4*hs1
+        #hy = 4*hx
+        
+    #hy2 = Kernel('gauss', fun=fun).get_smoothing(y)
+    #kernel = Kernel('gauss',fun=fun)
+    #hopt = (hs1+2*hs2)/3
+    #hopt = (hs1+4*hs2)/5 #kernel.get_smoothing(x)
+    #hopt = hs2
+    hopt = sqrt(hs1*hs2)
+    return hopt, hs1, hs2
 def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj', plotlog=False):
     x,y, fun1 = _get_data(n, symmetric)
     kreg_demo3(x,y,fun1, hs=None, fun='hisj', plotlog=False)
@@ -3502,23 +3521,9 @@ def kreg_demo3(x,y, fun1, hs=None, fun='hisj', plotlog=False):
     alpha=0.1
     z0 = -_invnorm(alpha/2)
     
-    hs1 = Kernel('gauss', fun=fun).get_smoothing(x)
+    
     n = x.size
-    hx = np.median(np.abs(x-np.median(x)))/0.6745*(4.0/(3*n))**0.2
-    if (y==True).any():
-        hs2 = Kernel('gauss', fun=fun).get_smoothing(x[y==True])
-        hy = np.median(np.abs(y-np.mean(y)))/0.6745*(4.0/(3*n))**0.2
-    else:
-        hs2 = 4*hs1
-        hy = 4*hx
-        
-    #hy2 = Kernel('gauss', fun=fun).get_smoothing(y)
-    #kernel = Kernel('gauss',fun=fun)
-    #hopt = (hs1+2*hs2)/3
-    #hopt = (hs1+4*hs2)/5 #kernel.get_smoothing(x)
-    #hopt = hs2
-    hopt = sqrt(hs1*hs2)
-    #hopt=sqrt(hx*hy);
+    hopt, hs1, hs2 =_get_regression_smooting(x,y,fun='hste')
     if hs is None:
         hs = hopt
         
@@ -3528,12 +3533,12 @@ def kreg_demo3(x,y, fun1, hs=None, fun='hisj', plotlog=False):
     #reverse = np.exp
     
     xmin, xmax = x.min(), x.max()    
-    ni = max(2*int((xmax-xmin)/hopt)+1,5)
+    ni = max(2*int((xmax-xmin)/hopt)+3,5)
     print(ni)
     print(xmin, xmax)
-     
-    xi = np.linspace(xmin-hopt,xmax+hopt, ni)
-    xiii = np.linspace(xmin-hopt,xmax+hopt, 4*ni+1)
+    sml = hopt
+    xi = np.linspace(xmin-sml,xmax+sml, ni)
+    xiii = np.linspace(xmin-sml,xmax+sml, 4*ni+1)
     
     c = gridcount(x, xi)
     if (y==True).any():
@@ -3547,7 +3552,7 @@ def kreg_demo3(x,y, fun1, hs=None, fun='hisj', plotlog=False):
     print("fact=%g" % (fact))
     kreg = KRegression(x, y, hs=hs*fact, p=0)
     fiii = kreg(xiii)
-    yiii = stineman_interp(xiii, x, y)
+    yiii = stineman_interp(xiii, xi, yi)
     fit = fun1(xiii).clip(max=1.0)
     df = np.diff(fiii)
     eerr = np.abs(yiii-fiii).std()+ 0.5*(df[:-1]*df[1:]<0).sum()/n
@@ -3608,12 +3613,14 @@ def kreg_demo3(x,y, fun1, hs=None, fun='hisj', plotlog=False):
     
     # Jeffreys intervall a=b=0.5
     #st.beta.isf(alpha/2, x+a, n-x+b)
-    ab = 0.055
+    ab = 0.07 #0.055
     pi1 = pi #fun1(xiii)
     pup2 = np.where(pi==1, 1, st.beta.isf(alpha/2, ciii*pi1+ab, ciii*(1-pi1)+ab))
     plo2 = np.where(pi==0, 0, st.beta.isf(1-alpha/2, ciii*pi1+ab, ciii*(1-pi1)+ab))
     
+    averr = np.trapz(pup2-plo2, xiii)/(xiii[-1]-xiii[0]) + 0.5*(df[:-1]*df[1:]<0).sum()/n
     
+    #f2 = kreg_demo4(x, y, hs, hopt)
     # Wilson score
     den = 1+(z0**2./ciii);
     xc=(pi1+(z0**2)/(2*ciii))/den;
@@ -3623,8 +3630,8 @@ def kreg_demo3(x,y, fun1, hs=None, fun='hisj', plotlog=False):
     #pup = (pi + z0*np.sqrt(pi*(1-pi)/ciii)).clip(min=0,max=1) # dont use
     #plo = (pi - z0*np.sqrt(pi*(1-pi)/ciii)).clip(min=0,max=1)
 
-    fg.plot(label='KReg grid')
-    f.plot(label='KRegression')
+    fg.plot(label='KReg grid' )
+    f.plot(label='KReg averr=%2.3f ' %(averr))
     labtxt = '%d CI' % (int(100*(1-alpha)))
     plt.fill_between(xiii, pup, plo, alpha=0.20,color='r', linestyle='--', label=labtxt)
     plt.fill_between(xiii, pup2, plo2,alpha = 0.20, color='b', linestyle=':',label='%d CI2' % (int(100*(1-alpha))))
@@ -3638,6 +3645,131 @@ def kreg_demo3(x,y, fun1, hs=None, fun='hisj', plotlog=False):
         plt.setp(h,yscale='log')
     #plt.show()
     return hs1, hs2
+
+
+def check_kreg_demo3():
+    import wafo.fig as fig
+    
+    plt.ion()
+    k = 0
+    for i, n in enumerate([50, 100,300,600, 4000]):
+        x,y, fun1 = _get_data(n, symmetric=True,loc1=1.0, scale1=0.6, scale2=1.25)
+        k0 = k
+        
+        for j, fun in enumerate(['hste']):
+            hsmax, hs1, hs2 =_get_regression_smooting(x,y,fun=fun)
+            for hi in np.linspace(hsmax*0.25,hsmax,9):
+                plt.figure(k)
+                k +=1
+                unused = kreg_demo3(x,y,fun1, hs=hi, fun=fun, plotlog=False)
+            
+            #kreg_demo2(n=n,symmetric=True,fun='hste', plotlog=False)
+        fig.tile(range(k0,k))
+    plt.ioff()
+    plt.show()
+
+def check_kreg_demo4():
+    import wafo.fig as fig
+    
+    plt.ion()
+    #test_docstrings()
+    #kde_demo2()
+    #kreg_demo1(fast=True)
+    #kde_gauss_demo()
+    #kreg_demo2(n=120,symmetric=True,fun='hste', plotlog=True)
+    k = 0
+    for i, n in enumerate([100,300,600]):
+        x,y, fun1 = _get_data(n, symmetric=True,loc1=0.6, scale1=0.3, scale2=1.25)
+        k0 = k
+        hopt1, h1,h2 = _get_regression_smooting(x,y,fun='hns')
+        hopt2, h1,h2 = _get_regression_smooting(x,y,fun='hste')
+        hopt = sqrt(hopt1*hopt2)
+        for j, fun in enumerate(['hste', 'hisj', 'hns', 'hstt']):
+            hsmax, hs1, hs2 =_get_regression_smooting(x,y,fun=fun)
+            
+            fmax = kreg_demo4(x, y, hsmax+0.1, hopt)
+            for hi in np.linspace(hsmax*0.25,hsmax,25):
+                f = kreg_demo4(x, y, hi, hopt)
+                if f.prediction_error_avg<=fmax.prediction_error_avg:
+                    fmax = f
+            plt.figure(k)
+            k +=1
+            fmax.plot()
+            xi = fmax.args[::4]
+            c = gridcount(x, xi)
+            if (y==True).any():
+                c0 = gridcount(x[y==True],xi)
+            else:
+                c0 = np.zeros(xi.shape)
+            yi = np.where(c==0, 0, c0/c)
+            plt.plot(xi, yi, 'b.', xi, fun1(xi),'r')
+            
+            #kreg_demo2(n=n,symmetric=True,fun='hste', plotlog=False)
+        fig.tile(range(k0,k))
+    plt.ioff()
+    plt.show()
+        
+def kreg_demo4(x,y, hs, hopt):
+    import scipy.stats as st
+    
+    n = x.size
+    alpha=0.1
+    z0 = -_invnorm(alpha/2)
+    
+    xmin, xmax = x.min(), x.max()    
+    ni = max(2*int((xmax-xmin)/hopt)+3,5)
+    
+    sml = hopt
+    xi = np.linspace(xmin-sml,xmax+sml, ni)
+    xiii = np.linspace(xmin-sml,xmax+sml, 4*ni+1)
+    
+    
+    from wafo.interpolate import stineman_interp
+    
+    kreg = KRegression(x, y, hs=hs, p=0)
+    f = kreg(xiii, output='plotobj', plot_kwds = dict(plotflag=7))
+    
+        
+    dx = xi[1]-xi[0]
+    ciiii = kreg.tkde.eval_grid_fast(xiii)*dx* x.size
+    ckreg = KDE(x,hs=hs)
+    ciii = ckreg.eval_grid_fast(xiii)*dx* x.size #n*(1+symmetric)
+
+      
+    pi = f.data
+    
+    # Jeffreys intervall a=b=0.5
+    #st.beta.isf(alpha/2, x+a, n-x+b)
+    ab = 0.07 #0.055
+    pi1 = pi #fun1(xiii)
+    pup = np.where(pi1==1, 1, st.beta.isf(alpha/2, ciii*pi1+ab, ciii*(1-pi1)+ab))
+    plo = np.where(pi1==0, 0, st.beta.isf(1-alpha/2, ciii*pi1+ab, ciii*(1-pi1)+ab))
+    
+    
+    # Wilson score
+    den = 1+(z0**2./ciii);
+    xc=(pi1+(z0**2)/(2*ciii))/den;
+    halfwidth=(z0*sqrt((pi1*(1-pi1)/ciii)+(z0**2/(4*(ciii**2)))))/den
+    plo2 = (xc-halfwidth).clip(min=0) # wilson score
+    pup2 = (xc+halfwidth).clip(max=1.0) # wilson score
+    
+    f.dataCI = np.vstack((plo,pup)).T
+    f.prediction_error_avg = np.trapz(pup-plo, xiii)/(xiii[-1]-xiii[0])
+    fiii = f.data
+    
+    c = gridcount(x, xi)
+    if (y==True).any():
+        c0 = gridcount(x[y==True],xi)
+    else:
+        c0 = np.zeros(xi.shape)
+    yi = np.where(c==0, 0, c0/c)
+    yiii = stineman_interp(xiii, xi, yi)
+    df = np.diff(fiii)
+    eerr = np.abs(yiii-fiii).std()+ 0.5*(df[:-1]*df[1:]<0).sum()/n
+    f.labels.title='perr=%1.3f,eerr=%1.3f, n=%d, hs=%1.3f' % (f.prediction_error_avg,eerr,n,hs)
+    
+    return f
+
 def kde_gauss_demo(n=50):
     '''
     KDEDEMO Demonstrate the KDEgauss
@@ -3697,35 +3829,14 @@ def test_docstrings():
     doctest.testmod()
     
 if __name__ == '__main__':
-    import wafo.fig as fig
+    #check_kreg_demo3()
+    check_kreg_demo4()
+
+    #test_smoothn_2d()
+    #test_smoothn_cardioid()
     
-    plt.ion()
     #test_docstrings()
     #kde_demo2()
     #kreg_demo1(fast=True)
     #kde_gauss_demo()
     #kreg_demo2(n=120,symmetric=True,fun='hste', plotlog=True)
-    k = 0
-    for i, n in enumerate([50, 100,300,600, 4000]):
-        x,y, fun1 = _get_data(n, symmetric=True,loc1=0.5, scale1=0.3, scale2=.75)
-        k0 = k
-        
-        for j, fun in enumerate(['hste']):
-            hs1 = Kernel('gauss', fun=fun).get_smoothing(x)
-            if (y==True).any():
-                hs2 = Kernel('gauss', fun=fun).get_smoothing(x[y==True])
-            else:
-                hs2 = 4*hs1
-            hsmax = sqrt(hs1*hs2)
-            for hi in np.linspace(hsmax*0.25,hsmax,9):
-                plt.figure(k)
-                k +=1
-                unused = kreg_demo3(x,y,fun1, hs=hi, fun=fun, plotlog=False)
-            
-            #kreg_demo2(n=n,symmetric=True,fun='hste', plotlog=False)
-        fig.tile(range(k0,k))
-    plt.ioff()
-    plt.show()
-    
-    #test_smoothn_2d()
-    #test_smoothn_cardioid()
