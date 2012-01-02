@@ -3511,6 +3511,7 @@ def _get_regression_smooting(x,y,fun='hste'):
     #hopt = hs2
     hopt = sqrt(hs1*hs2)
     return hopt, hs1, hs2
+
 def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj', plotlog=False):
     x,y, fun1 = _get_data(n, symmetric)
     kreg_demo3(x,y,fun1, hs=None, fun='hisj', plotlog=False)
@@ -3523,7 +3524,7 @@ def kreg_demo3(x,y, fun1, hs=None, fun='hisj', plotlog=False):
     
     
     n = x.size
-    hopt, hs1, hs2 =_get_regression_smooting(x,y,fun='hste')
+    hopt, hs1, hs2 =_get_regression_smooting(x,y,fun='hos')
     if hs is None:
         hs = hopt
         
@@ -3536,7 +3537,7 @@ def kreg_demo3(x,y, fun1, hs=None, fun='hisj', plotlog=False):
     ni = max(2*int((xmax-xmin)/hopt)+3,5)
     print(ni)
     print(xmin, xmax)
-    sml = hopt
+    sml = hopt*0.1
     xi = np.linspace(xmin-sml,xmax+sml, ni)
     xiii = np.linspace(xmin-sml,xmax+sml, 4*ni+1)
     
@@ -3555,7 +3556,7 @@ def kreg_demo3(x,y, fun1, hs=None, fun='hisj', plotlog=False):
     yiii = stineman_interp(xiii, xi, yi)
     fit = fun1(xiii).clip(max=1.0)
     df = np.diff(fiii)
-    eerr = np.abs(yiii-fiii).std()+ 0.5*(df[:-1]*df[1:]<0).sum()/n
+    eerr = np.abs((yiii-fiii)).std()+ 0.5*(df[:-1]*df[1:]<0).sum()/n
     err = (fiii-fit).std()
     f = kreg(xiii,output='plotobj', title='%s err=%1.3f,eerr=%1.3f, n=%d, hs=%1.3f, hs1=%1.3f, hs2=%1.3f' % (fun,err,eerr,n,hs, hs1,hs2), plotflag=1)
     
@@ -3618,7 +3619,7 @@ def kreg_demo3(x,y, fun1, hs=None, fun='hisj', plotlog=False):
     pup2 = np.where(pi==1, 1, st.beta.isf(alpha/2, ciii*pi1+ab, ciii*(1-pi1)+ab))
     plo2 = np.where(pi==0, 0, st.beta.isf(1-alpha/2, ciii*pi1+ab, ciii*(1-pi1)+ab))
     
-    averr = np.trapz(pup2-plo2, xiii)/(xiii[-1]-xiii[0]) + 0.5*(df[:-1]*df[1:]<0).sum()/n
+    averr = np.trapz(pup2-plo2, xiii)/(xiii[-1]-xiii[0]) + 0.5*(df[:-1]*df[1:]<0).sum()
     
     #f2 = kreg_demo4(x, y, hs, hopt)
     # Wilson score
@@ -3630,7 +3631,20 @@ def kreg_demo3(x,y, fun1, hs=None, fun='hisj', plotlog=False):
     #pup = (pi + z0*np.sqrt(pi*(1-pi)/ciii)).clip(min=0,max=1) # dont use
     #plo = (pi - z0*np.sqrt(pi*(1-pi)/ciii)).clip(min=0,max=1)
 
-    fg.plot(label='KReg grid' )
+    #mi = kreg.eval_grid(x)
+    #sigma = (stineman_interp(x, xiii, pup)-stineman_interp(x, xiii, plo))/4
+    #aic = np.abs((y-mi)/sigma).std()+ 0.5*(df[:-1]*df[1:]<0).sum()/n
+    #aic = np.abs((yiii-fiii)/(pup-plo)).std()+ 0.5*(df[:-1]*df[1:]<0).sum() + ((yiii-pup).clip(min=0)-(yiii-plo).clip(max=0)).sum()
+    
+    k = (df[:-1]*df[1:]<0).sum() # numpeaks
+    sigmai = (pup-plo)
+    aic = (((yiii-fiii)/sigmai)**2).sum()+ 2*k*(k+1)/np.maximum(ni-k+1,1) + np.abs((yiii-pup).clip(min=0)-(yiii-plo).clip(max=0)).sum()
+    
+    #aic = (((yiii-fiii)/sigmai)**2).sum()+ 2*k*(k+1)/(ni-k+1) + np.abs((yiii-pup).clip(min=0)-(yiii-plo).clip(max=0)).sum()
+    
+    #aic = averr + ((yiii-pup).clip(min=0)-(yiii-plo).clip(max=0)).sum()
+
+    fg.plot(label='KReg grid aic=%2.3f' % (aic) )
     f.plot(label='KReg averr=%2.3f ' %(averr))
     labtxt = '%d CI' % (int(100*(1-alpha)))
     plt.fill_between(xiii, pup, plo, alpha=0.20,color='r', linestyle='--', label=labtxt)
@@ -3678,19 +3692,19 @@ def check_kreg_demo4():
     #kde_gauss_demo()
     #kreg_demo2(n=120,symmetric=True,fun='hste', plotlog=True)
     k = 0
-    for i, n in enumerate([100,300,600]):
-        x,y, fun1 = _get_data(n, symmetric=True,loc1=0.6, scale1=0.3, scale2=1.25)
+    for i, n in enumerate([100,300,600,4000]):
+        x,y, fun1 = _get_data(n, symmetric=True,loc1=0.1, scale1=0.6, scale2=0.75)
         k0 = k
-        hopt1, h1,h2 = _get_regression_smooting(x,y,fun='hns')
+        hopt1, h1,h2 = _get_regression_smooting(x,y,fun='hos')
         hopt2, h1,h2 = _get_regression_smooting(x,y,fun='hste')
         hopt = sqrt(hopt1*hopt2)
-        for j, fun in enumerate(['hste', 'hisj', 'hns', 'hstt']):
+        for j, fun in enumerate(['hste']): # , 'hisj', 'hns', 'hstt'
             hsmax, hs1, hs2 =_get_regression_smooting(x,y,fun=fun)
             
             fmax = kreg_demo4(x, y, hsmax+0.1, hopt)
-            for hi in np.linspace(hsmax*0.25,hsmax,25):
+            for hi in np.linspace(hsmax*0.1,hsmax,55):
                 f = kreg_demo4(x, y, hi, hopt)
-                if f.prediction_error_avg<=fmax.prediction_error_avg:
+                if f.aicc<=fmax.aicc:
                     fmax = f
             plt.figure(k)
             k +=1
@@ -3702,10 +3716,10 @@ def check_kreg_demo4():
             else:
                 c0 = np.zeros(xi.shape)
             yi = np.where(c==0, 0, c0/c)
-            plt.plot(xi, yi, 'b.', xi, fun1(xi),'r')
+            plt.plot(xi, yi, 'b.', x, fun1(x),'r')
             
             #kreg_demo2(n=n,symmetric=True,fun='hste', plotlog=False)
-        fig.tile(range(k0,k))
+    fig.tile(range(0,k))
     plt.ioff()
     plt.show()
         
@@ -3719,7 +3733,7 @@ def kreg_demo4(x,y, hs, hopt):
     xmin, xmax = x.min(), x.max()    
     ni = max(2*int((xmax-xmin)/hopt)+3,5)
     
-    sml = hopt
+    sml = hopt*0.1
     xi = np.linspace(xmin-sml,xmax+sml, ni)
     xiii = np.linspace(xmin-sml,xmax+sml, 4*ni+1)
     
@@ -3747,14 +3761,14 @@ def kreg_demo4(x,y, hs, hopt):
     
     
     # Wilson score
-    den = 1+(z0**2./ciii);
-    xc=(pi1+(z0**2)/(2*ciii))/den;
-    halfwidth=(z0*sqrt((pi1*(1-pi1)/ciii)+(z0**2/(4*(ciii**2)))))/den
-    plo2 = (xc-halfwidth).clip(min=0) # wilson score
-    pup2 = (xc+halfwidth).clip(max=1.0) # wilson score
+#    den = 1+(z0**2./ciii);
+#    xc=(pi1+(z0**2)/(2*ciii))/den;
+#    halfwidth=(z0*sqrt((pi1*(1-pi1)/ciii)+(z0**2/(4*(ciii**2)))))/den
+#    plo2 = (xc-halfwidth).clip(min=0) # wilson score
+#    pup2 = (xc+halfwidth).clip(max=1.0) # wilson score
     
     f.dataCI = np.vstack((plo,pup)).T
-    f.prediction_error_avg = np.trapz(pup-plo, xiii)/(xiii[-1]-xiii[0])
+    f.prediction_error_avg = np.trapz(pup-plo, xiii)/(xiii[-1]-xiii[0])    
     fiii = f.data
     
     c = gridcount(x, xi)
@@ -3765,8 +3779,12 @@ def kreg_demo4(x,y, hs, hopt):
     yi = np.where(c==0, 0, c0/c)
     yiii = stineman_interp(xiii, xi, yi)
     df = np.diff(fiii)
-    eerr = np.abs(yiii-fiii).std()+ 0.5*(df[:-1]*df[1:]<0).sum()/n
-    f.labels.title='perr=%1.3f,eerr=%1.3f, n=%d, hs=%1.3f' % (f.prediction_error_avg,eerr,n,hs)
+    k = (df[:-1]*df[1:]<0).sum() # numpeaks
+    sigmai = (pup-plo)
+    aicc = (((yiii-fiii)/sigmai)**2).sum()+ 2*k*(k+1)/np.maximum(ni-k+1,1) + np.abs((yiii-pup).clip(min=0)-(yiii-plo).clip(max=0)).sum()
+    
+    f.aicc = aicc 
+    f.labels.title='perr=%1.3f,aicc=%1.3f, n=%d, hs=%1.3f' % (f.prediction_error_avg,aicc,n,hs)
     
     return f
 
