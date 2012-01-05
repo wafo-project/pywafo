@@ -20,30 +20,40 @@ def _matchfun(x, gidtxt):
         return x.get_gid() == gidtxt
     return False
 
-def delete_object(gidtxt, cf=None, ca=None, verbose=False):
+def delete_text_object(gidtxt, figure=None, axis=None, verbose=False):
     '''
-    Delete all objects matching the gidtxt if it exists
+    Delete all text objects matching the gidtxt if it exists
+    
+    Parameters
+    ----------
+    gidtxt : string
+        
+    figure, axis : objects
+        current figure and current axis, respectively.
+    verbose : bool
+        If true print warnings when trying to delete non-existent objects 
     '''
-    if cf is None:
-        cf = plotbackend.gcf()
-    if ca is None:
-        ca = plotbackend.gca()
+    if figure is None:
+        figure = plotbackend.gcf()
+    if axis is None:
+        axis = figure.gca()
     lmatchfun = lambda x : _matchfun(x, gidtxt) 
-    objs = plotbackend.findobj(cf, lmatchfun)
-    if len(objs):
-        for i in objs:
-            try:
-                ca.texts.remove(i)
-            except:
-                if verbose:
-                    warnings.warn('Tried to delete a non-existing %s from axes' % gidtxt)
-            try:
-                cf.texts.remove(i)
-            except:
-                if verbose:
-                    warnings.warn('Tried to delete a non-existing %s from figure' % gidtxt)
+    objs = axis.findobj(lmatchfun)
+    for obj in objs:
+        try:
+            axis.texts.remove(obj)
+        except:
+            if verbose:
+                warnings.warn('Tried to delete a non-existing %s from axis' % gidtxt)
+    objs = figure.findobj(lmatchfun)
+    for obj in objs:
+        try:
+            figure.texts.remove(obj)
+        except:
+            if verbose:
+                warnings.warn('Tried to delete a non-existing %s from figure' % gidtxt)
                 
-def cltext(levels, percent=False, n=4, xs=0.036, ys=0.94, zs=0):
+def cltext(levels, percent=False, n=4, xs=0.036, ys=0.94, zs=0, figure=None, axis=None):
     '''
     Places contour level text in the current window
               
@@ -58,6 +68,10 @@ def cltext(levels, percent=False, n=4, xs=0.036, ys=0.94, zs=0):
             contour line encloses
     n : integer
         maximum N digits of precision (default 4)
+    figure, axis : objects  
+        current figure and current axis, respectively.    
+        default figure = plotbackend.gcf(),
+                axis = plotbackend.gca()
     
     Returns
     -------
@@ -89,10 +103,15 @@ def cltext(levels, percent=False, n=4, xs=0.036, ys=0.94, zs=0):
     >>> plt.show()
     '''
     # TODO : Make it work like legend does (but without the box): include position options etc...
+    if figure is None:
+        figure = plotbackend.gcf()
+    if axis is None:
+        axis = figure.gca()
+        
     clevels = np.atleast_1d(levels)
 
-    cax = plotbackend.gca()
-    axpos = cax.get_position()
+    
+    axpos = axis.get_position()
     xint = axpos.intervalx
     yint = axpos.intervaly
     
@@ -100,7 +119,7 @@ def cltext(levels, percent=False, n=4, xs=0.036, ys=0.94, zs=0):
     yss = yint[0] + ys * (yint[1] - yint[0])
     
     # delete cltext object if it exists 
-    delete_object(_CLTEXT_GID, ca=cax)
+    delete_text_object(_CLTEXT_GID, axis=axis)
      
     charHeight = 1.0 / 33.0
     delta_y = charHeight
@@ -115,15 +134,16 @@ def cltext(levels, percent=False, n=4, xs=0.036, ys=0.94, zs=0):
     cltxt = ''.join([format_ % level for level in clevels.tolist()])
     
     titleProp = dict(gid=_CLTEXT_GID, horizontalalignment='left',
-                     verticalalignment='center', fontweight='bold', axes=cax) # 
-    ha1 = plotbackend.figtext(xss, yss, titletxt, **titleProp)
+                     verticalalignment='center', fontweight='bold', axes=axis) # 
+    
+    ha1 = figure.text(xss, yss, titletxt, **titleProp)
     
     yss -= delta_y;
     txtProp = dict(gid=_CLTEXT_GID, horizontalalignment='left',
-                     verticalalignment='top', axes=cax)
+                     verticalalignment='top', axes=axis)
     
-    ha2 = plotbackend.figtext(xss, yss, cltxt, **txtProp)
-        
+    ha2 = figure.text(xss, yss, cltxt, **txtProp)
+    plotbackend.draw_if_interactive()
     return ha1, ha2
 
 def tallibing(x, y, n, **kwds):
@@ -149,8 +169,8 @@ def tallibing(x, y, n, **kwds):
     >>> import wafo.graphutil as wg
     >>> import wafo.demos as wd
     >>> [x,y,z] = wd.peaks(n=20) 
-    >>> wg.epcolor(x,y,z)
-    >>> wg.tallibing(x,y,z)
+    >>> h0 = wg.epcolor(x,y,z)
+    >>> h1 = wg.tallibing(x,y,z)
       
     pcolor(x,y,z); shading interp; 
     
@@ -158,11 +178,14 @@ def tallibing(x, y, n, **kwds):
     --------
     text
     '''
+    
+    axis = kwds.pop('axis',None)
+    if axis is None:
+        axis = plotbackend.gca()
+    
     x, y, n = np.atleast_1d(x, y, n)
     if mlab.isvector(x) or mlab.isvector(y): 
         x, y = np.meshgrid(x,y)
-    
-    cax = plotbackend.gca()
     
     x = x.ravel()
     y = y.ravel()
@@ -170,16 +193,17 @@ def tallibing(x, y, n, **kwds):
     n = np.round(n)
     
     # delete tallibing object if it exists 
-    delete_object(_TALLIBING_GID, ca=cax)
+    delete_text_object(_TALLIBING_GID, axis=axis)
      
     txtProp = dict(gid=_TALLIBING_GID, size=8, color='w', horizontalalignment='center',
-                     verticalalignment='center', fontweight='demi', axes=cax)
+                     verticalalignment='center', fontweight='demi', axes=axis)
      
     txtProp.update(**kwds)
     h = []
     for xi,yi, ni in zip(x,y,n):
         if ni:
-            h.append(plotbackend.text(xi, yi, str(ni), **txtProp))
+            h.append(axis.text(xi, yi, str(ni), **txtProp))
+    plotbackend.draw_if_interactive()
     return h
 
 def epcolor(*args, **kwds):    
@@ -203,15 +227,20 @@ def epcolor(*args, **kwds):
      >>> import wafo.demos as wd
      >>> import wafo.graphutil as wg
      >>> x, y, z = wd.peaks(n=20)
-     >>> wg.epcolor(x,y,z)
+     >>> h = wg.epcolor(x,y,z)
     
      See also 
      --------
      pylab.pcolor
     '''
+    axis = kwds.pop('axis',None)
+    if axis is None:
+        axis = plotbackend.gca()
     midbin = kwds.pop('midbin', True)
     if not midbin:
-        return plotbackend.pcolor(*args,**kwds)
+        ret =  axis.pcolor(*args,**kwds)
+        plotbackend.draw_if_interactive()
+        return ret
 
     nargin = len(args)
     data = np.atleast_2d(args[-1]).copy()
@@ -230,7 +259,10 @@ def epcolor(*args, **kwds):
 
     xx = _findbins(x)
     yy = _findbins(y)
-    return plotbackend.pcolor(xx, yy, data, **kwds)
+    ret =  axis.pcolor(xx, yy, data, **kwds)
+    plotbackend.draw_if_interactive()
+    return ret
+    
  
 def _findbins(x):
     ''' Return points half way between all values of X _and_ outside the
