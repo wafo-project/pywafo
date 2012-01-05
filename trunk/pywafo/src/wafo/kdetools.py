@@ -10,24 +10,21 @@
 #-------------------------------------------------------------------------------
 #!/usr/bin/env python
 from __future__ import division
-from itertools import product
-from misc import tranproc #, trangood
-from numpy import pi, sqrt, atleast_2d, exp, newaxis #@UnresolvedImport
-from scipy import interpolate, linalg, sparse
-from scipy.special import gamma
-from scipy.ndimage.morphology import distance_transform_edt
-import scipy.special as special
-import scipy.optimize as optimize
-from wafo.misc import meshgrid, nextpow2
-from wafo.wafodata import WafoData
-
-from dctpack import dct, dctn, idctn
-
 import copy
 import numpy as np
 import scipy
 import warnings
-import matplotlib.pyplot as plt
+from itertools import product
+from scipy import interpolate, linalg, optimize, sparse, special, stats
+from scipy.special import gamma
+from scipy.ndimage.morphology import distance_transform_edt 
+from numpy import pi, sqrt, atleast_2d, exp, newaxis #@UnresolvedImport
+
+from wafo.misc import meshgrid, nextpow2, tranproc #, trangood
+from wafo.wafodata import WafoData
+from wafo.dctpack import dct, dctn, idctn
+from wafo.plotbackend import plotbackend as plt
+from wafo import fig
 
 def _invnorm(q):
     return special.ndtri(q)
@@ -3211,7 +3208,6 @@ def InitialGuess(y,I):
     return z
 
 def test_smoothn_1d():
-    import matplotlib.pyplot as plt
     x = np.linspace(0,100,2**8)
     y = np.cos(x/10)+(x/50)**2 + np.random.randn(x.size)/10
     y[np.r_[70, 75, 80]] = np.array([5.5, 5, 6])
@@ -3512,14 +3508,37 @@ def _get_regression_smooting(x,y,fun='hste'):
     hopt = sqrt(hs1*hs2)
     return hopt, hs1, hs2
 
+def regressionbin(x,y):
+    '''
+    Return kernel regression estimate for binomial data
+    
+    Parameters
+    ----------
+    x : arraylike
+        positions
+    y : arraylike
+        of 0 and 1
+    '''
+    hopt1, h1,h2 = _get_regression_smooting(x,y,fun='hos')
+    hopt2, h1,h2 = _get_regression_smooting(x,y,fun='hste')
+    hopt = sqrt(hopt1*hopt2)
+    
+    fbest = kreg_demo4(x, y, hopt2+0.1, hopt)
+    for fun in ['hste']: # , 'hisj', 'hns', 'hstt'
+        hsmax, hs1, hs2 =_get_regression_smooting(x,y,fun=fun)
+        for hi in np.linspace(hsmax*0.1,hsmax,55):
+            f = kreg_demo4(x, y, hi, hopt)
+            if f.aicc<=fbest.aicc:
+                fbest = f
+    return fbest
 def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj', plotlog=False):
     x,y, fun1 = _get_data(n, symmetric)
     kreg_demo3(x,y,fun1, hs=None, fun='hisj', plotlog=False)
     
 def kreg_demo3(x,y, fun1, hs=None, fun='hisj', plotlog=False):
-    import scipy.stats as st
+    st = stats
     
-    alpha=0.1
+    alpha=0.05
     z0 = -_invnorm(alpha/2)
     
     
@@ -3548,12 +3567,9 @@ def kreg_demo3(x,y, fun1, hs=None, fun='hisj', plotlog=False):
         c0 = np.zeros(xi.shape)
     yi = np.where(c==0, 0, c0/c)
     
-    from wafo.interpolate import stineman_interp
-    fact = 1.0 #stineman_interp([x.size], [0, 2000], [0.25, 1.0], yp=[0.75/2000,0.75/2000]).clip(min=0.75,max=1.0)
-    print("fact=%g" % (fact))
-    kreg = KRegression(x, y, hs=hs*fact, p=0)
+    kreg = KRegression(x, y, hs=hs, p=0)
     fiii = kreg(xiii)
-    yiii = stineman_interp(xiii, xi, yi)
+    yiii = interpolate.interp1d(xi, yi)(xiii) 
     fit = fun1(xiii).clip(max=1.0)
     df = np.diff(fiii)
     eerr = np.abs((yiii-fiii)).std()+ 0.5*(df[:-1]*df[1:]<0).sum()/n
@@ -3576,7 +3592,7 @@ def kreg_demo3(x,y, fun1, hs=None, fun='hisj', plotlog=False):
     logity = forward(yi)
 
     
-    gkreg = KRegression(xi, logity, hs=hs*fact, xmin=xmin-hopt,xmax=xmax+hopt)
+    gkreg = KRegression(xi, logity, hs=hs, xmin=xmin-hopt,xmax=xmax+hopt)
     fg = gkreg.eval_grid(xi,output='plotobj', title='Kernel regression', plotflag=1)
     sa = (fg.data-logity).std()
     sa2 = iqrange(fg.data-logity) / 1.349
@@ -3662,7 +3678,7 @@ def kreg_demo3(x,y, fun1, hs=None, fun='hisj', plotlog=False):
 
 
 def check_kreg_demo3():
-    import wafo.fig as fig
+    
     
     plt.ion()
     k = 0
@@ -3683,8 +3699,6 @@ def check_kreg_demo3():
     plt.show()
 
 def check_kreg_demo4():
-    import wafo.fig as fig
-    
     plt.ion()
     #test_docstrings()
     #kde_demo2()
@@ -3698,6 +3712,7 @@ def check_kreg_demo4():
         hopt1, h1,h2 = _get_regression_smooting(x,y,fun='hos')
         hopt2, h1,h2 = _get_regression_smooting(x,y,fun='hste')
         hopt = sqrt(hopt1*hopt2)
+        #hopt = _get_regression_smooting(x,y,fun='hos')[0]
         for j, fun in enumerate(['hste']): # , 'hisj', 'hns', 'hstt'
             hsmax, hs1, hs2 =_get_regression_smooting(x,y,fun=fun)
             
@@ -3709,27 +3724,36 @@ def check_kreg_demo4():
             plt.figure(k)
             k +=1
             fmax.plot()
-            xi = fmax.args[::4]
-            c = gridcount(x, xi)
-            if (y==True).any():
-                c0 = gridcount(x[y==True],xi)
-            else:
-                c0 = np.zeros(xi.shape)
-            yi = np.where(c==0, 0, c0/c)
-            plt.plot(xi, yi, 'b.', x, fun1(x),'r')
+            plt.plot(x, fun1(x),'r')
             
             #kreg_demo2(n=n,symmetric=True,fun='hste', plotlog=False)
     fig.tile(range(0,k))
     plt.ioff()
     plt.show()
-        
-def kreg_demo4(x,y, hs, hopt):
-    import scipy.stats as st
+  
+def empirical_bin_prb(x,y, hopt):
+    '''
+    Returns empirical binomial probabiltity
+    '''     
+    n = x.size
+    xmin, xmax = x.min(), x.max()    
+    ni = max(2*int((xmax-xmin)/hopt)+3,5)
+    
+    sml = hopt*0.1
+    xi = np.linspace(xmin-sml,xmax+sml, ni) 
+    
+    c = gridcount(x, xi)
+    if (y==True).any():
+        c0 = gridcount(x[y==True],xi)
+    else:
+        c0 = np.zeros(xi.shape)
+    yi = np.where(c==0, 0, c0/c)
+    return WafoData(yi,xi,plotmethod='scatter', plot_kwds=dict(color='r', s=5))
+
+def kreg_demo4(x,y, hs, hopt, alpha=0.05):
+    st = stats
     
     n = x.size
-    alpha=0.1
-    z0 = -_invnorm(alpha/2)
-    
     xmin, xmax = x.min(), x.max()    
     ni = max(2*int((xmax-xmin)/hopt)+3,5)
     
@@ -3737,37 +3761,34 @@ def kreg_demo4(x,y, hs, hopt):
     xi = np.linspace(xmin-sml,xmax+sml, ni)
     xiii = np.linspace(xmin-sml,xmax+sml, 4*ni+1)
     
-    
-    from wafo.interpolate import stineman_interp
-    
     kreg = KRegression(x, y, hs=hs, p=0)
-    f = kreg(xiii, output='plotobj', plot_kwds = dict(plotflag=7))
     
         
     dx = xi[1]-xi[0]
-    ciiii = kreg.tkde.eval_grid_fast(xiii)*dx* x.size
-    ckreg = KDE(x,hs=hs)
-    ciii = ckreg.eval_grid_fast(xiii)*dx* x.size #n*(1+symmetric)
-
-      
+    ciii = kreg.tkde.eval_grid_fast(xiii) * dx * x.size
+#    ckreg = KDE(x,hs=hs)
+#    ciiii = ckreg.eval_grid_fast(xiii)*dx* x.size #n*(1+symmetric)
+    
+    f = kreg(xiii, output='plotobj') #, plot_kwds=dict(plotflag=7))
     pi = f.data
     
     # Jeffreys intervall a=b=0.5
     #st.beta.isf(alpha/2, x+a, n-x+b)
-    ab = 0.07 #0.055
-    pi1 = pi #fun1(xiii)
+    ab = 0.07 #0.5
+    pi1 = pi 
     pup = np.where(pi1==1, 1, st.beta.isf(alpha/2, ciii*pi1+ab, ciii*(1-pi1)+ab))
     plo = np.where(pi1==0, 0, st.beta.isf(1-alpha/2, ciii*pi1+ab, ciii*(1-pi1)+ab))
     
     
     # Wilson score
+    # z0 = -_invnorm(alpha/2)
 #    den = 1+(z0**2./ciii);
 #    xc=(pi1+(z0**2)/(2*ciii))/den;
 #    halfwidth=(z0*sqrt((pi1*(1-pi1)/ciii)+(z0**2/(4*(ciii**2)))))/den
 #    plo2 = (xc-halfwidth).clip(min=0) # wilson score
 #    pup2 = (xc+halfwidth).clip(max=1.0) # wilson score
     
-    f.dataCI = np.vstack((plo,pup)).T
+    #f.dataCI = np.vstack((plo,pup)).T
     f.prediction_error_avg = np.trapz(pup-plo, xiii)/(xiii[-1]-xiii[0])    
     fiii = f.data
     
@@ -3777,7 +3798,11 @@ def kreg_demo4(x,y, hs, hopt):
     else:
         c0 = np.zeros(xi.shape)
     yi = np.where(c==0, 0, c0/c)
-    yiii = stineman_interp(xiii, xi, yi)
+    
+    f.children = [WafoData([plo, pup],xiii,plotmethod='fill_between',plot_kwds=dict(alpha=0.2, color='r')), 
+                  WafoData(yi,xi,plotmethod='scatter', plot_kwds=dict(color='r', s=5))]
+    
+    yiii = interpolate.interp1d(xi, yi)(xiii)
     df = np.diff(fiii)
     k = (df[:-1]*df[1:]<0).sum() # numpeaks
     sigmai = (pup-plo)
@@ -3797,7 +3822,7 @@ def kde_gauss_demo(n=50):
     different values of the smoothing parameter, hs.
     '''
     
-    import scipy.stats as st
+    st = stats
     #x = np.linspace(-4, 4, 101)
     #data = np.random.normal(loc=0, scale=1.0, size=n) 
     #data = np.random.exponential(scale=1.0, size=n)
