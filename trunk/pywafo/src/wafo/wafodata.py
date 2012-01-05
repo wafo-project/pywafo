@@ -80,16 +80,20 @@ class WafoData(object):
             self.setplotter(kwds.get('plotmethod', None))
 
     def plot(self, *args, **kwds):
+        axis = kwds.pop('axis',None)
+        if axis is None:
+            axis = plotbackend.gca()
         tmp = None
         plotflag = kwds.get('plotflag', None)
         if not plotflag and self.children != None:
             plotbackend.hold('on')
             tmp = []
-            child_args = args if len(args) else tuple(self.plot_args_children)
+            child_args = kwds.pop('plot_args_children', tuple(self.plot_args_children))
             child_kwds = dict(self.plot_kwds_children).copy()
-            child_kwds.update(**kwds)
+            child_kwds.update(kwds.pop('plot_kwds_children', {}))
+            child_kwds['axis'] = axis
             for child in self.children:
-                tmp1 = child.plot(*child_args, **kwds)
+                tmp1 = child.plot(*child_args, **child_kwds)
                 if tmp1 != None:
                     tmp.append(tmp1)
             if len(tmp) == 0:
@@ -97,6 +101,7 @@ class WafoData(object):
         main_args = args if len(args) else tuple(self.plot_args)
         main_kwds = dict(self.plot_kwds).copy()
         main_kwds.update(kwds)
+        main_kwds['axis'] = axis
         tmp2 = self.plotter.plot(self, *main_args, **main_kwds)
         return tmp2, tmp
     
@@ -145,11 +150,13 @@ class AxisLabels:
         newcopy.__dict__.update(self.__dict__)
         return newcopy
     
-    def labelfig(self):
+    def labelfig(self, axis=None):
+        if axis is None:
+            axis = plotbackend.gca()
         try:
-            h1 = plotbackend.title(self.title)
-            h2 = plotbackend.xlabel(self.xlab)
-            h3 = plotbackend.ylabel(self.ylab)
+            h1 = axis.set_title(self.title)
+            h2 = axis.set_xlabel(self.xlab)
+            h3 = axis.set_ylabel(self.ylab)
             #h4 = plotbackend.zlabel(self.zlab)
             return h1, h2, h3
         except:
@@ -176,76 +183,85 @@ class Plotter_1d(object):
         self.plotfun = None
         if plotmethod is None:
             plotmethod = 'plot'
+        self.plotmethod = plotmethod
         self.plotbackend = plotbackend
-        try:
-            self.plotfun = getattr(plotbackend, plotmethod)
-        except:
-            pass
+#        try:
+#            self.plotfun = getattr(plotbackend, plotmethod)
+#        except:
+#            pass
         
     def show(self):
         plotbackend.show()
 
     def plot(self, wdata, *args, **kwds):
+        axis = kwds.pop('axis',None)
+        if axis is None:
+            axis = plotbackend.gca()
         plotflag = kwds.pop('plotflag', False)
         if plotflag:
-            h1 = self._plot(plotflag, wdata, *args, **kwds)
+            h1 = self._plot(axis, plotflag, wdata, *args, **kwds)
         else:
-            if isinstance(wdata.args, (list, tuple)):
-                args1 = tuple((wdata.args)) + (wdata.data,) + args
+            if isinstance(wdata.data, (list, tuple)):
+                vals = tuple(wdata.data)
             else:
-                args1 = tuple((wdata.args,)) + (wdata.data,) + args
-            h1 = self.plotfun(*args1, **kwds)
-        h2 = wdata.labels.labelfig()
+                vals = (wdata.data,)
+            if isinstance(wdata.args, (list, tuple)):
+                args1 = tuple((wdata.args)) + vals + args
+            else:
+                args1 = tuple((wdata.args,)) + vals + args
+            plotfun = getattr(axis, self.plotmethod)
+            h1 = plotfun(*args1, **kwds)
+        h2 = wdata.labels.labelfig(axis)
         return h1, h2
     
-    def _plot(self, plotflag, wdata, *args, **kwds):
+    def _plot(self, axis, plotflag, wdata, *args, **kwds):
         x = wdata.args 
         data = transformdata(x, wdata.data, plotflag)
         dataCI = getattr(wdata, 'dataCI', ())
-        h1 = plot1d(x, data, dataCI, plotflag, *args, **kwds)
+        h1 = plot1d(axis, x, data, dataCI, plotflag, *args, **kwds)
         return h1
     
-def plot1d(args, data, dataCI, plotflag, *varargin, **kwds):
+def plot1d(axis, args, data, dataCI, plotflag, *varargin, **kwds):
      
     plottype = np.mod(plotflag, 10)
     if plottype == 0: # %  No plotting
         return []
     elif plottype == 1: 
-        H = plotbackend.plot(args, data, *varargin, **kwds)
+        H = axis.plot(args, data, *varargin, **kwds)
     elif plottype == 2: 
-        H = plotbackend.step(args, data, *varargin, **kwds)
+        H = axis.step(args, data, *varargin, **kwds)
     elif plottype == 3: 
-        H = plotbackend.stem(args, data, *varargin, **kwds)
+        H = axis.stem(args, data, *varargin, **kwds)
     elif plottype == 4: 
-        H = plotbackend.errorbar(args, data, dataCI[:,0] - data, dataCI[:,1] - data, *varargin, **kwds)
+        H = axis.errorbar(args, data, yerr=[dataCI[:,0] - data, dataCI[:,1] - data], *varargin, **kwds)
     elif plottype == 5: 
-        H = plotbackend.bar(args, data, *varargin, **kwds)
+        H = axis.bar(args, data, *varargin, **kwds)
     elif plottype == 6:  
         level = 0
         if np.isfinite(level):
-            H = plotbackend.fill_between(args, data, level, *varargin, **kwds);
+            H = axis.fill_between(args, data, level, *varargin, **kwds);
         else:
-            H = plotbackend.fill_between(args, data, *varargin, **kwds);
+            H = axis.fill_between(args, data, *varargin, **kwds);
     elif plottype==7:
-        H = plotbackend.plot(args, data, *varargin, **kwds)
-        H = plotbackend.fill_between(args, dataCI[:,0], dataCI[:,1], alpha=0.2, color='r');
+        H = axis.plot(args, data, *varargin, **kwds)
+        H = axis.fill_between(args, dataCI[:,0], dataCI[:,1], alpha=0.2, color='r');
         
     scale = plotscale(plotflag)
     logXscale = 'x' in scale
     logYscale = 'y' in scale 
     logZscale = 'z' in scale 
-    ax = plotbackend.gca()
+    
     if logXscale: 
-        plotbackend.setp(ax, xscale='log')
+        axis.set(xscale='log')
     if logYscale:
-        plotbackend.setp(ax, yscale='log') 
+        axis.set(yscale='log') 
     if logZscale: 
-        plotbackend.setp(ax, zscale='log')
+        axis.set(zscale='log')
     
     transFlag = np.mod(plotflag // 10, 10)
     logScale = logXscale or logYscale or logZscale
     if  logScale or (transFlag == 5 and  not logScale):
-        ax = list(plotbackend.axis())
+        ax = list(axis.axis())
         fmax1 = data.max()
         if transFlag == 5 and not logScale:
             ax[3] = 11 * np.log10(fmax1)
@@ -254,11 +270,11 @@ def plot1d(args, data, dataCI, plotflag, *varargin, **kwds):
             ax[3] = 1.15 * fmax1;
             ax[2] = ax[3] * 1e-4;
       
-        plotbackend.axis(ax)
+        axis.axis(ax)
     
     if np.any(dataCI) and plottype < 3:
-        plotbackend.hold('on')
-        plot1d(args, dataCI, (), plotflag, 'r--');
+        axis.hold(True)
+        plot1d(axis, args, dataCI, (), plotflag, 'r--');
     return H
 
 def plotscale(plotflag):
@@ -287,12 +303,27 @@ def plotscale(plotflag):
            'linear', 'xlog', 'ylog', 'xylog', 'zlog', 'xzlog',
            'yzlog',  'xyzlog' 
     
-     Example
-     plotscale(100)  % xlog
-     plotscale(200)  % xlog
-     plotscale(1000) % ylog
+    Example
+    >>> for id in range(100,701,100):
+    ...    plotscale(id)  
+    'xlog'
+    'ylog'
+    'xylog'
+    'zlog'
+    'xzlog'
+    'yzlog'
+    'xyzlog'
     
-     See also plotscale
+    >>> plotscale(200)  
+    'ylog'
+    >>> plotscale(300) 
+    'xylog'
+    >>> plotscale(300) 
+    'xylog'
+    
+    See also 
+    --------
+    transformdata
     '''
     scaleId = plotflag // 100
     if scaleId > 7:
@@ -341,11 +372,11 @@ class Plotter_2d(Plotter_1d):
             plotmethod = 'contour'
         super(Plotter_2d, self).__init__(plotmethod)
         
-    def _plot(self, plotflag, wdata, *args, **kwds):
-        h1 = plot2d(wdata, plotflag, *args, **kwds)
+    def _plot(self, axis, plotflag, wdata, *args, **kwds):
+        h1 = plot2d(axis, wdata, plotflag, *args, **kwds)
         return h1
     
-def plot2d(wdata, plotflag, *args, **kwds):
+def plot2d(axis, wdata, plotflag, *args, **kwds):
     f = wdata
     if isinstance(wdata.args, (list, tuple)):
         args1 = tuple((wdata.args)) + (wdata.data,) + args
@@ -365,7 +396,7 @@ def plot2d(wdata, plotflag, *args, **kwds):
         clvec = np.sort(CL)
          
         if plotflag in [1, 8, 9]:
-            h = plotbackend.contour(*args1, levels=CL, **kwds);
+            h = axis.contour(*args1, levels=CL, **kwds);
         #else:
         #  [cs hcs] = contour3(f.x{:},f.f,CL,sym);
         
@@ -378,20 +409,20 @@ def plot2d(wdata, plotflag, *args, **kwds):
             clvals = PL[:ncl] if isPL else clvec[:ncl]
             unused_axcl = cltext(clvals, percent=isPL) # print contour level text
         elif any(plotflag == [7, 9]):
-            plotbackend.clabel(h)
+            axis.clabel(h)
         else:
-            plotbackend.clabel(h)
+            axis.clabel(h)
     elif plotflag == 2:
-        h = plotbackend.mesh(*args1, **kwds)
+        h = axis.mesh(*args1, **kwds)
     elif plotflag == 3:    
-        h = plotbackend.surf(*args1, **kwds)  #shading interp % flat, faceted       % surfc
+        h = axis.surf(*args1, **kwds)  #shading interp % flat, faceted       % surfc
     elif plotflag == 4:    
-        h = plotbackend.waterfall(*args1, **kwds)
+        h = axis.waterfall(*args1, **kwds)
     elif plotflag == 5: 
-        h = plotbackend.pcolor(*args1, **kwds) #%shading interp % flat, faceted
+        h = axis.pcolor(*args1, **kwds) #%shading interp % flat, faceted
     elif plotflag == 10:
-        h = plotbackend.contourf(*args1, **kwds)
-        plotbackend.clabel(h)
+        h = axis.contourf(*args1, **kwds)
+        axis.clabel(h)
         plotbackend.colorbar(h)
     else:
         raise ValueError('unknown option for plotflag')
