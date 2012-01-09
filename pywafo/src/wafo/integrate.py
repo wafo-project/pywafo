@@ -6,7 +6,7 @@ from numpy import pi, sqrt, ones, zeros #@UnresolvedImport
 from scipy import integrate as intg
 import scipy.special.orthogonal as ort
 from scipy import special as sp
-import pylab as plb
+from wafo.plotbackend import plotbackend as plt
 from scipy.integrate import simps, trapz
 from wafo.misc import is_numlike
 from wafo.demos import humps
@@ -187,7 +187,7 @@ def clencurt(fun, a, b, n0=5, trace=False, *args):
         f = np.flipud(fun[:, 1::])
 
     if trace:
-        plb.plot(x, f, '+')
+        plt.plot(x, f, '+')
 
     # using a Gauss-Lobatto variant, i.e., first and last
     # term f(a) and f(b) is multiplied with 0.5
@@ -1087,13 +1087,13 @@ def gaussq(fun, a, b, reltol=1e-3, abstol=1e-3, alpha=0, beta=0, wfun=1,
             x_trace.append(x.ravel())
             y_trace.append(y.ravel())
 
-            hfig = plb.plot(x, y, 'r.')
+            hfig = plt.plot(x, y, 'r.')
             #hold on
             #drawnow,shg
             #if trace>1:
             #    pause
 
-            plb.setp(hfig, 'color', 'b')
+            plt.setp(hfig, 'color', 'b')
 
 
         abserr[k] = abs(val_old[k] - val[k]) #absolute tolerance
@@ -1122,8 +1122,8 @@ def gaussq(fun, a, b, reltol=1e-3, abstol=1e-3, alpha=0, beta=0, wfun=1,
     abserr.shape = a_shape
 
     if trace > 0:
-        plb.clf()
-        plb.plot(np.hstack(x_trace), np.hstack(y_trace), '+')
+        plt.clf()
+        plt.plot(np.hstack(x_trace), np.hstack(y_trace), '+')
     return val, abserr
 
 def richardson(Q, k):
@@ -1430,10 +1430,10 @@ def qdemo(f, a, b):
         print(''.join(fi % t for fi, t in zip(formats, tmp)))
       
 
-    plb.loglog(neval, np.vstack((et, es, eb, ec, ec2, eg)).T)
-    plb.xlabel('number of function evaluations')
-    plb.ylabel('error')
-    plb.legend(('Trapezoid', 'Simpsons', 'Booles', 'Clenshaw', 'Chebychev', 'Gauss-L'))
+    plt.loglog(neval, np.vstack((et, es, eb, ec, ec2, eg)).T)
+    plt.xlabel('number of function evaluations')
+    plt.ylabel('error')
+    plt.legend(('Trapezoid', 'Simpsons', 'Booles', 'Clenshaw', 'Chebychev', 'Gauss-L'))
     #ec3'
 
 
