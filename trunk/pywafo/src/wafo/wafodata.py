@@ -4,6 +4,8 @@ from plotbackend import plotbackend
 from time import gmtime, strftime
 import numpy as np
 from scipy.integrate.quadrature import cumtrapz #@UnresolvedImport
+from scipy.interpolate import griddata
+from scipy import integrate
 
 __all__ = ['WafoData', 'AxisLabels']
 
@@ -104,6 +106,59 @@ class WafoData(object):
         main_kwds['axis'] = axis
         tmp2 = self.plotter.plot(self, *main_args, **main_kwds)
         return tmp2, tmp
+
+    def eval_points(self, *args, **kwds):
+        '''
+        >>> x = np.linspace(0,5,20)
+        >>> d = WafoData(np.sin(x),x)
+        >>> xi = np.linspace(0,5,60)
+        >>> di = WafoData(d.eval_points(xi, method='cubic'),xi)
+        >>> d.plot('.')
+        >>> di.plot()
+    
+        '''
+        if isinstance(self.args, (list, tuple)): # Multidimensional data
+            ndim = len(self.args)
+            if ndim < 2:
+                msg = '''Unable to determine plotter-type, because len(self.args)<2.
+                If the data is 1D, then self.args should be a vector!
+                If the data is 2D, then length(self.args) should be 2.
+                If the data is 3D, then length(self.args) should be 3.
+                Unless you fix this, the plot methods will not work!'''
+                warnings.warn(msg)
+            else:
+                return griddata(self.args, self.data.ravel(), *args,**kwds)
+        else: #One dimensional data
+            return griddata((self.args,), self.data, *args,**kwds)
+
+    def integrate(self, a, b, **kwds):
+        '''
+        >>> x = np.linspace(0,5,60)
+        >>> d = WafoData(np.sin(x), x)
+        >>> d.integrate(0,np.pi/2)
+        
+        '''
+        method = kwds.pop('method','trapz')
+        fun = getattr(integrate, method)
+        if isinstance(self.args, (list, tuple)): # Multidimensional data
+            ndim = len(self.args)
+            if ndim < 2:
+                msg = '''Unable to determine plotter-type, because len(self.args)<2.
+                If the data is 1D, then self.args should be a vector!
+                If the data is 2D, then length(self.args) should be 2.
+                If the data is 3D, then length(self.args) should be 3.
+                Unless you fix this, the plot methods will not work!'''
+                warnings.warn(msg)
+            else:
+                return griddata(self.args, self.data.ravel(), **kwds)
+        else: #One dimensional data
+            
+            x  = self.args
+            ix = np.flatnonzero((a<x) & (x<b) )
+            xi = np.hstack((a, x.take(ix), b))
+            fi = np.hstack((self.eval_points(a),self.data.take(ix),self.eval_points(b)))
+            return fun(fi, xi, **kwds)
+
     
     def show(self):
         self.plotter.show()
@@ -431,7 +486,19 @@ def plot2d(axis, wdata, plotflag, *args, **kwds):
     #end
     #    pass
 
-
+def test_eval_points():
+    plotbackend.ioff()
+    x = np.linspace(0,5,21)
+    d = WafoData(np.sin(x),x)
+    xi = np.linspace(0,5,61)
+    di = WafoData(d.eval_points(xi,method='cubic'),xi)
+    d.plot('.')
+    di.plot()
+    di.show()
+def test_integrate():
+    x = np.linspace(0,5,60)
+    d = WafoData(np.sin(x), x)
+    print(d.integrate(0,np.pi/2,method='simps'))
 def test_docstrings():
     import doctest
     doctest.testmod()
@@ -440,5 +507,7 @@ def main():
     pass
 
 if __name__ == '__main__':
-    test_docstrings()
+    test_integrate()
+    #test_eval_points()
+    #test_docstrings()
     #main()
