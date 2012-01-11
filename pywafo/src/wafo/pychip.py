@@ -1,7 +1,7 @@
 '''
 
 pychip.py
-Michalski
+chris.michalski@gmail.com
 20090818
 
 Piecewise cubic Hermite interpolation (monotonic...) in Python
@@ -33,8 +33,8 @@ which combines a call to pchip_slopes() followed by pchip_eval().
 import warnings
 import numpy as np
 from matplotlib import pyplot as plt
-from interpolate import slopes, stineman_interp
-
+from interpolate import slopes2, slopes, stineman_interp
+from scipy.interpolate import PiecewisePolynomial
 #=========================================================
 def pchip(x, y, xnew):
 
@@ -109,8 +109,6 @@ def pchip_eval(x, y, m, xvec):
     
      This works with either a scalar or vector of "xvec"
     '''
-    n = len(x)
-    mm = len(xvec)
     
     ############################
     # Make sure there aren't problems with the input data
@@ -122,16 +120,7 @@ def pchip_eval(x, y, m, xvec):
         return #STOP_pchip_eval2
     
     # Find the indices "k" such that x[k] < xvec < x[k+1]
-    
-    # Create "copies" of "x" as rows in a mxn 2-dimensional vector
-    xx = np.resize(x,(mm,n)).transpose()
-    xxx = xx > xvec
-    
-    # Compute column by column differences
-    z = xxx[:-1,:] - xxx[1:,:]
-    
-    # Collapse over rows...
-    k = z.argmax(axis=0)
+    k = np.searchsorted(x[1:-1], xvec)
     
     # Create the Hermite coefficients
     h = x[k+1] - x[k]
@@ -149,7 +138,7 @@ def pchip_eval(x, y, m, xvec):
     return ynew
 
 #=========================================================
-def pchip_slopes(x,y, kind='secant', tension=0, monotone=True):
+def pchip_slopes(x,y, method='secant', tension=0, monotone=True):
     '''
     Return estimated slopes y'(x) 
     
@@ -159,7 +148,7 @@ def pchip_slopes(x,y, kind='secant', tension=0, monotone=True):
         array containing the x- and y-data, respectively.
         x must be sorted low to high... (no repeats) while
         y can have repeated values.
-    kind : string
+    method : string
         defining method of estimation for yp. Valid options are:
         'secant' average secants 
             yp = 0.5*((y[k+1]-y[k])/(x[k+1]-x[k]) + (y[k]-y[k-1])/(x[k]-x[k-1]))
@@ -183,7 +172,7 @@ def pchip_slopes(x,y, kind='secant', tension=0, monotone=True):
     # At the endpoints - use one-sided differences
     m[0] = delta[0]
     m[n-1] = delta[-1]
-    method = kind.lower()
+    method = method.lower()
     if method.startswith('secant'):
         # In the middle - use the average of the secants
         m[1:-1] = (delta[:-1] + delta[1:]) / 2.0
@@ -197,10 +186,9 @@ def pchip_slopes(x,y, kind='secant', tension=0, monotone=True):
         
         # Setting these slopes to zero guarantees the spline connecting
         # these points will be flat which preserves monotonicity
-        indices_to_fix = np.compress((delta == 0.0), range(n))
-        for ii in indices_to_fix:
-            m[ii]   = 0.0
-            m[ii+1] = 0.0
+        ii, = (delta == 0.0).nonzero()
+        m[ii] = 0.0
+        m[ii+1] = 0.0
         
         alpha = m[:-1]/delta
         beta  = m[1:]/delta
@@ -213,23 +201,62 @@ def pchip_slopes(x,y, kind='secant', tension=0, monotone=True):
         # where tau = 3/sqrt(alpha**2 + beta**2).
         
         # Find the indices that need adjustment
-        over = (dist > 9.0)
-        indices_to_fix = np.compress(over, range(n)) 
+        indices_to_fix, = (dist > 9.0).nonzero() 
         for ii in indices_to_fix:
             m[ii]   = tau[ii] * alpha[ii] * delta[ii]
             m[ii+1] = tau[ii] * beta[ii]  * delta[ii]
     
     return m
 
-#========================================================================
-def CubicHermiteSpline(x, y, xnew):
+def _edge_case(m0, d1):
+    return np.where((d1==0) | (m0==0), 0.0, 1.0/(1.0/m0+1.0/d1))
+
+def pchip_slopes2(x, y):
+    # Determine the derivatives at the points y_k, d_k, by using
+    #  PCHIP algorithm is:
+    # We choose the derivatives at the point x_k by
+    # Let m_k be the slope of the kth segment (between k and k+1)
+    # If m_k=0 or m_{k-1}=0 or sgn(m_k) != sgn(m_{k-1}) then d_k == 0
+    # else use weighted harmonic mean:
+    #   w_1 = 2h_k + h_{k-1}, w_2 = h_k + 2h_{k-1}
+    #   1/d_k = 1/(w_1 + w_2)*(w_1 / m_k + w_2 / m_{k-1})
+    #   where h_k is the spacing between x_k and x_{k+1}
+
+    hk = x[1:] - x[:-1]
+    mk = (y[1:] - y[:-1]) / hk
+    smk = np.sign(mk)
+    condition = ((smk[1:] != smk[:-1]) | (mk[1:]==0) | (mk[:-1]==0))
+
+    w1 = 2*hk[1:] + hk[:-1]
+    w2 = hk[1:] + 2*hk[:-1]
+    whmean = 1.0/(w1+w2)*(w1/mk[1:] + w2/mk[:-1])
+
+    dk = np.zeros_like(y)
+    dk[1:-1][condition] = 0.0
+    dk[1:-1][~condition] = 1.0/whmean[~condition]
+
+    # For end-points choose d_0 so that 1/d_0 = 1/m_0 + 1/d_1 unless
+    #  one of d_1 or m_0 is 0, then choose d_0 = 0
+
+    dk[0] = _edge_case(mk[0],dk[1])
+    dk[-1] = _edge_case(mk[-1],dk[-2])
+    return dk
+
+class StinemanInterp(PiecewisePolynomial):
+    def __init__(self, x, y, yp=None, method='parabola'):
+        if yp is None:
+            yp = slopes2(x, y, method)
+        super(StinemanInterp,self).__init__(x, zip(y,yp))
+
+
+def CubicHermiteSpline2(x, y, xnew):
     '''
     Piecewise Cubic Hermite Interpolation using Catmull-Rom
     method for computing the slopes.
     '''
     # Non-montonic cubic Hermite spline interpolator using
     # Catmul-Rom method for computing slopes...
-    m = pchip_slopes(x, y, kind='catmull', monotone=False)
+    m = pchip_slopes(x, y, method='catmull', monotone=False)
     
     # Use these slopes (along with the Hermite basis function) to  interpolate
     ynew = pchip_eval(x, y, m, xnew)
@@ -254,17 +281,21 @@ def main():
     # Initialize the interpolator slopes
     m = pchip_slopes(x,y)
     m1 = slopes(x, y)
-    m2  = pchip_slopes(x,y,kind='catmul',monotone=False)
+    m2  = pchip_slopes(x,y,method='catmul',monotone=False)
+    m3 = pchip_slopes2(x, y)
     # Call the monotonic piece-wise Hermite cubic interpolator
-    yvec2 = pchip_eval(x, y, m, xvec)
+    yvec = pchip_eval(x, y, m, xvec)
+    yvec1 = pchip_eval(x, y, m1, xvec)
+    yvec2 = pchip_eval(x, y, m2, xvec)
+    yvec3 = pchip_eval(x, y, m3, xvec)
     
     plt.figure(1)
     plt.plot(x,y, 'ro')
     plt.title("pchip() Sin test code")
     
     # Plot the interpolated points
-    plt.plot(xvec, yvec2, 'b')
-    
+    plt.plot(xvec, yvec, xvec, yvec1, xvec, yvec2,xvec, yvec3, )
+    plt.legend(['true','m0','m1','m2','m3'])
      
     
     # Step function test...
@@ -281,7 +312,8 @@ def main():
     # Create the pchip slopes
     m  = pchip_slopes(x,y)
     m1 = slopes(x, y)
-    m2  = pchip_slopes(x,y,kind='catmul',monotone=False)
+    m2  = pchip_slopes(x,y,method='catmul',monotone=False)
+    m3 = pchip_slopes2(x, y)
     # Interpolate...
     yvec = pchip_eval(x, y, m, xvec)
     
@@ -292,10 +324,10 @@ def main():
     
     # Non-montonic cubic Hermite spline interpolator using
     # Catmul-Rom method for computing slopes...
-    yvec3 = CubicHermiteSpline(x,y, xvec)
-    
-    
-    yvec4 = stineman_interp(xvec, x, y, m)
+    yvec3 = CubicHermiteSpline(x,y)(xvec)
+    yvec4 = StinemanInterp(x, y)(xvec)
+    #yvec4 = stineman_interp(xvec, x, y, m)
+    yvec5 = pchip_eval(x, y, m3, xvec)
     
     # Plot the results
     plt.plot(x,    y,     'ro')
@@ -303,6 +335,7 @@ def main():
     plt.plot(xvec, yvec2, 'k')
     plt.plot(xvec, yvec3, 'g')
     plt.plot(xvec, yvec4, 'm')
+    #plt.plot(xvec, yvec5, 'y')
     plt.xlabel("X")
     plt.ylabel("Y")
     plt.title("Comparing pypchip() vs. Scipy interp1d() vs. non-monotonic CHS")

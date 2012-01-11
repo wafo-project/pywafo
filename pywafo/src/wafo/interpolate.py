@@ -18,9 +18,13 @@ from numpy.ma.core import ones, zeros, prod, sin
 from numpy import diff, pi, inf #@UnresolvedImport
 from numpy.lib.shape_base import vstack
 from numpy.lib.function_base import linspace
+from scipy.interpolate import PiecewisePolynomial
+
 import polynomial as pl
 
-__all__ = ['PPform', 'savitzky_golay', 'savitzky_golay_piecewise', 'sgolay2d','SmoothSpline', 'stineman_interp']
+
+__all__ = ['PPform', 'savitzky_golay', 'savitzky_golay_piecewise', 'sgolay2d','SmoothSpline', 
+           'slopes','pchip_slopes','slopes2','stineman_interp', 'Pchip','StinemanInterp', 'CubicHermiteSpline']
 
 def savitzky_golay(y, window_size, order, deriv=0):
     r"""Smooth (and optionally differentiate) data with a Savitzky-Golay filter.
@@ -531,13 +535,11 @@ class SmoothSpline(PPform):
                 di = di.T
                 ci = ci.T
                 ai = ai.T
-                #end
             if not any(di):
                 if not any(ci):
                     coefs = vstack([bi.ravel(), ai.ravel()])
                 else:
                     coefs = vstack([ci.ravel(), bi.ravel(), ai.ravel()]) 
-                    #end
             else:
                 coefs = vstack([di.ravel(), ci.ravel(), bi.ravel(), ai.ravel()]) 
                 
@@ -566,9 +568,126 @@ class SmoothSpline(PPform):
         ddydx = diff(dydx, axis=0)
         sp.linalg.use_solver(useUmfpack=True)
         u = 2 * sp.linalg.spsolve((QQ + QQ.T), ddydx)
-        #faster than u=QQ\(Q' * yi);
         return u.reshape(n - 2, -1), p
  
+def _edge_case(m0, d1):
+    return np.where((d1==0) | (m0==0), 0.0, 1.0/(1.0/m0+1.0/d1))
+
+def pchip_slopes(x, y):
+    # Determine the derivatives at the points y_k, d_k, by using
+    #  PCHIP algorithm is:
+    # We choose the derivatives at the point x_k by
+    # Let m_k be the slope of the kth segment (between k and k+1)
+    # If m_k=0 or m_{k-1}=0 or sgn(m_k) != sgn(m_{k-1}) then d_k == 0
+    # else use weighted harmonic mean:
+    #   w_1 = 2h_k + h_{k-1}, w_2 = h_k + 2h_{k-1}
+    #   1/d_k = 1/(w_1 + w_2)*(w_1 / m_k + w_2 / m_{k-1})
+    #   where h_k is the spacing between x_k and x_{k+1}
+
+    hk = x[1:] - x[:-1]
+    mk = (y[1:] - y[:-1]) / hk
+    smk = np.sign(mk)
+    condition = ((smk[1:] != smk[:-1]) | (mk[1:]==0) | (mk[:-1]==0))
+
+    w1 = 2*hk[1:] + hk[:-1]
+    w2 = hk[1:] + 2*hk[:-1]
+    whmean = 1.0/(w1+w2)*(w1/mk[1:] + w2/mk[:-1])
+
+    dk = np.zeros_like(y)
+    dk[1:-1][condition] = 0.0
+    dk[1:-1][~condition] = 1.0/whmean[~condition]
+
+    # For end-points choose d_0 so that 1/d_0 = 1/m_0 + 1/d_1 unless
+    #  one of d_1 or m_0 is 0, then choose d_0 = 0
+
+    dk[0] = _edge_case(mk[0],dk[1])
+    dk[-1] = _edge_case(mk[-1],dk[-2])
+    return dk
+
+def slopes2(x,y, method='parabola', tension=0, monotone=True):
+    '''
+    Return estimated slopes y'(x) 
+    
+    Parameters
+    ----------
+    x, y : array-like
+        array containing the x- and y-data, respectively.
+        x must be sorted low to high... (no repeats) while
+        y can have repeated values.
+    method : string
+        defining method of estimation for yp. Valid options are:
+        'Catmull-Rom'  yp = (y[k+1]-y[k-1])/(x[k+1]-x[k-1])
+        'Cardinal'     yp = (1-tension) * (y[k+1]-y[k-1])/(x[k+1]-x[k-1])
+        'parabola'
+        'secant' average secants 
+            yp = 0.5*((y[k+1]-y[k])/(x[k+1]-x[k]) + (y[k]-y[k-1])/(x[k]-x[k-1]))
+    tension : real scalar between 0 and 1.
+        tension parameter used in Cardinal method
+    monotone : bool
+        If True modifies yp to preserve monoticity
+    
+    Returns
+    -------
+    yp : ndarray
+        estimated slope
+        
+    References:
+    -----------
+    Wikipedia:  Monotone cubic interpolation
+                Cubic Hermite spline
+
+    '''
+    x = np.asarray(x, np.float_)
+    y = np.asarray(y, np.float_)
+    yp = np.zeros(y.shape, np.float_)
+
+    
+    dx = x[1:] - x[:-1]
+    # Compute the slopes of the secant lines between successive points
+    dydx = (y[1:] - y[:-1]) / dx
+    
+    method = method.lower()
+    if method.startswith('parabola'):
+        yp[1:-1] = (dydx[:-1] * dx[1:] + dydx[1:] * dx[:-1]) / (dx[1:] + dx[:-1])
+        yp[0] = 2.0 * dydx[0] - yp[1]
+        yp[-1] = 2.0 * dydx[-1] - yp[-2]
+    else:
+        # At the endpoints - use one-sided differences
+        yp[0] = dydx[0]
+        yp[-1] = dydx[-1]
+        if method.startswith('secant'):
+            # In the middle - use the average of the secants
+            yp[1:-1] = (dydx[:-1] + dydx[1:]) / 2.0
+        else: # Cardinal or Catmull-Rom method
+            yp[1:-1] = (y[2:] - y[:-2]) / (x[2:] - x[:-2])
+            if method.startswith('cardinal'):
+                yp = (1-tension) * yp
+    
+    if monotone:
+        # Special case: intervals where y[k] == y[k+1]    
+        # Setting these slopes to zero guarantees the spline connecting
+        # these points will be flat which preserves monotonicity
+        ii, = (dydx == 0.0).nonzero()
+        yp[ii] = 0.0
+        yp[ii+1] = 0.0
+        
+        alpha = yp[:-1]/dydx
+        beta  = yp[1:]/dydx
+        dist  = alpha**2 + beta**2
+        tau   = 3.0 / np.sqrt(dist)
+        
+        # To prevent overshoot or undershoot, restrict the position vector
+        # (alpha, beta) to a circle of radius 3.  If (alpha**2 +  beta**2)>9,
+        # then set m[k] = tau[k]alpha[k]delta[k] and m[k+1] =  tau[k]beta[b]delta[k]
+        # where tau = 3/sqrt(alpha**2 + beta**2).
+        
+        # Find the indices that need adjustment
+        indices_to_fix, = (dist > 9.0).nonzero() 
+        for ii in indices_to_fix:
+            yp[ii]   = tau[ii] * alpha[ii] * dydx[ii]
+            yp[ii+1] = tau[ii] * beta[ii]  * dydx[ii]
+    
+    return yp
 
 def slopes(x, y):
     """
@@ -610,7 +729,118 @@ def slopes(x, y):
     yp[-1] = 2.0 * dy[-1] / dx[-1] - yp[-2]
     return yp
 
+class StinemanInterp(object):
+    '''
+    Returns the values of an interpolating function that runs through a set of points according to the algorithm of Stineman (1980).
 
+    Parameters
+    ---------    
+    x,y : array-like
+        coordinates of points defining the interpolating function.     
+    yp : array-like
+        slopes of the interpolating function at x. Optional: only given if they are known, else the argument is not used.
+    method : string    
+        method for computing the slope at the given points if the slope is not known. With method=
+            "parabola" calculates the slopes from a parabola through every three points. 
+    Notes
+    -----
+    The interpolation method is described in an article by Russell W. Stineman (1980)  
+    
+    According to Stineman, the interpolation procedure has "the following properties:
+    
+    If values of the ordinates of the specified points change monotonically, and the slopes of the line segments joining
+    the points change monotonically, then the interpolating curve and its slope will change monotonically.
+    If the slopes of the line segments joining the specified points change monotonically, then the slopes of the interpolating 
+    curve will change monotonically. Suppose that the conditions in (1) or (2) are satisfied by a set of points, but a small 
+    change in the ordinate or slope at one of the points will result conditions (1) or (2) being not longer satisfied. Then 
+    making this small change in the ordinate or slope at a point will cause no more than a small change in the interpolating 
+    curve." The method is based on rational interpolation with specially chosen rational functions to satisfy the above three 
+    conditions.
+    
+    Slopes computed at the given points with the methods provided by the `StinemanInterp' function satisfy Stineman's requirements. 
+    The original method suggested by Stineman (method="scaledstineman", the default, and "stineman") result in lower slopes near 
+    abrupt steps or spikes in the point sequence, and therefore a smaller tendency for overshooting. The method based on a second
+    degree polynomial (method="parabola") provides better approximation to smooth functions, but it results in in higher slopes 
+    near abrupt steps or spikes and can lead to some overshooting where Stineman's method does not. Both methods lead to much 
+    less tendency for `spurious' oscillations than traditional interplation methods based on polynomials, such as splines 
+    (see the examples section).
+    
+    Stineman states that "The complete assurance that the procedure will never generate `wild' points makes it attractive as a 
+    general purpose procedure".
+    
+    This interpolation method has been implemented in Matlab and R in addition to Python.
+    
+    Examples
+    --------
+    >>> import wafo.interpolate as wi
+    >>> x = linspace(0,2*pi,20)
+    >>> y = sin(x); yp = cos(x)
+    >>> xi = linspace(0,2*pi,40);
+    >>> yi = wi.StinemanInterp(x,y)(xi)
+    >>> yi1 = wi.CubicHermiteSpline(x,y, yp)(xi)
+    >>> yi2 = wi.Pchip(x,y, method='parabola')(xi)
+    >>> plt.subplot(211)
+    >>> plt.plot(x,y,'o',xi,yi,'r', xi,yi1, 'g', xi,yi1, 'b')
+    >>> plt.subplot(212)
+    >>> plt.plot(xi,np.abs(sin(xi)-yi), 'r', xi,  np.abs(sin(xi)-yi1), 'g', xi, np.abs(sin(xi)-yi2), 'b')
+    
+    References
+    ----------
+    Stineman, R. W. A Consistently Well Behaved Method of Interpolation. Creative Computing (1980), volume 6, number 7, p. 54-57.
+    
+    See Also
+    --------
+    slopes, Pchip
+    '''
+    def __init__(self, x,y,yp=None,method='parabola'):
+        if yp is None:
+            yp = slopes2(x, y, method)
+        self.x = np.asarray(x, np.float_)
+        self.y = np.asarray(y, np.float_)
+        self.yp = np.asarray(yp, np.float_)
+        
+    def __call__(self, xi):
+        xi = np.asarray(xi, np.float_)
+        x = self.x
+        y = self.y
+        yp = self.yp
+        # calculate linear slopes
+        dx = x[1:] - x[:-1]
+        dy = y[1:] - y[:-1]
+        s = dy / dx  #note length of s is N-1 so last element is #N-2
+    
+        # find the segment each xi is in
+        # this line actually is the key to the efficiency of this implementation
+        idx = np.searchsorted(x[1:-1], xi)
+    
+        # now we have generally: x[idx[j]] <= xi[j] <= x[idx[j]+1]
+        # except at the boundaries, where it may be that xi[j] < x[0] or xi[j] > x[-1]
+    
+        # the y-values that would come out from a linear interpolation:
+        sidx = s.take(idx)
+        xidx = x.take(idx)
+        yidx = y.take(idx)
+        xidxp1 = x.take(idx + 1)
+        yo = yidx + sidx * (xi - xidx)
+    
+        # the difference that comes when using the slopes given in yp
+        dy1 = (yp.take(idx) - sidx) * (xi - xidx)       # using the yp slope of the left point
+        dy2 = (yp.take(idx + 1) - sidx) * (xi - xidxp1) # using the yp slope of the right point
+    
+        dy1dy2 = dy1 * dy2
+        # The following is optimized for Python. The solution actually
+        # does more calculations than necessary but exploiting the power
+        # of numpy, this is far more efficient than coding a loop by hand
+        # in Python
+        dy1mdy2 = np.where(dy1dy2,dy1-dy2,np.inf)
+        dy1pdy2 = np.where(dy1dy2,dy1+dy2,np.inf)
+        yi = yo + dy1dy2 * np.choose(np.array(np.sign(dy1dy2), np.int32) + 1,
+                                     ((2 * xi - xidx - xidxp1) / ((dy1mdy2) * (xidxp1 - xidx)),
+                                      0.0,
+                                      1 / (dy1pdy2)))
+        return yi
+
+        
 def stineman_interp(xi, x, y, yp=None):
     """
     Given data vectors *x* and *y*, the slope vector *yp* and a new
@@ -703,6 +933,80 @@ def stineman_interp(xi, x, y, yp=None):
                                   1 / (dy1pdy2)))
     return yi
 
+class CubicHermiteSpline(PiecewisePolynomial):
+    '''
+    Piecewise Cubic Hermite Interpolation using Catmull-Rom
+    method for computing the slopes.
+    '''
+    def __init__(self, x, y, yp=None, method='Catmull-Rom'):
+        if yp is None:
+            yp = slopes2(x, y, method, monotone=False)
+        super(CubicHermiteSpline, self).__init__(x, zip(y,yp), orders=3)
+
+class Pchip(PiecewisePolynomial):
+    """PCHIP 1-d monotonic cubic interpolation
+
+    Description
+    -----------
+    x and y are arrays of values used to approximate some function f:
+       y = f(x)
+    This class factory function returns a callable class whose __call__ method
+    uses monotonic cubic, interpolation to find the value of new points.
+
+    Parameters
+    ----------
+    x : array
+        A 1D array of monotonically increasing real values.  x cannot
+        include duplicate values (otherwise f is overspecified)
+    y : array
+        A 1-D array of real values.  y's length along the interpolation
+        axis must be equal to the length of x.
+
+    Assumes x is sorted in monotonic order (e.g. x[1] > x[0])
+    
+    Example
+    -------
+    >>> import wafo.interpolate as wi
+    # Create a step function (will demonstrate monotonicity)
+    >>> x = np.arange(7.0) - 3.0
+    >>> y = np.array([-1.0, -1,-1,0,1,1,1])
+    
+    # Interpolate using monotonic piecewise Hermite cubic spline
+    >>> xvec = np.arange(599.)/100. - 3.0
+    >>> yvec = wi.Pchip(x, y)(xvec)
+    
+    # Call the Scipy cubic spline interpolator
+    >>> from scipy.interpolate import interpolate
+    >>> function = interpolate.interp1d(x, y, kind='cubic')
+    >>> yvec1 = function(xvec)
+    
+    # Non-montonic cubic Hermite spline interpolator using
+    # Catmul-Rom method for computing slopes...
+    >>> yvec2 = wi.CubicHermiteSpline(x,y)(xvec)
+    
+    >>> yvec3 = wi.StinemanInterp(x, y)(xvec)
+    
+    # Plot the results
+    >>> plt.plot(x,    y,     'ro')
+    >>> plt.plot(xvec, yvec,  'b')
+    >>> plt.plot(xvec, yvec1, 'k')
+    >>> plt.plot(xvec, yvec2, 'g')
+    >>> plt.plot(xvec, yvec3, 'm')
+    >>> plt.title("pchip() step function test")
+
+    >>> plt.xlabel("X")
+    >>> plt.ylabel("Y")
+    >>> plt.title("Comparing pypchip() vs. Scipy interp1d() vs. non-monotonic CHS")
+    >>> legends = ["Data", "pypchip()", "interp1d","CHS", 'SI']
+    >>> plt.legend(legends, loc="upper left")
+    >>> plt.show()
+
+    """
+    def __init__(self, x, y, yp=None, method='secant'):
+        if yp is None:
+            yp = slopes2(x, y, method=method, monotone=True)
+        super(Pchip, self).__init__(x, zip(y,yp), orders=3)
+        
 def test_smoothing_spline():
     x = linspace(0, 2 * pi + pi / 4, 20) 
     y = sin(x) #+ np.random.randn(x.size)
