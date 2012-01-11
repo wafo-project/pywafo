@@ -961,6 +961,11 @@ class Pchip(PiecewisePolynomial):
     y : array
         A 1-D array of real values.  y's length along the interpolation
         axis must be equal to the length of x.
+    yp : array
+        slopes of the interpolating function at x. Optional: only given if they are known, else the argument is not used.
+    method : string    
+        method for computing the slope at the given points if the slope is not known. With method=
+            "parabola" calculates the slopes from a parabola through every three points. 
 
     Assumes x is sorted in monotonic order (e.g. x[1] > x[0])
     
