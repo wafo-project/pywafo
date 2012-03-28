@@ -1,5 +1,7 @@
 """
 builds all extensions
+
+See also http://www.scipy.org/Cookbook/CompilingExtensionsOnWindowsWithMinGW
 """
 import os
 import shutil

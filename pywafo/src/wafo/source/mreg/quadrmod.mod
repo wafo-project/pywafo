@@ -1,5 +1,5 @@
-GFORTRAN module version '0' created from mregmodule.f on Wed Jun 01 14:12:05 2011
-MD5:447301769c212f228b6cfa086ba1d48a -- If you edit this, you'll get what you deserve.
+GFORTRAN module version '4' created from mregmodule.f on Tue Mar 27 09:05:04 2012
+MD5:60519873a9b0b44a975f51ae49005353 -- If you edit this, you'll get what you deserve.
 
 (() () () () () () () () () () () () () () () () () () () () () () () ()
 () () ())
@@ -12,24 +12,26 @@ MD5:447301769c212f228b6cfa086ba1d48a -- If you edit this, you'll get what you de
 
 ()
 
+()
+
 (2 'h' 'quadrmod' 'h' 1 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
-UNKNOWN DIMENSION DATA) (REAL 8 0 0 REAL ()) 0 0 () (1 EXPLICIT (
+UNKNOWN 0 0 DIMENSION DATA) (REAL 8 0 0 REAL ()) 0 0 () (1 EXPLICIT (
 CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0
 INTEGER ()) 0 '126')) 0 () () () 0 0)
 3 'i' 'quadrmod' 'i' 1 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
-UNKNOWN) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+UNKNOWN 0 0) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
 4 'nn' 'quadrmod' 'nn' 1 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
-UNKNOWN DIMENSION DATA) (INTEGER 4 0 0 INTEGER ()) 0 0 () (1 EXPLICIT (
-CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0
-INTEGER ()) 0 '25')) 0 () () () 0 0)
+UNKNOWN 0 0 DIMENSION DATA) (INTEGER 4 0 0 INTEGER ()) 0 0 () (1
+EXPLICIT (CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER
+4 0 0 INTEGER ()) 0 '25')) 0 () () () 0 0)
 5 'nnw' 'quadrmod' 'nnw' 1 ((PARAMETER UNKNOWN-INTENT UNKNOWN-PROC
-UNKNOWN IMPLICIT-SAVE) (INTEGER 4 0 0 INTEGER ()) 0 0 () (CONSTANT (
+UNKNOWN IMPLICIT-SAVE 0 0) (INTEGER 4 0 0 INTEGER ()) 0 0 () (CONSTANT (
 INTEGER 4 0 0 INTEGER ()) 0 '13') () 0 () () () 0 0)
 6 'quadrmod' 'quadrmod' 'quadrmod' 1 ((MODULE UNKNOWN-INTENT
-UNKNOWN-PROC UNKNOWN UNKNOWN) (UNKNOWN 0 0 0 UNKNOWN ()) 0 0 () () 0 ()
-() () 0 0)
+UNKNOWN-PROC UNKNOWN UNKNOWN 0 0) (UNKNOWN 0 0 0 UNKNOWN ()) 0 0 () () 0
+() () () 0 0)
 7 'z' 'quadrmod' 'z' 1 ((VARIABLE UNKNOWN-INTENT UNKNOWN-PROC UNKNOWN
-UNKNOWN DIMENSION DATA) (REAL 8 0 0 REAL ()) 0 0 () (1 EXPLICIT (
+UNKNOWN 0 0 DIMENSION DATA) (REAL 8 0 0 REAL ()) 0 0 () (1 EXPLICIT (
 CONSTANT (INTEGER 4 0 0 INTEGER ()) 0 '1') (CONSTANT (INTEGER 4 0 0
 INTEGER ()) 0 '126')) 0 () () () 0 0)
 )

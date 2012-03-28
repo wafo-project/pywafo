@@ -13,9 +13,10 @@ from numpy import (abs, amax, any, logical_and, arange, linspace, atleast_1d, at
                    r_, sign, unique, hstack, vstack, nonzero, where, extract)
 from scipy.special import gammaln
 from scipy.integrate import trapz, simps
-import types
+#import types
 import warnings
 from wafo import plotbackend
+from collections import OrderedDict
 
 
 try:
@@ -543,6 +544,8 @@ def findrfc(tp, hmin=0.0, method='clib'):
     >>> ti, tp = t[ind], x[ind]
     >>> a = pb.plot(t,x,'.',ti,tp,'r.')
     >>> ind1 = wm.findrfc(tp,0.3); ind1
+    array([  0,   9,  32,  53,  74,  95, 116, 137])
+    >>> ind2 = wm.findrfc(tp,0.3, method=''); ind2
     array([  0,   9,  32,  53,  74,  95, 116, 137])
     >>> a = pb.plot(ti[ind1],tp[ind1])
     >>> pb.close('all')
@@ -1523,11 +1526,12 @@ def getshipchar(value, property="max_deadweight"):
     max_deadweight = round(max_deadweight)
     max_deadweightSTD = 0.1 * max_deadweight
 
-    shipchar = {'max_deadweight':max_deadweight, 'max_deadweightSTD':max_deadweightSTD,
-        'length':length, 'lengthSTD':length_err, 'beam':beam, 'beamSTD':beam_err,
-        'draught':draught, 'draughtSTD':draught_err,
-        'service_speed':speed, 'service_speedSTD':speed_err,
-        'propeller_diameter':p_diam, 'propeller_diameterSTD':p_diam_err}
+    shipchar = OrderedDict(beam=beam, beamSTD=beam_err,
+                           draught=draught, draughtSTD=draught_err,
+                           length=length, lengthSTD=length_err, 
+                           max_deadweight=max_deadweight, max_deadweightSTD=max_deadweightSTD,
+                           propeller_diameter=p_diam, propeller_diameterSTD=p_diam_err,
+                           service_speed=speed, service_speedSTD=speed_err)
 
     shipchar[propertySTD] = 0
     return shipchar
@@ -1786,7 +1790,7 @@ def cart2pol(x, y, z=None):
         return t, r, z
    
 
-def meshgrid(*xi, ** kwargs):
+def meshgrid(*xi, **kwargs):
     """
     Return coordinate matrices from one or more coordinate vectors.
 
@@ -1867,11 +1871,11 @@ def meshgrid(*xi, ** kwargs):
     >>> xx, yy = meshgrid(x, y, sparse=True)
     >>> z = np.sin(xx**2+yy**2)/(xx**2+yy**2)
     """
-    copy = kwargs.get('copy', True)
+    copy_ = kwargs.get('copy', True)
     args = atleast_1d(*xi)
     if not isinstance(args, list):
         if args.size > 0:
-            return args.copy() if copy else args
+            return args.copy() if copy_ else args
         else:
             raise TypeError('meshgrid() take 1 or more arguments (0 given)')
 
@@ -1892,13 +1896,13 @@ def meshgrid(*xi, ** kwargs):
         shape[0], shape[1] = shape[1], shape[0]
 
     if sparse:
-        if copy:
+        if copy_:
             return [x.copy() for x in output]
         else:
             return output
     else:
         # Return the full N-D matrix (not only the 1-D vector)
-        if copy:
+        if copy_:
             mult_fact = ones(shape, dtype=int)
             return [x * mult_fact for x in output]
         else:
@@ -2229,13 +2233,13 @@ def plot_histgrm(data, bins=None, range=None, normed=False, weights=None, lintyp
     if bins is None:
         bins = np.ceil(4 * np.sqrt(np.sqrt(len(x))))
      
-    bin, limits = np.histogram(data, bins=bins, normed=normed, weights=weights) #, new=True)
+    bin_, limits = np.histogram(data, bins=bins, normed=normed, weights=weights) #, new=True)
     limits.shape = (-1, 1)
     xx = limits.repeat(3, axis=1)
     xx.shape = (-1,)
     xx = xx[1:-1]
-    bin.shape = (-1, 1)
-    yy = bin.repeat(3, axis=1)
+    bin_.shape = (-1, 1)
+    yy = bin_.repeat(3, axis=1)
     #yy[0,0] = 0.0 # pdf
     yy[:, 0] = 0.0 # histogram
     yy.shape = (-1,)
@@ -2273,8 +2277,8 @@ def num2pistr(x, n=3):
             ntxt = '%d' % num 
         xtxt = ntxt + r'\pi' + dtxt
     else:
-        format = '%0.' + '%dg' % n
-        xtxt = format % x
+        format_ = '%0.' + '%dg' % n
+        xtxt = format_ % x
     return xtxt     
 
 def fourier(data, t=None, T=None, m=None, n=None, method='trapz'):

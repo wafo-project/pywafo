@@ -2737,7 +2737,12 @@ def _norm_logpdf(x):
 def _norm_cdf(x):
     return special.ndtr(x)
 def _norm_logcdf(x):
-    return log(special.ndtr(x))
+    logcdf = log(special.ndtr(x))
+    large_x = (5<x)
+    if np.any(large_x):
+        logcdf[large_x] = log1p(-special.ndtr(-x[large_x]))
+    return logcdf
+    #return log(special.ndtr(x))
 def _norm_ppf(q):
     return special.ndtri(q)
 class norm_gen(rv_continuous):

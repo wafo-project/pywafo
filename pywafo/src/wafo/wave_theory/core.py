@@ -557,5 +557,7 @@ def wave_pressure(z, Hm0, h=10000, g=9.81, rho=1028):
     
     return pressure
 
+def main():
+    sensortype(range(21))
 if __name__ == '__main__':
     pass
