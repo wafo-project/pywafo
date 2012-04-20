@@ -513,7 +513,7 @@ def findrfc_astm(tp):
     # sig_rfc holds the actual rainflow counted cycles, not the indices
     return sig_rfc
 
-def findrfc(tp, hmin=0.0, method='clib'):
+def findrfc(tp, h=0.0, method='clib'):
     '''
     Return indices to rainflow cycles of a sequence of TP.
 
@@ -599,7 +599,7 @@ def findrfc(tp, hmin=0.0, method='clib'):
                         Tmi = Tstart + 2 * j
                     j -= 1
             if (xminus >= xplus):
-                if (y[2 * i + 1] - xminus >= hmin):
+                if (y[2 * i + 1] - xminus >= h):
                     ind[ix] = Tmi
                     ix += 1
                     ind[ix] = (Tstart + 2 * i + 1)
@@ -615,7 +615,7 @@ def findrfc(tp, hmin=0.0, method='clib'):
                         Tpl = (Tstart + 2 * j + 2)
                     j += 1
                 else:
-                    if ((y[2 * i + 1] - xminus) >= hmin):
+                    if ((y[2 * i + 1] - xminus) >= h):
                         ind[ix] = Tmi
                         ix += 1
                         ind[ix] = (Tstart + 2 * i + 1)
@@ -627,12 +627,12 @@ def findrfc(tp, hmin=0.0, method='clib'):
                 #goto L180
                 #L170:
                 if (xplus <= xminus):
-                    if ((y[2 * i + 1] - xminus) >= hmin):
+                    if ((y[2 * i + 1] - xminus) >= h):
                         ind[ix] = Tmi
                         ix += 1
                         ind[ix] = (Tstart + 2 * i + 1)
                         ix += 1
-                elif ((y[2 * i + 1] - xplus) >= hmin):
+                elif ((y[2 * i + 1] - xplus) >= h):
                     ind[ix] = (Tstart + 2 * i + 1)
                     ix += 1
                     ind[ix] = Tpl
@@ -642,7 +642,7 @@ def findrfc(tp, hmin=0.0, method='clib'):
             #iy=i
         #  /* for i */
     else:
-        ind, ix = clib.findrfc(y, hmin)
+        ind, ix = clib.findrfc(y, h)
     return np.sort(ind[:ix])
 
 def mctp2rfc(fmM, fMm=None):
@@ -806,13 +806,28 @@ def rfcfilter(x, h, method=0):
     >>> import wafo.misc as wm
     >>> x = wafo.data.sea()
     >>> y = wm.rfcfilter(x[:,1], h=0, method=1)
+    >>> y.shape
+    (2172,)
     >>> y[0:5]
     array([-1.2004945 ,  0.83950546, -0.09049454, -0.02049454, -0.09049454])
-
+    >>> y[-5::]
+    array([ 0.18950546,  0.15950546,  0.91950546, -0.51049454, -0.48049454])
+    
     # 2. This removes all rainflow cycles with range less than 0.5.
     >>> y1 = wm.rfcfilter(x[:,1], h=0.5)
+    >>> y1.shape
+    (863,)
     >>> y1[0:5]
     array([-1.2004945 ,  0.83950546, -0.43049454,  0.34950546, -0.51049454])
+    >>> y1[-5::]
+    array([-0.64049454,  0.65950546, -1.0004945 ,  0.91950546, -0.51049454])
+    
+    >>> ind = wm.findtp(x[:,1], h=0.5)
+    >>> y2 = x[ind,1]
+    >>> y2[0:5]
+    array([-1.2004945 ,  0.83950546, -0.43049454,  0.34950546, -0.51049454])
+    >>> y2[-5::]
+    array([ 0.83950546, -0.64049454,  0.65950546, -1.0004945 ,  0.91950546])
     
     See also
     --------
@@ -880,7 +895,7 @@ def rfcfilter(x, h, method=0):
     if cmpfun1(h, abs(y0 - y[t[j]])):
         j += 1
         t[j] = t0
-    return y[t[:j]]
+    return y[t[:j+1]]
 
 def findtp(x, h=0.0, kind=None):
     '''
@@ -2262,8 +2277,9 @@ def num2pistr(x, n=3):
     
     Example
     >>> import wafo.misc as wm
-    >>> wm.num2pistr(np.pi*3/4)
-    '3\\pi/4'
+    >>> t = wm.num2pistr(np.pi*3/4)
+    >>> t=='3\\pi/4'
+    True
     '''
     
     frac = fractions.Fraction.from_float(x / pi).limit_denominator(10000000)
