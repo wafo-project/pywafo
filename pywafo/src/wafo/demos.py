@@ -6,8 +6,23 @@ Created on 20. jan. 2011
 import numpy as np
 from numpy import exp
 from wafo.misc import meshgrid
-__all__ = ['peaks', 'humps']
+__all__ = ['peaks', 'humps', 'magic']
 
+def magic(n):
+    '''
+    Return magic square  for n of odd orders.
+    
+    A magic square has the property that the sum of every row and column, 
+    as well as both diagonals, is the same number.
+    '''
+    if np.mod(n,1)==1: # odd order
+        ix = np.arange(n)+1
+        J, I = np.meshgrid(ix,ix)
+        A = np.mod(I+J-(n+3)/2,n)
+        B = np.mod(I+2*J-2,n)
+        M = n*A + B + 1
+        
+    return M
 
 def peaks(x=None, y=None, n=51):
     '''
