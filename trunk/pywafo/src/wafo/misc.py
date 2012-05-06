@@ -6,7 +6,7 @@ from __future__ import division
 import sys
 import fractions
 import numpy as np
-from numpy import (abs, amax, any, logical_and, arange, linspace, atleast_1d, atleast_2d,
+from numpy import (abs, amax, any, logical_and, arange, linspace, atleast_1d, atleast_2d, #@UnusedImport
                    array, asarray, broadcast_arrays, ceil, floor, frexp, hypot,
                    sqrt, arctan2, sin, cos, exp, log, mod, diff, empty_like,
                    finfo, inf, pi, interp, isnan, isscalar, zeros, ones, linalg,
@@ -93,7 +93,7 @@ class Bunch(object):
     def update(self, ** kwargs):
         self.__dict__.update(kwargs)
 
-def printf(format, *args):
+def printf(format, *args): #@ReservedAssignment
     sys.stdout.write(format % args)
 
 
@@ -1452,7 +1452,7 @@ def stirlerr(n):
 
     return y
 
-def getshipchar(value, property="max_deadweight"):
+def getshipchar(value, property="max_deadweight"): #@ReservedAssignment
     '''
     Return ship characteristics from value of one ship-property
 
@@ -1485,19 +1485,20 @@ def getshipchar(value, property="max_deadweight"):
     Example
     ---------
     >>> import wafo.misc as wm
-    >>> wm.getshipchar(10,'service_speed')
-    {'beam': 29.0,
-     'beamSTD': 2.9000000000000004,
-     'draught': 9.5999999999999996,
-     'draughtSTD': 2.1120000000000001,
-     'length': 216.0,
-     'lengthSTD': 2.0113098831942762,
-     'max_deadweight': 30969.0,
-     'max_deadweightSTD': 3096.9000000000001,
-     'propeller_diameter': 6.761165385916601,
-     'propeller_diameterSTD': 0.20267047566705432,
-     'service_speed': 10.0,
-     'service_speedSTD': 0}
+    >>> sc = wm.getshipchar(10,'service_speed')
+    >>> for key in sorted(sc): key, sc[key]
+    ('beam', 29.0)
+    ('beamSTD', 2.9000000000000004)
+    ('draught', 9.6)
+    ('draughtSTD', 2.112)
+    ('length', 216.0)
+    ('lengthSTD', 2.011309883194276)
+    ('max_deadweight', 30969.0)
+    ('max_deadweightSTD', 3096.9)
+    ('propeller_diameter', 6.761165385916601)
+    ('propeller_diameterSTD', 0.20267047566705432)
+    ('service_speed', 10.0)
+    ('service_speedSTD', 0)
 
     Other units: 1 ft = 0.3048 m and 1 knot = 0.5144 m/s
 
@@ -2142,7 +2143,7 @@ def tranproc(x, f, x0, *xi):
                     if N > 4:
                         warnings.warn('Transformation of derivatives of order>4 not supported.')
     return y #y0,y1,y2,y3,y4
-def good_bins(data=None, range=None, num_bins=None, num_data=None, odd=False, loose=True):
+def good_bins(data=None, range=None, num_bins=None, num_data=None, odd=False, loose=True): #@ReservedAssignment
     ''' Return good bins for histogram
     
     Parameters
@@ -2195,7 +2196,7 @@ def good_bins(data=None, range=None, num_bins=None, num_data=None, odd=False, lo
     limits = np.arange(mn, mx + d / 2, d)
     return limits
 
-def plot_histgrm(data, bins=None, range=None, normed=False, weights=None, lintype='b-'):
+def plot_histgrm(data, bins=None, range=None, normed=False, weights=None, lintype='b-'): #@ReservedAssignment
     '''
     Plot histogram
              
@@ -2405,7 +2406,7 @@ def fourier(data, t=None, T=None, m=None, n=None, method='trapz'):
  
 
 def _test_find_cross():
-    t = findcross([0, 0, 1, -1, 1], 0)
+    t = findcross([0, 0, 1, -1, 1], 0) #@UnusedVariable
     
 def _test_common_shape():
 
@@ -2454,7 +2455,7 @@ def _test_tranproc():
     tr = wtm.TrHermite()
     x = linspace(-5, 5, 501)
     g = tr(x)
-    gder = tranproc(x, g, x, ones(g.size))
+    gder = tranproc(x, g, x, ones(g.size)) #@UnusedVariable
     pass
     #>>> gder(:,1) = g(:,1)
     #>>> plot(g(:,1),[g(:,2),gder(:,2)])
@@ -2476,7 +2477,7 @@ def _test_extrema():
     ind = findextrema(x)
     ti, tp = t[ind], x[ind]
     plot(t, x, '.', ti, tp, 'r.')
-    ind1 = findrfc(tp, 0.3)
+    ind1 = findrfc(tp, 0.3) #@UnusedVariable
 
   
 

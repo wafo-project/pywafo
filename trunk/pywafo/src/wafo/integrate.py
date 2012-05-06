@@ -7,7 +7,7 @@ from scipy import integrate as intg
 import scipy.special.orthogonal as ort
 from scipy import special as sp
 from wafo.plotbackend import plotbackend as plt
-from scipy.integrate import simps, trapz
+from scipy.integrate import simps, trapz #@UnusedImport
 from wafo.misc import is_numlike
 from wafo.demos import humps
 
@@ -53,10 +53,10 @@ def dea3(v0, v1, v2):
      ...     Ei[k] = np.trapz(np.sin(x),x)
      >>> En, err = dea3(Ei[0],Ei[1],Ei[2])
      >>> En, err
-     (array([ 1.]), array([ 0.00020081]))
+     (array([ 1.]), array([ 0.0002008]))
      >>> TrueErr = Ei-1.
      >>> TrueErr
-     array([ -2.00805680e-04,  -5.01999079e-05,  -1.25498825e-05])
+     array([ -2.0080568e-04,  -5.0199908e-05,  -1.2549882e-05])
 
      See also
      --------
@@ -71,8 +71,8 @@ def dea3(v0, v1, v2):
     '''
 
     E0, E1, E2 = np.atleast_1d(v0, v1, v2)
-    abs = np.abs
-    max = np.maximum
+    abs = np.abs #@ReservedAssignment
+    max = np.maximum #@ReservedAssignment
     ten = 10.0
     one = ones(1)
     small = np.finfo(float).eps  #1.0e-16 #spacing(one)
@@ -96,8 +96,10 @@ def dea3(v0, v1, v2):
     k1, = (1 - converged).nonzero()
 
     if k1.size > 0 :
-        ss = one / delta2[k1] - one / delta1[k1]
-        smallE2 = (abs(ss * E1[k1]) <= 1.0e-3).ravel()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore") # ignore division by zero and overflow
+            ss = one / delta2[k1] - one / delta1[k1]
+            smallE2 = (abs(ss * E1[k1]) <= 1.0e-3).ravel()
         k2 = k1[smallE2.nonzero()]
         if k2.size > 0 :
             result[k2] = E2[k2]
@@ -253,7 +255,7 @@ def romberg(fun, a, b, releps=1e-3, abseps=1e-3):
     >>> import numpy as np
     >>> [q,err] = romberg(np.sqrt,0,10,0,1e-4)
     >>> q,err
-    (array([ 21.08185107]), array([  6.61635466e-05]))
+    (array([ 21.0818511]), array([  6.6163547e-05]))
     '''
     h = b - a
     hMin = 1.0e-9
@@ -375,7 +377,7 @@ def h_roots(n, method='newton'):
         L = zeros((3, len(z)))
         k0 = 0
         kp1 = 1
-        for its in xrange(max_iter):
+        for _its in xrange(max_iter):
             #Newtons method carried out simultaneously on the roots.
             L[k0, :] = 0
             L[kp1, :] = PIM4
@@ -475,7 +477,7 @@ def j_roots(n, alpha, beta, method='newton'):
         L = zeros((3, len(z)))
         k0 = 0
         kp1 = 1
-        for its in xrange(max_iter):
+        for _its in xrange(max_iter):
             #Newton's method carried out simultaneously on the roots.
             tmp = 2 + alfbet
             L[k0, :] = 1
@@ -583,7 +585,7 @@ def la_roots(n, alpha=0, method='newton'):
         k0 = 0
         kp1 = 1
         k = slice(len(z))
-        for its in xrange(max_iter):
+        for _its in xrange(max_iter):
             #%Newton's method carried out simultaneously on the roots.
             L[k0, k] = 0.
             L[kp1, k] = 1.
@@ -684,7 +686,7 @@ def p_roots(n, method='newton', a= -1, b=1):
             # using the recursion relation and the Newton-Raphson method
 
 
-            #% Legendre-Gauss Polynomials
+            # Legendre-Gauss Polynomials
             L = zeros((3, m))
 
             # Derivative of LGP
@@ -693,14 +695,14 @@ def p_roots(n, method='newton', a= -1, b=1):
 
             releps = 1e-15
             max_iter = 100
-            #% Compute the zeros of the N+1 Legendre Polynomial
-            #% using the recursion relation and the Newton-Raphson method
+            # Compute the zeros of the N+1 Legendre Polynomial
+            # using the recursion relation and the Newton-Raphson method
 
-            #% Iterate until new points are uniformly within epsilon of old points
+            # Iterate until new points are uniformly within epsilon of old points
             k = slice(m)
             k0 = 0
             kp1 = 1
-            for ix in xrange(max_iter):
+            for _ix in xrange(max_iter):
                 L[k0, k] = 1
                 L[kp1, k] = xo[k]
 
@@ -728,7 +730,7 @@ def p_roots(n, method='newton', a= -1, b=1):
 
             e1 = n * (n + 1)
 
-            for j in xrange(2):
+            for _j in xrange(2):
                 pkm1 = 1
                 pk = xo
                 for k in xrange(2, n + 1):
@@ -815,8 +817,8 @@ def qrule(n, wfun=1, alpha=0, beta=0):
     >>> sum(bp**2*wf)  # integral of exp(-x.^2)*x.^2 from a = -inf to b = inf
     0.88622692545275772
     >>> [bp,wf] = qrule(10,4,1,2)
-    >>> sum(bp*wf)     # integral of (x+1)*(1-x)^2 from  a = -1 to b = 1
-    0.26666666666666844
+    >>> (bp*wf).sum()     # integral of (x+1)*(1-x)^2 from  a = -1 to b = 1
+    0.26666666666666755
 
     See also
     --------
@@ -927,23 +929,22 @@ def gaussq(fun, a, b, reltol=1e-3, abstol=1e-3, alpha=0, beta=0, wfun=1,
     integration of x**2        from 0 to 2 and from 1 to 4
 
     >>> from scitools import numpyutils as npt
-    scitools.easyviz backend is matplotlib
     >>> A = [0, 1]; B = [2,4]
     >>> fun = npt.wrap2callable('x**2')
     >>> [val1,err1] = gaussq(fun,A,B)
     >>> val1
-    array([  2.66666667,  21.        ])
+    array([  2.6666667,  21.       ])
     >>> err1
-    array([  1.77635684e-15,   1.06581410e-14])
+    array([  1.7763568e-15,   1.0658141e-14])
 
     Integration of x^2*exp(-x) from zero to infinity:
     >>> fun2 = npt.wrap2callable('1')
     >>> val2, err2 = gaussq(fun2, 0, npt.inf, wfun=3, alpha=2)
     >>> val3, err3 = gaussq(lambda x: x**2,0, npt.inf, wfun=3, alpha=0)
     >>> val2, err2
-    (array([ 2.]), array([  6.66133815e-15]))
+    (array([ 2.]), array([  6.6613381e-15]))
     >>> val3, err3
-    (array([ 2.]), array([  1.77635684e-15]))
+    (array([ 2.]), array([  1.7763568e-15]))
 
     Integrate humps from 0 to 2 and from 1 to 4
     >>> val4, err4 = gaussq(humps,A,B)
@@ -1154,7 +1155,7 @@ def quadgr(fun, a, b, abseps=1e-5):
     >>> import numpy as np
     >>> Q, err = quadgr(np.log,0,1)
     >>> quadgr(np.exp,0,9999*1j*np.pi)
-    (-2.0000000000122617, 2.1933275196062141e-09)
+    (-2.0000000000122662, 2.1933237448479304e-09)
 
     >>> quadgr(lambda x: np.sqrt(4-x**2),0,2,1e-12)
     (3.1415926535897811, 1.5809575870662229e-13)
@@ -1195,16 +1196,16 @@ def quadgr(fun, a, b, abseps=1e-5):
         if ~ np.isreal(a) | ~np.isreal(b) | np.isnan(a) | np.isnan(b):
             raise ValueError('Infinite intervals must be real.')
 
-        #% Change of variable
+        # Change of variable
         if np.isfinite(a) & np.isinf(b):
-            #% a to inf
+            # a to inf
             fun1 = lambda t : fun(a + t / (1 - t)) / (1 - t) ** 2
             [Q, err] = quadgr(fun1, 0, 1, abseps)
         elif np.isinf(a) & np.isfinite(b):
-            #% -inf to b
+            # -inf to b
             fun2 = lambda t: fun(b + t / (1 + t)) / (1 + t) ** 2
             [Q, err] = quadgr(fun2, -1, 0, abseps)
-        else: #% -inf to inf
+        else: # -inf to inf
             fun1 = lambda t: fun(t / (1 - t)) / (1 - t) ** 2
             fun2 = lambda t: fun(t / (1 + t)) / (1 + t) ** 2
             [Q1, err1] = quadgr(fun1, 0, 1, abseps / 2)
@@ -1212,7 +1213,7 @@ def quadgr(fun, a, b, abseps=1e-5):
             Q = Q1 + Q2
             err = err1 + err2
 
-        #% Reverse direction
+        # Reverse direction
         if reverse:
             Q = -Q
         return Q, err
@@ -1225,12 +1226,17 @@ def quadgr(fun, a, b, abseps=1e-5):
     xq = np.hstack((xq, -xq))
     wq = np.hstack((wq, wq))
     nq = len(xq)
+#    iscomplex = (np.iscomplex(a) | np.iscomplex(b)).any()
+#    if iscomplex:
+#        dtype = np.complex128
+#    else:
+    dtype = np.float64
 
     #% Initiate vectors
     max_iter = 17                 # Max number of iterations
-    Q0 = zeros(max_iter)       	# Quadrature
-    Q1 = zeros(max_iter)       	# First Richardson extrapolation
-    Q2 = zeros(max_iter)       	# Second Richardson extrapolation
+    Q0 = zeros(max_iter, dtype=dtype)       	# Quadrature
+    Q1 = zeros(max_iter, dtype=dtype)       	# First Richardson extrapolation
+    Q2 = zeros(max_iter, dtype=dtype)       	# Second Richardson extrapolation
 
     # One interval
     hh = (b - a) / 2             # Half interval length
@@ -1270,8 +1276,8 @@ def quadgr(fun, a, b, abseps=1e-5):
         j = errors.argmin()
         err = errors[j]
         Q = Qv[j]
-        if k >= 2:
-            val, err1 = dea3(Q0[k - 2], Q0[k - 1], Q0[k])
+        if k >= 2 : #and not iscomplex:
+            _val, err1 = dea3(Q0[k - 2], Q0[k - 1], Q0[k])
 
         # Convergence
         if (err < abseps) | ~np.isfinite(Q):
@@ -1346,7 +1352,7 @@ def qdemo(f, a, b):
     #true1 = quad8(f,a,b,1e-10)
     #[true tol]= gaussq(f,a,b,1e-12)
     #[true tol] = agakron(f,a,b,1e-13)
-    true_val, tol = intg.quad(f, a, b)
+    true_val, _tol = intg.quad(f, a, b)
     print('true value = %12.8f' % (true_val,))
     kmax = 9
     neval = zeros(kmax, dtype=int)
@@ -1449,7 +1455,7 @@ def main():
     sum(w)
     [x2, w2] = la_roots(11, 1, 't')
 
-    from scitools import numpyutils as npu
+    from scitools import numpyutils as npu #@UnresolvedImport
     fun = npu.wrap2callable('x**2')
     p0 = fun(0)
     A = [0, 1, 1]; B = [2, 4, 3]
@@ -1474,8 +1480,10 @@ def main():
     q0 = np.trapz(humps(x), x)
     [q, err] = romberg(humps, 0, np.pi / 2, 1e-4)
     print q, err
-
-if __name__ == '__main__':
+def test_docstrings():
+    np.set_printoptions(precision=7)
     import doctest
     doctest.testmod()
+if __name__ == '__main__':
+    test_docstrings()
     #main()

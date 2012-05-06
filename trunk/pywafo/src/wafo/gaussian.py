@@ -500,7 +500,7 @@ def prbnormtndpc(rho, a, b, D=None, df=0, abseps=1e-4, IERC=0, HNC=0.24):
     # Make sure integration limits are finite
     A = np.clip(a - D, -100, 100)
     B = np.clip(b - D, -100, 100)
-    return mvnprdmod.prbnormtndpc(rho, A, B, df, abseps, IERC, HNC)
+    return mvnprdmod.prbnormtndpc(rho, A, B, df, abseps, IERC, HNC) #@UndefinedVariable
 
 def prbnormndpc(rho, a, b, abserr=1e-4, relerr=1e-4, usesimpson=True, usebreakpoints=False):
     '''
@@ -561,7 +561,7 @@ def prbnormndpc(rho, a, b, abserr=1e-4, relerr=1e-4, usesimpson=True, usebreakpo
       
     '''  
     # Call fortran implementation
-    val, err, ier = mvnprdmod.prbnormndpc(rho, a, b, abserr, relerr, usebreakpoints, usesimpson);
+    val, err, ier = mvnprdmod.prbnormndpc(rho, a, b, abserr, relerr, usebreakpoints, usesimpson); #@UndefinedVariable
     
     if ier > 0:
         warnings.warn('Abnormal termination ier = %d\n\n%s' % (ier, _ERRORMESSAGE[ier]))
@@ -697,7 +697,7 @@ def  prbnormnd(correl, a, b, abseps=1e-4, releps=1e-3, maxpts=None, method=0):
     infinity = 37
     infin = np.repeat(2, n) - (B > infinity) - 2 * (A < -infinity)     
    
-    err, val, inform = mvn.mvndst(A, B, infin, L, maxpts, abseps, releps)
+    err, val, inform = mvn.mvndst(A, B, infin, L, maxpts, abseps, releps) #@UndefinedVariable
     
     return val, err, inform
     

@@ -4,7 +4,7 @@ Created on 19. juli 2010
 @author: pab
 '''
 
-from wafo.spectrum.dispersion_relation import w2k,k2w
+from wafo.spectrum.dispersion_relation import w2k,k2w #@UnusedImport
 
 def test_k2w():
     '''

@@ -52,7 +52,7 @@ from numpy import (inf, atleast_1d, newaxis, any, minimum, maximum, array, #@Unr
     asarray, exp, log, sqrt, where, pi, arange, linspace, sin, cos, abs, sinh, #@UnresolvedImport
     isfinite, mod, expm1, tanh, cosh, finfo, ones, ones_like, isnan, #@UnresolvedImport
     zeros_like, flatnonzero, sinc, hstack, vstack, real, flipud, clip) #@UnresolvedImport
-from dispersion_relation import w2k, k2w
+from dispersion_relation import w2k, k2w #@UnusedImport
 from wafo.spectrum import SpecData1D, SpecData2D
 sech = lambda x: 1.0 / cosh(x)
 
@@ -362,13 +362,13 @@ def jonswap_seastate(u10, fetch=150000., method='lewis', g=9.81, output='dict'):
     >>> import wafo.spectrum.models as wsm
     >>> fetch = 10000; u10 = 10
     >>> ss = wsm.jonswap_seastate(u10, fetch, output='dict')
-    >>> ss
-    {'Ag': 0.016257903375341734,
-     'Hm0': 0.51083679198275533,
-     'Tp': 2.7727680999585265,
-     'gamma': 2.4824142635861119,
-     'sigmaA': 0.075317331395172021,
-     'sigmaB': 0.091912084512251344}
+    >>> for key in sorted(ss.keys()): key, ss[key]
+    ('Ag', 0.016257903375341734)
+    ('Hm0', 0.51083679198275533)
+    ('Tp', 2.7727680999585265)
+    ('gamma', 2.4824142635861119)
+    ('sigmaA', 0.07531733139517202)
+    ('sigmaB', 0.09191208451225134)
     >>> S = wsm.Jonswap(**ss)
     >>> S.Hm0
     0.51083679198275533
@@ -660,7 +660,7 @@ def phi1(wi, h, g=9.81):
     Transform a JONSWAP spectrum to a spectrum for waterdepth = 30 m
     >>> import wafo.spectrum.models as wsm
     >>> S = wsm.Jonswap()
-    >>> w = range(3.0)
+    >>> w = np.arange(3.0)
     >>> S(w)*wsm.phi1(w,30.0)
     array([ 0.        ,  1.0358056 ,  0.03796281])
 
@@ -894,8 +894,8 @@ class Torsethaugen(ModelSpectrum):
         Tp = self.Tp
         gravity1 = self.gravity # m/s**2
 
-        min = minimum
-        max = maximum
+        min = minimum #@ReservedAssignment
+        max = maximum #@ReservedAssignment
 
         # The parameter values below are found comparing the
         # model to average measured spectra for the Statfjord Field
@@ -1476,7 +1476,7 @@ class Spreading(object):
 ##% By es, jr 1999.11.25
 
 
-    def __init__(self, type='cos2s', theta0=0, method='mitsuyasu', s_a=15., s_b=15., m_a=5., m_b= -2.5, wn_lo=0.0, wn_c=1., wn_up=inf):
+    def __init__(self, type='cos2s', theta0=0, method='mitsuyasu', s_a=15., s_b=15., m_a=5., m_b= -2.5, wn_lo=0.0, wn_c=1., wn_up=inf): #@ReservedAssignment
 
         self.type = type
         self.theta0 = theta0
@@ -2003,11 +2003,11 @@ def _test_some_spectra():
 
 
 
-    import pylab as plb
+    #import pylab as plb
     #w = plb.linspace(0,3)
     w, th = plb.ogrid[0:4, 0:6]
     k, k2 = w2k(w, th)
-    k1, k12 = w2k(w, th, h=20)
+    #k1, k12 = w2k(w, th, h=20)
     plb.plot(w, k, w, k2)
 
     plb.show()
@@ -2050,7 +2050,7 @@ def _test_spreading():
     theta0 = lambda w: w * plb.pi / 6.0
     D2 = Spreading('cos2s', theta0=theta0)
     d1 = D2(theta, w)[0]
-    t = plb.contour(d1.squeeze())
+    _t = plb.contour(d1.squeeze())
 
     pi = plb.pi
     D = Spreading('wrap_norm', s_a=10.0)
@@ -2061,12 +2061,15 @@ def _test_spreading():
     plb.contour(d1[0])
     plb.show()
 
+def test_docstrings():
+    import doctest
+    doctest.testmod()
+    
 def main():
     if False: # True: #
         _test_some_spectra()
     else:
-        import doctest
-        doctest.testmod()
+        test_docstrings()
 
 if __name__ == '__main__':
     main()

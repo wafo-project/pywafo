@@ -27,7 +27,7 @@ from scipy.special import ndtr as cdfnorm, ndtri as invnorm
 import warnings
 import numpy as np
 
-from numpy import (inf, pi, zeros, ones, sqrt, where, log, exp, cos, sin, arcsin, mod, finfo, interp, #@UnresolvedImport
+from numpy import (inf, pi, zeros, ones, sqrt, where, log, exp, cos, sin, arcsin, mod, interp, #@UnresolvedImport
                    linspace, arange, sort, all, abs, vstack, hstack, atleast_1d, sign, expm1, #@UnresolvedImport
                    finfo, polyfit, r_, nonzero, cumsum, ravel, size, isnan, nan, ceil, diff, array) #@UnresolvedImport
 from numpy.fft import fft
@@ -290,11 +290,11 @@ class LevelCrossings(WafoData):
         elif dist.startswith('ray') or dist.startswith('trun'):
             phat = distributions.truncrayleigh.fit2(x, floc=0, method=method)
             SF = phat.sf(xF)
-            if False:
-                n = len(x)
-                Sx = sum((x + offset) ** 2 - offset ** 2)
-                s = sqrt(Sx / n);  # Shape parameter
-                F = -np.expm1(-((xF + offset) ** 2 - offset ** 2) / s ** 2)
+#            if False:
+#                n = len(x)
+#                Sx = sum((x + offset) ** 2 - offset ** 2)
+#                s = sqrt(Sx / n);  # Shape parameter
+#                F = -np.expm1(-((xF + offset) ** 2 - offset ** 2) / s ** 2)
             lcEst = np.vstack((xF + u, lcu * (SF))).T
         else: 
             raise ValueError()
@@ -661,7 +661,7 @@ def test_levelcrossings_extrapolate():
     lc = mm.level_crossings()
         
     s = x[:,1].std()
-    lc_gpd = lc.extrapolate(-2*s, 2*s, dist='rayleigh')
+    lc_gpd = lc.extrapolate(-2*s, 2*s, dist='rayleigh') #@UnusedVariable
     
 class CyclePairs(WafoData):
     '''
@@ -1360,7 +1360,7 @@ class TimeSeries(WafoData):
         
         if alpha is not None :
             #% Confidence interval constants
-            CI = [v / _invchi2(1 - alpha / 2 , v), v / _invchi2(alpha / 2 , v)];
+            spec.CI = [v / _invchi2(1 - alpha / 2 , v), v / _invchi2(alpha / 2 , v)];
         
         spec.tr = tr
         spec.L = L
@@ -2126,9 +2126,9 @@ class TimeSeries(WafoData):
         Ns = int(n / (nfig * nsub))
         ind = r_[0:Ns]
         if all(xn >= 0):
-            vscale = [0, 2 * sigma * vfact]
+            vscale = [0, 2 * sigma * vfact] #@UnusedVariable
         else:
-            vscale = array([-1, 1]) * vfact * sigma
+            vscale = array([-1, 1]) * vfact * sigma #@UnusedVariable
         
         
         XlblTxt = 'Time [sec]'
@@ -2800,7 +2800,7 @@ def main():
     mm = tp.cycle_pairs()
     lc = mm.level_crossings()
     lc.plot()
-    T = ts.wave_periods(vh=0.0, pdef='c2c')
+    T = ts.wave_periods(vh=0.0, pdef='c2c') #@UnusedVariable
     
     
    
@@ -2810,7 +2810,7 @@ def main():
     S = Sj.tospecdata()
 
     R = S.tocovdata()
-    x = R.sim(ns=1000, dt=0.2)
+    x = R.sim(ns=1000, dt=0.2) #@UnusedVariable
     S.characteristic(['hm0', 'tm02'])
     ns = 1000 
     dt = .2
@@ -2840,8 +2840,8 @@ def test_docstrings():
     doctest.testmod()
     
 if __name__ == '__main__':
-
-    test_levelcrossings_extrapolate()
+    test_docstrings()
+#    test_levelcrossings_extrapolate()
 #    if  True: #False : #  
 
 #        import doctest

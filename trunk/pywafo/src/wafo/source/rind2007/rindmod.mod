@@ -1,5 +1,5 @@
-GFORTRAN module version '4' created from rindmod.f on Tue Mar 27 09:05:14 2012
-MD5:dcdbb9dedca21469ecd6ba2a3e2bf880 -- If you edit this, you'll get what you deserve.
+GFORTRAN module version '4' created from rindmod.f on Sat May 05 23:15:44 2012
+MD5:27b48943ab247880a4203cf14574fba3 -- If you edit this, you'll get what you deserve.
 
 (() () () () () () () () () () () () () () () () () () () () () () ()
 () () () ())
@@ -52,6 +52,12 @@ UNKNOWN ()) 15 0 (16 17 18 19 20 21 22 23 24 25 26) () 0 () () () 0 0)
 MODULE-PROC DECL UNKNOWN 0 0 SUBROUTINE GENERIC ALWAYS_EXPLICIT) (
 UNKNOWN 0 0 0 UNKNOWN ()) 27 0 (28 29 30 31 32 33 34 35 36 37) () 0 () ()
 () 0 0)
+28 'method' '' 'method' 27 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0
+0 OPTIONAL DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+29 'xcscale' '' 'xcscale' 27 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN
+0 0 OPTIONAL DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
+30 'abseps' '' 'abseps' 27 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0
+0 OPTIONAL DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
 31 'releps' '' 'releps' 27 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0
 0 OPTIONAL DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
 32 'coveps' '' 'coveps' 27 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0
@@ -66,12 +72,6 @@ OPTIONAL DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
 0 0 OPTIONAL DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
 37 'nc1c2' '' 'nc1c2' 27 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
 OPTIONAL DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-28 'method' '' 'method' 27 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0 OPTIONAL DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-29 'xcscale' '' 'xcscale' 27 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN
-0 0 OPTIONAL DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
-30 'abseps' '' 'abseps' 27 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0 OPTIONAL DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
 16 'vals' '' 'vals' 15 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
 DIMENSION DUMMY) (REAL 8 0 0 REAL ()) 0 0 () (1 ASSUMED_SHAPE (CONSTANT
 (INTEGER 4 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
