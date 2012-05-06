@@ -3,7 +3,7 @@ from scipy.fftpack import dct as _dct
 from scipy.fftpack import idct as _idct
 __all__ = ['dct', 'idct', 'dctn', 'idctn']
 
-def dct(x, type=2, n=None, axis=-1, norm='ortho'):
+def dct(x, type=2, n=None, axis=-1, norm='ortho'): #@ReservedAssignment
     '''
     Return the Discrete Cosine Transform of arbitrary type sequence x.
     
@@ -102,7 +102,7 @@ def dct(x, type=2, n=None, axis=-1, norm='ortho'):
         return _dct(farr(x.real), type, n, axis, norm) + 1j*_dct(farr(x.imag), type, n, axis, norm)
     else:
         return _dct(farr(x), type, n, axis, norm)
-def idct(x, type=2, n=None, axis=-1, norm='ortho'):
+def idct(x, type=2, n=None, axis=-1, norm='ortho'): #@ReservedAssignment
     '''
     Return the Inverse Discrete Cosine Transform of an arbitrary type sequence.
 
@@ -144,7 +144,7 @@ def idct(x, type=2, n=None, axis=-1, norm='ortho'):
         return _idct(farr(x.real), type, n, axis, norm) + 1j*_idct(farr(x.imag), type, n, axis, norm)
     else:
         return _idct(farr(x), type, n, axis, norm)
-def dctn(x, type=2, axis=None, norm='ortho'):
+def dctn(x, type=2, axis=None, norm='ortho'): #@ReservedAssignment
     '''
     DCTN N-D discrete cosine transform.
     
@@ -215,7 +215,7 @@ def dctn(x, type=2, axis=None, norm='ortho'):
             y = _dct(y, type, norm=norm)
     return y.reshape(shape0)
     
-def idctn(x, type=2, axis=None, norm='ortho'):
+def idctn(x, type=2, axis=None, norm='ortho'): #@ReservedAssignment
     y = np.atleast_1d(x)
     shape0 = y.shape    
     if axis is None:
@@ -645,5 +645,5 @@ def test_docstrings():
     doctest.testmod()
     
 if __name__ == '__main__':
-    #test_docstrings()
-    test_dctn() 
+    test_docstrings()
+    #test_dctn() 

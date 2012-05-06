@@ -113,8 +113,8 @@ class WafoData(object):
         >>> d = WafoData(np.sin(x),x)
         >>> xi = np.linspace(0,5,60)
         >>> di = WafoData(d.eval_points(xi, method='cubic'),xi)
-        >>> d.plot('.')
-        >>> di.plot()
+        >>> h = d.plot('.')
+        >>> hi = di.plot()
     
         '''
         if isinstance(self.args, (list, tuple)): # Multidimensional data
@@ -136,6 +136,7 @@ class WafoData(object):
         >>> x = np.linspace(0,5,60)
         >>> d = WafoData(np.sin(x), x)
         >>> d.integrate(0,np.pi/2)
+        0.99940054759302188
         
         '''
         method = kwds.pop('method','trapz')
@@ -507,7 +508,8 @@ def main():
     pass
 
 if __name__ == '__main__':
-    test_integrate()
+    
+    #test_integrate()
     #test_eval_points()
-    #test_docstrings()
+    test_docstrings()
     #main()

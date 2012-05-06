@@ -74,9 +74,11 @@ def setbits(bitlist):
         val |= j << i 
     return val
     
-if __name__ == '__main__':
+def test_docstrings():
     import doctest
     doctest.testmod()
+if __name__ == '__main__':
+    test_docstrings()
     
 #    t = set(np.arange(8),1,1)  
 #    t=get(0x84,np.arange(0,8))

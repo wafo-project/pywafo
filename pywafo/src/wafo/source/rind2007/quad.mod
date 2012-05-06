@@ -1,5 +1,5 @@
-GFORTRAN module version '4' created from rind71mod.f on Tue Mar 27 09:05:15 2012
-MD5:f25fedb5e90d06a4555a8d917fc02de3 -- If you edit this, you'll get what you deserve.
+GFORTRAN module version '4' created from rind71mod.f on Sat May 05 23:15:45 2012
+MD5:0b1982321203177ab8efc0aefe21c275 -- If you edit this, you'll get what you deserve.
 
 (() () () () () () () () () () () () () () () () () () () () () () ()
 () () () ())
@@ -193,11 +193,10 @@ DIMENSION DUMMY) (REAL 8 0 0 REAL ()) 0 0 () (1 ASSUMED_SHAPE (CONSTANT
 DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
 35 'xma' '' 'xma' 30 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
 DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
-24 'n' '' 'n' 23 ((VARIABLE INOUT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DUMMY)
+48 'xma' '' 'xma' 43 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
+49 'n0' '' 'n0' 43 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DUMMY)
 (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
-25 'wfout' '' 'wfout' 23 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-DIMENSION DUMMY) (REAL 8 0 0 REAL ()) 0 0 () (1 ASSUMED_SHAPE (CONSTANT
-(INTEGER 4 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
 26 'bpout' '' 'bpout' 23 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
 DIMENSION DUMMY) (REAL 8 0 0 REAL ()) 0 0 () (1 ASSUMED_SHAPE (CONSTANT
 (INTEGER 4 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
@@ -221,6 +220,11 @@ DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
 DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
 42 'n0' '' 'n0' 36 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DUMMY)
 (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+24 'n' '' 'n' 23 ((VARIABLE INOUT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DUMMY)
+(INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
+25 'wfout' '' 'wfout' 23 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DIMENSION DUMMY) (REAL 8 0 0 REAL ()) 0 0 () (1 ASSUMED_SHAPE (CONSTANT
+(INTEGER 4 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
 10 'n' '' 'n' 9 ((VARIABLE INOUT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DUMMY)
 (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
 11 'wfout' '' 'wfout' 9 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
@@ -259,10 +263,6 @@ DIMENSION DUMMY) (REAL 8 0 0 REAL ()) 0 0 () (1 ASSUMED_SHAPE (CONSTANT
 (INTEGER 4 0 0 INTEGER ()) 0 '1') ()) 0 () () () 0 0)
 47 'xmi' '' 'xmi' 43 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
 DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
-48 'xma' '' 'xma' 43 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
-49 'n0' '' 'n0' 43 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DUMMY)
-(INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
 )
 
 ('__convert_r4_r8' 0 8 'gausshe0' 0 2 'gaussla0' 0 7 'gaussle0' 0 3

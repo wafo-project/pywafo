@@ -98,10 +98,10 @@ class SavitzkyGolay(object):
     >>> y = np.exp( -t**2 ) + np.random.normal(0, 0.05, t.shape) 
     >>> ysg = SavitzkyGolay(n=15, degree=4).smooth(y)
     >>> import matplotlib.pyplot as plt
-    >>> plt.plot(t, y, label='Noisy signal')
-    >>> plt.plot(t, np.exp(-t**2), 'k', lw=1.5, label='Original signal')
-    >>> plt.plot(t, ysg, 'r', label='Filtered signal')
-    >>> plt.legend()
+    >>> hy = plt.plot(t, y, label='Noisy signal')
+    >>> h = plt.plot(t, np.exp(-t**2), 'k', lw=1.5, label='Original signal')
+    >>> h = plt.plot(t, ysg, 'r', label='Filtered signal')
+    >>> h = plt.legend()
     >>> plt.show()
     
     References
@@ -300,8 +300,8 @@ class Kalman(object):
     >>> hz = plt.plot(z,'r.', label='observations')
     >>> hx = plt.plot(x,'b-', label='Kalman output')   # a-posteriori state estimates:
     >>> ht = plt.plot(truth,'g-', label='true voltage')
-    >>> plt.legend() 
-    >>> plt.title('Automobile Voltimeter Example')
+    >>> h = plt.legend() 
+    >>> h = plt.title('Automobile Voltimeter Example')
     
     '''
 
@@ -400,9 +400,9 @@ def test_kalman():
         x[i] = filt(zi) #  perform a Kalman filter iteration
     
     import matplotlib.pyplot as plt
-    hz = plt.plot(z, 'r.', label='observations')
-    hx = plt.plot(x, 'b-', label='Kalman output')   # a-posteriori state estimates:
-    ht = plt.plot(truth, 'g-', label='true voltage')
+    _hz = plt.plot(z, 'r.', label='observations')
+    _hx = plt.plot(x, 'b-', label='Kalman output')   # a-posteriori state estimates:
+    _ht = plt.plot(truth, 'g-', label='true voltage')
     plt.legend() 
     plt.title('Automobile Voltimeter Example')
     plt.show()
@@ -417,7 +417,12 @@ def test_smooth():
     
     plt.plot(t, y, t, ysg, '--')
     plt.show()
+    
+def test_docstrings():
+    import doctest
+    doctest.testmod()
 if __name__ == '__main__':
-    test_kalman()
+    test_docstrings()
+    #test_kalman()
     #test_smooth()
 

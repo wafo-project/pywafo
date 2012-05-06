@@ -241,7 +241,7 @@ def keep(*figs):
     --------
     # keep only figures 1,2,3,5 and 7
     >>> import pylab as p
-    >>> import pyfig as fig
+    >>> import wafo.fig as fig
     >>> for ix in range(10):    f = p.figure(ix)
     >>> fig.keep( range(1,4),  5, 7)
 
@@ -283,7 +283,7 @@ def close(*figs):
     Examples
     --------
     >>> import pylab as p
-    >>> import pyfig as fig
+    >>> import wafo.fig as fig
     >>> for ix in range(5):    f = p.figure(ix)
     >>> fig.close(3,4)   # close figure 3 and 4
     >>> fig.close('all') # close all remaining figures
@@ -317,7 +317,7 @@ def restore(*figs):
     Examples
     ---------
       >>> import pylab as p
-      >>> import pyfig as fig
+      >>> import wafo.fig as fig
       >>> for ix in range(5):    f = p.figure(ix)
       >>> fig.restore('all')   #Restores all figures
       >>> fig.restore()        #same as restore('all')
@@ -350,7 +350,7 @@ def hide(*figs):
 
     Examples:
     --------
-     >>> import pyfig as fig
+     >>> import wafo.fig as fig
      >>> import pylab as p
      >>> for ix in range(5):    f = p.figure(ix)
      >>> fig.hide('all')   #hides all unhidden figures
@@ -385,7 +385,7 @@ def minimize(*figs):
 
     Examples:
     ---------
-     >>> import pyfig as fig
+     >>> import wafo.fig as fig
      >>> import pylab as p
      >>> for ix in range(5):    f = p.figure(ix)
      >>> fig.minimize('all')   #Minimizes all unhidden figures
@@ -420,7 +420,7 @@ def maximize(*figs):
     Examples:
     ---------
      >>> import pylab as p
-     >>> import pyfig as fig
+     >>> import wafo.fig as fig
      >>> for ix in range(5):    f = p.figure(ix)
      >>> fig.maximize('all')   #Maximizes all unhidden figures
      >>> fig.maximize()        #same as maximize('all')
@@ -461,7 +461,7 @@ def pile(*figs):
      Example:
      --------
      >>> import pylab as p
-     >>> import pyfig as fig
+     >>> import wafo.fig as fig
      >>> for ix in range(5): f = p.figure(ix)
      >>> fig.pile()                # pile all open figures
      >>> fig.pile(range(1,4), 5, 7)  # pile figure 1,2,3,5 and 7
@@ -506,7 +506,7 @@ def stack(*figs):
      Example:
      --------
      >>> import pylab as p
-     >>> import pyfig as fig
+     >>> import wafo.fig as fig
      >>> for ix in range(5):  f = p.figure(ix)
      >>> fig.stack()                # stack all open figures
      >>> fig.stack(range(1,4), 5, 7)  # stack figure 1,2,3,5 and 7
@@ -568,7 +568,7 @@ def tile(*figs, **kwds):
      Example:
      --------
      >>> import pylab as p
-     >>> import pyfig as fig
+     >>> import wafo.fig as fig
      >>> for ix in range(5):  f = p.figure(ix)
      >>> fig.tile()             # tile all open figures
      >>> fig.tile( range(1,4), 5, 7)    # tile figure 1,2,3,5 and 7
@@ -677,7 +677,7 @@ def cycle(*figs, **kwds):
 
      Examples:
      >>> import pylab as p
-     >>> import pyfig as fig
+     >>> import wafo.fig as fig
      >>> for ix in range(4): f = p.figure(ix)
 
      fig.cycle(range(3))                #Cycle trough figure 0 to 2
@@ -746,10 +746,12 @@ def cycle(*figs, **kwds):
         wnds.reverse()
         _show_windows(wnds, win32con.SW_SHOWNORMAL)
 
-
-if __name__ == '__main__':
+def test_docstrings():
     import doctest
     doctest.testmod()
+
+if __name__ == '__main__':
+    test_docstrings()
 
 #def _errcheck(result, func, args):
 #    if not result:

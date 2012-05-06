@@ -17,12 +17,12 @@
 #-------------------------------------------------------------------------------
 #!/usr/bin/env python
 
-import warnings
-import pylab as plb
+import warnings #@UnusedImport
+import matplotlib.pyplot as plt
 import numpy as np
 from numpy.fft import fft, ifft
-from numpy import (zeros, ones, zeros_like, atleast_1d, array, asarray, newaxis, arange, #@UnresolvedImport 
-    logical_or, abs, any, pi, cos, round, diff, all, r_, exp, hstack, trim_zeros, #@UnresolvedImport
+from numpy import (zeros, ones, zeros_like, atleast_1d, array, asarray, newaxis, arange, #@UnresolvedImport @UnusedImport
+    logical_or, abs, any, pi, cos, round, diff, all, r_, exp, hstack, trim_zeros, #@UnresolvedImport @UnusedImport
     where, extract, dot, linalg, sign, concatenate, floor, isreal, conj, remainder, #@UnresolvedImport
     linspace) #@UnresolvedImport
 from numpy.lib.polynomial import * #@UnusedWildImport
@@ -358,7 +358,7 @@ def unfinished_orthofit(x,y,n):
     
     # Reshape
     x = x.ravel()
-    siz0 = y.shape
+#    siz0 = y.shape
     y = y.ravel()
     
     # Coefficients of the orthogonal polynomials
@@ -1095,7 +1095,7 @@ def chebfit(fun, n=10, a= -1, b=1, trace=False):
         x = map_to_interval(chebroot(n), a, b)
         f = fun(x);
         if trace:
-            plb.plot(x, f, '+')
+            plt.plot(x, f, '+')
     else:
         f = fun
         n = len(f)
@@ -1731,8 +1731,7 @@ def padefitlsq(fun, m, k, a= -1, b=1, trace=False, x=None, end_points=True):
             warnings.warn('Check the result! Number of function values should be at least: %d' % npt)
 
     if trace:
-        import pylab as plb
-        plb.plot(x, fs, '+')
+        plt.plot(x, fs, '+')
 
     wt = ones((npt))
     ee = ones((npt))
@@ -1741,17 +1740,17 @@ def padefitlsq(fun, m, k, a= -1, b=1, trace=False, x=None, end_points=True):
     u = zeros((npt, ncof))
     for ix in xrange(MAXIT):
         #% Set up design matrix for least squares fit.
-        pow = wt
-        bb = pow * (fs + abs(mad) * sign(ee))
+        pow_ = wt
+        bb = pow_ * (fs + abs(mad) * sign(ee))
 
         for jx in xrange(m + 1):
-            u[:, jx] = pow
-            pow = pow * x
+            u[:, jx] = pow_
+            pow_ = pow_ * x
 
-        pow = -bb
+        pow_ = -bb
         for jx in xrange(m + 1, ncof):
-            pow = pow * x
-            u[:, jx] = pow
+            pow_ = pow_ * x
+            u[:, jx] = pow_
 
 
         [u1, w, v] = linalg.svd(u, full_matrices=False)
@@ -1772,7 +1771,7 @@ def padefitlsq(fun, m, k, a= -1, b=1, trace=False, x=None, end_points=True):
 
         if trace:
             print('Iteration=%d,  max error=%g' % (ix, devmax))
-            plb.plot(x, fs, x, ee + fs)
+            plt.plot(x, fs, x, ee + fs)
     #c1=c1(:)
     #c2=c2(:)
     return poly1d(c1), poly1d(c2)
@@ -1786,42 +1785,42 @@ def main():
     [c1, c2] = padefitlsq(exp, 3, 3, 0, 2)
 
     x = linspace(0, 4)
-    plb.plot(x, polyval(c1, x) / polyval(c2, x), 'g')
-    plb.plot(x, exp(x), 'r')
+    plt.plot(x, polyval(c1, x) / polyval(c2, x), 'g')
+    plt.plot(x, exp(x), 'r')
 
     import scipy.special as sp
     
     p = [[1, 1, 1], [2, 2, 2]]
     pi = polyint(p, 1)
-    pr = polyreloc(p, 2)
-    pd = polyder(p)
-    st = poly2str(p)
-    c = poly1d(1. / sp.gamma(plb.r_[6 + 1:0:-1]))  #polynomial coeff exponential function
+    pr = polyreloc(p, 2) #@UnusedVariable
+    pd = polyder(p) #@UnusedVariable
+    st = poly2str(p) #@UnusedVariable
+    c = poly1d(1. / sp.gamma(np.r_[6 + 1:0:-1]))  #polynomial coeff exponential function
     [p, q] = padefit(c)
     x = linspace(0, 4);
-    plb.plot(x, c(x), x, p(x) / q(x), 'g-', x, exp(x), 'r.')
-    plb.close()
+    plt.plot(x, c(x), x, p(x) / q(x), 'g-', x, exp(x), 'r.')
+    plt.close()
     x = arange(4)
     dx = dct(x)
-    idx = idct(dx)
+    idx = idct(dx) #@UnusedVariable
     
     a = 0;
     b = 2;
     ck = chebfit(exp, 6, a, b);
-    t = chebval(0, ck, a, b)
+    t = chebval(0, ck, a, b) #@UnusedVariable
     x = linspace(0, 2, 6);
-    plb.plot(x, exp(x), 'r', x, chebval(x, ck, a, b), 'g.')
+    plt.plot(x, exp(x), 'r', x, chebval(x, ck, a, b), 'g.')
     #x1 = chebroot(9).'*(b-a)/2+(b+a)/2 ;
     #ck1 =chebfit([x1 exp(x1)],9,a,b);
     #plot(x,exp(x),'r'), hold on
     #plot(x,chebval(x,ck1,a,b),'g'), hold off
 
 
-    t = poly2hstr([1, 1, 2])
+    t = poly2hstr([1, 1, 2]) #@UnusedVariable
     py = [1, 0]
     px = polyshift(py, 0, 5);
-    t1 = polyval(px, [0, 2.5, 5])  #% This is the same as the line below
-    t2 = polyval(py, [-1, 0, 1 ])
+    t1 = polyval(px, [0, 2.5, 5])  #% This is the same as the line below @UnusedVariable
+    t2 = polyval(py, [-1, 0, 1 ]) #@UnusedVariable
 
     px = [1, 0]
     py = polyishift(px, 0, 5);
@@ -1829,9 +1828,12 @@ def main():
     t2 = polyval(py, [-1, 0, 1 ])
     print(t1, t2)
 
+def test_docstrings():
+    import doctest
+    doctest.testmod()
+
+    
 if __name__ == '__main__':
-    if False:
-        main()
-    else:
-        import doctest
-        doctest.testmod()
+    test_docstrings()
+#        main()
+   
