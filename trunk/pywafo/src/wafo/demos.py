@@ -14,6 +14,8 @@ def magic(n):
     
     A magic square has the property that the sum of every row and column, 
     as well as both diagonals, is the same number.
+    
+    
     '''
     if np.mod(n,1)==1: # odd order
         ix = np.arange(n)+1
