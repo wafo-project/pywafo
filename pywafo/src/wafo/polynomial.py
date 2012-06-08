@@ -17,12 +17,11 @@
 #-------------------------------------------------------------------------------
 #!/usr/bin/env python
 
-import warnings #@UnusedImport
-import matplotlib.pyplot as plt
+from plotbackend import plotbackend as plt
 import numpy as np
 from numpy.fft import fft, ifft
-from numpy import (zeros, ones, zeros_like, atleast_1d, array, asarray, newaxis, arange, #@UnresolvedImport @UnusedImport
-    logical_or, abs, any, pi, cos, round, diff, all, r_, exp, hstack, trim_zeros, #@UnresolvedImport @UnusedImport
+from numpy import (zeros, ones, zeros_like, array, asarray, newaxis, arange, #@UnresolvedImport 
+    logical_or, any, pi, cos, round, diff, all, r_, exp, #atleast_1d,  hstack,#@UnresolvedImport
     where, extract, dot, linalg, sign, concatenate, floor, isreal, conj, remainder, #@UnresolvedImport
     linspace) #@UnresolvedImport
 from numpy.lib.polynomial import * #@UnusedWildImport
@@ -358,7 +357,7 @@ def unfinished_orthofit(x,y,n):
     
     # Reshape
     x = x.ravel()
-#    siz0 = y.shape
+    # siz0 = y.shape
     y = y.ravel()
     
     # Coefficients of the orthogonal polynomials
@@ -1062,16 +1061,16 @@ def chebfit(fun, n=10, a= -1, b=1, trace=False):
     --------
     Fit exp(x)
 
-    >>> import pylab as pb
+    >>> import matplotlib.pyplot as plt
     >>> a = 0; b = 2
-    >>> ck = chebfit(pb.exp,7,a,b);
-    >>> x = pb.linspace(0,4);
-    >>> h=pb.plot(x,pb.exp(x),'r',x,chebval(x,ck,a,b),'g.')
+    >>> ck = chebfit(np.exp,7,a,b);
+    >>> x = np.linspace(0,4);
+    >>> h=plt.plot(x, np.exp(x), 'r', x, chebval(x,ck,a,b), 'g.')
     >>> x1 = chebroot(9)*(b-a)/2+(b+a)/2
-    >>> ck1 = chebfit(pb.exp(x1))
-    >>> h=pb.plot(x,pb.exp(x),'r',x,chebval(x,ck1,a,b),'g.')
+    >>> ck1 = chebfit(np.exp(x1))
+    >>> h = plt.plot(x,np.exp(x), 'r', x, chebval(x,ck1,a,b),'g.')
 
-    >>> pb.close()
+    >>> plt.close()
 
     See also
     --------
@@ -1277,18 +1276,18 @@ def chebval(x, ck, a= -1, b=1, kind=1, fill=None):
     Examples
     --------
     Plot Chebychev polynomial of the first kind and order 4:
-    >>> import pylab as pb
-    >>> x = pb.linspace(-1,1)
-    >>> ck = pb.zeros(5); ck[-1]=1
-    >>> h = pb.plot(x,chebval(x,ck),x,chebpoly(4,x),'.')
-    >>> pb.close()
+    >>> import matplotlib.pyplot as plt
+    >>> x = np.linspace(-1,1)
+    >>> ck = np.zeros(5); ck[-1]=1
+    >>> h = plt.plot(x,chebval(x,ck),x,chebpoly(4,x),'.')
+    >>> plt.close()
 
     Fit exponential function:
-    >>> import pylab as pb
-    >>> ck = chebfit(pb.exp,7,0,2)
-    >>> x = pb.linspace(0,4);
-    >>> h=pb.plot(x,chebval(x,ck,0,2),'g',x,pb.exp(x))
-    >>> pb.close()
+    >>> import matplotlib.pyplot as plt
+    >>> ck = chebfit(np.exp,7,0,2)
+    >>> x = np.linspace(0,4);
+    >>> h=plt.plot(x,chebval(x,ck,0,2),'g',x,np.exp(x))
+    >>> plt.close()
 
     See also
     --------
@@ -1332,12 +1331,12 @@ def chebder(ck, a= -1, b=1):
     --------
 
     Fit exponential function:
-    >>> import pylab as pb
-    >>> ck = chebfit(pb.exp,7,0,2)
-    >>> x = pb.linspace(0,4)
+    >>> import matplotlib.pyplot as plt
+    >>> ck = chebfit(np.exp,7,0,2)
+    >>> x = np.linspace(0,4)
     >>> ck2 = chebder(ck,0,2);
-    >>> h = pb.plot(x,chebval(x,ck,0,2),'g',x,pb.exp(x),'r')
-    >>> pb.close()
+    >>> h = plt.plot(x,chebval(x,ck,0,2),'g',x,np.exp(x),'r')
+    >>> plt.close()
 
     See also
     --------
@@ -1382,12 +1381,12 @@ def chebint(ck, a= -1, b=1):
     Examples
     --------
     Fit exponential function:
-    >>> import pylab as pb
-    >>> ck = chebfit(pb.exp,7,0,2)
-    >>> x = pb.linspace(0,4)
+    >>> import matplotlib.pyplot as plt
+    >>> ck = chebfit(np.exp,7,0,2)
+    >>> x = np.linspace(0,4)
     >>> ck2 = chebint(ck,0,2);
-    >>> h=pb.plot(x,chebval(x,ck,0,2),'g',x,pb.exp(x),'r.')
-    >>> pb.close()
+    >>> h=plt.plot(x,chebval(x,ck,0,2),'g',x,np.exp(x),'r.')
+    >>> plt.close()
 
     See also
     --------
@@ -1616,16 +1615,16 @@ def padefit(c, m=None):
     -------
     Pade approximation to exp(x)
     >>> import scipy.special as sp
-    >>> import pylab as plb
-    >>> c = poly1d(1./sp.gamma(plb.r_[6+1:0:-1]))  #polynomial coeff exponential function
+    >>> import matplotlib.pyplot as plt
+    >>> c = poly1d(1./sp.gamma(np.r_[6+1:0:-1]))  #polynomial coeff exponential function
     >>> [p, q] = padefit(c)
     >>> p; q
     poly1d([ 0.00277778,  0.03333333,  0.2       ,  0.66666667,  1.        ])
     poly1d([ 0.03333333, -0.33333333,  1.        ])
     
-    >>> x = plb.linspace(0,4);
-    >>> h = plb.plot(x,c(x),x,p(x)/q(x),'g-', x,plb.exp(x),'r.')
-    >>> plb.close()
+    >>> x = np.linspace(0,4);
+    >>> h = plt.plot(x,c(x),x,p(x)/q(x),'g-', x,np.exp(x),'r.')
+    >>> plt.close()
 
     See also
     --------
@@ -1682,15 +1681,15 @@ def padefitlsq(fun, m, k, a= -1, b=1, trace=False, x=None, end_points=True):
     -------
 
     Pade approximation to exp(x) between 0 and 2
-    >>> import pylab as plb
-    >>> [c1, c2] = padefitlsq(plb.exp,3,3,0,2)
+    >>> import matplotlib.pyplot as plt
+    >>> [c1, c2] = padefitlsq(np.exp,3,3,0,2)
     >>> c1; c2
     poly1d([ 0.01443847,  0.128842  ,  0.55284547,  0.99999962])
     poly1d([-0.0049658 ,  0.07610473, -0.44716929,  1.        ])
     
-    >>> x = plb.linspace(0,4)
-    >>> h = plb.plot(x, polyval(c1,x)/polyval(c2,x),'g')
-    >>> h = plb.plot(x, plb.exp(x), 'r')
+    >>> x = np.linspace(0,4)
+    >>> h = plt.plot(x, polyval(c1,x)/polyval(c2,x),'g')
+    >>> h = plt.plot(x, np.exp(x), 'r')
 
     See also
     --------
@@ -1740,17 +1739,17 @@ def padefitlsq(fun, m, k, a= -1, b=1, trace=False, x=None, end_points=True):
     u = zeros((npt, ncof))
     for ix in xrange(MAXIT):
         #% Set up design matrix for least squares fit.
-        pow_ = wt
-        bb = pow_ * (fs + abs(mad) * sign(ee))
+        pow1 = wt
+        bb = pow1 * (fs + abs(mad) * sign(ee))
 
         for jx in xrange(m + 1):
-            u[:, jx] = pow_
-            pow_ = pow_ * x
+            u[:, jx] = pow1
+            pow1 = pow1 * x
 
-        pow_ = -bb
+        pow1 = -bb
         for jx in xrange(m + 1, ncof):
-            pow_ = pow_ * x
-            u[:, jx] = pow_
+            pow1 = pow1 * x
+            u[:, jx] = pow1
 
 
         [u1, w, v] = linalg.svd(u, full_matrices=False)
@@ -1760,7 +1759,7 @@ def padefitlsq(fun, m, k, a= -1, b=1, trace=False, x=None, end_points=True):
         #% Tabulate the deviations and revise the weights
         ee = polyval(cof[m::-1], x) / polyval(cof[ncof:m:-1].tolist() + [1, ], x) - fs
 
-        wt = abs(ee)
+        wt = np.abs(ee)
         devmax = max(wt)
         mad = wt.mean() #% mean absolute deviation
 
@@ -1792,9 +1791,9 @@ def main():
     
     p = [[1, 1, 1], [2, 2, 2]]
     pi = polyint(p, 1)
-    pr = polyreloc(p, 2) #@UnusedVariable
-    pd = polyder(p) #@UnusedVariable
-    st = poly2str(p) #@UnusedVariable
+    _pr = polyreloc(p, 2)
+    _pd = polyder(p)
+    _st = poly2str(p)
     c = poly1d(1. / sp.gamma(np.r_[6 + 1:0:-1]))  #polynomial coeff exponential function
     [p, q] = padefit(c)
     x = linspace(0, 4);
@@ -1802,12 +1801,12 @@ def main():
     plt.close()
     x = arange(4)
     dx = dct(x)
-    idx = idct(dx) #@UnusedVariable
+    _idx = idct(dx)
     
     a = 0;
     b = 2;
     ck = chebfit(exp, 6, a, b);
-    t = chebval(0, ck, a, b) #@UnusedVariable
+    _t = chebval(0, ck, a, b)
     x = linspace(0, 2, 6);
     plt.plot(x, exp(x), 'r', x, chebval(x, ck, a, b), 'g.')
     #x1 = chebroot(9).'*(b-a)/2+(b+a)/2 ;
@@ -1816,11 +1815,11 @@ def main():
     #plot(x,chebval(x,ck1,a,b),'g'), hold off
 
 
-    t = poly2hstr([1, 1, 2]) #@UnusedVariable
+    _t = poly2hstr([1, 1, 2])
     py = [1, 0]
     px = polyshift(py, 0, 5);
-    t1 = polyval(px, [0, 2.5, 5])  #% This is the same as the line below @UnusedVariable
-    t2 = polyval(py, [-1, 0, 1 ]) #@UnusedVariable
+    _t1 = polyval(px, [0, 2.5, 5])  #% This is the same as the line below
+    _t2 = polyval(py, [-1, 0, 1 ])
 
     px = [1, 0]
     py = polyishift(px, 0, 5);

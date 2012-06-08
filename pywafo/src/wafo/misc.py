@@ -6,21 +6,20 @@ from __future__ import division
 import sys
 import fractions
 import numpy as np
-from numpy import (abs, amax, any, logical_and, arange, linspace, atleast_1d, atleast_2d, #@UnusedImport
+from numpy import (abs, amax, any, logical_and, arange, linspace, atleast_1d, #atleast_2d,
                    array, asarray, broadcast_arrays, ceil, floor, frexp, hypot,
                    sqrt, arctan2, sin, cos, exp, log, mod, diff, empty_like,
                    finfo, inf, pi, interp, isnan, isscalar, zeros, ones, linalg,
                    r_, sign, unique, hstack, vstack, nonzero, where, extract)
 from scipy.special import gammaln
 from scipy.integrate import trapz, simps
-#import types
 import warnings
-from wafo import plotbackend
+from plotbackend import plotbackend
 from collections import OrderedDict
 
 
 try:
-    import wafo.c_library as clib
+    import c_library as clib #@UnresolvedImport
 except:
     clib = None
 floatinfo = finfo(float) 
@@ -39,8 +38,10 @@ def is_numlike(obj):
     'return true if *obj* looks like a number'
     try:
         obj + 1
-    except TypeError: return False
-    else: return True
+    except TypeError: 
+        return False
+    else: 
+        return True
     
 class JITImport(object):
     ''' 
@@ -849,7 +850,7 @@ def rfcfilter(x, h, method=0):
         cmpfun1 = lambda a, b: a < b
         cmpfun2 = lambda a, b: a <= b
             
-    #% The rainflow filter
+    # The rainflow filter
     for tim1, yi in enumerate(y[1::]):
         fpi = y0 + h
         fmi = y0 - h
@@ -872,22 +873,22 @@ def rfcfilter(x, h, method=0):
             else:
                 warnings.warn('Something wrong, i=%d' % tim1)
 
-            #% Update y1
+            # Update y1
             if z1 != z0:
                 t1, y1 = ti, yi
             elif z1 == -1:
-                #% y1 = min([y0 xi])
+                # y1 = min([y0 xi])
                 t1, y1 = (t0, y0) if y0 < yi else (ti, yi)
             elif z1 == +1:
-                #% y1 = max([y0 xi])
+                # y1 = max([y0 xi])
                 t1, y1 = (t0, y0) if y0 > yi else (ti, yi)
 
-        #% Update y if y0 is a turning point
+        # Update y if y0 is a turning point
         if abs(z0 - z1) == 2:
             j += 1
             t[j] = t0
 
-        #% Update t0, y0, z0
+        # Update t0, y0, z0
         t0, y0, z0 = t1, y1, z1
     #end
 
@@ -969,15 +970,12 @@ def findtp(x, h=0.0, kind=None):
     if kind == 'astm':
         # the Nieslony approach always put the first loading point as the first
         # turning point.
-        if x[ind[0]] != x[0]:
-            # add the first turning point is the first of the signal
+        if x[ind[0]] != x[0]: # add the first turning point is the first of the signal
             ind = np.r_[0, ind, n - 1]
-        else:
-            # only add the last point of the signal
+        else: # only add the last point of the signal
             ind = np.r_[ind, n - 1]
     else:
-        if  x[ind[0]] > x[ind[1]]:
-            #% adds indices to  first and last value
+        if  x[ind[0]] > x[ind[1]]: # adds indices to  first and last value
             ind = r_[0, ind, n - 1]
         else: # adds index to the last value
             ind = r_[ind, n - 1]
@@ -1452,7 +1450,7 @@ def stirlerr(n):
 
     return y
 
-def getshipchar(value, property="max_deadweight"): #@ReservedAssignment
+def getshipchar(value=None, property="max_deadweight", **kwds): #@ReservedAssignment
     '''
     Return ship characteristics from value of one ship-property
 
@@ -1509,6 +1507,13 @@ def getshipchar(value, property="max_deadweight"): #@ReservedAssignment
     "Source level model for propeller blade rate radiation for the world's merchant
     fleet", Bolt Beranek and Newman Technical Memorandum No. 458.
     '''
+    if value is None:
+        names = kwds.keys()
+        if len(names)!=1:
+            raise ValueError('Only on keyword')
+        property = names[0] #@ReservedAssignment
+        value = kwds[property]
+    value = np.atleast_1d(value)
     valid_props = dict(l='length', b='beam', d='draught', m='max_deadweigth',
                        s='service_speed', p='propeller_diameter')
     prop = valid_props[property[0]]
@@ -2260,7 +2265,7 @@ def plot_histgrm(data, bins=None, range=None, normed=False, weights=None, lintyp
     yy[:, 0] = 0.0 # histogram
     yy.shape = (-1,)
     yy = np.hstack((yy, 0.0))
-    return plotbackend.plotbackend.plot(xx, yy, lintype, limits, limits * 0)
+    return plotbackend.plot(xx, yy, lintype, limits, limits * 0)
      
 def num2pistr(x, n=3):
     ''' 
@@ -2294,8 +2299,8 @@ def num2pistr(x, n=3):
             ntxt = '%d' % num 
         xtxt = ntxt + r'\pi' + dtxt
     else:
-        format_ = '%0.' + '%dg' % n
-        xtxt = format_ % x
+        format = '%0.' + '%dg' % n #@ReservedAssignment
+        xtxt = format % x
     return xtxt     
 
 def fourier(data, t=None, T=None, m=None, n=None, method='trapz'):
@@ -2455,7 +2460,7 @@ def _test_tranproc():
     tr = wtm.TrHermite()
     x = linspace(-5, 5, 501)
     g = tr(x)
-    gder = tranproc(x, g, x, ones(g.size)) #@UnusedVariable
+    _gder = tranproc(x, g, x, ones(g.size))
     pass
     #>>> gder(:,1) = g(:,1)
     #>>> plot(g(:,1),[g(:,2),gder(:,2)])
@@ -2477,7 +2482,7 @@ def _test_extrema():
     ind = findextrema(x)
     ti, tp = t[ind], x[ind]
     plot(t, x, '.', ti, tp, 'r.')
-    ind1 = findrfc(tp, 0.3) #@UnusedVariable
+    _ind1 = findrfc(tp, 0.3)
 
   
 

@@ -136,7 +136,7 @@ class KDEgauss(object):
             for i in ind.tolist(): # 
                 h[i] = get_smoothing(self.dataset[i])
             deth = h.prod()
-            self.inv_hs = np.diag(1.0 / h)
+            self.inv_hs = linalg.diag(1.0 / h)
         else: #fully general smoothing matrix
             deth = linalg.det(h)
             if deth <= 0:
@@ -227,7 +227,7 @@ class KDEgauss(object):
             args = self.args
             if self.d == 1:
                 args = args[0]
-            wdata = WafoData(f, args, **kwds2)
+            wdata = PlotData(f, args, **kwds2)
             if self.d > 1:
                 PL = np.r_[10:90:20, 95, 99, 99.9]
                 try:
@@ -327,8 +327,9 @@ class _KDE(object):
 
     def initialize(self):
         self.d, self.n = self.dataset.shape
-        self._set_xlimits()
-        self._initialize()
+        if self.n>1:
+            self._set_xlimits()
+            self._initialize()
         
     def _initialize(self):
         pass
@@ -415,12 +416,12 @@ class _KDE(object):
             titlestr = 'Kernel density estimate (%s)' % self.kernel.name
             kwds2 = dict(title=titlestr)
             
-            kwds2['plot_kwds'] = kwds.pop('plot_kwds',dict(plotflag=1)) 
+            kwds2['plot_kwds'] = kwds.pop('plot_kwds', dict(plotflag=1)) 
             kwds2.update(**kwds)
             args = self.args
             if self.d == 1:
                 args = args[0]
-            wdata = WafoData(f, args, **kwds2)
+            wdata = PlotData(f, args, **kwds2)
             if self.d > 1:
                 PL = np.r_[10:90:20, 95, 99, 99.9]
                 try:
@@ -835,7 +836,7 @@ class KDE(_KDE):
             for i in ind.tolist(): # 
                 h[i] = get_smoothing(self.dataset[i])
             deth = h.prod()
-            self.inv_hs = np.diag(1.0 / h)
+            self.inv_hs = linalg.diag(1.0 / h)
         else: #fully general smoothing matrix
             deth = linalg.det(h)
             if deth <= 0:
@@ -1024,10 +1025,11 @@ class KRegression(_KDE):
     >>> y = 2*np.exp(-x**2/(2*0.3**2))+3*np.exp(-(x-1)**2/(2*0.7**2)) + ei
     >>> kreg = wk.KRegression(x, y)
     >>> f = kreg(output='plotobj', title='Kernel regression', plotflag=1)
-    >>> h=f.plot(label='p=0')
+    >>> f.plot(label='p=0')
     """
 
     def __init__(self, data, y, p=0, hs=None, kernel=None, alpha=0.0, xmin=None, xmax=None, inc=128, L2=None):
+        
         self.tkde = TKDE(data, hs=hs, kernel=kernel, alpha=alpha, xmin=xmin,xmax=xmax, inc=inc, L2=L2) 
         self.y = y
         self.p = p
@@ -1045,14 +1047,263 @@ class KRegression(_KDE):
         s0 = grdfun(*args, r=0)
         t0 = grdfun(*args, r=0, y=self.y)
         if self.p==0:
-            return (t0 / s0).clip(min=-_REALMAX, max=_REALMAX)
+            return (t0 / (s0 + _TINY)).clip(min=-_REALMAX, max=_REALMAX)
         elif self.p==1:
             s1 = grdfun(*args, r=1)
             s2 = grdfun(*args, r=2)
             t1 = grdfun(*args, r=1, y=self.y)
-            return (s2 * t0 -s1 * t1) / (s2 * s0 - s1**2)
+            return ((s2 * t0 - s1 * t1) / (s2 * s0 - s1**2)).clip(min=-_REALMAX, max=_REALMAX)
     __call__ = eval_grid_fast
+   
+class BKRegression(object):
+    '''
+    Kernel-Regression on binomial data
     
+    method : {'beta', 'wilson'}
+        method is one of the following 
+        'beta', return Bayesian Credible interval using beta-distribution.
+        'wilson', return Wilson score interval
+    a, b : scalars
+        parameters of the beta distribution defining the apriori distribution of p, i.e.,
+        the Bayes estimator for p: p = (y+a)/(n+a+b).
+        Setting a=b=0.5 gives Jeffreys interval.
+    '''
+    def __init__(self, *args, **kwds):
+        self.method = kwds.pop('method','beta')
+        self.a = max(kwds.pop('a', 0.5), _TINY)
+        self.b = max(kwds.pop('b', 0.5), _TINY)
+        self.kreg = KRegression(*args, **kwds)
+        self.hs_e = None # defines bin width (i.e. smoothing) in empirical estimate
+#        self.x = self.kreg.tkde.dataset
+#        self.y = self.kreg.y
+    def _set_smoothing(self,hs):
+        self.kreg.tkde.hs = hs
+        self.kreg.tkde.initialize()
+          
+    x = property(fget=lambda cls: cls.kreg.tkde.dataset.squeeze())
+    y = property(fget=lambda cls: cls.kreg.y)
+    kernel = property(fget=lambda cls: cls.kreg.tkde.kernel)
+    hs = property(fset=_set_smoothing, fget=lambda cls: cls.kreg.tkde.hs)
+    
+    def _get_max_smoothing(self, fun=None):
+        '''
+        Return maximum value for smoothing parameter
+        '''
+        x = self.x
+        y = self.y
+        if fun is None:
+            get_smoothing = self.kernel.get_smoothing
+        else:
+            get_smoothing = getattr(self.kernel, fun)
+            
+        hs1 = get_smoothing(x)
+        #hx = np.median(np.abs(x-np.median(x)))/0.6745*(4.0/(3*n))**0.2
+        if (y==True).any():
+            hs2 = get_smoothing(x[y==True])
+            #hy = np.median(np.abs(y-np.mean(y)))/0.6745*(4.0/(3*n))**0.2
+        else:
+            hs2 = 4*hs1
+            #hy = 4*hx
+
+        hopt = sqrt(hs1*hs2)
+        return hopt, hs1, hs2
+      
+    def get_grid(self, hs_e=None):
+        if hs_e is None:
+            if self.hs_e is None:
+                hs1 = self._get_max_smoothing('hste')[0]
+                hs2 = self._get_max_smoothing('hos')[0]
+                self.hs_e = sqrt(hs1*hs2)
+            hs_e = self.hs_e
+        x = self.x    
+        xmin, xmax = x.min(), x.max()    
+        ni = max(2*int((xmax-xmin)/hs_e)+3,5)
+        sml = hs_e #*0.1
+        xi = np.linspace(xmin-sml,xmax+sml, ni)
+        return xi 
+    
+    def prb_ci(self, n, p, alpha=0.05, **kwds):
+        '''
+        Return Confidence Interval for the binomial probability p
+        
+        Parameters
+        ----------
+        n : array-like
+            number of Bernoulli trials
+        p : array-like
+            estimated probability of success in each trial
+        alpha : scalar
+            confidence level
+        method : {'beta', 'wilson'}
+            method is one of the following 
+            'beta', return Bayesian Credible interval using beta-distribution.
+            'wilson', return Wilson score interval
+        a, b : scalars
+            parameters of the beta distribution defining the apriori distribution of p, i.e.,
+            the Bayes estimator for p: p = (y+a)/(n+a+b).
+            Setting a=b=0.5 gives Jeffreys interval.
+        '''
+        if self.method.startswith('w'):
+            #Wilson score
+            z0 = -_invnorm(alpha/2)
+            den = 1+(z0**2./n);
+            xc=(p+(z0**2)/(2*n))/den;
+            halfwidth=(z0*sqrt((p*(1-p)/n)+(z0**2/(4*(n**2)))))/den
+            plo = (xc-halfwidth).clip(min=0) # wilson score
+            pup = (xc+halfwidth).clip(max=1.0) # wilson score
+        else:
+            # Jeffreys intervall a=b=0.5
+            #st.beta.isf(alpha/2, y+a, n-y+b) y = n*p, n-y = n*(1-p)
+            a = self.a
+            b = self.b
+            st = stats
+            pup = np.where(p==1, 1, st.beta.isf(alpha/2, n*p+a, n*(1-p)+b))
+            plo = np.where(p==0, 0, st.beta.isf(1-alpha/2, n*p+a, n*(1-p)+b))
+        return plo, pup
+    
+    def prb_empirical(self, xi=None, hs_e=None, alpha=0.05, color='r', **kwds):
+        '''
+        Returns empirical binomial probabiltity
+        
+        Parameters
+        ----------
+        x : ndarray
+            position vector
+        y : ndarray
+            binomial response variable (zeros and ones)
+        alpha : scalar
+            confidence level
+        color:
+            used in plot
+        
+        Returns
+        -------
+        P(x) : PlotData object
+            empirical probability 
+        '''    
+        if xi is None:
+            xi = self.get_grid(hs_e) 
+        
+        x = self.x
+        y = self.y
+
+        c = gridcount(x, xi) #+ self.a + self.b # count data
+        if (y==True).any():
+            c0 = gridcount(x[y==True],xi) #+ self.a # count success 
+        else:
+            c0 = np.zeros(xi.shape)
+        prb = np.where(c==0, 0, c0/(c+_TINY)) # assume prb==0 for c==0
+        CI = np.vstack(self.prb_ci(c, prb, alpha,**kwds))
+        
+        #prb_e =  PlotData(prb, xi, plotmethod='scatter', plot_kwds=dict(color=color, s=5, picker=5))
+        prb_e =  PlotData(prb, xi, plotmethod='plot', plot_args=['.'],plot_kwds=dict(markersize=6, color=color, picker=5))
+        #prb_e =  PlotData(prb, xi, plotmethod='errorbar', plot_kwds=dict(color=color, yerr=np.abs(prb-CI)))
+        prb_e.dataCI = CI.T
+        prb_e.count = c
+        return prb_e 
+    
+    def prb_smoothed(self, prb_e, hs, alpha=0.05, color='r', label=''):
+        '''
+        Return smoothed binomial probability 
+        
+        Parameters
+        ----------
+        prb_e : PlotData object with empirical binomial probabilites
+        hs : smoothing parameter
+        alpha : confidence level
+        color : color of plot object
+        label : label for plot object
+        ''' 
+        
+        x_e = prb_e.args
+        n_e = len(x_e)
+        dx_e = x_e[1]-x_e[0]
+        n = self.x.size
+        
+        x_s = np.linspace(x_e[0],x_e[-1], 10*n_e+1)
+        self.hs = hs
+        
+        prb_s = self.kreg(x_s, output='plotobj', title='', plot_kwds=dict(color=color, linewidth=2)) #dict(plotflag=7))
+        m_nan = np.isnan(prb_s.data) 
+        if m_nan.any(): # assume 0/0 division
+            prb_s.data[m_nan] = 0.0
+            
+        #prb_s.data[np.isnan(prb_s.data)] = 0
+        c_s = self.kreg.tkde.eval_grid_fast(x_s) * dx_e * n # expected number of data in each bin
+        plo, pup = self.prb_ci(c_s, prb_s.data, alpha)
+        
+        prb_s.dataCI = np.vstack((plo,pup)).T
+        prb_s.prediction_error_avg = np.trapz(pup-plo, x_s)/(x_s[-1]-x_s[0])    
+        
+        if label:
+            prb_s.plot_kwds['label'] = label
+        prb_s.children = [PlotData([plo, pup],x_s,
+                                   plotmethod='fill_between', 
+                                   plot_kwds=dict(alpha=0.2, color=color)), 
+                          prb_e]
+        
+        # empirical oversmooths the data
+#        p_s = prb_s.eval_points(self.x)
+#        dp_s = np.diff(prb_s.data)
+#        k = (dp_s[:-1]*dp_s[1:]<0).sum() # numpeaks
+#        p_e = self.y
+#        n_s = interpolate.interp1d(x_s, c_s)(self.x)
+#        plo, pup = self.prb_ci(n_s, p_s, alpha)
+#        sigmai = (pup-plo)
+#        aicc = (((p_e-p_s)/sigmai)**2).sum()+ 2*k*(k+1)/np.maximum(n-k+1,1) 
+        
+                 
+        p_e = prb_e.eval_points(x_s)
+        p_s = prb_s.data
+        dp_s = np.sign(np.diff(p_s))
+        k = (dp_s[:-1]!=dp_s[1:]).sum() # numpeaks
+        
+        #sigmai = (pup-plo)+_EPS
+        #aicc = (((p_e-p_s)/sigmai)**2).sum()+ 2*k*(k+1)/np.maximum(n_e-k+1,1) + np.abs((p_e-pup).clip(min=0)-(p_e-plo).clip(max=0)).sum()
+        sigmai = _logit(pup) - _logit(plo) + _EPS
+        aicc = (((_logit(p_e)-_logit(p_s))/sigmai)**2).sum()+ 2*k*(k+1)/np.maximum(n_e-k+1,1) + np.abs((p_e-pup).clip(min=0)-(p_e-plo).clip(max=0)).sum()
+        
+        prb_s.aicc = aicc 
+        #prb_s.labels.title = ''
+        #prb_s.labels.title='perr=%1.3f,aicc=%1.3f, n=%d, hs=%1.3f' % (prb_s.prediction_error_avg,aicc,n,hs)
+        
+        return prb_s
+
+    def prb_search_best(self, prb_e=None, hsvec=None, hsfun='hste', alpha=0.05, color='r', label=''):
+        '''
+        Return best smoothed binomial probability 
+        
+        Parameters
+        ----------
+        prb_e : PlotData object with empirical binomial probabilites
+        hsvec : arraylike
+            vector smoothing parameters (default np.linspace(hsmax*0.1,hsmax,55))
+        hsfun :
+            method for calculating hsmax 
+        
+        '''
+        if prb_e is None:
+            prb_e = self.prb_empirical(hs_e=self.hs_e, alpha=alpha, color=color)
+        if hsvec is None:
+            hsmax =  self._get_max_smoothing(hsfun)[0] #@UnusedVariable
+            hsmax = max(hsmax, self.hs_e)
+            hsvec = np.linspace(hsmax*0.2,hsmax,55)
+        
+        
+        hs_best = hsvec[-1]+0.1
+        prb_best = self.prb_smoothed(prb_e, hs_best, alpha, color, label)    
+        aicc = np.zeros(np.size(hsvec))
+        for i, hi in enumerate(hsvec):
+            f = self.prb_smoothed(prb_e, hi, alpha, color, label)
+            aicc[i] = f.aicc
+            if f.aicc<=prb_best.aicc:
+                prb_best = f
+                hs_best = hi
+        prb_best.score = PlotData(aicc,hsvec)
+        prb_best.hs = hs_best
+        self._set_smoothing(hs_best)
+        return prb_best
+
 class _Kernel(object):
     def __init__(self, r=1.0, stats=None):
         self.r = r # radius of kernel
@@ -1277,13 +1528,13 @@ class Kernel(object):
     'Density estimation for statistics and data analysis'  
      Chapman and Hall, pp 31, 103,  175  
     '''
-    def __init__(self, name, fun='hisj'): #'hns'):
+    def __init__(self, name, fun='hste'): #'hns'):
         self.kernel = _MKERNEL_DICT[name[:4]]
         #self.name = self.kernel.__name__.replace('mkernel_', '').title()
         try:
             self.get_smoothing = getattr(self, fun) 
         except:
-            self.get_smoothing = self.hns
+            self.get_smoothing = self.hste
     def _get_name(self):
         return self.kernel.__class__.__name__.replace('_Kernel', '').title()
     name = property(_get_name)
@@ -2365,7 +2616,7 @@ def qlevels2(data, p=(10,30,50,70,90, 95, 99, 99.9), method=1):
     >>> PL = np.r_[10:90:20, 90, 95, 99, 99.9]
     >>> xs = ws.norm.rvs(size=2500000)
     >>> np.round(qlevels2(ws.norm.pdf(xs), p=PL), decimals=3)
-    array([ 0.396,  0.37 ,  0.318,  0.233,  0.103,  0.059,  0.014,  0.002])
+    array([ 0.396,  0.37 ,  0.318,  0.233,  0.103,  0.058,  0.014,  0.002])
             
     # compared with the exact values
     >>> ws.norm.pdf(ws.norm.ppf((100-PL)/200))
@@ -2910,7 +3161,7 @@ def smoothn(data, s=None, weight=None, robust=False, z0=None, tolz=1e-3, maxiter
     1-D example
     >>> import matplotlib.pyplot as plt
     >>> x = np.linspace(0,100,2**8)
-    >>> y = np.cos(x/10)+(x/50)**2 + np.random.randn(x.size)/10
+    >>> y = cos(x/10)+(x/50)**2 + np.random.randn(x.shape)/10
     >>> y[np.r_[70, 75, 80]] = np.array([5.5, 5, 6])
     >>> z = smoothn(y) # Regular smoothing
     >>> zr = smoothn(y,robust=True) #  Robust smoothing
@@ -3464,8 +3715,8 @@ _REALMIN = np.finfo(float).machar.xmin
 _REALMAX = np.finfo(float).machar.xmax
 _EPS = np.finfo(float).eps
 def _logit(p):
-    #pc = p.clip(min=_REALMIN)
-    return (np.log(p)-np.log1p(-p)).clip(min=-40,max=40) 
+    pc = p.clip(min=0, max=1)
+    return (np.log(pc)-np.log1p(-pc)).clip(min=-40,max=40) 
 def _logitinv(x):
     return 1.0/(np.exp(-x)+1)    
 
@@ -3493,47 +3744,9 @@ def _get_data(n=100, symmetric=False, loc1=1.1, scale1=0.6, scale2=1.0):
         y = yi[i]
     return x, y, fun1
 
-def _get_regression_smooting(x,y,fun='hste'):
-    hs1 = Kernel('gauss', fun=fun).get_smoothing(x)
-    #hx = np.median(np.abs(x-np.median(x)))/0.6745*(4.0/(3*n))**0.2
-    if (y==True).any():
-        hs2 = Kernel('gauss', fun=fun).get_smoothing(x[y==True])
-        #hy = np.median(np.abs(y-np.mean(y)))/0.6745*(4.0/(3*n))**0.2
-    else:
-        hs2 = 4*hs1
-        #hy = 4*hx
-        
-    #hy2 = Kernel('gauss', fun=fun).get_smoothing(y)
-    #kernel = Kernel('gauss',fun=fun)
-    #hopt = (hs1+2*hs2)/3
-    #hopt = (hs1+4*hs2)/5 #kernel.get_smoothing(x)
-    #hopt = hs2
-    hopt = sqrt(hs1*hs2)
-    return hopt, hs1, hs2
 
-def regressionbin(x,y):
-    '''
-    Return kernel regression estimate for binomial data
-    
-    Parameters
-    ----------
-    x : arraylike
-        positions
-    y : arraylike
-        of 0 and 1
-    '''
-    hopt1, h1,h2 = _get_regression_smooting(x,y,fun='hos') #@UnusedVariable
-    hopt2, h1,h2 = _get_regression_smooting(x,y,fun='hste') #@UnusedVariable
-    hopt = sqrt(hopt1*hopt2)
-    
-    fbest = kreg_demo4(x, y, hopt2+0.1, hopt)
-    for fun in ['hste']: # , 'hisj', 'hns', 'hstt'
-        hsmax, hs1, hs2 =_get_regression_smooting(x,y,fun=fun) #@UnusedVariable
-        for hi in np.linspace(hsmax*0.1,hsmax,55):
-            f = kreg_demo4(x, y, hi, hopt)
-            if f.aicc<=fbest.aicc:
-                fbest = f
-    return fbest
+
+
 def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj', plotlog=False):
     x,y, fun1 = _get_data(n, symmetric)
     kreg_demo3(x,y,fun1, hs=None, fun='hisj', plotlog=False)
@@ -3541,7 +3754,7 @@ def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj', plotlog=False):
 def kreg_demo3(x,y, fun1, hs=None, fun='hisj', plotlog=False):
     st = stats
     
-    alpha=0.05
+    alpha=0.1
     z0 = -_invnorm(alpha/2)
     
     
@@ -3628,8 +3841,8 @@ def kreg_demo3(x,y, fun1, hs=None, fun='hisj', plotlog=False):
     # ref Casella and Berger (1990) "Statistical inference" pp444
     a = 2*pi + z0**2/(ciii+1e-16)
     b = 2*(1+z0**2/(ciii+1e-16))
-    plo2 = ((a-sqrt(a**2-2*pi**2*b))/b).clip(min=0,max=1) #@UnusedVariable
-    pup2 = ((a+sqrt(a**2-2*pi**2*b))/b).clip(min=0,max=1) #@UnusedVariable
+#    plo2 = ((a-sqrt(a**2-2*pi**2*b))/b).clip(min=0,max=1)
+#    pup2 = ((a+sqrt(a**2-2*pi**2*b))/b).clip(min=0,max=1)
     
     # Jeffreys intervall a=b=0.5
     #st.beta.isf(alpha/2, x+a, n-x+b)
@@ -3680,78 +3893,6 @@ def kreg_demo3(x,y, fun1, hs=None, fun='hisj', plotlog=False):
     return hs1, hs2
 
 
-def check_kreg_demo3():
-    
-    
-    plt.ion()
-    k = 0
-    for i, n in enumerate([50, 100,300,600, 4000]): #@UnusedVariable
-        x,y, fun1 = _get_data(n, symmetric=True,loc1=1.0, scale1=0.6, scale2=1.25)
-        k0 = k
-        
-        for j, fun in enumerate(['hste']): #@UnusedVariable
-            hsmax, hs1, hs2 =_get_regression_smooting(x,y,fun=fun) #@UnusedVariable
-            for hi in np.linspace(hsmax*0.25,hsmax,9):
-                plt.figure(k)
-                k +=1
-                unused = kreg_demo3(x,y,fun1, hs=hi, fun=fun, plotlog=False)
-            
-            #kreg_demo2(n=n,symmetric=True,fun='hste', plotlog=False)
-        fig.tile(range(k0,k))
-    plt.ioff()
-    plt.show()
-
-def check_kreg_demo4():
-    plt.ion()
-    #test_docstrings()
-    #kde_demo2()
-    #kreg_demo1(fast=True)
-    #kde_gauss_demo()
-    #kreg_demo2(n=120,symmetric=True,fun='hste', plotlog=True)
-    k = 0
-    for i, n in enumerate([100,300,600,4000]): #@UnusedVariable
-        x,y, fun1 = _get_data(n, symmetric=True,loc1=0.1, scale1=0.6, scale2=0.75)
-        k0 = k #@UnusedVariable
-        hopt1, h1,h2 = _get_regression_smooting(x,y,fun='hos') #@UnusedVariable
-        hopt2, h1,h2 = _get_regression_smooting(x,y,fun='hste') #@UnusedVariable
-        hopt = sqrt(hopt1*hopt2)
-        #hopt = _get_regression_smooting(x,y,fun='hos')[0]
-        for j, fun in enumerate(['hste']): # , 'hisj', 'hns', 'hstt' @UnusedVariable
-            hsmax, hs1, hs2 =_get_regression_smooting(x,y,fun=fun) #@UnusedVariable
-            
-            fmax = kreg_demo4(x, y, hsmax+0.1, hopt)
-            for hi in np.linspace(hsmax*0.1,hsmax,55):
-                f = kreg_demo4(x, y, hi, hopt)
-                if f.aicc<=fmax.aicc:
-                    fmax = f
-            plt.figure(k)
-            k +=1
-            fmax.plot()
-            plt.plot(x, fun1(x),'r')
-            
-            #kreg_demo2(n=n,symmetric=True,fun='hste', plotlog=False)
-    fig.tile(range(0,k))
-    plt.ioff()
-    plt.show()
-  
-def empirical_bin_prb(x,y, hopt):
-    '''
-    Returns empirical binomial probabiltity
-    '''     
-#    n = x.size
-    xmin, xmax = x.min(), x.max()    
-    ni = max(2*int((xmax-xmin)/hopt)+3,5)
-    
-    sml = hopt*0.1
-    xi = np.linspace(xmin-sml,xmax+sml, ni) 
-    
-    c = gridcount(x, xi)
-    if (y==True).any():
-        c0 = gridcount(x[y==True],xi)
-    else:
-        c0 = np.zeros(xi.shape)
-    yi = np.where(c==0, 0, c0/c)
-    return WafoData(yi,xi,plotmethod='scatter', plot_kwds=dict(color='r', s=5))
 
 def kreg_demo4(x,y, hs, hopt, alpha=0.05):
     st = stats
@@ -3802,8 +3943,8 @@ def kreg_demo4(x,y, hs, hopt, alpha=0.05):
         c0 = np.zeros(xi.shape)
     yi = np.where(c==0, 0, c0/c)
     
-    f.children = [WafoData([plo, pup],xiii,plotmethod='fill_between',plot_kwds=dict(alpha=0.2, color='r')), 
-                  WafoData(yi,xi,plotmethod='scatter', plot_kwds=dict(color='r', s=5))]
+    f.children = [PlotData([plo, pup],xiii,plotmethod='fill_between',plot_kwds=dict(alpha=0.2, color='r')), 
+                  PlotData(yi,xi,plotmethod='scatter', plot_kwds=dict(color='r', s=5))]
     
     yiii = interpolate.interp1d(xi, yi)(xiii)
     df = np.diff(fiii)
@@ -3816,6 +3957,255 @@ def kreg_demo4(x,y, hs, hopt, alpha=0.05):
     
     return f
 
+def check_kreg_demo3():
+    
+    
+    plt.ion()
+    k = 0
+    for n in [50, 100,300,600, 4000]:
+        x,y, fun1 = _get_data(n, symmetric=True,loc1=1.0, scale1=0.6, scale2=1.25)
+        k0 = k
+        
+        for fun in ['hste', ]:
+            hsmax, hs1, hs2 =_get_regression_smooting(x,y,fun=fun) #@UnusedVariable
+            for hi in np.linspace(hsmax*0.25,hsmax,9):
+                plt.figure(k)
+                k +=1
+                unused = kreg_demo3(x,y,fun1, hs=hi, fun=fun, plotlog=False)
+            
+            #kreg_demo2(n=n,symmetric=True,fun='hste', plotlog=False)
+        fig.tile(range(k0,k))
+    plt.ioff()
+    plt.show()
+
+def check_kreg_demo4():
+    plt.ion()
+    #test_docstrings()
+    #kde_demo2()
+    #kreg_demo1(fast=True)
+    #kde_gauss_demo()
+    #kreg_demo2(n=120,symmetric=True,fun='hste', plotlog=True)
+    k = 0
+    for i, n in enumerate([100,300,600,4000]):
+        x,y, fun1 = _get_data(n, symmetric=True,loc1=0.1, scale1=0.6, scale2=0.75)
+        k0 = k
+        hopt1, h1,h2 = _get_regression_smooting(x,y,fun='hos')
+        hopt2, h1,h2 = _get_regression_smooting(x,y,fun='hste')
+        hopt = sqrt(hopt1*hopt2)
+        #hopt = _get_regression_smooting(x,y,fun='hos')[0]
+        for j, fun in enumerate(['hste']): # , 'hisj', 'hns', 'hstt'
+            hsmax, hs1, hs2 =_get_regression_smooting(x,y,fun=fun)
+            
+            fmax = kreg_demo4(x, y, hsmax+0.1, hopt)
+            for hi in np.linspace(hsmax*0.1,hsmax,55):
+                f = kreg_demo4(x, y, hi, hopt)
+                if f.aicc<=fmax.aicc:
+                    fmax = f
+            plt.figure(k)
+            k +=1
+            fmax.plot()
+            plt.plot(x, fun1(x),'r')
+            
+            #kreg_demo2(n=n,symmetric=True,fun='hste', plotlog=False)
+    fig.tile(range(0,k))
+    plt.ioff()
+    plt.show()
+
+def check_regression_bin():
+    plt.ion()
+    #test_docstrings()
+    #kde_demo2()
+    #kreg_demo1(fast=True)
+    #kde_gauss_demo()
+    #kreg_demo2(n=120,symmetric=True,fun='hste', plotlog=True)
+    k = 0
+    for i, n in enumerate([100,300,600,4000]):
+        x,y, fun1 = _get_data(n, symmetric=True,loc1=0.1, scale1=0.6, scale2=0.75)
+        fbest = regressionbin(x, y, alpha=0.05, color='g', label='Transit_D')
+        
+        figk = plt.figure(k)
+        ax = figk.gca()
+        k +=1
+        fbest.plot(axis=ax)
+        ax.plot(x, fun1(x),'r')
+        ax.legend(frameon=False, markerscale=4)
+        #ax = plt.gca()
+        ax.set_yticklabels(ax.get_yticks()*100.0)
+        ax.grid(True)
+            
+    fig.tile(range(0,k))
+    plt.ioff()
+    plt.show()
+
+def check_bkregression():
+    plt.ion()
+    k = 0
+    for i, n in enumerate([50, 100,300,600]):
+        x,y, fun1 = _get_data(n, symmetric=True,loc1=0.1, scale1=0.6, scale2=0.75)
+        bkreg = BKRegression(x,y)
+        fbest = bkreg.prb_search_best(hsfun='hste', alpha=0.05, color='g', label='Transit_D')
+        
+        
+        figk = plt.figure(k)
+        ax = figk.gca()
+        k +=1
+#        fbest.score.plot(axis=ax)
+#        axsize = ax.axis()
+#        ax.vlines(fbest.hs,axsize[2]+1,axsize[3])
+#        ax.set(yscale='log')
+        fbest.plot(axis=ax)
+        ax.plot(x, fun1(x),'r')
+        ax.legend(frameon=False, markerscale=4)
+        #ax = plt.gca()
+        ax.set_yticklabels(ax.get_yticks()*100.0)
+        ax.grid(True)
+            
+    fig.tile(range(0,k))
+    plt.ioff()
+    plt.show()
+  
+def _get_regression_smooting(x,y,fun='hste'):
+    hs1 = Kernel('gauss', fun=fun).get_smoothing(x)
+    #hx = np.median(np.abs(x-np.median(x)))/0.6745*(4.0/(3*n))**0.2
+    if (y==True).any():
+        hs2 = Kernel('gauss', fun=fun).get_smoothing(x[y==True])
+        #hy = np.median(np.abs(y-np.mean(y)))/0.6745*(4.0/(3*n))**0.2
+    else:
+        hs2 = 4*hs1
+        #hy = 4*hx
+        
+    #hy2 = Kernel('gauss', fun=fun).get_smoothing(y)
+    #kernel = Kernel('gauss',fun=fun)
+    #hopt = (hs1+2*hs2)/3
+    #hopt = (hs1+4*hs2)/5 #kernel.get_smoothing(x)
+    #hopt = hs2
+    hopt = sqrt(hs1*hs2)
+    return hopt, hs1, hs2  
+
+def empirical_bin_prb(x,y, hopt, color='r'):
+    '''
+    Returns empirical binomial probabiltity
+    
+    Parameters
+    ----------
+    x : ndarray
+        position ve
+    y : ndarray
+        binomial response variable (zeros and ones)
+        
+    Returns
+    -------
+    P(x) : PlotData object
+        empirical probability 
+    '''     
+    xmin, xmax = x.min(), x.max()    
+    ni = max(2*int((xmax-xmin)/hopt)+3,5)
+    
+    sml = hopt #*0.1
+    xi = np.linspace(xmin-sml,xmax+sml, ni) 
+    
+    c = gridcount(x, xi)
+    if (y==True).any():
+        c0 = gridcount(x[y==True],xi)
+    else:
+        c0 = np.zeros(xi.shape)
+    yi = np.where(c==0, 0, c0/c)
+    return PlotData(yi,xi, plotmethod='scatter', plot_kwds=dict(color=color, s=5))
+
+def smoothed_bin_prb(x,y, hs, hopt, alpha=0.05, color='r', label='', bin_prb=None):
+    '''
+    Parameters
+    ----------
+    x,y
+    hs : smoothing parameter
+    hopt : spacing in empirical_bin_prb
+    alpha : confidence level
+    color : color of plot object
+    bin_prb : PlotData object with empirical bin prb
+    '''
+    if bin_prb is None:
+        bin_prb = empirical_bin_prb(x, y, hopt, color)
+    
+    xi = bin_prb.args
+    yi = bin_prb.data
+    ni = len(xi)
+    dxi = xi[1]-xi[0]
+    
+    n = x.size
+    
+    xiii = np.linspace(xi[0],xi[-1], 10*ni+1)
+    
+    kreg = KRegression(x, y, hs=hs, p=0)
+    ciii = kreg.tkde.eval_grid_fast(xiii) * dxi * n # expected number of data in each bin
+    
+    f = kreg(xiii, output='plotobj') #, plot_kwds=dict(plotflag=7))
+    pi = f.data
+    
+    st = stats
+    # Jeffreys intervall a=b=0.5
+    #st.beta.isf(alpha/2, x+a, n-x+b)
+    ab = 0.07 #0.5
+    pi1 = pi 
+    pup = np.where(pi1==1, 1, st.beta.isf(alpha/2, ciii*pi1+ab, ciii*(1-pi1)+ab))
+    plo = np.where(pi1==0, 0, st.beta.isf(1-alpha/2, ciii*pi1+ab, ciii*(1-pi1)+ab))
+    
+    
+    # Wilson score
+    # z0 = -_invnorm(alpha/2)
+#    den = 1+(z0**2./ciii);
+#    xc=(pi1+(z0**2)/(2*ciii))/den;
+#    halfwidth=(z0*sqrt((pi1*(1-pi1)/ciii)+(z0**2/(4*(ciii**2)))))/den
+#    plo2 = (xc-halfwidth).clip(min=0) # wilson score
+#    pup2 = (xc+halfwidth).clip(max=1.0) # wilson score
+    
+    #f.dataCI = np.vstack((plo,pup)).T
+    f.prediction_error_avg = np.trapz(pup-plo, xiii)/(xiii[-1]-xiii[0])    
+    fiii = f.data
+    
+    f.plot_kwds['color'] = color
+    f.plot_kwds['linewidth']=2
+    if label:
+        f.plot_kwds['label'] = label
+    f.children = [PlotData([plo, pup],xiii,plotmethod='fill_between',plot_kwds=dict(alpha=0.2, color=color)), 
+                  bin_prb]
+    
+    yiii = interpolate.interp1d(xi, yi)(xiii)
+    df = np.diff(fiii)
+    k = (df[:-1]*df[1:]<0).sum() # numpeaks
+    sigmai = (pup-plo)
+    aicc = (((yiii-fiii)/sigmai)**2).sum()+ 2*k*(k+1)/np.maximum(ni-k+1,1) + np.abs((yiii-pup).clip(min=0)-(yiii-plo).clip(max=0)).sum()
+    
+    f.aicc = aicc 
+    f.fun = kreg
+    f.labels.title='perr=%1.3f,aicc=%1.3f, n=%d, hs=%1.3f' % (f.prediction_error_avg,aicc,n,hs)
+    
+    return f
+
+def regressionbin(x,y, alpha=0.05, color='r', label=''):
+    '''
+    Return kernel regression estimate for binomial data
+    
+    Parameters
+    ----------
+    x : arraylike
+        positions
+    y : arraylike
+        of 0 and 1
+    '''
+    hopt1, h1,h2 = _get_regression_smooting(x,y,fun='hos') #@UnusedVariable
+    hopt2, h1,h2 = _get_regression_smooting(x,y,fun='hste') #@UnusedVariable
+    hopt = sqrt(hopt1*hopt2)
+    
+    fbest = smoothed_bin_prb(x, y, hopt2+0.1, hopt, alpha, color, label)
+    bin_prb = fbest.children[-1]
+    for fun in ['hste']: # , 'hisj', 'hns', 'hstt'
+        hsmax, hs1, hs2 =_get_regression_smooting(x,y,fun=fun) #@UnusedVariable
+        for hi in np.linspace(hsmax*0.1,hsmax,55):
+            f = smoothed_bin_prb(x, y, hi, hopt, alpha, color, label, bin_prb)
+            if f.aicc<=fbest.aicc:
+                fbest = f
+                hbest = hi
+    return fbest
 def kde_gauss_demo(n=50):
     '''
     KDEDEMO Demonstrate the KDEgauss
@@ -3837,7 +4227,7 @@ def kde_gauss_demo(n=50):
     #dist = st.norm
     dist = st.expon
     data = dist.rvs(loc=0, scale=1.0, size=n)
-    d, N = np.atleast_2d(data).shape #@UnusedVariable
+    d, N = np.atleast_2d(data).shape
     
     if d==1:
         plot_options = [dict(color='red'), dict(color='green'), dict(color='black')]
@@ -3875,13 +4265,16 @@ def test_docstrings():
     doctest.testmod()
     
 if __name__ == '__main__':
+    check_bkregression()
+    #check_regression_bin()
     #check_kreg_demo3()
-#    check_kreg_demo4()
+    #check_kreg_demo4()
+    
 
     #test_smoothn_2d()
     #test_smoothn_cardioid()
     
-    test_docstrings()
+    #test_docstrings()
     #kde_demo2()
     #kreg_demo1(fast=True)
     #kde_gauss_demo()

@@ -7431,7 +7431,7 @@ class binom_gen(rv_discrete):
            url = "http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.35.2719" }
         """
         PI2 = 2.0 * pi
-        yborder = (x == 0.) * n * log1p(-pr) + (x == n) * n * log(pr)
+        yborder = log((x == 0.) * exp(n * log1p(-pr)) + (x == n) * exp(n * log(pr)))
         nx = n - x
         nq = n * (1. - pr)
         lc = stirlerr(n) - stirlerr(x) - stirlerr(nx) - bd0(x, n * pr) - bd0(nx, nq)
