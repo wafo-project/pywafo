@@ -18,11 +18,11 @@ def magic(n):
     
     '''
     if np.mod(n,1)==1: # odd order
-        ix = np.arange(n)+1
-        J, I = np.meshgrid(ix,ix)
-        A = np.mod(I+J-(n+3)/2,n)
-        B = np.mod(I+2*J-2,n)
-        M = n*A + B + 1
+        ix = np.arange(n) + 1
+        J, I = np.meshgrid(ix, ix)
+        A = np.mod(I + J - (n + 3) / 2, n)
+        B = np.mod(I + 2 * J - 2, n)
+        M = n * A + B + 1
         
     return M
 
@@ -33,7 +33,7 @@ def peaks(x=None, y=None, n=51):
     
     Example
     -------
-    >>> import pylab as plt
+    >>> import matplotlib.pyplot as plt
     >>> x,y,z = peaks()
     >>> h = plt.contourf(x,y,z)
     
@@ -54,6 +54,13 @@ def peaks(x=None, y=None, n=51):
 def humps(x=None):
     '''
     Computes a function that has three roots, and some humps.
+    
+     Example
+    -------
+    >>> import matplotlib.pyplot as plt
+    >>> x = np.linspace(0,1)
+    >>> y = humps(x)
+    >>> h = plt.plot(x,y)
     '''
     if x is None:
         y = np.linspace(0, 1)
