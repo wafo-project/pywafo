@@ -1136,7 +1136,7 @@ def richardson(Q, k):
     R = Q[k] + (Q[k] - Q[k - 1]) / c
     return R
 
-def quadgr(fun, a, b, abseps=1e-5):
+def quadgr(fun, a, b, abseps=1e-5, maxiter=17):
     '''
     Gauss-Legendre quadrature with Richardson extrapolation.
 
@@ -1218,7 +1218,7 @@ def quadgr(fun, a, b, abseps=1e-5):
             Q = -Q
         return Q, err
 
-    #% Gauss-Legendre quadrature (12-point)
+    # Gauss-Legendre quadrature (12-point)
     xq = np.asarray([0.12523340851146894, 0.36783149899818018, 0.58731795428661748,
           0.76990267419430469, 0.9041172563704748, 0.98156063424671924])
     wq = np.asarray([0.24914704581340288, 0.23349253653835478, 0.20316742672306584,
@@ -1232,8 +1232,8 @@ def quadgr(fun, a, b, abseps=1e-5):
 #    else:
     dtype = np.float64
 
-    #% Initiate vectors
-    max_iter = 17                 # Max number of iterations
+    # Initiate vectors
+#    max_iter = 17                 # Max number of iterations
     Q0 = zeros(max_iter, dtype=dtype)       	# Quadrature
     Q1 = zeros(max_iter, dtype=dtype)       	# First Richardson extrapolation
     Q2 = zeros(max_iter, dtype=dtype)       	# Second Richardson extrapolation
@@ -1480,10 +1480,12 @@ def main():
     q0 = np.trapz(humps(x), x)
     [q, err] = romberg(humps, 0, np.pi / 2, 1e-4)
     print q, err
+    
 def test_docstrings():
     np.set_printoptions(precision=7)
     import doctest
     doctest.testmod()
+    
 if __name__ == '__main__':
     test_docstrings()
     #main()
