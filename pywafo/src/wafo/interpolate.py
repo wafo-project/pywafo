@@ -692,13 +692,99 @@ def slopes(x,y, method='parabola', tension=0, monotone=False):
             yp[ii+1] = tau[ii] * beta[ii]  * dydx[ii]
     
     return yp
-
-class StinemanInterp2(PiecewisePolynomial):
-    def __init__(self, x, y, yp=None, method='parabola', monotone=False):
-        if yp is None:
-            yp = slopes(x, y, method, monotone=monotone)
-        super(StinemanInterp,self).__init__(x, zip(y,yp))
         
+def stineman_interp(xi, x, y, yp=None):
+    """
+    Given data vectors *x* and *y*, the slope vector *yp* and a new
+    abscissa vector *xi*, the function :func:`stineman_interp` uses
+    Stineman interpolation to calculate a vector *yi* corresponding to
+    *xi*.
+
+    Here's an example that generates a coarse sine curve, then
+    interpolates over a finer abscissa::
+
+      x = linspace(0,2*pi,20);  y = sin(x); yp = cos(x)
+      xi = linspace(0,2*pi,40);
+      yi = stineman_interp(xi,x,y,yp);
+      plot(x,y,'o',xi,yi)
+
+    The interpolation method is described in the article A
+    CONSISTENTLY WELL BEHAVED METHOD OF INTERPOLATION by Russell
+    W. Stineman. The article appeared in the July 1980 issue of
+    Creative Computing with a note from the editor stating that while
+    they were:
+
+      not an academic journal but once in a while something serious
+      and original comes in adding that this was
+      "apparently a real solution" to a well known problem.
+
+    For *yp* = *None*, the routine automatically determines the slopes
+    using the :func:`slopes` routine.
+
+    *x* is assumed to be sorted in increasing order.
+
+    For values ``xi[j] < x[0]`` or ``xi[j] > x[-1]``, the routine
+    tries an extrapolation.  The relevance of the data obtained from
+    this, of course, is questionable...
+
+    Original implementation by Halldor Bjornsson, Icelandic
+    Meteorolocial Office, March 2006 halldor at vedur.is
+
+    Completely reworked and optimized for Python by Norbert Nemec,
+    Institute of Theoretical Physics, University or Regensburg, April
+    2006 Norbert.Nemec at physik.uni-regensburg.de
+    """
+
+    # Cast key variables as float.
+    x = np.asarray(x, np.float_)
+    y = np.asarray(y, np.float_)
+    assert x.shape == y.shape
+    #N = len(y)
+
+    if yp is None:
+        yp = slopes(x, y)
+    else:
+        yp = np.asarray(yp, np.float_)
+
+    xi = np.asarray(xi, np.float_)
+    #yi = np.zeros(xi.shape, np.float_)
+
+    # calculate linear slopes
+    dx = x[1:] - x[:-1]
+    dy = y[1:] - y[:-1]
+    s = dy / dx  #note length of s is N-1 so last element is #N-2
+
+    # find the segment each xi is in
+    # this line actually is the key to the efficiency of this implementation
+    idx = np.searchsorted(x[1:-1], xi)
+
+    # now we have generally: x[idx[j]] <= xi[j] <= x[idx[j]+1]
+    # except at the boundaries, where it may be that xi[j] < x[0] or xi[j] > x[-1]
+
+    # the y-values that would come out from a linear interpolation:
+    sidx = s.take(idx)
+    xidx = x.take(idx)
+    yidx = y.take(idx)
+    xidxp1 = x.take(idx + 1)
+    yo = yidx + sidx * (xi - xidx)
+
+    # the difference that comes when using the slopes given in yp
+    dy1 = (yp.take(idx) - sidx) * (xi - xidx)       # using the yp slope of the left point
+    dy2 = (yp.take(idx + 1) - sidx) * (xi - xidxp1) # using the yp slope of the right point
+
+    dy1dy2 = dy1 * dy2
+    # The following is optimized for Python. The solution actually
+    # does more calculations than necessary but exploiting the power
+    # of numpy, this is far more efficient than coding a loop by hand
+    # in Python
+    dy1mdy2 = np.where(dy1dy2,dy1-dy2,np.inf)
+    dy1pdy2 = np.where(dy1dy2,dy1+dy2,np.inf)
+    yi = yo + dy1dy2 * np.choose(np.array(np.sign(dy1dy2), np.int32) + 1,
+                                 ((2 * xi - xidx - xidxp1) / ((dy1mdy2) * (xidxp1 - xidx)),
+                                  0.0,
+                                  1 / (dy1pdy2)))
+    return yi
+
 class StinemanInterp(object):
     '''
     Returns the values of an interpolating function that runs through a set of points according to the algorithm of Stineman (1980).
@@ -811,100 +897,13 @@ class StinemanInterp(object):
                                       0.0,
                                       1 / (dy1pdy2)))
         return yi
-
+    
+class StinemanInterp2(PiecewisePolynomial):
+    def __init__(self, x, y, yp=None, method='parabola', monotone=False):
+        if yp is None:
+            yp = slopes(x, y, method, monotone=monotone)
+        super(StinemanInterp2,self).__init__(x, zip(y,yp))
         
-def stineman_interp(xi, x, y, yp=None):
-    """
-    Given data vectors *x* and *y*, the slope vector *yp* and a new
-    abscissa vector *xi*, the function :func:`stineman_interp` uses
-    Stineman interpolation to calculate a vector *yi* corresponding to
-    *xi*.
-
-    Here's an example that generates a coarse sine curve, then
-    interpolates over a finer abscissa::
-
-      x = linspace(0,2*pi,20);  y = sin(x); yp = cos(x)
-      xi = linspace(0,2*pi,40);
-      yi = stineman_interp(xi,x,y,yp);
-      plot(x,y,'o',xi,yi)
-
-    The interpolation method is described in the article A
-    CONSISTENTLY WELL BEHAVED METHOD OF INTERPOLATION by Russell
-    W. Stineman. The article appeared in the July 1980 issue of
-    Creative Computing with a note from the editor stating that while
-    they were:
-
-      not an academic journal but once in a while something serious
-      and original comes in adding that this was
-      "apparently a real solution" to a well known problem.
-
-    For *yp* = *None*, the routine automatically determines the slopes
-    using the :func:`slopes` routine.
-
-    *x* is assumed to be sorted in increasing order.
-
-    For values ``xi[j] < x[0]`` or ``xi[j] > x[-1]``, the routine
-    tries an extrapolation.  The relevance of the data obtained from
-    this, of course, is questionable...
-
-    Original implementation by Halldor Bjornsson, Icelandic
-    Meteorolocial Office, March 2006 halldor at vedur.is
-
-    Completely reworked and optimized for Python by Norbert Nemec,
-    Institute of Theoretical Physics, University or Regensburg, April
-    2006 Norbert.Nemec at physik.uni-regensburg.de
-    """
-
-    # Cast key variables as float.
-    x = np.asarray(x, np.float_)
-    y = np.asarray(y, np.float_)
-    assert x.shape == y.shape
-    #N = len(y)
-
-    if yp is None:
-        yp = slopes(x, y)
-    else:
-        yp = np.asarray(yp, np.float_)
-
-    xi = np.asarray(xi, np.float_)
-    #yi = np.zeros(xi.shape, np.float_)
-
-    # calculate linear slopes
-    dx = x[1:] - x[:-1]
-    dy = y[1:] - y[:-1]
-    s = dy / dx  #note length of s is N-1 so last element is #N-2
-
-    # find the segment each xi is in
-    # this line actually is the key to the efficiency of this implementation
-    idx = np.searchsorted(x[1:-1], xi)
-
-    # now we have generally: x[idx[j]] <= xi[j] <= x[idx[j]+1]
-    # except at the boundaries, where it may be that xi[j] < x[0] or xi[j] > x[-1]
-
-    # the y-values that would come out from a linear interpolation:
-    sidx = s.take(idx)
-    xidx = x.take(idx)
-    yidx = y.take(idx)
-    xidxp1 = x.take(idx + 1)
-    yo = yidx + sidx * (xi - xidx)
-
-    # the difference that comes when using the slopes given in yp
-    dy1 = (yp.take(idx) - sidx) * (xi - xidx)       # using the yp slope of the left point
-    dy2 = (yp.take(idx + 1) - sidx) * (xi - xidxp1) # using the yp slope of the right point
-
-    dy1dy2 = dy1 * dy2
-    # The following is optimized for Python. The solution actually
-    # does more calculations than necessary but exploiting the power
-    # of numpy, this is far more efficient than coding a loop by hand
-    # in Python
-    dy1mdy2 = np.where(dy1dy2,dy1-dy2,np.inf)
-    dy1pdy2 = np.where(dy1dy2,dy1+dy2,np.inf)
-    yi = yo + dy1dy2 * np.choose(np.array(np.sign(dy1dy2), np.int32) + 1,
-                                 ((2 * xi - xidx - xidxp1) / ((dy1mdy2) * (xidxp1 - xidx)),
-                                  0.0,
-                                  1 / (dy1pdy2)))
-    return yi
-
 class CubicHermiteSpline(PiecewisePolynomial):
     '''
     Piecewise Cubic Hermite Interpolation using Catmull-Rom
@@ -1008,10 +1007,10 @@ def compare_methods():
     ############################################################
     # Sine wave test
     ############################################################
-    
+    fun = np.sin
     # Create a example vector containing a sine wave.
     x = np.arange(30.0)/10.
-    y = np.sin(x)
+    y = fun(x)
     
     # Interpolate the data above to the grid defined by "xvec"
     xvec = np.arange(250.)/100.
@@ -1032,12 +1031,12 @@ def compare_methods():
     import matplotlib.pyplot as plt
     
     plt.figure()
-    plt.plot(x,y, 'r.')
+    plt.plot(x,y, 'ro', xvec, fun(xvec),'r')
     plt.title("pchip() Sin test code")
     
     # Plot the interpolated points
-    plt.plot(xvec, yvec, xvec, yvec1, xvec, yvec2,'go',xvec, yvec3)
-    plt.legend(['true','parbola_monoton','parabola','catmul','pchip'], frameon=False, loc=0)
+    plt.plot(xvec, yvec, xvec, yvec1, xvec, yvec2,'g.',xvec, yvec3)
+    plt.legend(['true','true','parbola_monoton','parabola','catmul','pchip'], frameon=False, loc=0)
     plt.ioff()
     plt.show()
      
@@ -1150,8 +1149,8 @@ def test_docstrings():
 
     
 if __name__ == '__main__':
-    test_docstrings()
+#    test_docstrings()
     #main()
     #test_smoothing_spline()
-#    compare_methods()
-    # demo_monoticity()
+    #compare_methods()
+    demo_monoticity()
