@@ -39,6 +39,11 @@ try:
     from scipy.stats.distributions import vonmises_cython 
 except:
     vonmises_cython = None
+try:
+	from scipy.stats._tukeylambda_stats import tukeylambda_variance as _tlvar, \
+                                tukeylambda_kurtosis as _tlkurt
+except:
+	_tlvar = _tlkurt = None
 
 __all__ = [
            'rv_continuous',
@@ -55,11 +60,12 @@ __all__ = [
            'levy_stable', 'logistic', 'loggamma', 'loglaplace', 'lognorm',
            'gilbrat', 'maxwell', 'mielke', 'nakagami', 'ncx2', 'ncf', 't',
            'nct', 'pareto', 'lomax', 'powerlaw', 'powerlognorm', 'powernorm',
-           'rdist', 'rayleigh', 'truncrayleigh','reciprocal', 'rice', 'recipinvgauss',
+           'rdist', 'rayleigh', 'reciprocal', 'rice', 'recipinvgauss',
+           'truncrayleigh',
            'semicircular', 'triang', 'truncexpon', 'truncnorm',
            'tukeylambda', 'uniform', 'vonmises', 'wald', 'wrapcauchy',
-           'entropy', 'rv_discrete', 'binom', 'bernoulli', 'nbinom', 'geom', 
-           'hypergeom', 'logser', 'poisson', 'planck', 'boltzmann', 'randint', 
+           'entropy', 'rv_discrete', 'binom', 'bernoulli', 'nbinom', 'geom',
+           'hypergeom', 'logser', 'poisson', 'planck', 'boltzmann', 'randint',
            'zipf', 'dlaplace', 'skellam'
           ]
 
@@ -314,8 +320,9 @@ docdict_discrete['pmf'] = _doc_pmf
 docdict_discrete['logpmf'] = _doc_logpmf
 docdict_discrete['expect'] = _doc_expect_discrete
 _doc_disc_methods = ['rvs', 'pmf', 'logpmf', 'cdf', 'logcdf', 'sf', 'logsf',
-                     'ppf', 'isf', 'stats', 'entropy', 'fit', 'expect', 'median',
-                     'mean', 'var', 'std', 'interval']
+                     'ppf', 'isf', 'stats', 'entropy', 'expect', 'median',
+                     'mean', 'var', 'std', 'interval',
+                     'fit']
 for obj in _doc_disc_methods:
     docdict_discrete[obj] = docdict_discrete[obj].replace(', scale=1', '')
 docdict_discrete.pop('pdf')
@@ -440,23 +447,6 @@ rand = mtrand.rand
 random_integers = mtrand.random_integers
 permutation = mtrand.permutation
 
-## Internal class to compute a ppf given a distribution.
-##  (needs cdf function) and uses brentq from scipy.optimize
-##  to compute ppf from cdf.
-class general_cont_ppf(object):
-    def __init__(self, dist, xa=-10.0, xb=10.0, xtol=1e-14):
-        self.dist = dist
-        self.cdf = eval('%scdf'%dist)
-        self.xa = xa
-        self.xb = xb
-        self.xtol = xtol
-        self.vecfunc = sgf(self._single_call,otypes='d')
-    def _tosolve(self, x, q, *args):
-        return apply(self.cdf, (x, )+args) - q
-    def _single_call(self, q, *args):
-        return optimize.brentq(self._tosolve, self.xa, self.xb, args=(q,)+args, xtol=self.xtol)
-    def __call__(self, q, *args):
-        return self.vecfunc(q, *args)
 
 # Frozen RV class
 class rv_frozen_old(object):
@@ -753,7 +743,7 @@ def bd0(x, npr):
 
 ##  Documentation for ranlib, rv2, cdflib and
 ##
-##  Eric Wesstein's world of mathematics http://mathworld.wolfram.com/
+##  Eric Weisstein's world of mathematics http://mathworld.wolfram.com/
 ##      http://mathworld.wolfram.com/topics/StatisticalDistributions.html
 ##
 ##  Documentation to Regress+ by Michael McLaughlin
@@ -877,9 +867,6 @@ def argsreduce(cond, *args):
     >>> B2.shape
     (15,)
 
-    See also
-    --------
-    numpy.extract
     """
 
     newargs = atleast_1d(*args)
@@ -1798,7 +1785,7 @@ class rv_continuous(rv_generic):
         cond = cond0 & cond1
         output = empty(shape(cond),'d')
         output.fill(NINF)
-        place(output,(1-cond0)+np.isnan(x),self.badvalue)
+        place(output,(1-cond0)*(cond1==cond1)+np.isnan(x),self.badvalue)
         place(output,cond2,0.0)
         if any(cond):  #call only if at least 1 entry
             goodargs = argsreduce(cond, *((x,)+args))
@@ -2368,9 +2355,9 @@ class rv_continuous(rv_generic):
         #myfun = lambda y: max(y,100.0*log(xmin)) #% trick to avoid log of zero
         delta = (eps + 2.0) - 2.0
         delta2 = delta ** 2.0
-        #    % Approximate 1/(nE( (d L(x|theta)/dtheta)^2)) with
-        #    %             1/(d^2 L(theta|x)/dtheta^2)
-        #    %  using central differences
+        # Approximate 1/(nE( (d L(x|theta)/dtheta)^2)) with
+        #              1/(d^2 L(theta|x)/dtheta^2)
+        # using central differences
 
         LL = self.nnlf(theta, data)
         H = zeros((np, np))   #%% Hessian matrix
@@ -2457,7 +2444,7 @@ class rv_continuous(rv_generic):
 
             def func(theta, x):
                 newtheta = restore(args[:], theta)
-                return self.nnlf(newtheta, x)
+                return fitfun(newtheta, x)
 
         return x0, func, restore, args
 
@@ -3179,6 +3166,8 @@ class cauchy_gen(rv_continuous):
         return inf, inf, nan, nan
     def _entropy(self):
         return log(4*pi)
+    def _fitstart(data, args=None):
+       return (0, 1)
 cauchy = cauchy_gen(name='cauchy')
 
 
@@ -3394,7 +3383,6 @@ class erlang_gen(rv_continuous):
     The Erlang distribution is a special case of the Gamma
     distribution, with the shape parameter ``a`` an integer. Refer to
     the ``gamma`` distribution for further examples.
-    %(example)s
 
     """
     def _rvs(self, a):
@@ -3914,8 +3902,8 @@ class genpareto_gen(rv_continuous):
         if ix == 0:
             raise ValueError('link(x,logSF,phat,i) where i=0 is not implemented!')
         elif ix == 2:
-            # % Reorganizing w.r.t. phat(2) (scale), Eq. 4.13 and 4.14, pp 81 in Coles (2004) gives
-            #   link = @(x,logSF,phat,ix) -(x-phat(3)).*phat(1)./expm1(phat(1).*logSF);
+            # Reorganizing w.r.t. phat[2] (scale), Eq. 4.13 and 4.14, pp 81 in Coles (2004) gives
+            #   link = -(x-phat[1]).*phat[0]/expm1(phat[0]*logSF)
             if phat[0] != 0.0:
                 phati = (x - u) * phat[0] / expm1(-phat[0] * logSF)
             else:
@@ -4157,7 +4145,7 @@ class genextreme_gen(rv_continuous):
         return exp(self._logpdf(x, c))
     def _logpdf(self, x, c):
         x1 = where((c == 0) & (x == inf), 0.0, x)
-        cx = where((c==0) & (x==inf), 0.0, c * x1)
+        cx = c * x1
         cond1 = (c==0) * (x==x)
         logex2 = where(cond1,0.0,log1p(-cx))
         logpex2 = -x * log1pxdx(-cx)
@@ -4172,7 +4160,7 @@ class genextreme_gen(rv_continuous):
         return exp(self._logcdf(x, c))
     def _logcdf(self, x, c):
         x1 = where((c == 0) & (x == inf), 0.0, x)
-        cx = where((c == 0) & (x == inf), 0.0, c * x1)
+        cx = c * x1
         loglogcdf = -x * log1pxdx(-cx)
         #loglogcdf = where((c==0)*(x==x),-x,log1p(-cx)/c)
         return -exp(loglogcdf)
@@ -4405,10 +4393,10 @@ class gompertz_gen(rv_continuous):
 
     """
     def _pdf(self, x, c):
-        ex = exp(x)
-        return c*ex*exp(-c*(ex-1))
+        exm1 = expm1(x)
+        return c*exp(x)*exp(-c*exm1)
     def _cdf(self, x, c):
-        return 1.0-exp(-c*(exp(x)-1))
+        return -expm1(-c*expm1(x))
     def _ppf(self, q, c):
         return log1p(-1.0/c*log1p(-q))
     def _entropy(self, c):
@@ -5127,7 +5115,7 @@ class lognorm_gen(rv_continuous):
         return exp(s * norm.rvs(size=self._size))
     def _pdf(self, x, s):
         return exp(self._logpdf(x, s))
-        #Px = exp(-log(x)**2 / (2*s**2)) -Px*2*log(x)/x
+        #Px = exp(-log(x)**2 / (2*s**2))
         #return Px / (s*x*sqrt(2*pi))
     def _logpdf(self, x, s):
         return -log(x)**2 / (2*s**2) + np.where(x==0 , 0, - log(s*x*sqrt(2*pi)))
@@ -5758,9 +5746,10 @@ class rayleigh_gen(rv_continuous):
     def _rvs(self):
         return chi.rvs(2,size=self._size)
     def _pdf(self, r):
-        return r*exp(-r*r/2.0)
+        return exp(self._logpdf(r))
     def _logpdf(self, r):
-        return log(r) - r*r/2.0
+        rr2 = r * r / 2.0
+        return where(rr2==inf, - rr2 , log(r) - rr2)
     def _cdf(self, r):
         return - expm1(-r * r / 2.0)
     def _sf(self, r):
@@ -7469,12 +7458,29 @@ class rv_discrete(rv_generic):
 # Binomial
 
 class binom_gen(rv_discrete):
-    def _rvs(self, n, pr):
-        return mtrand.binomial(n,pr,self._size)
-    def _argcheck(self, n, pr):
+    """A binomial discrete random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability mass function for `binom` is::
+
+       binom.pmf(k) = choose(n,k) * p**k * (1-p)**(n-k)
+
+    for ``k`` in ``{0,1,...,n}``.
+
+    `binom` takes ``n`` and ``p`` as shape parameters.
+
+    %(example)s
+
+    """
+    def _rvs(self, n, p):
+        return mtrand.binomial(n,p,self._size)
+    def _argcheck(self, n, p):
         self.b = n
-        return (n>=0) & (pr >= 0) & (pr <= 1)
-    def _logpmf(self, x, n, pr):
+        return (n>=0) & (p >= 0) & (p <= 1)
+    def _logpmf(self, x, n, p):
         """ Return logPMF
 
         Reference
@@ -7484,53 +7490,62 @@ class binom_gen(rv_discrete):
            url = "http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.35.2719" }
         """
         PI2 = 2.0 * pi
-        yborder = log((x == 0.) * exp(n * log1p(-pr)) + (x == n) * exp(n * log(pr)))
+        yborder = log((x == 0.) * exp(n * log1p(-p)) + (x == n) * exp(n * log(p)))
         nx = n - x
-        nq = n * (1. - pr)
-        lc = stirlerr(n) - stirlerr(x) - stirlerr(nx) - bd0(x, n * pr) - bd0(nx, nq)
-        inside = (0. < pr) & (pr < 1.) & (0. < x) & (x < n)
+        nq = n * (1. - p)
+        lc = stirlerr(n) - stirlerr(x) - stirlerr(nx) - bd0(x, n * p) - bd0(nx, nq)
+        inside = (0. < p) & (p < 1.) & (0. < x) & (x < n)
         return where(inside, lc + 0.5 * log(n / (PI2 * x * nx)), yborder)
-    def _pmf(self, x, n, pr):
-        return exp(self._logpmf(x, n, pr))
+    def _pmf(self, x, n, p):
+        return exp(self._logpmf(x, n, p))
 
-    def _cdf(self, x, n, pr):
+    def _cdf(self, x, n, p):
         k = floor(x)
-        vals = special.bdtr(k,n,pr)
+        vals = special.bdtr(k,n,p)
         return vals
-    def _sf(self, x, n, pr):
+    def _sf(self, x, n, p):
         k = floor(x)
-        return special.bdtrc(k,n,pr)
-    def _ppf(self, q, n, pr):
-        vals = ceil(special.bdtrik(q,n,pr))
+        return special.bdtrc(k,n,p)
+    def _ppf(self, q, n, p):
+        vals = ceil(special.bdtrik(q,n,p))
         vals1 = vals-1
-        temp = special.bdtr(vals1,n,pr)
+        temp = special.bdtr(vals1,n,p)
         return where(temp >= q, vals1, vals)
-    def _stats(self, n, pr):
-        q = 1.0-pr
-        mu = n * pr
-        var = n * pr * q
-        g1 = (q-pr) / sqrt(n*pr*q)
-        g2 = (1.0-6*pr*q)/(n*pr*q)
+    def _stats(self, n, p):
+        q = 1.0-p
+        mu = n * p
+        var = n * p * q
+        g1 = (q-p) / sqrt(n*p*q)
+        g2 = (1.0-6*p*q)/(n*p*q)
         return mu, var, g1, g2
-    def _entropy(self, n, pr):
+    def _entropy(self, n, p):
         k = r_[0:n+1]
-        vals = self._pmf(k,n,pr)
+        vals = self._pmf(k,n,p)
         lvals = where(vals==0,0.0,log(vals))
         return -sum(vals*lvals,axis=0)
-binom = binom_gen(name='binom',shapes="n, pr",extradoc="""
-
-Binomial distribution
-
-   Counts the number of successes in *n* independent
-   trials when the probability of success each time is *pr*.
-
-   binom.pmf(k,n,p) = choose(n,k)*p**k*(1-p)**(n-k)
-   for k in {0,1,...,n}
-""")
+binom = binom_gen(name='binom',shapes="n, p")
 
 # Bernoulli distribution
 
 class bernoulli_gen(binom_gen):
+    """A Bernoulli discrete random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The probability mass function for `bernoulli` is::
+
+       bernoulli.pmf(k) = 1-p  if k = 0
+                        = p    if k = 1
+
+    for ``k`` in ``{0,1}``.
+
+    `bernoulli` takes ``p`` as shape parameter.
+
+    %(example)s
+
+    """
     def _rvs(self, pr):
         return binom_gen._rvs(self, 1, pr)
     def _argcheck(self, pr):
@@ -7549,17 +7564,6 @@ class bernoulli_gen(binom_gen):
         return binom._stats(1, pr)
     def _entropy(self, pr):
         return -pr*log(pr)-(1-pr)*log1p(-pr)
-bernoulli = bernoulli_gen(b=1,name='bernoulli',shapes="pr",extradoc="""
-
-Bernoulli distribution
-
-   1 if binary experiment succeeds, 0 otherwise.  Experiment
-   succeeds with probabilty *pr*.
-
-   bernoulli.pmf(k,p) = 1-p  if k = 0
-                      = p    if k = 1
-   for k = 0,1
-"""
 )
 
 # Negative binomial
