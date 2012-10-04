@@ -36,6 +36,9 @@ def magic(n):
            [30,  5, 34, 12, 14, 16],
            [ 4, 36, 29, 13, 18, 11]])
     '''
+    if (n<3):
+        raise ValueError('n must be greater than 2.')
+    
     if np.mod(n,2)==1: # odd order
         ix = np.arange(n) + 1
         J, I = np.meshgrid(ix, ix)
@@ -69,10 +72,10 @@ def magic(n):
             M[i][j] = M[i+p][j]
             M[i+p][j] = temp;
 
-            j=i;
-            temp=M[i+p][j]; 
-            M[i+p][j]=M[i][j]; 
-            M[i][j]=temp;
+            j=i
+            temp=M[i+p][j]
+            M[i+p][j]=M[i][j]
+            M[i][j]=temp
 
     return M
 
