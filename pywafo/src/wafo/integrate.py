@@ -1136,7 +1136,7 @@ def richardson(Q, k):
     R = Q[k] + (Q[k] - Q[k - 1]) / c
     return R
 
-def quadgr(fun, a, b, abseps=1e-5, maxiter=17):
+def quadgr(fun, a, b, abseps=1e-5, max_iter=17):
     '''
     Gauss-Legendre quadrature with Richardson extrapolation.
 
@@ -1446,35 +1446,35 @@ def qdemo(f, a, b):
 
 
 def main():
-    val, err = clencurt(np.exp, 0, 2)
-    valt = np.exp(2) - np.exp(0)
-    [Q, err] = quadgr(lambda x: x ** 2, 1, 4, 1e-9)
-    [Q, err] = quadgr(humps, 1, 4, 1e-9)
-
-    [x, w] = h_roots(11, 'newton')
-    sum(w)
-    [x2, w2] = la_roots(11, 1, 't')
-
-    from scitools import numpyutils as npu #@UnresolvedImport
-    fun = npu.wrap2callable('x**2')
-    p0 = fun(0)
-    A = [0, 1, 1]; B = [2, 4, 3]
-    area, err = gaussq(fun, A, B)
-
-    fun = npu.wrap2callable('x**2')
-    [val1, err1] = gaussq(fun, A, B)
-
-
-    #Integration of x^2*exp(-x) from zero to infinity:
-    fun2 = npu.wrap2callable('1')
-    [val2, err2] = gaussq(fun2, 0, np.inf, wfun=3, alpha=2)
-    [val2, err2] = gaussq(lambda x: x ** 2, 0, np.inf, wfun=3, alpha=0)
-
-    #Integrate humps from 0 to 2 and from 1 to 4
-    [val3, err3] = gaussq(humps, A, B)
-
-    [x, w] = p_roots(11, 'newton', 1, 3)
-    y = np.sum(x ** 2 * w)
+#    val, err = clencurt(np.exp, 0, 2)
+#    valt = np.exp(2) - np.exp(0)
+#    [Q, err] = quadgr(lambda x: x ** 2, 1, 4, 1e-9)
+#    [Q, err] = quadgr(humps, 1, 4, 1e-9)
+#
+#    [x, w] = h_roots(11, 'newton')
+#    sum(w)
+#    [x2, w2] = la_roots(11, 1, 't')
+#
+#    from scitools import numpyutils as npu #@UnresolvedImport
+#    fun = npu.wrap2callable('x**2')
+#    p0 = fun(0)
+#    A = [0, 1, 1]; B = [2, 4, 3]
+#    area, err = gaussq(fun, A, B)
+#
+#    fun = npu.wrap2callable('x**2')
+#    [val1, err1] = gaussq(fun, A, B)
+#
+#
+#    #Integration of x^2*exp(-x) from zero to infinity:
+#    fun2 = npu.wrap2callable('1')
+#    [val2, err2] = gaussq(fun2, 0, np.inf, wfun=3, alpha=2)
+#    [val2, err2] = gaussq(lambda x: x ** 2, 0, np.inf, wfun=3, alpha=0)
+#
+#    #Integrate humps from 0 to 2 and from 1 to 4
+#    [val3, err3] = gaussq(humps, A, B)
+#
+#    [x, w] = p_roots(11, 'newton', 1, 3)
+#    y = np.sum(x ** 2 * w)
 
     x = np.linspace(0, np.pi / 2)
     q0 = np.trapz(humps(x), x)
