@@ -21,10 +21,12 @@ from scipy.ndimage.morphology import distance_transform_edt
 from numpy import pi, sqrt, atleast_2d, exp, newaxis #@UnresolvedImport
 
 from wafo.misc import meshgrid, nextpow2, tranproc #, trangood
-from wafo.wafodata import WafoData
+from wafo.wafodata import PlotData
 from wafo.dctpack import dct, dctn, idctn
 from wafo.plotbackend import plotbackend as plt
 from wafo import fig
+
+_TINY = np.finfo(float).machar.tiny
 
 def _invnorm(q):
     return special.ndtri(q)
@@ -65,6 +67,7 @@ def sphere_volume(d, r=1.0):
     Chapman and Hall, pp 105
     """
     return (r ** d) * 2.0 * pi ** (d / 2.0) / (d * gamma(d / 2.0))
+
 class KDEgauss(object):
     """ Kernel-Density Estimator base class.
 
@@ -136,7 +139,7 @@ class KDEgauss(object):
             for i in ind.tolist(): # 
                 h[i] = get_smoothing(self.dataset[i])
             deth = h.prod()
-            self.inv_hs = linalg.diag(1.0 / h)
+            self.inv_hs = np.diag(1.0 / h)
         else: #fully general smoothing matrix
             deth = linalg.det(h)
             if deth <= 0:
@@ -836,7 +839,7 @@ class KDE(_KDE):
             for i in ind.tolist(): # 
                 h[i] = get_smoothing(self.dataset[i])
             deth = h.prod()
-            self.inv_hs = linalg.diag(1.0 / h)
+            self.inv_hs = np.diag(1.0 / h)
         else: #fully general smoothing matrix
             deth = linalg.det(h)
             if deth <= 0:
@@ -1025,7 +1028,7 @@ class KRegression(_KDE):
     >>> y = 2*np.exp(-x**2/(2*0.3**2))+3*np.exp(-(x-1)**2/(2*0.7**2)) + ei
     >>> kreg = wk.KRegression(x, y)
     >>> f = kreg(output='plotobj', title='Kernel regression', plotflag=1)
-    >>> f.plot(label='p=0')
+    >>> h = f.plot(label='p=0')
     """
 
     def __init__(self, data, y, p=0, hs=None, kernel=None, alpha=0.0, xmin=None, xmax=None, inc=128, L2=None):
@@ -3045,22 +3048,24 @@ def evar(y):
     Examples:
     --------
     1D signal
-    >>> n = 1e6; 
+    >>> n = 1e6
     >>> x = np.linspace(0,100,n);
     >>> y = np.cos(x/10)+(x/50)
     >>> var0 = 0.02   #  noise variance
     >>> yn = y + sqrt(var0)*np.random.randn(*y.shape)
-    >>> evar(yn)  #estimated variance
-    0.020018619214933957
-    
+    >>> s = evar(yn)  #estimated variance
+    >>> np.abs(s-var0)/var0 < 3.5/np.sqrt(n)
+    True
+     
     2D function
     >>> xp = np.linspace(0,1,50) 
     >>> x, y = np.meshgrid(xp,xp)
     >>> f = np.exp(x+y) + np.sin((x-2*y)*3)
     >>> var0 = 0.04 #  noise variance
     >>> fn = f + sqrt(var0)*np.random.randn(*f.shape)
-    >>> evar(fn)  # estimated variance
-    0.022806636928561375
+    >>> s = evar(fn)  # estimated variance
+    >>> np.abs(s-var0)/var0 < 3.5/np.sqrt(50)
+    True
     
     3D function
     >>> yp = np.linspace(-2,2,50)
@@ -3068,8 +3073,10 @@ def evar(y):
     >>> f = x*exp(-x**2-y**2-z**2)
     >>> var0 = 0.5  # noise variance
     >>> fn = f + sqrt(var0)*np.random.randn(*f.shape)
-    >>> evar(fn)  # estimated variance
-    0.47375136534336421
+    >>> s = evar(fn)  # estimated variance
+    >>> np.abs(s-var0)/var0 < 3.5/np.sqrt(50)
+    True
+     
     
     Other example
     -------------
@@ -3161,7 +3168,7 @@ def smoothn(data, s=None, weight=None, robust=False, z0=None, tolz=1e-3, maxiter
     1-D example
     >>> import matplotlib.pyplot as plt
     >>> x = np.linspace(0,100,2**8)
-    >>> y = cos(x/10)+(x/50)**2 + np.random.randn(x.shape)/10
+    >>> y = np.cos(x/10)+(x/50)**2 + np.random.randn(*x.shape)/10
     >>> y[np.r_[70, 75, 80]] = np.array([5.5, 5, 6])
     >>> z = smoothn(y) # Regular smoothing
     >>> zr = smoothn(y,robust=True) #  Robust smoothing
@@ -3839,8 +3846,8 @@ def kreg_demo3(x,y, fun1, hs=None, fun='hisj', plotlog=False):
     
     
     # ref Casella and Berger (1990) "Statistical inference" pp444
-    a = 2*pi + z0**2/(ciii+1e-16)
-    b = 2*(1+z0**2/(ciii+1e-16))
+#    a = 2*pi + z0**2/(ciii+1e-16)
+#    b = 2*(1+z0**2/(ciii+1e-16))
 #    plo2 = ((a-sqrt(a**2-2*pi**2*b))/b).clip(min=0,max=1)
 #    pup2 = ((a+sqrt(a**2-2*pi**2*b))/b).clip(min=0,max=1)
     
@@ -3986,15 +3993,15 @@ def check_kreg_demo4():
     #kde_gauss_demo()
     #kreg_demo2(n=120,symmetric=True,fun='hste', plotlog=True)
     k = 0
-    for i, n in enumerate([100,300,600,4000]):
+    for i, n in enumerate([100,300,600,4000]): #@UnusedVariable
         x,y, fun1 = _get_data(n, symmetric=True,loc1=0.1, scale1=0.6, scale2=0.75)
-        k0 = k
-        hopt1, h1,h2 = _get_regression_smooting(x,y,fun='hos')
-        hopt2, h1,h2 = _get_regression_smooting(x,y,fun='hste')
+        #k0 = k
+        hopt1, _h1, _h2 = _get_regression_smooting(x,y,fun='hos')
+        hopt2, _h1, _h2 = _get_regression_smooting(x,y,fun='hste')
         hopt = sqrt(hopt1*hopt2)
         #hopt = _get_regression_smooting(x,y,fun='hos')[0]
-        for j, fun in enumerate(['hste']): # , 'hisj', 'hns', 'hstt'
-            hsmax, hs1, hs2 =_get_regression_smooting(x,y,fun=fun)
+        for j, fun in enumerate(['hste']): # , 'hisj', 'hns', 'hstt' @UnusedVariable
+            hsmax, _hs1, _hs2 =_get_regression_smooting(x,y,fun=fun)
             
             fmax = kreg_demo4(x, y, hsmax+0.1, hopt)
             for hi in np.linspace(hsmax*0.1,hsmax,55):
@@ -4019,7 +4026,7 @@ def check_regression_bin():
     #kde_gauss_demo()
     #kreg_demo2(n=120,symmetric=True,fun='hste', plotlog=True)
     k = 0
-    for i, n in enumerate([100,300,600,4000]):
+    for i, n in enumerate([100,300,600,4000]): #@UnusedVariable
         x,y, fun1 = _get_data(n, symmetric=True,loc1=0.1, scale1=0.6, scale2=0.75)
         fbest = regressionbin(x, y, alpha=0.05, color='g', label='Transit_D')
         
@@ -4040,7 +4047,7 @@ def check_regression_bin():
 def check_bkregression():
     plt.ion()
     k = 0
-    for i, n in enumerate([50, 100,300,600]):
+    for i, n in enumerate([50, 100,300,600]): #@UnusedVariable
         x,y, fun1 = _get_data(n, symmetric=True,loc1=0.1, scale1=0.6, scale2=0.75)
         bkreg = BKRegression(x,y)
         fbest = bkreg.prb_search_best(hsfun='hste', alpha=0.05, color='g', label='Transit_D')
@@ -4204,7 +4211,7 @@ def regressionbin(x,y, alpha=0.05, color='r', label=''):
             f = smoothed_bin_prb(x, y, hi, hopt, alpha, color, label, bin_prb)
             if f.aicc<=fbest.aicc:
                 fbest = f
-                hbest = hi
+                #hbest = hi
     return fbest
 def kde_gauss_demo(n=50):
     '''
@@ -4227,7 +4234,7 @@ def kde_gauss_demo(n=50):
     #dist = st.norm
     dist = st.expon
     data = dist.rvs(loc=0, scale=1.0, size=n)
-    d, N = np.atleast_2d(data).shape
+    d, N = np.atleast_2d(data).shape #@UnusedVariable
     
     if d==1:
         plot_options = [dict(color='red'), dict(color='green'), dict(color='black')]
@@ -4265,7 +4272,9 @@ def test_docstrings():
     doctest.testmod()
     
 if __name__ == '__main__':
-    check_bkregression()
+    test_docstrings()
+    
+    #check_bkregression()
     #check_regression_bin()
     #check_kreg_demo3()
     #check_kreg_demo4()
@@ -4274,7 +4283,7 @@ if __name__ == '__main__':
     #test_smoothn_2d()
     #test_smoothn_cardioid()
     
-    #test_docstrings()
+    
     #kde_demo2()
     #kreg_demo1(fast=True)
     #kde_gauss_demo()

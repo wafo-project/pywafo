@@ -1,6 +1,6 @@
 from numpy import asarray, ndarray, ones, nan #, reshape, repeat,  product
 
-def valarray(shape,value=nan,typecode=None):
+def valarray(shape, value=nan, typecode=None):
     """Return an array of all value.
     """
     #out = reshape(repeat([value],product(shape,axis=0),axis=0),shape)

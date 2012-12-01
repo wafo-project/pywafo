@@ -7,7 +7,7 @@ from scipy.integrate.quadrature import cumtrapz #@UnresolvedImport
 from scipy.interpolate import griddata
 from scipy import integrate
 
-__all__ = ['WafoData', 'AxisLabels']
+__all__ = ['PlotData', 'AxisLabels']
 
 def empty_copy(obj):
     class Empty(obj.__class__):
@@ -29,7 +29,7 @@ def now():
     '''
     return strftime("%a, %d %b %Y %H:%M:%S", gmtime())
 
-class WafoData(object):
+class PlotData(object):
     '''
     Container class for data objects in WAFO
 
@@ -38,7 +38,7 @@ class WafoData(object):
     data : array_like
     args : vector for 1D, list of vectors for 2D, 3D, ...
     labels : AxisLabels
-    children : list of WafoData objects
+    children : list of PlotData objects
 
     Member methods
     --------------
@@ -52,12 +52,12 @@ class WafoData(object):
     >>> x = np.arange(-2, 2, 0.2)
 
     # Plot 2 objects in one call
-    >>> d2 = WafoData(np.sin(x), x, xlab='x', ylab='sin', title='sinus')
+    >>> d2 = PlotData(np.sin(x), x, xlab='x', ylab='sin', title='sinus')
     >>> h = d2.plot()
 
     Plot with confidence interval
-    >>> d3 = WafoData(np.sin(x),x)
-    >>> d3.children = [WafoData(np.vstack([np.sin(x)*0.9, np.sin(x)*1.2]).T,x)]
+    >>> d3 = PlotData(np.sin(x),x)
+    >>> d3.children = [PlotData(np.vstack([np.sin(x)*0.9, np.sin(x)*1.2]).T,x)]
     >>> d3.plot_args_children=[':r']
     >>> h = d3.plot()
 
@@ -110,9 +110,9 @@ class WafoData(object):
     def eval_points(self, *args, **kwds):
         '''
         >>> x = np.linspace(0,5,20)
-        >>> d = WafoData(np.sin(x),x)
+        >>> d = PlotData(np.sin(x),x)
         >>> xi = np.linspace(0,5,60)
-        >>> di = WafoData(d.eval_points(xi, method='cubic'),xi)
+        >>> di = PlotData(d.eval_points(xi, method='cubic'),xi)
         >>> h = d.plot('.')
         >>> hi = di.plot()
     
@@ -134,7 +134,7 @@ class WafoData(object):
     def integrate(self, a, b, **kwds):
         '''
         >>> x = np.linspace(0,5,60)
-        >>> d = WafoData(np.sin(x), x)
+        >>> d = PlotData(np.sin(x), x)
         >>> d.integrate(0,np.pi/2)
         0.99940054759302188
         
@@ -490,15 +490,15 @@ def plot2d(axis, wdata, plotflag, *args, **kwds):
 def test_eval_points():
     plotbackend.ioff()
     x = np.linspace(0,5,21)
-    d = WafoData(np.sin(x),x)
+    d = PlotData(np.sin(x),x)
     xi = np.linspace(0,5,61)
-    di = WafoData(d.eval_points(xi,method='cubic'),xi)
+    di = PlotData(d.eval_points(xi,method='cubic'),xi)
     d.plot('.')
     di.plot()
     di.show()
 def test_integrate():
     x = np.linspace(0,5,60)
-    d = WafoData(np.sin(x), x)
+    d = PlotData(np.sin(x), x)
     print(d.integrate(0,np.pi/2,method='simps'))
 def test_docstrings():
     import doctest

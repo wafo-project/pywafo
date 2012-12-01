@@ -6,7 +6,7 @@ w2k - Translates from frequency to wave number
 """
 import warnings
 #import numpy as np
-from numpy import (atleast_1d, sqrt, zeros_like, arctan2, where, tanh, any, #@UnresolvedImport
+from numpy import (atleast_1d, sqrt, ones_like, zeros_like, arctan2, where, tanh, any, #@UnresolvedImport
     sin, cos, sign, inf, flatnonzero, finfo, cosh, abs) #@UnresolvedImport
 
 __all__  = ['k2w', 'w2k']
@@ -132,15 +132,15 @@ def w2k(w, theta=0.0, h=inf, g=9.81, count_limit=100):
     --------
     k2w
     '''
-    wi, th, gi = atleast_1d(w, theta, g)
+    wi, th, hi, gi = atleast_1d(w, theta, h, g)
 
     if wi.size == 0:
         return zeros_like(wi)
 
-    k = 1.0*sign(wi)*wi**2.0  #% deep water
-    if h > 10. ** 25:
-        k2 = k*sin(th)/gi[-1] #%size np x nf
-        k1 = k*cos(th)/gi[0]
+    k = 1.0*sign(wi)*wi**2.0 / gi[0]  # deep water
+    if (hi > 10. ** 25).all():
+        k2 = k*sin(th)*gi[0]/gi[-1] #size np x nf
+        k1 = k*cos(th)
         return k1, k2
 
 
@@ -155,11 +155,11 @@ def w2k(w, theta=0.0, h=inf, g=9.81, count_limit=100):
     eps = finfo(float).eps
 
     oshape = k.shape
-    wi, k = wi.ravel(), k.ravel() 
+    wi, k, hi = wi.ravel(), k.ravel(), hi.ravel()
 
     # Newton's Method
     # Permit no more than count_limit iterations.
-
+    hi = hi * ones_like(k)
     hn = zeros_like(k)
     ix = find((wi<0) | (0<wi))
 
@@ -170,7 +170,8 @@ def w2k(w, theta=0.0, h=inf, g=9.81, count_limit=100):
     count = 0
     while (ix.size>0 and count < count_limit):
         ki = k[ix]
-        hn[ix] = (ki*tanh(ki*h)-wi[ix]**2.0/gi)/(tanh(ki*h)+ki*h/(cosh(ki*h)**2.0))
+        kh = ki * hi[ix]
+        hn[ix] = (ki*tanh(kh)-wi[ix]**2.0/gi)/(tanh(kh)+kh/(cosh(kh)**2.0))
         knew = ki - hn[ix]
         # Make sure that the current guess is not zero.
         # When Newton's Method suggests steps that lead to zero guesses
@@ -181,7 +182,7 @@ def w2k(w, theta=0.0, h=inf, g=9.81, count_limit=100):
             hn[ix[ksmall]] = ki[ksmall]-knew[ksmall]
 
         k[ix] = knew
-        #   disp(['Iteration ',num2str(count),'  Number of points left:  ' num2str(length(ix)) ]),
+        # disp(['Iteration ',num2str(count),'  Number of points left:  ' num2str(length(ix)) ]),
 
         ix = find((abs(hn) > sqrt(eps)*abs(k))  *  abs(hn) > sqrt(eps))
         count += 1

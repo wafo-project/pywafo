@@ -1,6 +1,6 @@
 from __future__ import division
 import warnings
-from wafo.wafodata import WafoData
+from wafo.wafodata import PlotData
 from wafo.misc import findextrema
 from scipy import special
 import numpy as np
@@ -80,7 +80,7 @@ def edf(x, method=2):
     else:
         Fz1 = arange(1, N + 1) / (N + 1)
      
-    F = WafoData(Fz1, z, xlab='x', ylab='F(x)')
+    F = PlotData(Fz1, z, xlab='x', ylab='F(x)')
     F.setplotter('step')
     return F
 
@@ -147,7 +147,7 @@ def reslife(data, u=None, umin=None, umax=None, nu=None, nmin=3, alpha=0.05, plo
     
     Returns
     -------
-    mrl : WafoData object
+    mrl : PlotData object
         Mean residual life values, i.e., mean excesses over thresholds, u.
     
     Notes
@@ -217,9 +217,9 @@ def reslife(data, u=None, umin=None, umax=None, nu=None, nmin=3, alpha=0.05, plo
     #options.CI = [mrll,mrlu];
     #options.numdata = num;
     titleTxt = 'Mean residual life with %d%s CI' % (100 * p, '%')
-    res = WafoData(mrl, u, xlab='Threshold', ylab='Mean Excess', title=titleTxt)
+    res = PlotData(mrl, u, xlab='Threshold', ylab='Mean Excess', title=titleTxt)
     res.workspace = dict(numdata=num, umin=umin, umax=umax, nu=nu, nmin=nmin, alpha=alpha)
-    res.children = [WafoData(vstack([mrll, mrlu]).T, u, xlab='Threshold', title=titleTxt)]
+    res.children = [PlotData(vstack([mrll, mrlu]).T, u, xlab='Threshold', title=titleTxt)]
     res.plot_args_children = [':r']
     if plotflag:
         res.plot()
@@ -249,7 +249,7 @@ def dispersion_idx(data, t=None, u=None, umin=None, umax=None, nu=None, nmin=10,
     
     Returns
     -------
-    DI : WafoData object
+    DI : PlotData object
         Dispersion index
     b_u : real scalar
         threshold where the number of exceedances in a fixed period (Tb) is
@@ -381,10 +381,10 @@ def dispersion_idx(data, t=None, u=None, umin=None, umax=None, nu=None, nmin=10,
     CItxt = '%d%s CI' % (100 * p, '%')
     titleTxt = 'Dispersion Index plot';
     
-    res = WafoData(di, u, title=titleTxt, labx='Threshold', laby='Dispersion Index')
+    res = PlotData(di, u, title=titleTxt, labx='Threshold', laby='Dispersion Index')
         #'caption',CItxt);
     res.workspace = dict(umin=umin, umax=umax, nu=nu, nmin=nmin, alpha=alpha)
-    res.children = [WafoData(vstack([diLo * ones(nu), diUp * ones(nu)]).T, u, xlab='Threshold', title=CItxt)]
+    res.children = [PlotData(vstack([diLo * ones(nu), diUp * ones(nu)]).T, u, xlab='Threshold', title=CItxt)]
     res.plot_args_children = ['--r']
     if plotflag:
         res.plot(di)
@@ -848,9 +848,9 @@ class RegLogit(object):
         z1 = (y * ones((1, yrange))) == ((y * 0 + 1) * np.arange(ymin + 1, ymax+1))
         z  = z[:, np.flatnonzero(z.any(axis=0))];
         z1 = z1[:, np.flatnonzero(z1.any(axis=0))]
-        [mz, nz] = z.shape 
-        [mx, nx] = X.shape 
-        [my, ny] = y.shape 
+        [_mz, nz] = z.shape 
+        [_mx, nx] = X.shape 
+        [my, _ny] = y.shape 
       
         g = (z.sum(axis=0).cumsum() / my).reshape(-1,1)
         theta00 = np.log(g / (1 - g)).ravel()
@@ -1120,7 +1120,7 @@ class RegLogit(object):
                 .size  : size if binomial family (default 1).    
         '''
         
-        [mx, nx] = self.X.shape
+        [_mx, nx] = self.X.shape
         if Xnew is None:
             Xnew = self.X;
         else:
@@ -1229,7 +1229,7 @@ def _test_dispersion_idx():
     xn = wafo.data.sea()
     t, data = xn.T
     Ie = findpot(data,t,0,5);
-    di, u, ok_u = dispersion_idx(data[Ie],t[Ie],tb=100)
+    di, _u, _ok_u = dispersion_idx(data[Ie],t[Ie],tb=100)
     di.plot() # a threshold around 1 seems appropriate.
     di.show()
     pass
@@ -1240,7 +1240,7 @@ def _test_findpot():
     from wafo.misc import findtc
     x = wafo.data.sea()
     t, data = x[:, :].T
-    itc, iv = findtc(data, 0, 'dw')
+    itc, _iv = findtc(data, 0, 'dw')
     ytc, ttc = data[itc], t[itc]
     ymin = 2 * data.std()
     tmin = 10 # sec
@@ -1248,7 +1248,7 @@ def _test_findpot():
     yp, tp = data[I], t[I]
     Ie = findpot(yp, tp, ymin, tmin)
     ye, te = yp[Ie], tp[Ie]
-    h = pylab.plot(t, data, ttc,ytc,'ro', t, zeros(len(t)), ':', te, ye, 'kx', tp, yp, '+')
+    pylab.plot(t, data, ttc,ytc,'ro', t, zeros(len(t)), ':', te, ye, 'kx', tp, yp, '+')
     pylab.show() #
     pass
 
@@ -1266,7 +1266,7 @@ def test_reglogit():
     #b.display() #% members and methods
     
     b.summary()
-    [mu,plo,pup] = b.predict(fulloutput=True);
+    [mu,plo,pup] = b.predict(fulloutput=True) #@UnusedVariable
     pass
     #plot(x,mu,'g',x,plo,'r:',x,pup,'r:')
 def test_reglogit2():
@@ -1284,12 +1284,12 @@ def test_reglogit2():
     
 def test_sklearn0():
     from sklearn.linear_model import LogisticRegression
-    from sklearn import datasets
+    from sklearn import datasets #@UnusedImport
     
     # FIXME: the iris dataset has only 4 features!
-    iris = datasets.load_iris()
-    X = iris.data
-    y = iris.target
+#    iris = datasets.load_iris() 
+#    X = iris.data
+#    y = iris.target
     
     X = np.sort(5*np.random.rand(40, 1)-2.5, axis=0)
     y = (2*(np.cos(X)>2*np.random.rand(40, 1)-1)-1).ravel()
@@ -1302,7 +1302,7 @@ def test_sklearn0():
         clf_LR.fit(X, y)
         score.append(clf_LR.score(X,y))
             
-    plot(cvals, score)
+    #plot(cvals, score)
 
 def test_sklearn():
     X = np.sort(5*np.random.rand(40, 1)-2.5, axis=0)
@@ -1335,7 +1335,7 @@ def test_sklearn1():
     y = (2*(np.cos(X)>2*np.random.rand(40, 1)-1)-1).ravel()
     from sklearn.svm import SVR
     
-    cvals= np.logspace(-1,4,10)
+#    cvals= np.logspace(-1,4,10)
     svr_rbf = SVR(kernel='rbf', C=1e4, gamma=0.1, probability=True)
     svr_lin = SVR(kernel='linear', C=1e4, probability=True)
     svr_poly = SVR(kernel='poly', C=1e4, degree=2, probability=True)

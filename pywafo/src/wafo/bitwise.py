@@ -66,6 +66,13 @@ def setbit(i, bit, value=1):
 def setbits(bitlist):
     """
     Set bits of val to values in bitlist
+    
+    Example
+    -------
+    >>> setbits([1,1])
+    3
+    >>> setbits([1,0])
+    1
     """
 #    return bitlist[7]<<7 | bitlist[6]<<6 | bitlist[5]<<5 | bitlist[4]<<4 | \
 #    bitlist[3]<<3 | bitlist[2]<<2 | bitlist[1]<<1 | bitlist[0] 

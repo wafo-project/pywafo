@@ -4,7 +4,7 @@ from __future__ import division
 #import numpy as np
 from numpy import trapz, sqrt, linspace #@UnresolvedImport
 
-from wafo.wafodata import WafoData
+from wafo.wafodata import PlotData
 from wafo.misc import tranproc #, trangood
 
 __all__ = ['TrData', 'TrCommon']
@@ -127,8 +127,9 @@ class TrCommon(object):
     def _dat2gauss(self, x, *xi):
         pass
     
-class TrData(WafoData, TrCommon):
-    __doc__ = TrCommon.__doc__.split('mean')[0].replace('<generic>','Data') + """
+class TrData(PlotData, TrCommon):
+    __doc__ = TrCommon.__doc__.split('mean')[0].replace('<generic>','Data' #@ReservedAssignment
+                                                        ) + """ 
     data : array-like
         Gaussian values, Y
     args : array-like
@@ -186,7 +187,7 @@ class TrData(WafoData, TrCommon):
             ym = self.ymean-self.ysigma
             self.sigma = (self.gauss2dat(yp)-self.gauss2dat(ym))/2.
             
-        self.children = [WafoData((self.args-self.mean)/self.sigma, self.args)]
+        self.children = [PlotData((self.args-self.mean)/self.sigma, self.args)]
 
     def trdata(self):
         return self

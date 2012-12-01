@@ -30,7 +30,7 @@ __all__ = ['is_numlike', 'JITImport', 'DotDict', 'Bunch', 'printf', 'sub_dict_se
     'findextrema', 'findpeaks', 'findrfc', 'rfcfilter', 'findtp', 'findtc',
     'findoutliers', 'common_shape', 'argsreduce',
     'stirlerr', 'getshipchar', 'betaloge', 'gravity', 'nextpow2',
-    'discretize', 'pol2cart', 'cart2pol', 'meshgrid', 'ndgrid',
+    'discretize', 'polar2cart', 'cart2polar', 'meshgrid', 'ndgrid',
     'trangood', 'tranproc', 'plot_histgrm', 'num2pistr', 'test_docstrings']
 
 
@@ -1770,7 +1770,7 @@ def _discretize_adaptive(fun, a, b, tol=0.005, n=5):
     return x, fx
 
 
-def pol2cart(theta, rho, z=None):
+def polar2cart(theta, rho, z=None):
     ''' 
     Transform polar coordinates into 2D cartesian coordinates.
 
@@ -1781,7 +1781,7 @@ def pol2cart(theta, rho, z=None):
 
     See also
     --------
-    cart2pol
+    cart2polar
     '''
     x, y = rho * cos(theta), rho * sin(theta)
     if z is None:
@@ -1790,7 +1790,7 @@ def pol2cart(theta, rho, z=None):
         return x, y, z
     
 
-def cart2pol(x, y, z=None):
+def cart2polar(x, y, z=None):
     ''' Transform 2D cartesian coordinates into polar coordinates.
 
     Returns
@@ -1802,7 +1802,7 @@ def cart2pol(x, y, z=None):
 
     See also
     --------
-    pol2cart
+    polar2cart
     '''
     t, r = arctan2(y, x), hypot(x, y)
     if z is None:

@@ -21,7 +21,7 @@ from plotbackend import plotbackend as plt
 import numpy as np
 from numpy.fft import fft, ifft
 from numpy import (zeros, ones, zeros_like, array, asarray, newaxis, arange, #@UnresolvedImport 
-    logical_or, any, pi, cos, round, diff, all, r_, exp, #atleast_1d,  hstack,#@UnresolvedImport
+    logical_or, any, pi, cos, round, diff, all, r_, exp, atleast_1d, #  hstack,#@UnresolvedImport
     where, extract, dot, linalg, sign, concatenate, floor, isreal, conj, remainder, #@UnresolvedImport
     linspace) #@UnresolvedImport
 from numpy.lib.polynomial import * #@UnusedWildImport

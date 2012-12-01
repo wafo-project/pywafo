@@ -3,9 +3,9 @@ Created on 17. juli 2010
 
 @author: pab
 '''
-import numpy as np
-from numpy import pi, inf
-from wafo.gaussian import Rind, prbnormtndpc, prbnormndpc, prbnormnd, cdfnorm2d, prbnorm2d
+import numpy as np #@UnusedImport
+from numpy import pi, inf #@UnusedImport
+from wafo.gaussian import Rind, prbnormtndpc, prbnormndpc, prbnormnd, cdfnorm2d, prbnorm2d #@UnusedImport
 
 def test_rind():
     '''

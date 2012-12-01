@@ -24,9 +24,9 @@ def test_w2k():
     array([ 0.        ,  0.10503601,  0.40774726,  0.91743119])
     '''
     
-def main():
+def test_doctstrings():
     import doctest
     doctest.testmod()
 
 if __name__ == '__main__':
-    main()
+    test_doctstrings()

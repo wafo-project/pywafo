@@ -43,7 +43,7 @@ _example = '''
     >>> xs = g2.gauss2dat(ys[:,1:]) # Transformed to the real world 
     '''
 class TrCommon2(TrCommon):
-    __doc__ = TrCommon.__doc__
+    __doc__ = TrCommon.__doc__ #@ReservedAssignment
     def trdata(self, x=None, xnmin= -5, xnmax=5, n=513):
         """
         Return a discretized transformation model.
@@ -75,7 +75,8 @@ class TrCommon2(TrCommon):
         return TrData(yn, x, mean=self.mean, sigma=self.sigma)
 
 class TrHermite(TrCommon2):
-    __doc__ = TrCommon2.__doc__.replace('<generic>', 'Hermite') + """
+    __doc__ = TrCommon2.__doc__.replace('<generic>', 'Hermite' #@ReservedAssignment
+                                        ) +  """
     pardef : scalar, integer
         1  Winterstein et. al. (1994) parametrization [1]_ (default)
         2  Winterstein (1988) parametrization [2]_
@@ -328,7 +329,8 @@ class TrHermite(TrCommon2):
 
 
 class TrLinear(TrCommon2):
-    __doc__ = TrCommon2.__doc__.replace('<generic>', 'Linear') + """
+    __doc__ = TrCommon2.__doc__.replace('<generic>', 'Linear' #@ReservedAssignment
+                                        ) + """
     Description
     -----------
     The linear transformation model is monotonic linear polynomial, calibrated
@@ -369,7 +371,8 @@ class TrLinear(TrCommon2):
     
    
 class TrOchi(TrCommon2):
-    __doc__ = TrCommon2.__doc__.replace('<generic>', 'Ochi') + """
+    __doc__ = TrCommon2.__doc__.replace('<generic>', 'Ochi' #@ReservedAssignment
+                                        ) + """
 
     Description
     -----------

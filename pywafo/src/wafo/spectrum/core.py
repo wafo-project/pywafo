@@ -1,15 +1,15 @@
 from __future__ import division
-from wafo.misc import meshgrid, gravity, cart2pol, pol2cart
-from wafo.objects import mat2timeseries, TimeSeries
+from wafo.misc import meshgrid, gravity, cart2polar, polar2cart
+from wafo.objects import  TimeSeries #mat2timeseries,
 import warnings
 
 import numpy as np
 from numpy import (pi, inf, zeros, ones, where, nonzero, #@UnresolvedImport
            flatnonzero, ceil, sqrt, exp, log, arctan2, log10, #@UnresolvedImport
-           tanh, cosh, sinh, random, atleast_1d, maximum, #@UnresolvedImport
+           tanh, cosh, sinh, random, atleast_1d,  #@UnresolvedImport
            minimum, diff, isnan, any, r_, conj, mod, #@UnresolvedImport
            hstack, vstack, interp, ravel, finfo, linspace, #@UnresolvedImport
-           arange, array, nan, newaxis, fliplr, sign) #@UnresolvedImport
+           arange, array, nan, newaxis, sign) #, fliplr, maximum) #@UnresolvedImport
 from numpy.fft import fft
 from scipy.integrate import simps, trapz
 from scipy.special import erf
@@ -17,8 +17,8 @@ from scipy.linalg import toeplitz
 import scipy.interpolate as interpolate
 from wafo.interpolate import stineman_interp
 
-from dispersion_relation import w2k #, k2w
-from wafo.wafodata import WafoData, now
+from wafo.wave_theory.dispersion_relation import w2k #, k2w
+from wafo.wafodata import PlotData, now
 from wafo.misc import sub_dict_select, nextpow2, discretize, JITImport, findpeaks #, tranproc
 from wafo.graphutil import cltext
 from wafo.kdetools import qlevels
@@ -45,7 +45,7 @@ from wafo.plotbackend import plotbackend
 
 
 # Trick to avoid error due to circular import
-#_WAFOCOV = ppimport('wafo.covariance')
+
 _WAFOCOV = JITImport('wafo.covariance')
 
 
@@ -156,185 +156,185 @@ def qtf(w, h=inf, g=9.81):
 
     return h_s, h_d , h_dii
 
-def plotspec(specdata, linetype='b-', flag=1):
-    '''
-    PLOTSPEC Plot a spectral density 
-    
-    Parameters
-    ---------- 
-    S : SpecData1D or SpecData2D object      
-        defining spectral density.
-    linetype : string
-        defining color and linetype, see plot for possibilities
-    flag : scalar integer
-        defining the type of plot
-        1D:
-            1 plots the density, S, (default)
-            2 plot 10log10(S)
-            3 plots both the above plots 
-        2D:
-        Directional spectra: S(w,theta), S(f,theta)             
-            1 polar plot S (default)
-            2 plots spectral density and the directional 
-                    spreading, int S(w,theta) dw or int S(f,theta) df
-            3 plots spectral density and the directional 
-                    spreading, int S(w,theta)/S(w) dw or int S(f,theta)/S(f) df
-            4 mesh of S
-            5 mesh of S in polar coordinates  
-            6 contour plot of S
-            7 filled contour plot of S
-        Wavenumber spectra: S(k1,k2)
-            1 contour plot of S (default)
-            2 filled contour plot of S
-     
-    Example
-    -------
-    >>> import numpy as np
-    >>> import wafo.spectrum as ws
-    >>> Sj = ws.models.Jonswap(Hm0=3, Tp=7)
-    >>> S = Sj.tospecdata()
-    >>> ws.plotspec(S,flag=1)
-
-      S = demospec('dir'); S2 = mkdspec(jonswap,spreading);
-      plotspec(S,2), hold on
-      plotspec(S,3,'g')  % Same as previous fig. due to frequency independent spreading
-      plotspec(S2,2,'r') % Not the same as previous figs. due to frequency dependent spreading
-      plotspec(S2,3,'m')
-      % transform from angular frequency and radians to frequency and degrees
-      Sf = ttspec(S,'f','d'); clf
-      plotspec(Sf,2),
-    
-     See also  dat2spec, createspec, simpson
-    '''
-  
-    # label the contour levels
-    txtFlag = 0;
-    LegendOn = 1;
-  
-    
-    ftype = specdata.freqtype #options are 'f' and 'w' and 'k'
-    data = specdata.data
-    if data.ndim == 2:
-        freq = specdata.args[1]
-        theta = specdata.args[0]
-    else:
-        freq = specdata.args    
-    #if isinstance(specdata.args, (list, tuple)):
-        
-    if ftype == 'w': 
-        xlbl_txt = 'Frequency [rad/s]';  
-        ylbl1_txt = 'S(w) [m^2 s / rad]';
-        ylbl3_txt = 'Directional Spectrum';
-        zlbl_txt = 'S(w,\theta) [m^2 s / rad^2]';
-        funit = ' [rad/s]';  
-        #Sunit     = ' [m^2 s / rad]'; 
-    elif ftype == 'f':  
-        xlbl_txt = 'Frequency [Hz]';     
-        ylbl1_txt = 'S(f) [m^2 s]';
-        ylbl3_txt = 'Directional Spectrum';
-        zlbl_txt = 'S(f,\theta) [m^2 s / rad]';
-        funit = ' [Hz]';  
-        #Sunit     = ' [m^2 s ]'; 
-    elif ftype == 'k':
-        xlbl_txt = 'Wave number [rad/m]';
-        ylbl1_txt = 'S(k) [m^3/ rad]';
-        funit = ' [rad/m]'; 
-        #Sunit     = ' [m^3 / rad]';     
-        ylbl4_txt = 'Wave Number Spectrum';
-    
-    else:
-        raise ValueError('Frequency type unknown')
-
-    
-    if hasattr(specdata, 'norm') and specdata.norm :
-        #Sunit=[];
-        funit = [];
-        ylbl1_txt = 'Normalized Spectral density';
-        ylbl3_txt = 'Normalized Directional Spectrum';
-        ylbl4_txt = 'Normalized Wave Number Spectrum';
-        if ftype == 'k':
-            xlbl_txt = 'Normalized Wave number';
-        else:
-            xlbl_txt = 'Normalized Frequency';     
-    
-    ylbl2_txt = 'Power spectrum (dB)';
-    
-    phi = specdata.phi
-    
-    spectype = specdata.type.lower()
-    stype = spectype[-3::]
-    if stype in ('enc', 'req', 'k1d') : #1D plot
-        Fn = freq[-1] # Nyquist frequency
-        indm = findpeaks(data, n=4)
-        maxS = data.max()
-#        if isfield(S,'CI') && ~isempty(S.CI),
-#          maxS  = maxS*S.CI(2);
-#          txtCI = [num2str(100*S.p), '% CI'];
-#        end
-        
-        Fp = freq[indm]# %peak frequency/wave number
-        
-        if len(indm) == 1:
-            txt = [('fp = %0.2g' % Fp) + funit]
-        else:
-            txt = []
-            for i, fp in enumerate(Fp.tolist()):
-                txt.append(('fp%d = %0.2g' % (i, fp)) + funit)
-          
-        txt = ''.join(txt)
-        if (flag == 3):
-            plotbackend.subplot(2, 1, 1) 
-        if (flag == 1) or (flag == 3):#% Plot in normal scale
-            plotbackend.plot(np.vstack([Fp, Fp]), np.vstack([zeros(len(indm)), data.take(indm)]), ':', label=txt)
-            plotbackend.plot(freq, data, linetype)
-            specdata.labels.labelfig()
-#          if isfield(S,'CI'),
-#            plot(freq,S.S*S.CI(1), 'r:' )
-#            plot(freq,S.S*S.CI(2), 'r:' )
-          
-            a = plotbackend.axis() 
-          
-            a1 = Fn
-            if (Fp > 0): 
-                a1 = max(min(Fn, 10 * max(Fp)), a[1]);
-          
-            plotbackend.axis([0, a1 , 0, max(1.01 * maxS, a[3])]) 
-            #plotbackend.title('Spectral density')
-            #plotbackend.xlabel(xlbl_txt)
-            #plotbackend.ylabel(ylbl1_txt)
-        
-        
-        if (flag == 3):
-            plotbackend.subplot(2, 1, 2)    
-        
-        if (flag == 2) or (flag == 3) : # Plot in logaritmic scale
-            ind = np.flatnonzero(data > 0)
-            
-            plotbackend.plot(np.vstack([Fp, Fp]), 
-                            np.vstack((min(10 * log10(data.take(ind) / maxS)).repeat(len(Fp)),                                     
-                            10 * log10(data.take(indm) / maxS))), ':',label=txt)
-#          hold on 
-#          if isfield(S,'CI'),
-#            plot(freq(ind),10*log10(S.S(ind)*S.CI(1)/maxS), 'r:' )
-#            plot(freq(ind),10*log10(S.S(ind)*S.CI(2)/maxS), 'r:' )
-#          end
-            plotbackend.plot(freq[ind], 10 * log10(data[ind] / maxS), linetype)
-          
-            a = plotbackend.axis() 
-          
-            a1 = Fn
-            if (Fp > 0): 
-                a1 = max(min(Fn, 10 * max(Fp)), a[1]);
-          
-            plotbackend.axis([0, a1 , -20, max(1.01 * 10 * log10(1), a[3])]) 
-            
-            specdata.labels.labelfig()
-            #plotbackend.title('Spectral density')
-            #plotbackend.xlabel(xlbl_txt)
-            plotbackend.ylabel(ylbl2_txt)
-                      
-        if LegendOn:
-            plotbackend.legend()
+#def plotspec(specdata, linetype='b-', flag=1):
+#    '''
+#    PLOTSPEC Plot a spectral density 
+#    
+#    Parameters
+#    ---------- 
+#    S : SpecData1D or SpecData2D object      
+#        defining spectral density.
+#    linetype : string
+#        defining color and linetype, see plot for possibilities
+#    flag : scalar integer
+#        defining the type of plot
+#        1D:
+#            1 plots the density, S, (default)
+#            2 plot 10log10(S)
+#            3 plots both the above plots 
+#        2D:
+#        Directional spectra: S(w,theta), S(f,theta)             
+#            1 polar plot S (default)
+#            2 plots spectral density and the directional 
+#                    spreading, int S(w,theta) dw or int S(f,theta) df
+#            3 plots spectral density and the directional 
+#                    spreading, int S(w,theta)/S(w) dw or int S(f,theta)/S(f) df
+#            4 mesh of S
+#            5 mesh of S in polar coordinates  
+#            6 contour plot of S
+#            7 filled contour plot of S
+#        Wavenumber spectra: S(k1,k2)
+#            1 contour plot of S (default)
+#            2 filled contour plot of S
+#     
+#    Example
+#    -------
+#    >>> import numpy as np
+#    >>> import wafo.spectrum as ws
+#    >>> Sj = ws.models.Jonswap(Hm0=3, Tp=7)
+#    >>> S = Sj.tospecdata()
+#    >>> ws.plotspec(S,flag=1)
+#
+#      S = demospec('dir'); S2 = mkdspec(jonswap,spreading);
+#      plotspec(S,2), hold on
+#      plotspec(S,3,'g')  % Same as previous fig. due to frequency independent spreading
+#      plotspec(S2,2,'r') % Not the same as previous figs. due to frequency dependent spreading
+#      plotspec(S2,3,'m')
+#      % transform from angular frequency and radians to frequency and degrees
+#      Sf = ttspec(S,'f','d'); clf
+#      plotspec(Sf,2),
+#    
+#     See also  dat2spec, createspec, simpson
+#    '''
+#  
+#    # label the contour levels
+#    txtFlag = 0;
+#    LegendOn = 1;
+#  
+#    
+#    ftype = specdata.freqtype #options are 'f' and 'w' and 'k'
+#    data = specdata.data
+#    if data.ndim == 2:
+#        freq = specdata.args[1]
+#        theta = specdata.args[0]
+#    else:
+#        freq = specdata.args    
+#    #if isinstance(specdata.args, (list, tuple)):
+#        
+#    if ftype == 'w': 
+#        xlbl_txt = 'Frequency [rad/s]';  
+#        ylbl1_txt = 'S(w) [m^2 s / rad]';
+#        ylbl3_txt = 'Directional Spectrum';
+#        zlbl_txt = 'S(w,\theta) [m^2 s / rad^2]';
+#        funit = ' [rad/s]';  
+#        #Sunit     = ' [m^2 s / rad]'; 
+#    elif ftype == 'f':  
+#        xlbl_txt = 'Frequency [Hz]';     
+#        ylbl1_txt = 'S(f) [m^2 s]';
+#        ylbl3_txt = 'Directional Spectrum';
+#        zlbl_txt = 'S(f,\theta) [m^2 s / rad]';
+#        funit = ' [Hz]';  
+#        #Sunit     = ' [m^2 s ]'; 
+#    elif ftype == 'k':
+#        xlbl_txt = 'Wave number [rad/m]';
+#        ylbl1_txt = 'S(k) [m^3/ rad]';
+#        funit = ' [rad/m]'; 
+#        #Sunit     = ' [m^3 / rad]';     
+#        ylbl4_txt = 'Wave Number Spectrum';
+#    
+#    else:
+#        raise ValueError('Frequency type unknown')
+#
+#    
+#    if hasattr(specdata, 'norm') and specdata.norm :
+#        #Sunit=[];
+#        funit = [];
+#        ylbl1_txt = 'Normalized Spectral density';
+#        ylbl3_txt = 'Normalized Directional Spectrum';
+#        ylbl4_txt = 'Normalized Wave Number Spectrum';
+#        if ftype == 'k':
+#            xlbl_txt = 'Normalized Wave number';
+#        else:
+#            xlbl_txt = 'Normalized Frequency';     
+#    
+#    ylbl2_txt = 'Power spectrum (dB)';
+#    
+#    phi = specdata.phi
+#    
+#    spectype = specdata.type.lower()
+#    stype = spectype[-3::]
+#    if stype in ('enc', 'req', 'k1d') : #1D plot
+#        Fn = freq[-1] # Nyquist frequency
+#        indm = findpeaks(data, n=4)
+#        maxS = data.max()
+##        if isfield(S,'CI') && ~isempty(S.CI),
+##          maxS  = maxS*S.CI(2);
+##          txtCI = [num2str(100*S.p), '% CI'];
+##        end
+#        
+#        Fp = freq[indm]# %peak frequency/wave number
+#        
+#        if len(indm) == 1:
+#            txt = [('fp = %0.2g' % Fp) + funit]
+#        else:
+#            txt = []
+#            for i, fp in enumerate(Fp.tolist()):
+#                txt.append(('fp%d = %0.2g' % (i, fp)) + funit)
+#          
+#        txt = ''.join(txt)
+#        if (flag == 3):
+#            plotbackend.subplot(2, 1, 1) 
+#        if (flag == 1) or (flag == 3):#% Plot in normal scale
+#            plotbackend.plot(np.vstack([Fp, Fp]), np.vstack([zeros(len(indm)), data.take(indm)]), ':', label=txt)
+#            plotbackend.plot(freq, data, linetype)
+#            specdata.labels.labelfig()
+##          if isfield(S,'CI'),
+##            plot(freq,S.S*S.CI(1), 'r:' )
+##            plot(freq,S.S*S.CI(2), 'r:' )
+#          
+#            a = plotbackend.axis() 
+#          
+#            a1 = Fn
+#            if (Fp > 0): 
+#                a1 = max(min(Fn, 10 * max(Fp)), a[1]);
+#          
+#            plotbackend.axis([0, a1 , 0, max(1.01 * maxS, a[3])]) 
+#            #plotbackend.title('Spectral density')
+#            #plotbackend.xlabel(xlbl_txt)
+#            #plotbackend.ylabel(ylbl1_txt)
+#        
+#        
+#        if (flag == 3):
+#            plotbackend.subplot(2, 1, 2)    
+#        
+#        if (flag == 2) or (flag == 3) : # Plot in logaritmic scale
+#            ind = np.flatnonzero(data > 0)
+#            
+#            plotbackend.plot(np.vstack([Fp, Fp]), 
+#                            np.vstack((min(10 * log10(data.take(ind) / maxS)).repeat(len(Fp)),                                     
+#                            10 * log10(data.take(indm) / maxS))), ':',label=txt)
+##          hold on 
+##          if isfield(S,'CI'),
+##            plot(freq(ind),10*log10(S.S(ind)*S.CI(1)/maxS), 'r:' )
+##            plot(freq(ind),10*log10(S.S(ind)*S.CI(2)/maxS), 'r:' )
+##          end
+#            plotbackend.plot(freq[ind], 10 * log10(data[ind] / maxS), linetype)
+#          
+#            a = plotbackend.axis() 
+#          
+#            a1 = Fn
+#            if (Fp > 0): 
+#                a1 = max(min(Fn, 10 * max(Fp)), a[1]);
+#          
+#            plotbackend.axis([0, a1 , -20, max(1.01 * 10 * log10(1), a[3])]) 
+#            
+#            specdata.labels.labelfig()
+#            #plotbackend.title('Spectral density')
+#            #plotbackend.xlabel(xlbl_txt)
+#            plotbackend.ylabel(ylbl2_txt)
+#                      
+#        if LegendOn:
+#            plotbackend.legend()
 #            if isfield(S,'CI'),
 #                legend(txt{:},txtCI,1)
 #            else
@@ -384,7 +384,7 @@ def plotspec(specdata, linetype='b-', flag=1):
 #            h = polar([0 2*pi],[0 freq(end)]);
 #            delete(h);hold on
 #            [X,Y]=meshgrid(S.theta,freq);
-#            [X,Y]=pol2cart(X,Y);
+#            [X,Y]=polar2cart(X,Y);
 #            contour(X,Y,S.S',lintype)
 #          else
 #            if (abs(thmax-thmin)<3*pi), % angle given in radians
@@ -458,7 +458,7 @@ def plotspec(specdata, linetype='b-', flag=1):
 #          %h=polar([0 2*pi],[0 freq(end)]);
 #          %delete(h);hold on
 #          [X,Y]=meshgrid(S.theta-phi,freq);
-#          [X,Y]=pol2cart(X,Y);
+#          [X,Y]=polar2cart(X,Y);
 #          mesh(X,Y,S.S')
 #          % display the unit circle beneath the surface
 #          hold on, mesh(X,Y,zeros(size(S.S'))),hold off
@@ -626,7 +626,7 @@ def plotspec(specdata, linetype='b-', flag=1):
 
 
 
-class SpecData1D(WafoData):
+class SpecData1D(PlotData):
     """ 
     Container class for 1D spectrum data objects in WAFO
 
@@ -661,7 +661,7 @@ class SpecData1D(WafoData):
 
     See also
     --------
-    WafoData
+    PlotData
     CovData
     """
 
@@ -1219,7 +1219,7 @@ class SpecData1D(WafoData):
         dh = h[1] - h[0]
         uvdens *= dh * dh
         
-        mmpdf = WafoData(uvdens, args=(h, h), xlab='max [m]', ylab='min [m]',
+        mmpdf = PlotData(uvdens, args=(h, h), xlab='max [m]', ylab='min [m]',
                          title='Joint density of maximum and minimum')
         try:
             pl = [10, 30, 50, 70, 90, 95, 99, 99.9]
@@ -1388,7 +1388,7 @@ class SpecData1D(WafoData):
             xtxt = 'period [s]'
         
         Htxt = '%s_{v =%2.5g}' % (Htxt, u)
-        pdf = WafoData(f / A, t * A, title=Htxt, xlab=xtxt)
+        pdf = PlotData(f / A, t * A, title=Htxt, xlab=xtxt)
         pdf.err = err / A
         pdf.u = u
         pdf.options = opts
@@ -3196,7 +3196,7 @@ class SpecData1D(WafoData):
         self.labels.ylab = labels[1]
         self.labels.zlab = labels[2]
         
-class SpecData2D(WafoData):
+class SpecData2D(PlotData):
     """ Container class for 2D spectrum data objects in WAFO
 
     Member variables
@@ -3221,7 +3221,7 @@ class SpecData2D(WafoData):
 
     See also
     --------
-    WafoData
+    PlotData
     CovData
     """
 
@@ -3342,8 +3342,8 @@ class SpecData2D(WafoData):
                 # Do a physical rotation of spectrum
                 
                 [k, k2] = meshgrid(*self.args)
-                [th, r] = cart2pol(k, k2)
-                [k, k2] = pol2cart(th + self.phi, r)
+                [th, r] = cart2polar(k, k2)
+                [k, k2] = polar2cart(th + self.phi, r)
                 ki1, ki2 = self.args
                 Sn = interp2(ki1, ki2, self.data, k, k2, method)
                 self.data = np.where(np.isnan(Sn), 0, Sn)
@@ -3632,7 +3632,7 @@ def main():
     print('done')
 
 def test_mm_pdf():
-    import numpy as np
+     
     import wafo.spectrum.models as sm
     Sj = sm.Jonswap(Hm0=7, Tp=11)
     w = np.linspace(0, 4, 256)
@@ -3640,10 +3640,12 @@ def test_mm_pdf():
     S = sm.SpecData1D(Sj(w), w) # Alternatively do it manually
     mm = S.to_mm_pdf()
     
+def test_docstrings():
+    import doctest
+    doctest.testmod()
+    
+    
 if __name__ == '__main__':
-    if  False : #True: #  
-        import doctest
-        doctest.testmod()
-    else:
-        test_mm_pdf()
+    test_docstrings()
+    #test_mm_pdf()
         #main()

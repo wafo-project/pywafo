@@ -1,12 +1,12 @@
-import numpy as np
-from numpy import cos, exp, linspace, pi, sin, diff, arange, ones
-from numpy.random import randn
-from wafo.data import sea
-from wafo.misc import (JITImport, Bunch, detrendma, DotDict, findcross, ecross, findextrema, 
-                       findrfc, rfcfilter, findtp, findtc, findoutliers, 
-                       common_shape, argsreduce, stirlerr, getshipchar, betaloge, 
-                       gravity, nextpow2, discretize, discretize2, pol2cart, 
-                       cart2pol, meshgrid, tranproc)
+import numpy as np #@UnusedImport
+from numpy import cos, exp, linspace, pi, sin, diff, arange, ones #@UnusedImport
+from numpy.random import randn #@UnusedImport
+from wafo.data import sea #@UnusedImport
+from wafo.misc import (JITImport, Bunch, detrendma, DotDict, findcross, ecross, findextrema,  #@UnusedImport
+                       findrfc, rfcfilter, findtp, findtc, findoutliers,  #@UnusedImport
+                       common_shape, argsreduce, stirlerr, getshipchar, betaloge,  #@UnusedImport
+                       gravity, nextpow2, discretize,  polar2cart,  #@UnusedImport
+                       cart2polar, meshgrid, tranproc)#@UnusedImport
 
 def test_JITImport():
     '''
@@ -231,7 +231,7 @@ def test_rfcfilter():
     >>> tp03 = rfcfilter(tp,0.3)
     >>> tp03
     array([-0.00743352,  1.08753972, -1.07206545,  1.09550837, -1.07940458,
-            1.07849396, -1.0995006 ,  1.08094452])
+            1.07849396, -1.0995006 ,  1.08094452,  0.11983423])
     '''
 def test_findtp():
     '''
@@ -379,9 +379,9 @@ def test_discretize():
             -7.07106781e-01,  -8.31469612e-01,  -9.23879533e-01,
             -9.80785280e-01,  -1.00000000e+00])
     '''
-def test_discretize2():
+def test_discretize_adaptive():
     '''
-    >>> x, y = discretize2(np.cos,0,np.pi)
+    >>> x, y = discretize(np.cos,0,np.pi, method='adaptive')
     >>> x; y
     array([ 0.        ,  0.19634954,  0.39269908,  0.58904862,  0.78539816,
             0.9817477 ,  1.17809725,  1.37444679,  1.57079633,  1.76714587,
@@ -398,7 +398,7 @@ def test_pol2cart_n_cart2pol():
     '''
     >>> r = 5
     >>> t = linspace(0,pi,20)
-    >>> x, y = pol2cart(t,r)
+    >>> x, y = polar2cart(t,r)
     >>> x; y
     array([ 5.        ,  4.93180652,  4.72908621,  4.39736876,  3.94570255,
             3.38640786,  2.73474079,  2.00847712,  1.22742744,  0.41289673,
@@ -411,7 +411,7 @@ def test_pol2cart_n_cart2pol():
              4.57886663e+00,   4.18583239e+00,   3.67861955e+00,
              3.07106356e+00,   2.37973697e+00,   1.62349735e+00,
              8.22972951e-01,   6.12323400e-16])
-    >>> ti, ri = cart2pol(x,y)
+    >>> ti, ri = cart2polar(x,y)
     >>> ti;ri
     array([ 0.        ,  0.16534698,  0.33069396,  0.49604095,  0.66138793,
             0.82673491,  0.99208189,  1.15742887,  1.32277585,  1.48812284,

@@ -8,4 +8,4 @@ Spectrum package in WAFO Toolbox.
 from core import * 
 #SpecData1D, SpecData2D, cltext
 import models
-import dispersion_relation
+from wafo.wave_theory import dispersion_relation

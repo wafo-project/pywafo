@@ -971,7 +971,7 @@ class rv_generic(object):
         return args, loc, scale
 
     def _fix_loc(self, args, loc):
-        args, loc, scale = self._fix_loc_scale(args, loc)
+        args, loc, _scale = self._fix_loc_scale(args, loc)
         return args, loc
 
     # These are actually called, and should not be overwritten if you
@@ -1523,7 +1523,7 @@ class rv_continuous(rv_generic):
             for item in ['callparams', 'default', 'before_notes']:
                 tempdict[item] = tempdict[item].replace(\
                         "\n%(shapes)s : array_like\n    shape parameters", "")
-        for i in range(2):
+        for i in range(2): #@UnusedVariable
             if self.shapes is None:
                 # necessary because we use %(shapes)s in two forms (w w/o ", ")
                 self.__doc__ = self.__doc__.replace("%(shapes)s, ", "")
@@ -2752,7 +2752,7 @@ def _norm_logpdf(x):
 def _norm_cdf(x):
     return special.ndtr(x)
 def _norm_logcdf(x):
-    return special.log_ndtr(x)
+    return log(special.ndtr(x))
 def _norm_ppf(q):
     return special.ndtri(q)
 class norm_gen(rv_continuous):
@@ -3166,8 +3166,8 @@ class cauchy_gen(rv_continuous):
         return inf, inf, nan, nan
     def _entropy(self):
         return log(4*pi)
-    def _fitstart(data, args=None):
-       return (0, 1)
+    def _fitstart(self, data, args=None):
+        return (0, 1)
 cauchy = cauchy_gen(name='cauchy')
 
 
@@ -4129,8 +4129,8 @@ class genextreme_gen(rv_continuous):
 
     """
     def _argcheck(self, c):
-        min = np.minimum
-        max = np.maximum
+        min = np.minimum #@ReservedAssignment
+        max = np.maximum #@ReservedAssignment
         sml = floatinfo.machar.xmin
         #self.b = where(c > 0, 1.0 / c,inf)
         #self.a = where(c < 0, 1.0 / c, -inf)
@@ -6440,7 +6440,7 @@ def _drv2_ppfsingle(self, q, *args):  # Use basic bisection algorithm
         else:
             return c
 
-def reverse_dict(dict):
+def reverse_dict(dict): #@ReservedAssignment
     newdict = {}
     sorted_keys = copy(dict.keys())
     sorted_keys.sort()
@@ -6738,7 +6738,7 @@ class rv_discrete(rv_generic):
             for item in ['callparams', 'default', 'before_notes']:
                 tempdict[item] = tempdict[item].replace(\
                         "\n%(shapes)s : array_like\n    shape parameters", "")
-        for i in range(2):
+        for i in range(2): #@UnusedVariable
             if self.shapes is None:
                 # necessary because we use %(shapes)s in two forms (w w/o ", ")
                 self.__doc__ = self.__doc__.replace("%(shapes)s, ", "")
@@ -7286,9 +7286,9 @@ class rv_discrete(rv_generic):
         if (n > 0) and (n < 5):
             signature = inspect.getargspec(self._stats.im_func)
             if (signature[2] is not None) or ('moments' in signature[0]):
-                dict = {'moments':{1:'m',2:'v',3:'vs',4:'vk'}[n]}
+                dict = {'moments':{1:'m',2:'v',3:'vs',4:'vk'}[n]} #@ReservedAssignment
             else:
-                dict = {}
+                dict = {} #@ReservedAssignment
             mu, mu2, g1, g2 = self._stats(*args,**dict)
         val = _moment_from_stats(n, mu, mu2, g1, g2, self._munp, args)
 
@@ -7422,7 +7422,7 @@ class rv_discrete(rv_generic):
         else:
             invfac = 1.0
 
-        tot = 0.0
+#        tot = 0.0
         low, upp = self._ppf(0.001, *args), self._ppf(0.999, *args)
         low = max(min(-suppnmin, low), lb)
         upp = min(max(suppnmin, upp), ub)
@@ -7564,8 +7564,8 @@ class bernoulli_gen(binom_gen):
         return binom._stats(1, pr)
     def _entropy(self, pr):
         return -pr*log(pr)-(1-pr)*log1p(-pr)
-)
 
+bernoulli = bernoulli_gen(name='bernoulli',shapes="pr")
 # Negative binomial
 class nbinom_gen(rv_discrete):
     """A negative binomial discrete random variable.
@@ -7984,22 +7984,22 @@ class randint_gen(rv_discrete):
     %(example)s
 
     """
-    def _argcheck(self, min, max):
+    def _argcheck(self, min, max): #@ReservedAssignment
         self.a = min
         self.b = max-1
         return (max > min)
-    def _pmf(self, k, min, max):
-        fact = 1.0 / (max - min)
+    def _pmf(self, k, min, max): #@ReservedAssignment
+        fact = 1.0 / (max - min) 
         return fact
-    def _cdf(self, x, min, max):
+    def _cdf(self, x, min, max): #@ReservedAssignment
         k = floor(x)
         return (k-min+1)*1.0/(max-min)
-    def _ppf(self, q, min, max):
+    def _ppf(self, q, min, max): #@ReservedAssignment
         vals = ceil(q*(max-min)+min)-1
         vals1 = (vals-1).clip(min, max)
         temp = self._cdf(vals1, min, max)
         return where(temp >= q, vals1, vals)
-    def _stats(self, min, max):
+    def _stats(self, min, max): #@ReservedAssignment
         m2, m1 = arr(max), arr(min)
         mu = (m2 + m1 - 1.0) / 2
         d = m2 - m1
@@ -8007,14 +8007,14 @@ class randint_gen(rv_discrete):
         g1 = 0.0
         g2 = -6.0/5.0*(d*d+1.0)/(d-1.0)*(d+1.0)
         return mu, var, g1, g2
-    def _rvs(self, min, max=None):
+    def _rvs(self, min, max=None): #@ReservedAssignment
         """An array of *size* random integers >= min and < max.
 
         If max is None, then range is >=0  and < min
         """
         return mtrand.randint(min, max, self._size)
 
-    def _entropy(self, min, max):
+    def _entropy(self, min, max): #@ReservedAssignment
         return log(max-min)
 randint = randint_gen(name='randint',longname='A discrete uniform '\
                       '(random integer)', shapes="min, max")
@@ -8212,11 +8212,12 @@ def test_truncrayleigh():
     phat = truncrayleigh.fit2(R, method='ml');
 
  
-def main():
+def test_doctstrings():
     import matplotlib
     matplotlib.interactive(True)
     R = norm.rvs(size=100)
     phat = norm.fit(R)
+    
     phat = genpareto.fit(R[R > 0.7], f0=0.1, floc=0.7)
     
     #nbinom(10, 0.75).rvs(3)
@@ -8273,7 +8274,7 @@ def test_genpareto():
     print(phat.par)
     
 if __name__ == '__main__':
-    #main()
+    #test_doctstrings()
     test_genpareto()
     #test_truncrayleigh()
     #test_lognorm()
