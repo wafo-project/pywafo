@@ -20,8 +20,8 @@ from scipy import optimize
 import numpy
 import numpy as np
 from numpy import alltrue, arange, ravel, sum, zeros, log, sqrt, exp
-from numpy import (atleast_1d, any, asarray, nan, pi, reshape, repeat, 
-                   product, ndarray, isfinite)
+from numpy import (atleast_1d, any, asarray, nan, pi, #reshape, #repeat, product, ndarray, 
+                   isfinite)
 from numpy import flatnonzero as nonzero
 
 
@@ -32,7 +32,7 @@ __all__ = [
 floatinfo = np.finfo(float)
 #arr = atleast_1d
 arr = asarray
-all = alltrue
+all = alltrue #@ReservedAssignment
 
 def chi2isf(p, df):
     return special.chdtri(df, p)
@@ -845,11 +845,9 @@ class FitDistribution(rv_frozen):
         if not self.par_fix == None:
             numfix = len(self.i_fixed)
             if numfix > 0:
-                format = '%d,'*numfix
-                format = format[:-1]
-                format1 = '%g,'*numfix
-                format1 = format1[:-1]
-                phatistr = format % tuple(self.i_fixed)
+                format0 = ', '.join(['%d']*numfix)
+                format1 = ', '.join(['%g']*numfix) 
+                phatistr = format0 % tuple(self.i_fixed)
                 phatvstr = format1 % tuple(self.par[self.i_fixed])
                 fixstr = 'Fixed: phat[%s] = %s ' % (phatistr, phatvstr)
 
@@ -917,7 +915,7 @@ class FitDistribution(rv_frozen):
         mn = (np.floor(mn / d) - 1) * d - odd * d / 2
         mx = (np.ceil(mx / d) + 1) * d + odd * d / 2
         limits = np.arange(mn, mx, d)
-        bin, limits = numpy.histogram(self.data, bins=limits, normed=True) #, new=True)
+        bin, limits = np.histogram(self.data, bins=limits, normed=True) #, new=True) @ReservedAssignment
         limits.shape = (-1, 1)
         xx = limits.repeat(3, axis=1)
         xx.shape = (-1,)
@@ -986,7 +984,7 @@ class FitDistribution(rv_frozen):
         dx = numpy.diff(x, axis=0)
         tie = (dx == 0)
         if any(tie):
-            print('P-value is on the conservative side (i.e. too large) due to ties in the data!')
+            warnings.warn('P-value is on the conservative side (i.e. too large) due to ties in the data!')
 
         T = self.dist.nlogps(theta, x)
 
@@ -1009,16 +1007,17 @@ class FitDistribution(rv_frozen):
 
  
 
-def main():
+def test_doctstrings():
     import doctest
     doctest.testmod()
+    
 def test1():
     import wafo.stats as ws
     R = ws.weibull_min.rvs(1,size=100);
     phat = FitDistribution(ws.weibull_min, R, method='mps')
     
 #    # Better CI for phat.par[i=0]
-    Lp1 = Profile(phat, i=1)
+    Lp1 = Profile(phat, i=1) #@UnusedVariable
 #    Lp2 = Profile(phat, i=2)
 #    SF = 1./990
 #    x = phat.isf(SF)
@@ -1085,5 +1084,5 @@ def test1():
 #    lp = pht.profile()
                 
 if __name__ == '__main__':
-    test1()
-    main()
+    #test1()
+    test_doctstrings()

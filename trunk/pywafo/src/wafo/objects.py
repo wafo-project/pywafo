@@ -18,7 +18,7 @@ from wafo.transform.models import TrHermite, TrOchi, TrLinear
 from wafo.stats import edf, distributions
 from wafo.misc import (nextpow2, findtp, findrfc, findtc, findcross,
                        ecross, JITImport, DotDict, gravity, findrfc_astm)
-from wafodata import WafoData
+from wafodata import PlotData
 from wafo.interpolate import SmoothSpline
 from scipy.interpolate.interpolate import interp1d
 from scipy.integrate.quadrature import cumtrapz  #@UnresolvedImport
@@ -56,7 +56,7 @@ __all__ = ['TimeSeries', 'LevelCrossings', 'CyclePairs', 'TurningPoints',
 def _invchi2(q, df):
     return special.chdtri(df, q)
 
-class LevelCrossings(WafoData):
+class LevelCrossings(PlotData):
     '''
     Container class for Level crossing data objects in WAFO
 
@@ -109,7 +109,7 @@ class LevelCrossings(WafoData):
             cmax = self.data[icmax]
             x = (self.args - self.mean) / self.sigma
             y = cmax * exp(-x ** 2 / 2.0)
-            self.children = [WafoData(y, self.args)]
+            self.children = [PlotData(y, self.args)]
     
     def extrapolate(self, u_min=None, u_max=None, method='ml', dist='genpar', plotflag=0):
         ''' 
@@ -663,7 +663,7 @@ def test_levelcrossings_extrapolate():
     s = x[:,1].std()
     lc_gpd = lc.extrapolate(-2*s, 2*s, dist='rayleigh') #@UnusedVariable
     
-class CyclePairs(WafoData):
+class CyclePairs(PlotData):
     '''
     Container class for Cycle Pairs data objects in WAFO
 
@@ -839,7 +839,7 @@ class CyclePairs(WafoData):
             ylab = 'Intensity [count/sec]'
         return LevelCrossings(dcount, levels, mean=self.mean, sigma=self.sigma, ylab=ylab, intensity=intensity)
 
-class TurningPoints(WafoData):
+class TurningPoints(PlotData):
     '''
     Container class for Turning Points data objects in WAFO
 
@@ -1029,7 +1029,7 @@ def mat2timeseries(x):
     """
     return TimeSeries(x[:, 1::], x[:, 0].ravel())
 
-class TimeSeries(WafoData):
+class TimeSeries(PlotData):
     '''
     Container class for 1D TimeSeries data objects in WAFO
 
@@ -1177,7 +1177,7 @@ class TimeSeries(WafoData):
         #cumsum = np.cumsum
         acf = _wafocov.CovData1D(R[lags], t)
         acf.sigma = sqrt(r_[ 0, r0 ** 2 , r0 ** 2 + 2 * cumsum(R[1:] ** 2)] / Ncens)
-        acf.children = [WafoData(-2. * acf.sigma[lags], t), WafoData(2. * acf.sigma[lags], t)]
+        acf.children = [PlotData(-2. * acf.sigma[lags], t), PlotData(2. * acf.sigma[lags], t)]
         acf.plot_args_children = ['r:']
         acf.norm = norm
         return acf
@@ -2244,167 +2244,167 @@ class TimeSeries(WafoData):
             #wafostamp
         return figs
 
-def hyperbolic_ratio(a, b, sa, sb):
-    '''
-    Return ratio of hyperbolic functions
-          to allow extreme variations of arguments.
-    
-    Parameters
-    ----------       
-    a, b : array-like
-        arguments vectors of the same size
-    sa, sb : scalar integers
-        defining the hyperbolic function used, i.e., f(x,1)=cosh(x), f(x,-1)=sinh(x)
-        
-    Returns
-    -------
-    r : ndarray
-        f(a,sa)/f(b,sb), ratio of hyperbolic functions of same
-                    size as a and b
-     Examples
-     --------
-     >>> x = [-2,0,2]
-     >>> hyperbolic_ratio(x,1,1,1)   # gives r=cosh(x)/cosh(1)
-     array([ 2.438107  ,  0.64805427,  2.438107  ])
-     >>> hyperbolic_ratio(x,1,1,-1)  # gives r=cosh(x)/sinh(1)
-     array([ 3.20132052,  0.85091813,  3.20132052])
-     >>> hyperbolic_ratio(x,1,-1,1)  # gives r=sinh(x)/cosh(1)
-     array([-2.35040239,  0.        ,  2.35040239])
-     >>> hyperbolic_ratio(x,1,-1,-1) # gives r=sinh(x)/sinh(1)
-     array([-3.08616127,  0.        ,  3.08616127])
-     >>> hyperbolic_ratio(1,x,1,1)   # gives r=cosh(1)/cosh(x)
-     array([ 0.41015427,  1.54308063,  0.41015427])
-     >>> hyperbolic_ratio(1,x,1,-1)  # gives r=cosh(1)/sinh(x)
-     array([-0.42545906,         inf,  0.42545906])
-     >>> hyperbolic_ratio(1,x,-1,1)  # gives r=sinh(1)/cosh(x)
-     array([ 0.3123711 ,  1.17520119,  0.3123711 ])
-     >>> hyperbolic_ratio(1,x,-1,-1) # gives r=sinh(1)/sinh(x)
-     array([-0.32402714,         inf,  0.32402714])
-     
-     See also  
-     --------
-     tran
-    '''
-    ak, bk, sak, sbk = np.atleast_1d(a, b, sign(sa), sign(sb))
-    # old call
-    #return exp(ak-bk)*(1+sak*exp(-2*ak))/(1+sbk*exp(-2*bk))
-    # TODO: Does not always handle division by zero correctly
-
-    signRatio = np.where(sak * ak < 0, sak, 1)
-    signRatio = np.where(sbk * bk < 0, sbk * signRatio, signRatio)    
-    
-    bk = np.abs(bk)
-    ak = np.abs(ak)
-     
-    num = np.where(sak < 0, expm1(-2 * ak), 1 + exp(-2 * ak))
-    den = np.where(sbk < 0, expm1(-2 * bk), 1 + exp(-2 * bk))
-    iden = np.ones(den.shape) * inf
-    ind = np.flatnonzero(den != 0)
-    iden.flat[ind] = 1.0 / den[ind]
-    val = np.where(num == den, 1, num * iden)
-    return signRatio * exp(ak - bk) * val #((sak+exp(-2*ak))/(sbk+exp(-2*bk)))
-   
-def sensor_typeid(*sensortypes):
-    ''' Return ID for sensortype name
-
-    Parameter
-    ---------
-    sensortypes : list of strings defining the sensortype
-
-    Returns
-    -------
-    sensorids : list of integers defining the sensortype
-
-    Valid senor-ids and -types for time series are as follows:
-        0,  'n'    : Surface elevation              (n=Eta)
-        1,  'n_t'  : Vertical surface velocity
-        2,  'n_tt' : Vertical surface acceleration
-        3,  'n_x'  : Surface slope in x-direction
-        4,  'n_y'  : Surface slope in y-direction
-        5,  'n_xx' : Surface curvature in x-direction
-        6,  'n_yy' : Surface curvature in y-direction
-        7,  'n_xy' : Surface curvature in xy-direction
-        8,  'P'    : Pressure fluctuation about static MWL pressure
-        9,  'U'    : Water particle velocity in x-direction
-        10, 'V'    : Water particle velocity in y-direction
-        11, 'W'    : Water particle velocity in z-direction
-        12, 'U_t'  : Water particle acceleration in x-direction
-        13, 'V_t'  : Water particle acceleration in y-direction
-        14, 'W_t'  : Water particle acceleration in z-direction
-        15, 'X_p'  : Water particle displacement in x-direction from its mean position
-        16, 'Y_p'  : Water particle displacement in y-direction from its mean position
-        17, 'Z_p'  : Water particle displacement in z-direction from its mean position
-
-    Example:
-    >>> sensor_typeid('W','v')
-    [11, 10]
-    >>> sensor_typeid('rubbish')
-    [nan]
-
-    See also 
-    --------
-    sensor_type
-    '''
-
-    sensorid_table = dict(n=0, n_t=1, n_tt=2, n_x=3, n_y=4, n_xx=5,
-        n_yy=6, n_xy=7, p=8, u=9, v=10, w=11, u_t=12,
-        v_t=13, w_t=14, x_p=15, y_p=16, z_p=17)
-    try:
-        return [sensorid_table.get(name.lower(), nan) for name in sensortypes]
-    except:
-        raise ValueError('Input must be a string!')
-
-
-
-def sensor_type(*sensorids):
-    ''' 
-    Return sensortype name
-
-    Parameter
-    ---------
-    sensorids : vector or list of integers defining the sensortype
-
-    Returns
-    -------
-    sensornames : tuple of strings defining the sensortype
-        Valid senor-ids and -types for time series are as follows:
-        0,  'n'    : Surface elevation              (n=Eta)
-        1,  'n_t'  : Vertical surface velocity
-        2,  'n_tt' : Vertical surface acceleration
-        3,  'n_x'  : Surface slope in x-direction
-        4,  'n_y'  : Surface slope in y-direction
-        5,  'n_xx' : Surface curvature in x-direction
-        6,  'n_yy' : Surface curvature in y-direction
-        7,  'n_xy' : Surface curvature in xy-direction
-        8,  'P'    : Pressure fluctuation about static MWL pressure
-        9,  'U'    : Water particle velocity in x-direction
-        10, 'V'    : Water particle velocity in y-direction
-        11, 'W'    : Water particle velocity in z-direction
-        12, 'U_t'  : Water particle acceleration in x-direction
-        13, 'V_t'  : Water particle acceleration in y-direction
-        14, 'W_t'  : Water particle acceleration in z-direction
-        15, 'X_p'  : Water particle displacement in x-direction from its mean position
-        16, 'Y_p'  : Water particle displacement in y-direction from its mean position
-        17, 'Z_p'  : Water particle displacement in z-direction from its mean position
-
-    Example:
-    >>> sensor_type(range(3))
-    ('n', 'n_t', 'n_tt')
-
-    See also 
-    --------
-    sensor_typeid, tran
-    '''
-    valid_names = ('n', 'n_t', 'n_tt', 'n_x', 'n_y', 'n_xx', 'n_yy', 'n_xy',
-                  'p', 'u', 'v', 'w', 'u_t', 'v_t', 'w_t', 'x_p', 'y_p', 'z_p',
-                  nan)
-    ids = atleast_1d(*sensorids)
-    if isinstance(ids, list):
-        ids = hstack(ids)
-    n = len(valid_names) - 1
-    ids = where(((ids < 0) | (n < ids)), n , ids)
-    return tuple(valid_names[i] for i in ids)
-    
+#def hyperbolic_ratio(a, b, sa, sb):
+#    '''
+#    Return ratio of hyperbolic functions
+#          to allow extreme variations of arguments.
+#    
+#    Parameters
+#    ----------       
+#    a, b : array-like
+#        arguments vectors of the same size
+#    sa, sb : scalar integers
+#        defining the hyperbolic function used, i.e., f(x,1)=cosh(x), f(x,-1)=sinh(x)
+#        
+#    Returns
+#    -------
+#    r : ndarray
+#        f(a,sa)/f(b,sb), ratio of hyperbolic functions of same
+#                    size as a and b
+#     Examples
+#     --------
+#     >>> x = [-2,0,2]
+#     >>> hyperbolic_ratio(x,1,1,1)   # gives r=cosh(x)/cosh(1)
+#     array([ 2.438107  ,  0.64805427,  2.438107  ])
+#     >>> hyperbolic_ratio(x,1,1,-1)  # gives r=cosh(x)/sinh(1)
+#     array([ 3.20132052,  0.85091813,  3.20132052])
+#     >>> hyperbolic_ratio(x,1,-1,1)  # gives r=sinh(x)/cosh(1)
+#     array([-2.35040239,  0.        ,  2.35040239])
+#     >>> hyperbolic_ratio(x,1,-1,-1) # gives r=sinh(x)/sinh(1)
+#     array([-3.08616127,  0.        ,  3.08616127])
+#     >>> hyperbolic_ratio(1,x,1,1)   # gives r=cosh(1)/cosh(x)
+#     array([ 0.41015427,  1.54308063,  0.41015427])
+#     >>> hyperbolic_ratio(1,x,1,-1)  # gives r=cosh(1)/sinh(x)
+#     array([-0.42545906,         inf,  0.42545906])
+#     >>> hyperbolic_ratio(1,x,-1,1)  # gives r=sinh(1)/cosh(x)
+#     array([ 0.3123711 ,  1.17520119,  0.3123711 ])
+#     >>> hyperbolic_ratio(1,x,-1,-1) # gives r=sinh(1)/sinh(x)
+#     array([-0.32402714,         inf,  0.32402714])
+#     
+#     See also  
+#     --------
+#     tran
+#    '''
+#    ak, bk, sak, sbk = np.atleast_1d(a, b, sign(sa), sign(sb))
+#    # old call
+#    #return exp(ak-bk)*(1+sak*exp(-2*ak))/(1+sbk*exp(-2*bk))
+#    # TODO: Does not always handle division by zero correctly
+#
+#    signRatio = np.where(sak * ak < 0, sak, 1)
+#    signRatio = np.where(sbk * bk < 0, sbk * signRatio, signRatio)    
+#    
+#    bk = np.abs(bk)
+#    ak = np.abs(ak)
+#     
+#    num = np.where(sak < 0, expm1(-2 * ak), 1 + exp(-2 * ak))
+#    den = np.where(sbk < 0, expm1(-2 * bk), 1 + exp(-2 * bk))
+#    iden = np.ones(den.shape) * inf
+#    ind = np.flatnonzero(den != 0)
+#    iden.flat[ind] = 1.0 / den[ind]
+#    val = np.where(num == den, 1, num * iden)
+#    return signRatio * exp(ak - bk) * val #((sak+exp(-2*ak))/(sbk+exp(-2*bk)))
+#   
+#def sensor_typeid(*sensortypes):
+#    ''' Return ID for sensortype name
+#
+#    Parameter
+#    ---------
+#    sensortypes : list of strings defining the sensortype
+#
+#    Returns
+#    -------
+#    sensorids : list of integers defining the sensortype
+#
+#    Valid senor-ids and -types for time series are as follows:
+#        0,  'n'    : Surface elevation              (n=Eta)
+#        1,  'n_t'  : Vertical surface velocity
+#        2,  'n_tt' : Vertical surface acceleration
+#        3,  'n_x'  : Surface slope in x-direction
+#        4,  'n_y'  : Surface slope in y-direction
+#        5,  'n_xx' : Surface curvature in x-direction
+#        6,  'n_yy' : Surface curvature in y-direction
+#        7,  'n_xy' : Surface curvature in xy-direction
+#        8,  'P'    : Pressure fluctuation about static MWL pressure
+#        9,  'U'    : Water particle velocity in x-direction
+#        10, 'V'    : Water particle velocity in y-direction
+#        11, 'W'    : Water particle velocity in z-direction
+#        12, 'U_t'  : Water particle acceleration in x-direction
+#        13, 'V_t'  : Water particle acceleration in y-direction
+#        14, 'W_t'  : Water particle acceleration in z-direction
+#        15, 'X_p'  : Water particle displacement in x-direction from its mean position
+#        16, 'Y_p'  : Water particle displacement in y-direction from its mean position
+#        17, 'Z_p'  : Water particle displacement in z-direction from its mean position
+#
+#    Example:
+#    >>> sensor_typeid('W','v')
+#    [11, 10]
+#    >>> sensor_typeid('rubbish')
+#    [nan]
+#
+#    See also 
+#    --------
+#    sensor_type
+#    '''
+#
+#    sensorid_table = dict(n=0, n_t=1, n_tt=2, n_x=3, n_y=4, n_xx=5,
+#        n_yy=6, n_xy=7, p=8, u=9, v=10, w=11, u_t=12,
+#        v_t=13, w_t=14, x_p=15, y_p=16, z_p=17)
+#    try:
+#        return [sensorid_table.get(name.lower(), nan) for name in sensortypes]
+#    except:
+#        raise ValueError('Input must be a string!')
+#
+#
+#
+#def sensor_type(*sensorids):
+#    ''' 
+#    Return sensortype name
+#
+#    Parameter
+#    ---------
+#    sensorids : vector or list of integers defining the sensortype
+#
+#    Returns
+#    -------
+#    sensornames : tuple of strings defining the sensortype
+#        Valid senor-ids and -types for time series are as follows:
+#        0,  'n'    : Surface elevation              (n=Eta)
+#        1,  'n_t'  : Vertical surface velocity
+#        2,  'n_tt' : Vertical surface acceleration
+#        3,  'n_x'  : Surface slope in x-direction
+#        4,  'n_y'  : Surface slope in y-direction
+#        5,  'n_xx' : Surface curvature in x-direction
+#        6,  'n_yy' : Surface curvature in y-direction
+#        7,  'n_xy' : Surface curvature in xy-direction
+#        8,  'P'    : Pressure fluctuation about static MWL pressure
+#        9,  'U'    : Water particle velocity in x-direction
+#        10, 'V'    : Water particle velocity in y-direction
+#        11, 'W'    : Water particle velocity in z-direction
+#        12, 'U_t'  : Water particle acceleration in x-direction
+#        13, 'V_t'  : Water particle acceleration in y-direction
+#        14, 'W_t'  : Water particle acceleration in z-direction
+#        15, 'X_p'  : Water particle displacement in x-direction from its mean position
+#        16, 'Y_p'  : Water particle displacement in y-direction from its mean position
+#        17, 'Z_p'  : Water particle displacement in z-direction from its mean position
+#
+#    Example:
+#    >>> sensor_type(range(3))
+#    ('n', 'n_t', 'n_tt')
+#
+#    See also 
+#    --------
+#    sensor_typeid, tran
+#    '''
+#    valid_names = ('n', 'n_t', 'n_tt', 'n_x', 'n_y', 'n_xx', 'n_yy', 'n_xy',
+#                  'p', 'u', 'v', 'w', 'u_t', 'v_t', 'w_t', 'x_p', 'y_p', 'z_p',
+#                  nan)
+#    ids = atleast_1d(*sensorids)
+#    if isinstance(ids, list):
+#        ids = hstack(ids)
+#    n = len(valid_names) - 1
+#    ids = where(((ids < 0) | (n < ids)), n , ids)
+#    return tuple(valid_names[i] for i in ids)
+#    
 #class TransferFunction(object):
 #    '''
 #    Class for computing transfer functions based on linear wave theory
@@ -2822,7 +2822,7 @@ def main():
     x = np.arange(-2, 2, 0.2)
 
     # Plot 2 objects in one call
-    d2 = WafoData(np.sin(x), x, xlab='x', ylab='sin', title='sinus')
+    d2 = PlotData(np.sin(x), x, xlab='x', ylab='sin', title='sinus')
 
 
     d0 = d2.copy()

@@ -1171,7 +1171,7 @@ class Cheb1d(object):
 
         """
         return Cheb1d(chebder(self.coeffs,self.a,self.b))
-def main():
+def test_doctstrings():
     if  False: #True: #
         x = np.arange(4)
         dx = dct(x)
@@ -1204,4 +1204,4 @@ def main():
         import doctest
         doctest.testmod()
 if __name__== '__main__':
-    main()
+    test_doctstrings()

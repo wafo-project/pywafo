@@ -6,7 +6,7 @@ Statistics package in WAFO Toolbox.
 """
 from scipy.stats import *
 from core import *
-import distributions
+import distributions #@Reimport
 from wafo.stats.distributions import *
 
 import estimation

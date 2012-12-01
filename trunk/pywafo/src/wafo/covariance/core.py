@@ -27,7 +27,7 @@ from scipy.linalg import toeplitz, sqrtm, svd, cholesky, diagsvd, pinv
 from scipy import sparse
 from pylab import stineman_interp
 
-from wafo.wafodata import WafoData
+from wafo.wafodata import PlotData
 from wafo.misc import sub_dict_select, nextpow2 #, JITImport
 import wafo.spectrum as _wafospec
 #_wafospec = JITImport('wafo.spectrum')
@@ -103,7 +103,7 @@ def _set_seed(iseed):
 #    return dot(std,random.randn(n, cases)) + mu[:,newaxis]
 
 
-class CovData1D(WafoData):
+class CovData1D(PlotData):
     """ Container class for 1D covariance data objects in WAFO
 
     Member variables
@@ -127,7 +127,7 @@ class CovData1D(WafoData):
 
     See also
     --------
-    WafoData
+    PlotData
     CovData
     """
 

@@ -52,7 +52,7 @@ def savitzky_golay(y, window_size, order, deriv=0):
     Notes
     -----
     The Savitzky-Golay is a type of low-pass filter, particularly
-    suited for smoothing noisy data. The main idea behind this
+    suited for smoothing noisy data. The test_doctstrings idea behind this
     approach is to make for each point a least-square fit with a
     polynomial of high order over a odd-sized window centered at
     the point.
@@ -1088,7 +1088,7 @@ def demo_monoticity():
     plt.ioff()
     plt.show()
 
-def main():
+def test_doctstrings():
     from scipy import interpolate
     import matplotlib.pyplot as plt
     import matplotlib
@@ -1150,7 +1150,7 @@ def test_docstrings():
     
 if __name__ == '__main__':
 #    test_docstrings()
-    #main()
+    #test_doctstrings()
     #test_smoothing_spline()
     #compare_methods()
     demo_monoticity()

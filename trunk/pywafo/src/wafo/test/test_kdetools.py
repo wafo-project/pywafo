@@ -4,9 +4,9 @@ Created on 20. nov. 2010
 @author: pab
 '''
 
-import numpy as np
-from numpy import array
-import wafo.kdetools as wk
+import numpy as np #@UnusedImport
+from numpy import array #@UnusedImport
+import wafo.kdetools as wk #@UnusedImport
 #import pylab as plb
 
 def test0_KDE1D():
@@ -215,7 +215,7 @@ def test_smooth_params():
     array([ 0.1732289 ,  0.33159097,  0.3107633 ])
     
     
-    >>> gauss.hisj(data)
+   >>> gauss.hisj(data)
     array([ 0.24222479,  0.74277133,  0.15492661])
     
     >>> data = np.array([0.753557920000000, 0.727791940000000,   0.941491690000000,
@@ -223,6 +223,8 @@ def test_smooth_params():
     ...   0.602882730000000,       1.368836350000000,       1.747543260000000,       1.095475610000000,
     ...   1.016711330000000,       0.732111430000000,       0.618917190000000,       0.759034870000000,
     ...   1.891946900000000,   0.724338080000000,   1.929730940000000,   0.447498380000000,   1.365084520000000])
+    
+    
    
     '''
 def test_gridcount_1D():

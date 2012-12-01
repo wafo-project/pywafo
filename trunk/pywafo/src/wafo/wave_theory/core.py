@@ -5,7 +5,9 @@ Created on 3. juni 2011
 '''
 import numpy as np
 from numpy import exp, expm1, inf, nan, pi, hstack, where, atleast_1d, cos, sin
-from dispersion_relation import w2k, k2w
+from dispersion_relation import w2k, k2w #@UnusedImport
+
+__all__ =['w2k', 'k2w', 'sensor_typeid', 'sensor_type', 'TransferFunction']
 
 def hyperbolic_ratio(a, b, sa, sb):
     '''
@@ -474,90 +476,90 @@ class TransferFunction(object):
         zk = self._get_zk(kw)
         return  hyperbolic_ratio(zk, hk, -1, -1), ee # sinh(zk)./sinh(hk), ee 
 
-def wave_pressure(z, Hm0, h=10000, g=9.81, rho=1028):
-    '''
-    Calculate pressure amplitude due to water waves.
-    
-    Parameters
-    ----------
-    z : array-like
-        depth where pressure is calculated [m]
-    Hm0 : array-like
-        significant wave height (same as the average of the 1/3'rd highest
-        waves in a seastate. [m]
-    h : real scalar
-        waterdepth (default 10000 [m]) 
-    g : real scalar
-        acceleration of gravity (default 9.81 m/s**2)
-    rho : real scalar
-        water density    (default 1028 kg/m**3)
-    
-    
-    Returns
-    -------
-    p : ndarray
-        pressure amplitude due to water waves at water depth z. [Pa]
-    
-    PRESSURE calculate pressure amplitude due to water waves according to
-    linear theory.
-    
-    Example
-    -----
-    >>> import pylab as plt
-    >>> z = -np.linspace(10,20)
-    >>> fh = plt.plot(z, wave_pressure(z, Hm0=1, h=20))
-    >>> plt.show()
-    
-    See also 
-    --------
-    w2k
-    
-    
-    u = psweep.Fn*sqrt(mgf.length*9.81)
-    z = -10; h = inf;
-    Hm0 = 1.5;Tp = 4*sqrt(Hm0);
-    S = jonswap([],[Hm0,Tp]);
-    Hw = tran(S.w,0,[0 0 -z],'P',h)
-    Sm = S;
-    Sm.S = Hw.'.*S.S;
-    x1 = spec2sdat(Sm,1000);
-    pwave = pressure(z,Hm0,h)
-    
-    plot(psweep.x{1}/u, psweep.f)
-    hold on
-    plot(x1(1:100,1)-30,x1(1:100,2),'r')
-    '''
-    
-    
-    # Assume seastate with jonswap spectrum:
-    
-    Tp = 4 * np.sqrt(Hm0)
-    gam = jonswap_peakfact(Hm0, Tp)
-    Tm02 = Tp / (1.30301 - 0.01698 * gam + 0.12102 / gam)
-    w = 2 * np.pi / Tm02
-    kw, unused_kw2 = w2k(w, 0, h)
-
-    hk = kw * h
-    zk1 = kw * z
-    zk = hk + zk1 # z measured positive upward from mean water level (default)
-    #zk = hk-zk1; % z measured positive downward from mean water level
-    #zk1 = -zk1;
-    #zk = zk1;    % z measured positive upward from sea floor
-    
-    # cosh(zk)/cosh(hk) approx exp(zk) for large h
-    # hyperbolic_ratio(zk,hk,1,1) = cosh(zk)/cosh(hk)
-    # pr = np.where(np.pi < hk, np.exp(zk1), hyperbolic_ratio(zk, hk, 1, 1))
-    pr = hyperbolic_ratio(zk, hk, 1, 1)
-    pressure = (rho * g * Hm0 / 2) * pr
-    
-#    pos = [np.zeros_like(z),np.zeros_like(z),z]
-#    tf = TransferFunction(pos=pos, sensortype='p', h=h, rho=rho, g=g)
-#    Hw, Gwt = tf.tran(w,0)
-#    pressure2 = np.abs(Hw) * Hm0 / 2
-    
-    return pressure
+#def wave_pressure(z, Hm0, h=10000, g=9.81, rho=1028):
+#    '''
+#    Calculate pressure amplitude due to water waves.
+#    
+#    Parameters
+#    ----------
+#    z : array-like
+#        depth where pressure is calculated [m]
+#    Hm0 : array-like
+#        significant wave height (same as the average of the 1/3'rd highest
+#        waves in a seastate. [m]
+#    h : real scalar
+#        waterdepth (default 10000 [m]) 
+#    g : real scalar
+#        acceleration of gravity (default 9.81 m/s**2)
+#    rho : real scalar
+#        water density    (default 1028 kg/m**3)
+#    
+#    
+#    Returns
+#    -------
+#    p : ndarray
+#        pressure amplitude due to water waves at water depth z. [Pa]
+#    
+#    PRESSURE calculate pressure amplitude due to water waves according to
+#    linear theory.
+#    
+#    Example
+#    -----
+#    >>> import pylab as plt
+#    >>> z = -np.linspace(10,20)
+#    >>> fh = plt.plot(z, wave_pressure(z, Hm0=1, h=20))
+#    >>> plt.show()
+#    
+#    See also 
+#    --------
+#    w2k
+#    
+#    
+#    u = psweep.Fn*sqrt(mgf.length*9.81)
+#    z = -10; h = inf;
+#    Hm0 = 1.5;Tp = 4*sqrt(Hm0);
+#    S = jonswap([],[Hm0,Tp]);
+#    Hw = tran(S.w,0,[0 0 -z],'P',h)
+#    Sm = S;
+#    Sm.S = Hw.'.*S.S;
+#    x1 = spec2sdat(Sm,1000);
+#    pwave = pressure(z,Hm0,h)
+#    
+#    plot(psweep.x{1}/u, psweep.f)
+#    hold on
+#    plot(x1(1:100,1)-30,x1(1:100,2),'r')
+#    '''
+#    
+#    
+#    # Assume seastate with jonswap spectrum:
+#    
+#    Tp = 4 * np.sqrt(Hm0)
+#    gam = jonswap_peakfact(Hm0, Tp)
+#    Tm02 = Tp / (1.30301 - 0.01698 * gam + 0.12102 / gam)
+#    w = 2 * np.pi / Tm02
+#    kw, unused_kw2 = w2k(w, 0, h)
+#
+#    hk = kw * h
+#    zk1 = kw * z
+#    zk = hk + zk1 # z measured positive upward from mean water level (default)
+#    #zk = hk-zk1; % z measured positive downward from mean water level
+#    #zk1 = -zk1;
+#    #zk = zk1;    % z measured positive upward from sea floor
+#    
+#    # cosh(zk)/cosh(hk) approx exp(zk) for large h
+#    # hyperbolic_ratio(zk,hk,1,1) = cosh(zk)/cosh(hk)
+#    # pr = np.where(np.pi < hk, np.exp(zk1), hyperbolic_ratio(zk, hk, 1, 1))
+#    pr = hyperbolic_ratio(zk, hk, 1, 1)
+#    pressure = (rho * g * Hm0 / 2) * pr
+#    
+##    pos = [np.zeros_like(z),np.zeros_like(z),z]
+##    tf = TransferFunction(pos=pos, sensortype='p', h=h, rho=rho, g=g)
+##    Hw, Gwt = tf.tran(w,0)
+##    pressure2 = np.abs(Hw) * Hm0 / 2
+#    
+#    return pressure
 
 def main():
-    sensortype(range(21))
+    sensor_type(range(21))
 if __name__ == '__main__':
     pass
