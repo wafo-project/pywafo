@@ -15,11 +15,10 @@ from scipy.misc import comb, derivative  #@UnresolvedImport
 from scipy import special
 from scipy import optimize
 from scipy import integrate
-
 from scipy.special import gammaln as gamln
 
 import inspect
-from numpy import alltrue, where, arange, putmask, \
+from numpy import all, where, arange, putmask, \
      ravel, take, ones, sum, shape, product, repeat, reshape, \
      zeros, floor, logical_and, log, sqrt, exp, arctanh, tan, sin, arcsin, \
      arctan, tanh, ndarray, cos, cosh, sinh, newaxis, array, log1p, expm1
@@ -75,12 +74,10 @@ errp = special.errprint
 #arr = atleast_1d
 arr = asarray
 gam = special.gamma
-
+random = mtrand.random_sample
 
 import types
 from scipy.misc import doccer
-
-all = alltrue
 sgf = vectorize
 
 try:
@@ -410,6 +407,9 @@ def _moment_from_stats(n, mu, mu2, g1, g2, moment_func, args):
 
 
 def _skew(data):
+    """
+    skew is third central moment / variance**(1.5)
+    """
     data = np.ravel(data)
     mu = data.mean()
     m2 = ((data - mu)**2).mean()
@@ -417,6 +417,9 @@ def _skew(data):
     return m3 / m2**1.5
 
 def _kurtosis(data):
+    """
+    kurtosis is fourth central moment / variance**2 - 3
+    """
     data = np.ravel(data)
     mu = data.mean()
     m2 = ((data - mu)**2).mean()
@@ -491,13 +494,16 @@ class rv_frozen_old(object):
 
     def median(self):
         return self.dist.median(*self.args, **self.kwds)
+
     def mean(self):
         return self.dist.mean(*self.args, **self.kwds)
 
     def var(self):
         return self.dist.var(*self.args, **self.kwds)
+
     def std(self):
         return self.dist.std(*self.args, **self.kwds)
+
     def moment(self, n):
         return self.dist.moment(n, *self.args, **self.kwds)
 
@@ -827,12 +833,10 @@ def valarray(shape,value=nan,typecode=None):
     if typecode is not None:
         out = out.astype(typecode)
     if not isinstance(out, ndarray):
-        out = arr(out)
+        out = asarray(out)
     return out
 
 # This should be rewritten
-
-
 def argsreduce(cond, *args):
     """Return the sequence of ravel(args[i]) where ravel(condition) is True in 1D
 
@@ -868,7 +872,6 @@ def argsreduce(cond, *args):
     (15,)
 
     """
-
     newargs = atleast_1d(*args)
     if not isinstance(newargs, list):
         newargs = [newargs,]
@@ -1030,19 +1033,6 @@ class rv_generic(object):
 
         return vals
 
-##
-##        loc,scale = map(arr,(loc,scale))
-##        args = tuple(map(arr,args))
-##
-##
-##        cshape = common_shape(loc,scale,shape=size,*args)
-##        #self._size = product(cshape)
-##        self._size = cshape
-##
-##        vals = self._rvs(*args)
-##
-##        return vals * scale + loc
-
     def median(self, *args, **kwds):
         """
         Median of the distribution.
@@ -1153,17 +1143,17 @@ class rv_generic(object):
         arg1, arg2, ... : array_like
             The shape parameter(s) for the distribution (see docstring of the instance
             object for more information)
-        loc: array_like, optional
+        loc : array_like, optional
             location parameter (default = 0)
         scale : array_like, optional
             scale paramter (default = 1)
 
         Returns
         -------
-        a, b: array_like (float)
+        a, b : array_like (float)
             end-points of range that contain alpha % of the rvs
         """
-        alpha = arr(alpha)
+        alpha = asarray(alpha)
         if any((alpha > 1) | (alpha < 0)):
             raise ValueError("alpha must be between 0 and 1 inclusive")
         q1 = (1.0-alpha)/2
@@ -1172,6 +1162,14 @@ class rv_generic(object):
         b = self.ppf(q2, *args, **kwds)
         return a, b
 
+
+##  continuous random variables: implement maybe later
+##
+##  hf  --- Hazard Function (PDF / SF)
+##  chf  --- Cumulative hazard function (-log(SF))
+##  psf --- Probability sparsity function (reciprocal of the pdf) in
+##                units of percent-point-function (as a function of q).
+##                Also, the derivative of the percent-point function.
 
 class rv_continuous(rv_generic):
     """
@@ -1304,6 +1302,8 @@ class rv_continuous(rv_generic):
     n : int
         order of moment to calculate in method moments
 
+    Notes
+    -----
 
     **Methods that can be overwritten by subclasses**
     ::
@@ -1323,10 +1323,6 @@ class rv_continuous(rv_generic):
     be useful for cross-checking and for debugging, but might work in all
     cases when directly called.
 
-
-    Notes
-    -----
-
     **Frozen Distribution**
 
     Alternatively, the object may be called (as a function) to fix the shape,
@@ -1339,44 +1335,33 @@ class rv_continuous(rv_generic):
     **Subclassing**
 
     New random variables can be defined by subclassing rv_continuous class
-    and re-defining at least the
+    and re-defining at least the ``_pdf`` or the ``_cdf`` method (normalized
+    to location 0 and scale 1) which will be given clean arguments (in between
+    a and b) and passing the argument check method.
 
-    _pdf or the _cdf method (normalized to location 0 and scale 1)
-    which will be given clean arguments (in between a and b) and
-    passing the argument check method
-
-    If postive argument checking is not correct for your RV
-    then you will also need to re-define ::
-
-      _argcheck
+    If positive argument checking is not correct for your RV
+    then you will also need to re-define the ``_argcheck`` method.
 
     Correct, but potentially slow defaults exist for the remaining
-    methods but for speed and/or accuracy you can over-ride ::
+    methods but for speed and/or accuracy you can over-ride::
 
       _logpdf, _cdf, _logcdf, _ppf, _rvs, _isf, _sf, _logsf
 
-    Rarely would you override _isf, _sf, and _logsf but you could.
+    Rarely would you override ``_isf``, ``_sf`` or ``_logsf``, but you could.
 
     Statistics are computed using numerical integration by default.
-    For speed you can redefine this using
+    For speed you can redefine this using ``_stats``:
 
-    _stats
      - take shape parameters and return mu, mu2, g1, g2
      - If you can't compute one of these, return it as None
-     - Can also be defined with a keyword argument moments=<str>
+     - Can also be defined with a keyword argument ``moments=<str>``,
        where <str> is a string composed of 'm', 'v', 's',
        and/or 'k'.  Only the components appearing in string
        should be computed and returned in the order 'm', 'v',
-       's', or 'k'  with missing values returned as None
+       's', or 'k'  with missing values returned as None.
 
-    OR
-
-    You can override
-
-    _munp
-      takes n and shape parameters and returns
-      the nth non-central moment of the distribution.
-
+    Alternatively, you can override ``_munp``, which takes n and shape
+    parameters and returns the nth non-central moment of the distribution.
 
     Examples
     --------
@@ -1575,7 +1560,7 @@ class rv_continuous(rv_generic):
         #  0's where they are not.
         cond = 1
         for arg in args:
-            cond = logical_and(cond,(arr(arg) > 0))
+            cond = logical_and(cond,(asarray(arg) > 0))
         return cond
 
     def _pdf(self,x,*args):
@@ -1650,9 +1635,9 @@ class rv_continuous(rv_generic):
         """
         loc, scale = map(kwds.get, ['loc', 'scale'])
         args, loc, scale = self.fix_loc_scale(args, loc, scale)
-        x, loc, scale = map(arr, (x, loc, scale))
-        args = tuple(map(arr, args))
-        x = arr((x - loc) * 1.0 / scale)
+        x, loc, scale = map(asarray, (x, loc, scale))
+        args = tuple(map(asarray, args))
+        x = asarray((x - loc) * 1.0 / scale)
         cond0 = self._argcheck(*args) & (scale > 0)
         cond1 = (scale > 0) & (x >= self.a) & (x <= self.b)
         cond = cond0 & cond1
@@ -1747,7 +1732,6 @@ class rv_continuous(rv_generic):
         if any(cond):  #call only if at least 1 entry
             goodargs = argsreduce(cond, *((x,)+args))
             place(output,cond,self._cdf(*goodargs))
-
         if output.ndim == 0:
             return output[()]
         return output
@@ -2005,7 +1989,6 @@ class rv_continuous(rv_generic):
             location parameter (default=0)
         scale : array_like, optional
             scale parameter (default=1)
-
         moments : string, optional
             composed of letters ['mvsk'] defining which moments to compute:
             'm' = mean,
@@ -2038,8 +2021,8 @@ class rv_continuous(rv_generic):
         if loc is None: loc = 0.0
         if moments is None: moments = 'mv'
 
-        loc,scale = map(arr,(loc,scale))
-        args = tuple(map(arr,args))
+        loc,scale = map(asarray,(loc,scale))
+        args = tuple(map(asarray,args))
         cond = self._argcheck(*args) & (scale > 0) & (loc==loc)
 
         signature = inspect.getargspec(self._stats.im_func)
@@ -2121,13 +2104,12 @@ class rv_continuous(rv_generic):
 
     def moment(self, n, *args, **kwds):
         """
-        n'th order non-central moment of distribution
+        n'th order non-central moment of distribution.
 
         Parameters
         ----------
-        n: int, n>=1
+        n : int, n>=1
             Order of moment.
-
         arg1, arg2, arg3,... : float
             The shape parameter(s) for the distribution (see docstring of the
             instance object for more information).
@@ -2136,7 +2118,8 @@ class rv_continuous(rv_generic):
             arguments relevant for a given distribution.
 
         """
-        loc, scale = map(kwds.get,['loc','scale'])
+        loc = kwds.get('loc', 0)
+        scale = kwds.get('scale', 1)
         args, loc, scale = self.fix_loc_scale(args, loc, scale)
         if not (self._argcheck(*args) and (scale > 0)):
             return nan
@@ -2268,7 +2251,7 @@ class rv_continuous(rv_generic):
             raise ValueError("Not enough input arguments.")
         if not self._argcheck(*args) or scale <= 0:
             return inf
-        x = arr((x-loc) / scale)
+        x = asarray((x-loc) / scale)
         cond0 = (x <= self.a) | (self.b <= x)
         if (any(cond0)):
             # old call: return inf
@@ -2466,7 +2449,7 @@ class rv_continuous(rv_generic):
         Parameters
         ----------
         data : array_like
-            Data to use in calculating the MLEs
+            Data to use in calculating the MLEs.
         args : floats, optional
             Starting value(s) for any shape-characterizing arguments (those not
             provided will be determined by a call to ``_fitstart(data)``).
@@ -2524,7 +2507,6 @@ class rv_continuous(rv_generic):
             vals = restore(args, vals)
         vals = tuple(vals)
         return vals
-
             
     def fit2(self, data, *args, **kwds):
         ''' Return Maximum Likelihood or Maximum Product Spacing estimator object
@@ -2581,21 +2563,52 @@ class rv_continuous(rv_generic):
    
     def fit_loc_scale(self, data, *args):
         """
-        Estimate loc and scale parameters from data using 1st and 2nd moments
+        Estimate loc and scale parameters from data using 1st and 2nd moments.
+
+        Parameters
+        ----------
+        data : array_like
+            Data to fit.
+        arg1, arg2, arg3,... : array_like
+            The shape parameter(s) for the distribution (see docstring of the
+            instance object for more information).
+
+        Returns
+        -------
+        Lhat : float
+            Estimated location parameter for the data.
+        Shat : float
+            Estimated scale parameter for the data.
+
         """
         mu, mu2 = self.stats(*args,**{'moments':'mv'})
-        muhat = arr(data).mean()
-        mu2hat = arr(data).var()
+        tmp = asarray(data)
+        muhat = tmp.mean()
+        mu2hat = tmp.var()
         Shat = sqrt(mu2hat / mu2)
         Lhat = muhat - Shat*mu
         return Lhat, Shat
 
     @np.deprecate
     def est_loc_scale(self, data, *args):
-        """This function is deprecated, use self.fit_loc_scale(data) instead. """
+        """This function is deprecated, use self.fit_loc_scale(data) instead."""
         return self.fit_loc_scale(data, *args)
 
     def freeze(self,*args,**kwds):
+        """Freeze the distribution for the given arguments.
+
+        Parameters
+        ----------
+        arg1, arg2, arg3,... : array_like
+            The shape parameter(s) for the distribution.  Should include all
+            the non-optional arguments, may include ``loc`` and ``scale``.
+
+        Returns
+        -------
+        rv_frozen : rv_frozen instance
+            The frozen distribution.
+
+        """
         return rv_frozen(self,*args,**kwds)
 
     def __call__(self, *args, **kwds):
@@ -2626,16 +2639,15 @@ class rv_continuous(rv_generic):
         """
         Differential entropy of the RV.
 
-
         Parameters
         ----------
         arg1, arg2, arg3,... : array_like
             The shape parameter(s) for the distribution (see docstring of the
-            instance object for more information)
+            instance object for more information).
         loc : array_like, optional
-            location parameter (default=0)
+            Location parameter (default=0).
         scale : array_like, optional
-            scale parameter (default=1)
+            Scale parameter (default=1).
 
         """
         loc,scale=map(kwds.get,['loc','scale'])
@@ -2654,27 +2666,27 @@ class rv_continuous(rv_generic):
 
     def expect(self, func=None, args=(), loc=0, scale=1, lb=None, ub=None,
                conditional=False, **kwds):
-        """calculate expected value of a function with respect to the distribution
+        """Calculate expected value of a function with respect to the distribution
 
-        location and scale only tested on a few examples
+        Location and scale only tested on a few examples.
 
         Parameters
         ----------
-        all parameters are keyword parameters
-        func : function (default: identity mapping)
-           Function for which integral is calculated. Takes only one argument.
-        args : tuple
-           argument (parameters) of the distribution
-        lb, ub : numbers
-           lower and upper bound for integration, default is set to the support
-           of the distribution
-        conditional : boolean (False)
-           If true then the integral is corrected by the conditional probability
-           of the integration interval. The return value is the expectation
-           of the function, conditional on being in the given interval.
+        func : callable, optional
+            Function for which integral is calculated. Takes only one argument.
+            The default is the identity mapping f(x) = x.
+        args : tuple, optional
+            Argument (parameters) of the distribution.
+        lb, ub : scalar, optional
+            Lower and upper bound for integration. default is set to the support
+            of the distribution.
+        conditional : bool, optional
+            If True, the integral is corrected by the conditional probability
+            of the integration interval.  The return value is the expectation
+            of the function, conditional on being in the given interval.
+            Default is False.
 
         Additional keyword arguments are passed to the integration routine.
-
 
         Returns
         -------
@@ -2717,10 +2729,10 @@ class ksone_gen(rv_continuous):
     %(default)s
 
     """
-    def _cdf(self,x,n):
-        return 1.0-special.smirnov(n,x)
-    def _ppf(self,q,n):
-        return special.smirnovi(n,1.0-q)
+    def _cdf(self, x, n):
+        return 1.0 - special.smirnov(n, x)
+    def _ppf(self, q, n):
+        return special.smirnovi(n, 1.0 - q)
 ksone = ksone_gen(a=0.0, name='ksone', shapes="n")
 
 class kstwobign_gen(rv_continuous):
@@ -2752,7 +2764,7 @@ def _norm_logpdf(x):
 def _norm_cdf(x):
     return special.ndtr(x)
 def _norm_logcdf(x):
-    return log(special.ndtr(x))
+    return special.log_ndtr(x)
 def _norm_ppf(q):
     return special.ndtri(q)
 class norm_gen(rv_continuous):
@@ -2822,7 +2834,7 @@ class alpha_gen(rv_continuous):
     def _cdf(self, x, a):
         return special.ndtr(a-1.0/x) / special.ndtr(a)
     def _ppf(self, q, a):
-        return 1.0/arr(a-special.ndtri(q*special.ndtr(a)))
+        return 1.0/asarray(a-special.ndtri(q*special.ndtr(a)))
     def _stats(self, a):
         return [inf]*2 + [nan]*2
 alpha = alpha_gen(a=0.0, name='alpha', shapes='a')
@@ -3166,8 +3178,8 @@ class cauchy_gen(rv_continuous):
         return inf, inf, nan, nan
     def _entropy(self):
         return log(4*pi)
-    def _fitstart(self, data, args=None):
-        return (0, 1)
+    def _fitstart(data, args=None):
+       return (0, 1)
 cauchy = cauchy_gen(name='cauchy')
 
 
@@ -3204,9 +3216,9 @@ class chi_gen(rv_continuous):
     def _stats(self, df):
         mu = sqrt(2)*special.gamma(df/2.0+0.5)/special.gamma(df/2.0)
         mu2 = df - mu*mu
-        g1 = (2*mu**3.0 + mu*(1-2*df))/arr(mu2**1.5)
+        g1 = (2*mu**3.0 + mu*(1-2*df))/asarray(mu2**1.5)
         g2 = 2*df*(1.0-df)-6*mu**4 + 4*mu**2 * (2*df-1)
-        g2 /= arr(mu2**2.0)
+        g2 /= asarray(mu2**2.0)
         return mu, mu2, g1, g2
 chi = chi_gen(a=0.0, name='chi', shapes='df')
 
@@ -3357,7 +3369,7 @@ class dweibull_gen(rv_continuous):
         return where(x > 0, 1-Cx1, Cx1)
     def _ppf_skip(self, q, c):
         fac = where(q<=0.5,2*q,2*q-1)
-        fac = pow(arr(log(1.0/fac)),1.0/c)
+        fac = pow(asarray(log(1.0/fac)),1.0/c)
         return where(q>0.5,fac,-fac)
     def _stats(self, c):
         var = gam(1+2.0/c)
@@ -3498,15 +3510,15 @@ class exponweib_gen(rv_continuous):
     """
     def _pdf(self, x, a, c):
         exc = exp(-x**c)
-        return a*c*(1-exc)**arr(a-1) * exc * x**(c-1)
+        return a*c*(1-exc)**asarray(a-1) * exc * x**(c-1)
     def _logpdf(self, x, a, c):
         exc = exp(-x**c)
         return log(a) + log(c) + (a-1.)*log1p(-exc) - x**c + (c-1.0)*log(x)
     def _cdf(self, x, a, c):
         exm1c = -expm1(-x**c)
-        return arr((exm1c)**a)
+        return (exm1c)**a
     def _ppf(self, q, a, c):
-        return (-log1p(-q**(1.0/a)))**arr(1.0/c)
+        return (-log1p(-q**(1.0/a)))**asarray(1.0/c)
 exponweib = exponweib_gen(a=0.0, name='exponweib', shapes="a, c")
 
 
@@ -3529,18 +3541,16 @@ class exponpow_gen(rv_continuous):
 
     """
     def _pdf(self, x, b):
-        xbm1 = arr(x**(b-1.0))
+        xbm1 = x**(b-1.0)
         xb = xbm1 * x
         return exp(1)*b*xbm1 * exp(xb - exp(xb))
     def _logpdf(self, x, b):
         xb = x**(b-1.0)*x
         return 1 + log(b) + (b-1.0)*log(x) + xb - exp(xb)
     def _cdf(self, x, b):
-        xb = arr(x**b)
-        return -expm1(-expm1(xb))
+        return -expm1(-expm1(x**b))
     def _sf(self, x, b):
-        xb = arr(x**b)
-        return exp(-expm1(xb))
+        return exp(-expm1(x**b))
     def _isf(self, x, b):
         return (log1p(-log(x)))**(1./b)
     def _ppf(self, q, b):
@@ -3573,11 +3583,11 @@ class fatiguelife_gen(rv_continuous):
         t = 1.0 + 2*x2 + 2*x*sqrt(1 + x2)
         return t
     def _pdf(self, x, c):
-        return (x+1)/arr(2*c*sqrt(2*pi*x**3))*exp(-(x-1)**2/arr((2.0*x*c**2)))
+        return (x+1)/asarray(2*c*sqrt(2*pi*x**3))*exp(-(x-1)**2/asarray((2.0*x*c**2)))
     def _logpdf(self, x, c):
         return log(x+1) - (x-1)**2 / (2.0*x*c**2) - log(2*c) - 0.5*(log(2*pi) + 3*log(x))
     def _cdf(self, x, c):
-        return special.ndtr(1.0/c*(sqrt(x)-1.0/arr(sqrt(x))))
+        return special.ndtr(1.0/c*(sqrt(x)-1.0/asarray(sqrt(x))))
     def _ppf(self, q, c):
         tmp = c*special.ndtri(q)
         return 0.25*(tmp + sqrt(tmp**2 + 4))**2
@@ -3644,8 +3654,8 @@ class f_gen(rv_continuous):
     def _rvs(self, dfn, dfd):
         return mtrand.f(dfn, dfd, self._size)
     def _pdf(self, x, dfn, dfd):
-#        n = arr(1.0*dfn)
-#        m = arr(1.0*dfd)
+#        n = asarray(1.0*dfn)
+#        m = asarray(1.0*dfd)
 #        Px = m**(m/2) * n**(n/2) * x**(n/2-1)
 #        Px /= (m+n*x)**((n+m)/2)*special.beta(n/2,m/2)
         return exp(self._logpdf(x, dfn, dfd))
@@ -3662,9 +3672,9 @@ class f_gen(rv_continuous):
     def _ppf(self, q, dfn, dfd):
         return special.fdtri(dfn, dfd, q)
     def _stats(self, dfn, dfd):
-        v2 = arr(dfd*1.0)
-        v1 = arr(dfn*1.0)
-        mu = where (v2 > 2, v2 / arr(v2 - 2), inf)
+        v2 = asarray(dfd*1.0)
+        v1 = asarray(dfn*1.0)
+        mu = where (v2 > 2, v2 / asarray(v2 - 2), inf)
         mu2 = 2*v2*v2*(v2+v1-2)/(v1*(v2-2)**2 * (v2-4))
         mu2 = where(v2 > 4, mu2, inf)
         g1 = 2*(v2+2*v1-2)/(v2-6)*sqrt((2*v2-4)/(v1*(v2+v1-2)))
@@ -3918,7 +3928,7 @@ class genpareto_gen(rv_continuous):
         return phati
 
     def _argcheck(self, c):
-        c = arr(c)
+        c = asarray(c)
         sml = floatinfo.machar.xmin # pab avoid division by zero warning
         self.b = where(c < 0, 1.0 / (abs(c) + sml), inf)
         return where(abs(c) == inf, 0, 1)
@@ -4067,11 +4077,11 @@ class genexpon_gen(rv_continuous):
 
     References
     ----------
-    "An Extension of Marshall and Olkin's Bivariate Exponential Distribution",
-    H.K. Ryu, Journal of the American Statistical Association, 1993.
+    H.K. Ryu, "An Extension of Marshall and Olkin's Bivariate Exponential
+    Distribution", Journal of the American Statistical Association, 1993.
 
-    "The Exponential Distribution: Theory, Methods and Applications",
-    N. Balakrishnan, Asit P. Basu.
+     N. Balakrishnan, "The Exponential Distribution: Theory, Methods and
+     Applications", Asit P. Basu.
 
     %(example)s
 
@@ -4217,6 +4227,7 @@ class genextreme_gen(rv_continuous):
         return shape, loc, scale         
 genextreme = genextreme_gen(name='genextreme', shapes='c')
 
+
 ## Gamma (Use MATLAB and MATHEMATICA (b=theta=scale, a=alpha=shape) definition)
 
 ## gamma(a, loc, scale)  with a an integer is the Erlang distribution
@@ -4237,7 +4248,7 @@ class gamma_gen(rv_continuous):
 
     The probability density function for `gamma` is::
 
-        gamma.pdf(x, a) = (lambda*x)**(a-1) * exp(-lambda*x) / gamma(a)
+        gamma.pdf(x, a) = lambda**a * x**(a-1) * exp(-lambda*x) / gamma(a)
 
     for ``x >= 0``, ``a > 0``. Here ``gamma(a)`` refers to the gamma function.
 
@@ -4356,13 +4367,13 @@ class genhalflogistic_gen(rv_continuous):
         return (c > 0)
     def _pdf(self, x, c):
         limit = 1.0/c
-        tmp = arr(1-c*x)
+        tmp = asarray(1-c*x)
         tmp0 = tmp**(limit-1)
         tmp2 = tmp0*tmp
         return 2*tmp0 / (1+tmp2)**2
     def _cdf(self, x, c):
         limit = 1.0/c
-        tmp = arr(1-c*x)
+        tmp = asarray(1-c*x)
         tmp2 = tmp**(limit)
         return (1.0-tmp2) / (1+tmp2)
     def _ppf(self, q, c):
@@ -4759,7 +4770,7 @@ class invweibull_gen(rv_continuous):
         xc1 = x**(-c)
         return exp(-xc1)
     def _ppf(self, q, c):
-        return pow(-log(q),arr(-1.0/c))
+        return pow(-log(q),asarray(-1.0/c))
     def _entropy(self, c):
         return 1+_EULER + _EULER / c - log(c)
 invweibull = invweibull_gen(a=0, name='invweibull', shapes='c')
@@ -5296,7 +5307,7 @@ class ncx2_gen(rv_continuous):
     def _rvs(self, df, nc):
         return mtrand.noncentral_chisquare(df,nc,self._size)
     def _logpdf(self, x, df, nc):
-        a = arr(df/2.0)
+        a = asarray(df/2.0)
         fac = -nc/2.0 - x/2.0 + (a-1)*np.log(x) - a*np.log(2) - special.gammaln(a)
         return fac + np.nan_to_num(np.log(special.hyp0f1(a, nc * x/4.0)))
     def _pdf(self, x, df, nc):
@@ -5393,7 +5404,7 @@ class t_gen(rv_continuous):
         #sY = sqrt(Y)
         #return 0.5*sqrt(df)*(sY-1.0/sY)
     def _pdf(self, x, df):
-        r = arr(df*1.0)
+        r = asarray(df*1.0)
         Px = exp(gamln((r+1)/2)-gamln(r/2))
         Px /= sqrt(r*pi)*(1+(x**2)/r)**((r+1)/2)
         return Px
@@ -5419,7 +5430,6 @@ t = t_gen(name='t', shapes="df")
 
 
 ## Non-central T distribution
-
 
 class nct_gen(rv_continuous):
     """A non-central Student's T continuous random variable.
@@ -5452,9 +5462,9 @@ class nct_gen(rv_continuous):
         Px = exp(trm1)
         valF = ncx2 / (2*fac1)
         trm1 = sqrt(2)*nc*x*special.hyp1f1(n/2+1,1.5,valF)
-        trm1 /= arr(fac1*special.gamma((n+1)/2))
+        trm1 /= asarray(fac1*special.gamma((n+1)/2))
         trm2 = special.hyp1f1((n+1)/2,0.5,valF)
-        trm2 /= arr(sqrt(fac1)*special.gamma(n/2+1))
+        trm2 /= asarray(sqrt(fac1)*special.gamma(n/2+1))
         Px *= trm1+trm2
         return Px
     def _cdf(self, x, df, nc):
@@ -6111,18 +6121,22 @@ class tukeylambda_gen(rv_continuous):
     def _argcheck(self, lam):
         # lam in RR.
         return np.ones(np.shape(lam), dtype=bool)
+
     def _pdf(self, x, lam):
-        Fx = arr(special.tklmbda(x,lam))
-        Px = Fx**(lam-1.0) + (arr(1-Fx))**(lam-1.0)
-        Px = 1.0/arr(Px)
-        return where((lam <= 0) | (abs(x) < 1.0/arr(lam)), Px, 0.0)
+        Fx = asarray(special.tklmbda(x,lam))
+        Px = Fx**(lam-1.0) + (asarray(1-Fx))**(lam-1.0)
+        Px = 1.0/asarray(Px)
+        return where((lam <= 0) | (abs(x) < 1.0/asarray(lam)), Px, 0.0)
+
     def _cdf(self, x, lam):
         return special.tklmbda(x, lam)
+
     def _ppf(self, q, lam):
         q = q*1.0
         vals1 = (q**lam - (1-q)**lam)/lam
         vals2 = log(q/(1-q))
         return where((lam == 0)&(q==q), vals2, vals1)
+
     def _stats(self, lam):
         return 0, _tlvar(lam), 0, _tlkurt(lam)
 
@@ -6130,6 +6144,7 @@ class tukeylambda_gen(rv_continuous):
         def integ(p):
             return log(pow(p,lam-1)+pow(1-p,lam-1))
         return integrate.quad(integ,0,1)[0]
+
 tukeylambda = tukeylambda_gen(name='tukeylambda', shapes="lam")
 
 
@@ -6166,6 +6181,7 @@ uniform = uniform_gen(a=0.0, b=1.0, name='uniform')
 #   and converts them to [-pi, pi] equivalents.
 
 eps = numpy.finfo(float).eps
+
 
 class vonmises_gen(rv_continuous):
     """A Von Mises continuous random variable.
@@ -6284,12 +6300,13 @@ wrapcauchy = wrapcauchy_gen(a=0.0, b=2*pi, name='wrapcauchy', shapes="c")
 ###
 
 def entropy(pk, qk=None, base=None):
-    """ Calculate the entropy of a distribution for given probability values.
+    """Calculate the entropy of a distribution for given probability values.
 
     If only probabilities `pk` are given, the entropy is calculated as
     ``S = -sum(pk * log(pk), axis=0)``.
 
-    If `qk` is not None, then compute a relative entropy
+    If `qk` is not None, then compute a relative entropy (also known as
+    Kullback-Leibler divergence or Kullback-Leibler distance)
     ``S = sum(pk * log(pk / qk), axis=0)``.
 
     This routine will normalize `pk` and `qk` if they don't sum to 1.
@@ -6311,12 +6328,12 @@ def entropy(pk, qk=None, base=None):
         The calculated entropy.
 
     """
-    pk = arr(pk)
+    pk = asarray(pk)
     pk = 1.0* pk / sum(pk, axis=0)
     if qk is None:
         vec = where(pk == 0, 0.0, pk*log(pk))
     else:
-        qk = arr(qk)
+        qk = asarray(qk)
         if len(qk) != len(pk):
             raise ValueError("qk and pk must have same length.")
         qk = 1.0*qk / sum(qk, axis=0)
@@ -6332,7 +6349,6 @@ def entropy(pk, qk=None, base=None):
 
 
 ## Handlers for generic case where xk and pk are given
-
 
 
 def _drv_pmf(self, xk, *args):
@@ -6353,15 +6369,15 @@ def _drv_nonzero(self, k, *args):
     return 1
 
 def _drv_moment(self, n, *args):
-    n = arr(n)
+    n = asarray(n)
     return sum(self.xk**n[newaxis,...] * self.pk, axis=0)
 
 def _drv_moment_gen(self, t, *args):
-    t = arr(t)
+    t = asarray(t)
     return sum(exp(self.xk * t[newaxis,...]) * self.pk, axis=0)
 
 def _drv2_moment(self, n, *args):
-    '''non-central moment of discrete distribution'''
+    """Non-central moment of discrete distribution."""
     #many changes, originally not even a return
     tot = 0.0
     diff = 1e100
@@ -6499,10 +6515,8 @@ class rv_discrete(rv_generic):
         subclass has no docstring of its own. Note: `extradoc` exists for
         backwards compatibility, do not use for new subclasses.
 
-
     Methods
     -------
-
     generic.rvs(<shape(s)>, loc=0, size=1)
         random variates
 
@@ -6568,15 +6582,7 @@ class rv_discrete(rv_generic):
     Notes
     -----
 
-    Alternatively, the object may be called (as a function) to fix
-    the shape and location parameters returning a
-    "frozen" discrete RV object:
-
-    myrv = generic(<shape(s)>, loc=0)
-        - frozen RV object with the same methods but holding the given shape
-          and location fixed.
-
-    You can construct an aribtrary discrete rv where P{X=xk} = pk
+    You can construct an arbitrary discrete rv where ``P{X=xk} = pk``
     by passing to the rv_discrete initialization method (through the
     values=keyword) a tuple of sequences (xk, pk) which describes only those
     values of X (xk) that occur with nonzero probability (pk).
@@ -6588,22 +6594,40 @@ class rv_discrete(rv_generic):
             def _pmf(self, k, mu):
                 ...
 
-    and create an instance
+    and create an instance::
 
-    poisson = poisson_gen(name="poisson", shapes="mu", longname='A Poisson')
+        poisson = poisson_gen(name="poisson", shapes="mu",
+                              longname='A Poisson')
 
     The docstring can be created from a template.
 
+    Alternatively, the object may be called (as a function) to fix the shape
+    and location parameters returning a "frozen" discrete RV object::
+
+        myrv = generic(<shape(s)>, loc=0)
+            - frozen RV object with the same methods but holding the given
+              shape and location fixed.
 
     Examples
     --------
 
+    Custom made discrete distribution:
+
     >>> import matplotlib.pyplot as plt
-    >>> numargs = generic.numargs
-    >>> [ <shape(s)> ] = ['Replace with resonable value', ]*numargs
+    >>> from scipy import stats
+    >>> xk = np.arange(7)
+    >>> pk = (0.1, 0.2, 0.3, 0.1, 0.1, 0.1, 0.1)
+    >>> custm = stats.rv_discrete(name='custm', values=(xk, pk))
+    >>> h = plt.plot(xk, custm.pmf(xk))
+
+    Random number generation:
+
+    >>> R = custm.rvs(size=100)
 
     Display frozen pmf:
 
+    >>> numargs = generic.numargs
+    >>> [ <shape(s)> ] = ['Replace with resonable value', ]*numargs
     >>> rv = generic(<shape(s)>)
     >>> x = np.arange(0, np.min(rv.dist.b, 3)+1)
     >>> h = plt.plot(x, rv.pmf(x))
@@ -6615,17 +6639,8 @@ class rv_discrete(rv_generic):
     >>> prb = generic.cdf(x, <shape(s)>)
     >>> h = plt.semilogy(np.abs(x-generic.ppf(prb, <shape(s)>))+1e-20)
 
-    Random number generation:
-
-    >>> R = generic.rvs(<shape(s)>, size=100)
-
-    Custom made discrete distribution:
-
-    >>> vals = [arange(7), (0.1, 0.2, 0.3, 0.1, 0.1, 0.1, 0.1)]
-    >>> custm = rv_discrete(name='custm', values=vals)
-    >>> h = plt.plot(vals[0], custm.pmf(vals[0]))
-
     """
+
     def __init__(self, a=0, b=inf, name=None, badvalue=None,
                  moment_tol=1e-8,values=None,inc=1,longname=None,
                  shapes=None, extradoc=None):
@@ -6695,8 +6710,6 @@ class rv_discrete(rv_generic):
             _vppf.nin = self.numargs + 2 # +1 is for self
             self._vecppf = instancemethod(_vppf,
                                           self, rv_discrete)
-
-
 
         #now that self.numargs is defined, we can adjust nin
         self._cdfvec.nin = self.numargs + 1
@@ -6801,16 +6814,16 @@ class rv_discrete(rv_generic):
         ----------
         arg1, arg2, arg3,... : array_like
             The shape parameter(s) for the distribution (see docstring of the
-            instance object for more information)
+            instance object for more information).
         loc : array_like, optional
-            location parameter (default=0)
+            Location parameter (default=0).
         size : int or tuple of ints, optional
-            defining number of random variates (default=1)
+            Defining number of random variates (default=1).
 
         Returns
         -------
         rvs : array_like
-            random variates of given `size`
+            Random variates of given `size`.
 
         """
         kwargs['discrete'] = True
@@ -6820,7 +6833,6 @@ class rv_discrete(rv_generic):
         """
         Probability mass function at k of the given RV.
 
-
         Parameters
         ----------
         k : array_like
@@ -6829,7 +6841,7 @@ class rv_discrete(rv_generic):
             The shape parameter(s) for the distribution (see docstring of the
             instance object for more information)
         loc : array_like, optional
-            location parameter (default=0)
+            Location parameter (default=0).
 
         Returns
         -------
@@ -6839,9 +6851,9 @@ class rv_discrete(rv_generic):
         """
         loc = kwds.get('loc')
         args, loc = self.fix_loc(args, loc)
-        k, loc = map(arr, (k, loc))
-        args = tuple(map(arr, args))
-        k = arr((k - loc))
+        k, loc = map(asarray, (k, loc))
+        args = tuple(map(asarray, args))
+        k = asarray((k - loc))
         cond0 = self._argcheck(*args)
         cond1 = (k >= self.a) & (k <= self.b) & self._nonzero(k,*args)
         cond = cond0 & cond1
@@ -6858,28 +6870,27 @@ class rv_discrete(rv_generic):
         """
         Log of the probability mass function at k of the given RV.
 
-
         Parameters
         ----------
         k : array_like
-            quantiles
+            Quantiles.
         arg1, arg2, arg3,... : array_like
             The shape parameter(s) for the distribution (see docstring of the
-            instance object for more information)
+            instance object for more information).
         loc : array_like, optional
             Location parameter. Default is 0.
 
         Returns
         -------
         logpmf : array_like
-            Log of the probability mass function evaluated at k
+            Log of the probability mass function evaluated at k.
 
         """
         loc = kwds.get('loc')
         args, loc = self.fix_loc(args, loc)
-        k, loc = map(arr, (k, loc))
-        args = tuple(map(arr, args))
-        k = arr((k - loc))
+        k, loc = map(asarray, (k, loc))
+        args = tuple(map(asarray, args))
+        k = asarray((k - loc))
         cond0 = self._argcheck(*args)
         cond1 = (k >= self.a) & (k <= self.b) & self._nonzero(k,*args)
         cond = cond0 & cond1
@@ -6895,29 +6906,29 @@ class rv_discrete(rv_generic):
 
     def cdf(self, k, *args, **kwds):
         """
-        Cumulative distribution function at k of the given RV
+        Cumulative distribution function at k of the given RV.
 
         Parameters
         ----------
         k : array_like, int
-            quantiles
+            Quantiles.
         arg1, arg2, arg3,... : array_like
             The shape parameter(s) for the distribution (see docstring of the
-            instance object for more information)
+            instance object for more information).
         loc : array_like, optional
-            location parameter (default=0)
+            Location parameter (default=0).
 
         Returns
         -------
         cdf : array_like
-            Cumulative distribution function evaluated at k
+            Cumulative distribution function evaluated at k.
 
         """
         loc = kwds.get('loc')
         args, loc = self.fix_loc(args, loc)
-        k, loc = map(arr, (k, loc))
-        args = tuple(map(arr, args))
-        k = arr((k - loc))
+        k, loc = map(asarray, (k, loc))
+        args = tuple(map(asarray, args))
+        k = asarray((k - loc))
         cond0 = self._argcheck(*args)
         cond1 = (k >= self.a) & (k < self.b)
         cond2 = (k >= self.b)
@@ -6940,24 +6951,24 @@ class rv_discrete(rv_generic):
         Parameters
         ----------
         k : array_like, int
-            quantiles
+            Quantiles.
         arg1, arg2, arg3,... : array_like
             The shape parameter(s) for the distribution (see docstring of the
-            instance object for more information)
+            instance object for more information).
         loc : array_like, optional
-            location parameter (default=0)
+            Location parameter (default=0).
 
         Returns
         -------
         logcdf : array_like
-            Log of the cumulative distribution function evaluated at k
+            Log of the cumulative distribution function evaluated at k.
 
         """
         loc = kwds.get('loc')
         args, loc = self.fix_loc(args, loc)
-        k, loc = map(arr, (k, loc))
-        args = tuple(map(arr, args))
-        k = arr((k - loc))
+        k, loc = map(asarray, (k, loc))
+        args = tuple(map(asarray, args))
+        k = asarray((k - loc))
         cond0 = self._argcheck(*args)
         cond1 = (k >= self.a) & (k < self.b)
         cond2 = (k >= self.b)
@@ -6976,29 +6987,29 @@ class rv_discrete(rv_generic):
 
     def sf(self,k,*args,**kwds):
         """
-        Survival function (1-cdf) at k of the given RV
+        Survival function (1-cdf) at k of the given RV.
 
         Parameters
         ----------
         k : array_like
-            quantiles
+            Quantiles.
         arg1, arg2, arg3,... : array_like
             The shape parameter(s) for the distribution (see docstring of the
-            instance object for more information)
+            instance object for more information).
         loc : array_like, optional
-            location parameter (default=0)
+            Location parameter (default=0).
 
         Returns
         -------
         sf : array_like
-            Survival function evaluated at k
+            Survival function evaluated at k.
 
         """
         loc = kwds.get('loc')
         args, loc = self.fix_loc(args, loc)
-        k, loc = map(arr, (k, loc))
-        args = tuple(map(arr, args))
-        k = arr(k - loc)
+        k, loc = map(asarray, (k, loc))
+        args = tuple(map(asarray, args))
+        k = asarray(k - loc)
         cond0 = self._argcheck(*args)
         cond1 = (k >= self.a) & (k <= self.b)
         cond2 = (k < self.a) & cond0
@@ -7020,24 +7031,24 @@ class rv_discrete(rv_generic):
         Parameters
         ----------
         k : array_like
-            quantiles
+            Quantiles.
         arg1, arg2, arg3,... : array_like
             The shape parameter(s) for the distribution (see docstring of the
-            instance object for more information)
+            instance object for more information).
         loc : array_like, optional
-            location parameter (default=0)
+            Location parameter (default=0).
 
         Returns
         -------
         sf : array_like
-            Survival function evaluated at k
+            Survival function evaluated at k.
 
         """
         loc = kwds.get('loc')
         args, loc = self.fix_loc(args, loc)
-        k, loc = map(arr, (k, loc))
-        args = tuple(map(arr, args))
-        k = arr(k - loc)
+        k, loc = map(asarray, (k, loc))
+        args = tuple(map(asarray, args))
+        k = asarray(k - loc)
         cond0 = self._argcheck(*args)
         cond1 = (k >= self.a) & (k <= self.b)
         cond2 = (k < self.a) & cond0
@@ -7060,25 +7071,25 @@ class rv_discrete(rv_generic):
         Parameters
         ----------
         q : array_like
-            lower tail probability
+            Lower tail probability.
         arg1, arg2, arg3,... : array_like
             The shape parameter(s) for the distribution (see docstring of the
-            instance object for more information)
+            instance object for more information).
         loc : array_like, optional
-            location parameter (default=0)
-        scale: array_like, optional
-            scale parameter (default=1)
+            Location parameter (default=0).
+        scale : array_like, optional
+            Scale parameter (default=1).
 
         Returns
         -------
         k : array_like
-            quantile corresponding to the lower tail probability, q.
+            Quantile corresponding to the lower tail probability, q.
 
         """
         loc = kwds.get('loc')
         args, loc = self.fix_loc(args, loc)
-        q, loc = map(arr, (q, loc))
-        args = tuple(map(arr, args))
+        q, loc = map(asarray, (q, loc))
+        args = tuple(map(asarray, args))
         cond0 = self._argcheck(*args) & (loc == loc)
         cond1 = (q > 0) & (q < 1)
         cond2 = (q==1) & cond0
@@ -7098,29 +7109,29 @@ class rv_discrete(rv_generic):
 
     def isf(self,q,*args,**kwds):
         """
-        Inverse survival function (1-sf) at q of the given RV
+        Inverse survival function (1-sf) at q of the given RV.
 
         Parameters
         ----------
         q : array_like
-            upper tail probability
+            Upper tail probability.
         arg1, arg2, arg3,... : array_like
             The shape parameter(s) for the distribution (see docstring of the
-            instance object for more information)
+            instance object for more information).
         loc : array_like, optional
-            location parameter (default=0)
+            Location parameter (default=0).
 
         Returns
         -------
         k : array_like
-            quantile corresponding to the upper tail probability, q.
+            Quantile corresponding to the upper tail probability, q.
 
         """
 
         loc = kwds.get('loc')
         args, loc = self.fix_loc(args, loc)
-        q, loc = map(arr, (q, loc))
-        args = tuple(map(arr, args))
+        q, loc = map(asarray, (q, loc))
+        args = tuple(map(asarray, args))
         cond0 = self._argcheck(*args) & (loc == loc)
         cond1 = (q > 0) & (q < 1)
         cond2 = (q==1) & cond0
@@ -7150,22 +7161,24 @@ class rv_discrete(rv_generic):
 
     def stats(self, *args, **kwds):
         """
-        Some statistics of the given discrete RV
+        Some statistics of the given discrete RV.
 
         Parameters
         ----------
         arg1, arg2, arg3,... : array_like
             The shape parameter(s) for the distribution (see docstring of the
-            instance object for more information)
+            instance object for more information).
         loc : array_like, optional
-            location parameter (default=0)
+            Location parameter (default=0).
         moments : string, optional
-            composed of letters ['mvsk'] defining which moments to compute:
-            'm' = mean,
-            'v' = variance,
-            's' = (Fisher's) skew,
-            'k' = (Fisher's) kurtosis.
-            (default='mv')
+            Composed of letters ['mvsk'] defining which moments to compute:
+
+              - 'm' = mean,
+              - 'v' = variance,
+              - 's' = (Fisher's) skew,
+              - 'k' = (Fisher's) kurtosis.
+
+            The default is'mv'.
 
         Returns
         -------
@@ -7184,8 +7197,8 @@ class rv_discrete(rv_generic):
         if loc is None: loc = 0.0
         if moments is None: moments = 'mv'
 
-        loc = arr(loc)
-        args = tuple(map(arr,args))
+        loc = asarray(loc)
+        args = tuple(map(asarray,args))
         cond = self._argcheck(*args) & (loc==loc)
 
         signature = inspect.getargspec(self._stats.im_func)
@@ -7268,7 +7281,6 @@ class rv_discrete(rv_generic):
         arg1, arg2, arg3,...: float
             The shape parameter(s) for the distribution (see docstring of the
             instance object for more information)
-
         loc : float, optional
             location parameter (default=0)
         scale : float, optional
@@ -7332,8 +7344,8 @@ class rv_discrete(rv_generic):
     def entropy(self, *args, **kwds):
         loc= kwds.get('loc')
         args, loc = self._fix_loc(args, loc)
-        loc = arr(loc)
-        args = map(arr,args)
+        loc = asarray(loc)
+        args = map(asarray,args)
         cond0 = self._argcheck(*args) & (loc==loc)
         output = zeros(shape(cond0),'d')
         place(output,(1-cond0),self.badvalue)
@@ -7422,7 +7434,7 @@ class rv_discrete(rv_generic):
         else:
             invfac = 1.0
 
-#        tot = 0.0
+        tot = 0.0
         low, upp = self._ppf(0.001, *args), self._ppf(0.999, *args)
         low = max(min(-suppnmin, low), lb)
         upp = min(max(suppnmin, upp), ub)
@@ -7564,8 +7576,8 @@ class bernoulli_gen(binom_gen):
         return binom._stats(1, pr)
     def _entropy(self, pr):
         return -pr*log(pr)-(1-pr)*log1p(-pr)
+bernoulli = bernoulli_gen(b=1,name='bernoulli',shapes="p")
 
-bernoulli = bernoulli_gen(name='bernoulli',shapes="pr")
 # Negative binomial
 class nbinom_gen(rv_discrete):
     """A negative binomial discrete random variable.
@@ -7583,14 +7595,14 @@ class nbinom_gen(rv_discrete):
     `nbinom` takes ``n`` and ``p`` as shape parameters.
 
     %(example)s
+
     """
     def _rvs(self, n, p):
         return mtrand.negative_binomial(n, p, self._size)
     def _argcheck(self, n, p):
         return (n >= 0) & (p >= 0) & (p <= 1)
     def _pmf(self, x, n, p):
-        coeff = exp(gamln(n+x) - gamln(x+1) - gamln(n))
-        return coeff * power(p,n) * power(1-p,x)
+        return exp(self._logpmf(x, n, p))
     def _logpmf(self, x, n, p):
         coeff = gamln(n+x) - gamln(x+1) - gamln(n)
         return coeff + n*log(p) + x*log1p(-p)
@@ -7643,7 +7655,7 @@ class geom_gen(rv_discrete):
     def _pmf(self, k, p):
         return (1-p)**(k-1) * p
     def _logpmf(self, k, p):
-        return (k-1)*log1p(-p) + p
+        return (k-1)*log1p(-p) + log(p)
     def _cdf(self, x, p):
         k = floor(x)
         return (1.0-(1.0-p)**k)
@@ -7776,6 +7788,7 @@ hypergeom = hypergeom_gen(name='hypergeom', shapes="M, n, N")
 
 ## Logarithmic (Log-Series), (Series) distribution
 # FIXME: Fails _cdfvec
+
 class logser_gen(rv_discrete):
     """A Logarithmic (Log-Series, Series) discrete random variable.
 
@@ -7859,8 +7872,9 @@ class poisson_gen(rv_discrete):
         return where((temp >= q), vals1, vals)
     def _stats(self, mu):
         var = mu
-        g1 = 1.0/arr(sqrt(mu))
-        g2 = 1.0 / arr(mu)
+        tmp = asarray(mu)
+        g1 = 1.0 / tmp
+        g2 = 1.0 / tmp
         return mu, var, g1, g2
 poisson = poisson_gen(name="poisson", longname='A Poisson', shapes="mu")
 
@@ -8000,7 +8014,7 @@ class randint_gen(rv_discrete):
         temp = self._cdf(vals1, min, max)
         return where(temp >= q, vals1, vals)
     def _stats(self, min, max): #@ReservedAssignment
-        m2, m1 = arr(max), arr(min)
+        m2, m1 = asarray(max), asarray(min)
         mu = (m2 + m1 - 1.0) / 2
         d = m2 - m1
         var = (d-1)*(d+1.0)/12.0
@@ -8046,24 +8060,24 @@ class zipf_gen(rv_discrete):
     def _argcheck(self, a):
         return a > 1
     def _pmf(self, k, a):
-        Pk = 1.0 / arr(special.zeta(a,1) * k**a)
+        Pk = 1.0 / asarray(special.zeta(a,1) * k**a)
         return Pk
     def _munp(self, n, a):
         return special.zeta(a-n,1) / special.zeta(a,1)
     def _stats(self, a):
-        sv = errp(0)
-        fac = arr(special.zeta(a,1))
+        sv = special.errprint(0)
+        fac = asarray(special.zeta(a,1))
         mu = special.zeta(a-1.0,1)/fac
         mu2p = special.zeta(a-2.0,1)/fac
         var = mu2p - mu*mu
         mu3p = special.zeta(a-3.0,1)/fac
         mu3 = mu3p - 3*mu*mu2p + 2*mu**3
-        g1 = mu3 / arr(var**1.5)
+        g1 = mu3 / asarray(var**1.5)
 
         mu4p = special.zeta(a-4.0,1)/fac
-        sv = errp(sv)
+        sv = special.errprint(sv)
         mu4 = mu4p - 4*mu3p*mu + 6*mu2p*mu*mu - 3*mu**4
-        g2 = mu4 / arr(var**2) - 3.0
+        g2 = mu4 / asarray(var**2) - 3.0
         return mu, var, g1, g2
 zipf = zipf_gen(a=1,name='zipf', longname='A Zipf',
                 shapes="a")
