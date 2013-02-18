@@ -156,7 +156,8 @@ def qtf(w, h=inf, g=9.81):
 
     return h_s, h_d , h_dii
 
-#def plotspec(specdata, linetype='b-', flag=1):
+def plotspec(specdata, linetype='b-', flag=1):
+    pass
 #    '''
 #    PLOTSPEC Plot a spectral density 
 #    
@@ -2381,7 +2382,7 @@ class SpecData1D(PlotData):
         #m0 = self.moment(nr=0)
         m0 = simps(S, w)
         sa = sqrt(m0)
-        Nw = w.size
+        #Nw = w.size
 
         Hs, Hd, Hdii = qtf(w, h, g)
 
