@@ -1674,7 +1674,7 @@ class SpecData1D(PlotData):
                       
     
         
-        f       = wafodata(); 
+        f       = PlotData(); 
 #        f.options = options;
 #        if defnr>1 or defnr==-2:
 #            f.u  = utc # save level u
