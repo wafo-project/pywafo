@@ -192,9 +192,11 @@ def test_bandwidth():
     >>> S.bandwidth([0,1,2,3])
     array([ 0.65354446,  0.3975428 ,  0.75688813,  2.00207912])
     '''
-def main():
+def test_docstrings():
     import doctest
     doctest.testmod()
 
 if __name__ == '__main__':
-    main()
+    #from nose.plugins.plugintest import run_buffered as run
+    #run()
+    test_docstrings()

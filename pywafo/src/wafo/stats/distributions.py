@@ -2135,8 +2135,8 @@ class rv_continuous(rv_generic):
             arguments relevant for a given distribution.
 
         """
-        loc = kwds.get('loc', 0)
-        scale = kwds.get('scale', 1)
+        loc = kwds.get('loc', None)
+        scale = kwds.get('scale', None)
         args, loc, scale = self.fix_loc_scale(args, loc, scale)
         if not (self._argcheck(*args) and (scale > 0)):
             return nan
@@ -3195,8 +3195,8 @@ class cauchy_gen(rv_continuous):
         return inf, inf, nan, nan
     def _entropy(self):
         return log(4*pi)
-    def _fitstart(data, args=None):
-       return (0, 1)
+    def _fitstart(self, data, args=None):
+        return (0, 1)
 cauchy = cauchy_gen(name='cauchy')
 
 
@@ -7591,7 +7591,7 @@ class rv_discrete(rv_generic):
         else:
             invfac = 1.0
 
-        tot = 0.0
+        # tot = 0.0
         low, upp = self._ppf(0.001, *args), self._ppf(0.999, *args)
         low = max(min(-suppnmin, low), lb)
         upp = min(max(suppnmin, upp), ub)
@@ -8384,8 +8384,11 @@ def test_truncrayleigh():
 #Compare ML and MPS method
     phat = truncrayleigh.fit2(R, method='ml');
 
- 
-def test_doctstrings():
+def test_docstrings():
+    import doctest
+    doctest.testmod()
+     
+def test_script():
     import matplotlib
     matplotlib.interactive(True)
     R = norm.rvs(size=100)
