@@ -8457,7 +8457,8 @@ def test_genpareto():
     print(phat.par)
     
 if __name__ == '__main__':
-    test_binom()    
+    bernoulli.logcdf(np.nan)
+    #test_binom()    
     #test_doctstrings()
     #test_genpareto()
     #test_truncrayleigh()

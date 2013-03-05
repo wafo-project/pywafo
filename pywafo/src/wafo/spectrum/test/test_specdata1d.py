@@ -1,25 +1,31 @@
-import wafo.spectrum.models
+import wafo.spectrum.models as sm
 from wafo.spectrum import SpecData1D
+import numpy as np
+def slow(f):
+    f.slow = True
+    return f
+
+@slow 
 def test_tocovmatrix():
-    '''
-    >>> import wafo.spectrum.models as sm
-    >>> Sj = sm.Jonswap()
-    >>> S = Sj.tospecdata()
-    >>> acfmat = S.tocov_matrix(nr=3, nt=256, dt=0.1)
-    >>> acfmat[:2,:]
-    array([[ 3.06075987,  0.        , -1.67750289,  0.        ],
-           [ 3.05246132, -0.16662376, -1.66819445,  0.18634189]])
-    '''
+    Sj = sm.Jonswap()
+    S = Sj.tospecdata()
+    acfmat = S.tocov_matrix(nr=3, nt=256, dt=0.1)
+    vals = acfmat[:2,:]
+    true_vals = np.array([[ 3.06073383,  0. ,        -1.67748256 , 0.        ],
+                          [ 3.05235423, -0.1674357 , -1.66811444,  0.18693242]])
+    assert((np.abs(vals-true_vals)<1e-7).all())
+
+  
 def test_tocovdata():
-    '''
-    >>> import wafo.spectrum.models as sm
-    >>> Sj = sm.Jonswap()
-    >>> S = Sj.tospecdata()
-    >>> Nt = len(S.data)-1
-    >>> acf = S.tocovdata(nr=0, nt=Nt)
-    >>> acf.data[:5]
-    array([ 3.06093287,  2.23846752,  0.48630084, -1.1336035 , -2.03036854])
-    '''
+    Sj = sm.Jonswap()
+    S = Sj.tospecdata()
+    Nt = len(S.data)-1
+    acf = S.tocovdata(nr=0, nt=Nt)
+    vals = acf.data[:5]
+     
+    true_vals = np.array([3.06090339,  2.22658399, 0.45307391, -1.17495501, -2.05649042])
+    assert((np.abs(vals-true_vals)<1e-6).all())
+    
 
 def test_to_t_pdf():
     '''
@@ -35,69 +41,60 @@ def test_to_t_pdf():
     >>> ['%2.4f' % val for val in f.err[:10]]  
     ['0.0000', '0.0003', '0.0003', '0.0004', '0.0006', '0.0009', '0.0016', '0.0019', '0.0020', '0.0021']
     '''
+@slow
 def test_sim():
-    '''
-    >>> import wafo.spectrum.models as sm
-    >>> Sj = sm.Jonswap();S = Sj.tospecdata()
-    >>> ns =100; dt = .2
-    >>> x1 = S.sim(ns,dt=dt)
+    
+    Sj = sm.Jonswap();S = Sj.tospecdata()
+    ns =100; dt = .2
+    x1 = S.sim(ns,dt=dt)
 
-    >>> import numpy as np
-    >>> import scipy.stats as st
-    >>> x2 = S.sim(20000,20)
-    >>> truth1 = [0,np.sqrt(S.moment(1)[0]),0., 0.]
-    >>> funs = [np.mean,np.std,st.skew,st.kurtosis]
-    >>> for fun,trueval in zip(funs,truth1):
-    ...     res = fun(x2[:,1::],axis=0)
-    ...     m = res.mean()
-    ...     sa = res.std()
-    ...     #trueval, m, sa
-    ...     np.abs(m-trueval)<sa
-    True
-    array([ True], dtype=bool)
-    True
-    True
-    '''
+    
+    import scipy.stats as st
+    x2 = S.sim(20000,20)
+    truth1 = [0,np.sqrt(S.moment(1)[0]),0., 0.]
+    funs = [np.mean,np.std,st.skew,st.kurtosis]
+    for fun,trueval in zip(funs,truth1):
+        res = fun(x2[:,1::], axis=0)
+        m = res.mean()
+        sa = res.std()
+        #trueval, m, sa
+        assert(np.abs(m-trueval)<sa)
+@slow   
 def test_sim_nl():
-    '''
-    >>> import wafo.spectrum.models as sm
-    >>> Sj = sm.Jonswap();S = Sj.tospecdata()
-    >>> ns =100; dt = .2
-    >>> x1 = S.sim_nl(ns,dt=dt)
+    
+    Sj = sm.Jonswap();S = Sj.tospecdata()
+    ns =100; dt = .2
+    x1 = S.sim_nl(ns,dt=dt)
 
-    >>> import numpy as np
-    >>> import scipy.stats as st
-    >>> x2, x1 = S.sim_nl(ns=20000,cases=40)
-    >>> truth1 = [0,np.sqrt(S.moment(1)[0][0])] + S.stats_nl(moments='sk')
-    >>> truth1[-1] = truth1[-1]-3
-    >>> truth1
-    [0, 1.7495200310090633, 0.18673120577479801, 0.061988521262417606]
+    import numpy as np
+    import scipy.stats as st
+    x2, x1 = S.sim_nl(ns=20000,cases=40)
+    truth1 = [0,np.sqrt(S.moment(1)[0][0])] + S.stats_nl(moments='sk')
+    truth1[-1] = truth1[-1]-3
+    
+    #truth1
+    #[0, 1.7495200310090633, 0.18673120577479801, 0.061988521262417606]
      
-    >>> funs = [np.mean,np.std,st.skew,st.kurtosis]
-    >>> for fun,trueval in zip(funs,truth1):
-    ...     res = fun(x2[:,1::], axis=0)
-    ...     m = res.mean()
-    ...     sa = res.std()
-    ...     #trueval, m, sa
-    ...     np.abs(m-trueval)<2*sa
-    True
-    True
-    True
-    True
-    '''
+    funs = [np.mean,np.std,st.skew,st.kurtosis]
+    for fun,trueval in zip(funs,truth1):
+        res = fun(x2[:,1::], axis=0)
+        m = res.mean()
+        sa = res.std()
+        #trueval, m, sa
+        assert(np.abs(m-trueval)<2*sa)
+    
+    
 def test_stats_nl():
-    '''
-    >>> import wafo.spectrum.models as sm    
-    >>> Hs = 7.
-    >>> Sj = sm.Jonswap(Hm0=Hs, Tp=11)
-    >>> S = Sj.tospecdata()
-    >>> me, va, sk, ku = S.stats_nl(moments='mvsk')
-    >>> me; va; sk; ku
-    0.0
-    3.0608203389019537
-    0.18673120577479801
-    3.0619885212624176
-    '''
+      
+    Hs = 7.
+    Sj = sm.Jonswap(Hm0=Hs, Tp=11)
+    S = Sj.tospecdata()
+    me, va, sk, ku = S.stats_nl(moments='mvsk')
+    assert(me==0.0)
+    assert(va==3.0608203389019537)
+    assert(sk==0.18673120577479801)
+    assert(ku==3.0619885212624176)
+    
 def test_testgaussian():
     '''
     >>> import wafo.spectrum.models as sm
@@ -119,46 +116,47 @@ def test_testgaussian():
     >>> sum(t1>t0)<5
     True
     '''
-def test_moment():
-    '''
-    >>> import wafo.spectrum.models as sm
-    >>> Sj = sm.Jonswap(Hm0=5)
-    >>> S = Sj.tospecdata() #Make spectrum ob
-    >>> S.moment()
-    ([1.5614600345079888, 0.95567089481941048], ['m0', 'm0tt'])
-    '''
+    
+def test_moment():   
+    Sj = sm.Jonswap(Hm0=5)
+    S = Sj.tospecdata() #Make spectrum ob
+    vals, txt = S.moment()
+    true_vals = [1.5614600345079888, 0.95567089481941048]
+    true_txt =  ['m0', 'm0tt'] 
+    for tv,v in zip(true_vals, vals):
+        assert(tv==v)
     
 def test_nyquist_freq():
-    '''
-    >>> import wafo.spectrum.models as sm
-    >>> Sj = sm.Jonswap(Hm0=5)
-    >>> S = Sj.tospecdata() #Make spectrum ob
-    >>> S.nyquist_freq()
-    3.0
-    '''
+     
+    Sj = sm.Jonswap(Hm0=5)
+    S = Sj.tospecdata() #Make spectrum ob
+    assert(S.nyquist_freq()==3.0)
+    
 def test_sampling_period():
-    '''
-    >>> import wafo.spectrum.models as sm
-    >>> Sj = sm.Jonswap(Hm0=5)
-    >>> S = Sj.tospecdata() #Make spectrum ob
-    >>> S.sampling_period()
-    1.0471975511965976
-    '''
+     
+    Sj = sm.Jonswap(Hm0=5)
+    S = Sj.tospecdata() #Make spectrum ob
+    assert( S.sampling_period()== 1.0471975511965976)
+    
 def test_normalize():
-    '''
-    >>> import wafo.spectrum.models as sm
-    >>> Sj = sm.Jonswap(Hm0=5)
-    >>> S = Sj.tospecdata() #Make spectrum ob
-    >>> S.moment(2)
+     
+    Sj = sm.Jonswap(Hm0=5)
+    S = Sj.tospecdata() #Make spectrum ob
+    S.moment(2)
     ([1.5614600345079888, 0.95567089481941048], ['m0', 'm0tt'])
+    vals, txt = S.moment(2)
+    true_vals = [1.5614600345079888, 0.95567089481941048]
+    for tv,v in zip(true_vals, vals):
+        assert(tv==v)
+        
+    Sn = S.copy(); 
+    Sn.normalize()
     
-    >>> Sn = S.copy(); Sn.normalize()
+    #Now the moments should be one
+    new_vals, txt = Sn.moment(2)
+    for v in new_vals:
+        assert(np.abs(v-1.0)<1e-7)
     
-    Now the moments should be one
-    >>> Sn.moment(2)
-    ([1.0000000000000004, 0.99999999999999967], ['m0', 'm0tt'])
-    
-    '''
 def test_characteristic():
     '''
     >>> import wafo.spectrum.models as sm
@@ -170,9 +168,9 @@ def test_characteristic():
     >>> [ch, R, txt] = S.characteristic([1,2,3])  # fact a vector of integers
     >>> ch; R; txt
     array([ 8.59007646,  8.03139757,  5.62484314])
-    array([[ 0.03040216,  0.02834263,         NaN],
-           [ 0.02834263,  0.0274645 ,         NaN],
-           [        NaN,         NaN,  0.01500249]])
+    array([[ 0.03040216,  0.02834263,         nan],
+           [ 0.02834263,  0.0274645 ,         nan],
+           [        nan,         nan,  0.01500249]])
     ['Tm01', 'Tm02', 'Tm24']
     
     >>> S.characteristic('Ss')               # fact a string
@@ -183,20 +181,23 @@ def test_characteristic():
            [ 0.02511371,  0.0274645 ]]), ['Hm0', 'Tm02'])
     '''   
 def test_bandwidth():
-    '''
-    >>> import numpy as np
-    >>> import wafo.spectrum.models as sm
-    >>> Sj = sm.Jonswap(Hm0=3)
-    >>> w = np.linspace(0,4,256)
-    >>> S = SpecData1D(Sj(w),w) #Make spectrum object from numerical values
-    >>> S.bandwidth([0,1,2,3])
-    array([ 0.65354446,  0.3975428 ,  0.75688813,  2.00207912])
-    '''
+    
+    Sj = sm.Jonswap(Hm0=3, Tp=7)
+    w = np.linspace(0,4,256)
+    S = SpecData1D(Sj(w),w) #Make spectrum object from numerical values
+    vals = S.bandwidth([0,1,2,3])
+    true_vals = np.array([ 0.73062845,  0.34476034,  0.68277527,  2.90817052])
+    assert((np.abs(vals-true_vals)<1e-7).all())
+    
 def test_docstrings():
     import doctest
     doctest.testmod()
 
 if __name__ == '__main__':
-    #from nose.plugins.plugintest import run_buffered as run
-    #run()
-    test_docstrings()
+    import nose
+    #nose.run()
+    #test_docstrings()
+    #test_tocovdata()
+    #test_tocovmatrix()
+    #test_sim()
+    #test_bandwidth()
