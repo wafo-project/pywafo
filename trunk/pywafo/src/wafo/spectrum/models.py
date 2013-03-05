@@ -681,9 +681,9 @@ def phi1(wi, h, g=9.81):
     k2 = w2k(w, 0, h, g=g)[0]
 
     k2h = k2 * h
-    dw2 = where(k1 != 0, dw1 / (tanh(k2h) + k2h / cosh(k2h) ** 2.0), 0) # dw/dk|h=h0
-
-    return where(k1 != 0, (k1 / k2) ** 3.0 * dw2 / dw1, 0)
+    den = where(k1 == 0, 1, (tanh(k2h) + k2h / cosh(k2h) ** 2.0))
+    dw2 = where(k1 == 0, 0, dw1 / den) # dw/dk|h=h0
+    return where(k1 == 0, 0, (k1 / k2) ** 3.0 * dw2 / dw1)
 
 class Tmaspec(Jonswap):
     ''' JONSWAP spectrum for finite water depth

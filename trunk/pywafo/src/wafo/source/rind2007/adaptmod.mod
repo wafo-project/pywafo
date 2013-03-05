@@ -1,5 +1,5 @@
-GFORTRAN module version '4' created from intmodule.f on Sat May 05 23:15:40 2012
-MD5:53fb950b8a79cff14291a70f77ea6928 -- If you edit this, you'll get what you deserve.
+GFORTRAN module version '4' created from intmodule.f on Mon Feb 18 02:58:29 2013
+MD5:17160d7e8ba108b002481eb4224bf586 -- If you edit this, you'll get what you deserve.
 
 (() () () () () () () () () () () () () () () () () () () () () () () ()
 () () ())
@@ -20,16 +20,6 @@ DECL UNKNOWN 0 0 SUBROUTINE GENERIC) (UNKNOWN 0 0 0 UNKNOWN ()) 4 0 (5 6
 3 'sadapt' 'adaptmod' 'sadapt' 1 ((PROCEDURE UNKNOWN-INTENT MODULE-PROC
 DECL UNKNOWN 0 0 SUBROUTINE GENERIC) (UNKNOWN 0 0 0 UNKNOWN ()) 14 0 (
 15 16 17 18 19 20 21 22) () 0 () () () 0 0)
-9 'absreq' '' 'absreq' 4 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
-10 'relreq' '' 'relreq' 4 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
-DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
-11 'absest' '' 'absest' 4 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0 DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
-12 'finest' '' 'finest' 4 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0 DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
-13 'inform' '' 'inform' 4 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN 0
-0 DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
 15 'n' '' 'n' 14 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DUMMY) (
 INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
 16 'maxpts' '' 'maxpts' 14 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0
@@ -61,6 +51,16 @@ DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
 8 'functn' '' 'functn' 4 ((PROCEDURE UNKNOWN-INTENT UNKNOWN-PROC BODY
 UNKNOWN 0 0 DUMMY FUNCTION ALWAYS_EXPLICIT) (REAL 8 0 0 REAL ()) 26 0 (
 27 28) () 8 () () () 0 0)
+9 'absreq' '' 'absreq' 4 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
+10 'relreq' '' 'relreq' 4 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0
+DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
+11 'absest' '' 'absest' 4 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN 0
+0 DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
+12 'finest' '' 'finest' 4 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN 0
+0 DUMMY) (REAL 8 0 0 REAL ()) 0 0 () () 0 () () () 0 0)
+13 'inform' '' 'inform' 4 ((VARIABLE OUT UNKNOWN-PROC UNKNOWN UNKNOWN 0
+0 DUMMY) (INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
 27 'n' '' 'n' 26 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0 DUMMY) (
 INTEGER 4 0 0 INTEGER ()) 0 0 () () 0 () () () 0 0)
 28 'z' '' 'z' 26 ((VARIABLE IN UNKNOWN-PROC UNKNOWN UNKNOWN 0 0

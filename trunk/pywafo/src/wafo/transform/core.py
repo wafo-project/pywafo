@@ -146,7 +146,7 @@ class TrData(PlotData, TrCommon):
     -------
     Construct a linear transformation model
     >>> import numpy as np
-    >>> import wafo.transorm as wt
+    >>> import wafo.transform as wt
     >>> sigma = 5; mean = 1
     >>> u = np.linspace(-5,5); x = sigma*u+mean; y = u
     >>> g = wt.TrData(y,x)
