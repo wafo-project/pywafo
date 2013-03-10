@@ -31,7 +31,7 @@ import numpy as np
 import numpy.random as mtrand
 from numpy import flatnonzero as nonzero
 
-
+_log1p = log1p
 
 from wafo.stats.estimation import FitDistribution
 
@@ -88,6 +88,10 @@ except ImportError:
     def instancemethod(func, obj, cls):
         return types.MethodType(func, obj)
 
+def log1p(x):
+    '''avoids warnings for x==-1'''
+    mx = where(x==-1, 0, x)
+    return where(x==-1, -inf, _log1p(mx))
 
 # These are the docstring parts used for substitution in specific
 # distribution docstrings.
@@ -1073,18 +1077,20 @@ class rv_generic(object):
             The shape parameter(s) for the distribution (see docstring of the
             instance object for more information)
         loc : array_like, optional
-            location parameter (default=0)
+            Location parameter, Default is 0.
         scale : array_like, optional
-            scale parameter (default=1)
+            Scale parameter, Default is 1.
 
         Returns
         -------
         median : float
-            the median of the distribution.
+            The median of the distribution.
 
         See Also
         --------
-        self.ppf --- inverse of the CDF
+        stats.distributions.rv_discrete.ppf
+            Inverse of the CDF
+
         """
         return self.ppf(0.5, *args, **kwds)
 
@@ -1164,24 +1170,28 @@ class rv_generic(object):
         return res
 
     def interval(self, alpha, *args, **kwds):
-        """Confidence interval with equal areas around the median
+        """
+        Confidence interval with equal areas around the median.
 
         Parameters
         ----------
-        alpha : array_like float in [0,1]
-            Probability that an rv will be drawn from the returned range
+        alpha : array_like of float
+            Probability that an rv will be drawn from the returned range.
+            Each value should be in the range [0, 1].
         arg1, arg2, ... : array_like
-            The shape parameter(s) for the distribution (see docstring of the instance
-            object for more information)
+            The shape parameter(s) for the distribution (see docstring of the
+            instance object for more information).
         loc : array_like, optional
-            location parameter (default = 0)
+            location parameter, Default is 0.
         scale : array_like, optional
-            scale paramter (default = 1)
+            scale parameter, Default is 1.
 
         Returns
         -------
-        a, b : array_like (float)
-            end-points of range that contain alpha % of the rvs
+        a, b : ndarray of float
+            end-points of range that contain ``100 * alpha %`` of the rv's possible
+            values.
+
         """
         alpha = asarray(alpha)
         if any((alpha > 1) | (alpha < 0)):
@@ -1392,7 +1402,6 @@ class rv_continuous(rv_generic):
 
     Alternatively, you can override ``_munp``, which takes n and shape
     parameters and returns the nth non-central moment of the distribution.
-
 
     Examples
     --------
@@ -1728,7 +1737,7 @@ class rv_continuous(rv_generic):
 
     def cdf(self,x,*args,**kwds):
         """
-        Cumulative distribution function at x of the given RV.
+        Cumulative distribution function of the given RV.
 
         Parameters
         ----------
@@ -1744,8 +1753,8 @@ class rv_continuous(rv_generic):
 
         Returns
         -------
-        cdf : array_like
-            Cumulative distribution function evaluated at x
+        cdf : ndarray
+            Cumulative distribution function evaluated at `x`
 
         """
         loc,scale=map(kwds.get,['loc','scale'])
@@ -1967,8 +1976,8 @@ class rv_continuous(rv_generic):
 
         Returns
         -------
-        x : array_like
-            quantile corresponding to the upper tail probability q.
+        x : ndarray or scalar
+            Quantile corresponding to the upper tail probability q.
 
         """
         loc,scale=map(kwds.get,['loc','scale'])
@@ -1997,7 +2006,6 @@ class rv_continuous(rv_generic):
         if product(shape(proxy_value)) != 1:
             proxy_value = extract(cond2, proxy_value * cond2)
         place(output, cond2, proxy_value)
-        
 
         if any(cond):  #call only if at least 1 entry
             goodargs = argsreduce(cond, *((q,)+args+(scale,loc)))  #PB replace 1-q by q
@@ -2597,6 +2605,7 @@ class rv_continuous(rv_generic):
             Estimated location parameter for the data.
         Shat : float
             Estimated scale parameter for the data.
+
         """
         mu, mu2 = self.stats(*args,**{'moments':'mv'})
         tmp = asarray(data)
@@ -7057,7 +7066,7 @@ class rv_discrete(rv_generic):
 
     def cdf(self, k, *args, **kwds):
         """
-        Cumulative distribution function at k of the given RV.
+        Cumulative distribution function of the given RV.
 
         Parameters
         ----------
@@ -7071,8 +7080,8 @@ class rv_discrete(rv_generic):
 
         Returns
         -------
-        cdf : array_like
-            Cumulative distribution function evaluated at k.
+        cdf : ndarray
+            Cumulative distribution function evaluated at `k`.
 
         """
         loc = kwds.get('loc')
@@ -7177,7 +7186,10 @@ class rv_discrete(rv_generic):
 
     def logsf(self,k,*args,**kwds):
         """
-        Log of the survival function (1-cdf) at k of the given RV
+        Log of the survival function of the given RV.
+
+        Returns the log of the "survival function," defined as ``1 - cdf``,
+        evaluated at `k`.
 
         Parameters
         ----------
@@ -7191,8 +7203,8 @@ class rv_discrete(rv_generic):
 
         Returns
         -------
-        sf : array_like
-            Survival function evaluated at k.
+        sf : ndarray
+            Survival function evaluated at `k`.
 
         """
         loc= kwds.get('loc')
@@ -7274,11 +7286,10 @@ class rv_discrete(rv_generic):
 
         Returns
         -------
-        k : array_like
+        k : ndarray or scalar
             Quantile corresponding to the upper tail probability, q.
 
         """
-
         loc = kwds.get('loc')
         args, loc = self.fix_loc(args, loc)
         q,loc  = map(asarray,(q,loc))
@@ -7435,7 +7446,7 @@ class rv_discrete(rv_generic):
         ----------
         n : int, n>=1
             order of moment
-        arg1, arg2, arg3,...: float
+        arg1, arg2, arg3,... : float
             The shape parameter(s) for the distribution (see docstring of the
             instance object for more information)
         loc : float, optional
@@ -7514,7 +7525,8 @@ class rv_discrete(rv_generic):
         return self.freeze(*args,**kwds)
 
     def expect(self, func=None, args=(), loc=0, lb=None, ub=None, conditional=False):
-        """calculate expected value of a function with respect to the distribution
+        """
+        Calculate expected value of a function with respect to the distribution
         for discrete distribution
 
         Parameters
@@ -7523,11 +7535,11 @@ class rv_discrete(rv_generic):
                Function for which sum is calculated. Takes only one argument.
         args : tuple
                argument (parameters) of the distribution
-        optional keyword parameters
-        lb, ub : numbers
+        lb, ub : numbers, optional
                lower and upper bound for integration, default is set to the support
                of the distribution, lb and ub are inclusive (ul<=k<=ub)
-        conditional : boolean (False)
+        conditional : bool, optional
+            Default is False.
                If true then the expectation is corrected by the conditional
                probability of the integration interval. The return value is the
                expectation of the function, conditional on being in the given
@@ -7535,7 +7547,8 @@ class rv_discrete(rv_generic):
 
         Returns
         -------
-        expected value : float
+        expect : float
+            Expected value.
 
         Notes
         -----
@@ -7549,8 +7562,8 @@ class rv_discrete(rv_generic):
             non-monotonic shapes, points include integers in (-suppnmin, suppnmin)
         * uses maxcount=1000 limits the number of points that are evaluated
             to break loop for infinite sums
-            (a maximum of suppnmin+1000 positive plus suppnmin+1000 negative integers
-            are evaluated)
+          (a maximum of suppnmin+1000 positive plus suppnmin+1000 negative
+          integers are evaluated)
 
         """
 
@@ -7658,9 +7671,12 @@ class binom_gen(rv_discrete):
          "Fast and Accurate Computation of Binomial Probabilities";
            url = "http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.35.2719" }
         """
+        logp = where((p==0) & (x==0), 1, log(p)) 
+        log1mp = where((p==1) & (x==n), 1, log1p(-p))
+
         PI2 = 2.0 * pi
         
-        yborder = log((x == 0.) * exp(n * log1p(-p)) + (x == n) * exp(n * log(p)))
+        yborder = log((x == 0.) * exp(n * log1mp) + (x == n) * exp(n * logp))
         nx = n - x
         nq = n * (1. - p)
         lc = stirlerr(n) - stirlerr(x) - stirlerr(nx) - bd0(x, n * p) - bd0(nx, nq)
@@ -7669,7 +7685,6 @@ class binom_gen(rv_discrete):
         return where(inside, lc + 0.5 * log(n / (PI2 * xnx)), yborder)
     def _pmf(self, x, n, p):
         return exp(self._logpmf(x, n, p))
-
     def _cdf(self, x, n, p):
         k = floor(x)
         vals = special.bdtr(k,n,p)
@@ -8457,7 +8472,17 @@ def test_genpareto():
     print(phat.par)
     
 if __name__ == '__main__':
-    bernoulli.logcdf(np.nan)
+    import matplotlib
+    matplotlib.use()
+    import matplotlib.pyplot as plt
+    
+    prb = np.linspace(0,1, 10)
+    q = truncnorm.isf(prb,-1., 1., loc=[3],scale=2)
+    plt.plot(q, prb)
+    plt.show()
+    p = truncnorm.sf(q,-1,1, loc=[3],scale=2)
+    pass
+    #bernoulli.logcdf(np.nan)
     #test_binom()    
     #test_doctstrings()
     #test_genpareto()
