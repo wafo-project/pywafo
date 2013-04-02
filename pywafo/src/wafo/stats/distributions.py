@@ -2958,8 +2958,11 @@ class beta_gen(rv_continuous):
         Px /= special.beta(a,b)
         return Px
     def _logpdf(self, x, a, b):
-        lPx = (b-1.0)*log1p(-x) + (a-1.0)*log(x)
-        lPx -= log(special.beta(a,b))
+        logx = where((a==1) & (x==0),  0 , log(x)) 
+        log1mx = where((b==1) & (x==1), 0, log1p(-x))
+        lPx = (a-1)*logx + (b-1)*log1mx - log(special.beta(a,b)) 
+#        lPx = (b-1.0)*log1p(-x) + (a-1.0)*log(x)
+#        lPx -= log(special.beta(a,b))
         return lPx
     def _cdf(self, x, a, b):
         return special.btdtr(a,b,x)
@@ -4301,7 +4304,8 @@ class gamma_gen(rv_continuous):
     def _pdf(self, x, a):
         return exp(self._logpdf(x, a))
     def _logpdf(self, x, a):
-        return (a-1)*log(x) - x - gamln(a)
+        logx = where((a==1) & (x==0), 0, log(x))
+        return (a-1)*logx - x - gamln(a)
     def _cdf(self, x, a):
         return special.gammainc(a, x)
     def _ppf(self, q, a):
@@ -8473,8 +8477,17 @@ def test_genpareto():
     
 if __name__ == '__main__':
     import matplotlib
-    matplotlib.use()
+    #matplotlib.interactive=False
     import matplotlib.pyplot as plt
+    plt.ioff()
+    aa = rice.pdf(1.0, 0.0)
+    a = beta.logpdf(0,1,0.5)
+    b = beta.logpdf(0,0.5,1)
+    c = gamma._logpdf(0,1)
+    x = np.linspace(0,5,40)
+    plt.plot(x, gamma.logpdf(x,1))
+    plt.show()
+    pass
     
     prb = np.linspace(0,1, 10)
     q = truncnorm.isf(prb,-1., 1., loc=[3],scale=2)
