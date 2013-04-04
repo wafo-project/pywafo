@@ -68,6 +68,61 @@ def test_all_distributions():
             args = tuple(1.0+rand(nargs))
         yield check_distribution, dist, args, alpha
 
+def test_ppf_and_isf_all_distributions():     
+    for dist in dists:
+        distfunc = getattr(stats, dist)
+        nargs = distfunc.numargs
+        for check_fun in [check_distribution_ppf, check_distribution_isf]:
+            if dist == 'erlang':
+                args = (4,)+tuple(rand(2))
+            elif dist == 'frechet':
+                args = tuple(2*rand(1))+(0,)+tuple(2*rand(2))
+            elif dist == 'triang':
+                args = tuple(rand(nargs))
+            elif dist == 'reciprocal':
+                vals = rand(nargs)
+                vals[1] = vals[0] + 1.0
+                args = tuple(vals)
+            elif dist == 'vonmises':
+                yield check_fun, dist, (10,)
+                yield check_fun, dist, (101,)
+                args = tuple(1.0+rand(nargs))
+            else:
+                args = tuple(1.0+rand(nargs))
+            yield check_fun, dist, args
+
+def check_distribution_ppf(diststr, args):
+    dist = getattr(stats, diststr)
+    n = dist.numargs
+    loc, scale = 0, 1
+    rv = dist(*args)
+    loc_scale = rv.par[n:]
+    if len(loc_scale)>0:
+        loc = loc_scale[0]
+        if len(loc_scale)>1:
+            scale = loc_scale[1]
+            
+    limits = rv.ppf([0, 1]) #[1-1e-15, 1e-15])    
+    true_limits = np.array([rv.dist.a*scale + loc, rv.dist.b*scale + loc])
+    
+    assert_allclose(limits, true_limits, atol=1e-7, err_msg='Expected support for distribution')
+
+def check_distribution_isf(diststr, args):
+    dist = getattr(stats, diststr)
+    n = dist.numargs
+    loc, scale = 0, 1
+    rv = dist(*args)
+    loc_scale = rv.par[n:]
+    if len(loc_scale)>0:
+        loc = loc_scale[0]
+        if len(loc_scale)>1:
+            scale = loc_scale[1]
+            
+    limits = rv.isf([1, 0]) #[1-1e-15, 1e-15])    
+    true_limits = np.array([rv.dist.a*scale + loc, rv.dist.b*scale + loc])
+    
+    assert_allclose(limits, true_limits, atol=1e-7, err_msg='Expected support for distribution')
+    
 class TestFitMethod(TestCase):
     skip = ['ncf']
 

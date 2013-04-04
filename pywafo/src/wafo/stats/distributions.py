@@ -581,7 +581,6 @@ class rv_frozen(object):
             args, loc0 = dist.fix_loc(args, loc0)
             self.par = args + (loc0,)
 
-
     def pdf(self, x):
         ''' Probability density function at x of the given RV.'''
         return self.dist.pdf(x, *self.par)
@@ -1926,30 +1925,21 @@ class rv_continuous(rv_generic):
             quantile corresponding to the lower tail probability q.
 
         """
-        loc,scale=map(kwds.get,['loc','scale'])
+        loc, scale=map(kwds.get,['loc','scale'])
         args, loc, scale = self.fix_loc_scale(args, loc, scale)
-        q,loc,scale = map(asarray,(q,loc,scale))
+        q, loc, scale = map(asarray,(q, loc, scale))
         args = tuple(map(asarray,args))
         cond0 = self._argcheck(*args) & (scale > 0) & (loc==loc)
-        cond1 = (q > 0) & (q < 1)
-        cond2 = (q==1) & cond0
+        cond1 = (0 < q) & (q < 1)
+        cond2 = cond0 & (q==0)
+        cond3 = cond0 & (q==1)
+        
         cond = cond0 & cond1
-        output = valarray(shape(cond),value=self.a*scale + loc)
-        place(output,(1-cond0)+(1-cond1)*(q!=0.0), self.badvalue)
+        output = valarray(shape(cond), value=self.badvalue)
         
-        # begin CAT patch 2: 17 MARCH 2010
-        # If expr in last arg has shape(N,1), place() tries to jam an
-        #   array into each cell in output with cond2 == True.
-        #   Causes exception even when (not any(cond2)) holds.
-        #WASplace(output,cond2,self.b*scale + loc)
- 
-        proxy_value = self.b * scale + loc
-        if product(shape(proxy_value)) != 1:
-            proxy_value = extract(cond2, proxy_value * cond2)
-        place(output, cond2, proxy_value)
-        # end CAT patch 2: 17 MARCH 2010  
-        
-        # rest of method unchanged...       
+        place(output, cond2, argsreduce(cond2, self.a * scale + loc)[0])
+        place(output, cond3, argsreduce(cond3, self.b * scale + loc)[0])
+               
         if any(cond):  #call only if at least 1 entry
             goodargs = argsreduce(cond, *((q,)+args+(scale,loc)))
             scale, loc, goodargs = goodargs[-2], goodargs[-1], goodargs[:-2]
@@ -1982,35 +1972,23 @@ class rv_continuous(rv_generic):
         """
         loc,scale=map(kwds.get,['loc','scale'])
         args, loc, scale = self.fix_loc_scale(args, loc, scale)
-        q,loc,scale = map(asarray,(q,loc,scale))
+        q, loc, scale = map(asarray,(q, loc, scale))
         args = tuple(map(asarray,args))
         cond0 = self._argcheck(*args) & (scale > 0) & (loc==loc)
-        cond1 = (q > 0) & (q < 1)
-        cond2 = (q==1) & cond0
-        cond = cond0 & cond1
-   
-        initial_value = self.b * scale + loc
-        output = valarray(shape(cond), value=initial_value)
-        #place(output,(1-cond0)*(cond1==cond1), self.badvalue)
-        place(output,(1-cond0)*(cond1==cond1)+(1-cond1)*(q!=0.0), self.badvalue)
-
-        # begin CAT patch 4: 18 MARCH 2010
-        # If expr in last arg has shape=(N,1), place() tries to jam a large
-        #   array into each cell in output where cond2==True.
-        #   Causes exception even if cond2 is never True.
-        # This statement also has the unfortunate side effect of being wrong
-        #   when the support of the distribution is bounded below.
-        #WASplace(output,cond2,self.a)
+        cond1 = (0 < q) & (q < 1)
+        cond2 = cond0 & (q==1)
+        cond3 = cond0 & (q==0)
         
-        proxy_value = self.a * scale + loc
-        if product(shape(proxy_value)) != 1:
-            proxy_value = extract(cond2, proxy_value * cond2)
-        place(output, cond2, proxy_value)
-
+        cond = cond0 & cond1
+        output = valarray(shape(cond), value=self.badvalue)
+        
+        place(output, cond2, argsreduce(cond2, self.a * scale + loc)[0])
+        place(output, cond3, argsreduce(cond3, self.b * scale + loc)[0])
+        
         if any(cond):  #call only if at least 1 entry
             goodargs = argsreduce(cond, *((q,)+args+(scale,loc)))  #PB replace 1-q by q
             scale, loc, goodargs = goodargs[-2], goodargs[-1], goodargs[:-2]
-            place(output,cond,self._isf(*goodargs)*scale + loc) #PB use _isf instead of _ppf
+            place(output, cond, self._isf(*goodargs) * scale + loc) #PB use _isf instead of _ppf
         if output.ndim == 0:
             return output[()]
         return output
@@ -2209,12 +2187,11 @@ class rv_continuous(rv_generic):
         if not self._argcheck(*args) or scale <= 0:
             return inf
         x = arr((x - loc) / scale)
-        cond0 = (x <= self.a) | (x >= self.b)
+        cond0 = (x <= self.a) | (self.b <= x)
         Nbad = sum(cond0)
         if Nbad>0:
-            x = argsreduce(1 - cond0, *((x,)))[0]
-            #return inf
-        #else:
+            x = argsreduce( ~cond0, x)[0]
+             
             
         lowertail = True
         if lowertail:
@@ -2260,9 +2237,8 @@ class rv_continuous(rv_generic):
     
     def _nnlf(self, x, *args): 
         loginf = -log(floatinfo.machar.xmin)
-        logpdf = self._logpdf(x, *args).clip(min= -loginf)
+        logpdf = self._logpdf(x, *args).clip(min= -100*loginf)
         return -sum(logpdf, axis=0)
-
 
     def nnlf(self, theta, x):
         ''' Return negative loglikelihood function, i.e., - sum (log pdf(x, theta),axis=0)
@@ -2277,18 +2253,15 @@ class rv_continuous(rv_generic):
         if not self._argcheck(*args) or scale <= 0:
             return inf
         x = asarray((x-loc) / scale)
-        cond0 = (x <= self.a) | (x >= self.b)
-        if (any(cond0)):
-            # old call: return inf
-            goodargs = argsreduce(1 - cond0, *((x,)))
-            goodargs = tuple(goodargs + list(args))
-            N = len(x)
-            Nbad = sum(cond0)
-            xmax = floatinfo.machar.xmax
-            return self._nnlf(*goodargs) + N * (log(scale) + Nbad * 100.0 * log(xmax))
-        else:
-            N = len(x)
-            return self._nnlf(x, *args) + N*log(scale)
+        cond0 = (x <= self.a) | (self.b <= x)
+        Nbad = sum(cond0)
+        loginf = log(floatinfo.machar.xmax)
+        if Nbad>0:
+            x = argsreduce(~cond0, x)[0]
+             
+        N = len(x)
+        return self._nnlf(x, *args) + N*log(scale) + Nbad * 100.0 * loginf
+    
     def hessian_nlogps(self, theta, data, eps=None):
         ''' approximate hessian of nlogps where theta are the parameters (including loc and scale)
         '''
@@ -2529,6 +2502,7 @@ class rv_continuous(rv_generic):
             except AttributeError:
                 raise ValueError("%s is not a valid optimizer" % optimizer)
         vals = optimizer(func,x0,args=(ravel(data),),disp=0)
+        
         if restore is not None:
             vals = restore(args, vals)
         vals = tuple(vals)
@@ -2613,7 +2587,11 @@ class rv_continuous(rv_generic):
         mu2hat = tmp.var()
         Shat = sqrt(mu2hat / mu2)
         Lhat = muhat - Shat*mu
-        return Lhat, Shat
+        if not np.isfinite(Lhat):
+            Lhat = 0
+        if not (np.isfinite(Shat) and (0 < Shat)) :
+            Shat = 1
+        return  Lhat, Shat 
 
     @np.deprecate
     def est_loc_scale(self, data, *args):
@@ -3093,6 +3071,15 @@ class bradford_gen(rv_continuous):
     def _entropy(self, c):
         k = log1p(c)
         return k / 2.0 - log(c / k)
+    def  _fitstart(self, data):
+        loc = data.min()-1e-4
+        scale = (data-loc).max()
+        m = np.mean((data-loc)/scale)
+        fun = lambda c : (c-log1p(c))/(c*log1p(c)) - m
+        res = optimize.root(fun, 0.3)
+        c = res.x
+        return c, loc, scale
+        
 bradford = bradford_gen(a=0.0, b=1.0, name='bradford', shapes='c')
 
 
@@ -3249,6 +3236,12 @@ class chi_gen(rv_continuous):
         g2 = 2*df*(1.0-df)-6*mu**4 + 4*mu**2 * (2*df-1)
         g2 /= asarray(mu2**2.0)
         return mu, mu2, g1, g2
+    def _fitstart(self, data):
+        m = data.mean()
+        v = data.var()
+        # Supply a starting guess with method of moments:
+        df = max(np.round(v+m**2),1)
+        return super(chi_gen, self)._fitstart(data, args=(df,))
 chi = chi_gen(a=0.0, name='chi', shapes='df')
 
 
@@ -3293,6 +3286,12 @@ class chi2_gen(rv_continuous):
         g1 = 2*sqrt(2.0/df)
         g2 = 12.0/df
         return mu, mu2, g1, g2
+    def _fitstart(self, data):
+        m = data.mean()
+        v = data.var()
+        # Supply a starting guess with method of moments:
+        df = max(np.round((m+v/2)/2),1)
+        return super(chi2_gen, self)._fitstart(data, args=(df,))
 chi2 = chi2_gen(a=0.0, name='chi2', shapes='df')
 
 
@@ -3711,6 +3710,14 @@ class f_gen(rv_continuous):
         g2 = 3/(2*v2-16)*(8+g1*g1*(v2-6))
         g2 = where(v2 > 8, g2, nan)
         return mu, mu2, g1, g2
+    def _fitstart(self, data):
+        m = data.mean()
+        v = data.var()
+        # Supply a starting guess with method of moments:
+        dfd = max(np.round(2*m/(m-1)), 5)
+        dfn = max(np.round(2*dfd*dfd*(dfd-2)/(v*(dfd-4)*(dfd-2)**2 - 2*dfd*dfd)), 1) 
+        return super(f_gen, self)._fitstart(data, args=(dfn,dfd,))
+
 f = f_gen(a=0.0, name='f', shapes="dfn, dfd")
 
 
@@ -3810,9 +3817,14 @@ class frechet_r_gen(rv_continuous):
         return special.gamma(1.0+n*1.0/c)
     def _entropy(self, c):
         return -_EULER / c - log(c) + _EULER + 1
+    def _fitstart(self, data):
+        loc = data.min() - 0.01 #*np.std(data)
+        chat = 1./(6**(1/2)/pi*np.std(log(data-loc)))
+        scale = np.mean((data-loc)**chat)**(1./chat)
+        return chat, loc, scale
+ 
 frechet_r = frechet_r_gen(a=0.0, name='frechet_r', shapes='c')
 weibull_min = frechet_r_gen(a=0.0, name='weibull_min', shapes='c')
-
 
 
 class frechet_l_gen(rv_continuous):
@@ -3851,6 +3863,11 @@ class frechet_l_gen(rv_continuous):
         return sgn * val
     def _entropy(self, c):
         return -_EULER / c - log(c) + _EULER + 1
+    def _fitstart(self, data):
+        loc = data.max() + 0.1*np.std(data)
+        chat = 1./(6**(1/2)/pi*np.std(log(loc-data)))
+        scale = np.mean((loc-data)**chat)**(1./chat)
+        return chat, loc, scale
 frechet_l = frechet_l_gen(b=0.0, name='frechet_l', shapes='c')
 weibull_max = frechet_l_gen(b=0.0, name='weibull_max', shapes='c')
 
@@ -4006,7 +4023,6 @@ class genpareto_gen(rv_continuous):
         shape = ((m / s) ** 2 - 1) / 2
         scale = m * ((m / s) ** 2 + 1) / 2
         return shape, loc, scale 
-
 
     def hessian_nnlf(self, theta, x, eps=None):
         try:
@@ -5175,6 +5191,13 @@ class lognorm_gen(rv_continuous):
         return mu, mu2, g1, g2
     def _entropy(self, s):
         return 0.5*(1+log(2*pi)+2*log(s))
+    def _fitstart(self, data):
+        scale = data.std()
+        loc = data.min()-0.001
+        logd = log(data-loc)
+        m = logd.mean()
+        s = sqrt((logd**2).mean() - m**2)
+        return s, loc, scale  
 lognorm = lognorm_gen(a=0.0, name='lognorm', shapes='s')
 
 
@@ -5208,6 +5231,10 @@ class gilbrat_gen(lognorm_gen):
         return lognorm_gen._stats(self, 1.0)
     def _entropy(self):
         return 0.5*log(2*pi) + 0.5
+    def _fitstart(self, data):
+        scale = data.std()
+        loc = data.min()-0.001
+        return loc, scale
 gilbrat = gilbrat_gen(a=0.0, name='gilbrat')
 
 
@@ -5313,6 +5340,7 @@ class nakagami_gen(rv_continuous):
         g2 = -6*mu**4*nu + (8*nu-2)*mu**2-2*nu + 1
         g2 /= nu*mu2**2.0
         return mu, mu2, g1, g2
+
 nakagami = nakagami_gen(a=0.0, name="nakagami", shapes='nu')
 
 
@@ -5352,6 +5380,13 @@ class ncx2_gen(rv_continuous):
         val = df + 2.0*nc
         return df + nc, 2*val, sqrt(8)*(val+nc)/val**1.5, \
                12.0*(val+2*nc)/val**2.0
+    def _fitstart(self, data):
+        m = data.mean()
+        v = data.var()
+        # Supply a starting guess with method of moments:
+        nc = (v/2-m)/2
+        df = m-nc
+        return super(ncx2_gen, self)._fitstart(data, args=(df, nc))
 ncx2 = ncx2_gen(a=0.0, name='ncx2', shapes="df, nc")
 
 
@@ -5407,6 +5442,13 @@ class ncf_gen(rv_continuous):
                     ((dfn+nc/2.0)**2.0 + (dfn+nc)*(dfd-2.0)) / \
                     ((dfd-2.0)**2.0 * (dfd-4.0)))
         return mu, mu2, None, None
+#    def _fitstart(self, data):
+#        m = data.mean()
+#        v = data.var()
+#        # Supply a starting guess with method of moments:
+#        dfn = max(np.round(v+m**2),1)
+#        return super(ncf_gen, self)._fitstart(data, args=(dfn, dfd, nc))
+
 ncf = ncf_gen(a=0.0, name='ncf', shapes="dfn, dfd, nc")
 
 
@@ -8476,6 +8518,11 @@ def test_genpareto():
     print(phat.par)
     
 if __name__ == '__main__':
+    rv = reciprocal(0.2836212578535795, 1.2836212578535795)
+    vals = rv.ppf([0,1])
+    rv = genextreme(1.9556140678015677)
+    vals = rv.ppf([0,1])
+    
     import matplotlib
     #matplotlib.interactive=False
     import matplotlib.pyplot as plt
