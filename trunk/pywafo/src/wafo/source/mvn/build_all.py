@@ -2,6 +2,7 @@
 builds mvn.pyd
 """
 import os
+import sys
 
 def which(program):
     """
@@ -36,29 +37,33 @@ def which(program):
 def f2py_call_str():
     # regardless of platform, try to figure out which f2py call is in the path
     # define possible options
-    f2py_call_list = ('f2py','f2py2.6','f2py2.7','f2py.py',)
     
-    no_f2py = True
-    for k in f2py_call_list:
-        # if the call command exists in the path, it will return the path as
-        # a string, otherwise it will return None
-        f2py_path = which(k)
-        no_f2py = not f2py_path
-        if no_f2py:
-            # didn't find the current call k, continue looking
-            pass
-        else:
-            # current call k is in the path
-            f2py_call = k
-            break
-    
-    # raise exception if f2py is not found
-    if no_f2py:
-        raise UserWarning, \
-        'Couldn\'t locate f2py. Should be part of NumPy installation.'
+    # on Arch Linux, python and f2py are the calls corresponding to python 3
+    # and python2/f2py2 for python 2
+    # other Linux versions might still use python/f2py for python 2
+    if os.path.basename(sys.executable).endswith('2'):
+        for k in ('f2py2','f2py2.6','f2py2.7',):
+            # if we found the f2py path, no need to look further
+            if which(k):
+                f2py_call = k
+                f2py_path = which(k)
+                break
+    # on Windows and other Linux using python/f2py
     else:
+        for k in ('f2py','f2py2.6','f2py2.7','f2py.py',):
+            # if we found the f2py path, no need to look further
+            if which(k):
+                f2py_call = k
+                f2py_path = which(k)
+                break
+    
+    try:
         print 'found f2py in:', f2py_path
         return f2py_call
+    # raise exception if f2py is not found, f2py_path variable will not exist
+    except NameError:
+        raise UserWarning, \
+        'Couldn\'t locate f2py. Should be part of NumPy installation.'
 #        # this might vary among specific cases: f2py, f2py2.7, f2py3.2, ...
 #        # TODO: more robust approach, find out what f2py is in the users path
 #    if os.name == 'posix':
