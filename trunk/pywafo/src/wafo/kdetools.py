@@ -24,7 +24,10 @@ from wafo.misc import meshgrid, nextpow2, tranproc #, trangood
 from wafo.wafodata import PlotData
 from wafo.dctpack import dct, dctn, idctn
 from wafo.plotbackend import plotbackend as plt
-from wafo import fig
+try:
+    from wafo import fig
+except ImportError:
+    print 'fig import only supported on Windows'
 
 _TINY = np.finfo(float).machar.tiny
 

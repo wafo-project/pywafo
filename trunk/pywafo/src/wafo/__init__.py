@@ -11,8 +11,11 @@ import definitions
 import polynomial
 import stats
 import interpolate
-import fig
 import dctpack
+try:
+    import fig
+except ImportError:
+    print 'fig import only supported on Windows'
 
 try:
     from wafo.version import version as __version__
