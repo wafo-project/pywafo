@@ -28,7 +28,7 @@ ISRELEASED          = False
 VERSION             = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 
 
-sys.argv.append("develop")
+#sys.argv.append("develop")
 #sys.argv.append("install")
 DISTUTILS_DEBUG = True
 pkg_name = 'wafo'
