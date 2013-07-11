@@ -281,6 +281,8 @@ def dispersion_idx(data, t=None, u=None, umin=None, umax=None, nu=None, nmin=10,
     >>> Ie = findpot(data,t,0,5);
     >>> di, u, ok_u = dispersion_idx(data[Ie],t[Ie],tb=100)
     >>> h = di.plot() # a threshold around 1 seems appropriate.
+    >>> round(u*100)/100
+    1.03
     
     vline(u)
     
@@ -365,8 +367,8 @@ def dispersion_idx(data, t=None, u=None, umin=None, umax=None, nu=None, nmin=10,
     
     p = 1 - alpha
    
-    diUp = _invchi2(1 - alpha / 2, M - 1) / (M - 1)
-    diLo = _invchi2(alpha / 2, M - 1) / (M - 1)
+    diLo = _invchi2(1 - alpha / 2, M - 1) / (M - 1)
+    diUp = _invchi2(alpha / 2, M - 1) / (M - 1)
     
     # Find appropriate threshold
     k1, = np.where((diLo < di) & (di < diUp))
@@ -1364,6 +1366,6 @@ def test_doctstrings():
     
     
 if __name__ == '__main__':
-    test_reglogit2()
-    #test_doctstrings()(
+    #test_reglogit2()
+    test_doctstrings()
     
