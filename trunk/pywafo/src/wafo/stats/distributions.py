@@ -772,65 +772,6 @@ def bd0(x, npr):
 ##      Volumes I and II, Wiley & Sons, 1994.
 
 
-## Each continuous random variable as the following methods
-##
-## rvs -- Random Variates (alternatively calling the class could produce these)
-## pdf -- PDF
-## logpdf -- log PDF (more  numerically accurate if possible)
-## cdf -- CDF
-## logcdf -- log of CDF
-## sf  -- Survival Function (1-CDF)
-## logsf --- log of SF
-## ppf -- Percent Point Function (Inverse of CDF)
-## isf -- Inverse Survival Function (Inverse of SF)
-## stats -- Return mean, variance, (Fisher's) skew, or (Fisher's) kurtosis
-## nnlf  -- negative log likelihood function (to minimize)
-## fit   -- Model-fitting
-##
-##  Maybe Later
-##
-##  hf  --- Hazard Function (PDF / SF)
-##  chf  --- Cumulative hazard function (-log(SF))
-##  psf --- Probability sparsity function (reciprocal of the pdf) in
-##                units of percent-point-function (as a function of q).
-##                Also, the derivative of the percent-point function.
-
-## To define a new random variable you subclass the rv_continuous class
-##   and re-define the
-##
-##   _pdf method which will be given clean arguments (in between a and b)
-##        and passing the argument check method
-##
-##      If postive argument checking is not correct for your RV
-##      then you will also need to re-define
-##   _argcheck
-
-##   Correct, but potentially slow defaults exist for the remaining
-##       methods but for speed and/or accuracy you can over-ride
-##
-##     _cdf, _ppf, _rvs, _isf, _sf
-##
-##   Rarely would you override _isf  and _sf but you could for numerical precision.
-##
-##   Statistics are computed using numerical integration by default.
-##     For speed you can redefine this using
-##
-##    _stats  --- take shape parameters and return mu, mu2, g1, g2
-##            --- If you can't compute one of these return it as None
-##
-##            --- Can also be defined with a keyword argument moments=<str>
-##                  where <str> is a string composed of 'm', 'v', 's',
-##                  and/or 'k'.  Only the components appearing in string
-##                 should be computed and returned in the order 'm', 'v',
-##                  's', or 'k'  with missing values returned as None
-##
-##    OR
-##
-##  You can override
-##
-##    _munp    -- takes n and shape parameters and returns
-##             --  then nth non-central moment of the distribution.
-##
 
 def valarray(shape,value=nan,typecode=None):
     """Return an array of all value.
@@ -996,6 +937,7 @@ class rv_generic(object):
                 raise TypeError("Too many input arguments.")
 
             args = args[:self.numargs]
+
         if scale is None:
             scale = 1.0
         if loc is None:
@@ -2502,7 +2444,6 @@ class rv_continuous(rv_generic):
             except AttributeError:
                 raise ValueError("%s is not a valid optimizer" % optimizer)
         vals = optimizer(func,x0,args=(ravel(data),),disp=0)
-        
         if restore is not None:
             vals = restore(args, vals)
         vals = tuple(vals)
@@ -2932,9 +2873,7 @@ class beta_gen(rv_continuous):
     def _rvs(self, a, b):
         return mtrand.beta(a,b,self._size)
     def _pdf(self, x, a, b):
-        Px = (1.0-x)**(b-1.0) * x**(a-1.0)
-        Px /= special.beta(a,b)
-        return Px
+        return np.exp(self._logpdf(x, a, b))
     def _logpdf(self, x, a, b):
         logx = where((a==1) & (x==0),  0 , log(x)) 
         log1mx = where((b==1) & (x==1), 0, log1p(-x))
@@ -3005,13 +2944,13 @@ class betaprime_gen(rv_continuous):
         u2 = gamma.rvs(b,size=self._size)
         return (u1 / u2)
     def _pdf(self, x, a, b):
-        return 1.0/special.beta(a,b)*x**(a-1.0)/(1+x)**(a+b)
+        return np.exp(self._logpdf(x, a, b))
     def _logpdf(self, x, a, b):
         return (a-1.0)*log(x) - (a+b)*log1p(x) - log(special.beta(a,b))
     def _cdf_skip(self, x, a, b):
         # remove for now: special.hyp2f1 is incorrect for large a
         x = where(x==1.0, 1.0-1e-6,x)
-        return power(x,a)*special.hyp2f1(a+b,a,1+a,-x)/a/special.beta(a,b)
+        return pow(x,a)*special.hyp2f1(a+b,a,1+a,-x)/a/special.beta(a,b)
     def _munp(self, n, a, b):
         if (n == 1.0):
             return where(b > 1, a/(b-1.0), inf)
@@ -3397,7 +3336,7 @@ class dweibull_gen(rv_continuous):
         return where(x > 0, 1-Cx1, Cx1)
     def _ppf_skip(self, q, c):
         fac = where(q<=0.5,2*q,2*q-1)
-        fac = power(asarray(log(1.0/fac)),1.0/c)
+        fac = pow(asarray(log(1.0/fac)),1.0/c)
         return where(q>0.5,fac,-fac)
     def _stats(self, c):
         var = gam(1+2.0/c)
@@ -3582,7 +3521,7 @@ class exponpow_gen(rv_continuous):
     def _isf(self, x, b):
         return (log1p(-log(x)))**(1./b)
     def _ppf(self, q, b):
-        return power(log1p(-log1p(-q)), 1.0/b)
+        return pow(log1p(-log1p(-q)), 1.0/b)
 exponpow = exponpow_gen(a=0.0, name='exponpow', shapes='b')
 
 
@@ -3806,13 +3745,13 @@ class frechet_r_gen(rv_continuous):
         return phati
 
     def _pdf(self, x, c):
-        return c*power(x,c-1)*exp(-power(x,c))
+        return c*pow(x,c-1)*exp(-pow(x,c))
     def _logpdf(self, x, c):
-        return log(c) + (c-1)*log(x) - power(x,c)
+        return log(c) + (c-1)*log(x) - pow(x,c)
     def _cdf(self, x, c):
-        return -expm1(-power(x,c))
+        return -expm1(-pow(x,c))
     def _ppf(self, q, c):
-        return power(-log1p(-q),1.0/c)
+        return pow(-log1p(-q),1.0/c)
     def _munp(self, n, c):
         return special.gamma(1.0+n*1.0/c)
     def _entropy(self, c):
@@ -3825,6 +3764,7 @@ class frechet_r_gen(rv_continuous):
  
 frechet_r = frechet_r_gen(a=0.0, name='frechet_r', shapes='c')
 weibull_min = frechet_r_gen(a=0.0, name='weibull_min', shapes='c')
+
 
 
 class frechet_l_gen(rv_continuous):
@@ -3849,11 +3789,11 @@ class frechet_l_gen(rv_continuous):
 
     """
     def _pdf(self, x, c):
-        return c*power(-x,c-1)*exp(-power(-x,c))
+        return c*pow(-x,c-1)*exp(-pow(-x,c))
     def _cdf(self, x, c):
-        return exp(-power(-x,c))
+        return exp(-pow(-x,c))
     def _ppf(self, q, c):
-        return -power(-log(q),1.0/c)
+        return -pow(-log(q),1.0/c)
     def _munp(self, n, c):
         val = special.gamma(1.0+n*1.0/c)
         if (int(n) % 2):
@@ -3899,7 +3839,7 @@ class genlogistic_gen(rv_continuous):
         Cx = (1+exp(-x))**(-c)
         return Cx
     def _ppf(self, q, c):
-        vals = -log(power(q,-1.0/c)-1)
+        vals = -log(pow(q,-1.0/c)-1)
         return vals
     def _stats(self, c):
         zeta = special.zeta
@@ -4194,7 +4134,7 @@ class genextreme_gen(rv_continuous):
         return where(abs(c)==inf, 0, 1) #True #(c!=0)
     def _pdf(self, x, c):
         ##        ex2 = 1-c*x
-        ##        pex2 = power(ex2,1.0/c)
+        ##        pex2 = pow(ex2,1.0/c)
         ##        p2 = exp(-pex2)*pex2/ex2
         ##        return p2
         return exp(self._logpdf(x, c))
@@ -4610,7 +4550,7 @@ class halflogistic_gen(rv_continuous):
         if n==2: return pi*pi/3.0
         if n==3: return 9*_ZETA3
         if n==4: return 7*pi**4 / 15.0
-        return 2*(1-power(2.0,1-n))*special.gamma(n+1)*special.zeta(n,1)
+        return 2*(1-pow(2.0,1-n))*special.gamma(n+1)*special.zeta(n,1)
     def _entropy(self):
         return 2-log(2)
 halflogistic = halflogistic_gen(a=0.0, name='halflogistic')
@@ -4818,7 +4758,7 @@ class invweibull_gen(rv_continuous):
         xc1 = x**(-c)
         return exp(-xc1)
     def _ppf(self, q, c):
-        return power(-log(q),asarray(-1.0/c))
+        return pow(-log(q),asarray(-1.0/c))
     def _entropy(self, c):
         return 1+_EULER + _EULER / c - log(c)
 invweibull = invweibull_gen(a=0, name='invweibull', shapes='c')
@@ -5164,7 +5104,7 @@ class lognorm_gen(rv_continuous):
     for ``x > 0``, ``s > 0``.
 
     If log x is normally distributed with mean mu and variance sigma**2,
-    then x is log-normally distributed with shape paramter sigma and scale
+    then x is log-normally distributed with shape parameter sigma and scale
     parameter exp(mu).
 
     %(example)s
@@ -5174,8 +5114,6 @@ class lognorm_gen(rv_continuous):
         return exp(s * norm.rvs(size=self._size))
     def _pdf(self, x, s):
         return exp(self._logpdf(x, s))
-        #Px = exp(-log(x)**2 / (2*s**2))
-        #return Px / (s*x*sqrt(2*pi))
     def _logpdf(self, x, s):
         return -log(x)**2 / (2*s**2) + np.where(x==0 , 0, - log(s*x*sqrt(2*pi)))
     def _cdf(self, x, s):
@@ -5303,8 +5241,8 @@ class mielke_gen(rv_continuous):
     def _cdf(self, x, k, s):
         return x**k / (1.0+x**s)**(k*1.0/s)
     def _ppf(self, q, k, s):
-        qsk = power(q,s*1.0/k)
-        return power(qsk/(1.0-qsk),1.0/s)
+        qsk = pow(q,s*1.0/k)
+        return pow(qsk/(1.0-qsk),1.0/s)
 mielke = mielke_gen(a=0.0, name='mielke', shapes="k, s")
 
 
@@ -5340,7 +5278,6 @@ class nakagami_gen(rv_continuous):
         g2 = -6*mu**4*nu + (8*nu-2)*mu**2-2*nu + 1
         g2 /= nu*mu2**2.0
         return mu, mu2, g1, g2
-
 nakagami = nakagami_gen(a=0.0, name="nakagami", shapes='nu')
 
 
@@ -5598,7 +5535,7 @@ class pareto_gen(rv_continuous):
     def _cdf(self, x, b):
         return 1 -  x**(-b)
     def _ppf(self, q, b):
-        return power(1-q, -1.0/b)
+        return pow(1-q, -1.0/b)
     def _stats(self, b, moments='mv'):
         mu, mu2, g1, g2 = None, None, None, None
         if 'm' in moments:
@@ -5858,12 +5795,12 @@ class powerlognorm_gen(rv_continuous):
 
     """
     def _pdf(self, x, c, s):
-        return c/(x*s)*norm.pdf(log(x)/s)*power(norm.cdf(-log(x)/s),c*1.0-1.0)
+        return c/(x*s)*norm.pdf(log(x)/s)*pow(norm.cdf(-log(x)/s),c*1.0-1.0)
 
     def _cdf(self, x, c, s):
-        return 1.0 - power(norm.cdf(-log(x)/s),c*1.0)
+        return 1.0 - pow(norm.cdf(-log(x)/s),c*1.0)
     def _ppf(self, q, c, s):
-        return exp(-s*norm.ppf(power(1.0-q,1.0/c)))
+        return exp(-s*norm.ppf(pow(1.0-q,1.0/c)))
 powerlognorm = powerlognorm_gen(a=0.0, name="powerlognorm", shapes="c, s")
 
 
@@ -5894,7 +5831,7 @@ class powernorm_gen(rv_continuous):
     def _cdf(self, x, c):
         return 1.0-_norm_cdf(-x)**(c*1.0)
     def _ppf(self, q, c):
-        return -norm.ppf(power(1.0-q,1.0/c))
+        return -norm.ppf(pow(1.0-q,1.0/c))
 powernorm = powernorm_gen(name='powernorm', shapes="c")
 
 
@@ -6064,9 +6001,9 @@ class reciprocal_gen(rv_continuous):
     def _cdf(self, x, a, b):
         return (log(x)-log(a)) / self.d
     def _ppf(self, q, a, b):
-        return a*power(b*1.0/a,q)
+        return a*pow(b*1.0/a,q)
     def _munp(self, n, a, b):
-        return 1.0/self.d / n * (power(b*1.0,n) - power(a*1.0,n))
+        return 1.0/self.d / n * (pow(b*1.0,n) - pow(a*1.0,n))
     def _entropy(self,a,b):
         return 0.5*log(a*b)+log(log(b/a))
 reciprocal = reciprocal_gen(name="reciprocal", shapes="a, b")
@@ -6343,7 +6280,7 @@ class tukeylambda_gen(rv_continuous):
 
     def _entropy(self, lam):
         def integ(p):
-            return log(power(p,lam-1)+power(1-p,lam-1))
+            return log(pow(p,lam-1)+pow(1-p,lam-1))
         return integrate.quad(integ,0,1)[0]
 
 tukeylambda = tukeylambda_gen(name='tukeylambda', shapes="lam")
@@ -7578,18 +7515,18 @@ class rv_discrete(rv_generic):
         Parameters
         ----------
         fn : function (default: identity mapping)
-               Function for which sum is calculated. Takes only one argument.
+            Function for which sum is calculated. Takes only one argument.
         args : tuple
-               argument (parameters) of the distribution
+            argument (parameters) of the distribution
         lb, ub : numbers, optional
-               lower and upper bound for integration, default is set to the support
-               of the distribution, lb and ub are inclusive (ul<=k<=ub)
+            lower and upper bound for integration, default is set to the support
+            of the distribution, lb and ub are inclusive (ul<=k<=ub)
         conditional : bool, optional
             Default is False.
-               If true then the expectation is corrected by the conditional
-               probability of the integration interval. The return value is the
-               expectation of the function, conditional on being in the given
-               interval (k such that ul<=k<=ub).
+            If true then the expectation is corrected by the conditional
+            probability of the integration interval. The return value is the
+            expectation of the function, conditional on being in the given
+            interval (k such that ul<=k<=ub).
 
         Returns
         -------
@@ -7600,14 +7537,14 @@ class rv_discrete(rv_generic):
         -----
         * function is not vectorized
         * accuracy: uses self.moment_tol as stopping criterium
-            for heavy tailed distribution e.g. zipf(4), accuracy for
-            mean, variance in example is only 1e-5,
-            increasing precision (moment_tol) makes zipf very slow
+          for heavy tailed distribution e.g. zipf(4), accuracy for
+          mean, variance in example is only 1e-5,
+          increasing precision (moment_tol) makes zipf very slow
         * suppnmin=100 internal parameter for minimum number of points to evaluate
-            could be added as keyword parameter, to evaluate functions with
-            non-monotonic shapes, points include integers in (-suppnmin, suppnmin)
+          could be added as keyword parameter, to evaluate functions with
+          non-monotonic shapes, points include integers in (-suppnmin, suppnmin)
         * uses maxcount=1000 limits the number of points that are evaluated
-            to break loop for infinite sums
+          to break loop for infinite sums
           (a maximum of suppnmin+1000 positive plus suppnmin+1000 negative
           integers are evaluated)
 
