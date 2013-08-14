@@ -114,7 +114,7 @@ wafostamp([],'(ER)')
 disp('Block =7'),pause(pstate)
 
 %%
-% Similarly for the GPD distribution;
+% ;
 Rgpd = rndgenpar(0.4,1,0,1,100);
 plotedf(Rgpd);
 hold on
