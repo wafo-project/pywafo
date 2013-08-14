@@ -951,7 +951,7 @@ class FitDistribution(rv_frozen):
         except:
             pass
 
-    def plotesf(self):
+    def plotesf(self, symb1='r-', symb2='b.'):
         '''  Plot Empirical and fitted Survival Function
 
         The purpose of the plot is to graphically assess whether
@@ -961,13 +961,13 @@ class FitDistribution(rv_frozen):
         '''
         n = len(self.data)
         SF = (arange(n, 0, -1)) / n
-        plotbackend.semilogy(self.data, SF, 'b.', self.data, self.sf(self.data), 'r-')
+        plotbackend.semilogy(self.data, SF, symb2, self.data, self.sf(self.data), symb1)
         #plotbackend.plot(self.data,SF,'b.',self.data,self.sf(self.data),'r-')
         plotbackend.xlabel('x');
         plotbackend.ylabel('F(x) (%s)' % self.dist.name)
         plotbackend.title('Empirical SF plot')
 
-    def plotecdf(self):
+    def plotecdf(self, symb1='r-', symb2='b.'):
         '''  Plot Empirical and fitted Cumulative Distribution Function
 
         The purpose of the plot is to graphically assess whether
@@ -977,12 +977,12 @@ class FitDistribution(rv_frozen):
         '''
         n = len(self.data)
         F = (arange(1, n + 1)) / n
-        plotbackend.plot(self.data, F, 'b.', self.data, self.cdf(self.data), 'r-')
+        plotbackend.plot(self.data, F, symb2, self.data, self.cdf(self.data), symb1)
         plotbackend.xlabel('x');
         plotbackend.ylabel('F(x) (%s)' % self.dist.name)
         plotbackend.title('Empirical CDF plot')
 
-    def plotepdf(self):
+    def plotepdf(self, symb1='r-', symb2='b-'):
         '''Plot Empirical and fitted Probability Density Function
 
         The purpose of the plot is to graphically assess whether
@@ -1019,15 +1019,18 @@ class FitDistribution(rv_frozen):
         yy[:, 0] = 0.0 # histogram
         yy.shape = (-1,)
         yy = numpy.hstack((yy, 0.0))
-
+        ymax = yy.max()
         #plotbackend.hist(self.data,normed=True,fill=False)
-        plotbackend.plot(self.data, self.pdf(self.data), 'r-', xx, yy, 'b-')
+        plotbackend.plot(self.data, self.pdf(self.data), symb1, xx, yy, symb2)
+        ax = list(plotbackend.axis())
+        ax[3] = min(ymax*1.3, ax[3])
+        plotbackend.axis(ax)
         plotbackend.xlabel('x');
         plotbackend.ylabel('f(x) (%s)' % self.dist.name)
         plotbackend.title('Density plot')
 
 
-    def plotresq(self):
+    def plotresq(self, symb1='r-', symb2='b.'):
         '''PLOTRESQ displays a residual quantile plot.
 
         The purpose of the plot is to graphically assess whether
@@ -1039,7 +1042,7 @@ class FitDistribution(rv_frozen):
         eprob = (arange(1, n + 1) - 0.5) / n
         y = self.ppf(eprob)
         y1 = self.data[[0, -1]]
-        plotbackend.plot(self.data, y, 'b.', y1, y1, 'r-')
+        plotbackend.plot(self.data, y, symb2, y1, y1, symb1)
         plotbackend.xlabel('Empirical')
         plotbackend.ylabel('Model (%s)' % self.dist.name)
         plotbackend.title('Residual Quantile Plot');
@@ -1047,7 +1050,7 @@ class FitDistribution(rv_frozen):
         plotbackend.axis('equal')
 
 
-    def plotresprb(self):
+    def plotresprb(self, symb1='r-', symb2='b.'):
         ''' PLOTRESPRB displays a residual probability plot.
 
         The purpose of the plot is to graphically assess whether
@@ -1059,7 +1062,7 @@ class FitDistribution(rv_frozen):
         ecdf = arange(1, n + 1) / (n + 1)
         mcdf = self.cdf(self.data)
         p1 = [0, 1]
-        plotbackend.plot(ecdf, mcdf, 'b.', p1, p1, 'r-')
+        plotbackend.plot(ecdf, mcdf, symb2, p1, p1, symb1)
         plotbackend.xlabel('Empirical')
         plotbackend.ylabel('Model (%s)' % self.dist.name)
         plotbackend.title('Residual Probability Plot');

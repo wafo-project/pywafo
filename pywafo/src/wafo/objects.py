@@ -33,7 +33,7 @@ from numpy import (inf, pi, zeros, ones, sqrt, where, log, exp, cos, sin, arcsin
 from numpy.fft import fft
 from numpy.random import randn
 from scipy.integrate import trapz
-from pylab import stineman_interp
+from wafo.interpolate import stineman_interp
 from matplotlib.mlab import psd, detrend_mean
 import scipy.signal
 
@@ -1979,7 +1979,7 @@ class TimeSeries(PlotData):
         if rate > 1: #% interpolate with spline
             n = ceil(self.data.size * rate)
             ti = linspace(self.args[0], self.args[-1], n)
-            x = stineman_interp(ti, self.args, self.data)
+            x = stineman_interp(ti, self.args, self.data.ravel())
         else:
             x = self.data
             ti = self.args

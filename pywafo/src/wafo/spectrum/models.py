@@ -330,6 +330,8 @@ def jonswap_peakfact(Hm0, Tp):
         gam.put(k1, minimum(exp(3.484 * (1.0 - 0.1975 * D * xk ** 4.0)), 7.0)) # # gamma
 
     return gam
+
+
 def jonswap_seastate(u10, fetch=150000., method='lewis', g=9.81, output='dict'):
     '''
     Return Jonswap seastate from windspeed and fetch
@@ -402,7 +404,6 @@ def jonswap_seastate(u10, fetch=150000., method='lewis', g=9.81, output='dict'):
     '''
 
     # The following formulas are from Lewis and Allos 1990:
-
     zeta = g * fetch / (u10 ** 2) # dimensionless fetch, Table 1
     #zeta = min(zeta, 2.414655013429281e+004)
     if method.startswith('h'):
