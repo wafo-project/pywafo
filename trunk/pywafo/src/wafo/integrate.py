@@ -272,9 +272,9 @@ def romberg(fun, a, b, releps=1e-3, abseps=1e-3):
     Ih2 = 0.
     Ih4 = rom[0, 0]
     abserr = Ih4
-    #%epstab = zeros(1,decdigs+7)
-    #%newflg = 1
-    #%[res,abserr,epstab,newflg] = dea(newflg,Ih4,abserr,epstab)
+    #epstab = zeros(1,decdigs+7)
+    #newflg = 1
+    #[res,abserr,epstab,newflg] = dea(newflg,Ih4,abserr,epstab)
     two = 1
     one = 0
     for i in xrange(1, tableLimit):
@@ -298,11 +298,11 @@ def romberg(fun, a, b, releps=1e-3, abseps=1e-3):
 
         if (2 <= i):
             [res, abserr] = dea3(Ih1, Ih2, Ih4)
-            #%Ih4 = res
+            # Ih4 = res
             if (abserr <= max(abseps, releps * abs(res))):
                 break
 
-        #%rom(1,1:i) = rom(2,1:i)
+        # rom(1,1:i) = rom(2,1:i)
         two = one
         one = (one + 1) % 2
         ipower *= 2

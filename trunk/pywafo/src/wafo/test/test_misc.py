@@ -1,12 +1,17 @@
-import numpy as np #@UnusedImport
-from numpy import cos, exp, linspace, pi, sin, diff, arange, ones #@UnusedImport
-from numpy.random import randn #@UnusedImport
-from wafo.data import sea #@UnusedImport
-from wafo.misc import (JITImport, Bunch, detrendma, DotDict, findcross, ecross, findextrema,  #@UnusedImport
-                       findrfc, rfcfilter, findtp, findtc, findoutliers,  #@UnusedImport
-                       common_shape, argsreduce, stirlerr, getshipchar, betaloge,  #@UnusedImport
-                       gravity, nextpow2, discretize,  polar2cart,  #@UnusedImport
-                       cart2polar, meshgrid, tranproc)#@UnusedImport
+import numpy as np  # @UnusedImport
+#@UnusedImport
+from numpy import cos, exp, linspace, pi, sin, diff, arange, ones
+from numpy.random import randn  # @UnusedImport
+from wafo.data import sea  # @UnusedImport
+from wafo.misc import (JITImport, Bunch, detrendma, DotDict, findcross, ecross, findextrema,  # @UnusedImport
+                       #@UnusedImport
+                       findrfc, rfcfilter, findtp, findtc, findoutliers,
+                       common_shape, argsreduce, stirlerr, getshipchar, betaloge,
+                       #@UnusedImport
+                       #@UnusedImport
+                       gravity, nextpow2, discretize,  polar2cart,
+                       cart2polar, meshgrid, tranproc)  # @UnusedImport
+
 
 def test_JITImport():
     '''
@@ -14,6 +19,8 @@ def test_JITImport():
     >>> np.exp(0)==1.0
     True
     '''
+
+
 def test_bunch():
     '''
     >>> d = Bunch(test1=1,test2=3)
@@ -21,6 +28,8 @@ def test_bunch():
     1
     3
     '''
+
+
 def test_dotdict():
     '''
     >>> d = DotDict(test1=1,test2=3)
@@ -28,7 +37,8 @@ def test_dotdict():
     1
     3
     '''
-    
+
+
 def test_detrendma():
     '''
     >>> x = linspace(0,1,200)
@@ -101,7 +111,8 @@ def test_detrendma():
              2.43802139e-01,   2.39414013e-01,   2.03257341e-01,
              1.54325635e-01,   1.16564992e-01,   1.09638547e-01,
              1.41342814e-01,   2.04600808e-01,   2.80191671e-01,
-             3.44164010e-01,   3.77073744e-01]), array([ 1.11058152,  1.11058152,  1.11058152,  1.11058152,  1.11058152,
+             3.44164010e-01,   3.77073744e-01]), array([
+            1.11058152,  1.11058152,  1.11058152,  1.11058152,  1.11058152,
             1.11058152,  1.11058152,  1.11058152,  1.11058152,  1.11058152,
             1.11058152,  1.11058152,  1.11058152,  1.11058152,  1.11058152,
             1.11058152,  1.11058152,  1.11058152,  1.11058152,  1.11058152,
@@ -142,14 +153,15 @@ def test_detrendma():
             2.44120808,  2.44120808,  2.44120808,  2.44120808,  2.44120808,
             2.44120808,  2.44120808,  2.44120808,  2.44120808,  2.44120808]))
     '''
-    
+
+
 def test_findcross_and_ecross():
     '''
     >>> findcross([0, 0, 1, -1, 1],0)
     array([1, 2, 3])
     >>> findcross([0, 1, -1, 1],0)
     array([0, 1, 2])
-    
+
     >>> t = linspace(0,7*pi,250)
     >>> x = sin(t)
     >>> ind = findcross(x,0.75)
@@ -159,8 +171,9 @@ def test_findcross_and_ecross():
     >>> t0
     array([  0.84910514,   2.2933879 ,   7.13205663,   8.57630119,
             13.41484739,  14.85909194,  19.69776067,  21.14204343])
-    
     '''
+
+
 def test_findextrema():
     '''
     >>> t = linspace(0,7*pi,250)
@@ -169,10 +182,10 @@ def test_findextrema():
     >>> ind
     array([ 18,  53,  89, 125, 160, 196, 231])
     '''
-    
+
+
 def test_findrfc():
     '''
-    
     >>> t = linspace(0,7*pi,250)
     >>> x = sin(t)+0.1*sin(50*t)
     >>> ind = findextrema(x)
@@ -197,10 +210,11 @@ def test_findrfc():
     array([-0.00743352,  1.08753972, -1.07206545,  1.09550837, -1.07940458,
             1.07849396, -1.0995006 ,  1.08094452])
     '''
-    
+
+
 def test_rfcfilter():
     '''
-     # 1. Filtered signal y is the turning points of x. 
+     # 1. Filtered signal y is the turning points of x.
     >>> x = sea()
     >>> y = rfcfilter(x[:,1], h=0, method=1)
     >>> y[0:5]
@@ -210,7 +224,7 @@ def test_rfcfilter():
     >>> y1 = rfcfilter(x[:,1], h=0.5)
     >>> y1[0:5]
     array([-1.2004945 ,  0.83950546, -0.43049454,  0.34950546, -0.51049454])
-    
+
     >>> t = linspace(0,7*pi,250)
     >>> x = sin(t)+0.1*sin(50*t)
     >>> ind = findextrema(x)
@@ -233,6 +247,8 @@ def test_rfcfilter():
     array([-0.00743352,  1.08753972, -1.07206545,  1.09550837, -1.07940458,
             1.07849396, -1.0995006 ,  1.08094452,  0.11983423])
     '''
+
+
 def test_findtp():
     '''
     >>> import numpy as np
@@ -248,6 +264,8 @@ def test_findtp():
     array([ 11,  28,  31,  39,  47,  51,  56,  64,  70,  78,  89,  94, 101,
            108, 119, 131, 141, 148, 159, 173, 184, 190, 199])
     '''
+
+
 def test_findtc():
     '''
     >>> x = sea()
@@ -260,7 +278,8 @@ def test_findtc():
     array([ 19,  29,  34,  53,  60,  67,  76,  81,  82,  84,  90,  99, 103,
            112, 127, 137, 143, 154, 166, 180, 185])
     '''
-    
+
+
 def test_findoutliers():
     '''
     >>> xx = sea()
@@ -280,6 +299,8 @@ def test_findoutliers():
     >>> indg
     array([   0,    1,    2, ..., 9521, 9522, 9523])
     '''
+
+
 def test_common_shape():
     '''
     >>> import numpy as np
@@ -298,6 +319,8 @@ def test_common_shape():
     >>> common_shape(A,B,C,shape=(3,4,1))
     (3, 4, 5)
     '''
+
+
 def test_argsreduce():
     '''
     >>> import numpy as np
@@ -319,11 +342,15 @@ def test_argsreduce():
     array([2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2])
     array([0, 1, 2, 3, 4, 0, 1, 2, 3, 4, 0, 1, 2, 3, 4])
     '''
+
+
 def test_stirlerr():
     '''
      >>> stirlerr(range(5))
      array([        inf,  0.08106147,  0.0413407 ,  0.02767793,  0.02079067])
     '''
+
+
 def test_getshipchar():
     '''
     >>> sc = getshipchar(10,'service_speed')
@@ -345,17 +372,23 @@ def test_getshipchar():
     service_speed : 10
     service_speedSTD : 0
     '''
+
+
 def test_betaloge():
     '''
     >>> betaloge(3, arange(4))
     array([        inf, -1.09861229, -2.48490665, -3.40119738])
     '''
+
+
 def test_gravity():
     '''
     >>> phi = linspace(0,45,5)
     >>> gravity(phi)
     array([ 9.78049   ,  9.78245014,  9.78803583,  9.79640552,  9.80629387])
     '''
+
+
 def test_nextpow2():
     '''
     >>> nextpow2(10)
@@ -363,6 +396,7 @@ def test_nextpow2():
     >>> nextpow2(np.arange(5))
     3
     '''
+
 
 def test_discretize():
     '''
@@ -379,6 +413,8 @@ def test_discretize():
             -7.07106781e-01,  -8.31469612e-01,  -9.23879533e-01,
             -9.80785280e-01,  -1.00000000e+00])
     '''
+
+
 def test_discretize_adaptive():
     '''
     >>> x, y = discretize(np.cos,0,np.pi, method='adaptive')
@@ -394,6 +430,8 @@ def test_discretize_adaptive():
             -7.07106781e-01,  -8.31469612e-01,  -9.23879533e-01,
             -9.80785280e-01,  -1.00000000e+00])
     '''
+
+
 def test_pol2cart_n_cart2pol():
     '''
     >>> r = 5
@@ -420,6 +458,8 @@ def test_pol2cart_n_cart2pol():
     array([ 5.,  5.,  5.,  5.,  5.,  5.,  5.,  5.,  5.,  5.,  5.,  5.,  5.,
             5.,  5.,  5.,  5.,  5.,  5.,  5.])
     '''
+
+
 def test_meshgrid():
     '''
     >>> x = np.linspace(0,1,3)   # coordinates along x axis
@@ -465,18 +505,19 @@ def test_meshgrid():
     >>> xx, yy = meshgrid(x, y, sparse=True)
     >>> z = np.sin(xx**2+yy**2)/(xx**2+yy**2)
     '''
+
+
 def test_tranproc():
     '''
     >>> import wafo.transform.models as wtm
     >>> tr = wtm.TrHermite()
-    >>> x = linspace(-5,5,501) 
+    >>> x = linspace(-5,5,501)
     >>> g = tr(x)
     >>> y0, y1 = tranproc(x, g, range(5), ones(5))
     >>> y0;y1
     array([ 0.02659612,  1.00115284,  1.92872532,  2.81453257,  3.66292878])
     array([ 1.00005295,  0.9501118 ,  0.90589954,  0.86643821,  0.83096482])
-    
     '''
-if __name__=='__main__':
+if __name__ == '__main__':
     import doctest
     doctest.testmod()

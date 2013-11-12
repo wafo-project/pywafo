@@ -3259,7 +3259,7 @@ class SpecData2D(PlotData):
         pass
     def rotate(self, phi=0, rotateGrid=False, method='linear'):
         '''
-        Rotate spectrum clockwise around the origin. 
+        Rotate spectrum clockwise around the origin.
          
         Parameters
         ----------- 
