@@ -307,7 +307,7 @@ _add_doc(u, """Text literal""")
 
 
 if PY3:
-    import builtins
+    import builtins  # @UnresolvedImport
     exec_ = getattr(builtins, "exec")
 
     def reraise(tp, value, tb=None):
