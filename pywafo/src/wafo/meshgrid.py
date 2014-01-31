@@ -1,4 +1,6 @@
 import numpy as np
+
+
 def meshgrid(*xi, **kwargs):
     """
     Return coordinate matrices from one or more coordinate vectors.
@@ -17,7 +19,7 @@ def meshgrid(*xi, **kwargs):
          If True a sparse grid is returned in order to conserve memory.
     copy : True (default) or False (optional)
         If False a view into the original arrays are returned in order to
-        conserve memory. Please note that sparse=False, copy=False will likely 
+        conserve memory. Please note that sparse=False, copy=False will likely
         return non-contiguous arrays. Furthermore, more than one element of a
         broadcasted array may refer to a single memory location.  If you
         need to write to the arrays, make copies first.
@@ -30,19 +32,19 @@ def meshgrid(*xi, **kwargs):
         or ``(N2, N1, N3,...Nn)`` shaped arrays if indexing='xy'
         with the elements of `xi` repeated to fill the matrix along
         the first dimension for `x1`, the second for `x2` and so on.
-    
+
     Notes
     -----
-    This function supports both indexing conventions through the indexing keyword 
-    argument. Giving the string 'ij' returns a meshgrid with matrix indexing, 
-    while 'xy' returns a meshgrid with Cartesian indexing. The difference is 
-    illustrated by the following code snippet:
-    
+    This function supports both indexing conventions through the indexing
+    keyword argument. Giving the string 'ij' returns a meshgrid with matrix
+    indexing, while 'xy' returns a meshgrid with Cartesian indexing. The
+    difference is illustrated by the following code snippet:
+
     xv, yv = meshgrid(x, y, sparse=False, indexing='ij')
     for i in range(nx):
         for j in range(ny):
             # treat xv[i,j], yv[i,j]
-    
+
     xv, yv = meshgrid(x, y, sparse=False, indexing='xy')
     for i in range(nx):
         for j in range(ny):
@@ -58,9 +60,9 @@ def meshgrid(*xi, **kwargs):
     Examples
     --------
     >>> nx, ny = (3, 2)
-    >>> x = np.linspace(0, 1, nx)   
-    >>> y = np.linspace(0, 1, ny)   
-    >>> xv, yv = meshgrid(x, y)     
+    >>> x = np.linspace(0, 1, nx)
+    >>> y = np.linspace(0, 1, ny)
+    >>> xv, yv = meshgrid(x, y)
     >>> xv
     array([[ 0. ,  0.5,  1. ],
            [ 0. ,  0.5,  1. ]])
@@ -80,29 +82,31 @@ def meshgrid(*xi, **kwargs):
     >>> y = np.arange(-5, 5, 0.1)
     >>> xx, yy = meshgrid(x, y, sparse=True)
     >>> z = np.sin(xx**2+yy**2)/(xx**2+yy**2)
-    
+
     >>> import matplotlib.pyplot as plt
     >>> h = plt.contourf(x,y,z)
     """
     copy_ = kwargs.get('copy', True)
     args = np.atleast_1d(*xi)
     ndim = len(args)
-    
-    if not isinstance(args, list) or ndim<2:
-        raise TypeError('meshgrid() takes 2 or more arguments (%d given)' % int(ndim>0))
+
+    if not isinstance(args, list) or ndim < 2:
+        raise TypeError(
+            'meshgrid() takes 2 or more arguments (%d given)' % int(ndim > 0))
 
     sparse = kwargs.get('sparse', False)
     indexing = kwargs.get('indexing', 'xy')
 
-    s0 = (1,)*ndim
-    output = [x.reshape(s0[:i] + (-1,) + s0[i + 1::]) for i, x in enumerate(args)]
+    s0 = (1,) * ndim
+    output = [x.reshape(s0[:i] + (-1,) + s0[i + 1::])
+              for i, x in enumerate(args)]
 
     shape = [x.size for x in output]
 
     if indexing == 'xy':
         # switch first and second axis
-        output[0].shape = (1, -1) + (1,)*(ndim - 2)
-        output[1].shape = (-1, 1) + (1,)*(ndim - 2)
+        output[0].shape = (1, -1) + (1,) * (ndim - 2)
+        output[1].shape = (-1, 1) + (1,) * (ndim - 2)
         shape[0], shape[1] = shape[1], shape[0]
 
     if sparse:
@@ -130,4 +134,3 @@ def ndgrid(*args, **kwargs):
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
-
