@@ -1,16 +1,17 @@
 '''
-Misc 
+Misc
 '''
 from __future__ import division
 
 import sys
 import fractions
 import numpy as np
-from numpy import (abs, amax, any, logical_and, arange, linspace, atleast_1d, #atleast_2d,
-                   array, asarray, broadcast_arrays, ceil, floor, frexp, hypot,
-                   sqrt, arctan2, sin, cos, exp, log, mod, diff, empty_like,
-                   finfo, inf, pi, interp, isnan, isscalar, zeros, ones, linalg,
-                   r_, sign, unique, hstack, vstack, nonzero, where, extract)
+from numpy import (
+    abs, amax, any, logical_and, arange, linspace, atleast_1d,  # atleast_2d,
+    array, asarray, broadcast_arrays, ceil, floor, frexp, hypot,
+    sqrt, arctan2, sin, cos, exp, log, mod, diff, empty_like,
+    finfo, inf, pi, interp, isnan, isscalar, zeros, ones, linalg,
+    r_, sign, unique, hstack, vstack, nonzero, where, extract)
 from scipy.special import gammaln
 from scipy.integrate import trapz, simps
 import warnings
@@ -19,13 +20,14 @@ from collections import OrderedDict
 
 
 try:
-    import c_library as clib #@UnresolvedImport
+    import c_library as clib  # @UnresolvedImport
 except:
     clib = None
-floatinfo = finfo(float) 
+floatinfo = finfo(float)
 
 
-__all__ = ['is_numlike', 'JITImport', 'DotDict', 'Bunch', 'printf', 'sub_dict_select',
+__all__ = [
+    'is_numlike', 'JITImport', 'DotDict', 'Bunch', 'printf', 'sub_dict_select',
     'parse_kwargs', 'detrendma', 'ecross', 'findcross',
     'findextrema', 'findpeaks', 'findrfc', 'rfcfilter', 'findtp', 'findtc',
     'findoutliers', 'common_shape', 'argsreduce',
@@ -38,13 +40,15 @@ def is_numlike(obj):
     'return true if *obj* looks like a number'
     try:
         obj + 1
-    except TypeError: 
+    except TypeError:
         return False
-    else: 
+    else:
         return True
-    
+
+
 class JITImport(object):
-    ''' 
+
+    '''
     Just In Time Import of module
 
     Example
@@ -53,9 +57,11 @@ class JITImport(object):
     >>> np.exp(0)==1.0
     True
     '''
+
     def __init__(self, module_name):
         self._module_name = module_name
         self._module = None
+
     def __getattr__(self, attr):
         try:
             return getattr(self._module, attr)
@@ -66,8 +72,10 @@ class JITImport(object):
                 return getattr(self._module, attr)
             else:
                 raise
-                    
+
+
 class DotDict(dict):
+
     ''' Implement dot access to dict values
 
       Example
@@ -78,23 +86,29 @@ class DotDict(dict):
     '''
     __getattr__ = dict.__getitem__
 
+
 class Bunch(object):
+
     ''' Implement keyword argument initialization of class
-    
+
     Example
     -------
     >>> d = Bunch(test1=1,test2=3)
     >>> d.test1
     1
     '''
+
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
+
     def keys(self):
         return self.__dict__.keys()
+
     def update(self, ** kwargs):
         self.__dict__.update(kwargs)
 
-def printf(format, *args): #@ReservedAssignment
+
+def printf(format, *args):  # @ReservedAssignment
     sys.stdout.write(format % args)
 
 
@@ -117,12 +131,12 @@ def sub_dict_select(somedict, somekeys):
     --------
     dict_intersection
     '''
-    #slower: validKeys = set(somedict).intersection(somekeys)
+    # slower: validKeys = set(somedict).intersection(somekeys)
     return dict((k, somedict[k]) for k in somekeys if k in somedict)
 
 
 def parse_kwargs(options, **kwargs):
-    ''' Update options dict from keyword arguments if the keyword exists in options
+    ''' Update options dict from keyword arguments if it exists in options
 
     Example
     >>> opt = dict(arg1=2, arg2=3)
@@ -140,12 +154,15 @@ def parse_kwargs(options, **kwargs):
         options.update(newopts)
     return options
 
+
 def testfun(*args, **kwargs):
     opts = dict(opt1=1, opt2=2)
-    if len(args) == 1 and len(kwargs) == 0 and type(args[0]) is str and args[0].startswith('default'):
+    if (len(args) == 1 and len(kwargs) == 0 and type(args[0]) is str and
+        args[0].startswith('default')):
         return opts
     opts = parse_kwargs(opts, **kwargs)
     return opts
+
 
 def detrendma(x, L):
     """
@@ -191,9 +208,8 @@ def detrendma(x, L):
         x1 = x1.ravel()
 
     n = x1.shape[0]
-    if n < 2 * L + 1: # only able to remove the mean
+    if n < 2 * L + 1:  # only able to remove the mean
         return x1 - x1.mean(axis=0)
-
 
     mn = x1[0:2 * L + 1].mean(axis=0)
     y = empty_like(x1)
@@ -204,6 +220,7 @@ def detrendma(x, L):
     y[ix] = x1[ix] - trend
     y[n - L::] = x1[n - L::] - trend[-1]
     return y
+
 
 def ecross(t, f, ind, v=0):
     '''
@@ -240,9 +257,9 @@ def ecross(t, f, ind, v=0):
     >>> t0
     array([  0.84910514,   2.2933879 ,   7.13205663,   8.57630119,
             13.41484739,  14.85909194,  19.69776067,  21.14204343])
-    >>> a = plb.plot(t, x, '.', t[ind], x[ind], 'r.', t, ones(t.shape)*0.75, 
+    >>> a = plb.plot(t, x, '.', t[ind], x[ind], 'r.', t, ones(t.shape)*0.75,
     ...              t0, ones(t0.shape)*0.75, 'g.')
-    
+
     >>> plb.close('all')
 
     See also
@@ -252,7 +269,9 @@ def ecross(t, f, ind, v=0):
     # Tested on: Python 2.5
     # revised pab Feb2004
     # By pab 18.06.2001
-    return t[ind] + (v - f[ind]) * (t[ind + 1] - t[ind]) / (f[ind + 1] - f[ind])
+    return (t[ind] + (v - f[ind]) * (t[ind + 1] - t[ind]) /
+            (f[ind + 1] - f[ind]))
+
 
 def _findcross(xn):
     '''Return indices to zero up and downcrossings of a vector
@@ -260,7 +279,7 @@ def _findcross(xn):
     if clib is not None:
         ind, m = clib.findcross(xn, 0.0)
         return ind[:m]
-    
+
     n = len(xn)
     iz, = (xn == 0).nonzero()
     if len(iz) > 0:
@@ -276,17 +295,18 @@ def _findcross(xn):
             else:
                 ix = iz[-1]
 
-            #x(ix) is a up crossing if  x(1:ix) = v and x(ix+1) > v.
-            #x(ix) is a downcrossing if x(1:ix) = v and x(ix+1) < v.
+            # x(ix) is a up crossing if  x(1:ix) = v and x(ix+1) > v.
+            # x(ix) is a downcrossing if x(1:ix) = v and x(ix+1) < v.
             xn[0:ix + 1] = -xn[ix + 1]
             iz = iz[ix + 1::]
 
         for ix in iz.tolist():
             xn[ix] = xn[ix - 1]
-   
+
     #% indices to local level crossings ( without turningpoints)
     ind, = (xn[:n - 1] * xn[1:] < 0).nonzero()
     return ind
+
 
 def findcross(x, v=0.0, kind=None):
     '''
@@ -338,30 +358,31 @@ def findcross(x, v=0.0, kind=None):
     crossdef
     wavedef
     '''
-    xn = np.int8(sign(atleast_1d(x).ravel() - v)) #@UndefinedVariable
+    xn = np.int8(sign(atleast_1d(x).ravel() - v))  # @UndefinedVariable
     ind = _findcross(xn)
-    if ind.size == 0: 
+    if ind.size == 0:
         warnings.warn('No level v = %0.5g crossings found in x' % v)
         return ind
 
     if kind not in ('du', 'all', None):
-        if kind == 'd': #downcrossings only
+        if kind == 'd':  # downcrossings only
             t_0 = int(xn[ind[0] + 1] > 0)
             ind = ind[t_0::2]
-        elif kind == 'u': #upcrossings  only
+        elif kind == 'u':  # upcrossings  only
             t_0 = int(xn[ind[0] + 1] < 0)
             ind = ind[t_0::2]
         elif kind in ('dw', 'uw', 'tw', 'cw'):
-            #make sure that the first is a level v down-crossing if wdef=='dw'
-            #or make sure that the first is a level v up-crossing if wdef=='uw'
-            #make sure that the first is a level v down-crossing if wdef=='tw'
-            #or make sure that the first is a level v up-crossing if wdef=='cw'
+            # make sure the first is a level v down-crossing if wdef=='dw'
+            # or make sure the first is a level v up-crossing if wdef=='uw'
+            # make sure the first is a level v down-crossing if wdef=='tw'
+            # or make sure the first is a level v up-crossing if
+            # wdef=='cw'
             xor = lambda a, b: a ^ b
             first_is_down_crossing = int(xn[ind[0]] > xn[ind[0] + 1])
             if xor(first_is_down_crossing, kind in ('dw', 'tw')):
                 ind = ind[1::]
 
-            n_c = ind.size #  number of level v crossings
+            n_c = ind.size  # number of level v crossings
             # make sure the number of troughs and crests are according to the
             # wavedef, i.e., make sure length(ind) is odd if dw or uw
             # and even if tw or cw
@@ -372,8 +393,9 @@ def findcross(x, v=0.0, kind=None):
             raise ValueError('Unknown wave/crossing definition!')
     return ind
 
+
 def findextrema(x):
-    ''' 
+    '''
     Return indices to minima and maxima of a vector
 
     Parameters
@@ -402,36 +424,38 @@ def findextrema(x):
     '''
     xn = atleast_1d(x).ravel()
     return findcross(diff(xn), 0.0) + 1
+
+
 def findpeaks(data, n=2, min_h=None, min_p=0.0):
     '''
     Find peaks of vector or matrix possibly rainflow filtered
-     
+
     Parameters
     ----------
     data      = matrix or vector
     n     = The n highest peaks are found (if exist). (default 2)
     min_h  = The threshold in the rainflowfilter (default 0.05*range(S(:))).
                  A zero value will return all the peaks of S.
-    min_p  = 0..1, Only the peaks that are higher than 
+    min_p  = 0..1, Only the peaks that are higher than
                        min_p*max(max(S))  min_p*(the largest peak in S)
                        are returned (default  0).
     Returns
-    ix = 
+    ix =
         linear index to peaks of S
-        
-    Example: 
-    
+
+    Example:
+
     Find highest 8 peaks that are not
-    less that 0.3*"global max" and have 
+    less that 0.3*"global max" and have
     rainflow amplitude larger than 5.
     >>> import numpy as np
     >>> import wafo.misc as wm
-    >>> x = np.arange(0,10,0.01) 
+    >>> x = np.arange(0,10,0.01)
     >>> data = x**2+10*np.sin(3*x)+0.5*np.sin(50*x)
-    >>> wm.findpeaks(data, n=8, min_h=5, min_p=0.3) 
+    >>> wm.findpeaks(data, n=8, min_h=5, min_p=0.3)
     array([908, 694, 481])
-    
-    See also  
+
+    See also
     --------
     findtp
     '''
@@ -445,57 +469,59 @@ def findpeaks(data, n=2, min_h=None, min_p=0.0):
     nrows, mcols = S.shape
 
     # Finding turningpoints of the spectrum
-    # Returning only those with rainflowcycle heights greater than h_min 
-    indP = [] # indices to peaks
+    # Returning only those with rainflowcycle heights greater than h_min
+    indP = []  # indices to peaks
     ind = []
-    for iy in range(nrows): # % find all peaks
+    for iy in range(nrows):  # % find all peaks
         TuP = findtp(S[iy], min_h)
         if len(TuP):
-            ind = TuP[1::2] #; % extract indices to maxima only
-        else: # % did not find any , try maximum
+            ind = TuP[1::2]  # ; % extract indices to maxima only
+        else:  # % did not find any , try maximum
             ind = np.atleast_1d(S[iy].argmax())
-      
+
         if ndim > 1:
             if iy == 0:
                 ind2 = np.flatnonzero(S[iy, ind] > S[iy + 1, ind])
             elif iy == nrows - 1:
                 ind2 = np.flatnonzero(S[iy, ind] > S[iy - 1, ind])
             else:
-                ind2 = np.flatnonzero((S[iy, ind] > S[iy - 1, ind]) & (S[iy, ind] > S[iy + 1, ind]))
-        
+                ind2 = np.flatnonzero((S[iy, ind] > S[iy - 1, ind]) &
+                                      (S[iy, ind] > S[iy + 1, ind]))
+
             if len(ind2):
                 indP.append((ind[ind2] + iy * mcols))
-      
+
     if ndim > 1:
         ind = np.hstack(indP) if len(indP) else []
     if len(ind) == 0:
         return []
-    
+
     peaks = S.take(ind)
     ind2 = peaks.argsort()[::-1]
-     
-    
+
     # keeping only the Np most significant peak frequencies.
     nmax = min(n, len(ind))
     ind = ind[ind2[:nmax]]
-    if (min_p > 0) :
-        # Keeping only peaks larger than min_p percent relative to the maximum peak 
+    if (min_p > 0):
+        # Keeping only peaks larger than min_p percent relative to the maximum
+        # peak
         ind = ind[(S.take(ind) > min_p * smax)]
-    
+
     return ind
-    
+
+
 def findrfc_astm(tp):
     """
     Return rainflow counted cycles
-    
+
     Nieslony's Matlab implementation of the ASTM standard practice for rainflow
     counting ported to a Python C module.
-    
+
     Parameters
     ----------
     tp : array-like
         vector of turningpoints (NB! Only values, not sampled times)
-        
+
     Returns
     -------
     sig_rfc : array-like
@@ -504,7 +530,7 @@ def findrfc_astm(tp):
         sig_rfc[:,1] Cycles mean value
         sig_rfc[:,2] Cycle type, half (=0.5) or full (=1.0)
     """
-    
+
     y1 = atleast_1d(tp).ravel()
     sig_rfc, cnr = clib.findrfc3_astm(y1)
     # the sig_rfc was constructed too big in rainflow.rf3, so
@@ -513,6 +539,7 @@ def findrfc_astm(tp):
     sig_rfc = sig_rfc.__getslice__(0, n - cnr[0])
     # sig_rfc holds the actual rainflow counted cycles, not the indices
     return sig_rfc
+
 
 def findrfc(tp, h=0.0, method='clib'):
     '''
@@ -527,9 +554,9 @@ def findrfc(tp, h=0.0, method='clib'):
         smaller than h are removed.
     method : string, optional
         'clib' 'None'
-        Specify 'clib' for calling the c_functions, otherwise fallback to 
+        Specify 'clib' for calling the c_functions, otherwise fallback to
         the Python implementation.
-        
+
     Returns
     -------
     ind : ndarray of int
@@ -558,12 +585,12 @@ def findrfc(tp, h=0.0, method='clib'):
     '''
     # TODO: merge rfcfilter and findrfc
     y1 = atleast_1d(tp).ravel()
-    
+
     n = len(y1)
     ind = zeros(0, dtype=np.int)
     ix = 0
     if y1[0] > y1[1]:
-        #first is a max, ignore it
+        # first is a max, ignore it
         y = y1[1::]
         NC = floor((n - 1) / 2) - 1
         Tstart = 1
@@ -573,7 +600,7 @@ def findrfc(tp, h=0.0, method='clib'):
         Tstart = 0
 
     if (NC < 1):
-        return ind #No RFC cycles*/
+        return ind  # No RFC cycles*/
 
     if (y[0] > y[1]) and (y[1] > y[2]):
         warnings.warn('This is not a sequence of turningpoints, exit')
@@ -605,12 +632,12 @@ def findrfc(tp, h=0.0, method='clib'):
                     ix += 1
                     ind[ix] = (Tstart + 2 * i + 1)
                     ix += 1
-                #goto L180 continue
+                # goto L180 continue
             else:
                 j = i + 1
                 while (j < NC):
                     if (y[2 * j + 1] >= y[2 * i + 1]):
-                        break #goto L170
+                        break  # goto L170
                     if((y[2 * j + 2] <= xplus)):
                         xplus = y[2 * j + 2]
                         Tpl = (Tstart + 2 * j + 2)
@@ -624,9 +651,8 @@ def findrfc(tp, h=0.0, method='clib'):
                     #iy = i
                     continue
 
-
-                #goto L180
-                #L170:
+                # goto L180
+                # L170:
                 if (xplus <= xminus):
                     if ((y[2 * i + 1] - xminus) >= h):
                         ind[ix] = Tmi
@@ -639,36 +665,38 @@ def findrfc(tp, h=0.0, method='clib'):
                     ind[ix] = Tpl
                     ix += 1
 
-            #L180:
-            #iy=i
+            # L180:
+            # iy=i
         #  /* for i */
     else:
         ind, ix = clib.findrfc(y, h)
     return np.sort(ind[:ix])
 
+
 def mctp2rfc(fmM, fMm=None):
     '''
-    Return Rainflow matrix given a Markov matrix of a Markov chain of turning points
-    
+    Return Rainflow matrix given a Markov matrix of a Markov chain
+        of turning points
+
     computes f_rfc = f_mM + F_mct(f_mM).
-    
+
     Parameters
     ----------
-    fmM =  the min2max Markov matrix, 
+    fmM =  the min2max Markov matrix,
     fMm  = the max2min Markov matrix,
-    
-    Returns 
+
+    Returns
     -------
     f_rfc = the rainflow matrix,
-    
+
     Example:
     -------
     >>> fmM = np.array([[ 0.0183,    0.0160,    0.0002,    0.0000,         0],
     ...            [0.0178,    0.5405,    0.0952,         0,         0],
     ...            [0.0002,    0.0813,         0,         0,         0],
     ...            [0.0000,         0,         0,         0,         0],
-    ...            [     0,         0,         0,         0,         0]])   
-    
+    ...            [     0,         0,         0,         0,         0]])
+
     >>> mctp2rfc(fmM)
     array([[  2.66998090e-02,   7.79970042e-03,   4.90607697e-07,
               0.00000000e+00,   0.00000000e+00],
@@ -680,9 +708,9 @@ def mctp2rfc(fmM, fMm=None):
               0.00000000e+00,   0.00000000e+00],
            [  0.00000000e+00,   0.00000000e+00,   0.00000000e+00,
               0.00000000e+00,   0.00000000e+00]])
-    
+
     '''
-     
+
     if fMm is None:
         fmM = np.atleast_1d(fmM)
         fMm = fmM.copy()
@@ -703,16 +731,17 @@ def mctp2rfc(fmM, fMm=None):
             nA = max(AA.shape)
             MA = f_max[N - 1 - k:N - 1 - k + i]
             mA = f_min[k - i:k]
-            SA = AA.sum() 
+            SA = AA.sum()
             SRA = RAA.sum()
-            
+
             DRFC = SA - SRA
-            NT = min(mA[0] - sum(RAA[:, 0]), MA[0] - sum(RAA[0, :])) # ?? check
-            NT = max(NT, 0) # ??check
-            
+            # ?? check
+            NT = min(mA[0] - sum(RAA[:, 0]), MA[0] - sum(RAA[0, :]))
+            NT = max(NT, 0)  # ??check
+
             if NT > 1e-6 * max(MA[0], mA[0]):
-                NN = MA - np.sum(AA, axis=1) # T
-                e = (mA - np.sum(AA, axis=0)) # T 
+                NN = MA - np.sum(AA, axis=1)  # T
+                e = (mA - np.sum(AA, axis=0))  # T
                 e = np.flipud(e)
                 PmM = np.rot90(AA.copy())
                 for j in range(nA):
@@ -720,70 +749,71 @@ def mctp2rfc(fmM, fMm=None):
                     if norm != 0:
                         PmM[j, :] = PmM[j, :] / norm
                         e[j] = e[j] / norm
-                    #end
-                #end
-                fx = 0.0;
-                if max(abs(e)) > 1e-6 and max(abs(NN)) > 1e-6 * max(MA[0], mA[0]):
+                    # end
+                # end
+                fx = 0.0
+                if (max(abs(e)) > 1e-6 and
+                    max(abs(NN)) > 1e-6 * max(MA[0], mA[0])):
                     PMm = AA1.copy()
                     for j in range(nA):
                         norm = MA[j]
                         if norm != 0:
-                            PMm[j, :] = PMm[j, :] / norm;
-                            #end
-                        #end
+                            PMm[j, :] = PMm[j, :] / norm
+                            # end
+                        # end
                     PMm = np.fliplr(PMm)
-         
+
                     A = PMm
                     B = PmM
-                    
+
                     if nA == 1:
                         fx = NN * (A / (1 - B * A) * e)
                     else:
                         rh = np.eye(A.shape[0]) - np.dot(B, A)
-                        fx = np.dot(NN, np.dot(A, linalg.solve(rh, e))) #least squares
-                    #end
-                #end           
+                        #least squares
+                        fx = np.dot(NN, np.dot(A, linalg.solve(rh, e)))
+                    # end
+                # end
                 f_rfc[N - 1 - k, k - i] = fx + DRFC
-    
+
                 #  check2=[ DRFC  fx]
                 # pause
             else:
                 f_rfc[N - 1 - k, k - i] = 0.0
-            #end
-        #end
+            # end
+        # end
         m0 = max(0, f_min[0] - np.sum(f_rfc[N - k + 1:N, 0]))
         M0 = max(0, f_max[N - 1 - k] - np.sum(f_rfc[N - 1 - k, 1:k]))
         f_rfc[N - 1 - k, 0] = min(m0, M0)
         #%  n_loops_left=N-k+1
-    #end
-    
+    # end
+
     for k in range(1, N):
-        M0 = max(0, f_max[0] - np.sum(f_rfc[0, N - k:N]));
-        m0 = max(0, f_min[N - 1 - k] - np.sum(f_rfc[1:k+1, N - 1 - k]));
+        M0 = max(0, f_max[0] - np.sum(f_rfc[0, N - k:N]))
+        m0 = max(0, f_min[N - 1 - k] - np.sum(f_rfc[1:k + 1, N - 1 - k]))
         f_rfc[0, N - 1 - k] = min(m0, M0)
-    #end
-    
+    # end
+
 #    %clf
 #    %subplot(1,2,2)
 #    %pcolor(levels(paramm),levels(paramM),flipud(f_mM))
 #    %  title('Markov matrix')
-#    %  ylabel('max'), xlabel('min')                    
+#    %  ylabel('max'), xlabel('min')
 #    %axis([paramm(1) paramm(2) paramM(1) paramM(2)])
 #    %axis('square')
-#    
+#
 #    %subplot(1,2,1)
 #    %pcolor(levels(paramm),levels(paramM),flipud(f_rfc))
 #    %  title('Rainflow matrix')
-#    %  ylabel('max'), xlabel('rfc-min')                    
+#    %  ylabel('max'), xlabel('rfc-min')
 #    %axis([paramm(1) paramm(2) paramM(1) paramM(2)])
 #    %axis('square')
 
     return f_rfc
 
 
-
 def rfcfilter(x, h, method=0):
-    """ 
+    """
     Rainflow filter a signal.
 
     Parameters
@@ -813,7 +843,7 @@ def rfcfilter(x, h, method=0):
     array([-1.2004945 ,  0.83950546, -0.09049454, -0.02049454, -0.09049454])
     >>> y[-5::]
     array([ 0.18950546,  0.15950546,  0.91950546, -0.51049454, -0.48049454])
-    
+
     # 2. This removes all rainflow cycles with range less than 0.5.
     >>> y1 = wm.rfcfilter(x[:,1], h=0.5)
     >>> y1.shape
@@ -822,14 +852,14 @@ def rfcfilter(x, h, method=0):
     array([-1.2004945 ,  0.83950546, -0.43049454,  0.34950546, -0.51049454])
     >>> y1[-5::]
     array([-0.64049454,  0.65950546, -1.0004945 ,  0.91950546, -0.51049454])
-    
+
     >>> ind = wm.findtp(x[:,1], h=0.5)
     >>> y2 = x[ind,1]
     >>> y2[0:5]
     array([-1.2004945 ,  0.83950546, -0.43049454,  0.34950546, -0.51049454])
     >>> y2[-5::]
     array([ 0.83950546, -0.64049454,  0.65950546, -1.0004945 ,  0.91950546])
-    
+
     See also
     --------
     findrfc
@@ -838,7 +868,7 @@ def rfcfilter(x, h, method=0):
     y = atleast_1d(x).ravel()
     n = len(y)
     t = zeros(n, dtype=np.int)
-    j = 0 
+    j = 0
     t0 = 0
     y0 = y[t0]
 
@@ -849,7 +879,7 @@ def rfcfilter(x, h, method=0):
     else:
         cmpfun1 = lambda a, b: a < b
         cmpfun2 = lambda a, b: a <= b
-            
+
     # The rainflow filter
     for tim1, yi in enumerate(y[1::]):
         fpi = y0 + h
@@ -857,7 +887,7 @@ def rfcfilter(x, h, method=0):
         ti = tim1 + 1
         #yi = y[ti]
 
-        if z0 == 0: 
+        if z0 == 0:
             if cmpfun1(yi, fmi):
                 z1 = -1
             elif cmpfun1(fpi, yi):
@@ -866,9 +896,11 @@ def rfcfilter(x, h, method=0):
                 z1 = 0
             t1, y1 = (t0, y0) if z1 == 0 else (ti, yi)
         else:
-            if  (((z0 == +1) & cmpfun1(yi, fmi)) | ((z0 == -1) & cmpfun2(yi, fpi))):
+            if (((z0 == +1) & cmpfun1(yi, fmi)) |
+                ((z0 == -1) & cmpfun2(yi, fpi))):
                 z1 = -1
-            elif (((z0 == +1) & cmpfun2(fmi, yi)) | ((z0 == -1) & cmpfun1(fpi, yi))):
+            elif (((z0 == +1) & cmpfun2(fmi, yi)) |
+                  ((z0 == -1) & cmpfun1(fpi, yi))):
                 z1 = +1
             else:
                 warnings.warn('Something wrong, i=%d' % tim1)
@@ -890,13 +922,14 @@ def rfcfilter(x, h, method=0):
 
         # Update t0, y0, z0
         t0, y0, z0 = t1, y1, z1
-    #end
+    # end
 
     #% Update y if last y0 is greater than (or equal) threshold
     if cmpfun1(h, abs(y0 - y[t[j]])):
         j += 1
         t[j] = t0
-    return y[t[:j+1]]
+    return y[t[:j + 1]]
+
 
 def findtp(x, h=0.0, kind=None):
     '''
@@ -936,7 +969,9 @@ def findtp(x, h=0.0, kind=None):
     >>> itph = wm.findtp(x1[:,1],0.3,'Mw')
     >>> tp = x1[itp,:]
     >>> tph = x1[itph,:]
-    >>> a = plb.plot(x1[:,0],x1[:,1],tp[:,0],tp[:,1],'ro',tph[:,1],tph[:,1],'k.')
+    >>> a = plb.plot(x1[:,0],x1[:,1],
+    ...             tp[:,0],tp[:,1],'ro',
+    ...             tph[:,1],tph[:,1],'k.')
     >>> plb.close('all')
     >>> itp
     array([ 11,  21,  22,  24,  26,  28,  31,  39,  43,  45,  47,  51,  56,
@@ -961,44 +996,46 @@ def findtp(x, h=0.0, kind=None):
 
     if ind.size < 2:
         return None
-    
+
     #% In order to get the exact up-crossing intensity from rfc by
     #% mm2lc(tp2mm(rfc))  we have to add the indices
     #% to the last value (and also the first if the
     #% sequence of turning points does not start with a minimum).
-    
+
     if kind == 'astm':
         # the Nieslony approach always put the first loading point as the first
         # turning point.
-        if x[ind[0]] != x[0]: # add the first turning point is the first of the signal
+        # add the first turning point is the first of the signal
+        if x[ind[0]] != x[0]:
             ind = np.r_[0, ind, n - 1]
-        else: # only add the last point of the signal
+        else:  # only add the last point of the signal
             ind = np.r_[ind, n - 1]
     else:
-        if  x[ind[0]] > x[ind[1]]: # adds indices to  first and last value
+        if x[ind[0]] > x[ind[1]]:  # adds indices to  first and last value
             ind = r_[0, ind, n - 1]
-        else: # adds index to the last value
+        else:  # adds index to the last value
             ind = r_[ind, n - 1]
-        
+
     if h > 0.0:
         ind1 = findrfc(x[ind], h)
         ind = ind[ind1]
-    
+
     if kind in ('mw', 'Mw'):
         xor = lambda a, b: a ^ b
         # make sure that the first is a Max if wdef == 'Mw'
         # or make sure that the first is a min if wdef == 'mw'
         first_is_max = (x[ind[0]] > x[ind[1]])
-         
+
         remove_first = xor(first_is_max, kind.startswith('Mw'))
         if remove_first:
             ind = ind[1::]
-        
-        # make sure the number of minima and Maxima are according to the 
+
+        # make sure the number of minima and Maxima are according to the
         # wavedef. i.e., make sure Nm=length(ind) is odd
         if (mod(ind.size, 2)) != 1:
             ind = ind[:-1]
     return ind
+
 
 def findtc(x_in, v=None, kind=None):
     """
@@ -1066,7 +1103,7 @@ def findtc(x_in, v=None, kind=None):
     ind = zeros(n_c - 1, dtype=np.int)
 
     first_is_down_crossing = (x[v_ind[0]] > x[v_ind[0] + 1])
-    if first_is_down_crossing: 
+    if first_is_down_crossing:
         for i in xrange(n_tc):
             #% trough
             j = 2 * i
@@ -1078,7 +1115,7 @@ def findtc(x_in, v=None, kind=None):
             #% trough
             ind[n_c - 2] = x[v_ind[n_c - 2] + 1:v_ind[n_c - 1]].argmin()
 
-    else: # %%%% the first is a up-crossing
+    else:  # %%%% the first is a up-crossing
         for i in xrange(n_tc):
             #% trough
             j = 2 * i
@@ -1091,6 +1128,7 @@ def findtc(x_in, v=None, kind=None):
             ind[n_c - 2] = x[v_ind[n_c - 2] + 1:v_ind[n_c - 1]].argmax()
 
     return v_ind[:n_c - 1] + ind + 1, v_ind
+
 
 def findoutliers(x, zcrit=0.0, dcrit=None, ddcrit=None, verbose=False):
     """
@@ -1120,7 +1158,8 @@ def findoutliers(x, zcrit=0.0, dcrit=None, ddcrit=None, verbose=False):
     -----
     Consecutive points less than zcrit apart  are considered as spurious.
     The point immediately after and before are also removed. Jumps greater than
-    dcrit in Dxn and greater than ddcrit in D^2xn are also considered as spurious.
+    dcrit in Dxn and greater than ddcrit in D^2xn are also considered as
+    spurious.
     (All distances to be interpreted in the vertical direction.)
     Another good choice for dcrit and ddcrit are:
 
@@ -1153,14 +1192,13 @@ def findoutliers(x, zcrit=0.0, dcrit=None, ddcrit=None, verbose=False):
     waveplot, reconstruct
     """
 
-
     # finding outliers
-    findjumpsDx = True # find jumps in Dx
+    findjumpsDx = True  # find jumps in Dx
     # two point spikes and Spikes dcrit above/under the
     # previous and the following point are spurios.
-    findSpikes = False #find spikes
-    findDspikes = False # find double (two point) spikes
-    findjumpsD2x = True # find jumps in D^2x
+    findSpikes = False  # find spikes
+    findDspikes = False  # find double (two point) spikes
+    findjumpsD2x = True  # find jumps in D^2x
     findNaN = True  # % find missing values
 
     xn = asarray(x).flatten()
@@ -1168,15 +1206,14 @@ def findoutliers(x, zcrit=0.0, dcrit=None, ddcrit=None, verbose=False):
     if xn.size < 2:
         raise ValueError('The vector must have more than 2 elements!')
 
-
     ind = zeros(0, dtype=int)
-    #indg=[]
+    # indg=[]
     indmiss = isnan(xn)
     if findNaN and indmiss.any():
         ind, = nonzero(indmiss)
         if verbose:
             print('Found %d missing points' % ind.size)
-        xn[indmiss] = 0. #%set NaN's to zero
+        xn[indmiss] = 0.  # %set NaN's to zero
 
     if dcrit is None:
         dcrit = 1.5 * xn.std()
@@ -1191,8 +1228,8 @@ def findoutliers(x, zcrit=0.0, dcrit=None, ddcrit=None, verbose=False):
     dxn = diff(xn)
     ddxn = diff(dxn)
 
-    if  findSpikes: # finding spurious spikes
-        tmp, = nonzero((dxn[:-1] > dcrit) * (dxn[1::] < -dcrit) | 
+    if findSpikes:  # finding spurious spikes
+        tmp, = nonzero((dxn[:-1] > dcrit) * (dxn[1::] < -dcrit) |
                        (dxn[:-1] < -dcrit) * (dxn[1::] > dcrit))
         if tmp.size > 0:
             tmp = tmp + 1
@@ -1200,33 +1237,33 @@ def findoutliers(x, zcrit=0.0, dcrit=None, ddcrit=None, verbose=False):
         if verbose:
             print('Found %d spurious spikes' % tmp.size)
 
-    if findDspikes: #,% finding spurious double (two point) spikes
-        tmp, = nonzero((dxn[:-2] > dcrit) * (dxn[2::] < -dcrit) | 
+    if findDspikes:  # ,% finding spurious double (two point) spikes
+        tmp, = nonzero((dxn[:-2] > dcrit) * (dxn[2::] < -dcrit) |
                        (dxn[:-2] < -dcrit) * (dxn[2::] > dcrit))
         if tmp.size > 0:
             tmp = tmp + 1
-            ind = hstack((ind, tmp, tmp + 1)) #%removing both points
+            ind = hstack((ind, tmp, tmp + 1))  # %removing both points
         if verbose:
             print('Found %d spurious two point (double) spikes' % tmp.size)
 
-    if findjumpsDx: # ,% finding spurious jumps  in Dx
+    if findjumpsDx:  # ,% finding spurious jumps  in Dx
         tmp, = nonzero(dxn > dcrit)
         if verbose:
             print('Found %d spurious positive jumps of Dx' % tmp.size)
         if tmp.size > 0:
-            ind = hstack((ind, tmp + 1)) #removing the point after the jump
+            ind = hstack((ind, tmp + 1))  # removing the point after the jump
 
         tmp, = nonzero(dxn < -dcrit)
         if verbose:
             print('Found %d spurious negative jumps of Dx' % tmp.size)
         if tmp.size > 0:
-            ind = hstack((ind, tmp)) #removing the point before the jump
+            ind = hstack((ind, tmp))  # removing the point before the jump
 
-    if findjumpsD2x: # ,% finding spurious jumps in D^2x
+    if findjumpsD2x:  # ,% finding spurious jumps in D^2x
         tmp, = nonzero(ddxn > ddcrit)
         if tmp.size > 0:
             tmp = tmp + 1
-            ind = hstack((ind, tmp)) # removing the jump
+            ind = hstack((ind, tmp))  # removing the jump
 
         if verbose:
             print('Found %d spurious positive jumps of D^2x' % tmp.size)
@@ -1234,7 +1271,7 @@ def findoutliers(x, zcrit=0.0, dcrit=None, ddcrit=None, verbose=False):
         tmp, = nonzero(ddxn < -ddcrit)
         if tmp.size > 0:
             tmp = tmp + 1
-            ind = hstack((ind, tmp)) # removing the jump
+            ind = hstack((ind, tmp))  # removing the jump
 
         if verbose:
             print('Found %d spurious negative jumps of D^2x' % tmp.size)
@@ -1249,16 +1286,18 @@ def findoutliers(x, zcrit=0.0, dcrit=None, ddcrit=None, verbose=False):
             indtr, = nonzero((diff(indzeros)))
             indtr = indtr + 1
             #%indices to consecutive equal points
-            if True: # removing the point before + all equal points + the point after
+            # removing the point before + all equal points + the point after
+            if True:
                 ind = hstack((ind, indtr - 1, indz, indtr, indtr + 1))
-            else: # % removing all points + the point after
+            else:  # % removing all points + the point after
                 ind = hstack((ind, indz, indtr, indtr + 1))
 
         if verbose:
             if zcrit == 0.:
                 print('Found %d consecutive equal values' % indz.size)
             else:
-                print('Found %d consecutive values less than %g apart.' % (indz.size, zcrit))
+                print('Found %d consecutive values less than %g apart.' %
+                      (indz.size, zcrit))
     indg = ones(xn.size, dtype=bool)
 
     if ind.size > 1:
@@ -1271,8 +1310,9 @@ def findoutliers(x, zcrit=0.0, dcrit=None, ddcrit=None, verbose=False):
 
     return ind, indg
 
+
 def common_shape(*args, ** kwds):
-    ''' 
+    '''
     Return the common shape of a sequence of arrays
 
     Parameters
@@ -1339,8 +1379,8 @@ def common_shape(*args, ** kwds):
             raise ValueError("shape mismatch: two or more arrays have "
                              "incompatible dimensions on axis %r." % (axis,))
         elif len(unique) == 2:
-            # There is exactly one non-1 length. The common shape will take this
-            # value.
+            # There is exactly one non-1 length.
+            # The common shape will take this value.
             unique.remove(1)
             new_length = unique.pop()
             c_shape.append(new_length)
@@ -1350,6 +1390,7 @@ def common_shape(*args, ** kwds):
             c_shape.append(1)
 
     return tuple(c_shape)
+
 
 def argsreduce(condition, * args):
     """ Return the elements of each input array that satisfy some condition.
@@ -1399,7 +1440,8 @@ def argsreduce(condition, * args):
 
 def stirlerr(n):
     '''
-    Return error of Stirling approximation, i.e., log(n!) - log( sqrt(2*pi*n)*(n/exp(1))**n )
+    Return error of Stirling approximation,
+        i.e., log(n!) - log( sqrt(2*pi*n)*(n/exp(1))**n )
 
     Example
     -------
@@ -1421,15 +1463,14 @@ def stirlerr(n):
     '''
 
     S0 = 0.083333333333333333333   # /* 1/12 */
-    S1 = 0.00277777777777777777778 # /* 1/360 */
-    S2 = 0.00079365079365079365079365 # /* 1/1260 */
-    S3 = 0.000595238095238095238095238 # /* 1/1680 */
+    S1 = 0.00277777777777777777778  # /* 1/360 */
+    S2 = 0.00079365079365079365079365  # /* 1/1260 */
+    S3 = 0.000595238095238095238095238  # /* 1/1680 */
     S4 = 0.0008417508417508417508417508  # /* 1/1188 */
 
     n1 = atleast_1d(n)
 
     y = gammaln(n1 + 1) - log(sqrt(2 * pi * n1) * (n1 / exp(1)) ** n1)
-
 
     nn = n1 * n1
 
@@ -1446,11 +1487,16 @@ def stirlerr(n):
     n15 = logical_and(15 < n1, n1 <= 35)
     if any(n15):
         nn15 = nn[n15]
-        y[n15] = (S0 - (S1 - (S2 - (S3 - S4 / nn15) / nn15) / nn15) / nn15) / n1[n15]
+        y[n15] = (
+            S0 - (S1 - (S2 - (S3 - S4 / nn15) / nn15) / nn15) / nn15) / n1[n15]
 
     return y
 
-def getshipchar(value=None, property="max_deadweight", **kwds): #@ReservedAssignment
+#@ReservedAssignment
+
+
+def getshipchar(value=None, property="max_deadweight",  # @ReservedAssignment
+                **kwds):
     '''
     Return ship characteristics from value of one ship-property
 
@@ -1464,15 +1510,16 @@ def getshipchar(value=None, property="max_deadweight", **kwds): #@ReservedAssign
            'propeller_diameter'.
            The length was found from statistics of 40 vessels of size 85 to
            100000 tonn. An exponential curve through 0 was selected, and the
-           factor and exponent that minimized the standard deviation of the relative
-           error was selected. (The error returned is the same for any ship.) The
-           servicespeed was found for ships above 1000 tonns only.
-           The propeller diameter formula is from [1]_.
+           factor and exponent that minimized the standard deviation of the
+           relative error was selected. (The error returned is the same for
+           any ship.) The servicespeed was found for ships above 1000 tonns
+           only. The propeller diameter formula is from [1]_.
 
     Returns
     -------
     sc : dict
-        containing estimated mean values and standard-deviations of ship characteristics:
+        containing estimated mean values and standard-deviations of ship
+        characteristics:
             max_deadweight    [kkg], (weight of cargo, fuel etc.)
             length            [m]
             beam              [m]
@@ -1504,14 +1551,14 @@ def getshipchar(value=None, property="max_deadweight", **kwds): #@ReservedAssign
     Reference
     ---------
     .. [1] Gray and Greeley, (1978),
-    "Source level model for propeller blade rate radiation for the world's merchant
-    fleet", Bolt Beranek and Newman Technical Memorandum No. 458.
+    "Source level model for propeller blade rate radiation for the world's
+    merchant fleet", Bolt Beranek and Newman Technical Memorandum No. 458.
     '''
     if value is None:
         names = kwds.keys()
-        if len(names)!=1:
+        if len(names) != 1:
             raise ValueError('Only on keyword')
-        property = names[0] #@ReservedAssignment
+        property = names[0]  # @ReservedAssignment
         value = kwds[property]
     value = np.atleast_1d(value)
     valid_props = dict(l='length', b='beam', d='draught', m='max_deadweigth',
@@ -1522,7 +1569,8 @@ def getshipchar(value=None, property="max_deadweight", **kwds): #@ReservedAssign
                        beam=lambda x: ((x / 1.78) ** (1 / 0.27)),
                        draught=lambda x: ((x / 0.8) ** (1 / 0.24)),
                        service_speed=lambda x: ((x / 1.14) ** (1 / 0.21)),
-                       propeller_diameter=lambda x: (((x / 0.12) ** (4 / 3) / 3.45) ** (2.5)))
+                       propeller_diameter=lambda x: (((x / 0.12) ** (4 / 3) /
+                                                      3.45) ** (2.5)))
 
     max_deadweight = prop2max_dw.get(prop, lambda x: x)(value)
     propertySTD = prop + 'STD'
@@ -1540,7 +1588,6 @@ def getshipchar(value=None, property="max_deadweight", **kwds): #@ReservedAssign
     speed = round(1.14 * max_deadweight ** 0.21 * 10) / 10
     speed_err = speed * 0.10
 
-
     p_diam = 0.12 * length ** (3.0 / 4.0)
     p_diam_err = 0.12 * length_err ** (3.0 / 4.0)
 
@@ -1549,16 +1596,19 @@ def getshipchar(value=None, property="max_deadweight", **kwds): #@ReservedAssign
 
     shipchar = OrderedDict(beam=beam, beamSTD=beam_err,
                            draught=draught, draughtSTD=draught_err,
-                           length=length, lengthSTD=length_err, 
-                           max_deadweight=max_deadweight, max_deadweightSTD=max_deadweightSTD,
-                           propeller_diameter=p_diam, propeller_diameterSTD=p_diam_err,
+                           length=length, lengthSTD=length_err,
+                           max_deadweight=max_deadweight,
+                           max_deadweightSTD=max_deadweightSTD,
+                           propeller_diameter=p_diam,
+                           propeller_diameterSTD=p_diam_err,
                            service_speed=speed, service_speedSTD=speed_err)
 
     shipchar[propertySTD] = 0
     return shipchar
 
+
 def betaloge(z, w):
-    ''' 
+    '''
     Natural Logarithm of beta function.
 
     CALL betaloge(z,w)
@@ -1588,12 +1638,13 @@ def betaloge(z, w):
     '''
     # y = gammaln(z)+gammaln(w)-gammaln(z+w)
     zpw = z + w
-    return (stirlerr(z) + stirlerr(w) + 0.5 * log(2 * pi) + (w - 0.5) * log(w) 
+    return (stirlerr(z) + stirlerr(w) + 0.5 * log(2 * pi) + (w - 0.5) * log(w)
             + (z - 0.5) * log(z) - stirlerr(zpw) - (zpw - 0.5) * log(zpw))
 
     # stirlings approximation:
     #  (-(zpw-0.5).*log(zpw) +(w-0.5).*log(w)+(z-0.5).*log(z) +0.5*log(2*pi))
-    #return y
+    # return y
+
 
 def gravity(phi=45):
     ''' Returns the constant acceleration of gravity
@@ -1626,7 +1677,7 @@ def gravity(phi=45):
     See also
     --------
     wdensity
-    
+
     References
     ----------
     .. [1] Irgens, Fridtjov (1987)
@@ -1636,9 +1687,11 @@ def gravity(phi=45):
             ISBN 82-519-0786-1, pp 19
 
     '''
-    
-    phir = phi * pi / 180. # change from degrees to radians
-    return 9.78049 * (1. + 0.0052884 * sin(phir) ** 2. - 0.0000059 * sin(2 * phir) ** 2.)
+
+    phir = phi * pi / 180.  # change from degrees to radians
+    return 9.78049 * (1. + 0.0052884 * sin(phir) ** 2. -
+                      0.0000059 * sin(2 * phir) ** 2.)
+
 
 def nextpow2(x):
     '''
@@ -1662,6 +1715,7 @@ def nextpow2(x):
         n = n - 1
     return n
 
+
 def discretize(fun, a, b, tol=0.005, n=5, method='linear'):
     '''
     Automatic discretization of function
@@ -1677,7 +1731,7 @@ def discretize(fun, a, b, tol=0.005, n=5, method='linear'):
     n : scalar integer
         number of values
     method : string
-        defining method of gridding, options are 'linear' and 'adaptive'  
+        defining method of gridding, options are 'linear' and 'adaptive'
 
     Returns
     -------
@@ -1701,14 +1755,14 @@ def discretize(fun, a, b, tol=0.005, n=5, method='linear'):
         return _discretize_adaptive(fun, a, b, tol, n)
     else:
         return _discretize_linear(fun, a, b, tol, n)
-    
+
+
 def _discretize_linear(fun, a, b, tol=0.005, n=5):
     '''
     Automatic discretization of function, linear gridding
     '''
     tiny = floatinfo.tiny
-    
-    
+
     x = linspace(a, b, n)
     y = fun(x)
 
@@ -1720,58 +1774,60 @@ def _discretize_linear(fun, a, b, tol=0.005, n=5):
         x0 = x
         y0 = y
         n = 2 * (n - 1) + 1
-        x = linspace (a, b, n)
+        x = linspace(a, b, n)
         y = fun(x)
         y00 = interp(x, x0, y0)
         err = 0.5 * amax(abs((y00 - y) / (abs(y00 + y) + tiny)))
     return x, y
+
 
 def _discretize_adaptive(fun, a, b, tol=0.005, n=5):
     '''
     Automatic discretization of function, adaptive gridding.
     '''
     tiny = floatinfo.tiny
-    n += (mod(n, 2) == 0) # make sure n is odd
+    n += (mod(n, 2) == 0)  # make sure n is odd
     x = linspace(a, b, n)
     fx = fun(x)
-    
+
     n2 = (n - 1) / 2
     erri = hstack((zeros((n2, 1)), ones((n2, 1)))).ravel()
     err = erri.max()
     err0 = inf
-    #while (err != err0 and err > tol and n < nmax):
+    # while (err != err0 and err > tol and n < nmax):
     for j in range(50):
         if err != err0 and np.any(erri > tol):
             err0 = err
             # find top errors
-           
+
             I, = where(erri > tol)
-            # double the sample rate in intervals with the most error     
-            y = (vstack(((x[I] + x[I - 1]) / 2, (x[I + 1] + x[I]) / 2)).T).ravel()    
+            # double the sample rate in intervals with the most error
+            y = (vstack(((x[I] + x[I - 1]) / 2,
+                         (x[I + 1] + x[I]) / 2)).T).ravel()
             fy = fun(y)
-            
+
             fy0 = interp(y, x, fx)
             erri = 0.5 * (abs((fy0 - fy) / (abs(fy0 + fy) + tiny)))
-            
+
             err = erri.max()
-          
+
             x = hstack((x, y))
-            
+
             I = x.argsort()
             x = x[I]
             erri = hstack((zeros(len(fx)), erri))[I]
             fx = hstack((fx, fy))[I]
-            
+
         else:
             break
     else:
         warnings.warn('Recursion level limit reached j=%d' % j)
-    
+
     return x, fx
 
 
 def polar2cart(theta, rho, z=None):
-    ''' 
+    '''
     Transform polar coordinates into 2D cartesian coordinates.
 
     Returns
@@ -1788,7 +1844,7 @@ def polar2cart(theta, rho, z=None):
         return x, y
     else:
         return x, y, z
-    
+
 
 def cart2polar(x, y, z=None):
     ''' Transform 2D cartesian coordinates into polar coordinates.
@@ -1809,7 +1865,7 @@ def cart2polar(x, y, z=None):
         return t, r
     else:
         return t, r, z
-   
+
 
 def meshgrid(*xi, **kwargs):
     """
@@ -1901,12 +1957,12 @@ def meshgrid(*xi, **kwargs):
             raise TypeError('meshgrid() take 1 or more arguments (0 given)')
 
     sparse = kwargs.get('sparse', False)
-    indexing = kwargs.get('indexing', 'xy') # 'ij'
-
+    indexing = kwargs.get('indexing', 'xy')  # 'ij'
 
     ndim = len(args)
     s0 = (1,) * ndim
-    output = [x.reshape(s0[:i] + (-1,) + s0[i + 1::]) for i, x in enumerate(args)]
+    output = [x.reshape(s0[:i] + (-1,) + s0[i + 1::])
+              for i, x in enumerate(args)]
 
     shape = [x.size for x in output]
 
@@ -1937,6 +1993,7 @@ def ndgrid(*args, **kwargs):
     """
     kwargs['indexing'] = 'ij'
     return meshgrid(*args, ** kwargs)
+
 
 def trangood(x, f, min_n=None, min_x=None, max_x=None, max_n=inf):
     """
@@ -2004,10 +2061,10 @@ def trangood(x, f, min_n=None, min_x=None, max_x=None, max_n=inf):
     L = float(xn - x0)
     eps = floatinfo.eps
     if ((nf < min_n) or (max_n < nf) or any(abs(ddx) > 10 * eps * (L))):
-##  % pab 07.01.2001: Always choose the stepsize df so that
-##  % it is an exactly representable number.
-##  % This is important when calculating numerical derivatives and is
-##  % accomplished by the following.
+# % pab 07.01.2001: Always choose the stepsize df so that
+# % it is an exactly representable number.
+# % This is important when calculating numerical derivatives and is
+# % accomplished by the following.
         dx = L / (min(min_n, max_n) - 1)
         dx = (dx + 2.) - 2.
         xi = arange(x0, xn + dx / 2., dx)
@@ -2032,6 +2089,7 @@ def trangood(x, f, min_n=None, min_x=None, max_x=None, max_n=inf):
         xo = hstack((xo, x1 + xo[-1]))
 
     return xo, fo
+
 
 def tranproc(x, f, x0, *xi):
     """
@@ -2068,11 +2126,11 @@ def tranproc(x, f, x0, *xi):
     >>> import wafo.misc as wm
     >>> import wafo.transform.models as wtm
     >>> tr = wtm.TrHermite()
-    >>> x = linspace(-5,5,501) 
+    >>> x = linspace(-5,5,501)
     >>> g = tr(x)
     >>> gder = wm.tranproc(x, g, x, ones(g.shape[0]))
     >>> h = plb.plot(x, g, x, gder[1])
-    
+
     plb.plot(x,pdfnorm(g)*gder[1],x,pdfnorm(x))
     plb.legend('Transformed model','Gaussian model')
 
@@ -2088,7 +2146,7 @@ def tranproc(x, f, x0, *xi):
     xi = atleast_1d(*xi)
     if not isinstance(xi, list):
         xi = [xi, ]
-    N = len(xi) # N = number of derivatives
+    N = len(xi)  # N = number of derivatives
     nmax = ceil((xo.ptp()) * 10 ** (7. / max(N, 1)))
     xo, fo = trangood(xo, fo, min_x=min(x0), max_x=max(x0), max_n=nmax)
 
@@ -2108,25 +2166,26 @@ def tranproc(x, f, x0, *xi):
         y = [y0]
         hn = xo[1] - xo[0]
         if hn ** N < sqrt(eps):
-            print('Numerical problems may occur for the derivatives in tranproc.')
-            warnings.warn('The sampling of the transformation may be too small.')
+            msg = ('Numerical problems may occur for the derivatives in ' +
+            'tranproc.\nThe sampling of the transformation may be too small.')
+            warnings.warn(msg)
 
-        #% Transform X with the derivatives of  f.
+        # Transform X with the derivatives of  f.
         fxder = zeros((N, x0.size))
         fder = vstack((xo, fo))
-        for k in range(N): #% Derivation of f(x) using a difference method.
+        for k in range(N):  # Derivation of f(x) using a difference method.
             n = fder.shape[-1]
-            #%fder = [(fder(1:n-1,1)+fder(2:n,1))/2 diff(fder(:,2))./diff(fder(:,1))]
-            fder = vstack([(fder[0, 0:n - 1] + fder[0, 1:n]) / 2, diff(fder[1, :]) / hn])
+            fder = vstack([(fder[0, 0:n - 1] + fder[0, 1:n]) / 2,
+                           diff(fder[1, :]) / hn])
             fxder[k] = tranproc(fder[0], fder[1], x0)
 
         # Calculate the transforms of the derivatives of X.
         # First time derivative of y: y1 = f'(x)*x1
-        
+
         y1 = fxder[0] * xi[0]
         y.append(y1)
         if N > 1:
-            
+
             # Second time derivative of y:
             # y2 = f''(x)*x1.^2+f'(x)*x2
             y2 = fxder[1] * xi[0] ** 2. + fxder[0] * xi[1]
@@ -2141,16 +2200,20 @@ def tranproc(x, f, x0, *xi):
                     # Fourth time derivative of y:
                     # y4 = f''''(x)*x1.^4+f'(x)*x4
                     #    +6*f'''(x)*x1^2*x2+f''(x)*(3*x2^2+4x1*x3)
-                    y4 = (fxder[3] * xi[0] ** 4. + fxder[0] * xi[3] + \
-                          6. * fxder[2] * xi[0] ** 2. * xi[1] + \
+                    y4 = (fxder[3] * xi[0] ** 4. + fxder[0] * xi[3] +
+                          6. * fxder[2] * xi[0] ** 2. * xi[1] +
                           fxder[1] * (3. * xi[1] ** 2. + 4. * xi[0] * xi[1]))
                     y.append(y4)
                     if N > 4:
-                        warnings.warn('Transformation of derivatives of order>4 not supported.')
-    return y #y0,y1,y2,y3,y4
-def good_bins(data=None, range=None, num_bins=None, num_data=None, odd=False, loose=True): #@ReservedAssignment
+                        warnings.warn('Transformation of derivatives of ' +
+                                      'order>4 not supported.')
+    return y  # y0,y1,y2,y3,y4
+
+
+def good_bins(data=None, range=None, num_bins=None,  # @ReservedAssignment
+              num_data=None, odd=False, loose=True):
     ''' Return good bins for histogram
-    
+
     Parameters
     ----------
     data : array-like
@@ -2158,13 +2221,14 @@ def good_bins(data=None, range=None, num_bins=None, num_data=None, odd=False, lo
     range : (float, float)
         minimum and maximum range of bins (default data.min(), data.max())
     num_bins : scalar integer
-        approximate number of bins wanted  (default depending on num_data=len(data))  
+        approximate number of bins wanted
+        (default depending on num_data=len(data))
     odd : bool
         placement of bins (0 or 1) (default 0)
     loose : bool
         if True add extra space to min and max
         if False the bins are made tight to the min and max
-        
+
     Example
     -------
     >>> import wafo.misc as wm
@@ -2177,63 +2241,65 @@ def good_bins(data=None, range=None, num_bins=None, num_data=None, odd=False, lo
     >>> wm.good_bins(range=(0,5), num_bins=6, odd=True, loose=False)
     array([-0.5,  0.5,  1.5,  2.5,  3.5,  4.5,  5.5])
     '''
-    
+
     if data is not None:
         x = np.atleast_1d(data)
         num_data = len(x)
-    
-    mn, mx = range if range else (x.min(), x.max()) 
-    
+
+    mn, mx = range if range else (x.min(), x.max())
+
     if num_bins is None:
         num_bins = np.ceil(4 * np.sqrt(np.sqrt(num_data)))
-    
+
     d = float(mx - mn) / num_bins * 2
-    e = np.floor(np.log(d) / np.log(10));
+    e = np.floor(np.log(d) / np.log(10))
     m = np.floor(d / 10 ** e)
     if m > 5:
         m = 5
     elif m > 2:
         m = 2
-    
+
     d = m * 10 ** e
     mn = (np.floor(mn / d) - loose) * d - odd * d / 2
     mx = (np.ceil(mx / d) + loose) * d + odd * d / 2
     limits = np.arange(mn, mx + d / 2, d)
     return limits
 
-def plot_histgrm(data, bins=None, range=None, normed=False, weights=None, lintype='b-'): #@ReservedAssignment
+
+def plot_histgrm(data, bins=None, range=None,  # @ReservedAssignment
+                 normed=False, weights=None, lintype='b-'):
     '''
     Plot histogram
-             
+
     Parameters
     -----------
     data : array-like
         the data
     bins : int or sequence of scalars, optional
         If an int, it defines the number of equal-width
-        bins in the given range (4 * sqrt(sqrt(len(data)), by default). 
-        If a sequence, it defines the bin edges, including the 
+        bins in the given range (4 * sqrt(sqrt(len(data)), by default).
+        If a sequence, it defines the bin edges, including the
         rightmost edge, allowing for non-uniform bin widths.
     range : (float, float), optional
         The lower and upper range of the bins.  If not provided, range
         is simply ``(data.min(), data.max())``.  Values outside the range are
         ignored.
     normed : bool, optional
-        If False, the result will contain the number of samples in each bin.  
-        If True, the result is the value of the probability *density* function 
-        at the bin, normalized such that the *integral* over the range is 1. 
+        If False, the result will contain the number of samples in each bin.
+        If True, the result is the value of the probability *density* function
+        at the bin, normalized such that the *integral* over the range is 1.
     weights : array_like, optional
         An array of weights, of the same shape as `data`.  Each value in `data`
         only contributes its associated weight towards the bin count
         (instead of 1).  If `normed` is True, the weights are normalized,
         so that the integral of the density over the range remains 1
     lintype : specify color and lintype, see PLOT for possibilities.
-    
+
     Returns
     -------
     h : list
-        of plot-objects 
-    
+        of plot-objects
+
     Example
     -------
     >>> import pylab as plb
@@ -2243,34 +2309,37 @@ def plot_histgrm(data, bins=None, range=None, normed=False, weights=None, lintyp
     >>> h0 = wm.plot_histgrm(R, 20, normed=True)
     >>> x = linspace(-3,16,200)
     >>> h1 = plb.plot(x,ws.weibull_min.pdf(x,2,0,2),'r')
-            
+
     See also
     --------
     wafo.misc.good_bins
     numpy.histogram
     '''
-    
+
     x = np.atleast_1d(data)
     if bins is None:
         bins = np.ceil(4 * np.sqrt(np.sqrt(len(x))))
-     
-    bin_, limits = np.histogram(data, bins=bins, normed=normed, weights=weights) #, new=True)
+
+    #, new=True)
+    bin_, limits = np.histogram(
+        data, bins=bins, normed=normed, weights=weights)
     limits.shape = (-1, 1)
     xx = limits.repeat(3, axis=1)
     xx.shape = (-1,)
     xx = xx[1:-1]
     bin_.shape = (-1, 1)
     yy = bin_.repeat(3, axis=1)
-    #yy[0,0] = 0.0 # pdf
-    yy[:, 0] = 0.0 # histogram
+    # yy[0,0] = 0.0 # pdf
+    yy[:, 0] = 0.0  # histogram
     yy.shape = (-1,)
     yy = np.hstack((yy, 0.0))
     return plotbackend.plot(xx, yy, lintype, limits, limits * 0)
-     
+
+
 def num2pistr(x, n=3):
-    ''' 
+    '''
     Convert a scalar to a text string in fractions of pi
-        if the numerator is less than 10 and not equal 0 
+        if the numerator is less than 10 and not equal 0
                and if the denominator is less than 10.
 
     Parameters
@@ -2280,33 +2349,34 @@ def num2pistr(x, n=3):
     Returns
     -------
     xtxt = a text string in fractions of pi
-    
+
     Example
     >>> import wafo.misc as wm
     >>> t = wm.num2pistr(np.pi*3/4)
     >>> t=='3\\pi/4'
     True
     '''
-    
+
     frac = fractions.Fraction.from_float(x / pi).limit_denominator(10000000)
     num = frac.numerator
     den = frac.denominator
     if (den < 10) and (num < 10) and (num != 0):
         dtxt = '' if abs(den) == 1 else '/%d' % den
-        if abs(num) == 1: # % numerator
+        if abs(num) == 1:  # % numerator
             ntxt = '-' if num == -1 else ''
-        else: 
-            ntxt = '%d' % num 
+        else:
+            ntxt = '%d' % num
         xtxt = ntxt + r'\pi' + dtxt
     else:
-        format = '%0.' + '%dg' % n #@ReservedAssignment
+        format = '%0.' + '%dg' % n  # @ReservedAssignment
         xtxt = format % x
-    return xtxt     
+    return xtxt
+
 
 def fourier(data, t=None, T=None, m=None, n=None, method='trapz'):
     '''
     Returns Fourier coefficients.
- 
+
     Parameters
     ----------
     data : array-like
@@ -2314,23 +2384,24 @@ def fourier(data, t=None, T=None, m=None, n=None, method='trapz'):
     t : array-like
         vector with n values indexed from 1 to N.
     T : real scalar
-        primitive period of signal, i.e., smallest period. (default T = t[-1]-t[0] 
+        primitive period of signal, i.e., smallest period.
+        (default T = t[-1]-t[0]
     m : scalar integer
         defines no of harmonics desired (default M = N)
-    n : scalar integer 
+    n : scalar integer
         no of data points (default len(t))
     method : string
         integration method used
-    
+
     Returns
     -------
     a,b  = Fourier coefficients size m x p
-    
+
     FOURIER finds the coefficients for a Fourier series representation
     of the signal x(t) (given in digital form).  It is assumed the signal
     is periodic over T.  N is the number of data points, and M-1 is the
     number of coefficients.
-    
+
     The signal can be estimated by using M-1 harmonics by:
                         M-1
      x[i] = 0.5*a[0] + sum (a[n]*c[n,i] + b[n]*s[n,i])
@@ -2338,21 +2409,21 @@ def fourier(data, t=None, T=None, m=None, n=None, method='trapz'):
     where
        c[n,i] = cos(2*pi*(n-1)*t[i]/T)
        s[n,i] = sin(2*pi*(n-1)*t[i]/T)
-    
+
     Note that a[0] is the "dc value".
     Remaining values are a[1], a[2], ... , a[M-1].
-     
+
     Example
     -------
     >>> import wafo.misc as wm
-    >>> import numpy as np 
+    >>> import numpy as np
     >>> T = 2*np.pi
-    >>> t = np.linspace(0,4*T) 
+    >>> t = np.linspace(0,4*T)
     >>> x = np.sin(t)
     >>> a, b = wm.fourier(x, t, T=T, m=5)
     >>> (np.round(a.ravel()), np.round(b.ravel()))
     (array([ 0., -0.,  0., -0.,  0.]), array([ 0.,  4., -0., -0.,  0.]))
-    
+
     See also
     --------
     fft
@@ -2363,56 +2434,56 @@ def fourier(data, t=None, T=None, m=None, n=None, method='trapz'):
         t = np.arange(n)
     else:
         t = np.atleast_1d(t)
-    
+
     n = len(t) if n is None else n
     m = n if n is None else m
     T = t[-1] - t[0] if T is None else T
-    
+
     if method.startswith('trapz'):
-        intfun = trapz     
+        intfun = trapz
     elif method.startswith('simp'):
         intfun = simps
 
     # Define the vectors for computing the Fourier coefficients
-    t.shape = (1, -1) 
+    t.shape = (1, -1)
     a = zeros((m, p))
     b = zeros((m, p))
-    a[0] = intfun(x, t, axis= -1)
-     
+    a[0] = intfun(x, t, axis=-1)
+
     # Compute M-1 more coefficients
     tmp = 2 * pi * t / T
-    #% tmp =  2*pi*(0:N-1).'/(N-1); 
+    #% tmp =  2*pi*(0:N-1).'/(N-1);
     for i in range(1, m):
-        a[i] = intfun(x * cos(i * tmp), t, axis= -1)
-        b[i] = intfun(x * sin(i * tmp), t, axis= -1)
-      
+        a[i] = intfun(x * cos(i * tmp), t, axis=-1)
+        b[i] = intfun(x * sin(i * tmp), t, axis=-1)
+
     a = a / pi
     b = b / pi
-     
+
     # Alternative:  faster for large M, but gives different results than above.
 #    nper = diff(t([1 end]))/T; %No of periods given
 #    if nper == round(nper):
 #        N1 = n/nper
 #    else:
 #        N1 = n
-#      
 #
-#    
-#    # Fourier coefficients by fft
+#
+#
+# Fourier coefficients by fft
 #    Fcof1 = 2*ifft(x(1:N1,:),[],1);
 #    Pcor = [1; exp(sqrt(-1)*(1:M-1).'*t(1))]; % correction term to get
-#                                                  % the correct integration limits
+#                                              % the correct integration limits
 #    Fcof = Fcof1(1:M,:).*Pcor(:,ones(1,P));
 #    a = real(Fcof(1:M,:));
 #    b = imag(Fcof(1:M,:));
-    
+
     return a, b
 
- 
 
 def _test_find_cross():
-    t = findcross([0, 0, 1, -1, 1], 0) #@UnusedVariable
-    
+    t = findcross([0, 0, 1, -1, 1], 0)  # @UnusedVariable
+
+
 def _test_common_shape():
 
     A = ones((4, 1))
@@ -2426,8 +2497,8 @@ def _test_common_shape():
     B = 2
     C = ones((1, 5)) * 5
     common_shape(A, B, C, shape=(4, 5))
-    
-    
+
+
 def _test_meshgrid():
     x = array([-1, -0.5, 1, 4, 5], float)
     y = array([0, -2, -5], float)
@@ -2443,18 +2514,20 @@ def _test_meshgrid():
     yv[0, 0] = 10
     print(xv)
     print(yv)
-##    >>> xv
+# >>> xv
 ##    array([[ 0. ,  0.5,  1. ]])
-##    >>> yv
-##    array([[ 0.],
-##           [ 1.]])
-##    array([[-1. , -0.5,  1. ,  4. ,  5. ],
+# >>> yv
+# array([[ 0.],
+# [ 1.]])
+# array([[-1. , -0.5,  1. ,  4. ,  5. ],
 ##           [-1. , -0.5,  1. ,  4. ,  5. ],
-##           [-1. , -0.5,  1. ,  4. ,  5. ]])
-##
-##    array([[ 0.,  0.,  0.,  0.,  0.],
+# [-1. , -0.5,  1. ,  4. ,  5. ]])
+#
+# array([[ 0.,  0.,  0.,  0.,  0.],
 ##           [-2., -2., -2., -2., -2.],
-##           [-5., -5., -5., -5., -5.]])
+# [-5., -5., -5., -5., -5.]])
+
+
 def _test_tranproc():
     import wafo.transform.models as wtm
     tr = wtm.TrHermite()
@@ -2466,14 +2539,19 @@ def _test_tranproc():
     #>>> plot(g(:,1),[g(:,2),gder(:,2)])
     #>>> plot(g(:,1),pdfnorm(g(:,2)).*gder(:,2),g(:,1),pdfnorm(g(:,1)))
     #>>> legend('Transformed model','Gaussian model')
+
+
 def _test_detrend():
     import pylab as plb
-    cos = plb.cos;randn = plb.randn
+    cos = plb.cos
+    randn = plb.randn
     x = linspace(0, 1, 200)
     y = exp(x) + cos(5 * 2 * pi * x) + 1e-1 * randn(x.size)
-    y0 = detrendma(y, 20);tr = y - y0
+    y0 = detrendma(y, 20)
+    tr = y - y0
     plb.plot(x, y, x, y0, 'r', x, exp(x), 'k', x, tr, 'm')
-    
+
+
 def _test_extrema():
     import pylab as pb
     from pylab import plot
@@ -2484,7 +2562,6 @@ def _test_extrema():
     plot(t, x, '.', ti, tp, 'r.')
     _ind1 = findrfc(tp, 0.3)
 
-  
 
 def _test_discretize():
     import pylab as plb
@@ -2492,15 +2569,16 @@ def _test_discretize():
     plb.plot(x, y)
     plb.show()
     plb.close('all')
-    
-     
+
+
 def _test_stirlerr():
     x = linspace(1, 5, 6)
     print stirlerr(x)
     print stirlerr(1)
     print getshipchar(1000)
     print betaloge(3, 2)
-    
+
+
 def _test_parse_kwargs():
     opt = dict(arg1=1, arg2=3)
     print opt
@@ -2519,9 +2597,10 @@ def _test_parse_kwargs():
     out1 = testfun(opt0['opt1'], **opt0)
     print out1
 
+
 def test_docstrings():
     import doctest
     doctest.testmod()
-    
+
 if __name__ == "__main__":
     test_docstrings()
