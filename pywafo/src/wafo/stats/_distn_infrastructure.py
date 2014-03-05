@@ -455,7 +455,7 @@ class rv_frozen(object):
     def __init__(self, dist, *args, **kwds):
         self.dist = dist
         args, loc, scale = dist._parse_args(*args, **kwds)
-        if len(args) == dist.numargs - 2:  # isinstance(dist, rv_continuous):
+        if isinstance(dist, rv_continuous):
             self.par = args + (loc, scale)
         else:  # rv_discrete
             self.par = args + (loc,)

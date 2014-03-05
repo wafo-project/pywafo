@@ -21,15 +21,16 @@ from wafo.misc import (nextpow2, findtp, findrfc, findtc, findcross,
 from wafodata import PlotData
 from wafo.interpolate import SmoothSpline
 from scipy.interpolate.interpolate import interp1d
-from scipy.integrate.quadrature import cumtrapz  #@UnresolvedImport
+from scipy.integrate.quadrature import cumtrapz  # @UnresolvedImport
 from scipy.special import ndtr as cdfnorm, ndtri as invnorm
 
 import warnings
 import numpy as np
 
-from numpy import (inf, pi, zeros, ones, sqrt, where, log, exp, cos, sin, arcsin, mod, interp, #@UnresolvedImport
-                   linspace, arange, sort, all, abs, vstack, hstack, atleast_1d, sign, expm1, #@UnresolvedImport
-                   finfo, polyfit, r_, nonzero, cumsum, ravel, size, isnan, nan, ceil, diff, array) #@UnresolvedImport
+from numpy import (inf, pi, zeros, ones, sqrt, where, log, exp, cos, sin, arcsin, mod, interp,  # @UnresolvedImport
+                   #@UnresolvedImport
+                   linspace, arange, sort, all, abs, vstack, hstack, atleast_1d, sign, expm1,
+                   finfo, polyfit, r_, nonzero, cumsum, ravel, size, isnan, nan, ceil, diff, array)  # @UnresolvedImport
 from numpy.fft import fft
 from numpy.random import randn
 from scipy.integrate import trapz
@@ -45,18 +46,21 @@ from scipy.signal.windows import parzen
 from scipy import special
 
 
-floatinfo = finfo(float) 
+floatinfo = finfo(float)
 matplotlib.interactive(True)
 _wafocov = JITImport('wafo.covariance')
 _wafospec = JITImport('wafo.spectrum')
 
 __all__ = ['TimeSeries', 'LevelCrossings', 'CyclePairs', 'TurningPoints',
-    'sensortypeid', 'sensortype']
+           'sensortypeid', 'sensortype']
+
 
 def _invchi2(q, df):
     return special.chdtri(df, q)
 
+
 class LevelCrossings(PlotData):
+
     '''
     Container class for Level crossing data objects in WAFO
 
@@ -80,18 +84,19 @@ class LevelCrossings(PlotData):
     >>> lc = mm.level_crossings()
     >>> h2 = lc.plot()
     '''
+
     def __init__(self, *args, **kwds):
         options = dict(title='Level crossing spectrum',
-                            xlab='Levels', ylab='Count',
-                            plotmethod='semilogy',
-                            plot_args=['b'],
-                            plot_args_children=['r--'])
+                       xlab='Levels', ylab='Count',
+                       plotmethod='semilogy',
+                       plot_args=['b'],
+                       plot_args_children=['r--'])
         options.update(**kwds)
         super(LevelCrossings, self).__init__(*args, **options)
         self.intensity = kwds.get('intensity', False)
         self.sigma = kwds.get('sigma', None)
         self.mean = kwds.get('mean', None)
-        #self.setplotter(plotmethod='step')
+        # self.setplotter(plotmethod='step')
 
         icmax = self.data.argmax()
         if self.data != None:
@@ -99,18 +104,21 @@ class LevelCrossings(PlotData):
                 logcros = where(self.data == 0.0, inf, -log(self.data))
                 logcmin = logcros[icmax]
                 logcros = sqrt(2 * abs(logcros - logcmin))
-                logcros[0:icmax + 1] = 2 * logcros[icmax] - logcros[0:icmax + 1]
+                logcros[0:icmax + 1] = 2 * logcros[
+                    icmax] - logcros[0:icmax + 1]
                 ncr = 10
-                p = polyfit(self.args[ncr:-ncr], logcros[ncr:-ncr], 1) #least square fit
+                #least square fit
+                p = polyfit(self.args[ncr:-ncr], logcros[ncr:-ncr], 1)
                 if self.sigma is None:
-                    self.sigma = 1.0 / p[0] #estimated standard deviation of x
+                    # estimated standard deviation of x
+                    self.sigma = 1.0 / p[0]
                 if self.mean is None:
-                    self.mean = -p[1] / p[0] #self.args[icmax]
+                    self.mean = -p[1] / p[0]  # self.args[icmax]
             cmax = self.data[icmax]
             x = (self.args - self.mean) / self.sigma
             y = cmax * exp(-x ** 2 / 2.0)
             self.children = [PlotData(y, self.args)]
-    
+
     def extrapolate(self, u_min=None, u_max=None, method='ml', dist='genpar', plotflag=0):
         ''' 
         Returns an extrapolated level crossing spectrum
@@ -183,92 +191,96 @@ class LevelCrossings(PlotData):
         Extrapolation of Rainflow Matrices. 
         Preprint 2000:82, Mathematical statistics, Chalmers, pp. 18. 
         '''
-       
-          
+
         i_max = self.data.argmax()
         c_max = self.data[i_max]
         # Maximum of lc
         lc_max = self.args[i_max]
-        
-        if u_min is None or u_max is None:     
+
+        if u_min is None or u_max is None:
             fraction = sqrt(c_max)
             i = np.flatnonzero(self.data > fraction)
-            if u_min is None :
+            if u_min is None:
                 u_min = self.args[i.min()]
             if u_max is None:
-                u_max = self.args[i.max()] 
+                u_max = self.args[i.max()]
         lcf, lcx = self.data, self.args
         # Extrapolate LC for high levels
-        [lc_High, phat_high] = self._extrapolate(lcx, lcf, u_max, u_max - lc_max, method, dist);
-#        
-#        # Extrapolate LC for low levels
-        [lcEst1, phat_low] = self._extrapolate(-lcx[::-1], lcf[::-1], -u_min,  lc_max - u_min, method, dist)
-        lc_Low = lcEst1[::-1, :] #[-lcEst1[::-1, 0], lcEst1[::-1, 1::]]
-        lc_Low[:,0] *= -1
+        [lc_High, phat_high] = self._extrapolate(
+            lcx, lcf, u_max, u_max - lc_max, method, dist)
+#
+# Extrapolate LC for low levels
+        [lcEst1, phat_low] = self._extrapolate(
+            -lcx[::-1], lcf[::-1], -u_min,  lc_max - u_min, method, dist)
+        lc_Low = lcEst1[::-1, :]  # [-lcEst1[::-1, 0], lcEst1[::-1, 1::]]
+        lc_Low[:, 0] *= -1
 #        Est.Low = Est1;
-#        
+#
         if plotflag:
             plotbackend.semilogx(lcf, lcx,
                                  lc_High[:, 1], lc_High[:, 0],
                                  lc_Low[:, 1], lc_Low[:, 0])
-        i_mask = (u_min<lcx) & (lcx<u_max)
-        f = np.hstack((lc_Low[:,1],lcf[i_mask],lc_High[:, 1]))
-        x = np.hstack((lc_Low[:,0],lcx[i_mask],lc_High[:, 0]))
-        lc_out = LevelCrossings(f,x, sigma=self.sigma, mean=self.mean)
+        i_mask = (u_min < lcx) & (lcx < u_max)
+        f = np.hstack((lc_Low[:, 1], lcf[i_mask], lc_High[:, 1]))
+        x = np.hstack((lc_Low[:, 0], lcx[i_mask], lc_High[:, 0]))
+        lc_out = LevelCrossings(f, x, sigma=self.sigma, mean=self.mean)
         lc_out.phat_high = phat_high
         lc_out.phat_low = phat_low
         return lc_out
-        ##
+        #
+
     def _extrapolate(self, lcx, lcf, u, offset, method, dist):
         # Extrapolate the level crossing spectra for high levels
 
         method = method.lower()
         dist = dist.lower()
-           
+
         # Excedences over level u
         Iu = lcx > u
         lcx1, lcf1 = lcx[Iu], lcf[Iu]
         lcf2, lcx2 = self._make_increasing(lcf1[::-1], lcx1[::-1])
-        
-        nim1 = 0 
+
+        nim1 = 0
         x = []
-        for xk, ni in zip(lcx2.tolist(),lcf2.tolist()): 
+        for xk, ni in zip(lcx2.tolist(), lcf2.tolist()):
             x.append(ones(ni - nim1) * xk)
             nim1 = ni
-            
-            
-        x = np.hstack(x) - u   
-        
-        df = 0.01    
+
+        x = np.hstack(x) - u
+
+        df = 0.01
         xF = np.arange(0.0, 4 + df / 2, df)
         lcu = np.interp(u, lcx, lcf) + 1
         # Estimate tail
-        if dist.startswith('gen'): 
+        if dist.startswith('gen'):
             genpareto = distributions.genpareto
             phat = genpareto.fit2(x, floc=0, method=method)
             SF = phat.sf(xF)
-            
+
             covar = phat.par_cov[::2, ::2]
             # Calculate 90 # confidence region, an ellipse, for (k,s)
-            D, B = np.linalg.eig(covar);
-            b = phat.par[::2] 
+            D, B = np.linalg.eig(covar)
+            b = phat.par[::2]
             if b[0] > 0:
                 phat.upperlimit = u + b[1] / b[0]
-            
-            r = sqrt(-2 * log(1 - 90 / 100)) # 90 # confidence sphere
+
+            r = sqrt(-2 * log(1 - 90 / 100))  # 90 # confidence sphere
             Nc = 16 + 1
             ang = linspace(0, 2 * pi, Nc)
-            c0 = np.vstack((r * sqrt(D[0]) * sin(ang), r * sqrt(D[1]) * cos(ang))) # 90# Circle
+            # 90# Circle
+            c0 = np.vstack(
+                (r * sqrt(D[0]) * sin(ang), r * sqrt(D[1]) * cos(ang)))
         #    plot(c0(1,:),c0(2,:))
-            
-            c1 = np.dot(B, c0) + b[:,None]  #* ones((1, len(c0))) # Transform to ellipse for (k,s)
+
+            #* ones((1, len(c0))) # Transform to ellipse for (k,s)
+            c1 = np.dot(B, c0) + b[:, None]
         #    plot(c1(1,:),c1(2,:)), hold on
-            
+
             # Calculate conf.int for lcu
             # Assumtion: lcu is Poisson distributed
             # Poissin distr. approximated by normal when calculating conf. int.
-            dXX = 1.64 * sqrt(lcu) # 90 # quantile for lcu
-            
+            dXX = 1.64 * sqrt(lcu)  # 90 # quantile for lcu
+
             lcEstCu = zeros((len(xF), Nc))
             lcEstCl = zeros((len(xF), Nc))
             for i in range(Nc):
@@ -277,47 +289,47 @@ class LevelCrossings(PlotData):
                 SF2 = genpareto.sf(xF, k, scale=s)
                 lcEstCu[:, i] = (lcu + dXX) * (SF2)
                 lcEstCl[:, i] = (lcu - dXX) * (SF2)
-            #end
-            
+            # end
+
             lcEst = np.vstack((xF + u, lcu * (SF),
-                                 lcEstCl.min(axis=1), lcEstCu.max(axis=1))).T            
+                               lcEstCl.min(axis=1), lcEstCu.max(axis=1))).T
         elif dist.startswith('exp'):
             expon = distributions.expon
-            phat = expon.fit2(x, floc=0, method=method)           
-            SF = phat.sf(xF) 
-            lcEst =  np.vstack((xF + u, lcu * (SF))).T
-            
+            phat = expon.fit2(x, floc=0, method=method)
+            SF = phat.sf(xF)
+            lcEst = np.vstack((xF + u, lcu * (SF))).T
+
         elif dist.startswith('ray') or dist.startswith('trun'):
             phat = distributions.truncrayleigh.fit2(x, floc=0, method=method)
             SF = phat.sf(xF)
 #            if False:
 #                n = len(x)
 #                Sx = sum((x + offset) ** 2 - offset ** 2)
-#                s = sqrt(Sx / n);  # Shape parameter
+# s = sqrt(Sx / n);  # Shape parameter
 #                F = -np.expm1(-((xF + offset) ** 2 - offset ** 2) / s ** 2)
             lcEst = np.vstack((xF + u, lcu * (SF))).T
-        else: 
+        else:
             raise ValueError()
-          
+
         return lcEst, phat
-        ## End extrapolate
-          
+        # End extrapolate
+
     def _make_increasing(self, f, t=None):
-        # Makes the signal f strictly increasing. 
-         
+        # Makes the signal f strictly increasing.
+
         n = len(f)
         if t is None:
             t = np.arange(n)
         ff = [f[0], ]
         tt = [t[0], ]
-         
+
         for i in xrange(1, n):
             if f[i] > ff[-1]:
                 ff.append(f[i])
                 tt.append(t[i])
-      
+
         return np.asarray(ff), np.asarray(tt)
-         
+
     def sim(self, ns, alpha):
         """
         Simulates process with given irregularity factor and crossing spectrum
@@ -406,7 +418,7 @@ class LevelCrossings(PlotData):
         mini = -maxi
 
         u = linspace(mini, maxi, 101)
-        G = cdfnorm(u) #(1 + erf(u / sqrt(2))) / 2
+        G = cdfnorm(u)  # (1 + erf(u / sqrt(2))) / 2
         G = G * (1 - G)
 
         x = linspace(0, r1, 100)
@@ -416,7 +428,7 @@ class LevelCrossings(PlotData):
         for i in range(len(integral)):
             y = factor1 * exp(-u[i] * u[i] * factor2)
             integral[i] = trapz(y, x)
-        #end
+        # end
         G = G - integral / (2 * pi)
         G = G / max(G)
 
@@ -432,43 +444,39 @@ class LevelCrossings(PlotData):
         else:
             scr = self.sigma
         lc2 = LevelCrossings(lc, lc1, mean=mcr, sigma=scr, intensity=True)
-        
+
         g = lc2.trdata()[0]
 
- 
         f = g.gauss2dat(Z)
         G = TrData(f, u)
-        
+
         process = G.dat2gauss(L)
         return np.vstack((arange(len(process)), process)).T
-    
-        
-##
-##
-##        %Check the result without reference to getrfc:
+
+#
+#
+# %Check the result without reference to getrfc:
 ##        LCe = dat2lc(process)
-##        max(lc(:,2))
-##        max(LCe(:,2))
-##
-##        clf
-##        plot(lc(:,1),lc(:,2)/max(lc(:,2)))
-##        hold on
-##        plot(LCe(:,1),LCe(:,2)/max(LCe(:,2)),'-.')
+# max(lc(:,2))
+# max(LCe(:,2))
+#
+# clf
+# plot(lc(:,1),lc(:,2)/max(lc(:,2)))
+# hold on
+# plot(LCe(:,1),LCe(:,2)/max(LCe(:,2)),'-.')
 ##        title('Relative crossing intensity')
-##
-##        %% Plot made by the function funplot_4, JE 970707
-##        %param = [min(process(:,2)) max(process(:,2)) 100]
-##        %plot(lc(:,1),lc(:,2)/max(lc(:,2)))
-##        %hold on
-##        %plot(levels(param),mu/max(mu),'--')
-##        %hold off
-##        %title('Crossing intensity')
-##        %watstamp
-##
-##        % Temporarily
-##        %funplot_4(lc,param,mu)
-
-
+#
+# %% Plot made by the function funplot_4, JE 970707
+# %param = [min(process(:,2)) max(process(:,2)) 100]
+# %plot(lc(:,1),lc(:,2)/max(lc(:,2)))
+# %hold on
+# %plot(levels(param),mu/max(mu),'--')
+# %hold off
+# %title('Crossing intensity')
+# %watstamp
+#
+# % Temporarily
+# %funplot_4(lc,param,mu)
     def trdata(self, mean=None, sigma=None, **options):
         '''
         Estimate transformation, g, from observed crossing intensity, version2.
@@ -566,19 +574,19 @@ class LevelCrossings(PlotData):
         using a transformed Gaussian process",
         Marine structures, Design, Construction and Safety, 
         Vol 10, pp 13--47
-        ''' 
- 
+        '''
+
         if mean is None:
             mean = self.mean
         if sigma is None:
             sigma = self.sigma
-        
+
         opt = DotDict(chkder=True, plotflag=False, csm=0.9, gsm=.05,
-            param=(-5, 5, 513), delay=2, linextrap=True, ntr=10000, ne=7, gvar=1)
+                      param=(-5, 5, 513), delay=2, linextrap=True, ntr=10000, ne=7, gvar=1)
         opt.update(options)
         param = opt.param
         Ne = opt.ne
-        
+
         ncr = len(self.data)
         if ncr > opt.ntr and opt.ntr > 0:
             x0 = linspace(self.args[Ne], self.args[-1 - Ne], opt.ntr)
@@ -588,48 +596,48 @@ class LevelCrossings(PlotData):
             ncr = opt.ntr
         else:
             Ner = 0
-            lc1, lc2 = self.args, self.data        
+            lc1, lc2 = self.args, self.data
         ng = len(atleast_1d(opt.gvar))
         if ng == 1:
             gvar = opt.gvar * ones(ncr)
         else:
-            gvar = interp1d(linspace(0, 1, ng) , opt.gvar, kind='linear')(linspace(0, 1, ncr))  
-          
-        
+            gvar = interp1d(linspace(0, 1, ng), opt.gvar, kind='linear')(
+                linspace(0, 1, ncr))
+
         uu = linspace(*param)
         g1 = sigma * uu + mean
-        
-        if Ner > 0: # Compute correction factors
+
+        if Ner > 0:  # Compute correction factors
             cor1 = trapz(lc2[0:Ner + 1], lc1[0:Ner + 1])
             cor2 = trapz(lc2[-Ner - 1::], lc1[-Ner - 1::])
         else:
             cor1 = 0
             cor2 = 0
-        
+
         lc22 = hstack((0, cumtrapz(lc2, lc1) + cor1))
-          
+
         if self.intensity:
             lc22 = (lc22 + 0.5 / ncr) / (lc22[-1] + cor2 + 1. / ncr)
         else:
             lc22 = (lc22 + 0.5) / (lc22[-1] + cor2 + 1)
-        
-            
+
         lc11 = (lc1 - mean) / sigma
-        
-        lc22 = invnorm(lc22)  #- ymean
-        
+
+        lc22 = invnorm(lc22)  # - ymean
+
         g2 = TrData(lc22.copy(), lc1.copy(), mean=mean, sigma=sigma)
         g2.setplotter('step')
         # NB! the smooth function does not always extrapolate well outside the edges
-        # causing poor estimate of g  
+        # causing poor estimate of g
         # We may alleviate this problem by: forcing the extrapolation
         # to be linear outside the edges or choosing a lower value for csm2.
-        
-        inds = slice(Ne, ncr - Ne) # indices to points we are smoothing over
-        slc22 = SmoothSpline(lc11[inds], lc22[inds], opt.gsm, opt.linextrap, gvar[inds])(uu)
-        
-        g = TrData(slc22.copy(), g1.copy(), mean=mean, sigma=sigma) 
-        
+
+        inds = slice(Ne, ncr - Ne)  # indices to points we are smoothing over
+        slc22 = SmoothSpline(
+            lc11[inds], lc22[inds], opt.gsm, opt.linextrap, gvar[inds])(uu)
+
+        g = TrData(slc22.copy(), g1.copy(), mean=mean, sigma=sigma)
+
         if opt.chkder:
             for ix in range(5):
                 dy = diff(g.data)
@@ -641,29 +649,34 @@ class LevelCrossings(PlotData):
                     eps = finfo(float).eps
                     dy[dy > 0] = eps
                     gvar = -(hstack((dy, 0)) + hstack((0, dy))) / 2 + eps
-                    g.data = SmoothSpline(g.args, g.data, 1, opt.linextrap, ix * gvar)(g.args)
-                else: 
+                    g.data = SmoothSpline(
+                        g.args, g.data, 1, opt.linextrap, ix * gvar)(g.args)
+                else:
                     break
-        
+
         if opt.plotflag > 0:
             g.plot()
             g2.plot()
-        
+
         return g, g2
+
+
 def test_levelcrossings_extrapolate():
     import wafo.data
     #import wafo.objects as wo
     x = wafo.data.sea()
     ts = mat2timeseries(x)
-    
+
     tp = ts.turning_points()
     mm = tp.cycle_pairs()
     lc = mm.level_crossings()
-        
-    s = x[:,1].std()
-    lc_gpd = lc.extrapolate(-2*s, 2*s, dist='rayleigh') #@UnusedVariable
-    
+
+    s = x[:, 1].std()
+    lc_gpd = lc.extrapolate(-2 * s, 2 * s, dist='rayleigh')  # @UnusedVariable
+
+
 class CyclePairs(PlotData):
+
     '''
     Container class for Cycle Pairs data objects in WAFO
 
@@ -683,21 +696,22 @@ class CyclePairs(PlotData):
     >>> mm = tp.cycle_pairs()
     >>> h1 = mm.plot(marker='x')
     '''
+
     def __init__(self, *args, **kwds):
         self.kind = kwds.pop('kind', 'min2max')
         self.sigma = kwds.pop('sigma', None)
         self.mean = kwds.pop('mean', None)
         self.time = kwds.pop('time', 1)
-        
+
         options = dict(title=self.kind + ' cycle pairs',
-                            xlab='min', ylab='max',
-                            plot_args=['b.'])
+                       xlab='min', ylab='max',
+                       plot_args=['b.'])
         options.update(**kwds)
         super(CyclePairs, self).__init__(*args, **options)
-         
+
     def amplitudes(self):
         return (self.data - self.args) / 2.
-    
+
     def damage(self, beta, K=1):
         """
         Calculates the total Palmgren-Miner damage of cycle pairs.
@@ -798,11 +812,11 @@ class CyclePairs(PlotData):
             m = self.args[index]
             M = self.data[index]
 
-#if isempty(index)
+# if isempty(index)
 #  error('Error in input cc.')
-#end
+# end
         ncc = len(m)
-        
+
         minima = vstack((m, ones(ncc), zeros(ncc), ones(ncc)))
         maxima = vstack((M, -ones(ncc), ones(ncc), zeros(ncc)))
 
@@ -824,14 +838,14 @@ class CyclePairs(PlotData):
         #[xx nx]=max(extr(:,1))
         nx = extr[0].argmax() + 1
         levels = extr[0, 0:nx]
-        if defnr == 2: ## This are upcrossings + maxima
+        if defnr == 2:  # This are upcrossings + maxima
             dcount = cumsum(extr[1, 0:nx]) + extr[2, 0:nx] - extr[3, 0:nx]
-        elif defnr == 4: # # This are upcrossings + minima
+        elif defnr == 4:  # This are upcrossings + minima
             dcount = cumsum(extr[1, 0:nx])
             dcount[nx - 1] = dcount[nx - 2]
-        elif defnr == 1: ## This are only upcrossings
+        elif defnr == 1:  # This are only upcrossings
             dcount = cumsum(extr[1, 0:nx]) - extr[3, 0:nx]
-        elif defnr == 3: ## This are upcrossings + minima + maxima
+        elif defnr == 3:  # This are upcrossings + minima + maxima
             dcount = cumsum(extr[1, 0:nx]) + extr[2, 0:nx]
         ylab = 'Count'
         if intensity:
@@ -839,7 +853,9 @@ class CyclePairs(PlotData):
             ylab = 'Intensity [count/sec]'
         return LevelCrossings(dcount, levels, mean=self.mean, sigma=self.sigma, ylab=ylab, intensity=intensity)
 
+
 class TurningPoints(PlotData):
+
     '''
     Container class for Turning Points data objects in WAFO
 
@@ -858,16 +874,17 @@ class TurningPoints(PlotData):
     >>> tp = ts.turning_points()
     >>> h1 = tp.plot(marker='x')
     '''
+
     def __init__(self, *args, **kwds):
         self.name_ = kwds.pop('name', 'WAFO TurningPoints Object')
         self.sigma = kwds.pop('sigma', None)
         self.mean = kwds.pop('mean', None)
-        
+
         options = dict(title='Turning points')
-                        #plot_args=['b.'])
+                        # plot_args=['b.'])
         options.update(**kwds)
         super(TurningPoints, self).__init__(*args, **options)
-        
+
         if not any(self.args):
             n = len(self.data)
             self.args = range(0, n)
@@ -917,7 +934,7 @@ class TurningPoints(PlotData):
         mean = self.mean
         sigma = self.sigma
         return TurningPoints(self.data[ind], t, mean=mean, sigma=sigma)
-    
+
     def cycle_pairs(self, h=0, kind='min2max', method='clib'):
         """ Return min2Max or Max2min cycle pairs from turning points
 
@@ -950,7 +967,7 @@ class TurningPoints(PlotData):
         TurningPoints
         SurvivalCycleCount
         """
-        
+
         if h > 0:
             ind = findrfc(self.data, h, method=method)
             data = self.data[ind]
@@ -972,9 +989,9 @@ class TurningPoints(PlotData):
             kind = 'max2min'
             M = data[iM:-1:2]
             m = data[iM + 1::2]
-        
+
         time = self.args[-1] - self.args[0]
-        
+
         return CyclePairs(M, m, kind=kind, mean=self.mean, sigma=self.sigma,
                           time=time)
 
@@ -1015,8 +1032,8 @@ class TurningPoints(PlotData):
         >>> sig_tp = sig_ts.turning_points(h=0, wavetype='astm')
         >>> sig_cp = sig_tp.cycle_astm()
         """
-        
-        # output of Nieslony's algorithm is organised differently with 
+
+        # output of Nieslony's algorithm is organised differently with
         # respect to wafo's approach
         # TODO: integrate ASTM method into the CyclyPairs class?
         return findrfc_astm(self.data)
@@ -1029,7 +1046,9 @@ def mat2timeseries(x):
     """
     return TimeSeries(x[:, 1::], x[:, 0].ravel())
 
+
 class TimeSeries(PlotData):
+
     '''
     Container class for 1D TimeSeries data objects in WAFO
 
@@ -1064,18 +1083,18 @@ class TimeSeries(PlotData):
     >>> h2 = lc.plot()
 
     '''
+
     def __init__(self, *args, **kwds):
         self.name_ = kwds.pop('name', 'WAFO TimeSeries Object')
         self.sensortypes = kwds.pop('sensortypes', ['n', ])
         self.position = kwds.pop('position', [zeros(3), ])
-        
+
         super(TimeSeries, self).__init__(*args, **kwds)
 
         if not any(self.args):
             n = len(self.data)
             self.args = range(0, n)
-    
-   
+
     def sampling_period(self):
         '''
         Returns sampling interval
@@ -1146,10 +1165,10 @@ class TimeSeries(PlotData):
         x = self.data.flatten()
         indnan = isnan(x)
         if any(indnan):
-            x = x - x[1 - indnan].mean() # remove the mean pab 09.10.2000
+            x = x - x[1 - indnan].mean()  # remove the mean pab 09.10.2000
             #indnan = find(indnan)
             Ncens = n - sum(indnan)
-            x[indnan] = 0. # pab 09.10.2000 much faster for censored samples
+            x[indnan] = 0.  # pab 09.10.2000 much faster for censored samples
         else:
             indnan = None
             Ncens = n
@@ -1157,14 +1176,14 @@ class TimeSeries(PlotData):
 
         #fft = np.fft.fft
         nfft = 2 ** nextpow2(n)
-        Rper = abs(fft(x, nfft)) ** 2 / Ncens # Raw periodogram
+        Rper = abs(fft(x, nfft)) ** 2 / Ncens  # Raw periodogram
 
-        R = np.real(fft(Rper)) / nfft # %ifft=fft/nfft since Rper is real!
+        R = np.real(fft(Rper)) / nfft  # %ifft=fft/nfft since Rper is real!
         lags = range(0, lag + 1)
         if flag.startswith('unbiased'):
             # unbiased result, i.e. divide by n-abs(lag)
             R = R[lags] * Ncens / arange(Ncens, Ncens - lag, -1)
-        #else  % biased result, i.e. divide by n
+        # else  % biased result, i.e. divide by n
         #  r=r(1:L+1)*Ncens/Ncens
 
         c0 = R[0]
@@ -1176,8 +1195,10 @@ class TimeSeries(PlotData):
         t = linspace(0, lag * dt, lag + 1)
         #cumsum = np.cumsum
         acf = _wafocov.CovData1D(R[lags], t)
-        acf.sigma = sqrt(r_[ 0, r0 ** 2 , r0 ** 2 + 2 * cumsum(R[1:] ** 2)] / Ncens)
-        acf.children = [PlotData(-2. * acf.sigma[lags], t), PlotData(2. * acf.sigma[lags], t)]
+        acf.sigma = sqrt(
+            r_[0, r0 ** 2, r0 ** 2 + 2 * cumsum(R[1:] ** 2)] / Ncens)
+        acf.children = [
+            PlotData(-2. * acf.sigma[lags], t), PlotData(2. * acf.sigma[lags], t)]
         acf.plot_args_children = ['r:']
         acf.norm = norm
         return acf
@@ -1219,14 +1240,16 @@ class TimeSeries(PlotData):
         """
         dt = self.sampling_period()
         #fs = 1. / (2 * dt)
-        yy = self.data.ravel() if tr is None else tr.dat2gauss(self.data.ravel())
+        yy = self.data.ravel() if tr is None else tr.dat2gauss(
+            self.data.ravel())
         yy = detrend(yy) if hasattr(detrend, '__call__') else yy
-        
+
         S, f = psd(yy, Fs=1. / dt, NFFT=L, detrend=detrend, window=window,
                    noverlap=noverlap, pad_to=pad_to, scale_by_freq=True)
         fact = 2.0 * pi
         w = fact * f
         return _wafospec.SpecData1D(S / fact, w)
+
     def tospecdata(self, L=None, tr=None, method='cov', detrend=detrend_mean, window=parzen, noverlap=0, ftype='w', alpha=None):
         '''
         Estimate one-sided spectral density from data.
@@ -1287,85 +1310,101 @@ class TimeSeries(PlotData):
         "Stochastic Processes", HOLDEN-DAY,
         pp 66--103
         '''
-        
-        #% Initialize constants 
+
+        #% Initialize constants
         #%~~~~~~~~~~~~~~~~~~~~~
         nugget = 1e-12
-        rate = 2; #% interpolationrate for frequency
-        
-        wdef = 1; #% 1=parzen window 2=hanning window, 3= bartlett window
-          
+        rate = 2
+        # % interpolationrate for frequency
+
+        wdef = 1
+        # % 1=parzen window 2=hanning window, 3= bartlett window
+
         dt = self.sampling_period()
         #yy = self.data if tr is None else tr.dat2gauss(self.data)
-        yy = self.data.ravel() if tr is None else tr.dat2gauss(self.data.ravel())
+        yy = self.data.ravel() if tr is None else tr.dat2gauss(
+            self.data.ravel())
         yy = detrend(yy) if hasattr(detrend, '__call__') else yy
         n = len(yy)
-        L = min(L, n);
-         
-        max_L = min(300, n); #% maximum lag if L is undetermined
+        L = min(L, n)
+
+        max_L = min(300, n)
+        # % maximum lag if L is undetermined
         estimate_L = L is None
         if estimate_L:
             L = min(n - 2, int(4. / 3 * max_L + 0.5))
-            
+
         if method == 'cov' or estimate_L:
             tsy = TimeSeries(yy, self.args)
-            R = tsy.tocovdata() 
-            if  estimate_L:
-                #finding where ACF is less than 2 st. deviations.
-                L = max_L + 2 - (np.abs(R.data[max_L::-1]) > 2 * R.sigma[max_L::-1]).argmax() # a better L value  
-                if wdef == 1:  # modify L so that hanning and Parzen give appr. the same result
+            R = tsy.tocovdata()
+            if estimate_L:
+                # finding where ACF is less than 2 st. deviations.
+                # a better L value
+                L = max_L + 2 - \
+                    (np.abs(R.data[max_L::-1]) > 2 * R.sigma[
+                     max_L::-1]).argmax()
+                # modify L so that hanning and Parzen give appr. the same
+                # result
+                if wdef == 1:
                     L = min(int(4 * L / 3), n - 2)
-                print('The default L is set to %d' % L)       
+                print('The default L is set to %d' % L)
         try:
             win = window(2 * L - 1)
-            wname = window.__name__ 
-            if wname == 'parzen':  
-                v = int(3.71 * n / L)   # degrees of freedom used in chi^2 distribution
-                Be = 2 * pi * 1.33 / (L * dt) # % bandwidth (rad/sec)
-            elif wname == 'hanning':  
-                v = int(2.67 * n / L);   # degrees of freedom used in chi^2 distribution
-                Be = 2 * pi / (L * dt);      # % bandwidth (rad/sec)
-            elif wname == 'bartlett':  
-                v = int(3 * n / L);   # degrees of freedom used in chi^2 distribution
-                Be = 2 * pi * 1.33 / (L * dt);  # bandwidth (rad/sec)
+            wname = window.__name__
+            if wname == 'parzen':
+                # degrees of freedom used in chi^2 distribution
+                v = int(3.71 * n / L)
+                Be = 2 * pi * 1.33 / (L * dt)  # % bandwidth (rad/sec)
+            elif wname == 'hanning':
+                # degrees of freedom used in chi^2 distribution
+                v = int(2.67 * n / L)
+                Be = 2 * pi / (L * dt)
+                # % bandwidth (rad/sec)
+            elif wname == 'bartlett':
+                # degrees of freedom used in chi^2 distribution
+                v = int(3 * n / L)
+                Be = 2 * pi * 1.33 / (L * dt)
+                # bandwidth (rad/sec)
         except:
             wname = None
             win = window
             v = None
             Be = None
-              
+
         if method == 'psd':
-            nfft = 2 ** nextpow2(L) 
-            pad_to = rate * nfft #  Interpolate the spectrum with rate 
-            S, f = psd(yy, Fs=1. / dt, NFFT=nfft, detrend=detrend, window=window(nfft),
-                   noverlap=noverlap, pad_to=pad_to, scale_by_freq=True)
+            nfft = 2 ** nextpow2(L)
+            pad_to = rate * nfft  # Interpolate the spectrum with rate
+            S, f = psd(
+                yy, Fs=1. / dt, NFFT=nfft, detrend=detrend, window=window(nfft),
+                noverlap=noverlap, pad_to=pad_to, scale_by_freq=True)
             fact = 2.0 * pi
             w = fact * f
             spec = _wafospec.SpecData1D(S / fact, w)
-        else  :# cov method
+        else:  # cov method
             # add a nugget effect to ensure that round off errors
             # do not result in negative spectral estimates
-             
+
             R.data[:L] = R.data[:L] * win[L - 1::]
             R.data[L] = 0.0
             R.data = R.data[:L + 1]
             R.args = R.args[:L + 1]
-            #R.plot()
-            #R.show()
+            # R.plot()
+            # R.show()
             spec = R.tospecdata(rate=rate, nugget=nugget)
-             
+
         spec.Bw = Be
         if ftype == 'f':
-            spec.Bw = Be / (2 * pi) # bandwidth in Hz
-        
-        if alpha is not None :
+            spec.Bw = Be / (2 * pi)  # bandwidth in Hz
+
+        if alpha is not None:
             #% Confidence interval constants
-            spec.CI = [v / _invchi2(1 - alpha / 2 , v), v / _invchi2(alpha / 2 , v)];
-        
+            spec.CI = [
+                v / _invchi2(1 - alpha / 2, v), v / _invchi2(alpha / 2, v)]
+
         spec.tr = tr
         spec.L = L
         spec.norm = False
-        spec.note = 'method=%s' % method       
+        spec.note = 'method=%s' % method
 #        S      = createspec('freq',ftype);
 #        S.tr   = g;
 #        S.note = ['dat2spec(',inputname(1),'), Method = ' method ];
@@ -1373,9 +1412,6 @@ class TimeSeries(PlotData):
 #        S.L    = L;
 #        S.S = zeros(nf+1,m-1);
         return spec
-
- 
-
 
     def _trdata_cdf(self, **options):
         '''
@@ -1398,61 +1434,66 @@ class TimeSeries(PlotData):
         example if X(t) is unlikely to cross a level of 7 standard deviations 
         one can use  param = [-7 7 513].
         
-        ''' 
-        
+        '''
+
         mean = self.data.mean()
         sigma = self.data.std()
         cdf = edf(self.data.ravel())
-        
-        opt = DotDict(chkder=True, plotflag=False, gsm=0.05, param=[-5, 5, 513],
-                   delay=2, linextrap=True, ntr=1000, ne=7, gvar=1)
+
+        opt = DotDict(
+            chkder=True, plotflag=False, gsm=0.05, param=[-5, 5, 513],
+            delay=2, linextrap=True, ntr=1000, ne=7, gvar=1)
         opt.update(options)
         Ne = opt.ne
-        nd = len(cdf.data) 
+        nd = len(cdf.data)
         if nd > opt.ntr and opt.ntr > 0:
             x0 = linspace(cdf.args[Ne], cdf.args[nd - 1 - Ne], opt.ntr)
             cdf.data = interp(x0, cdf.args, cdf.data)
             cdf.args = x0
             Ne = 0
         uu = linspace(*opt.param)
-        
-        ncr = len(cdf.data);
+
+        ncr = len(cdf.data)
         ng = len(np.atleast_1d(opt.gvar))
         if ng == 1:
             gvar = opt.gvar * ones(ncr)
         else:
             opt.gvar = np.atleast_1d(opt.gvar)
-            gvar = interp(linspace(0, 1, ncr), linspace(0, 1, ng), opt.gvar.ravel())  
-        
-         
-        ind = np.flatnonzero(diff(cdf.args) > 0) # remove equal points
+            gvar = interp(
+                linspace(0, 1, ncr), linspace(0, 1, ng), opt.gvar.ravel())
+
+        ind = np.flatnonzero(diff(cdf.args) > 0)  # remove equal points
         nd = len(ind)
-        ind1 = ind[Ne:nd - Ne]  
+        ind1 = ind[Ne:nd - Ne]
         tmp = invnorm(cdf.data[ind])
-        
+
         x = sigma * uu + mean
-        pp_tr = SmoothSpline(cdf.args[ind1], tmp[Ne:nd - Ne], p=opt.gsm, lin_extrap=opt.linextrap, var=gvar[ind1])
-        #g(:,2) = smooth(Fx(ind1,1),tmp(Ne+1:end-Ne),opt.gsm,g(:,1),def,gvar);
-        tr = TrData(pp_tr(x) , x, mean=mean, sigma=sigma)
+        pp_tr = SmoothSpline(
+            cdf.args[ind1], tmp[Ne:nd - Ne], p=opt.gsm, lin_extrap=opt.linextrap, var=gvar[ind1])
+        # g(:,2) = smooth(Fx(ind1,1),tmp(Ne+1:end-Ne),opt.gsm,g(:,1),def,gvar);
+        tr = TrData(pp_tr(x), x, mean=mean, sigma=sigma)
         tr_emp = TrData(tmp, cdf.args[ind], mean=mean, sigma=sigma)
         tr_emp.setplotter('step')
-        
+
         if opt.chkder:
             for ix in xrange(5):
                 dy = diff(tr.data)
                 if (dy <= 0).any():
                     dy[dy > 0] = floatinfo.eps
-                    gvar = -(np.hstack((dy, 0)) + np.hstack((0, dy))) / 2 + floatinfo.eps
-                    pp_tr = SmoothSpline(cdf.args[ind1], tmp[Ne:nd - Ne], p=1, lin_extrap=opt.linextrap, var=ix * gvar)
-                    tr = TrData(pp_tr(x) , x, mean=mean, sigma=sigma)
-                else: 
+                    gvar = - \
+                        (np.hstack((dy, 0)) + np.hstack((0, dy))) / \
+                        2 + floatinfo.eps
+                    pp_tr = SmoothSpline(cdf.args[ind1], tmp[
+                                         Ne:nd - Ne], p=1, lin_extrap=opt.linextrap, var=ix * gvar)
+                    tr = TrData(pp_tr(x), x, mean=mean, sigma=sigma)
+                else:
                     break
             else:
                 msg = '''The empirical distribution is not sufficiently smoothed.
                         The estimated transfer function, g, is not 
                         a strictly increasing function.'''
-                warnings.warn(msg) 
-          
+                warnings.warn(msg)
+
         if opt.plotflag > 0:
             tr.plot()
             tr_emp.plot()
@@ -1563,22 +1604,20 @@ class TimeSeries(PlotData):
         in Proceedings of 9th ISOPE Conference, Vol III, pp 66-73        
         '''
 
-        
-        #opt = troptset('plotflag','off','csm',.95,'gsm',.05,....
+        # opt = troptset('plotflag','off','csm',.95,'gsm',.05,....
         #    'param',[-5 5 513],'delay',2,'linextrap','on','ne',7,...
         #    'cvar',1,'gvar',1,'multip',0);
-        
         opt = DotDict(chkder=True, plotflag=False, csm=.95, gsm=.05,
-            param=[-5, 5, 513], delay=2, ntr=1000, linextrap=True, ne=7, cvar=1, gvar=1,
-            multip=False, crossdef='uM')
+                      param=[-5, 5, 513], delay=2, ntr=1000, linextrap=True, ne=7, cvar=1, gvar=1,
+                      multip=False, crossdef='uM')
         opt.update(**options)
-        
+
         ma = self.data.mean()
         sa = self.data.std()
 
         if method.startswith('lin'):
             return TrLinear(mean=ma, sigma=sa)
-             
+
         if method[0] == 'n':
             tp = self.turning_points()
             mM = tp.cycle_pairs()
@@ -1588,15 +1627,15 @@ class TimeSeries(PlotData):
             return self._trdata_cdf(**opt)
         elif method[0] == 'h':
             ga1 = skew(self.data)
-            ga2 = kurtosis(self.data, fisher=True) #kurt(xx(n+1:end))-3;
+            ga2 = kurtosis(self.data, fisher=True)  # kurt(xx(n+1:end))-3;
             up = min(4 * (4 * ga1 / 3) ** 2, 13)
-            lo = (ga1 ** 2) * 3 / 2;
+            lo = (ga1 ** 2) * 3 / 2
             kurt1 = min(up, max(ga2, lo)) + 3
             return TrHermite(mean=ma, var=sa ** 2, skew=ga1, kurt=kurt1)
         elif method[0] == 'o':
             ga1 = skew(self.data)
             return TrOchi(mean=ma, var=sa ** 2, skew=ga1)
-             
+
     def turning_points(self, h=0.0, wavetype=None):
         ''' 
         Return turning points (tp) from data, optionally rainflowfiltered.
@@ -1680,6 +1719,7 @@ class TimeSeries(PlotData):
         mean = self.data.mean()
         sigma = self.data.std()
         return TurningPoints(self.data[ind], t, mean=mean, sigma=sigma)
+
     def wave_parameters(self, rate=1):
         '''
         Returns several wave parameters from data.
@@ -1729,34 +1769,35 @@ class TimeSeries(PlotData):
         --------
         wafo.definitions
         '''
-        dT = self.sampling_period() 
+        dT = self.sampling_period()
         if rate > 1:
             dT = dT / rate
             t0, tn = self.args[0], self.args[-1]
             n = len(self.args)
             ti = linspace(t0, tn, int(rate * n))
-            xi = interp1d(self.args , self.data.ravel(), kind='cubic')(ti)  
-            
+            xi = interp1d(self.args, self.data.ravel(), kind='cubic')(ti)
+
         else:
             ti, xi = self.args, self.data.ravel()
-             
+
         tc_ind, z_ind = findtc(xi, v=0, kind='tw')
         tc_a = xi[tc_ind]
         tc_t = ti[tc_ind]
-        Ac = tc_a[1::2] # crest amplitude
-        At = -tc_a[0::2] # trough  amplitude
+        Ac = tc_a[1::2]  # crest amplitude
+        At = -tc_a[0::2]  # trough  amplitude
         Hu = Ac + At[1:]
         Hd = Ac + At[:-1]
         tu = ecross(ti, xi, z_ind[1::2], v=0)
-        Tu = diff(tu)# Period zero-upcrossing waves
-        td = ecross(ti, xi , z_ind[::2], v=0)
-        Td = diff(td)# Period zero-downcrossing waves
+        Tu = diff(tu)  # Period zero-upcrossing waves
+        td = ecross(ti, xi, z_ind[::2], v=0)
+        Td = diff(td)  # Period zero-downcrossing waves
         Tcf = tc_t[1::2] - tu[:-1]
-        Tcf[(Tcf == 0)] = dT # avoiding division by zero
-        Tcb = td[1:] - tc_t[1::2] 
-        Tcb[(Tcb == 0)] = dT;  #% avoiding division by zero
+        Tcf[(Tcf == 0)] = dT  # avoiding division by zero
+        Tcb = td[1:] - tc_t[1::2]
+        Tcb[(Tcb == 0)] = dT
+        # % avoiding division by zero
         return dict(Ac=Ac, At=At, Hu=Hu, Hd=Hd, Tu=Tu, Td=Td, Tcf=Tcf, Tcb=Tcb)
-         
+
     def wave_height_steepness(self, method=1, rate=1, g=None):
         '''
         Returns waveheights and steepnesses from data.
@@ -1819,73 +1860,80 @@ class TimeSeries(PlotData):
         --------
         wafo.definitions
         '''
-  
-        dT = self.sampling_period() 
+
+        dT = self.sampling_period()
         if g is None:
-            g = gravity()  #% acceleration of gravity
-          
+            g = gravity()  # % acceleration of gravity
+
         if rate > 1:
             dT = dT / rate
             t0, tn = self.args[0], self.args[-1]
             n = len(self.args)
             ti = linspace(t0, tn, int(rate * n))
-            xi = interp1d(self.args , self.data.ravel(), kind='cubic')(ti)  
-            
+            xi = interp1d(self.args, self.data.ravel(), kind='cubic')(ti)
+
         else:
             ti, xi = self.args, self.data.ravel()
-        
+
         tc_ind, z_ind = findtc(xi, v=0, kind='tw')
         tc_a = xi[tc_ind]
         tc_t = ti[tc_ind]
-        Ac = tc_a[1::2] # crest amplitude
-        At = -tc_a[0::2] # trough  amplitude
-    
+        Ac = tc_a[1::2]  # crest amplitude
+        At = -tc_a[0::2]  # trough  amplitude
+
         if (0 <= method and method <= 2):
             # time between zero-upcrossing and  crest  [s]
             tu = ecross(ti, xi, z_ind[1:-1:2], v=0)
             Tcf = tc_t[1::2] - tu
-            Tcf[(Tcf == 0)] = dT # avoiding division by zero
-        if (0 >= method and method >= -2): 
+            Tcf[(Tcf == 0)] = dT  # avoiding division by zero
+        if (0 >= method and method >= -2):
             # time between  crest and zero-downcrossing [s]
             td = ecross(ti, xi, z_ind[2::2], v=0)
-            Tcb = td - tc_t[1::2] 
-            Tcb[(Tcb == 0)] = dT;  #% avoiding division by zero
-      
-        if  method == 0:
+            Tcb = td - tc_t[1::2]
+            Tcb[(Tcb == 0)] = dT
+            # % avoiding division by zero
+
+        if method == 0:
             # max(Vcf, Vcr) and the corresponding wave height Hd or Hu in H
             Hu = Ac + At[1:]
             Hd = Ac + At[:-1]
             T = np.where(Tcf < Tcb, Tcf, Tcb)
             S = Ac / T
             H = np.where(Tcf < Tcb, Hd, Hu)
-        elif method == 1: # extracting crest front velocity [m/s] and  
+        elif method == 1:  # extracting crest front velocity [m/s] and
             # Zero-downcrossing wave height [m]
-            H = Ac + At[:-1] # Hd
+            H = Ac + At[:-1]  # Hd
             S = Ac / Tcf
-        elif method == -1: # extracting crest rear velocity [m/s] and  
+        elif method == -1:  # extracting crest rear velocity [m/s] and
             # Zero-upcrossing wave height [m]
-            H = Ac + At[1:] #Hu  
+            H = Ac + At[1:]  # Hu
             S = Ac / Tcb
-        elif method == 2: #crest front steepness in S and the wave height Hd in H.
-            H = Ac + At[:-1] #Hd
+        #crest front steepness in S and the wave height Hd in H.
+        elif method == 2:
+            H = Ac + At[:-1]  # Hd
             Td = diff(ecross(ti, xi, z_ind[::2], v=0))
             S = 2 * pi * Ac / Td / Tcf / g
-        elif method == -2: # crest back steepness in S and the wave height Hu in H.
+        # crest back steepness in S and the wave height Hu in H.
+        elif method == -2:
             H = Ac + At[1:]
             Tu = diff(ecross(ti, xi, z_ind[1::2], v=0))
             S = 2 * pi * Ac / Tu / Tcb / g
-        elif method == 3: # total steepness in S and the wave height Hd in H
+        elif method == 3:  # total steepness in S and the wave height Hd in H
             # for zero-doewncrossing waves.
             H = Ac + At[:-1]
-            Td = diff(ecross(ti, xi , z_ind[::2], v=0))# Period zero-downcrossing waves
+            # Period zero-downcrossing waves
+            Td = diff(ecross(ti, xi, z_ind[::2], v=0))
             S = 2 * pi * H / Td ** 2 / g
-        elif method == -3: # total steepness in S and the wave height Hu in H for
+        # total steepness in S and the wave height Hu in H for
+        elif method == -3:
             # zero-upcrossing waves.
-            H = Ac + At[1:] 
-            Tu = diff(ecross(ti, xi, z_ind[1::2], v=0))# Period zero-upcrossing waves
-            S = 2 * pi * H / Tu ** 2 / g 
-         
+            H = Ac + At[1:]
+            # Period zero-upcrossing waves
+            Tu = diff(ecross(ti, xi, z_ind[1::2], v=0))
+            S = 2 * pi * H / Tu ** 2 / g
+
         return S, H
+
     def wave_periods(self, vh=None, pdef='d2d', wdef=None, index=None, rate=1):
         """ 
         Return sequence of wave periods/lengths from data.
@@ -1959,31 +2007,30 @@ class TimeSeries(PlotData):
         findcross, perioddef
         """
 
-##% This is a more flexible version than the dat2hwa or tp2wa routines.
-##% There is a secret option: if pdef='all' the function returns
-##% all the waveperiods 'd2t', 't2u', 'u2c' and 'c2d' in sequence.
-##% It is up to the user to extract the right waveperiods.
-##% If the first is a down-crossing then the first is a 'd2t' waveperiod.
-##% If the first is a up-crossing then the first is a 'u2c' waveperiod.
-##%
-##%    Example:
-##%        [T ind]=dat2wa(x,0,'all') %returns all waveperiods
-##%        nn = length(T)
-##%        % want to extract all t2u waveperiods
-##%        if x(ind(1),2)>0 % if first is down-crossing
-##%            Tt2u=T(2:4:nn)
-##%        else         % first is up-crossing
-##%            Tt2u=T(4:4:nn)
-##%        end
+# % This is a more flexible version than the dat2hwa or tp2wa routines.
+# % There is a secret option: if pdef='all' the function returns
+# % all the waveperiods 'd2t', 't2u', 'u2c' and 'c2d' in sequence.
+# % It is up to the user to extract the right waveperiods.
+# % If the first is a down-crossing then the first is a 'd2t' waveperiod.
+# % If the first is a up-crossing then the first is a 'u2c' waveperiod.
+# %
+# %    Example:
+# %        [T ind]=dat2wa(x,0,'all') %returns all waveperiods
+# %        nn = length(T)
+# %        % want to extract all t2u waveperiods
+# %        if x(ind(1),2)>0 % if first is down-crossing
+# %            Tt2u=T(2:4:nn)
+# %        else         % first is up-crossing
+# %            Tt2u=T(4:4:nn)
+# %        end
 
-        if rate > 1: #% interpolate with spline
+        if rate > 1:  # % interpolate with spline
             n = ceil(self.data.size * rate)
             ti = linspace(self.args[0], self.args[-1], n)
             x = stineman_interp(ti, self.args, self.data.ravel())
         else:
             x = self.data
             ti = self.args
-
 
         if vh is None:
             if pdef[0] in ('m', 'M'):
@@ -1992,7 +2039,6 @@ class TimeSeries(PlotData):
             else:
                 vh = x.mean()
                 print('   The level l is set to: %g' % vh)
-
 
         if index is None:
             if pdef in ('m2m', 'm2M', 'M2m', 'M2M'):
@@ -2003,14 +2049,15 @@ class TimeSeries(PlotData):
                 index = findtc(x, vh, wdef)[0]
             elif pdef in ('d2t', 't2u', 'u2c', 'c2d', 'all'):
                 index, v_ind = findtc(x, vh, wdef)
-                index = sort(r_[index, v_ind]) #% sorting crossings and tp in sequence
+                #% sorting crossings and tp in sequence
+                index = sort(r_[index, v_ind])
             else:
                 raise ValueError('Unknown pdef option!')
 
-        if (x[index[0]] > x[index[1]]): #% if first is down-crossing or max
-            if pdef in  ('d2t', 'M2m', 'c2t', 'd2u' , 'M2M', 'c2c', 'd2d', 'all'):
+        if (x[index[0]] > x[index[1]]):  # % if first is down-crossing or max
+            if pdef in ('d2t', 'M2m', 'c2t', 'd2u', 'M2M', 'c2c', 'd2d', 'all'):
                 start = 1
-            elif pdef in ('t2u', 'm2M', 't2c', 'u2d' , 'm2m', 't2t', 'u2u'):
+            elif pdef in ('t2u', 'm2M', 't2c', 'u2d', 'm2m', 't2t', 'u2u'):
                 start = 2
             elif pdef in ('u2c'):
                 start = 3
@@ -2034,7 +2081,7 @@ class TimeSeries(PlotData):
         if pdef in ('d2t', 't2u', 'u2c', 'c2d'):
             step = 4
         elif pdef in ('all'):
-            step = 1 #% secret option!
+            step = 1  # % secret option!
         else:
             step = 2
 
@@ -2048,12 +2095,12 @@ class TimeSeries(PlotData):
         #% New call: (pab 28.06.2001)
         if pdef[0] in ('u', 'd'):
             t0 = ecross(ti, x, index[start:(nn - dist):step], vh)
-        else: # % min, Max, trough, crest or all crossings wanted
+        else:  # % min, Max, trough, crest or all crossings wanted
             t0 = x[index[start:(nn - dist):step]]
 
         if pdef[2] in ('u', 'd'):
             t1 = ecross(ti, x, index[(start + dist):nn:step], vh)
-        else: # % min, Max, trough, crest or all crossings wanted
+        else:  # % min, Max, trough, crest or all crossings wanted
             t1 = x[index[(start + dist):nn:step]]
 
         T = t1 - t0
@@ -2062,6 +2109,7 @@ class TimeSeries(PlotData):
     def reconstruct(self):
         # TODO: finish reconstruct
         pass
+
     def plot_wave(self, sym1='k.', ts=None, sym2='k+', nfig=None, nsub=None,
                   sigma=None, vfact=3):
         '''   
@@ -2098,52 +2146,52 @@ class TimeSeries(PlotData):
         See also
         --------  
         findtc, plot
-        ''' 
-       
+        '''
+
         nw = 20
         tn = self.args
         xn = self.data.ravel()
-        indmiss = isnan(xn) # indices to missing points
+        indmiss = isnan(xn)  # indices to missing points
         indg = where(1 - indmiss)[0]
         if ts is None:
             tc_ix = findtc(xn[indg], 0, 'tw')[0]
             xn2 = xn[tc_ix]
-            tn2 = tn[tc_ix] 
+            tn2 = tn[tc_ix]
         else:
             xn2 = ts.data
-            tn2 = ts.args 
-        
+            tn2 = ts.args
+
         if sigma is None:
             sigma = xn[indg].std()
-            
+
         if nsub is None:
-            nsub = int(len(xn2) / (2 * nw)) + 1 # about Nw mdc waves in each plot
+            # about Nw mdc waves in each plot
+            nsub = int(len(xn2) / (2 * nw)) + 1
         if nfig is None:
-            nfig = int(ceil(nsub / 6)) 
+            nfig = int(ceil(nsub / 6))
             nsub = min(6, int(ceil(nsub / nfig)))
-        
+
         n = len(xn)
         Ns = int(n / (nfig * nsub))
         ind = r_[0:Ns]
         if all(xn >= 0):
-            vscale = [0, 2 * sigma * vfact] #@UnusedVariable
+            vscale = [0, 2 * sigma * vfact]  # @UnusedVariable
         else:
-            vscale = array([-1, 1]) * vfact * sigma #@UnusedVariable
-        
-        
+            vscale = array([-1, 1]) * vfact * sigma  # @UnusedVariable
+
         XlblTxt = 'Time [sec]'
         dT = 1
-        timespan = tn[ind[-1]] - tn[ind[0]] 
-        if abs(timespan) > 18000: # more than 5 hours
+        timespan = tn[ind[-1]] - tn[ind[0]]
+        if abs(timespan) > 18000:  # more than 5 hours
             dT = 1 / (60 * 60)
             XlblTxt = 'Time (hours)'
-        elif abs(timespan) > 300:# more than 5 minutes
+        elif abs(timespan) > 300:  # more than 5 minutes
             dT = 1 / 60
-            XlblTxt = 'Time (minutes)'   
-         
+            XlblTxt = 'Time (minutes)'
+
         if np.max(abs(xn[indg])) > 5 * sigma:
             XlblTxt = XlblTxt + ' (Spurious data since max > 5 std.)'
-        
+
         plot = plotbackend.plot
         subplot = plotbackend.subplot
         figs = []
@@ -2153,24 +2201,23 @@ class TimeSeries(PlotData):
             for ix in xrange(nsub):
                 if nsub > 1:
                     subplot(nsub, 1, ix)
-                
+
                 h_scale = array([tn[ind[0]], tn[ind[-1]]])
                 ind2 = where((h_scale[0] <= tn2) & (tn2 <= h_scale[1]))[0]
                 plot(tn[ind] * dT, xn[ind], sym1)
-                if len(ind2) > 0: 
-                    plot(tn2[ind2] * dT, xn2[ind2], sym2) 
+                if len(ind2) > 0:
+                    plot(tn2[ind2] * dT, xn2[ind2], sym2)
                 plot(h_scale * dT, [0, 0], 'k-')
                 #plotbackend.axis([h_scale*dT, v_scale])
-          
+
                 for iy in [-2, 2]:
                     plot(h_scale * dT, iy * sigma * ones(2), ':')
-              
+
                 ind = ind + Ns
-            #end
+            # end
             plotbackend.xlabel(XlblTxt)
-        
+
         return figs
-        
 
     def plot_sp_wave(self, wave_idx_, *args, **kwds):
         """
@@ -2200,7 +2247,8 @@ class TimeSeries(PlotData):
         wave_idx = atleast_1d(wave_idx_).flatten()
         tz_idx = kwds.pop('tz_idx', None)
         if tz_idx is None:
-            unused_tc_ind, tz_idx = findtc(self.data, 0, 'tw') # finding trough to trough waves
+            # finding trough to trough waves
+            unused_tc_ind, tz_idx = findtc(self.data, 0, 'tw')
 
         dw = nonzero(abs(diff(wave_idx)) > 1)[0]
         Nsub = dw.size + 1
@@ -2210,7 +2258,8 @@ class TimeSeries(PlotData):
             Nwp[Nsub - 1] = wave_idx[-1] - wave_idx[dw[-1]] + 1
             wave_idx[dw[-1] + 1:] = -2
             for ix in range(Nsub - 2, 1, -2):
-                Nwp[ix] = wave_idx[dw[ix] - 1] - wave_idx[dw[ix - 1]] + 1 # # of waves pr subplot
+                # # of waves pr subplot
+                Nwp[ix] = wave_idx[dw[ix] - 1] - wave_idx[dw[ix - 1]] + 1
                 wave_idx[dw[ix - 1] + 1:dw[ix]] = -2
 
             Nwp[0] = wave_idx[dw[0] - 1] - wave_idx[0] + 1
@@ -2218,7 +2267,7 @@ class TimeSeries(PlotData):
             wave_idx = wave_idx[wave_idx > -1]
         else:
             Nwp[0] = wave_idx[-1] - wave_idx[0] + 1
-        #end
+        # end
 
         Nsub = min(6, Nsub)
         Nfig = int(ceil(Nsub / 6))
@@ -2228,8 +2277,9 @@ class TimeSeries(PlotData):
             figs.append(plotbackend.figure())
             for ix in range(Nsub):
                 plotbackend.subplot(Nsub, 1, mod(ix, Nsub) + 1)
-                ind = r_[tz_idx[2 * wave_idx[ix] - 1]:tz_idx[2 * wave_idx[ix] + 2 * Nwp[ix] - 1]]
-                ## indices to wave
+                ind = r_[tz_idx[2 * wave_idx[ix] - 1]:tz_idx[
+                    2 * wave_idx[ix] + 2 * Nwp[ix] - 1]]
+                # indices to wave
                 plotbackend.plot(self.args[ind], self.data[ind], *args, **kwds)
                 plotbackend.hold('on')
                 xi = [self.args[ind[0]], self.args[ind[-1]]]
@@ -2238,24 +2288,25 @@ class TimeSeries(PlotData):
                 if Nwp[ix] == 1:
                     plotbackend.ylabel('Wave %d' % wave_idx[ix])
                 else:
-                    plotbackend.ylabel('Wave %d - %d' % (wave_idx[ix], wave_idx[ix] + Nwp[ix] - 1))
+                    plotbackend.ylabel(
+                        'Wave %d - %d' % (wave_idx[ix], wave_idx[ix] + Nwp[ix] - 1))
 
             plotbackend.xlabel('Time [sec]')
-            #wafostamp
+            # wafostamp
         return figs
 
-#def hyperbolic_ratio(a, b, sa, sb):
+# def hyperbolic_ratio(a, b, sa, sb):
 #    '''
 #    Return ratio of hyperbolic functions
 #          to allow extreme variations of arguments.
-#    
+#
 #    Parameters
-#    ----------       
+#    ----------
 #    a, b : array-like
 #        arguments vectors of the same size
 #    sa, sb : scalar integers
 #        defining the hyperbolic function used, i.e., f(x,1)=cosh(x), f(x,-1)=sinh(x)
-#        
+#
 #    Returns
 #    -------
 #    r : ndarray
@@ -2264,47 +2315,47 @@ class TimeSeries(PlotData):
 #     Examples
 #     --------
 #     >>> x = [-2,0,2]
-#     >>> hyperbolic_ratio(x,1,1,1)   # gives r=cosh(x)/cosh(1)
+# >>> hyperbolic_ratio(x,1,1,1)   # gives r=cosh(x)/cosh(1)
 #     array([ 2.438107  ,  0.64805427,  2.438107  ])
-#     >>> hyperbolic_ratio(x,1,1,-1)  # gives r=cosh(x)/sinh(1)
+# >>> hyperbolic_ratio(x,1,1,-1)  # gives r=cosh(x)/sinh(1)
 #     array([ 3.20132052,  0.85091813,  3.20132052])
-#     >>> hyperbolic_ratio(x,1,-1,1)  # gives r=sinh(x)/cosh(1)
+# >>> hyperbolic_ratio(x,1,-1,1)  # gives r=sinh(x)/cosh(1)
 #     array([-2.35040239,  0.        ,  2.35040239])
-#     >>> hyperbolic_ratio(x,1,-1,-1) # gives r=sinh(x)/sinh(1)
+# >>> hyperbolic_ratio(x,1,-1,-1) # gives r=sinh(x)/sinh(1)
 #     array([-3.08616127,  0.        ,  3.08616127])
-#     >>> hyperbolic_ratio(1,x,1,1)   # gives r=cosh(1)/cosh(x)
+# >>> hyperbolic_ratio(1,x,1,1)   # gives r=cosh(1)/cosh(x)
 #     array([ 0.41015427,  1.54308063,  0.41015427])
-#     >>> hyperbolic_ratio(1,x,1,-1)  # gives r=cosh(1)/sinh(x)
+# >>> hyperbolic_ratio(1,x,1,-1)  # gives r=cosh(1)/sinh(x)
 #     array([-0.42545906,         inf,  0.42545906])
-#     >>> hyperbolic_ratio(1,x,-1,1)  # gives r=sinh(1)/cosh(x)
+# >>> hyperbolic_ratio(1,x,-1,1)  # gives r=sinh(1)/cosh(x)
 #     array([ 0.3123711 ,  1.17520119,  0.3123711 ])
-#     >>> hyperbolic_ratio(1,x,-1,-1) # gives r=sinh(1)/sinh(x)
+# >>> hyperbolic_ratio(1,x,-1,-1) # gives r=sinh(1)/sinh(x)
 #     array([-0.32402714,         inf,  0.32402714])
-#     
-#     See also  
+#
+#     See also
 #     --------
 #     tran
 #    '''
 #    ak, bk, sak, sbk = np.atleast_1d(a, b, sign(sa), sign(sb))
-#    # old call
-#    #return exp(ak-bk)*(1+sak*exp(-2*ak))/(1+sbk*exp(-2*bk))
-#    # TODO: Does not always handle division by zero correctly
+# old call
+# return exp(ak-bk)*(1+sak*exp(-2*ak))/(1+sbk*exp(-2*bk))
+# TODO: Does not always handle division by zero correctly
 #
 #    signRatio = np.where(sak * ak < 0, sak, 1)
-#    signRatio = np.where(sbk * bk < 0, sbk * signRatio, signRatio)    
-#    
+#    signRatio = np.where(sbk * bk < 0, sbk * signRatio, signRatio)
+#
 #    bk = np.abs(bk)
 #    ak = np.abs(ak)
-#     
+#
 #    num = np.where(sak < 0, expm1(-2 * ak), 1 + exp(-2 * ak))
 #    den = np.where(sbk < 0, expm1(-2 * bk), 1 + exp(-2 * bk))
 #    iden = np.ones(den.shape) * inf
 #    ind = np.flatnonzero(den != 0)
 #    iden.flat[ind] = 1.0 / den[ind]
 #    val = np.where(num == den, 1, num * iden)
-#    return signRatio * exp(ak - bk) * val #((sak+exp(-2*ak))/(sbk+exp(-2*bk)))
-#   
-#def sensor_typeid(*sensortypes):
+# return signRatio * exp(ak - bk) * val #((sak+exp(-2*ak))/(sbk+exp(-2*bk)))
+#
+# def sensor_typeid(*sensortypes):
 #    ''' Return ID for sensortype name
 #
 #    Parameter
@@ -2341,7 +2392,7 @@ class TimeSeries(PlotData):
 #    >>> sensor_typeid('rubbish')
 #    [nan]
 #
-#    See also 
+#    See also
 #    --------
 #    sensor_type
 #    '''
@@ -2356,8 +2407,8 @@ class TimeSeries(PlotData):
 #
 #
 #
-#def sensor_type(*sensorids):
-#    ''' 
+# def sensor_type(*sensorids):
+#    '''
 #    Return sensortype name
 #
 #    Parameter
@@ -2391,7 +2442,7 @@ class TimeSeries(PlotData):
 #    >>> sensor_type(range(3))
 #    ('n', 'n_t', 'n_tt')
 #
-#    See also 
+#    See also
 #    --------
 #    sensor_typeid, tran
 #    '''
@@ -2404,18 +2455,18 @@ class TimeSeries(PlotData):
 #    n = len(valid_names) - 1
 #    ids = where(((ids < 0) | (n < ids)), n , ids)
 #    return tuple(valid_names[i] for i in ids)
-#    
-#class TransferFunction(object):
+#
+# class TransferFunction(object):
 #    '''
 #    Class for computing transfer functions based on linear wave theory
-#        of the system with input surface elevation, 
-#        eta(x0,y0,t) = exp(i*(kx*x0+ky*y0-w*t)), 
-#        and output Y determined by sensortype and position of sensor. 
-#    
+#        of the system with input surface elevation,
+#        eta(x0,y0,t) = exp(i*(kx*x0+ky*y0-w*t)),
+#        and output Y determined by sensortype and position of sensor.
+#
 #    Member methods
 #    --------------
 #    tran(w, theta, kw)
-#    
+#
 #    Hw  = a function of frequency only (not direction)   size  1 x Nf
 #    Gwt = a function of frequency and direction          size Nt x Nf
 #    w = vector of angular frequencies in Rad/sec. Length Nf
@@ -2425,17 +2476,17 @@ class TimeSeries(PlotData):
 #    ----------------
 #    pos : [x,y,z]
 #        vector giving coordinate position relative to [x0 y0 z0] (default [0,0,0])
-#    sensortype = string 
-#        defining the sensortype or transfer function in output. 
+#    sensortype = string
+#        defining the sensortype or transfer function in output.
 #            0,  'n'    : Surface elevation              (n=Eta)     (default)
 #            1,  'n_t'  : Vertical surface velocity
 #            2,  'n_tt' : Vertical surface acceleration
-#            3,  'n_x'  : Surface slope in x-direction 
+#            3,  'n_x'  : Surface slope in x-direction
 #            4,  'n_y'  : Surface slope in y-direction
 #            5,  'n_xx' : Surface curvature in x-direction
 #            6,  'n_yy' : Surface curvature in y-direction
 #            7,  'n_xy' : Surface curvature in xy-direction
-#            8,  'P'    : Pressure fluctuation about static MWL pressure 
+#            8,  'P'    : Pressure fluctuation about static MWL pressure
 #            9,  'U'    : Water particle velocity in x-direction
 #            10, 'V'    : Water particle velocity in y-direction
 #            11, 'W'    : Water particle velocity in z-direction
@@ -2446,22 +2497,22 @@ class TimeSeries(PlotData):
 #            16, 'Y_p'  : Water particle displacement in y-direction from its mean position
 #            17, 'Z_p'  : Water particle displacement in z-direction from its mean position
 #    h : real scalar
-#        water depth      (default inf) 
+#        water depth      (default inf)
 #    g : real scalar
 #        acceleration of gravity (default 9.81 m/s**2)
 #    rho : real scalar
 #        water density    (default 1028 kg/m**3)
 #    bet : 1 or -1
 #        1, theta given in terms of directions toward which waves travel (default)
-#        -1, theta given in terms of directions from which waves come 
+#        -1, theta given in terms of directions from which waves come
 #    igam : 1,2 or 3
 #        1, if z is measured positive upward from mean water level (default)
 #        2, if z is measured positive downward from mean water level
 #        3, if z is measured positive upward from sea floor
 #    thetax, thetay : real scalars
-#        angle in degrees clockwise from true north to positive x-axis and  
+#        angle in degrees clockwise from true north to positive x-axis and
 #        positive y-axis, respectively. (default theatx=90, thetay=0)
-#      
+#
 #    Example
 #    -------
 #    >>> import pylab as plt
@@ -2480,12 +2531,12 @@ class TimeSeries(PlotData):
 #    ...    vals[i]
 #    ...    fh = plt.plot(t, vals[i])
 #    >>> plt.show()
-#    
-#    
+#
+#
 #    See also
-#    -------- 
+#    --------
 #    dat2dspec, sensor_type, sensor_typeid
-#    
+#
 #    Reference
 #    ---------
 #    Young I.R. (1994)
@@ -2516,18 +2567,18 @@ class TimeSeries(PlotData):
 #                               X_p=self._x_p, x_p=self._x_p,
 #                               Y_p=self._y_p, y_p=self._y_p,
 #                               Z_p=self._z_p, z_p=self._z_p)
-#    
+#
 #    def tran(self, w, theta=0, kw=None):
 #        '''
 #        Return transfer functions based on linear wave theory
-#        of the system with input surface elevation, 
-#        eta(x0,y0,t) = exp(i*(kx*x0+ky*y0-w*t)), 
-#        and output, 
+#        of the system with input surface elevation,
+#        eta(x0,y0,t) = exp(i*(kx*x0+ky*y0-w*t)),
+#        and output,
 #        Y  = Hw*Gwt*eta, determined by sensortype and position of sensor.
-#        
+#
 #        Parameters
 #        ----------
-#        w : array-like 
+#        w : array-like
 #            vector of angular frequencies in Rad/sec. Length Nf
 #        theta : array-like
 #            vector of directions in radians           Length Nt   (default 0)
@@ -2535,185 +2586,185 @@ class TimeSeries(PlotData):
 #        kw : array-like
 #            vector of wave numbers corresponding to angular frequencies, w. Length Nf
 #            (default calculated with w2k)
-#        
+#
 #        Returns
 #        -------
 #        Hw  = transfer function of frequency only (not direction)   size  1 x Nf
 #        Gwt = transfer function of frequency and direction          size Nt x Nf
-#        
-#        The complete transfer function Hwt = Hw*Gwt is a function of 
-#        w (columns) and theta (rows)                   size Nt x Nf 
+#
+#        The complete transfer function Hwt = Hw*Gwt is a function of
+#        w (columns) and theta (rows)                   size Nt x Nf
 #        '''
 #        if kw is None:
-#            kw, unusedkw2 = w2k(w, 0, self.h) #wave number as function of angular frequency
-#        
+# kw, unusedkw2 = w2k(w, 0, self.h) #wave number as function of angular frequency
+#
 #        w, theta, kw = np.atleast_1d(w, theta, kw)
-#        # make sure they have the correct orientation
+# make sure they have the correct orientation
 #        theta.shape = (-1, 1)
 #        kw.shape = (-1,)
 #        w.shape = (-1,)
-#        
-#        tran_fun = self._tran_dict[self.sensortype]    
+#
+#        tran_fun = self._tran_dict[self.sensortype]
 #        Hw, Gwt = tran_fun(w, theta, kw)
-#    
-#        # New call to avoid singularities. pab 07.11.2000
-#        # Set Hw to 0 for expressions w*hyperbolic_ratio(z*k,h*k,1,-1)= 0*inf
+#
+# New call to avoid singularities. pab 07.11.2000
+# Set Hw to 0 for expressions w*hyperbolic_ratio(z*k,h*k,1,-1)= 0*inf
 #        ind = np.flatnonzero(1 - np.isfinite(Hw))
 #        Hw.flat[ind] = 0
-#        
+#
 #        sgn = np.sign(Hw);
 #        k0 = np.flatnonzero(sgn < 0)
-#        if len(k0): # make sure Hw>=0 ie. transfer negative signs to Gwt
+# if len(k0): # make sure Hw>=0 ie. transfer negative signs to Gwt
 #            Gwt[:, k0] = -Gwt[:, k0]
 #            Hw[:, k0] = -Hw[:, k0]
-#          
-#        if self.igam == 2: 
-#            #pab 09 Oct.2002: bug fix
-#            #  Changing igam by 2 should affect the directional result in the same way that changing eta by -eta!
+#
+#        if self.igam == 2:
+# pab 09 Oct.2002: bug fix
+# Changing igam by 2 should affect the directional result in the same way that changing eta by -eta!
 #            Gwt = -Gwt
 #        return Hw, Gwt
-#    __call__ = tran 
-##---Private member methods
+#    __call__ = tran
+# ---Private member methods
 #    def _get_ee_cthxy(self, theta, kw):
-#        # convert from angle in degrees to radians
+# convert from angle in degrees to radians
 #        bet = self.bet
 #        thxr = self.thetax * pi / 180
 #        thyr = self.thetay * pi / 180
-#        
+#
 #        cthx = bet * cos(theta - thxr + pi / 2)
-#        #cthy = cos(theta-thyr-pi/2)
+# cthy = cos(theta-thyr-pi/2)
 #        cthy = bet * sin(theta - thyr)
-#        
-#        # Compute location complex exponential
+#
+# Compute location complex exponential
 #        x, y, unused_z = list(self.pos)
-#        ee = exp((1j * (x * cthx + y * cthy)) * kw) # exp(i*k(w)*(x*cos(theta)+y*sin(theta)) size Nt X Nf
+# ee = exp((1j * (x * cthx + y * cthy)) * kw) # exp(i*k(w)*(x*cos(theta)+y*sin(theta)) size Nt X Nf
 #        return ee, cthx, cthy
-#    
+#
 #    def _get_zk(self, kw):
 #        h = self.h
 #        z = self.pos[2]
 #        if self.igam == 1:
-#            zk = kw * (h + z) # z measured positive upward from mean water level (default)
+# zk = kw * (h + z) # z measured positive upward from mean water level (default)
 #        elif self.igam == 2:
-#            zk = kw * (h - z) # z measured positive downward from mean water level
+# zk = kw * (h - z) # z measured positive downward from mean water level
 #        else:
-#            zk = kw * z # z measured positive upward from sea floor
+# zk = kw * z # z measured positive upward from sea floor
 #        return zk
-#    
-#    #--- Surface elevation ---
+#
+# --- Surface elevation ---
 #    def _n(self, w, theta, kw):
 #        '''n = Eta = wave profile
 #        '''
-#        ee, unused_cthx, unused_cthy = self._get_ee_cthxy(theta, kw) 
+#        ee, unused_cthx, unused_cthy = self._get_ee_cthxy(theta, kw)
 #        return np.ones_like(w), ee
-#    
-#    #---- Vertical surface velocity and acceleration-----           
+#
+# ---- Vertical surface velocity and acceleration-----
 #    def _n_t(self, w, theta, kw):
-#        ''' n_t = Eta_t ''' 
-#        ee, unused_cthx, unused_cthy = self._get_ee_cthxy(theta, kw) 
+#        ''' n_t = Eta_t '''
+#        ee, unused_cthx, unused_cthy = self._get_ee_cthxy(theta, kw)
 #        return w, -1j * ee;
 #    def _n_tt(self, w, theta, kw):
 #        '''n_tt = Eta_tt'''
-#        ee, unused_cthx, unused_cthy = self._get_ee_cthxy(theta, kw) 
+#        ee, unused_cthx, unused_cthy = self._get_ee_cthxy(theta, kw)
 #        return w ** 2, -ee
-#   
-#    #--- Surface slopes ---
+#
+# --- Surface slopes ---
 #    def _n_x(self, w, theta, kw):
 #        ''' n_x = Eta_x = x-slope'''
-#        ee, cthx, unused_cthy = self._get_ee_cthxy(theta, kw) 
+#        ee, cthx, unused_cthy = self._get_ee_cthxy(theta, kw)
 #        return kw, 1j * cthx * ee
 #    def _n_y(self, w, theta, kw):
 #        ''' n_y = Eta_y = y-slope'''
-#        ee, unused_cthx, cthy = self._get_ee_cthxy(theta, kw) 
+#        ee, unused_cthx, cthy = self._get_ee_cthxy(theta, kw)
 #        return kw, 1j * cthy * ee
-#            
-#    #--- Surface curvatures ---
+#
+# --- Surface curvatures ---
 #    def _n_xx(self, w, theta, kw):
 #        ''' n_xx = Eta_xx = Surface curvature (x-dir)'''
-#        ee, cthx, unused_cthy = self._get_ee_cthxy(theta, kw) 
-#        return kw ** 2, -(cthx ** 2) * ee 
+#        ee, cthx, unused_cthy = self._get_ee_cthxy(theta, kw)
+#        return kw ** 2, -(cthx ** 2) * ee
 #    def _n_yy(self, w, theta, kw):
 #        ''' n_yy = Eta_yy = Surface curvature (y-dir)'''
 #        ee, unused_cthx, cthy = self._get_ee_cthxy(theta, kw)
-#        return kw ** 2, -cthy ** 2 * ee 
+#        return kw ** 2, -cthy ** 2 * ee
 #    def _n_xy(self, w, theta, kw):
 #        ''' n_xy = Eta_xy = Surface curvature (xy-dir)'''
 #        ee, cthx, cthy = self._get_ee_cthxy(theta, kw)
 #        return kw ** 2, -cthx * cthy * ee
-#     
-#    #--- Pressure---
+#
+# --- Pressure---
 #    def _p(self, w, theta, kw):
 #        ''' pressure fluctuations'''
 #        ee, unused_cthx, unused_cthy = self._get_ee_cthxy(theta, kw)
 #        hk = kw * self.h
 #        zk = self._get_zk(kw)
-#        return self.rho * self.g * hyperbolic_ratio(zk, hk, 1, 1), ee       #hyperbolic_ratio =  cosh(zk)/cosh(hk)
-#            
-#    #---- Water particle velocities ---
+# return self.rho * self.g * hyperbolic_ratio(zk, hk, 1, 1), ee       #hyperbolic_ratio =  cosh(zk)/cosh(hk)
+#
+# ---- Water particle velocities ---
 #    def _u(self, w, theta, kw):
 #        ''' U = x-velocity'''
 #        ee, cthx, unused_cthy = self._get_ee_cthxy(theta, kw)
 #        hk = kw * self.h
 #        zk = self._get_zk(kw)
-#        return w * hyperbolic_ratio(zk, hk, 1, -1), cthx * ee# w*cosh(zk)/sinh(hk), cos(theta)*ee 
+# return w * hyperbolic_ratio(zk, hk, 1, -1), cthx * ee# w*cosh(zk)/sinh(hk), cos(theta)*ee
 #    def _v(self, w, theta, kw):
 #        '''V = y-velocity'''
 #        ee, unused_cthx, cthy = self._get_ee_cthxy(theta, kw)
 #        hk = kw * self.h
 #        zk = self._get_zk(kw)
-#        return w * hyperbolic_ratio(zk, hk, 1, -1), cthy * ee # w*cosh(zk)/sinh(hk), sin(theta)*ee
+# return w * hyperbolic_ratio(zk, hk, 1, -1), cthy * ee # w*cosh(zk)/sinh(hk), sin(theta)*ee
 #    def _w(self, w, theta, kw):
 #        ''' W = z-velocity'''
 #        ee, unused_cthx, unused_cthy = self._get_ee_cthxy(theta, kw)
 #        hk = kw * self.h
 #        zk = self._get_zk(kw)
-#        return w * hyperbolic_ratio(zk, hk, -1, -1), -1j * ee  # w*sinh(zk)/sinh(hk), -?
-#                     
-#    #---- Water particle acceleration ---  
+# return w * hyperbolic_ratio(zk, hk, -1, -1), -1j * ee  # w*sinh(zk)/sinh(hk), -?
+#
+# ---- Water particle acceleration ---
 #    def _u_t(self, w, theta, kw):
 #        ''' U_t = x-acceleration'''
 #        ee, cthx, unused_cthy = self._get_ee_cthxy(theta, kw)
 #        hk = kw * self.h
 #        zk = self._get_zk(kw)
-#        return (w ** 2) * hyperbolic_ratio(zk, hk, 1, -1), -1j * cthx * ee # w^2*cosh(zk)/sinh(hk), ?
-#            
+# return (w ** 2) * hyperbolic_ratio(zk, hk, 1, -1), -1j * cthx * ee # w^2*cosh(zk)/sinh(hk), ?
+#
 #    def _v_t(self, w, theta, kw):
 #        ''' V_t = y-acceleration'''
 #        ee, unused_cthx, cthy = self._get_ee_cthxy(theta, kw)
 #        hk = kw * self.h
 #        zk = self._get_zk(kw)
-#        return (w ** 2) * hyperbolic_ratio(zk, hk, 1, -1), -1j * cthy * ee # w^2*cosh(zk)/sinh(hk), ?
+# return (w ** 2) * hyperbolic_ratio(zk, hk, 1, -1), -1j * cthy * ee # w^2*cosh(zk)/sinh(hk), ?
 #    def _w_t(self, w, theta, kw):
 #        ''' W_t = z-acceleration'''
 #        ee, unused_cthx, unused_cthy = self._get_ee_cthxy(theta, kw)
 #        hk = kw * self.h
 #        zk = self._get_zk(kw)
-#        return (w ** 2) * hyperbolic_ratio(zk, hk, -1, -1), -ee # w*sinh(zk)/sinh(hk), ?
+# return (w ** 2) * hyperbolic_ratio(zk, hk, -1, -1), -ee # w*sinh(zk)/sinh(hk), ?
 #
-#    #---- Water particle displacement --- 
+# ---- Water particle displacement ---
 #    def _x_p(self, w, theta, kw):
 #        ''' X_p = x-displacement'''
 #        ee, cthx, unused_cthy = self._get_ee_cthxy(theta, kw)
 #        hk = kw * self.h
 #        zk = self._get_zk(kw)
-#        return hyperbolic_ratio(zk, hk, 1, -1), 1j * cthx * ee # cosh(zk)./sinh(hk), ?
+# return hyperbolic_ratio(zk, hk, 1, -1), 1j * cthx * ee # cosh(zk)./sinh(hk), ?
 #    def _y_p(self, w, theta, kw):
 #        ''' Y_p = y-displacement'''
 #        ee, unused_cthx, cthy = self._get_ee_cthxy(theta, kw)
 #        hk = kw * self.h
 #        zk = self._get_zk(kw)
-#        return hyperbolic_ratio(zk, hk, 1, -1), 1j * cthy * ee # cosh(zk)./sinh(hk), ? 
+# return hyperbolic_ratio(zk, hk, 1, -1), 1j * cthy * ee # cosh(zk)./sinh(hk), ?
 #    def _z_p(self, w, theta, kw):
 #        ''' Z_p = z-displacement'''
 #        ee, unused_cthx, unused_cthy = self._get_ee_cthxy(theta, kw)
 #        hk = kw * self.h
 #        zk = self._get_zk(kw)
-#        return  hyperbolic_ratio(zk, hk, -1, -1), ee # sinh(zk)./sinh(hk), ee 
+# return  hyperbolic_ratio(zk, hk, -1, -1), ee # sinh(zk)./sinh(hk), ee
 #
-#def wave_pressure(z, Hm0, h=10000, g=9.81, rho=1028):
+# def wave_pressure(z, Hm0, h=10000, g=9.81, rho=1028):
 #    '''
 #    Calculate pressure amplitude due to water waves.
-#    
+#
 #    Parameters
 #    ----------
 #    z : array-like
@@ -2722,33 +2773,33 @@ class TimeSeries(PlotData):
 #        significant wave height (same as the average of the 1/3'rd highest
 #        waves in a seastate. [m]
 #    h : real scalar
-#        waterdepth (default 10000 [m]) 
+#        waterdepth (default 10000 [m])
 #    g : real scalar
 #        acceleration of gravity (default 9.81 m/s**2)
 #    rho : real scalar
 #        water density    (default 1028 kg/m**3)
-#    
-#    
+#
+#
 #    Returns
 #    -------
 #    p : ndarray
 #        pressure amplitude due to water waves at water depth z. [Pa]
-#    
+#
 #    PRESSURE calculate pressure amplitude due to water waves according to
 #    linear theory.
-#    
+#
 #    Example
 #    -----
 #    >>> import pylab as plt
 #    >>> z = -np.linspace(10,20)
 #    >>> fh = plt.plot(z, wave_pressure(z, Hm0=1, h=20))
 #    >>> plt.show()
-#    
-#    See also 
+#
+#    See also
 #    --------
 #    w2k
-#    
-#    
+#
+#
 #    u = psweep.Fn*sqrt(mgf.length*9.81)
 #    z = -10; h = inf;
 #    Hm0 = 1.5;Tp = 4*sqrt(Hm0);
@@ -2758,15 +2809,15 @@ class TimeSeries(PlotData):
 #    Sm.S = Hw.'.*S.S;
 #    x1 = spec2sdat(Sm,1000);
 #    pwave = pressure(z,Hm0,h)
-#    
+#
 #    plot(psweep.x{1}/u, psweep.f)
 #    hold on
 #    plot(x1(1:100,1)-30,x1(1:100,2),'r')
 #    '''
-#    
-#    
-#    # Assume seastate with jonswap spectrum:
-#    
+#
+#
+# Assume seastate with jonswap spectrum:
+#
 #    Tp = 4 * np.sqrt(Hm0)
 #    gam = jonswap_peakfact(Hm0, Tp)
 #    Tm02 = Tp / (1.30301 - 0.01698 * gam + 0.12102 / gam)
@@ -2775,23 +2826,24 @@ class TimeSeries(PlotData):
 #
 #    hk = kw * h
 #    zk1 = kw * z
-#    zk = hk + zk1 # z measured positive upward from mean water level (default)
-#    #zk = hk-zk1; % z measured positive downward from mean water level
-#    #zk1 = -zk1;
-#    #zk = zk1;    % z measured positive upward from sea floor
-#    
-#    # cosh(zk)/cosh(hk) approx exp(zk) for large h
-#    # hyperbolic_ratio(zk,hk,1,1) = cosh(zk)/cosh(hk)
-#    # pr = np.where(np.pi < hk, np.exp(zk1), hyperbolic_ratio(zk, hk, 1, 1))
+# zk = hk + zk1 # z measured positive upward from mean water level (default)
+# zk = hk-zk1; % z measured positive downward from mean water level
+# zk1 = -zk1;
+# zk = zk1;    % z measured positive upward from sea floor
+#
+# cosh(zk)/cosh(hk) approx exp(zk) for large h
+# hyperbolic_ratio(zk,hk,1,1) = cosh(zk)/cosh(hk)
+# pr = np.where(np.pi < hk, np.exp(zk1), hyperbolic_ratio(zk, hk, 1, 1))
 #    pr = hyperbolic_ratio(zk, hk, 1, 1)
 #    pressure = (rho * g * Hm0 / 2) * pr
-#    
+#
 ##    pos = [np.zeros_like(z),np.zeros_like(z),z]
 ##    tf = TransferFunction(pos=pos, sensortype='p', h=h, rho=rho, g=g)
 ##    Hw, Gwt = tf.tran(w,0)
 ##    pressure2 = np.abs(Hw) * Hm0 / 2
-#    
+#
 #    return pressure
+
 
 def main():
     import wafo
@@ -2800,19 +2852,17 @@ def main():
     mm = tp.cycle_pairs()
     lc = mm.level_crossings()
     lc.plot()
-    T = ts.wave_periods(vh=0.0, pdef='c2c') #@UnusedVariable
-    
-    
-   
-    #main()
+    T = ts.wave_periods(vh=0.0, pdef='c2c')  # @UnusedVariable
+
+    # main()
     import wafo.spectrum.models as sm
     Sj = sm.Jonswap()
     S = Sj.tospecdata()
 
     R = S.tocovdata()
-    x = R.sim(ns=1000, dt=0.2) #@UnusedVariable
+    x = R.sim(ns=1000, dt=0.2)  # @UnusedVariable
     S.characteristic(['hm0', 'tm02'])
-    ns = 1000 
+    ns = 1000
     dt = .2
     x1 = S.sim(ns, dt=dt)
 
@@ -2824,7 +2874,6 @@ def main():
     # Plot 2 objects in one call
     d2 = PlotData(np.sin(x), x, xlab='x', ylab='sin', title='sinus')
 
-
     d0 = d2.copy()
     d0.data = d0.data * 0.9
     d1 = d2.copy()
@@ -2835,17 +2884,17 @@ def main():
     d2.plot()
     print 'Done'
 
+
 def test_docstrings():
     import doctest
     doctest.testmod()
-    
+
 if __name__ == '__main__':
     test_docstrings()
 #    test_levelcrossings_extrapolate()
-#    if  True: #False : #  
+# if  True: #False : #
 
 #        import doctest
 #        doctest.testmod()
 #    else:
 #        main()
-       

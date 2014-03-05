@@ -7,12 +7,13 @@ import sys
 import fractions
 import numpy as np
 from numpy import (
-    abs, amax, any, logical_and, arange, linspace, atleast_1d,  # atleast_2d,
-    array, asarray, broadcast_arrays, ceil, floor, frexp, hypot,
+                   meshgrid,
+    abs, amax, any, logical_and, arange, linspace, atleast_1d,
+    array, asarray, ceil, floor, frexp, hypot,
     sqrt, arctan2, sin, cos, exp, log, mod, diff, empty_like,
     finfo, inf, pi, interp, isnan, isscalar, zeros, ones, linalg,
     r_, sign, unique, hstack, vstack, nonzero, where, extract)
-from scipy.special import gammaln
+from scipy.special import gammaln, gamma, psi
 from scipy.integrate import trapz, simps
 import warnings
 from plotbackend import plotbackend
@@ -24,7 +25,8 @@ try:
 except:
     clib = None
 floatinfo = finfo(float)
-
+_TINY = np.finfo(float).tiny
+_EPS = np.finfo(float).eps
 
 __all__ = [
     'is_numlike', 'JITImport', 'DotDict', 'Bunch', 'printf', 'sub_dict_select',
@@ -1693,6 +1695,600 @@ def gravity(phi=45):
                       0.0000059 * sin(2 * phir) ** 2.)
 
 
+def dea3(v0, v1, v2):
+    '''
+    Extrapolate a slowly convergent sequence
+
+    Parameters
+    ----------
+    v0, v1, v2 : array-like
+        3 values of a convergent sequence to extrapolate
+
+    Returns
+    -------
+    result : array-like
+        extrapolated value
+    abserr : array-like
+        absolute error estimate
+
+    Description
+    -----------
+    DEA3 attempts to extrapolate nonlinearly to a better estimate
+    of the sequence's limiting value, thus improving the rate of
+    convergence. The routine is based on the epsilon algorithm of
+    P. Wynn, see [1]_.
+
+     Example
+     -------
+     # integrate sin(x) from 0 to pi/2
+
+     >>> import numpy as np
+     >>> import numdifftools as nd
+     >>> Ei= np.zeros(3)
+     >>> linfun = lambda k : np.linspace(0,np.pi/2.,2.**(k+5)+1)
+     >>> for k in np.arange(3):
+     ...    x = linfun(k)
+     ...    Ei[k] = np.trapz(np.sin(x),x)
+     >>> [En, err] = nd.dea3(Ei[0], Ei[1], Ei[2])
+     >>> truErr = Ei-1.
+     >>> (truErr, err, En)
+     (array([ -2.00805680e-04,  -5.01999079e-05,  -1.25498825e-05]),
+     array([ 0.00020081]), array([ 1.]))
+
+     See also
+     --------
+     dea
+
+     Reference
+     ---------
+     .. [1] C. Brezinski (1977)
+            "Acceleration de la convergence en analyse numerique",
+            "Lecture Notes in Math.", vol. 584,
+            Springer-Verlag, New York, 1977.
+    '''
+    E0, E1, E2 = np.atleast_1d(v0, v1, v2)
+    abs = np.abs  # @ReservedAssignment
+    max = np.maximum  # @ReservedAssignment
+    delta2, delta1 = E2 - E1, E1 - E0
+    err2, err1 = abs(delta2), abs(delta1)
+    tol2, tol1 = max(abs(E2), abs(E1)) * _EPS, max(abs(E1), abs(E0)) * _EPS
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")  # ignore division by zero and overflow
+        ss = 1.0 / delta2 - 1.0 / delta1
+        smallE2 = (abs(ss * E1) <= 1.0e-3).ravel()
+
+    result = 1.0 * E2
+    abserr = err1 + err2 + E2 * _EPS * 10.0
+    converged = (err1 <= tol1) & (err2 <= tol2).ravel() | smallE2
+    k4, = (1 - converged).nonzero()
+    if k4.size > 0:
+        result[k4] = E1[k4] + 1.0 / ss[k4]
+        abserr[k4] = err1[k4] + err2[k4] + abs(result[k4] - E2[k4])
+    return result, abserr
+
+
+def hyp2f1_taylor(a, b, c, z, tol=1e-13, itermax=500):
+    a, b, c, z = np.broadcast_arrays(*np.atleast_1d(a, b, c, z))
+    shape = a.shape
+    ak, bk, ck, zk = [d.ravel() for d in (a, b, c, z)]
+    ajm1 = np.ones(ak.shape)
+    bjm2 = 0.5 * np.ones(ak.shape)
+    bjm1 = np.ones(ak.shape)
+    hout = np.zeros(ak.shape)
+    k0 = np.arange(len(ak))
+    for j in range(0, itermax):
+        aj = ajm1 * (ak + j) * (bk + j) / (ck + j) * zk / (j + 1)
+        bj = bjm1 + aj
+        h, err = dea3(bjm2, bjm1, bj)
+        k = np.flatnonzero(err > tol * np.abs(h))
+        hout[k0] = h
+        if len(k) == 0:
+            break
+        k0 = k0[k]
+        ak, bk, ck, zk = ak[k], bk[k], ck[k], zk[k]
+        ajm1 = aj[k]
+        bjm2 = bjm1[k]
+        bjm1 = bj[k]
+    else:
+        warnings.warn(('Reached %d limit! \n' +
+                      '#%d values did not converge! Max error=%g') %
+                      (j, len(k), np.max(err)))
+    return hout.reshape(shape)
+
+
+def hyp2f1(a, b, c, z, rho=0.5):
+    e1 = gammaln(a)
+    e2 = gammaln(b)
+    e3 = gammaln(c)
+    e4 = gammaln(b - a)
+    e5 = gammaln(a - b)
+
+    e6 = gammaln(c - a)
+    e7 = gammaln(c - b)
+    e8 = gammaln(c - a - b)
+    e9 = gammaln(a + b - c)
+    _cmab = c-a-b
+    #~(np.round(cmab) == cmab & cmab <= 0)
+    if abs(z) <= rho:
+        h = hyp2f1_taylor(a, b, c, z, 1e-15)
+    elif abs(1 - z) <= rho:  # % Require that |arg(1-z)|<pi
+        h = exp(e3 + e8 - e6 - e7) * hyp2f1_taylor(a, b, a + b - c, 1 - z, 1e-15) \
+            + (1 - z) ** (c - a - b) * exp(e3 + e9 - e1 - e2) \
+            * hyp2f1_taylor(c - a, c - b, c - a - b + 1, 1 - z, 1e-15)
+    elif abs(z / (z - 1)) <= rho:
+        h = (1 - z) ** (-a) \
+            * hyp2f1_taylor(a, c - b, c, (z / (z - 1)), 1e-15)
+    elif abs(1 / z) <= rho:  # % Require that |arg(z)|<pi and |arg(1-z)|<pi
+        h = (-z + 0j) ** (-a) * exp(e3 + e4 - e2 - e6) \
+            * hyp2f1_taylor(a, a - c + 1, a - b + 1, 1. / z, 1e-15) \
+            + (-z + 0j) ** (-b) * exp(e3 + e5 - e1 - e7) \
+            * hyp2f1_taylor(b - c + 1, b, b - a + 1, (1. / z), 1e-15)
+    elif abs(1. / (1 - z)) <= rho:  # % Require that |arg(1-z)|<pi
+        h = (1 - z) ** (-a) * exp(e3 + e4 - e2 - e6) \
+            * hyp2f1_taylor(a, c - b, a - b + 1, (1. / (1 - z)), 1e-15)\
+            + (1 - z) ** (-b) * exp(e3 + e5 - e1 - e7) \
+            * hyp2f1_taylor(b, c - a, b - a + 1, (1. / (1 - z)), 1e-15)
+    elif abs(1 - 1 / z) < rho:  # % Require that |arg(z)|<pi and |arg(1-z)|<pi
+        h = z ** (-a) * exp(e3 + e8 - e6 - e7) \
+            * hyp2f1_taylor(a, a - c + 1, a + b - c + 1, (1 - 1 / z), 1e-15) \
+            + z ** (a - c) * (1 - z) ** (c - a - b) * exp(e3 + e9 - e1 - e2) \
+            * hyp2f1_taylor(c - a, 1 - a, c - a - b + 1, (1 - 1 / z), 1e-15)
+    else:
+        warnings.warn('Another method is needed')
+    return h
+
+
+def hyp2f1_wrong(a, b, c, z, tol=1e-13, itermax=500):
+    ajm1 = 0
+    bjm1 = 1
+    cjm1 = 1
+    xjm1 = np.ones(np.shape(c + a * b * z))
+    xjm2 = 2 * np.ones(xjm1.shape)
+
+    for j in range(1, itermax):
+        aj = (ajm1 + bjm1) * j * (c + j - 1)
+        bj = bjm1 * (a + j - 1) * (b + j - 1) * z
+        cj = cjm1 * j * (c + j - 1)
+        if np.any((aj == np.inf) | (bj == np.inf) | (cj == np.inf)):
+            break
+        xj = (aj + bj) / cj
+        h, err = dea3(xjm2, xjm1, xj)
+        if np.all(err <= tol * np.abs(h)) and j > 10:
+            break
+        xjm2 = xjm1
+        xjm1 = xj
+    else:
+        warnings.warn('Reached %d limit' % j)
+    return h
+
+
+def hygfz(A, B, C, Z):
+    ''' Return hypergeometric function for a complex argument, F(a,b,c,z)
+
+    Parameters
+    ----------
+     a, b, c:
+         parameters where c <> 0,-1,-2,...
+    z :--- Complex argument
+    '''
+    X = np.real(Z)
+    Y = np.imag(Z)
+    EPS = 1.0e-15
+    L0 = C == np.round(C) and C < 0.0e0
+    L1 = abs(1.0 - X) < EPS and Y == 0.0 and C - A - B <= 0.0
+    L2 = abs(Z + 1.0) < EPS and abs(C - A + B - 1.0) < EPS
+    L3 = A == np.round(A) and A < 0.0
+    L4 = B == np.round(B) and B < 0.0
+    L5 = C - A == np.round(C - A) and C - A <= 0.0
+    L6 = C - B == np.round(C - B) and C - B <= 0.0
+    AA = A
+    BB = B
+    A0 = abs(Z)
+    if (A0 > 0.95):
+        EPS = 1.0e-8
+    PI = 3.141592653589793
+    EL = .5772156649015329
+    if (L0 or L1):
+    # 'The hypergeometric series is divergent'
+        return np.inf
+
+    NM = 0
+    if (A0 == 0.0 or A == 0.0 or B == 0.0):
+        ZHF = 1.0
+    elif (Z == 1.0 and C - A - B > 0.0):
+        GC = gamma(C)
+        GCAB = gamma(C - A - B)
+        GCA = gamma(C - A)
+        GCB = gamma(C - B)
+        ZHF = GC * GCAB / (GCA * GCB)
+    elif L2:
+        G0 = sqrt(PI) * 2.0 ** (-A)
+        G1 = gamma(C)
+        G2 = gamma(1.0 + A / 2.0 - B)
+        G3 = gamma(0.5 + 0.5 * A)
+        ZHF = G0 * G1 / (G2 * G3)
+    elif L3 or L4:
+        if (L3):
+            NM = int(np.round(abs(A)))
+        if (L4):
+            NM = int(np.round(abs(B)))
+        ZHF = 1.0
+        ZR = 1.0
+        for K in range(NM):
+            ZR = ZR * (A + K) * (B + K) / ((K + 1.) * (C + K)) * Z
+            ZHF = ZHF + ZR
+    elif L5 or L6:
+        if (L5):
+            NM = np.round(abs(C - A))
+        if (L6):
+            NM = np.round(abs(C - B))
+        ZHF = 1.0 + 0j
+        ZR = 1.0 + 0j
+        for K in range(NM):
+            ZR *= (C - A + K) * (C - B + K) / ((K + 1.) * (C + K)) * Z
+            ZHF = ZHF + ZR
+        ZHF = (1.0 - Z) ** (C - A - B) * ZHF
+    elif (A0 <= 1.0):
+        if (X < 0.0):
+            Z1 = Z / (Z - 1.0)
+            if (C > A and B < A and B > 0.0):
+                A = BB
+                B = AA
+
+            ZC0 = 1.0 / ((1.0 - Z) ** A)
+            ZHF = 1.0 + 0j
+            ZR0 = 1.0 + 0j
+            ZW = 0
+            for K in range(500):
+                ZR0 *= (A + K) * (C - B + K) / ((K + 1.0) * (C + K)) * Z1
+                ZHF += ZR0
+                if (abs(ZHF - ZW) < abs(ZHF) * EPS):
+                    break
+                ZW = ZHF
+            ZHF = ZC0 * ZHF
+        elif (A0 >= 0.90):
+            ZW = 0.0
+            GM = 0.0
+            MCAB = np.round(C - A - B)
+            if (abs(C - A - B - MCAB) < EPS):
+                M = int(np.round(C - A - B))
+                GA = gamma(A)
+                GB = gamma(B)
+                GC = gamma(C)
+                GAM = gamma(A + M)
+                GBM = gamma(B + M)
+                PA = psi(A)
+                PB = psi(B)
+                if (M != 0):
+                    GM = 1.0
+                for j in range(1, abs(M)):
+                    GM *= j
+                RM = 1.0
+                for j in range(1, abs(M) + 1):  # DO 35 J=1,abs(M)
+                    RM *= j
+                ZF0 = 1.0
+                ZR0 = 1.0
+                ZR1 = 1.0
+                SP0 = 0.0
+                SP = 0.0
+                if (M >= 0):
+                    ZC0 = GM * GC / (GAM * GBM)
+                    ZC1 = -GC * (Z - 1.0) ** M / (GA * GB * RM)
+                    for K in range(1, M):
+                        ZR0 = ZR0 * \
+                            (A + K - 1.) * (B + K - 1.) / \
+                            (K * (K - M)) * (1. - Z)
+                        ZF0 = ZF0 + ZR0
+                    for K in range(M):
+                        SP0 = SP0 + 1.0 / \
+                            (A + K) + 1.0 / (B + K) - 1. / (K + 1.)
+                    ZF1 = PA + PB + SP0 + 2.0 * EL + np.log(1.0 - Z)
+                    for K in range(1, 501):
+                        SP = SP + \
+                            (1.0 - A) / (K * (A + K - 1.0)) + (
+                                1.0 - B) / (K * (B + K - 1.0))
+                        SM = 0.0
+                        for J in range(1, M):
+                            SM += (1.0 - A) / (
+                                (J + K) * (A + J + K - 1.0)) + 1.0 / (B + J + K - 1.0)
+
+                        ZP = PA + PB + 2.0 * EL + SP + SM + np.log(1.0 - Z)
+                        ZR1 = ZR1 * \
+                            (A + M + K - 1.0) * (B + M + K - 1.0) / (
+                                K * (M + K)) * (1.0 - Z)
+                        ZF1 = ZF1 + ZR1 * ZP
+                        if (abs(ZF1 - ZW) < abs(ZF1) * EPS):
+                            break
+                        ZW = ZF1
+                    ZHF = ZF0 * ZC0 + ZF1 * ZC1
+                elif (M < 0):
+                    M = -M
+                    ZC0 = GM * GC / (GA * GB * (1.0 - Z) ** M)
+                    ZC1 = -(-1) ** M * GC / (GAM * GBM * RM)
+                    for K in range(1, M):
+                        ZR0 = ZR0 * \
+                            (A - M + K - 1.0) * (B - M + K - 1.0) / (
+                                K * (K - M)) * (1.0 - Z)
+                        ZF0 = ZF0 + ZR0
+                    for K in range(1, M + 1):
+                        SP0 = SP0 + 1.0 / K
+                    ZF1 = PA + PB - SP0 + 2.0 * EL + np.log(1.0 - Z)
+                    for K in range(1, 501):
+                        SP = SP + \
+                            (1.0 - A) / (K * (A + K - 1.0)) + (
+                                1.0 - B) / (K * (B + K - 1.0))
+                        SM = 0.0
+                        for J in range(1, M + 1):
+                            SM = SM + 1.0 / (J + K)
+                        ZP = PA + PB + 2.0 * EL + SP - SM + np.log(1.0 - Z)
+                        ZR1 = ZR1 * \
+                            (A + K - 1.) * (B + K - 1.) / \
+                            (K * (M + K)) * (1. - Z)
+                        ZF1 = ZF1 + ZR1 * ZP
+                        if (abs(ZF1 - ZW) < abs(ZF1) * EPS):
+                            break
+                        ZW = ZF1
+                    ZHF = ZF0 * ZC0 + ZF1 * ZC1
+            else:
+                GA = gamma(A)
+                GB = gamma(B)
+                GC = gamma(C)
+                GCA = gamma(C - A)
+                GCB = gamma(C - B)
+                GCAB = gamma(C - A - B)
+                GABC = gamma(A + B - C)
+                ZC0 = GC * GCAB / (GCA * GCB)
+                ZC1 = GC * GABC / (GA * GB) * (1.0 - Z) ** (C - A - B)
+                ZHF = 0 + 0j
+                ZR0 = ZC0
+                ZR1 = ZC1
+                for K in range(1, 501):
+                    ZR0 = ZR0 * \
+                        (A + K - 1.) * (B + K - 1.) / \
+                        (K * (A + B - C + K)) * (1. - Z)
+                    ZR1 = ZR1 * \
+                        (C - A + K - 1.0) * (C - B + K - 1.0) / (
+                            K * (C - A - B + K)) * (1.0 - Z)
+                    ZHF = ZHF + ZR0 + ZR1
+                    if (abs(ZHF - ZW) < abs(ZHF) * EPS):
+                        break
+                    ZW = ZHF
+                ZHF = ZHF + ZC0 + ZC1
+        else:
+            ZW = 0.0
+            Z00 = 1.0 #+ 0j
+            if (C - A < A and C - B < B):
+                Z00 = (1.0 - Z) ** (C - A - B)
+                A = C - A
+                B = C - B
+            ZHF = 1.0
+            ZR = 1.0
+            for K in range(1, 501):
+                ZR = ZR * \
+                    (A + K - 1.0) * (B + K - 1.0) / (K * (C + K - 1.0)) * Z
+                ZHF = ZHF + ZR
+                if (abs(ZHF - ZW) <= abs(ZHF) * EPS):
+                    break
+                ZW = ZHF
+            ZHF = Z00 * ZHF
+    elif (A0 > 1.0):
+        MAB = np.round(A - B)
+        if (abs(A - B - MAB) < EPS and A0 <= 1.1):
+            B = B + EPS
+        if (abs(A - B - MAB) > EPS):
+            GA = gamma(A)
+            GB = gamma(B)
+            GC = gamma(C)
+            GAB = gamma(A - B)
+            GBA = gamma(B - A)
+            GCA = gamma(C - A)
+            GCB = gamma(C - B)
+            ZC0 = GC * GBA / (GCA * GB * (-Z) ** A)
+            ZC1 = GC * GAB / (GCB * GA * (-Z) ** B)
+            ZR0 = ZC0
+            ZR1 = ZC1
+            ZHF = 0.0 + 0j
+            for K in range(1, 501):
+                ZR0 = ZR0 * (A + K - 1.0) * (A - C + K) / ((A - B + K) * K * Z)
+                ZR1 = ZR1 * (B + K - 1.0) * (B - C + K) / ((B - A + K) * K * Z)
+                ZHF = ZHF + ZR0 + ZR1
+                if (abs((ZHF - ZW) / ZHF) <= EPS):
+                    break
+                ZW = ZHF
+            ZHF = ZHF + ZC0 + ZC1
+        else:
+            if (A - B < 0.0):
+                A = BB
+                B = AA
+            CA = C - A
+            CB = C - B
+            NCA = np.round(CA)
+            NCB = np.round(CB)
+            if (abs(CA - NCA) < EPS or abs(CB - NCB) < EPS):
+                C = C + EPS
+            GA = gamma(A)
+            GC = gamma(C)
+            GCB = gamma(C - B)
+            PA = psi(A)
+            PCA = psi(C - A)
+            PAC = psi(A - C)
+            MAB = np.round(A - B + EPS)
+            ZC0 = GC / (GA * (-Z) ** B)
+            GM = gamma(A - B)
+            ZF0 = GM / GCB * ZC0
+            ZR = ZC0
+            for K in range(1, MAB):
+                ZR = ZR * (B + K - 1.0) / (K * Z)
+                T0 = A - B - K
+                G0 = gamma(T0)
+                GCBK = gamma(C - B - K)
+                ZF0 = ZF0 + ZR * G0 / GCBK
+            if (MAB == 0):
+                ZF0 = 0.0 + 0j
+            ZC1 = GC / (GA * GCB * (-Z) ** A)
+            SP = -2.0 * EL - PA - PCA
+            for J in range(1, MAB + 1):
+                SP = SP + 1.0 / J
+            ZP0 = SP + np.log(-Z)
+            SQ = 1.0
+            for J in range(1, MAB + 1):
+                SQ = SQ * (B + J - 1.0) * (B - C + J) / J
+            ZF1 = (SQ * ZP0) * ZC1
+            ZR = ZC1
+            RK1 = 1.0
+            SJ1 = 0.0
+            W0 = 0.0
+            for K in range(1, 10001):
+                ZR = ZR / Z
+                RK1 = RK1 * (B + K - 1.0) * (B - C + K) / (K * K)
+                RK2 = RK1
+                for J in range(K + 1, K + MAB + 1):
+                    RK2 = RK2 * (B + J - 1.0) * (B - C + J) / J
+                SJ1 = SJ1 + \
+                    (A - 1.0) / (K * (A + K - 1.0)) + \
+                    (A - C - 1.0) / (K * (A - C + K - 1.0))
+                SJ2 = SJ1
+                for J in range(K + 1, K + MAB + 1):
+                    SJ2 = SJ2 + 1.0 / J
+                ZP = -2.0 * EL - PA - PAC + SJ2 - 1.0 / \
+                    (K + A - C) - PI / np.tan(PI * (K + A - C)) + np.log(-Z)
+                ZF1 = ZF1 + RK2 * ZR * ZP
+                WS = abs(ZF1)
+                if (abs((WS - W0) / WS) < EPS):
+                    break
+                W0 = WS
+            ZHF = ZF0 + ZF1
+    A = AA
+    B = BB
+    if (K > 150):
+        warnings.warn('Warning! You should check the accuracy')
+    return ZHF
+
+# def hypgf(a, b, c, x, abseps=0, releps=1e-13, kmax=10000):
+#     '''HYPGF  Hypergeometric function F(a,b,c,x)
+#
+#     CALL:   [y ,abserr] = hypgf(a,b,c,x,abseps,releps)
+#
+#     y = F(a,b,c,x)
+#     abserr = absolute error estimate
+#     a,b,c,x = input parameters
+#     abseps  = requested absolute error
+#     releps  = requested relative error
+#
+#     HYPGF calculates one solution to Gauss's hypergeometric differential
+#     equation:
+#
+#     x*(1-x)Y''(x)+[c-(a+b+1)*x]*Y'(x)-a*b*Y(x) = 0
+#     where
+#     F(a,b,c,x) = Y1(x) = 1 + a*b*x/c + a*(a+1)*b*(b+1)*x^2/(c*(c+1))+....
+#
+#
+#     Many elementary functions are special cases of F(a,b,c,x):
+#     1/(1-x) = F(1,1,1,x) = F(1,b,b,x) = F(a,1,a,x)
+#     (1+x)^n = F(-n,b,b,-x)
+#     atan(x) = x*F(.5,1,1.5,-x^2)
+#     asin(x) = x*F(.5,.5,1.5,x^2)
+#     log(x)  = x*F(1,1,2,-x)
+#     log(1+x)-log(1-x) = 2*x*F(.5,1,1.5,x^2)
+#
+#     NOTE: only real x, abs(x) < 1 and c~=0,-1,-2,... are allowed.
+#
+#     Examples:
+#     x = linspace(-.99,.99)';
+#     [Sn1,err1] = hypgf(1,1,1,x)
+#     plot(x,abs(Sn1-1./(1-x)),'b',x,err1,'r'),set(gca,'yscale','log')
+#     [Sn2,err2] = hypgf(.5,.5,1.5,x.^2);
+#     plot(x,abs(x.*Sn2-asin(x)),'b',x,abs(x.*err2),'r'),set(gca,'yscale','log')
+#
+#
+#     Reference:
+#     ---------
+#     Kreyszig, Erwin (1988)
+#     Advanced engineering mathematics
+#     John Wiley & Sons, sixth edition, pp 204.
+#     '''
+#     csize = common_shape(x, a, b, c)
+#     kmin = 2
+#     fsum = np.zeros(csize)
+#     delta = np.zeros(csize)
+#     err = np.zeros(csize)
+#
+#     ok = ~((np.round(c) == c & c <= 0) | np.abs(x) > 1)
+#     if np.any(~ok):
+#         warnings.warn('HYPGF', 'Illegal input: c = 0,-1,-2,... or abs(x)>1')
+#         fsum[~ok] = np.NaN
+#         err[~ok] = np.NaN
+#
+#     k0=find(ok & abs(x)==1);
+#     if any(k0)
+#         cmab = c(k0)-a(k0)-b(k0);
+#         fsum(k0) = exp(gammaln(c(k0))+gammaln(cmab)-...
+#                gammaln(c(k0)-a(k0))-gammaln(c(k0)-b(k0)));
+#         err(k0) = eps;
+#         k00 = find(real(cmab)<=0);
+#         if any(k00)
+#           err(k0(k00)) = nan;
+#           fsum(k0(k00)) = nan;
+#         end
+#     end
+#     k=find(ok & abs(x)<1);
+#       if any(k),
+#         delta(k) = ones(size(k));
+#         fsum(k)  = delta(k);
+#
+#         k1 = k;
+#         E = cell(1,3);
+#         E{3} = fsum(k);
+#         converge = 'n';
+#         for  ix=0:Kmax-1,
+#           delta(k1) = delta(k1).*((a(k1)+ix)./(ix+1)).*((b(k1)+ix)./(c(k1)+ ix)).*x(k1);
+#           fsum(k1) = fsum(k1)+delta(k1);
+#
+#           E(1:2) = E(2:3);
+#           E{3}   = fsum(k1);
+#
+#           if ix>Kmin
+#         if useDEA,
+#           [Sn, err(k1)] = dea3(E{:});
+#           k00 = find((abs(err(k1))) <= max(absEps,abs(relEps.*fsum(k1))));
+#           if any(k00)
+#             fsum(k1(k00)) = Sn(k00);
+#           end
+#           if (ix==Kmax-1)
+#             fsum(k1) = Sn;
+#           end
+#           k0 = (find((abs(err(k1))) > max(absEps,abs(relEps.*fsum(k1)))));
+#            if any(k0),% compute more terms
+#              %nk=length(k0);%# of values we have to compute again
+#              E{2} = E{2}(k0);
+#              E{3} = E{3}(k0);
+#            else
+#              converge='y';
+#              break;
+#            end
+#         else
+#           err(k1) = 10*abs(delta(k1));
+#            k0 = (find((abs(err(k1))) > max(absEps,abs(relEps.* ...
+#                                 fsum(k1)))));
+#            if any(k0),% compute more terms
+#              %nk=length(k0);%# of values we have to compute again
+#            else
+#              converge='y';
+#              break;
+#            end
+#         end
+#         k1 = k1(k0);
+#           end
+#         end
+#         if ~strncmpi(converge,'y',1)
+#           disp(sprintf('#%d values did not converge',length(k1)))
+#         end
+#       end
+#       %ix
+#       return
+
+
 def nextpow2(x):
     '''
     Return next higher power of 2
@@ -1761,8 +2357,6 @@ def _discretize_linear(fun, a, b, tol=0.005, n=5):
     '''
     Automatic discretization of function, linear gridding
     '''
-    tiny = floatinfo.tiny
-
     x = linspace(a, b, n)
     y = fun(x)
 
@@ -1777,7 +2371,7 @@ def _discretize_linear(fun, a, b, tol=0.005, n=5):
         x = linspace(a, b, n)
         y = fun(x)
         y00 = interp(x, x0, y0)
-        err = 0.5 * amax(abs((y00 - y) / (abs(y00 + y) + tiny)))
+        err = 0.5 * amax(abs((y00 - y) / (abs(y00 + y) + _TINY)))
     return x, y
 
 
@@ -1785,7 +2379,6 @@ def _discretize_adaptive(fun, a, b, tol=0.005, n=5):
     '''
     Automatic discretization of function, adaptive gridding.
     '''
-    tiny = floatinfo.tiny
     n += (mod(n, 2) == 0)  # make sure n is odd
     x = linspace(a, b, n)
     fx = fun(x)
@@ -1807,7 +2400,7 @@ def _discretize_adaptive(fun, a, b, tol=0.005, n=5):
             fy = fun(y)
 
             fy0 = interp(y, x, fx)
-            erri = 0.5 * (abs((fy0 - fy) / (abs(fy0 + fy) + tiny)))
+            erri = 0.5 * (abs((fy0 - fy) / (abs(fy0 + fy) + _TINY)))
 
             err = erri.max()
 
@@ -1865,125 +2458,6 @@ def cart2polar(x, y, z=None):
         return t, r
     else:
         return t, r, z
-
-
-def meshgrid(*xi, **kwargs):
-    """
-    Return coordinate matrices from one or more coordinate vectors.
-
-    Make N-D coordinate arrays for vectorized evaluations of
-    N-D scalar/vector fields over N-D grids, given
-    one-dimensional coordinate arrays x1, x2,..., xn.
-
-    Parameters
-    ----------
-    x1, x2,..., xn : array_like
-        1-D arrays representing the coordinates of a grid.
-    indexing : 'xy' or 'ij' (optional)
-        cartesian ('xy', default) or matrix ('ij') indexing of output
-    sparse : True or False (default) (optional)
-         If True a sparse grid is returned in order to conserve memory.
-    copy : True (default) or False (optional)
-        If False a view into the original arrays are returned in order to
-        conserve memory
-
-    Returns
-    -------
-    X1, X2,..., XN : ndarray
-        For vectors `x1`, `x2`,..., 'xn' with lengths ``Ni=len(xi)`` ,
-        return ``(N1, N2, N3,...Nn)`` shaped arrays if indexing='ij'
-        or ``(N2, N1, N3,...Nn)`` shaped arrays if indexing='xy'
-        with the elements of `xi` repeated to fill the matrix along
-        the first dimension for `x1`, the second for `x2` and so on.
-
-    See Also
-    --------
-    index_tricks.mgrid : Construct a multi-dimensional "meshgrid"
-                     using indexing notation.
-    index_tricks.ogrid : Construct an open multi-dimensional "meshgrid"
-                     using indexing notation.
-
-    Examples
-    --------
-    >>> x = np.linspace(0,1,3)   # coordinates along x axis
-    >>> y = np.linspace(0,1,2)   # coordinates along y axis
-    >>> xv, yv = meshgrid(x,y)   # extend x and y for a 2D xy grid
-    >>> xv
-    array([[ 0. ,  0.5,  1. ],
-           [ 0. ,  0.5,  1. ]])
-    >>> yv
-    array([[ 0.,  0.,  0.],
-           [ 1.,  1.,  1.]])
-    >>> xv, yv = meshgrid(x,y, sparse=True)  # make sparse output arrays
-    >>> xv
-    array([[ 0. ,  0.5,  1. ]])
-    >>> yv
-    array([[ 0.],
-           [ 1.]])
-
-    >>> meshgrid(x,y,sparse=True,indexing='ij')  # change to matrix indexing
-    [array([[ 0. ],
-           [ 0.5],
-           [ 1. ]]), array([[ 0.,  1.]])]
-    >>> meshgrid(x,y,indexing='ij')
-    [array([[ 0. ,  0. ],
-           [ 0.5,  0.5],
-           [ 1. ,  1. ]]), array([[ 0.,  1.],
-           [ 0.,  1.],
-           [ 0.,  1.]])]
-
-    >>> meshgrid(0,1,5)  # just a 3D point
-    [array([[[0]]]), array([[[1]]]), array([[[5]]])]
-    >>> map(np.squeeze,meshgrid(0,1,5))  # just a 3D point
-    [array(0), array(1), array(5)]
-    >>> meshgrid(3)
-    array([3])
-    >>> meshgrid(y)      # 1D grid y is just returned
-    array([ 0.,  1.])
-
-    `meshgrid` is very useful to evaluate functions on a grid.
-
-    >>> x = np.arange(-5, 5, 0.1)
-    >>> y = np.arange(-5, 5, 0.1)
-    >>> xx, yy = meshgrid(x, y, sparse=True)
-    >>> z = np.sin(xx**2+yy**2)/(xx**2+yy**2)
-    """
-    copy_ = kwargs.get('copy', True)
-    args = atleast_1d(*xi)
-    if not isinstance(args, list):
-        if args.size > 0:
-            return args.copy() if copy_ else args
-        else:
-            raise TypeError('meshgrid() take 1 or more arguments (0 given)')
-
-    sparse = kwargs.get('sparse', False)
-    indexing = kwargs.get('indexing', 'xy')  # 'ij'
-
-    ndim = len(args)
-    s0 = (1,) * ndim
-    output = [x.reshape(s0[:i] + (-1,) + s0[i + 1::])
-              for i, x in enumerate(args)]
-
-    shape = [x.size for x in output]
-
-    if indexing == 'xy':
-        # switch first and second axis
-        output[0].shape = (1, -1) + (1,) * (ndim - 2)
-        output[1].shape = (-1, 1) + (1,) * (ndim - 2)
-        shape[0], shape[1] = shape[1], shape[0]
-
-    if sparse:
-        if copy_:
-            return [x.copy() for x in output]
-        else:
-            return output
-    else:
-        # Return the full N-D matrix (not only the 1-D vector)
-        if copy_:
-            mult_fact = ones(shape, dtype=int)
-            return [x * mult_fact for x in output]
-        else:
-            return broadcast_arrays(*output)
 
 
 def ndgrid(*args, **kwargs):
@@ -2059,8 +2533,7 @@ def trangood(x, f, min_n=None, min_x=None, max_x=None, max_n=inf):
     xn = xo[-1]
     x0 = xo[0]
     L = float(xn - x0)
-    eps = floatinfo.eps
-    if ((nf < min_n) or (max_n < nf) or any(abs(ddx) > 10 * eps * (L))):
+    if ((nf < min_n) or (max_n < nf) or any(abs(ddx) > 10 * _EPS * (L))):
 # % pab 07.01.2001: Always choose the stepsize df so that
 # % it is an exactly representable number.
 # % This is important when calculating numerical derivatives and is
@@ -2140,8 +2613,6 @@ def tranproc(x, f, x0, *xi):
     --------
     trangood.
     """
-
-    eps = floatinfo.eps
     xo, fo, x0 = atleast_1d(x, f, x0)
     xi = atleast_1d(*xi)
     if not isinstance(xi, list):
@@ -2165,7 +2636,7 @@ def tranproc(x, f, x0, *xi):
     if N > 0:
         y = [y0]
         hn = xo[1] - xo[0]
-        if hn ** N < sqrt(eps):
+        if hn ** N < sqrt(_EPS):
             msg = ('Numerical problems may occur for the derivatives in ' +
             'tranproc.\nThe sampling of the transformation may be too small.')
             warnings.warn(msg)
@@ -2602,5 +3073,33 @@ def test_docstrings():
     import doctest
     doctest.testmod()
 
+
+def test_hyp2f1():
+    #     1/(1-x) = F(1,1,1,x) = F(1,b,b,x) = F(a,1,a,x)
+#     (1+x)^n = F(-n,b,b,-x)
+#     atan(x) = x*F(.5,1,1.5,-x^2)
+#     asin(x) = x*F(.5,.5,1.5,x^2)
+#     log(x)  = x*F(1,1,2,-x)
+#     log(1+x)-log(1-x) = 2*x*F(.5,1,1.5,x^2)
+    x = linspace(0., .7, 20)
+    y = hyp2f1_taylor(-1, -4, 1, .9)
+    y2 = hygfz(-1, -4, 1, .9)
+    y3 = hygfz(5, -300, 10, 0.5)
+    y4 = hyp2f1_taylor(5, -300, 10, 0.5)
+    #y = hyp2f1(0.1, 0.2, 0.3, 0.5)
+    #y = hyp2f1(1, 1.5, 3, -4 +3j)
+    #y = hyp2f1(5, 7.5, 2.5, 5)
+#     fun = lambda x : 1./(1-x)
+#     x = .99
+#     y = hyp2f1(1,1,1,x)
+#     print(y-fun(x))
+#
+    plt = plotbackend
+    plt.interactive(False)
+    plt.semilogy(x, np.abs(y- 1. / (1 - x)) + 1e-20, 'r')
+    plt.show()
+
+
 if __name__ == "__main__":
-    test_docstrings()
+    #test_docstrings()
+    test_hyp2f1()
