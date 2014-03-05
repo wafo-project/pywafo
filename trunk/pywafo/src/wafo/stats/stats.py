@@ -185,9 +185,9 @@ import numpy as np
 from . import futil
 from . import distributions
 try:
-    from ._rank import rankdata, tiecorrect
+    from scipy.stats._rank import rankdata, tiecorrect
 except:
-    rankdata=tiecorrect=None
+    rankdata = tiecorrect = None
 __all__ = ['find_repeats', 'gmean', 'hmean', 'mode',
            'tmean', 'tvar', 'tmin', 'tmax', 'tstd', 'tsem',
            'moment', 'variation', 'skew', 'kurtosis', 'describe',
@@ -257,12 +257,12 @@ def find_repeats(arr):
         (array([ 4., 5.]), array([2, 2], dtype=int32))
 
     """
-    v1,v2, n = futil.dfreps(arr)
-    return v1[:n],v2[:n]
+    v1, v2, n = futil.dfreps(arr)
+    return v1[:n], v2[:n]
 
-#######
-### NAN friendly functions
-########
+#
+# NAN friendly functions
+#
 
 
 def nanmean(x, axis=0):
@@ -387,8 +387,8 @@ def _nanmedian(arr1d):  # This only works on 1d arrays
     m : float
         The median.
     """
-    cond = 1-np.isnan(arr1d)
-    x = np.sort(np.compress(cond,arr1d,axis=-1))
+    cond = 1 - np.isnan(arr1d)
+    x = np.sort(np.compress(cond, arr1d, axis=-1))
     if x.size == 0:
         return np.nan
     return np.median(x)
@@ -451,9 +451,9 @@ def nanmedian(x, axis=0):
     return x
 
 
-#####################################
-########  CENTRAL TENDENCY  ########
-#####################################
+#
+# CENTRAL TENDENCY  ########
+#
 
 
 def gmean(a, axis=0, dtype=None):
@@ -498,10 +498,11 @@ def gmean(a, axis=0, dtype=None):
     arrays automatically mask any non-finite values.
 
     """
-    if not isinstance(a, np.ndarray):  # if not an ndarray object attempt to convert it
+    # if not an ndarray object attempt to convert it
+    if not isinstance(a, np.ndarray):
         log_a = np.log(np.array(a, dtype=dtype))
     elif dtype:  # Must change the default dtype allowing array type
-        if isinstance(a,np.ma.MaskedArray):
+        if isinstance(a, np.ma.MaskedArray):
             log_a = np.log(np.ma.asarray(a, dtype=dtype))
         else:
             log_a = np.log(np.asarray(a, dtype=dtype))
@@ -561,9 +562,10 @@ def hmean(a, axis=0, dtype=None):
                 size = a.shape[0]
             else:
                 size = a.shape[axis]
-        return size / np.sum(1.0/a, axis=axis, dtype=dtype)
+        return size / np.sum(1.0 / a, axis=axis, dtype=dtype)
     else:
-        raise ValueError("Harmonic mean only defined if all elements greater than zero")
+        raise ValueError(
+            "Harmonic mean only defined if all elements greater than zero")
 
 
 def mode(a, axis=0):
@@ -612,7 +614,7 @@ def mode(a, axis=0):
     oldcounts = np.zeros(testshape)
     for score in scores:
         template = (a == score)
-        counts = np.expand_dims(np.sum(template, axis),axis)
+        counts = np.expand_dims(np.sum(template, axis), axis)
         mostfrequent = np.where(counts > oldcounts, score, oldmostfreq)
         oldcounts = np.maximum(counts, oldcounts)
         oldmostfreq = mostfrequent
@@ -700,7 +702,7 @@ def tmean(a, limits=None, inclusive=(True, True)):
 
 def masked_var(am):
     m = am.mean()
-    s = ma.add.reduce((am - m)**2)
+    s = ma.add.reduce((am - m) ** 2)
     n = am.count() - 1.0
     return s / n
 
@@ -741,7 +743,7 @@ def tvar(a, limits=None, inclusive=(True, True)):
     a = a.astype(float).ravel()
     if limits is None:
         n = len(a)
-        return a.var()*(n/(n-1.))
+        return a.var() * (n / (n - 1.))
     am = mask_to_limits(a, limits, inclusive)
     return masked_var(am)
 
@@ -885,9 +887,9 @@ def tsem(a, limits=None, inclusive=(True, True)):
     return sd / np.sqrt(am.count())
 
 
-#####################################
-############  MOMENTS  #############
-#####################################
+#
+# MOMENTS  #############
+#
 
 def moment(a, moment=1, axis=0):
     """
@@ -926,8 +928,8 @@ def moment(a, moment=1, axis=0):
             # the input was 1D, so return a scalar instead of a rank-0 array
             return np.float64(0.0)
     else:
-        mn = np.expand_dims(np.mean(a,axis), axis)
-        s = np.power((a-mn), moment)
+        mn = np.expand_dims(np.mean(a, axis), axis)
+        s = np.power((a - mn), moment)
         return np.mean(s, axis)
 
 
@@ -951,7 +953,7 @@ def variation(a, axis=0):
 
     """
     a, axis = _chk_asarray(a, axis)
-    return a.std(axis)/a.mean(axis)
+    return a.std(axis) / a.mean(axis)
 
 
 def skew(a, axis=0, bias=True):
@@ -987,18 +989,18 @@ def skew(a, axis=0, bias=True):
        York. 2000.
 
     """
-    a, axis = _chk_asarray(a,axis)
+    a, axis = _chk_asarray(a, axis)
     n = a.shape[axis]
     m2 = moment(a, 2, axis)
     m3 = moment(a, 3, axis)
     zero = (m2 == 0)
-    vals = np.where(zero, 0, m3 / m2**1.5)
+    vals = np.where(zero, 0, m3 / m2 ** 1.5)
     if not bias:
         can_correct = (n > 2) & (m2 > 0)
         if can_correct.any():
             m2 = np.extract(can_correct, m2)
             m3 = np.extract(can_correct, m3)
-            nval = np.sqrt((n-1.0)*n)/(n-2.0)*m3/m2**1.5
+            nval = np.sqrt((n - 1.0) * n) / (n - 2.0) * m3 / m2 ** 1.5
             np.place(vals, can_correct, nval)
     if vals.ndim == 0:
         return vals.item()
@@ -1045,12 +1047,12 @@ def kurtosis(a, axis=0, fisher=True, bias=True):
     """
     a, axis = _chk_asarray(a, axis)
     n = a.shape[axis]
-    m2 = moment(a,2,axis)
-    m4 = moment(a,4,axis)
+    m2 = moment(a, 2, axis)
+    m4 = moment(a, 4, axis)
     zero = (m2 == 0)
     olderr = np.seterr(all='ignore')
     try:
-        vals = np.where(zero, 0, m4 / m2**2.0)
+        vals = np.where(zero, 0, m4 / m2 ** 2.0)
     finally:
         np.seterr(**olderr)
 
@@ -1059,8 +1061,10 @@ def kurtosis(a, axis=0, fisher=True, bias=True):
         if can_correct.any():
             m2 = np.extract(can_correct, m2)
             m4 = np.extract(can_correct, m4)
-            nval = 1.0/(n-2)/(n-3)*((n*n-1.0)*m4/m2**2.0-3*(n-1)**2.0)
-            np.place(vals, can_correct, nval+3.0)
+            nval = 1.0 / \
+                (n - 2) / (n - 3) * \
+                ((n * n - 1.0) * m4 / m2 ** 2.0 - 3 * (n - 1) ** 2.0)
+            np.place(vals, can_correct, nval + 3.0)
 
     if vals.ndim == 0:
         vals = vals.item()  # array scalar
@@ -1116,9 +1120,9 @@ def describe(a, axis=0):
     kurt = kurtosis(a, axis)
     return n, mm, m, v, sk, kurt
 
-#####################################
-########  NORMALITY TESTS  ##########
-#####################################
+#
+# NORMALITY TESTS  ##########
+#
 
 
 def skewtest(a, axis=0):
@@ -1206,17 +1210,20 @@ def kurtosistest(a, axis=0):
             "kurtosistest only valid for n>=20 ... continuing anyway, n=%i" %
             int(n))
     b2 = kurtosis(a, axis, fisher=False)
-    E = 3.0*(n-1) / (n+1)
-    varb2 = 24.0*n*(n-2)*(n-3) / ((n+1)*(n+1)*(n+3)*(n+5))
-    x = (b2-E)/np.sqrt(varb2)
-    sqrtbeta1 = 6.0*(n*n-5*n+2)/((n+7)*(n+9)) * np.sqrt((6.0*(n+3)*(n+5)) /
-                                                       (n*(n-2)*(n-3)))
-    A = 6.0 + 8.0/sqrtbeta1 * (2.0/sqrtbeta1 + np.sqrt(1+4.0/(sqrtbeta1**2)))
-    term1 = 1 - 2/(9.0*A)
-    denom = 1 + x*np.sqrt(2/(A-4.0))
+    E = 3.0 * (n - 1) / (n + 1)
+    varb2 = 24.0 * n * \
+        (n - 2) * (n - 3) / ((n + 1) * (n + 1) * (n + 3) * (n + 5))
+    x = (b2 - E) / np.sqrt(varb2)
+    sqrtbeta1 = 6.0 * (n * n - 5 * n + 2) / ((n + 7) * (n + 9)) * np.sqrt((6.0 * (n + 3) * (n + 5)) /
+                                                                         (n * (n - 2) * (n - 3)))
+    A = 6.0 + 8.0 / sqrtbeta1 * \
+        (2.0 / sqrtbeta1 + np.sqrt(1 + 4.0 / (sqrtbeta1 ** 2)))
+    term1 = 1 - 2 / (9.0 * A)
+    denom = 1 + x * np.sqrt(2 / (A - 4.0))
     denom = np.where(denom < 0, 99, denom)
-    term2 = np.where(denom < 0, term1, np.power((1-2.0/A)/denom,1/3.0))
-    Z = (term1 - term2) / np.sqrt(2/(9.0*A))
+    term2 = np.where(
+        denom < 0, term1, np.power((1 - 2.0 / A) / denom, 1 / 3.0))
+    Z = (term1 - term2) / np.sqrt(2 / (9.0 * A))
     Z = np.where(denom == 99, 0, Z)
     if Z.ndim == 0:
         Z = Z[()]
@@ -1261,10 +1268,10 @@ def normaltest(a, axis=0):
 
     """
     a, axis = _chk_asarray(a, axis)
-    s,p = skewtest(a,axis)
-    k,p = kurtosistest(a,axis)
-    k2 = s*s + k*k
-    return k2, chisqprob(k2,2)
+    s, _p = skewtest(a, axis)
+    k, _p = kurtosistest(a, axis)
+    k2 = s * s + k * k
+    return k2, chisqprob(k2, 2)
 
 
 def jarque_bera(x):
@@ -1315,17 +1322,18 @@ def jarque_bera(x):
 
     mu = x.mean()
     diffx = x - mu
-    skewness = (1 / n * np.sum(diffx**3)) / (1 / n * np.sum(diffx**2))**(3 / 2.)
-    kurtosis = (1 / n * np.sum(diffx**4)) / (1 / n * np.sum(diffx**2))**2
-    jb_value = n / 6 * (skewness**2 + (kurtosis - 3)**2 / 4)
+    skewness = (1 / n * np.sum(diffx ** 3)) / \
+        (1 / n * np.sum(diffx ** 2)) ** (3 / 2.)
+    kurtosis = (1 / n * np.sum(diffx ** 4)) / (1 / n * np.sum(diffx ** 2)) ** 2
+    jb_value = n / 6 * (skewness ** 2 + (kurtosis - 3) ** 2 / 4)
     p = 1 - distributions.chi2.cdf(jb_value, 2)
 
     return jb_value, p
 
 
-#####################################
-######  FREQUENCY FUNCTIONS  #######
-#####################################
+#
+# FREQUENCY FUNCTIONS  #######
+#
 
 def itemfreq(a):
     """
@@ -1368,7 +1376,7 @@ def itemfreq(a):
 
 
 def scoreatpercentile(a, per, limit=(), interpolation_method='fraction',
-        axis=None):
+                      axis=None):
     """
     Calculate the score at a given percentile of the input sequence.
 
@@ -1440,7 +1448,7 @@ def scoreatpercentile(a, per, limit=(), interpolation_method='fraction',
 def _compute_qth_percentile(sorted, per, interpolation_method, axis):
     if not np.isscalar(per):
         return [_compute_qth_percentile(sorted, i, interpolation_method, axis)
-             for i in per]
+                for i in per]
 
     if (per < 0) or (per > 100):
         raise ValueError("percentile must be in the range [0, 100]")
@@ -1597,10 +1605,11 @@ def histogram2(a, bins):
     # comment: probably obsoleted by numpy.histogram()
     n = np.searchsorted(np.sort(a), bins)
     n = np.concatenate([n, [len(a)]])
-    return n[1:]-n[:-1]
+    return n[1:] - n[:-1]
 
 
-def histogram(a, numbins=10, defaultlimits=None, weights=None, printextras=False):
+def histogram(a, numbins=10, defaultlimits=None, weights=None,
+              printextras=False):
     """
     Separates the range into several bins and returns the number of instances
     in each bin.
@@ -1714,9 +1723,9 @@ def cumfreq(a, numbins=10, defaultreallimits=None, weights=None):
     3
 
     """
-    h,l,b,e = histogram(a, numbins, defaultreallimits, weights=weights)
-    cumhist = np.cumsum(h*1, axis=0)
-    return cumhist,l,b,e
+    h, l, b, e = histogram(a, numbins, defaultreallimits, weights=weights)
+    cumhist = np.cumsum(h * 1, axis=0)
+    return cumhist, l, b, e
 
 
 def relfreq(a, numbins=10, defaultreallimits=None, weights=None):
@@ -1764,9 +1773,9 @@ def relfreq(a, numbins=10, defaultreallimits=None, weights=None):
     return h, l, b, e
 
 
-#####################################
-######  VARIABILITY FUNCTIONS  #####
-#####################################
+#
+# VARIABILITY FUNCTIONS  #####
+#
 
 def obrientransform(*args):
     """
@@ -1827,7 +1836,7 @@ def obrientransform(*args):
         a = np.asarray(arg)
         n = len(a)
         mu = np.mean(a)
-        sq = (a - mu)**2
+        sq = (a - mu) ** 2
         sumsq = sq.sum()
 
         # The O'Brien transform.
@@ -1879,7 +1888,7 @@ def signaltonoise(a, axis=0, ddof=0):
     a = np.asanyarray(a)
     m = a.mean(axis)
     sd = a.std(axis=axis, ddof=ddof)
-    return np.where(sd == 0, 0, m/sd)
+    return np.where(sd == 0, 0, m / sd)
 
 
 def sem(a, axis=0, ddof=1):
@@ -1927,7 +1936,7 @@ def sem(a, axis=0, ddof=1):
     """
     a, axis = _chk_asarray(a, axis)
     n = a.shape[axis]
-    s = np.std(a,axis=axis, ddof=ddof) / np.sqrt(n)  # JP check normalization
+    s = np.std(a, axis=axis, ddof=ddof) / np.sqrt(n)  # JP check normalization
     return s
 
 
@@ -1988,7 +1997,7 @@ def zscore(a, axis=0, ddof=0):
     sstd = a.std(axis=axis, ddof=ddof)
     if axis and mns.ndim < a.ndim:
         return ((a - np.expand_dims(mns, axis=axis)) /
-                 np.expand_dims(sstd,axis=axis))
+                np.expand_dims(sstd, axis=axis))
     else:
         return (a - mns) / sstd
 
@@ -2039,14 +2048,14 @@ def zmap(scores, compare, axis=0, ddof=0):
     sstd = compare.std(axis=axis, ddof=ddof)
     if axis and mns.ndim < compare.ndim:
         return ((scores - np.expand_dims(mns, axis=axis)) /
-                 np.expand_dims(sstd,axis=axis))
+                np.expand_dims(sstd, axis=axis))
     else:
         return (scores - mns) / sstd
 
 
-#####################################
-#######  TRIMMING FUNCTIONS  #######
-#####################################
+#
+# TRIMMING FUNCTIONS  #######
+#
 
 def threshold(a, threshmin=None, threshmax=None, newval=0):
     """
@@ -2150,10 +2159,10 @@ def sigmaclip(a, low=4., high=4.):
         c_std = c.std()
         c_mean = c.mean()
         size = c.size
-        critlower = c_mean - c_std*low
-        critupper = c_mean + c_std*high
+        critlower = c_mean - c_std * low
+        critupper = c_mean + c_std * high
         c = c[(c > critlower) & (c < critupper)]
-        delta = size-c.size
+        delta = size - c.size
     return c, critlower, critupper
 
 
@@ -2240,9 +2249,9 @@ def trim1(a, proportiontocut, tail='right'):
     a = asarray(a)
     if tail.lower() == 'right':
         lowercut = 0
-        uppercut = len(a) - int(proportiontocut*len(a))
+        uppercut = len(a) - int(proportiontocut * len(a))
     elif tail.lower() == 'left':
-        lowercut = int(proportiontocut*len(a))
+        lowercut = int(proportiontocut * len(a))
         uppercut = len(a)
 
     return a[lowercut:uppercut]
@@ -2421,7 +2430,7 @@ def pearsonr(x, y):
     n = len(x)
     mx = x.mean()
     my = y.mean()
-    xm, ym = x-mx, y-my
+    xm, ym = x - mx, y - my
     r_num = np.add.reduce(xm * ym)
     r_den = np.sqrt(ss(xm) * ss(ym))
     r = r_num / r_den
@@ -2429,12 +2438,12 @@ def pearsonr(x, y):
     # Presumably, if abs(r) > 1, then it is only some small artifact of floating
     # point arithmetic.
     r = max(min(r, 1.0), -1.0)
-    df = n-2
+    df = n - 2
     if abs(r) == 1.0:
         prob = 0.0
     else:
-        t_squared = r*r * (df / ((1.0 - r) * (1.0 + r)))
-        prob = betai(0.5*df, 0.5, df / (df + t_squared))
+        t_squared = r * r * (df / ((1.0 - r) * (1.0 + r)))
+        prob = betai(0.5 * df, 0.5, df / (df + t_squared))
     return r, prob
 
 
@@ -2497,7 +2506,8 @@ def fisher_exact(table, alternative='two-sided'):
 
     """
     hypergeom = distributions.hypergeom
-    c = np.asarray(table, dtype=np.int64)  # int32 is not enough for the algorithm
+    # int32 is not enough for the algorithm
+    c = np.asarray(table, dtype=np.int64)
     if not c.shape == (2, 2):
         raise ValueError("The input `table` must be of shape (2, 2).")
 
@@ -2509,14 +2519,14 @@ def fisher_exact(table, alternative='two-sided'):
         # the odds ratio is NaN.
         return np.nan, 1.0
 
-    if c[1,0] > 0 and c[0,1] > 0:
-        oddsratio = c[0,0] * c[1,1] / float(c[1,0] * c[0,1])
+    if c[1, 0] > 0 and c[0, 1] > 0:
+        oddsratio = c[0, 0] * c[1, 1] / float(c[1, 0] * c[0, 1])
     else:
         oddsratio = np.inf
 
-    n1 = c[0,0] + c[0,1]
-    n2 = c[1,0] + c[1,1]
-    n = c[0,0] + c[1,0]
+    n1 = c[0, 0] + c[0, 1]
+    n2 = c[1, 0] + c[1, 1]
+    n = c[0, 0] + c[1, 0]
 
     def binary_search(n, n1, n2, side):
         """Binary search for where to begin lower/upper halves in two-sided
@@ -2560,28 +2570,28 @@ def fisher_exact(table, alternative='two-sided'):
         return guess
 
     if alternative == 'less':
-        pvalue = hypergeom.cdf(c[0,0], n1 + n2, n1, n)
+        pvalue = hypergeom.cdf(c[0, 0], n1 + n2, n1, n)
     elif alternative == 'greater':
         # Same formula as the 'less' case, but with the second column.
-        pvalue = hypergeom.cdf(c[0,1], n1 + n2, n1, c[0,1] + c[1,1])
+        pvalue = hypergeom.cdf(c[0, 1], n1 + n2, n1, c[0, 1] + c[1, 1])
     elif alternative == 'two-sided':
         mode = int(float((n + 1) * (n1 + 1)) / (n1 + n2 + 2))
-        pexact = hypergeom.pmf(c[0,0], n1 + n2, n1, n)
+        pexact = hypergeom.pmf(c[0, 0], n1 + n2, n1, n)
         pmode = hypergeom.pmf(mode, n1 + n2, n1, n)
 
         epsilon = 1 - 1e-4
         if float(np.abs(pexact - pmode)) / np.abs(np.max(pexact, pmode)) <= 1 - epsilon:
             return oddsratio, 1.
 
-        elif c[0,0] < mode:
-            plower = hypergeom.cdf(c[0,0], n1 + n2, n1, n)
+        elif c[0, 0] < mode:
+            plower = hypergeom.cdf(c[0, 0], n1 + n2, n1, n)
             if hypergeom.pmf(n, n1 + n2, n1, n) > pexact / epsilon:
                 return oddsratio, plower
 
             guess = binary_search(n, n1, n2, "upper")
             pvalue = plower + hypergeom.sf(guess - 1, n1 + n2, n1, n)
         else:
-            pupper = hypergeom.sf(c[0,0] - 1, n1 + n2, n1, n)
+            pupper = hypergeom.sf(c[0, 0] - 1, n1 + n2, n1, n)
             if hypergeom.pmf(0, n1 + n2, n1, n) > pexact / epsilon:
                 return oddsratio, pupper
 
@@ -2691,24 +2701,24 @@ def spearmanr(a, b=None, axis=0):
 
     """
     a, axisout = _chk_asarray(a, axis)
-    ar = np.apply_along_axis(rankdata,axisout,a)
+    ar = np.apply_along_axis(rankdata, axisout, a)
 
     br = None
     if not b is None:
         b, axisout = _chk_asarray(b, axis)
-        br = np.apply_along_axis(rankdata,axisout,b)
+        br = np.apply_along_axis(rankdata, axisout, b)
     n = a.shape[axisout]
-    rs = np.corrcoef(ar,br,rowvar=axisout)
+    rs = np.corrcoef(ar, br, rowvar=axisout)
 
     olderr = np.seterr(divide='ignore')  # rs can have elements equal to 1
     try:
-        t = rs * np.sqrt((n-2) / ((rs+1.0)*(1.0-rs)))
+        t = rs * np.sqrt((n - 2) / ((rs + 1.0) * (1.0 - rs)))
     finally:
         np.seterr(**olderr)
-    prob = distributions.t.sf(np.abs(t),n-2)*2
+    prob = distributions.t.sf(np.abs(t), n - 2) * 2
 
-    if rs.shape == (2,2):
-        return rs[1,0], prob[1,0]
+    if rs.shape == (2, 2):
+        return rs[1, 0], prob[1, 0]
     else:
         return rs, prob
 
@@ -2770,13 +2780,13 @@ def pointbiserialr(x, y):
     y1m = y1.mean()
 
     # phat - phat**2 is more stable than phat*(1-phat)
-    rpb = (y1m - y0m) * np.sqrt(phat - phat**2) / y.std()
+    rpb = (y1m - y0m) * np.sqrt(phat - phat ** 2) / y.std()
 
-    df = n-2
+    df = n - 2
     # fixme: see comment about TINY in pearsonr()
     TINY = 1e-20
-    t = rpb*np.sqrt(df/((1.0-rpb+TINY)*(1.0+rpb+TINY)))
-    prob = betai(0.5*df, 0.5, df/(df+t*t))
+    t = rpb * np.sqrt(df / ((1.0 - rpb + TINY) * (1.0 + rpb + TINY)))
+    prob = betai(0.5 * df, 0.5, df / (df + t * t))
     return rpb, prob
 
 
@@ -2851,11 +2861,11 @@ def kendalltau(x, y, initial_lexsort=True):
         if length == 1:
             return 0
         if length == 2:
-            if y[perm[offs]] <= y[perm[offs+1]]:
+            if y[perm[offs]] <= y[perm[offs + 1]]:
                 return 0
             t = perm[offs]
-            perm[offs] = perm[offs+1]
-            perm[offs+1] = t
+            perm[offs] = perm[offs + 1]
+            perm[offs + 1] = t
             return 1
         length0 = length // 2
         length1 = length - length0
@@ -2868,7 +2878,7 @@ def kendalltau(x, y, initial_lexsort=True):
         i = j = k = 0
         while j < length0 or k < length1:
             if k >= length1 or (j < length0 and y[perm[offs + j]] <=
-                                                y[perm[middle + k]]):
+                                y[perm[middle + k]]):
                 temp[i] = perm[offs + j]
                 d = i - j
                 j += 1
@@ -2879,7 +2889,7 @@ def kendalltau(x, y, initial_lexsort=True):
             if d > 0:
                 exchcnt += d
             i += 1
-        perm[offs:offs+length] = temp[0:length]
+        perm[offs:offs + length] = temp[0:length]
         return exchcnt
 
     # initial sort on values of x and, if tied, on values of y
@@ -2903,7 +2913,7 @@ def kendalltau(x, y, initial_lexsort=True):
     # compute ties in x
     first = 0
     u = 0
-    for i in xrange(1,n):
+    for i in xrange(1, n):
         if x[perm[first]] != x[perm[i]]:
             u += ((i - first) * (i - first - 1)) // 2
             first = i
@@ -2914,7 +2924,7 @@ def kendalltau(x, y, initial_lexsort=True):
     # compute ties in y after mergesort with counting
     first = 0
     v = 0
-    for i in xrange(1,n):
+    for i in xrange(1, n):
         if y[perm[first]] != y[perm[i]]:
             v += ((i - first) * (i - first - 1)) // 2
             first = i
@@ -2995,13 +3005,13 @@ def linregress(x, y=None):
         x = asarray(x)
         y = asarray(y)
     n = len(x)
-    xmean = np.mean(x,None)
-    ymean = np.mean(y,None)
+    xmean = np.mean(x, None)
+    ymean = np.mean(y, None)
 
     # average sum of squares:
     ssxm, ssxym, ssyxm, ssym = np.cov(x, y, bias=1).flat
     r_num = ssxym
-    r_den = np.sqrt(ssxm*ssym)
+    r_den = np.sqrt(ssxm * ssym)
     if r_den == 0.0:
         r = 0.0
     else:
@@ -3012,18 +3022,18 @@ def linregress(x, y=None):
         elif (r < -1.0):
             r = -1.0
 
-    df = n-2
-    t = r*np.sqrt(df/((1.0-r+TINY)*(1.0+r+TINY)))
-    prob = distributions.t.sf(np.abs(t),df)*2
+    df = n - 2
+    t = r * np.sqrt(df / ((1.0 - r + TINY) * (1.0 + r + TINY)))
+    prob = distributions.t.sf(np.abs(t), df) * 2
     slope = r_num / ssxm
-    intercept = ymean - slope*xmean
-    sterrest = np.sqrt((1-r*r)*ssym / ssxm / df)
+    intercept = ymean - slope * xmean
+    sterrest = np.sqrt((1 - r * r) * ssym / ssxm / df)
     return slope, intercept, r, prob, sterrest
 
 
-#####################################
-#####  INFERENTIAL STATISTICS  #####
-#####################################
+#
+# INFERENTIAL STATISTICS  #####
+#
 
 def ttest_1samp(a, popmean, axis=0):
     """
@@ -3093,9 +3103,10 @@ def ttest_1samp(a, popmean, axis=0):
     return t, prob
 
 
-def _ttest_finish(df,t):
+def _ttest_finish(df, t):
     """Common code between all 3 t-test functions."""
-    prob = distributions.t.sf(np.abs(t), df) * 2  # use np.abs to get upper tail
+    # use np.abs to get upper tail
+    prob = distributions.t.sf(np.abs(t), df) * 2
     if t.ndim == 0:
         t = t[()]
 
@@ -3206,7 +3217,8 @@ def ttest_ind(a, b, axis=0, equal_var=True):
     else:
         vn1 = v1 / n1
         vn2 = v2 / n2
-        df = ((vn1 + vn2)**2) / ((vn1**2) / (n1 - 1) + (vn2**2) / (n2 - 1))
+        df = ((vn1 + vn2) ** 2) / \
+            ((vn1 ** 2) / (n1 - 1) + (vn2 ** 2) / (n2 - 1))
 
         # If df is undefined, variances are zero (assumes n1 > 0 & n2 > 0).
         # Hence it doesn't matter what df is as long as it's not NaN.
@@ -3411,8 +3423,8 @@ def kstest(rvs, cdf, args=(), N=20, alternative='two-sided', mode='approx'):
     if isinstance(cdf, string_types):
         cdf = getattr(distributions, cdf).cdf
     if callable(rvs):
-        kwds = {'size':N}
-        vals = np.sort(rvs(*args,**kwds))
+        kwds = {'size': N}
+        vals = np.sort(rvs(*args, **kwds))
     else:
         vals = np.sort(rvs)
         N = len(vals)
@@ -3423,25 +3435,25 @@ def kstest(rvs, cdf, args=(), N=20, alternative='two-sided', mode='approx'):
         alternative = 'two-sided'
 
     if alternative in ['two-sided', 'greater']:
-        Dplus = (np.arange(1.0, N+1)/N - cdfvals).max()
+        Dplus = (np.arange(1.0, N + 1) / N - cdfvals).max()
         if alternative == 'greater':
-            return Dplus, distributions.ksone.sf(Dplus,N)
+            return Dplus, distributions.ksone.sf(Dplus, N)
 
     if alternative in ['two-sided', 'less']:
-        Dmin = (cdfvals - np.arange(0.0, N)/N).max()
+        Dmin = (cdfvals - np.arange(0.0, N) / N).max()
         if alternative == 'less':
-            return Dmin, distributions.ksone.sf(Dmin,N)
+            return Dmin, distributions.ksone.sf(Dmin, N)
 
     if alternative == 'two-sided':
-        D = np.max([Dplus,Dmin])
+        D = np.max([Dplus, Dmin])
         if mode == 'asymp':
-            return D, distributions.kstwobign.sf(D*np.sqrt(N))
+            return D, distributions.kstwobign.sf(D * np.sqrt(N))
         if mode == 'approx':
-            pval_two = distributions.kstwobign.sf(D*np.sqrt(N))
-            if N > 2666 or pval_two > 0.80 - N*0.3/1000.0:
-                return D, distributions.kstwobign.sf(D*np.sqrt(N))
+            pval_two = distributions.kstwobign.sf(D * np.sqrt(N))
+            if N > 2666 or pval_two > 0.80 - N * 0.3 / 1000.0:
+                return D, distributions.kstwobign.sf(D * np.sqrt(N))
             else:
-                return D, distributions.ksone.sf(D,N)*2
+                return D, distributions.ksone.sf(D, N) * 2
 
 
 # Map from names to lambda_ values used in power_divergence().
@@ -3451,7 +3463,7 @@ _power_div_lambda_names = {
     "freeman-tukey": -0.5,
     "mod-log-likelihood": -1,
     "neyman": -2,
-    "cressie-read": 2/3,
+    "cressie-read": 2 / 3,
 }
 
 
@@ -3634,7 +3646,7 @@ def power_divergence(f_obs, f_exp=None, ddof=0, axis=0, lambda_=None):
         if lambda_ not in _power_div_lambda_names:
             names = repr(list(_power_div_lambda_names.keys()))[1:-1]
             raise ValueError("invalid string for lambda_: {0!r}.  Valid strings "
-                "are {1}".format(lambda_, names))
+                             "are {1}".format(lambda_, names))
         lambda_ = _power_div_lambda_names[lambda_]
     elif lambda_ is None:
         lambda_ = 1
@@ -3662,7 +3674,7 @@ def power_divergence(f_obs, f_exp=None, ddof=0, axis=0, lambda_=None):
     # cases of lambda_.
     if lambda_ == 1:
         # Pearson's chi-squared statistic
-        terms = (f_obs - f_exp)**2 / f_exp
+        terms = (f_obs - f_exp) ** 2 / f_exp
     elif lambda_ == 0:
         # Log-likelihood ratio (i.e. G-test)
         terms = 2.0 * special.xlogy(f_obs, f_obs / f_exp)
@@ -3671,7 +3683,7 @@ def power_divergence(f_obs, f_exp=None, ddof=0, axis=0, lambda_=None):
         terms = 2.0 * special.xlogy(f_exp, f_exp / f_obs)
     else:
         # General Cressie-Read power divergence.
-        terms = f_obs * ((f_obs / f_exp)**lambda_ - 1)
+        terms = f_obs * ((f_obs / f_exp) ** lambda_ - 1)
         terms /= 0.5 * lambda_ * (lambda_ + 1)
 
     stat = terms.sum(axis=axis)
@@ -3861,20 +3873,20 @@ def ks_2samp(data1, data2):
 
     """
     data1, data2 = map(asarray, (data1, data2))
-    n1 = data1.shape[0]
-    n2 = data2.shape[0]
+    #n1 = data1.shape[0]
+    #n2 = data2.shape[0]
     n1 = len(data1)
     n2 = len(data2)
     data1 = np.sort(data1)
     data2 = np.sort(data2)
-    data_all = np.concatenate([data1,data2])
-    cdf1 = np.searchsorted(data1,data_all,side='right')/(1.0*n1)
-    cdf2 = (np.searchsorted(data2,data_all,side='right'))/(1.0*n2)
-    d = np.max(np.absolute(cdf1-cdf2))
+    data_all = np.concatenate([data1, data2])
+    cdf1 = np.searchsorted(data1, data_all, side='right') / (1.0 * n1)
+    cdf2 = (np.searchsorted(data2, data_all, side='right')) / (1.0 * n2)
+    d = np.max(np.absolute(cdf1 - cdf2))
     # Note: d absolute not signed distance
-    en = np.sqrt(n1*n2/float(n1+n2))
+    en = np.sqrt(n1 * n2 / float(n1 + n2))
     try:
-        prob = ksprob((en+0.12+0.11/en)*d)
+        prob = ksprob((en + 0.12 + 0.11 / en) * d)
     except:
         prob = 1.0
     return d, prob
@@ -3915,22 +3927,24 @@ def mannwhitneyu(x, y, use_continuity=True):
     y = asarray(y)
     n1 = len(x)
     n2 = len(y)
-    ranked = rankdata(np.concatenate((x,y)))
+    ranked = rankdata(np.concatenate((x, y)))
     rankx = ranked[0:n1]       # get the x-ranks
-    u1 = n1*n2 + (n1*(n1+1))/2.0 - np.sum(rankx,axis=0)  # calc U for x
-    u2 = n1*n2 - u1                            # remainder is U for y
-    bigu = max(u1,u2)
-    smallu = min(u1,u2)
+    # calc U for x
+    u1 = n1 * n2 + (n1 * (n1 + 1)) / 2.0 - np.sum(rankx, axis=0)
+    u2 = n1 * n2 - u1                            # remainder is U for y
+    bigu = max(u1, u2)
+    smallu = min(u1, u2)
     T = tiecorrect(ranked)
     if T == 0:
         raise ValueError('All numbers are identical in amannwhitneyu')
-    sd = np.sqrt(T*n1*n2*(n1+n2+1)/12.0)
+    sd = np.sqrt(T * n1 * n2 * (n1 + n2 + 1) / 12.0)
 
     if use_continuity:
         # normal approximation for prob calc with continuity correction
-        z = abs((bigu-0.5-n1*n2/2.0) / sd)
+        z = abs((bigu - 0.5 - n1 * n2 / 2.0) / sd)
     else:
-        z = abs((bigu-n1*n2/2.0) / sd)  # normal approximation for prob calc
+        # normal approximation for prob calc
+        z = abs((bigu - n1 * n2 / 2.0) / sd)
     return smallu, distributions.norm.sf(z)  # (1.0 - zprob(z))
 
 
@@ -3966,16 +3980,16 @@ def ranksums(x, y):
     .. [1] http://en.wikipedia.org/wiki/Wilcoxon_rank-sum_test
 
     """
-    x,y = map(np.asarray, (x, y))
+    x, y = map(np.asarray, (x, y))
     n1 = len(x)
     n2 = len(y)
-    alldata = np.concatenate((x,y))
+    alldata = np.concatenate((x, y))
     ranked = rankdata(alldata)
     x = ranked[:n1]
     y = ranked[n1:]
-    s = np.sum(x,axis=0)
-    expected = n1*(n1+n2+1) / 2.0
-    z = (s - expected) / np.sqrt(n1*n2*(n1+n2+1)/12.0)
+    s = np.sum(x, axis=0)
+    expected = n1 * (n1 + n2 + 1) / 2.0
+    z = (s - expected) / np.sqrt(n1 * n2 * (n1 + n2 + 1) / 12.0)
     prob = 2 * distributions.norm.sf(abs(z))
     return z, prob
 
@@ -4033,7 +4047,7 @@ def kruskal(*args):
     j = np.insert(np.cumsum(n), 0, 0)
     ssbn = 0
     for i in range(na):
-        ssbn += square_of_sums(ranked[j[i]:j[i+1]]) / float(n[i])
+        ssbn += square_of_sums(ranked[j[i]:j[i + 1]]) / float(n[i])
 
     totaln = np.sum(n)
     h = 12.0 / (totaln * (totaln + 1)) * ssbn - 3 * (totaln + 1)
@@ -4080,7 +4094,8 @@ def friedmanchisquare(*args):
     """
     k = len(args)
     if k < 3:
-        raise ValueError('\nLess than 3 levels.  Friedman test not appropriate.\n')
+        raise ValueError(
+            '\nLess than 3 levels.  Friedman test not appropriate.\n')
 
     n = len(args[0])
     for i in range(1, k):
@@ -4096,19 +4111,19 @@ def friedmanchisquare(*args):
     # Handle ties
     ties = 0
     for i in range(len(data)):
-        replist, repnum = find_repeats(array(data[i]))
+        _replist, repnum = find_repeats(array(data[i]))
         for t in repnum:
-            ties += t*(t*t-1)
-    c = 1 - ties / float(k*(k*k-1)*n)
+            ties += t * (t * t - 1)
+    c = 1 - ties / float(k * (k * k - 1) * n)
 
-    ssbn = pysum(pysum(data)**2)
-    chisq = (12.0 / (k*n*(k+1)) * ssbn - 3*n*(k+1)) / c
-    return chisq, chisqprob(chisq,k-1)
+    ssbn = pysum(pysum(data) ** 2)
+    chisq = (12.0 / (k * n * (k + 1)) * ssbn - 3 * n * (k + 1)) / c
+    return chisq, chisqprob(chisq, k - 1)
 
 
-#####################################
-####  PROBABILITY CALCULATIONS  ####
-#####################################
+#
+# PROBABILITY CALCULATIONS  ####
+#
 
 zprob = special.ndtr
 
@@ -4132,7 +4147,7 @@ def chisqprob(chisq, df):
         distribution with degrees of freedom `df`.
 
     """
-    return special.chdtrc(df,chisq)
+    return special.chdtrc(df, chisq)
 
 ksprob = special.kolmogorov
 fprob = special.fdtrc
@@ -4169,9 +4184,9 @@ def betai(a, b, x):
     return special.betainc(a, b, x)
 
 
-#####################################
-#######  ANOVA CALCULATIONS  #######
-#####################################
+#
+# ANOVA CALCULATIONS  #######
+#
 
 def f_value_wilks_lambda(ER, EF, dfnum, dfden, a, b):
     """Calculation of Wilks lambda F-statistic for multivarite data, per
@@ -4182,12 +4197,13 @@ def f_value_wilks_lambda(ER, EF, dfnum, dfden, a, b):
     if isinstance(EF, (int, float)):
         EF = array([[EF]])
     lmbda = linalg.det(EF) / linalg.det(ER)
-    if (a-1)**2 + (b-1)**2 == 5:
+    if (a - 1) ** 2 + (b - 1) ** 2 == 5:
         q = 1
     else:
-        q = np.sqrt(((a-1)**2*(b-1)**2 - 2) / ((a-1)**2 + (b-1)**2 - 5))
-    n_um = (1 - lmbda**(1.0/q))*(a-1)*(b-1)
-    d_en = lmbda**(1.0/q) / (n_um*q - 0.5*(a-1)*(b-1) + 1)
+        q = np.sqrt(
+            ((a - 1) ** 2 * (b - 1) ** 2 - 2) / ((a - 1) ** 2 + (b - 1) ** 2 - 5))
+    n_um = (1 - lmbda ** (1.0 / q)) * (a - 1) * (b - 1)
+    d_en = lmbda ** (1.0 / q) / (n_um * q - 0.5 * (a - 1) * (b - 1) + 1)
     return n_um / d_en
 
 
@@ -4216,7 +4232,7 @@ def f_value(ER, EF, dfR, dfF):
     F-statistic : float
 
     """
-    return ((ER-EF)/float(dfR-dfF) / (EF/float(dfF)))
+    return ((ER - EF) / float(dfR - dfF) / (EF / float(dfF)))
 
 
 def f_value_multivariate(ER, EF, dfnum, dfden):
@@ -4251,9 +4267,9 @@ def f_value_multivariate(ER, EF, dfnum, dfden):
     return n_um / d_en
 
 
-#####################################
-#######  SUPPORT FUNCTIONS  ########
-#####################################
+#
+# SUPPORT FUNCTIONS  ########
+#
 
 def ss(a, axis=0):
     """
@@ -4291,7 +4307,7 @@ def ss(a, axis=0):
 
     """
     a, axis = _chk_asarray(a, axis)
-    return np.sum(a*a, axis)
+    return np.sum(a * a, axis)
 
 
 def square_of_sums(a, axis=0):
@@ -4326,11 +4342,11 @@ def square_of_sums(a, axis=0):
 
     """
     a, axis = _chk_asarray(a, axis)
-    s = np.sum(a,axis)
+    s = np.sum(a, axis)
     if not np.isscalar(s):
-        return s.astype(float)*s
+        return s.astype(float) * s
     else:
-        return float(s)*s
+        return float(s) * s
 
 
 def fastsort(a):

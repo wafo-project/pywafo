@@ -11,11 +11,11 @@ import numpy
 import numpy as np
 
 import scipy.linalg
-import scipy.stats._multivariate
-from scipy.stats import multivariate_normal
-from scipy.stats import norm
+#import wafo.stats._multivariate
+from wafo.stats import multivariate_normal
+from wafo.stats import norm
 
-from scipy.stats._multivariate import _psd_pinv_decomposed_log_pdet
+from wafo.stats._multivariate import _psd_pinv_decomposed_log_pdet
 
 from scipy.integrate import romb
 
@@ -70,7 +70,7 @@ def test_large_pseudo_determinant():
     #assert_allclose(np.linalg.slogdet(cov[:npos, :npos]), (1, large_total_log))
 
     # Check the pseudo-determinant.
-    U, log_pdet = scipy.stats._multivariate._psd_pinv_decomposed_log_pdet(cov)
+    U, log_pdet = _psd_pinv_decomposed_log_pdet(cov)
     assert_allclose(log_pdet, large_total_log)
 
 

@@ -8,23 +8,25 @@ import math
 import warnings
 
 import numpy as np
-from numpy import (isscalar, r_, log, sum, around, unique, asarray,
-     zeros, arange, sort, amin, amax, any, atleast_1d, sqrt, ceil,
-     floor, array, poly1d, compress, not_equal, pi, exp, ravel, angle)
+from numpy import (isscalar, r_, log, sum, around, unique, asarray, zeros,
+                   arange, sort, amin, amax, any, atleast_1d, sqrt, ceil,
+                   floor, array, poly1d, compress, not_equal, pi, exp, ravel,
+                   angle)
 from numpy.testing.decorators import setastest
 
 from scipy.lib.six import string_types
 from scipy import optimize
 from scipy import special
-from . import statlib
-from . import stats
-from .stats import find_repeats
-from . import distributions
-from ._distn_infrastructure import rv_generic
+from wafo.stats import statlib
+from wafo.stats import stats
+from  wafo.stats.stats import find_repeats
+from wafo.stats import distributions
+from wafo.stats._distn_infrastructure import rv_generic
 
 
 __all__ = ['mvsdist',
-           'bayes_mvs', 'kstat', 'kstatvar', 'probplot', 'ppcc_max', 'ppcc_plot',
+           'bayes_mvs', 'kstat', 'kstatvar', 'probplot', 'ppcc_max',
+           'ppcc_plot',
            'boxcox_llf', 'boxcox', 'boxcox_normmax', 'boxcox_normplot',
            'shapiro', 'anderson', 'ansari', 'bartlett', 'levene', 'binom_test',
            'fligner', 'mood', 'wilcoxon',
@@ -78,7 +80,8 @@ def bayes_mvs(data, alpha=0.90):
     """
     res = mvsdist(data)
     if alpha >= 1 or alpha <= 0:
-        raise ValueError("0 < alpha < 1 is required, but alpha=%s was given." % alpha)
+        raise ValueError(
+            "0 < alpha < 1 is required, but alpha=%s was given." % alpha)
     return tuple((x.mean(), x.interval(alpha)) for x in res)
 
 
@@ -134,20 +137,21 @@ def mvsdist(data):
     xbar = x.mean()
     C = x.var()
     if (n > 1000):  # gaussian approximations for large n
-        mdist = distributions.norm(loc=xbar, scale=math.sqrt(C/n))
-        sdist = distributions.norm(loc=math.sqrt(C), scale=math.sqrt(C/(2.*n)))
-        vdist = distributions.norm(loc=C, scale=math.sqrt(2.0/n)*C)
+        mdist = distributions.norm(loc=xbar, scale=math.sqrt(C / n))
+        sdist = distributions.norm(
+            loc=math.sqrt(C), scale=math.sqrt(C / (2. * n)))
+        vdist = distributions.norm(loc=C, scale=math.sqrt(2.0 / n) * C)
     else:
-        nm1 = n-1
-        fac = n*C/2.
-        val = nm1/2.
-        mdist = distributions.t(nm1,loc=xbar,scale=math.sqrt(C/nm1))
-        sdist = distributions.gengamma(val,-2,scale=math.sqrt(fac))
-        vdist = distributions.invgamma(val,scale=fac)
+        nm1 = n - 1
+        fac = n * C / 2.
+        val = nm1 / 2.
+        mdist = distributions.t(nm1, loc=xbar, scale=math.sqrt(C / nm1))
+        sdist = distributions.gengamma(val, -2, scale=math.sqrt(fac))
+        vdist = distributions.invgamma(val, scale=fac)
     return mdist, vdist, sdist
 
 
-def kstat(data,n=2):
+def kstat(data, n=2):
     """
     Return the nth k-statistic (1<=n<=4 so far).
 
@@ -197,26 +201,26 @@ def kstat(data,n=2):
     if n > 4 or n < 1:
         raise ValueError("k-statistics only supported for 1<=n<=4")
     n = int(n)
-    S = zeros(n+1,'d')
+    S = zeros(n + 1, 'd')
     data = ravel(data)
     N = len(data)
-    for k in range(1,n+1):
-        S[k] = sum(data**k,axis=0)
+    for k in range(1, n + 1):
+        S[k] = sum(data ** k, axis=0)
     if n == 1:
-        return S[1]*1.0/N
+        return S[1] * 1.0 / N
     elif n == 2:
-        return (N*S[2]-S[1]**2.0)/(N*(N-1.0))
+        return (N * S[2] - S[1] ** 2.0) / (N * (N - 1.0))
     elif n == 3:
-        return (2*S[1]**3 - 3*N*S[1]*S[2]+N*N*S[3]) / (N*(N-1.0)*(N-2.0))
+        return (2 * S[1] ** 3 - 3 * N * S[1] * S[2] + N * N * S[3]) / (N * (N - 1.0) * (N - 2.0))
     elif n == 4:
-        return (-6*S[1]**4 + 12*N*S[1]**2 * S[2] - 3*N*(N-1.0)*S[2]**2 -
-                4*N*(N+1)*S[1]*S[3] + N*N*(N+1)*S[4]) / \
-                (N*(N-1.0)*(N-2.0)*(N-3.0))
+        return (-6 * S[1] ** 4 + 12 * N * S[1] ** 2 * S[2] - 3 * N * (N - 1.0) * S[2] ** 2 -
+                4 * N * (N + 1) * S[1] * S[3] + N * N * (N + 1) * S[4]) / \
+            (N * (N - 1.0) * (N - 2.0) * (N - 3.0))
     else:
         raise ValueError("Should not be here.")
 
 
-def kstatvar(data,n=2):
+def kstatvar(data, n=2):
     """
     Returns an unbiased estimator of the variance of the k-statistic.
 
@@ -242,11 +246,11 @@ def kstatvar(data,n=2):
     data = ravel(data)
     N = len(data)
     if n == 1:
-        return kstat(data,n=2)*1.0/N
+        return kstat(data, n=2) * 1.0 / N
     elif n == 2:
-        k2 = kstat(data,n=2)
-        k4 = kstat(data,n=4)
-        return (2*k2*k2*N + (N-1)*k4)/(N*(N+1))
+        k2 = kstat(data, n=2)
+        k4 = kstat(data, n=4)
+        return (2 * k2 * k2 * N + (N - 1) * k4) / (N * (N + 1))
     else:
         raise ValueError("Only n=1 or n=2 supported.")
 
@@ -255,7 +259,7 @@ def _calc_uniform_order_statistic_medians(x):
     """See Notes section of `probplot` for details."""
     N = len(x)
     osm_uniform = np.zeros(N, dtype=np.float64)
-    osm_uniform[-1] = 0.5**(1.0 / N)
+    osm_uniform[-1] = 0.5 ** (1.0 / N)
     osm_uniform[0] = 1 - osm_uniform[-1]
     i = np.arange(2, N)
     osm_uniform[1:-1] = (i - 0.3175) / (N + 0.365)
@@ -287,7 +291,7 @@ def _parse_dist_kw(dist, enforce_subclass=True):
             raise ValueError("%s is not a valid distribution name" % dist)
     elif enforce_subclass:
         msg = ("`dist` should be a stats.distributions instance or a string "
-              "with the name of such a distribution.")
+               "with the name of such a distribution.")
         raise ValueError(msg)
 
     return dist
@@ -418,10 +422,10 @@ def probplot(x, sparams=(), dist='norm', fit=True, plot=None):
     osr = sort(x)
     if fit or (plot is not None):
         # perform a linear fit.
-        slope, intercept, r, prob, sterrest = stats.linregress(osm, osr)
+        slope, intercept, r, _prob, _sterrest = stats.linregress(osm, osr)
 
     if plot is not None:
-        plot.plot(osm, osr, 'bo', osm, slope*osm + intercept, 'r-')
+        plot.plot(osm, osr, 'bo', osm, slope * osm + intercept, 'r-')
         try:
             if hasattr(plot, 'set_title'):
                 # Matplotlib Axes instance or something that looks like it
@@ -453,7 +457,7 @@ def probplot(x, sparams=(), dist='norm', fit=True, plot=None):
         return osm, osr
 
 
-def ppcc_max(x, brack=(0.0,1.0), dist='tukeylambda'):
+def ppcc_max(x, brack=(0.0, 1.0), dist='tukeylambda'):
     """Returns the shape parameter that maximizes the probability plot
     correlation coefficient for the given data to a one-parameter
     family of distributions.
@@ -470,13 +474,14 @@ def ppcc_max(x, brack=(0.0,1.0), dist='tukeylambda'):
     #  correlation
     def tempfunc(shape, mi, yvals, func):
         xvals = func(mi, shape)
-        r, prob = stats.pearsonr(xvals, yvals)
-        return 1-r
+        r, _prob = stats.pearsonr(xvals, yvals)
+        return 1 - r
 
-    return optimize.brent(tempfunc, brack=brack, args=(osm_uniform, osr, dist.ppf))
+    return optimize.brent(tempfunc, brack=brack,
+                          args=(osm_uniform, osr, dist.ppf))
 
 
-def ppcc_plot(x,a,b,dist='tukeylambda', plot=None, N=80):
+def ppcc_plot(x, a, b, dist='tukeylambda', plot=None, N=80):
     """Returns (shape, ppcc), and optionally plots shape vs. ppcc
     (probability plot correlation coefficient) as a function of shape
     parameter for a one-parameter family of distributions from shape
@@ -485,10 +490,10 @@ def ppcc_plot(x,a,b,dist='tukeylambda', plot=None, N=80):
     See also ppcc_max
     """
     svals = r_[a:b:complex(N)]
-    ppcc = svals*0.0
+    ppcc = svals * 0.0
     k = 0
     for sval in svals:
-        r1,r2 = probplot(x,sval,dist=dist,fit=1)
+        _r1, r2 = probplot(x, sval, dist=dist, fit=1)
         ppcc[k] = r2[-1]
         k += 1
     if plot is not None:
@@ -586,7 +591,7 @@ def boxcox_llf(lmb, data):
     y = boxcox(data, lmb)
     y_mean = np.mean(y, axis=0)
     llf = (lmb - 1) * np.sum(np.log(data), axis=0)
-    llf -= N / 2.0 * np.log(np.sum((y - y_mean)**2. / N, axis=0))
+    llf -= N / 2.0 * np.log(np.sum((y - y_mean) ** 2. / N, axis=0))
     return llf
 
 
@@ -719,7 +724,7 @@ def boxcox(x, lmbda=None, alpha=None):
         raise ValueError("Data must be positive.")
 
     if lmbda is not None:  # single transformation
-        return special.boxcox(x, lmbda)
+        return special.boxcox(x, lmbda)  # @UndefinedVariable
 
     # If lmbda=None, find the lmbda that maximizes the log-likelihood function.
     lmax = boxcox_normmax(x, method='mle')
@@ -810,7 +815,7 @@ def boxcox_normmax(x, brack=(-2.0, 2.0), method='pearsonr'):
             # correlation.
             y = boxcox(samps, lmbda)
             yvals = np.sort(y)
-            r, prob = stats.pearsonr(xvals, yvals)
+            r, _prob = stats.pearsonr(xvals, yvals)
             return 1 - r
 
         return optimize.brent(_eval_pearsonr, brack=brack, args=(xvals, x))
@@ -981,15 +986,15 @@ def shapiro(x, a=None, reta=False):
     if N < 3:
         raise ValueError("Data must be at least length 3.")
     if a is None:
-        a = zeros(N,'f')
+        a = zeros(N, 'f')
         init = 0
     else:
-        if len(a) != N//2:
+        if len(a) != N // 2:
             raise ValueError("len(a) must equal len(x)/2")
         init = 1
     y = sort(x)
-    a, w, pw, ifault = statlib.swilk(y, a[:N//2], init)
-    if not ifault in [0,2]:
+    a, w, pw, ifault = statlib.swilk(y, a[:N // 2], init)
+    if not ifault in [0, 2]:
         warnings.warn(str(ifault))
     if N > 5000:
         warnings.warn("p-value may not be accurate for N > 5000.")
@@ -1012,7 +1017,7 @@ _Avals_gumbel = array([0.474, 0.637, 0.757, 0.877, 1.038])
 _Avals_logistic = array([0.426, 0.563, 0.660, 0.769, 0.906, 1.010])
 
 
-def anderson(x,dist='norm'):
+def anderson(x, dist='norm'):
     """
     Anderson-Darling test for data coming from a particular distribution
 
@@ -1078,60 +1083,60 @@ def anderson(x,dist='norm'):
            pp. 591-595.
 
     """
-    if not dist in ['norm','expon','gumbel','extreme1','logistic']:
+    if not dist in ['norm', 'expon', 'gumbel', 'extreme1', 'logistic']:
         raise ValueError("Invalid distribution; dist must be 'norm', "
-                            "'expon', 'gumbel', 'extreme1' or 'logistic'.")
+                         "'expon', 'gumbel', 'extreme1' or 'logistic'.")
     y = sort(x)
     xbar = np.mean(x, axis=0)
     N = len(y)
     if dist == 'norm':
         s = np.std(x, ddof=1, axis=0)
-        w = (y-xbar)/s
+        w = (y - xbar) / s
         z = distributions.norm.cdf(w)
-        sig = array([15,10,5,2.5,1])
-        critical = around(_Avals_norm / (1.0 + 4.0/N - 25.0/N/N),3)
+        sig = array([15, 10, 5, 2.5, 1])
+        critical = around(_Avals_norm / (1.0 + 4.0 / N - 25.0 / N / N), 3)
     elif dist == 'expon':
         w = y / xbar
         z = distributions.expon.cdf(w)
-        sig = array([15,10,5,2.5,1])
-        critical = around(_Avals_expon / (1.0 + 0.6/N),3)
+        sig = array([15, 10, 5, 2.5, 1])
+        critical = around(_Avals_expon / (1.0 + 0.6 / N), 3)
     elif dist == 'logistic':
-        def rootfunc(ab,xj,N):
-            a,b = ab
-            tmp = (xj-a)/b
+        def rootfunc(ab, xj, N):
+            a, b = ab
+            tmp = (xj - a) / b
             tmp2 = exp(tmp)
-            val = [sum(1.0/(1+tmp2),axis=0)-0.5*N,
-                   sum(tmp*(1.0-tmp2)/(1+tmp2),axis=0)+N]
+            val = [sum(1.0 / (1 + tmp2), axis=0) - 0.5 * N,
+                   sum(tmp * (1.0 - tmp2) / (1 + tmp2), axis=0) + N]
             return array(val)
-        sol0 = array([xbar,np.std(x, ddof=1, axis=0)])
-        sol = optimize.fsolve(rootfunc,sol0,args=(x,N),xtol=1e-5)
-        w = (y-sol[0])/sol[1]
+        sol0 = array([xbar, np.std(x, ddof=1, axis=0)])
+        sol = optimize.fsolve(rootfunc, sol0, args=(x, N), xtol=1e-5)
+        w = (y - sol[0]) / sol[1]
         z = distributions.logistic.cdf(w)
-        sig = array([25,10,5,2.5,1,0.5])
-        critical = around(_Avals_logistic / (1.0+0.25/N),3)
+        sig = array([25, 10, 5, 2.5, 1, 0.5])
+        critical = around(_Avals_logistic / (1.0 + 0.25 / N), 3)
     else:  # (dist == 'gumbel') or (dist == 'extreme1'):
         # the following is incorrect, see ticket:1097
-##        def fixedsolve(th,xj,N):
+# def fixedsolve(th,xj,N):
 ##            val = stats.sum(xj)*1.0/N
 ##            tmp = exp(-xj/th)
 ##            term = sum(xj*tmp,axis=0)
 ##            term /= sum(tmp,axis=0)
-##            return val - term
+# return val - term
 ##        s = optimize.fixed_point(fixedsolve, 1.0, args=(x,N),xtol=1e-5)
 ##        xbar = -s*log(sum(exp(-x/s),axis=0)*1.0/N)
         xbar, s = distributions.gumbel_l.fit(x)
-        w = (y-xbar)/s
+        w = (y - xbar) / s
         z = distributions.gumbel_l.cdf(w)
-        sig = array([25,10,5,2.5,1])
-        critical = around(_Avals_gumbel / (1.0 + 0.2/sqrt(N)),3)
+        sig = array([25, 10, 5, 2.5, 1])
+        critical = around(_Avals_gumbel / (1.0 + 0.2 / sqrt(N)), 3)
 
-    i = arange(1,N+1)
-    S = sum((2*i-1.0)/N*(log(z)+log(1-z[::-1])),axis=0)
-    A2 = -N-S
+    i = arange(1, N + 1)
+    S = sum((2 * i - 1.0) / N * (log(z) + log(1 - z[::-1])), axis=0)
+    A2 = -N - S
     return A2, critical, sig
 
 
-def ansari(x,y):
+def ansari(x, y):
     """
     Perform the Ansari-Bradley test for equal scale parameters
 
@@ -1168,56 +1173,58 @@ def ansari(x,y):
            methods.  3rd ed. Chapman and Hall/CRC. 2001.  Section 5.8.2.
 
     """
-    x,y = asarray(x),asarray(y)
+    x, y = asarray(x), asarray(y)
     n = len(x)
     m = len(y)
     if m < 1:
         raise ValueError("Not enough other observations.")
     if n < 1:
         raise ValueError("Not enough test observations.")
-    N = m+n
-    xy = r_[x,y]  # combine
+    N = m + n
+    xy = r_[x, y]  # combine
     rank = stats.rankdata(xy)
-    symrank = amin(array((rank,N-rank+1)),0)
-    AB = sum(symrank[:n],axis=0)
+    symrank = amin(array((rank, N - rank + 1)), 0)
+    AB = sum(symrank[:n], axis=0)
     uxy = unique(xy)
     repeats = (len(uxy) != len(xy))
     exact = ((m < 55) and (n < 55) and not repeats)
     if repeats and ((m < 55) or (n < 55)):
         warnings.warn("Ties preclude use of exact statistic.")
     if exact:
-        astart, a1, ifault = statlib.gscale(n,m)
-        ind = AB-astart
-        total = sum(a1,axis=0)
-        if ind < len(a1)/2.0:
+        astart, a1, _ifault = statlib.gscale(n, m)
+        ind = AB - astart
+        total = sum(a1, axis=0)
+        if ind < len(a1) / 2.0:
             cind = int(ceil(ind))
             if (ind == cind):
-                pval = 2.0*sum(a1[:cind+1],axis=0)/total
+                pval = 2.0 * sum(a1[:cind + 1], axis=0) / total
             else:
-                pval = 2.0*sum(a1[:cind],axis=0)/total
+                pval = 2.0 * sum(a1[:cind], axis=0) / total
         else:
             find = int(floor(ind))
             if (ind == floor(ind)):
-                pval = 2.0*sum(a1[find:],axis=0)/total
+                pval = 2.0 * sum(a1[find:], axis=0) / total
             else:
-                pval = 2.0*sum(a1[find+1:],axis=0)/total
-        return AB, min(1.0,pval)
+                pval = 2.0 * sum(a1[find + 1:], axis=0) / total
+        return AB, min(1.0, pval)
 
     # otherwise compute normal approximation
     if N % 2:  # N odd
-        mnAB = n*(N+1.0)**2 / 4.0 / N
-        varAB = n*m*(N+1.0)*(3+N**2)/(48.0*N**2)
+        mnAB = n * (N + 1.0) ** 2 / 4.0 / N
+        varAB = n * m * (N + 1.0) * (3 + N ** 2) / (48.0 * N ** 2)
     else:
-        mnAB = n*(N+2.0)/4.0
-        varAB = m*n*(N+2)*(N-2.0)/48/(N-1.0)
+        mnAB = n * (N + 2.0) / 4.0
+        varAB = m * n * (N + 2) * (N - 2.0) / 48 / (N - 1.0)
     if repeats:   # adjust variance estimates
         # compute sum(tj * rj**2,axis=0)
-        fac = sum(symrank**2,axis=0)
+        fac = sum(symrank ** 2, axis=0)
         if N % 2:  # N odd
-            varAB = m*n*(16*N*fac-(N+1)**4)/(16.0 * N**2 * (N-1))
+            varAB = m * n * \
+                (16 * N * fac - (N + 1) ** 4) / (16.0 * N ** 2 * (N - 1))
         else:  # N even
-            varAB = m*n*(16*fac-N*(N+2)**2)/(16.0 * N * (N-1))
-    z = (AB - mnAB)/sqrt(varAB)
+            varAB = m * n * \
+                (16 * fac - N * (N + 2) ** 2) / (16.0 * N * (N - 1))
+    z = (AB - mnAB) / sqrt(varAB)
     pval = distributions.norm.sf(abs(z)) * 2.0
     return AB, pval
 
@@ -1255,20 +1262,21 @@ def bartlett(*args):
     if k < 2:
         raise ValueError("Must enter at least two input sample vectors.")
     Ni = zeros(k)
-    ssq = zeros(k,'d')
+    ssq = zeros(k, 'd')
     for j in range(k):
         Ni[j] = len(args[j])
         ssq[j] = np.var(args[j], ddof=1)
-    Ntot = sum(Ni,axis=0)
-    spsq = sum((Ni-1)*ssq,axis=0)/(1.0*(Ntot-k))
-    numer = (Ntot*1.0-k)*log(spsq) - sum((Ni-1.0)*log(ssq),axis=0)
-    denom = 1.0 + (1.0/(3*(k-1)))*((sum(1.0/(Ni-1.0),axis=0))-1.0/(Ntot-k))
+    Ntot = sum(Ni, axis=0)
+    spsq = sum((Ni - 1) * ssq, axis=0) / (1.0 * (Ntot - k))
+    numer = (Ntot * 1.0 - k) * log(spsq) - sum((Ni - 1.0) * log(ssq), axis=0)
+    denom = 1.0 + (1.0 / (3 * (k - 1))) * \
+        ((sum(1.0 / (Ni - 1.0), axis=0)) - 1.0 / (Ntot - k))
     T = numer / denom
-    pval = distributions.chi2.sf(T,k-1)  # 1 - cdf
+    pval = distributions.chi2.sf(T, k - 1)  # 1 - cdf
     return T, pval
 
 
-def levene(*args,**kwds):
+def levene(*args, **kwds):
     """
     Perform Levene test for equal variances.
 
@@ -1320,7 +1328,8 @@ def levene(*args,**kwds):
     proportiontocut = 0.05
     for kw, value in kwds.items():
         if kw not in ['center', 'proportiontocut']:
-            raise TypeError("levene() got an unexpected keyword argument '%s'" % kw)
+            raise TypeError(
+                "levene() got an unexpected keyword argument '%s'" % kw)
         if kw == 'center':
             center = value
         else:
@@ -1330,53 +1339,54 @@ def levene(*args,**kwds):
     if k < 2:
         raise ValueError("Must enter at least two input sample vectors.")
     Ni = zeros(k)
-    Yci = zeros(k,'d')
+    Yci = zeros(k, 'd')
 
-    if not center in ['mean','median','trimmed']:
+    if not center in ['mean', 'median', 'trimmed']:
         raise ValueError("Keyword argument <center> must be 'mean', 'median'"
-              + "or 'trimmed'.")
+                         + "or 'trimmed'.")
 
     if center == 'median':
         func = lambda x: np.median(x, axis=0)
     elif center == 'mean':
         func = lambda x: np.mean(x, axis=0)
     else:  # center == 'trimmed'
-        args = tuple(stats.trimboth(np.sort(arg), proportiontocut) for arg in args)
+        args = tuple(stats.trimboth(np.sort(arg), proportiontocut)
+                     for arg in args)
         func = lambda x: np.mean(x, axis=0)
 
     for j in range(k):
         Ni[j] = len(args[j])
         Yci[j] = func(args[j])
-    Ntot = sum(Ni,axis=0)
+    Ntot = sum(Ni, axis=0)
 
     # compute Zij's
-    Zij = [None]*k
+    Zij = [None] * k
     for i in range(k):
-        Zij[i] = abs(asarray(args[i])-Yci[i])
+        Zij[i] = abs(asarray(args[i]) - Yci[i])
     # compute Zbari
-    Zbari = zeros(k,'d')
+    Zbari = zeros(k, 'd')
     Zbar = 0.0
     for i in range(k):
         Zbari[i] = np.mean(Zij[i], axis=0)
-        Zbar += Zbari[i]*Ni[i]
+        Zbar += Zbari[i] * Ni[i]
     Zbar /= Ntot
 
-    numer = (Ntot-k)*sum(Ni*(Zbari-Zbar)**2,axis=0)
+    numer = (Ntot - k) * sum(Ni * (Zbari - Zbar) ** 2, axis=0)
 
     # compute denom_variance
     dvar = 0.0
     for i in range(k):
-        dvar += sum((Zij[i]-Zbari[i])**2,axis=0)
+        dvar += sum((Zij[i] - Zbari[i]) ** 2, axis=0)
 
-    denom = (k-1.0)*dvar
+    denom = (k - 1.0) * dvar
 
     W = numer / denom
-    pval = distributions.f.sf(W,k-1,Ntot-k)  # 1 - cdf
+    pval = distributions.f.sf(W, k - 1, Ntot - k)  # 1 - cdf
     return W, pval
 
 
 @setastest(False)
-def binom_test(x,n=None,p=0.5):
+def binom_test(x, n=None, p=0.5):
     """
     Perform a test that the probability of success is p.
 
@@ -1408,7 +1418,7 @@ def binom_test(x,n=None,p=0.5):
     """
     x = atleast_1d(x).astype(np.integer)
     if len(x) == 2:
-        n = x[1]+x[0]
+        n = x[1] + x[0]
         x = x[0]
     elif len(x) == 1:
         x = x[0]
@@ -1421,35 +1431,37 @@ def binom_test(x,n=None,p=0.5):
     if (p > 1.0) or (p < 0.0):
         raise ValueError("p must be in range [0,1]")
 
-    d = distributions.binom.pmf(x,n,p)
-    rerr = 1+1e-7
-    if (x == p*n):
+    d = distributions.binom.pmf(x, n, p)
+    rerr = 1 + 1e-7
+    if (x == p * n):
         # special case as shortcut, would also be handled by `else` below
         pval = 1.
-    elif (x < p*n):
-        i = np.arange(np.ceil(p*n),n+1)
-        y = np.sum(distributions.binom.pmf(i,n,p) <= d*rerr,axis=0)
-        pval = distributions.binom.cdf(x,n,p) + distributions.binom.sf(n-y,n,p)
+    elif (x < p * n):
+        i = np.arange(np.ceil(p * n), n + 1)
+        y = np.sum(distributions.binom.pmf(i, n, p) <= d * rerr, axis=0)
+        pval = distributions.binom.cdf(
+            x, n, p) + distributions.binom.sf(n - y, n, p)
     else:
-        i = np.arange(np.floor(p*n) + 1)
-        y = np.sum(distributions.binom.pmf(i,n,p) <= d*rerr,axis=0)
-        pval = distributions.binom.cdf(y-1,n,p) + distributions.binom.sf(x-1,n,p)
+        i = np.arange(np.floor(p * n) + 1)
+        y = np.sum(distributions.binom.pmf(i, n, p) <= d * rerr, axis=0)
+        pval = distributions.binom.cdf(
+            y - 1, n, p) + distributions.binom.sf(x - 1, n, p)
 
-    return min(1.0,pval)
+    return min(1.0, pval)
 
 
-def _apply_func(x,g,func):
+def _apply_func(x, g, func):
     # g is list of indices into x
     #  separating x into different groups
     #  func should be applied over the groups
-    g = unique(r_[0,g,len(x)])
+    g = unique(r_[0, g, len(x)])
     output = []
-    for k in range(len(g)-1):
-        output.append(func(x[g[k]:g[k+1]]))
+    for k in range(len(g) - 1):
+        output.append(func(x[g[k]:g[k + 1]]))
     return asarray(output)
 
 
-def fligner(*args,**kwds):
+def fligner(*args, **kwds):
     """
     Perform Fligner's test for equal variances.
 
@@ -1498,7 +1510,8 @@ def fligner(*args,**kwds):
     proportiontocut = 0.05
     for kw, value in kwds.items():
         if kw not in ['center', 'proportiontocut']:
-            raise TypeError("fligner() got an unexpected keyword argument '%s'" % kw)
+            raise TypeError(
+                "fligner() got an unexpected keyword argument '%s'" % kw)
         if kw == 'center':
             center = value
         else:
@@ -1508,9 +1521,9 @@ def fligner(*args,**kwds):
     if k < 2:
         raise ValueError("Must enter at least two input sample vectors.")
 
-    if not center in ['mean','median','trimmed']:
+    if not center in ['mean', 'median', 'trimmed']:
         raise ValueError("Keyword argument <center> must be 'mean', 'median'"
-              + "or 'trimmed'.")
+                         + "or 'trimmed'.")
 
     if center == 'median':
         func = lambda x: np.median(x, axis=0)
@@ -1522,9 +1535,9 @@ def fligner(*args,**kwds):
 
     Ni = asarray([len(args[j]) for j in range(k)])
     Yci = asarray([func(args[j]) for j in range(k)])
-    Ntot = sum(Ni,axis=0)
+    Ntot = sum(Ni, axis=0)
     # compute Zij's
-    Zij = [abs(asarray(args[i])-Yci[i]) for i in range(k)]
+    Zij = [abs(asarray(args[i]) - Yci[i]) for i in range(k)]
     allZij = []
     g = [0]
     for i in range(k):
@@ -1532,14 +1545,14 @@ def fligner(*args,**kwds):
         g.append(len(allZij))
 
     ranks = stats.rankdata(allZij)
-    a = distributions.norm.ppf(ranks/(2*(Ntot+1.0)) + 0.5)
+    a = distributions.norm.ppf(ranks / (2 * (Ntot + 1.0)) + 0.5)
 
     # compute Aibar
-    Aibar = _apply_func(a,g,sum) / Ni
+    Aibar = _apply_func(a, g, sum) / Ni
     anbar = np.mean(a, axis=0)
-    varsq = np.var(a,axis=0, ddof=1)
-    Xsq = sum(Ni*(asarray(Aibar)-anbar)**2.0,axis=0)/varsq
-    pval = distributions.chi2.sf(Xsq,k-1)  # 1 - cdf
+    varsq = np.var(a, axis=0, ddof=1)
+    Xsq = sum(Ni * (asarray(Aibar) - anbar) ** 2.0, axis=0) / varsq
+    pval = distributions.chi2.sf(Xsq, k - 1)  # 1 - cdf
     return Xsq, pval
 
 
@@ -1618,7 +1631,8 @@ def mood(x, y, axis=0):
         axis = 0
 
     # Determine shape of the result arrays
-    res_shape = tuple([x.shape[ax] for ax in range(len(x.shape)) if ax != axis])
+    res_shape = tuple([x.shape[ax]
+                      for ax in range(len(x.shape)) if ax != axis])
     if not (res_shape == tuple([y.shape[ax] for ax in range(len(y.shape)) if
                                 ax != axis])):
         raise ValueError("Dimensions of x and y on all axes except `axis` "
@@ -1728,14 +1742,16 @@ def wilcoxon(x, y=None, zero_method="wilcox", correction=False):
         x, y = map(asarray, (x, y))
         if len(x) != len(y):
             raise ValueError('Unequal N in wilcoxon.  Aborting.')
-        d = x-y
+        d = x - y
 
     if zero_method == "wilcox":
-        d = compress(not_equal(d, 0), d, axis=-1)  # Keep all non-zero differences
+        # Keep all non-zero differences
+        d = compress(not_equal(d, 0), d, axis=-1)
 
     count = len(d)
     if (count < 10):
-        warnings.warn("Warning: sample size too small for normal approximation.")
+        warnings.warn(
+            "Warning: sample size too small for normal approximation.")
     r = stats.rankdata(abs(d))
     r_plus = sum((d > 0) * r, axis=0)
     r_minus = sum((d < 0) * r, axis=0)
@@ -1746,13 +1762,13 @@ def wilcoxon(x, y=None, zero_method="wilcox", correction=False):
         r_minus += r_zero / 2.
 
     T = min(r_plus, r_minus)
-    mn = count*(count + 1.) * 0.25
-    se = count*(count + 1.) * (2. * count + 1.)
+    mn = count * (count + 1.) * 0.25
+    se = count * (count + 1.) * (2. * count + 1.)
 
     if zero_method == "pratt":
         r = r[d != 0]
 
-    replist, repnum = find_repeats(r)
+    _replist, repnum = find_repeats(r)
     if repnum.size != 0:
         # Correction for repeated elements.
         se -= 0.5 * (repnum * (repnum * repnum - 1)).sum()
@@ -1770,35 +1786,35 @@ def _hermnorm(N):
     #  using the recursive relationship
     #  p_n+1 = p_n(x)' - x*p_n(x)
     #   and p_0(x) = 1
-    plist = [None]*N
+    plist = [None] * N
     plist[0] = poly1d(1)
-    for n in range(1,N):
-        plist[n] = plist[n-1].deriv() - poly1d([1,0])*plist[n-1]
+    for n in range(1, N):
+        plist[n] = plist[n - 1].deriv() - poly1d([1, 0]) * plist[n - 1]
     return plist
 
 
-def pdf_fromgamma(g1,g2,g3=0.0,g4=None):
+def pdf_fromgamma(g1, g2, g3=0.0, g4=None):
     if g4 is None:
-        g4 = 3*g2*g2
-    sigsq = 1.0/g2
+        g4 = 3 * g2 * g2
+    sigsq = 1.0 / g2
     sig = sqrt(sigsq)
-    mu = g1*sig**3.0
+    mu = g1 * sig ** 3.0
     p12 = _hermnorm(13)
     for k in range(13):
-        p12[k] = p12[k]/sig**k
+        p12[k] = p12[k] / sig ** k
 
     # Add all of the terms to polynomial
-    totp = p12[0] - (g1/6.0*p12[3]) + \
-           (g2/24.0*p12[4] + g1*g1/72.0*p12[6]) - \
-           (g3/120.0*p12[5] + g1*g2/144.0*p12[7] + g1**3.0/1296.0*p12[9]) + \
-           (g4/720*p12[6] + (g2*g2/1152.0+g1*g3/720)*p12[8] +
-            g1*g1*g2/1728.0*p12[10] + g1**4.0/31104.0*p12[12])
+    totp = p12[0] - (g1 / 6.0 * p12[3]) + \
+        (g2 / 24.0 * p12[4] + g1 * g1 / 72.0 * p12[6]) - \
+        (g3 / 120.0 * p12[5] + g1 * g2 / 144.0 * p12[7] + g1 ** 3.0 / 1296.0 * p12[9]) + \
+        (g4 / 720 * p12[6] + (g2 * g2 / 1152.0 + g1 * g3 / 720) * p12[8] +
+            g1 * g1 * g2 / 1728.0 * p12[10] + g1 ** 4.0 / 31104.0 * p12[12])
     # Final normalization
-    totp = totp / sqrt(2*pi)/sig
+    totp = totp / sqrt(2 * pi) / sig
 
     def thefunc(x):
-        xn = (x-mu)/sig
-        return totp(xn)*exp(-xn*xn/2.0)
+        xn = (x - mu) / sig
+        return totp(xn) * exp(-xn * xn / 2.0)
     return thefunc
 
 
@@ -1807,11 +1823,11 @@ def _circfuncs_common(samples, high, low):
     if samples.size == 0:
         return np.nan, np.nan
 
-    ang = (samples - low)*2*pi / (high-low)
+    ang = (samples - low) * 2 * pi / (high - low)
     return samples, ang
 
 
-def circmean(samples, high=2*pi, low=0, axis=None):
+def circmean(samples, high=2 * pi, low=0, axis=None):
     """
     Compute the circular mean for samples in a range.
 
@@ -1834,17 +1850,17 @@ def circmean(samples, high=2*pi, low=0, axis=None):
 
     """
     samples, ang = _circfuncs_common(samples, high, low)
-    res = angle(np.mean(exp(1j*ang), axis=axis))
+    res = angle(np.mean(exp(1j * ang), axis=axis))
     mask = res < 0
     if (mask.ndim > 0):
-        res[mask] += 2*pi
+        res[mask] += 2 * pi
     elif mask:
-        res = res + 2*pi
+        res = res + 2 * pi
 
-    return res*(high-low)/2.0/pi + low
+    return res * (high - low) / 2.0 / pi + low
 
 
-def circvar(samples, high=2*pi, low=0, axis=None):
+def circvar(samples, high=2 * pi, low=0, axis=None):
     """
     Compute the circular variance for samples assumed to be in a range
 
@@ -1872,12 +1888,12 @@ def circvar(samples, high=2*pi, low=0, axis=None):
 
     """
     samples, ang = _circfuncs_common(samples, high, low)
-    res = np.mean(exp(1j*ang), axis=axis)
+    res = np.mean(exp(1j * ang), axis=axis)
     R = abs(res)
-    return ((high-low)/2.0/pi)**2 * 2 * log(1/R)
+    return ((high - low) / 2.0 / pi) ** 2 * 2 * log(1 / R)
 
 
-def circstd(samples, high=2*pi, low=0, axis=None):
+def circstd(samples, high=2 * pi, low=0, axis=None):
     """
     Compute the circular standard deviation for samples assumed to be in the
     range [low to high].
@@ -1907,13 +1923,13 @@ def circstd(samples, high=2*pi, low=0, axis=None):
 
     """
     samples, ang = _circfuncs_common(samples, high, low)
-    res = np.mean(exp(1j*ang), axis=axis)
+    res = np.mean(exp(1j * ang), axis=axis)
     R = abs(res)
-    return ((high-low)/2.0/pi) * sqrt(-2*log(R))
+    return ((high - low) / 2.0 / pi) * sqrt(-2 * log(R))
 
 
 # Tests to include (from R) -- some of these already in stats.
-########
+#
 # X Ansari-Bradley
 # X Bartlett (and Levene)
 # X Binomial

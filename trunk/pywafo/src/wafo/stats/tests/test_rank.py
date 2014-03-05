@@ -4,7 +4,7 @@ import numpy as np
 from numpy.testing import TestCase, run_module_suite, assert_equal, \
     assert_array_equal
 
-from scipy.stats import rankdata, tiecorrect
+from wafo.stats import rankdata, tiecorrect
 
 
 class TestTieCorrect(TestCase):
