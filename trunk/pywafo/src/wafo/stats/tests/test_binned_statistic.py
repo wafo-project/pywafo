@@ -19,7 +19,7 @@ class TestBinnedStatistic(object):
         x = self.x
         v = self.v
 
-        count1, edges1, bc = binned_statistic(x, v, 'count', bins=10)
+        count1, edges1, _bc = binned_statistic(x, v, 'count', bins=10)
         count2, edges2 = np.histogram(x, bins=10)
 
         assert_array_almost_equal(count1, count2)
@@ -29,7 +29,7 @@ class TestBinnedStatistic(object):
         x = self.x
         v = self.v
 
-        sum1, edges1, bc = binned_statistic(x, v, 'sum', bins=10)
+        sum1, edges1, _bc = binned_statistic(x, v, 'sum', bins=10)
         sum2, edges2 = np.histogram(x, bins=10, weights=v)
 
         assert_array_almost_equal(sum1, sum2)
@@ -39,8 +39,8 @@ class TestBinnedStatistic(object):
         x = self.x
         v = self.v
 
-        stat1, edges1, bc = binned_statistic(x, v, 'mean', bins=10)
-        stat2, edges2, bc = binned_statistic(x, v, np.mean, bins=10)
+        stat1, edges1, _bc = binned_statistic(x, v, 'mean', bins=10)
+        stat2, edges2, _bc = binned_statistic(x, v, np.mean, bins=10)
 
         assert_array_almost_equal(stat1, stat2)
         assert_array_almost_equal(edges1, edges2)
@@ -49,8 +49,8 @@ class TestBinnedStatistic(object):
         x = self.x
         v = self.v
 
-        stat1, edges1, bc = binned_statistic(x, v, 'std', bins=10)
-        stat2, edges2, bc = binned_statistic(x, v, np.std, bins=10)
+        stat1, edges1, _bc = binned_statistic(x, v, 'std', bins=10)
+        stat2, edges2, _bc = binned_statistic(x, v, np.std, bins=10)
 
         assert_array_almost_equal(stat1, stat2)
         assert_array_almost_equal(edges1, edges2)
@@ -59,8 +59,8 @@ class TestBinnedStatistic(object):
         x = self.x
         v = self.v
 
-        stat1, edges1, bc = binned_statistic(x, v, 'median', bins=10)
-        stat2, edges2, bc = binned_statistic(x, v, np.median, bins=10)
+        stat1, edges1, _bc = binned_statistic(x, v, 'median', bins=10)
+        stat2, edges2, _bc = binned_statistic(x, v, np.median, bins=10)
 
         assert_array_almost_equal(stat1, stat2)
         assert_array_almost_equal(edges1, edges2)
@@ -69,7 +69,7 @@ class TestBinnedStatistic(object):
         x = self.x[:20]
         v = self.v[:20]
 
-        count1, edges1, bc = binned_statistic(x, v, 'count', bins=3)
+        count1, _edges1, bc = binned_statistic(x, v, 'count', bins=3)
         bc2 = np.array([3, 2, 1, 3, 2, 3, 3, 3, 3, 1, 1, 3, 3, 1, 2, 3, 1,
                         1, 2, 1])
 
@@ -86,7 +86,7 @@ class TestBinnedStatistic(object):
 
         mean, bins, _ = binned_statistic(x[:15], data[:15])
         mean_range, bins_range, _ = binned_statistic(x, data, range=[(0, 14)])
-        mean_range2, bins_range2, _ = binned_statistic(x, data, range=(0, 14))
+        mean_range2, bins_range2, _ = binned_statistic(x, data, range=[(0, 14)])
 
         assert_array_almost_equal(mean, mean_range)
         assert_array_almost_equal(bins, bins_range)
@@ -98,7 +98,8 @@ class TestBinnedStatistic(object):
         y = self.y
         v = self.v
 
-        count1, binx1, biny1, bc = binned_statistic_2d(x, y, v, 'count', bins=5)
+        count1, binx1, biny1, _bc = binned_statistic_2d(x, y, v, 'count',
+                                                        bins=5)
         count2, binx2, biny2 = np.histogram2d(x, y, bins=5)
 
         assert_array_almost_equal(count1, count2)
@@ -110,7 +111,7 @@ class TestBinnedStatistic(object):
         y = self.y
         v = self.v
 
-        sum1, binx1, biny1, bc = binned_statistic_2d(x, y, v, 'sum', bins=5)
+        sum1, binx1, biny1, _bc = binned_statistic_2d(x, y, v, 'sum', bins=5)
         sum2, binx2, biny2 = np.histogram2d(x, y, bins=5, weights=v)
 
         assert_array_almost_equal(sum1, sum2)
@@ -122,8 +123,8 @@ class TestBinnedStatistic(object):
         y = self.y
         v = self.v
 
-        stat1, binx1, biny1, bc = binned_statistic_2d(x, y, v, 'mean', bins=5)
-        stat2, binx2, biny2, bc = binned_statistic_2d(x, y, v, np.mean, bins=5)
+        stat1, binx1, biny1, _b = binned_statistic_2d(x, y, v, 'mean', bins=5)
+        stat2, binx2, biny2, _b = binned_statistic_2d(x, y, v, np.mean, bins=5)
 
         assert_array_almost_equal(stat1, stat2)
         assert_array_almost_equal(binx1, binx2)
@@ -134,8 +135,8 @@ class TestBinnedStatistic(object):
         y = self.y
         v = self.v
 
-        stat1, binx1, biny1, bc = binned_statistic_2d(x, y, v, 'std', bins=5)
-        stat2, binx2, biny2, bc = binned_statistic_2d(x, y, v, np.std, bins=5)
+        stat1, binx1, biny1, _bc = binned_statistic_2d(x, y, v, 'std', bins=5)
+        stat2, binx2, biny2, _bc = binned_statistic_2d(x, y, v, np.std, bins=5)
 
         assert_array_almost_equal(stat1, stat2)
         assert_array_almost_equal(binx1, binx2)
@@ -146,8 +147,9 @@ class TestBinnedStatistic(object):
         y = self.y
         v = self.v
 
-        stat1, binx1, biny1, bc = binned_statistic_2d(x, y, v, 'median', bins=5)
-        stat2, binx2, biny2, bc = binned_statistic_2d(x, y, v, np.median, bins=5)
+        stat1, binx1, biny1, _ = binned_statistic_2d(x, y, v, 'median', bins=5)
+        stat2, binx2, biny2, _ = binned_statistic_2d(x, y, v, np.median,
+                                                     bins=5)
 
         assert_array_almost_equal(stat1, stat2)
         assert_array_almost_equal(binx1, binx2)
@@ -158,7 +160,8 @@ class TestBinnedStatistic(object):
         y = self.y[:20]
         v = self.v[:20]
 
-        count1, binx1, biny1, bc = binned_statistic_2d(x, y, v, 'count', bins=3)
+        count1, _binx1, _biny1, bc = binned_statistic_2d(x, y, v, 'count',
+                                                         bins=3)
         bc2 = np.array([17, 11, 6, 16, 11, 17, 18, 17, 17, 7, 6, 18, 16,
                         6, 11, 16, 6, 6, 11, 8])
 
@@ -172,7 +175,7 @@ class TestBinnedStatistic(object):
         X = self.X
         v = self.v
 
-        count1, edges1, bc = binned_statistic_dd(X, v, 'count', bins=3)
+        count1, edges1, _bc = binned_statistic_dd(X, v, 'count', bins=3)
         count2, edges2 = np.histogramdd(X, bins=3)
 
         assert_array_almost_equal(count1, count2)
@@ -182,7 +185,7 @@ class TestBinnedStatistic(object):
         X = self.X
         v = self.v
 
-        sum1, edges1, bc = binned_statistic_dd(X, v, 'sum', bins=3)
+        sum1, edges1, _bc = binned_statistic_dd(X, v, 'sum', bins=3)
         sum2, edges2 = np.histogramdd(X, bins=3, weights=v)
 
         assert_array_almost_equal(sum1, sum2)
@@ -192,8 +195,8 @@ class TestBinnedStatistic(object):
         X = self.X
         v = self.v
 
-        stat1, edges1, bc = binned_statistic_dd(X, v, 'mean', bins=3)
-        stat2, edges2, bc = binned_statistic_dd(X, v, np.mean, bins=3)
+        stat1, edges1, _bc = binned_statistic_dd(X, v, 'mean', bins=3)
+        stat2, edges2, _bc = binned_statistic_dd(X, v, np.mean, bins=3)
 
         assert_array_almost_equal(stat1, stat2)
         assert_array_almost_equal(edges1, edges2)
@@ -202,8 +205,8 @@ class TestBinnedStatistic(object):
         X = self.X
         v = self.v
 
-        stat1, edges1, bc = binned_statistic_dd(X, v, 'std', bins=3)
-        stat2, edges2, bc = binned_statistic_dd(X, v, np.std, bins=3)
+        stat1, edges1, _bc = binned_statistic_dd(X, v, 'std', bins=3)
+        stat2, edges2, _bc = binned_statistic_dd(X, v, np.std, bins=3)
 
         assert_array_almost_equal(stat1, stat2)
         assert_array_almost_equal(edges1, edges2)
@@ -212,8 +215,8 @@ class TestBinnedStatistic(object):
         X = self.X
         v = self.v
 
-        stat1, edges1, bc = binned_statistic_dd(X, v, 'median', bins=3)
-        stat2, edges2, bc = binned_statistic_dd(X, v, np.median, bins=3)
+        stat1, edges1, _bc = binned_statistic_dd(X, v, 'median', bins=3)
+        stat2, edges2, _bc = binned_statistic_dd(X, v, np.median, bins=3)
 
         assert_array_almost_equal(stat1, stat2)
         assert_array_almost_equal(edges1, edges2)
@@ -222,7 +225,7 @@ class TestBinnedStatistic(object):
         X = self.X[:20]
         v = self.v[:20]
 
-        count1, edges1, bc = binned_statistic_dd(X, v, 'count', bins=3)
+        count1, _edges1, bc = binned_statistic_dd(X, v, 'count', bins=3)
         bc2 = np.array([63, 33, 86, 83, 88, 67, 57, 33, 42, 41, 82, 83, 92,
                         32, 36, 91, 43, 87, 81, 81])
 
