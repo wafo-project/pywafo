@@ -1639,7 +1639,10 @@ class genpareto_gen(rv_continuous):
         return exp(self._logpdf(x, c))
 
     def _logpdf(self, x, c):
-        return -(c + 1.) * self._log1pcx(x, c)
+        return _lazywhere((x == x) & (c != 0), (x, c),
+             lambda x, c: -special.xlog1py(c+1., c*x) / c,
+             -x)
+        #return -(c + 1.) * self._log1pcx(x, c)
 #         x1 = where((c == 0) & (x == inf), 0.0, x)
 #         cx = where((c == 0) & (x == inf), 0.0, c * x1)
 #         logpdf = where((cx == inf) | (cx == -1),
