@@ -23,7 +23,7 @@ from scipy import optimize
 from scipy import integrate
 
 # to approximate the pdf of a continuous distribution given its cdf
-from scipy.misc import comb, derivative
+from scipy.misc import comb, derivative  # @UnresolvedImport
 
 from numpy import (arange, putmask, ravel, take, ones, sum, shape,
                    product, reshape, zeros, floor, logical_and, log, sqrt, exp,
@@ -1553,7 +1553,7 @@ class rv_continuous(rv_generic):
             for item in ['callparams', 'default', 'before_notes']:
                 tempdict[item] = tempdict[item].replace(
                     "\n%(shapes)s : array_like\n    shape parameters", "")
-        for i in range(2):
+        for _i in range(2):
             if self.shapes is None:
                 # necessary because we use %(shapes)s in two forms (w w/o ", ")
                 self.__doc__ = self.__doc__.replace("%(shapes)s, ", "")
@@ -1954,12 +1954,39 @@ class rv_continuous(rv_generic):
         return output
 
     def link(self, x, logSF, theta, i):
-        ''' Return dist. par. no. i as function of quantile (x) and log survival probability (sf)
-            where
-            theta is the list containing all parameters including location and scale.
+        ''' 
+        Return theta[i] as function of quantile, survival probability and
+            theta[j] for j!=i.
+
+        Parameters
+        ----------
+        x : quantile
+        logSF : logarithm of the survival probability
+        theta : list
+            all distribution parameters including location and scale.
+
+        Returns
+        -------
+        theta[i] : real scalar
+            fixed distribution parameter theta[i] as function of x, logSF and
+            theta[j] where j != i.
+
+        LINK is a function connecting the fixed distribution parameter theta[i]
+        with the quantile (x) and the survival probability (SF) and the
+        remaining free distribution parameters theta[j] for j!=i, i.e.:
+            theta[i] = link(x, logSF, theta, i),
+        where logSF = log(Prob(X>x; theta)).
+
+        See also 
+        estimation.Profile
         '''
-        raise ValueError('Link function not implemented for the %s distribution' % self.name)
-        return None
+        return self._link(x, logSF, theta, i)
+
+    def _link(self, x, logSF, theta, i):
+        msg = ('Link function not implemented for the %s distribution' %
+               self.name)
+        raise NotImplementedError(msg)
+
 
     def _nnlf(self, x, *args):
         return -sum(self._logpdf(x, *args), axis=0)
@@ -3030,7 +3057,7 @@ class rv_discrete(rv_generic):
             for item in ['callparams', 'default', 'before_notes']:
                 tempdict[item] = tempdict[item].replace(
                     "\n%(shapes)s : array_like\n    shape parameters", "")
-        for i in range(2):
+        for _i in range(2):
             if self.shapes is None:
                 # necessary because we use %(shapes)s in two forms (w w/o ", ")
                 self.__doc__ = self.__doc__.replace("%(shapes)s, ", "")
@@ -3498,7 +3525,7 @@ class rv_discrete(rv_generic):
         else:
             invfac = 1.0
 
-        tot = 0.0
+        #tot = 0.0
         low, upp = self._ppf(0.001, *args), self._ppf(0.999, *args)
         low = max(min(-suppnmin, low), lb)
         upp = min(max(suppnmin, upp), ub)

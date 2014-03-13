@@ -36,10 +36,10 @@ from ._tukeylambda_stats import (tukeylambda_variance as _tlvar,
                                  tukeylambda_kurtosis as _tlkurt)
 
 from ._distn_infrastructure import (
-    rv_continuous, valarray,
-    _skew, _kurtosis, _lazywhere,
-    _ncx2_log_pdf, _ncx2_pdf, _ncx2_cdf,
-)
+        rv_continuous, valarray,
+        _skew, _kurtosis, _lazywhere,
+        _ncx2_log_pdf, _ncx2_pdf, _ncx2_cdf,
+        )
 
 from ._constants import _XMIN, _EULER, _ZETA3, _EPS
 
@@ -68,13 +68,11 @@ __all__ = [
 
 # Kolmogorov-Smirnov one-sided and two-sided test statistics
 class ksone_gen(rv_continuous):
-
     """General Kolmogorov-Smirnov one-sided test.
 
     %(default)s
 
     """
-
     def _cdf(self, x, n):
         return 1.0 - special.smirnov(n, x)
 
@@ -84,13 +82,11 @@ ksone = ksone_gen(a=0.0, name='ksone')
 
 
 class kstwobign_gen(rv_continuous):
-
     """Kolmogorov-Smirnov two-sided test for large N.
 
     %(default)s
 
     """
-
     def _cdf(self, x):
         return 1.0 - special.kolmogorov(x)
 
@@ -144,7 +140,6 @@ def _norm_isf(q):
 
 
 class norm_gen(rv_continuous):
-
     """A normal continuous random variable.
 
     The location (loc) keyword specifies the mean.
@@ -161,7 +156,6 @@ class norm_gen(rv_continuous):
     %(example)s
 
     """
-
     def _rvs(self):
         return mtrand.standard_normal(self._size)
 
@@ -230,7 +224,6 @@ norm = norm_gen(name='norm')
 
 
 class alpha_gen(rv_continuous):
-
     """An alpha continuous random variable.
 
     %(before_notes)s
@@ -246,7 +239,6 @@ class alpha_gen(rv_continuous):
     %(example)s
 
     """
-
     def _pdf(self, x, a):
         return 1.0 / (x ** 2) / special.ndtr(a) * _norm_pdf(a - 1.0 / x)
 
@@ -265,7 +257,6 @@ alpha = alpha_gen(a=0.0, name='alpha')
 
 
 class anglit_gen(rv_continuous):
-
     """An anglit continuous random variable.
 
     %(before_notes)s
@@ -281,7 +272,6 @@ class anglit_gen(rv_continuous):
     %(example)s
 
     """
-
     def _pdf(self, x):
         return cos(2 * x)
 
@@ -301,7 +291,6 @@ anglit = anglit_gen(a=-pi / 4, b=pi / 4, name='anglit')
 
 
 class arcsine_gen(rv_continuous):
-
     """An arcsine continuous random variable.
 
     %(before_notes)s
@@ -316,7 +305,6 @@ class arcsine_gen(rv_continuous):
     %(example)s
 
     """
-
     def _pdf(self, x):
         return 1.0 / pi / sqrt(x * (1 - x))
 
@@ -342,7 +330,6 @@ class FitDataError(ValueError):
     # This exception is raised by, for example, beta_gen.fit when both floc
     # and fscale  are fixed and there are values in the data not in the open
     # interval (floc, floc+fscale).
-
     def __init__(self, distr, lower, upper):
         self.args = (
             "Invalid values in `data`.  Maximum likelihood "
@@ -355,7 +342,6 @@ class FitDataError(ValueError):
 class FitSolverError(RuntimeError):
     # This exception is raised by, for example, beta_gen.fit when
     # optimize.fsolve returns with ier != 1.
-
     def __init__(self, mesg):
         emsg = "Solver for the MLE equations failed to converge: "
         emsg += mesg.replace('\n', '')
@@ -386,7 +372,6 @@ def _beta_mle_ab(theta, n, s1, s2):
 
 
 class beta_gen(rv_continuous):
-
     """A beta continuous random variable.
 
     %(before_notes)s
@@ -403,7 +388,6 @@ class beta_gen(rv_continuous):
     %(example)s
 
     """
-
     def _rvs(self, a, b):
         return mtrand.beta(a, b, self._size)
 
@@ -546,7 +530,6 @@ beta = beta_gen(a=0.0, b=1.0, name='beta')
 
 
 class betaprime_gen(rv_continuous):
-
     """A beta prime continuous random variable.
 
     %(before_notes)s
@@ -563,7 +546,6 @@ class betaprime_gen(rv_continuous):
     %(example)s
 
     """
-
     def _rvs(self, a, b):
         u1 = gamma.rvs(a, size=self._size)
         u2 = gamma.rvs(b, size=self._size)
@@ -602,7 +584,6 @@ betaprime = betaprime_gen(a=0.0, name='betaprime')
 
 
 class bradford_gen(rv_continuous):
-
     """A Bradford continuous random variable.
 
     %(before_notes)s
@@ -618,7 +599,6 @@ class bradford_gen(rv_continuous):
     %(example)s
 
     """
-
     def _pdf(self, x, c):
         return c / (c * x + 1.0) / log1p(c)
 
@@ -662,7 +642,6 @@ bradford = bradford_gen(a=0.0, b=1.0, name='bradford')
 
 
 class burr_gen(rv_continuous):
-
     """A Burr continuous random variable.
 
     %(before_notes)s
@@ -682,7 +661,6 @@ class burr_gen(rv_continuous):
     %(example)s
 
     """
-
     def _pdf(self, x, c, d):
         return c * d * (x ** (-c - 1.0)) * ((1 + x ** (-c * 1.)) ** (-d - 1.))
 
@@ -699,7 +677,6 @@ burr = burr_gen(a=0.0, name='burr')
 
 
 class fisk_gen(burr_gen):
-
     """A Fisk continuous random variable.
 
     The Fisk distribution is also known as the log-logistic distribution, and
@@ -714,7 +691,6 @@ class fisk_gen(burr_gen):
     %(example)s
 
     """
-
     def _pdf(self, x, c):
         return burr_gen._pdf(self, x, c, 1.0)
 
@@ -734,7 +710,6 @@ fisk = fisk_gen(a=0.0, name='fisk')
 
 # median = loc
 class cauchy_gen(rv_continuous):
-
     """A Cauchy continuous random variable.
 
     %(before_notes)s
@@ -748,7 +723,6 @@ class cauchy_gen(rv_continuous):
     %(example)s
 
     """
-
     def _pdf(self, x):
         return 1.0 / pi / (1.0 + x * x)
 
@@ -776,7 +750,6 @@ cauchy = cauchy_gen(name='cauchy')
 
 
 class chi_gen(rv_continuous):
-
     """A chi continuous random variable.
 
     %(before_notes)s
@@ -831,7 +804,6 @@ chi = chi_gen(a=0.0, name='chi')
 
 # Chi-squared (gamma-distributed with loc=0 and scale=2 and shape=df/2)
 class chi2_gen(rv_continuous):
-
     """A chi-squared continuous random variable.
 
     %(before_notes)s
@@ -845,7 +817,6 @@ class chi2_gen(rv_continuous):
     %(example)s
 
     """
-
     def _rvs(self, df):
         return mtrand.chisquare(df, self._size)
 
@@ -885,7 +856,6 @@ chi2 = chi2_gen(a=0.0, name='chi2')
 
 
 class cosine_gen(rv_continuous):
-
     """A cosine continuous random variable.
 
     %(before_notes)s
@@ -902,7 +872,6 @@ class cosine_gen(rv_continuous):
     %(example)s
 
     """
-
     def _pdf(self, x):
         return 1.0 / 2 / pi * (1 + cos(x))
 
@@ -919,7 +888,6 @@ cosine = cosine_gen(a=-pi, b=pi, name='cosine')
 
 
 class dgamma_gen(rv_continuous):
-
     """A double gamma continuous random variable.
 
     %(before_notes)s
@@ -935,7 +903,6 @@ class dgamma_gen(rv_continuous):
     %(example)s
 
     """
-
     def _rvs(self, a):
         u = mtrand.random_sample(size=self._size)
         return (gamma.rvs(a, size=self._size) * where(u >= 0.5, 1, -1))
@@ -967,7 +934,6 @@ dgamma = dgamma_gen(name='dgamma')
 
 
 class dweibull_gen(rv_continuous):
-
     """A double Weibull continuous random variable.
 
     %(before_notes)s
@@ -981,7 +947,6 @@ class dweibull_gen(rv_continuous):
     %(example)s
 
     """
-
     def _rvs(self, c):
         u = mtrand.random_sample(size=self._size)
         return weibull_min.rvs(c, size=self._size) * (where(u >= 0.5, 1, -1))
@@ -1017,7 +982,6 @@ dweibull = dweibull_gen(name='dweibull')
 
 # Exponential (gamma distributed with a=1.0, loc=loc and scale=scale)
 class expon_gen(rv_continuous):
-
     """An exponential continuous random variable.
 
     %(before_notes)s
@@ -1038,28 +1002,13 @@ class expon_gen(rv_continuous):
 
     """
 
-    def link(self, x, logSF, phat, ix):
-        ''' Link for x,SF and parameters of Exponential distribution
-
-        CALL  phati = expon.link(x,logSF,phat,i)
-
-         phati = parameter i as function of x, logSF and phat(j) where j ~= i
-         x     = quantile
-         logSF  = logarithm of the survival probability
-
-        LINK is a function connecting the quantile (x) and the survival
-        probability (R) with the fixed distribution parameter, i.e.:
-        phat(i) = link(x,logSF,phat,i),
-        where logSF = log(Prob(X>x;phat)).
-
-        Example % See proflog
-
-        See also profile
-        '''
+    def _link(self, x, logSF, phat, ix):
         if ix == 1:
             return - (x - phat[0]) / logSF
         elif ix == 0:
             return x + phat[1] * logSF
+        else:
+            raise IndexError('Index to the fixed parameter is out of bounds')
 
     def _rvs(self):
         return mtrand.standard_exponential(self._size)
@@ -1094,7 +1043,6 @@ expon = expon_gen(a=0.0, name='expon')
 
 
 class exponweib_gen(rv_continuous):
-
     """An exponentiated Weibull continuous random variable.
 
     %(before_notes)s
@@ -1111,10 +1059,8 @@ class exponweib_gen(rv_continuous):
     %(example)s
 
     """
-
     def _pdf(self, x, a, c):
-        exc = exp(-x ** c)
-        return a * c * (1 - exc) ** asarray(a - 1) * exc * x ** (c - 1)
+        return exp(self._logpdf(x, a, c))
 
     def _logpdf(self, x, a, c):
         exc = exp(-x ** c)
@@ -1131,7 +1077,6 @@ exponweib = exponweib_gen(a=0.0, name='exponweib')
 
 
 class exponpow_gen(rv_continuous):
-
     """An exponential power continuous random variable.
 
     %(before_notes)s
@@ -1153,7 +1098,6 @@ class exponpow_gen(rv_continuous):
     %(example)s
 
     """
-
     def _pdf(self, x, b):
         xbm1 = x ** (b - 1.0)
         xb = xbm1 * x
@@ -1161,7 +1105,7 @@ class exponpow_gen(rv_continuous):
 
     def _logpdf(self, x, b):
         xb = x ** (b - 1.0) * x
-        return 1 + log(b) + (b - 1.0) * log(x) + xb - exp(xb)
+        return 1 + log(b) + special.xlogy(b - 1.0, x) + xb - exp(xb)
 
     def _cdf(self, x, b):
         return -expm1(-expm1(x ** b))
@@ -1178,7 +1122,6 @@ exponpow = exponpow_gen(a=0.0, name='exponpow')
 
 
 class fatiguelife_gen(rv_continuous):
-
     """A fatigue-life (Birnbaum-Sanders) continuous random variable.
 
     %(before_notes)s
@@ -1195,7 +1138,6 @@ class fatiguelife_gen(rv_continuous):
     %(example)s
 
     """
-
     def _rvs(self, c):
         z = mtrand.standard_normal(self._size)
         x = 0.5 * c * z
@@ -1234,7 +1176,6 @@ fatiguelife = fatiguelife_gen(a=0.0, name='fatiguelife')
 
 
 class foldcauchy_gen(rv_continuous):
-
     """A folded Cauchy continuous random variable.
 
     %(before_notes)s
@@ -1250,7 +1191,6 @@ class foldcauchy_gen(rv_continuous):
     %(example)s
 
     """
-
     def _rvs(self, c):
         return abs(cauchy.rvs(loc=c, size=self._size))
 
@@ -1266,7 +1206,6 @@ foldcauchy = foldcauchy_gen(a=0.0, name='foldcauchy')
 
 
 class f_gen(rv_continuous):
-
     """An F continuous random variable.
 
     %(before_notes)s
@@ -1284,7 +1223,6 @@ class f_gen(rv_continuous):
     %(example)s
 
     """
-
     def _rvs(self, dfn, dfd):
         return mtrand.f(dfn, dfd, self._size)
 
@@ -1358,7 +1296,6 @@ f = f_gen(a=0.0, name='f')
 # Half-normal is folded normal with shape-parameter c=0.
 
 class foldnorm_gen(rv_continuous):
-
     """A folded normal continuous random variable.
 
     %(before_notes)s
@@ -1374,7 +1311,6 @@ class foldnorm_gen(rv_continuous):
     %(example)s
 
     """
-
     def _argcheck(self, c):
         return (c >= 0)
 
@@ -1413,7 +1349,6 @@ foldnorm = foldnorm_gen(a=0.0, name='foldnorm')
 # a limiting value distribution.
 #
 class frechet_r_gen(rv_continuous):
-
     """A Frechet right (or Weibull minimum) continuous random variable.
 
     %(before_notes)s
@@ -1435,8 +1370,7 @@ class frechet_r_gen(rv_continuous):
 
     """
 
-    def link(self, x, logSF, phat, ix):
-        #u = phat[1]
+    def _link(self, x, logSF, phat, ix):
         if ix == 0:
             phati = log(-logSF) / log((x - phat[1]) / phat[2])
         elif ix == 1:
@@ -1451,7 +1385,7 @@ class frechet_r_gen(rv_continuous):
         return c * pow(x, c - 1) * exp(-pow(x, c))
 
     def _logpdf(self, x, c):
-        return log(c) + (c - 1) * log(x) - pow(x, c)
+        return log(c) + special.xlogy(c - 1, x) - pow(x, c)
 
     def _cdf(self, x, c):
         return -expm1(-pow(x, c))
@@ -1476,7 +1410,6 @@ weibull_min = frechet_r_gen(a=0.0, name='weibull_min')
 
 
 class frechet_l_gen(rv_continuous):
-
     """A Frechet left (or Weibull maximum) continuous random variable.
 
     %(before_notes)s
@@ -1497,7 +1430,6 @@ class frechet_l_gen(rv_continuous):
     %(example)s
 
     """
-
     def _pdf(self, x, c):
         return c * pow(-x, c - 1) * exp(-pow(-x, c))
 
@@ -1528,7 +1460,6 @@ weibull_max = frechet_l_gen(b=0.0, name='weibull_max')
 
 
 class genlogistic_gen(rv_continuous):
-
     """A generalized logistic continuous random variable.
 
     %(before_notes)s
@@ -1544,7 +1475,6 @@ class genlogistic_gen(rv_continuous):
     %(example)s
 
     """
-
     def _pdf(self, x, c):
         return exp(self._logpdf(x, c))
 
@@ -1580,7 +1510,6 @@ def log1pxdx(x):
 
 
 class genpareto_gen(rv_continuous):
-
     """A generalized Pareto continuous random variable.
 
     %(before_notes)s
@@ -1602,29 +1531,28 @@ class genpareto_gen(rv_continuous):
 
     """
 
-    def link(self, x, logSF, phat, ix):
+    def _link(self, x, logSF, phat, ix):
         # Reference
         # Stuart Coles (2004)
         # "An introduction to statistical modelling of extreme values".
         # Springer series in statistics
-
-        u = phat[1]
-        if ix == 0:
-            raise ValueError(
-                'link(x,logSF,phat,i) where i=0 is not implemented!')
-        elif ix == 2:
-            # Reorganizing w.r.t. phat[2] (scale), Eq. 4.13 and 4.14, pp 81 in
+        c, loc, scale = phat
+        if ix == 2:
+            # Reorganizing w.r.t.scale, Eq. 4.13 and 4.14, pp 81 in
             # Coles (2004) gives
-            #   link = -(x-phat[1]).*phat[0]/expm1(phat[0]*logSF)
-            if phat[0] != 0.0:
-                phati = (x - u) * phat[0] / expm1(-phat[0] * logSF)
+            #   link = -(x-loc)*c/expm1(-c*logSF)
+            if c != 0.0:
+                phati = (x - loc) * c / expm1(-c * logSF)
             else:
-                phati = -(x - u) / logSF
+                phati = -(x - loc) / logSF
         elif ix == 1:
-            if phat[0] != 0:
-                phati = x + phat[2] * expm1(phat[0] * logSF) / phat[0]
+            if c != 0:
+                phati = x + scale * expm1(c * logSF) / c
             else:
-                phati = x + phat(2) * logSF
+                phati = x + scale * logSF
+        elif ix == 0:
+            raise NotImplementedError(
+                'link(x,logSF,phat,i) where i=0 is not implemented!')
         else:
             raise IndexError('Index to the fixed parameter is out of bounds')
         return phati
@@ -1789,7 +1717,6 @@ genpareto = genpareto_gen(a=0.0, name='genpareto')
 
 
 class genexpon_gen(rv_continuous):
-
     """A generalized exponential continuous random variable.
 
     %(before_notes)s
@@ -1815,17 +1742,19 @@ class genexpon_gen(rv_continuous):
 
     """
 
-    def link(self, x, logSF, phat, ix):
-        xn = (x - phat[3]) / phat[4]
-        b = phat[1]
-        c = phat[2]
+    def _link(self, x, logSF, phat, ix):
+        _a, b, c, loc, scale = phat
+        xn = (x - loc) / scale
         fact1 = (xn + expm1(-c * xn) / c)
         if ix == 0:
             phati = b * fact1 + logSF
         elif ix == 1:
             phati = (phat[0] - logSF) / fact1
+        elif ix in [2, 3, 4]:
+            raise NotImplementedError('Only implemented for index in [0,1]!')
         else:
-            raise IndexError('Only implemented for ix in [1,2]!')
+            raise IndexError('Index to the fixed parameter is out of bounds')
+            
         return phati
 
     def _pdf(self, x, a, b, c):
@@ -1842,7 +1771,6 @@ genexpon = genexpon_gen(a=0.0, name='genexpon')
 
 
 class genextreme_gen(rv_continuous):
-
     """A generalized extreme value continuous random variable.
 
     %(before_notes)s
@@ -1863,7 +1791,6 @@ class genextreme_gen(rv_continuous):
     %(example)s
 
     """
-
     def _argcheck(self, c):
         min = np.minimum  # @ReservedAssignment
         max = np.maximum  # @ReservedAssignment
@@ -1903,9 +1830,9 @@ class genextreme_gen(rv_continuous):
 
     def _ppf(self, q, c):
         x = -log(-log(q))
-        return where((c == 0) * (x == x), x, -expm1(-c * x) / c)
-        # return _lazywhere((x==x) & (c != 0), (x, c),
-        #          lambda x, c: -expm1(-c*x) / c, x)
+        #return where((c == 0) * (x == x), x, -expm1(-c * x) / c)
+        return _lazywhere((x==x) & (c != 0), (x, c),
+                  lambda x, c: -expm1(-c*x) / c, x)
 
     def _stats(self, c):
         g = lambda n: gam(n * c + 1)
@@ -2006,7 +1933,6 @@ def _digammainv(y):
 # gamma(df/2, 0, 2) is the chi2 distribution with df degrees of freedom.
 
 class gamma_gen(rv_continuous):
-
     """A gamma continuous random variable.
 
     %(before_notes)s
@@ -2040,7 +1966,6 @@ class gamma_gen(rv_continuous):
     %(example)s
 
     """
-
     def _rvs(self, a):
         return mtrand.standard_gamma(a, self._size)
 
@@ -2141,7 +2066,6 @@ gamma = gamma_gen(a=0.0, name='gamma')
 
 
 class erlang_gen(gamma_gen):
-
     """An Erlang continuous random variable.
 
     %(before_notes)s
@@ -2201,7 +2125,6 @@ erlang = erlang_gen(a=0.0, name='erlang')
 
 
 class gengamma_gen(rv_continuous):
-
     """A generalized gamma continuous random variable.
 
     %(before_notes)s
@@ -2217,12 +2140,14 @@ class gengamma_gen(rv_continuous):
     %(example)s
 
     """
-
     def _argcheck(self, a, c):
         return (a > 0) & (c != 0)
 
     def _pdf(self, x, a, c):
-        return abs(c) * exp((c * a - 1) * log(x) - x ** c - gamln(a))
+        return exp(self._logpdf(x, a, c))
+
+    def _logpdf(self, x, a, c):
+        return log(abs(c)) + special.xlogy(c * a - 1, x) - x ** c - gamln(a)
 
     def _cdf(self, x, a, c):
         val = special.gammainc(a, x ** c)
@@ -2289,7 +2214,6 @@ genhalflogistic = genhalflogistic_gen(a=0.0, name='genhalflogistic')
 
 
 class gompertz_gen(rv_continuous):
-
     """A Gompertz (or truncated Gumbel) continuous random variable.
 
     %(before_notes)s
@@ -2305,7 +2229,6 @@ class gompertz_gen(rv_continuous):
     %(example)s
 
     """
-
     def _pdf(self, x, c):
         return exp(self._logpdf(x, c))
 
@@ -2324,7 +2247,6 @@ gompertz = gompertz_gen(a=0.0, name='gompertz')
 
 
 class gumbel_r_gen(rv_continuous):
-
     """A right-skewed Gumbel continuous random variable.
 
     %(before_notes)s
@@ -2346,7 +2268,6 @@ class gumbel_r_gen(rv_continuous):
     %(example)s
 
     """
-
     def _pdf(self, x):
         return exp(self._logpdf(x))
 
@@ -2372,7 +2293,6 @@ gumbel_r = gumbel_r_gen(name='gumbel_r')
 
 
 class gumbel_l_gen(rv_continuous):
-
     """A left-skewed Gumbel continuous random variable.
 
     %(before_notes)s
@@ -2394,7 +2314,6 @@ class gumbel_l_gen(rv_continuous):
     %(example)s
 
     """
-
     def _pdf(self, x):
         return exp(self._logpdf(x))
 
@@ -2417,7 +2336,6 @@ gumbel_l = gumbel_l_gen(name='gumbel_l')
 
 
 class halfcauchy_gen(rv_continuous):
-
     """A Half-Cauchy continuous random variable.
 
     %(before_notes)s
@@ -2433,7 +2351,6 @@ class halfcauchy_gen(rv_continuous):
     %(example)s
 
     """
-
     def _pdf(self, x):
         return 2.0 / pi / (1.0 + x * x)
 
@@ -2455,7 +2372,6 @@ halfcauchy = halfcauchy_gen(a=0.0, name='halfcauchy')
 
 
 class halflogistic_gen(rv_continuous):
-
     """A half-logistic continuous random variable.
 
     %(before_notes)s
@@ -2471,7 +2387,6 @@ class halflogistic_gen(rv_continuous):
     %(example)s
 
     """
-
     def _pdf(self, x):
         return exp(self._logpdf(x))
 
@@ -2502,7 +2417,6 @@ halflogistic = halflogistic_gen(a=0.0, name='halflogistic')
 
 
 class halfnorm_gen(rv_continuous):
-
     """A half-normal continuous random variable.
 
     %(before_notes)s
@@ -2520,7 +2434,6 @@ class halfnorm_gen(rv_continuous):
     %(example)s
 
     """
-
     def _rvs(self):
         return abs(mtrand.standard_normal(size=self._size))
 
@@ -2547,7 +2460,6 @@ halfnorm = halfnorm_gen(a=0.0, name='halfnorm')
 
 
 class hypsecant_gen(rv_continuous):
-
     """A hyperbolic secant continuous random variable.
 
     %(before_notes)s
@@ -2561,7 +2473,6 @@ class hypsecant_gen(rv_continuous):
     %(example)s
 
     """
-
     def _pdf(self, x):
         return 1.0 / (pi * cosh(x))
 
@@ -2580,7 +2491,6 @@ hypsecant = hypsecant_gen(name='hypsecant')
 
 
 class gausshyper_gen(rv_continuous):
-
     """A Gauss hypergeometric continuous random variable.
 
     %(before_notes)s
@@ -2598,7 +2508,6 @@ class gausshyper_gen(rv_continuous):
     %(example)s
 
     """
-
     def _argcheck(self, a, b, c, z):
         return (a > 0) & (b > 0) & (c == c) & (z == z)
 
@@ -2616,7 +2525,6 @@ gausshyper = gausshyper_gen(a=0.0, b=1.0, name='gausshyper')
 
 
 class invgamma_gen(rv_continuous):
-
     """An inverted gamma continuous random variable.
 
     %(before_notes)s
@@ -2634,7 +2542,6 @@ class invgamma_gen(rv_continuous):
     %(example)s
 
     """
-
     def _pdf(self, x, a):
         return exp(self._logpdf(x, a))
 
@@ -2670,7 +2577,6 @@ invgamma = invgamma_gen(a=0.0, name='invgamma')
 
 # scale is gamma from DATAPLOT and B from Regress
 class invgauss_gen(rv_continuous):
-
     """An inverse Gaussian continuous random variable.
 
     %(before_notes)s
@@ -2690,7 +2596,6 @@ class invgauss_gen(rv_continuous):
     %(example)s
 
     """
-
     def _rvs(self, mu):
         return mtrand.wald(mu, 1.0, size=self._size)
 
@@ -2715,7 +2620,6 @@ invgauss = invgauss_gen(a=0.0, name='invgauss')
 
 
 class invweibull_gen(rv_continuous):
-
     """An inverted Weibull continuous random variable.
 
     %(before_notes)s
@@ -2736,7 +2640,6 @@ class invweibull_gen(rv_continuous):
     %(example)s
 
     """
-
     def _pdf(self, x, c):
         xc1 = np.power(x, -c - 1.0)
         xc2 = np.power(x, -c)
@@ -2759,7 +2662,6 @@ invweibull = invweibull_gen(a=0, name='invweibull')
 
 
 class johnsonsb_gen(rv_continuous):
-
     """A Johnson SB continuous random variable.
 
     %(before_notes)s
@@ -2779,7 +2681,6 @@ class johnsonsb_gen(rv_continuous):
     %(example)s
 
     """
-
     def _argcheck(self, a, b):
         return (b > 0) & (a == a)
 
@@ -2796,7 +2697,6 @@ johnsonsb = johnsonsb_gen(a=0.0, b=1.0, name='johnsonb')
 
 
 class johnsonsu_gen(rv_continuous):
-
     """A Johnson SU continuous random variable.
 
     %(before_notes)s
@@ -2817,7 +2717,6 @@ class johnsonsu_gen(rv_continuous):
     %(example)s
 
     """
-
     def _argcheck(self, a, b):
         return (b > 0) & (a == a)
 
@@ -2835,7 +2734,6 @@ johnsonsu = johnsonsu_gen(name='johnsonsu')
 
 
 class laplace_gen(rv_continuous):
-
     """A Laplace continuous random variable.
 
     %(before_notes)s
@@ -2849,7 +2747,6 @@ class laplace_gen(rv_continuous):
     %(example)s
 
     """
-
     def _rvs(self):
         return mtrand.laplace(0, 1, size=self._size)
 
@@ -2860,7 +2757,7 @@ class laplace_gen(rv_continuous):
         return where(x > 0, 1.0 - 0.5 * exp(-x), 0.5 * exp(x))
 
     def _ppf(self, q):
-        return where(q > 0.5, -log(2 * (1 - q)), log(2 * q))
+        return where(q > 0.5, -log(2) - log1p(-q), log(2 * q))
 
     def _stats(self):
         return 0, 2, 0, 3
@@ -2871,7 +2768,6 @@ laplace = laplace_gen(name='laplace')
 
 
 class levy_gen(rv_continuous):
-
     """A Levy continuous random variable.
 
     %(before_notes)s
@@ -2895,7 +2791,7 @@ class levy_gen(rv_continuous):
     """
 
     def _pdf(self, x):
-        return 1 / sqrt(2 * pi * x) / x * exp(-1 / (2 * x))
+        return 1 / sqrt(2*pi*x) / x * exp(-1/(2*x))
 
     def _cdf(self, x):
         return 2 * (1 - _norm_cdf(1 / sqrt(x)))
@@ -2910,7 +2806,6 @@ levy = levy_gen(a=0.0, name="levy")
 
 
 class levy_l_gen(rv_continuous):
-
     """A left-skewed Levy continuous random variable.
 
     %(before_notes)s
@@ -2932,7 +2827,6 @@ class levy_l_gen(rv_continuous):
     %(example)s
 
     """
-
     def _pdf(self, x):
         ax = abs(x)
         return 1 / sqrt(2 * pi * ax) / ax * exp(-1 / (2 * ax))
@@ -2951,7 +2845,6 @@ levy_l = levy_l_gen(b=0.0, name="levy_l")
 
 
 class levy_stable_gen(rv_continuous):
-
     """A Levy-stable continuous random variable.
 
     %(before_notes)s
@@ -2968,7 +2861,6 @@ class levy_stable_gen(rv_continuous):
     %(example)s
 
     """
-
     def _rvs(self, alpha, beta):
         sz = self._size
         TH = uniform.rvs(loc=-pi / 2.0, scale=pi, size=sz)
@@ -3004,7 +2896,6 @@ levy_stable = levy_stable_gen(name='levy_stable')
 
 
 class logistic_gen(rv_continuous):
-
     """A logistic (or Sech-squared) continuous random variable.
 
     %(before_notes)s
@@ -3020,7 +2911,6 @@ class logistic_gen(rv_continuous):
     %(example)s
 
     """
-
     def _rvs(self):
         return mtrand.logistic(size=self._size)
 
@@ -3046,7 +2936,6 @@ logistic = logistic_gen(name='logistic')
 
 
 class loggamma_gen(rv_continuous):
-
     """A log gamma continuous random variable.
 
     %(before_notes)s
@@ -3062,7 +2951,6 @@ class loggamma_gen(rv_continuous):
     %(example)s
 
     """
-
     def _rvs(self, c):
         return log(mtrand.gamma(c, size=self._size))
 
@@ -3088,7 +2976,6 @@ loggamma = loggamma_gen(name='loggamma')
 
 
 class loglaplace_gen(rv_continuous):
-
     """A log-Laplace continuous random variable.
 
     %(before_notes)s
@@ -3110,7 +2997,6 @@ class loglaplace_gen(rv_continuous):
     %(example)s
 
     """
-
     def _pdf(self, x, c):
         cd2 = c / 2.0
         c = where(x < 1, c, -c)
@@ -3137,7 +3023,6 @@ def _lognorm_logpdf(x, s):
 
 
 class lognorm_gen(rv_continuous):
-
     """A lognormal continuous random variable.
 
     %(before_notes)s
@@ -3157,7 +3042,6 @@ class lognorm_gen(rv_continuous):
     %(example)s
 
     """
-
     def _rvs(self, s):
         return exp(s * mtrand.standard_normal(self._size))
 
@@ -3195,7 +3079,6 @@ lognorm = lognorm_gen(a=0.0, name='lognorm')
 
 
 class gilbrat_gen(rv_continuous):
-
     """A Gilbrat continuous random variable.
 
     %(before_notes)s
@@ -3211,7 +3094,6 @@ class gilbrat_gen(rv_continuous):
     %(example)s
 
     """
-
     def _rvs(self):
         return exp(mtrand.standard_normal(self._size))
 
@@ -3246,7 +3128,6 @@ gilbrat = gilbrat_gen(a=0.0, name='gilbrat')
 
 
 class maxwell_gen(rv_continuous):
-
     """A Maxwell continuous random variable.
 
     %(before_notes)s
@@ -3269,7 +3150,6 @@ class maxwell_gen(rv_continuous):
 
     %(example)s
     """
-
     def _rvs(self):
         return chi.rvs(3.0, size=self._size)
 
@@ -3295,7 +3175,6 @@ maxwell = maxwell_gen(a=0.0, name='maxwell')
 
 
 class mielke_gen(rv_continuous):
-
     """A Mielke's Beta-Kappa continuous random variable.
 
     %(before_notes)s
@@ -3311,7 +3190,6 @@ class mielke_gen(rv_continuous):
     %(example)s
 
     """
-
     def _pdf(self, x, k, s):
         return k * x ** (k - 1.0) / (1.0 + x ** s) ** (1.0 + k * 1.0 / s)
 
@@ -3325,7 +3203,6 @@ mielke = mielke_gen(a=0.0, name='mielke')
 
 
 class nakagami_gen(rv_continuous):
-
     """A Nakagami continuous random variable.
 
     %(before_notes)s
@@ -3342,7 +3219,6 @@ class nakagami_gen(rv_continuous):
     %(example)s
 
     """
-
     def _pdf(self, x, nu):
         return (2 * nu ** nu / gam(nu) * (x ** (2 * nu - 1.0)) *
                 exp(-nu * x * x))
@@ -3364,7 +3240,6 @@ nakagami = nakagami_gen(a=0.0, name="nakagami")
 
 
 class ncx2_gen(rv_continuous):
-
     """A non-central chi-squared continuous random variable.
 
     %(before_notes)s
@@ -3381,7 +3256,6 @@ class ncx2_gen(rv_continuous):
     %(example)s
 
     """
-
     def _rvs(self, df, nc):
         return mtrand.noncentral_chisquare(df, nc, self._size)
 
@@ -3413,7 +3287,6 @@ ncx2 = ncx2_gen(a=0.0, name='ncx2')
 
 
 class ncf_gen(rv_continuous):
-
     """A non-central F distribution continuous random variable.
 
     %(before_notes)s
@@ -3434,7 +3307,6 @@ class ncf_gen(rv_continuous):
     %(example)s
 
     """
-
     def _rvs(self, dfn, dfd, nc):
         return mtrand.noncentral_f(dfn, dfd, nc, self._size)
 
@@ -3475,7 +3347,6 @@ ncf = ncf_gen(a=0.0, name='ncf')
 
 
 class t_gen(rv_continuous):
-
     """A Student's T continuous random variable.
 
     %(before_notes)s
@@ -3493,7 +3364,6 @@ class t_gen(rv_continuous):
     %(example)s
 
     """
-
     def _rvs(self, df):
         return mtrand.standard_t(df, size=self._size)
 
@@ -3530,7 +3400,6 @@ t = t_gen(name='t')
 
 
 class nct_gen(rv_continuous):
-
     """A non-central Student's T continuous random variable.
 
     %(before_notes)s
@@ -3548,7 +3417,6 @@ class nct_gen(rv_continuous):
     %(example)s
 
     """
-
     def _argcheck(self, df, nc):
         return (df > 0) & (nc == nc)
 
@@ -3616,7 +3484,6 @@ nct = nct_gen(name="nct")
 
 
 class pareto_gen(rv_continuous):
-
     """A Pareto continuous random variable.
 
     %(before_notes)s
@@ -3632,7 +3499,6 @@ class pareto_gen(rv_continuous):
     %(example)s
 
     """
-
     def _pdf(self, x, b):
         return b * x ** (-b - 1)
 
@@ -3675,7 +3541,6 @@ pareto = pareto_gen(a=1.0, name="pareto")
 
 
 class lomax_gen(rv_continuous):
-
     """A Lomax (Pareto of the second kind) continuous random variable.
 
     %(before_notes)s
@@ -3694,7 +3559,6 @@ class lomax_gen(rv_continuous):
     %(example)s
 
     """
-
     def _pdf(self, x, c):
         return c * 1.0 / (1.0 + x) ** (c + 1.0)
 
@@ -3723,7 +3587,6 @@ lomax = lomax_gen(a=0.0, name="lomax")
 
 
 class pearson3_gen(rv_continuous):
-
     """A pearson type III continuous random variable.
 
     %(before_notes)s
@@ -3756,7 +3619,6 @@ class pearson3_gen(rv_continuous):
     Aviation Loads Data", Office of Aviation Research (2003).
 
     """
-
     def _preprocess(self, x, skew):
         # The real 'loc' and 'scale' are handled in the calling pdf(...). The
         # local variables 'loc' and 'scale' within pearson3._pdf are set to
@@ -3778,7 +3640,7 @@ class pearson3_gen(rv_continuous):
         invmask = ~mask
 
         beta = 2.0 / (skew[invmask] * scale)
-        alpha = (scale * beta) ** 2
+        alpha = (scale * beta)**2
         zeta = loc - alpha / beta
 
         transx = beta * (x[invmask] - zeta)
@@ -3792,11 +3654,11 @@ class pearson3_gen(rv_continuous):
         return np.ones(np.shape(skew), dtype=bool)
 
     def _stats(self, skew):
-        _, _x, _transx, skew, _mask, _invmask, beta, alpha, zeta = (
+        ans, x, transx, skew, mask, invmask, beta, alpha, zeta = (
             self._preprocess([1], skew))
         m = zeta + alpha / beta
-        v = alpha / (beta ** 2)
-        s = 2.0 / (alpha ** 0.5) * np.sign(beta)
+        v = alpha / (beta**2)
+        s = 2.0 / (alpha**0.5) * np.sign(beta)
         k = 6.0 / alpha
         return m, v, s, k
 
@@ -3825,7 +3687,7 @@ class pearson3_gen(rv_continuous):
         return ans
 
     def _cdf(self, x, skew):
-        ans, x, transx, skew, mask, invmask, _beta, alpha, _zeta = (
+        ans, x, transx, skew, mask, invmask, beta, alpha, _zeta = (
             self._preprocess(x, skew))
 
         ans[mask] = _norm_cdf(x[mask])
@@ -3837,22 +3699,21 @@ class pearson3_gen(rv_continuous):
             self._preprocess([0], skew))
         if mask[0]:
             return mtrand.standard_normal(self._size)
-        ans = mtrand.standard_gamma(alpha, self._size) / beta + zeta
+        ans = mtrand.standard_gamma(alpha, self._size)/beta + zeta
         if ans.size == 1:
             return ans[0]
         return ans
 
     def _ppf(self, q, skew):
-        ans, q, _transq, skew, mask, invmask, beta, alpha, zeta = (
+        ans, q, transq, skew, mask, invmask, beta, alpha, zeta = (
             self._preprocess(q, skew))
         ans[mask] = _norm_ppf(q[mask])
-        ans[invmask] = special.gammaincinv(alpha, q[invmask]) / beta + zeta
+        ans[invmask] = special.gammaincinv(alpha, q[invmask])/beta + zeta
         return ans
 pearson3 = pearson3_gen(name="pearson3")
 
 
 class powerlaw_gen(rv_continuous):
-
     """A power-function continuous random variable.
 
     %(before_notes)s
@@ -3870,12 +3731,11 @@ class powerlaw_gen(rv_continuous):
     %(example)s
 
     """
-
     def _pdf(self, x, a):
         return a * x ** (a - 1.0)
 
     def _logpdf(self, x, a):
-        return log(a) + (a - 1) * log(x)
+        return log(a) + special.xlogy(a - 1, x)
 
     def _cdf(self, x, a):
         return x ** (a * 1.0)
@@ -3898,7 +3758,6 @@ powerlaw = powerlaw_gen(a=0.0, b=1.0, name="powerlaw")
 
 
 class powerlognorm_gen(rv_continuous):
-
     """A power log-normal continuous random variable.
 
     %(before_notes)s
@@ -3916,7 +3775,6 @@ class powerlognorm_gen(rv_continuous):
     %(example)s
 
     """
-
     def _pdf(self, x, c, s):
         return (c / (x * s) * _norm_pdf(log(x) / s) *
                 pow(_norm_cdf(-log(x) / s), c * 1.0 - 1.0))
@@ -3930,7 +3788,6 @@ powerlognorm = powerlognorm_gen(a=0.0, name="powerlognorm")
 
 
 class powernorm_gen(rv_continuous):
-
     """A power normal continuous random variable.
 
     %(before_notes)s
@@ -3947,7 +3804,6 @@ class powernorm_gen(rv_continuous):
     %(example)s
 
     """
-
     def _pdf(self, x, c):
         return (c * _norm_pdf(x) * (_norm_cdf(-x) ** (c - 1.0)))
 
@@ -3963,7 +3819,6 @@ powernorm = powernorm_gen(name='powernorm')
 
 
 class rdist_gen(rv_continuous):
-
     """An R-distributed continuous random variable.
 
     %(before_notes)s
@@ -3979,7 +3834,6 @@ class rdist_gen(rv_continuous):
     %(example)s
 
     """
-
     def _pdf(self, x, c):
         return (np.power((1.0 - x ** 2), c / 2.0 - 1) /
                 special.beta(0.5, c / 2.0))
@@ -4001,7 +3855,6 @@ rdist = rdist_gen(a=-1.0, b=1.0, name="rdist")
 
 
 class rayleigh_gen(rv_continuous):
-
     """A Rayleigh continuous random variable.
 
     %(before_notes)s
@@ -4020,12 +3873,13 @@ class rayleigh_gen(rv_continuous):
 
     """
 
-    def link(self, x, logSF, phat, ix):
-        rv_continuous.link.__doc__
+    def _link(self, x, logSF, phat, ix):
         if ix == 1:
             return x - phat[0] / sqrt(-2.0 * logSF)
-        else:
+        elif ix == 0:
             return x - phat[1] * sqrt(-2.0 * logSF)
+        else:
+            raise IndexError('Index to the fixed parameter is out of bounds')
 
     def _rvs(self):
         return chi.rvs(2, size=self._size)
@@ -4077,16 +3931,17 @@ class truncrayleigh_gen(rv_continuous):
     def _argcheck(self, c):
         return (c >= 0)
 
-    def link(self, x, logSF, phat, ix):
-        rv_continuous.link.__doc__
-        c = phat[0]
+    def _link(self, x, logSF, phat, ix):
+        c, loc, scale = phat
         if ix == 2:
-            return x - phat[1] / (sqrt(c * c - 2 * logSF) - c)
+            return x - loc / (sqrt(c * c - 2 * logSF) - c)
         elif ix == 1:
-            return x - phat[2] * (sqrt(c * c - 2 * logSF) - c)
+            return x - scale * (sqrt(c * c - 2 * logSF) - c)
         elif ix == 0:
-            xn = (x - phat[1]) / phat[2]
+            xn = (x - loc) / scale
             return - 2 * logSF / xn - xn / 2.0
+        else:
+            raise IndexError('Index to the fixed parameter is out of bounds')
 
     def _fitstart(self, data, args=None):
         if args is None:
@@ -4132,7 +3987,6 @@ truncrayleigh = truncrayleigh_gen(a=0.0, name="truncrayleigh", shapes='c')
 
 
 class reciprocal_gen(rv_continuous):
-
     """A reciprocal continuous random variable.
 
     %(before_notes)s
@@ -4148,7 +4002,6 @@ class reciprocal_gen(rv_continuous):
     %(example)s
 
     """
-
     def _argcheck(self, a, b):
         self.a = a
         self.b = b
@@ -4177,7 +4030,6 @@ reciprocal = reciprocal_gen(name="reciprocal")
 
 # FIXME: PPF does not work.
 class rice_gen(rv_continuous):
-
     """A Rice continuous random variable.
 
     %(before_notes)s
@@ -4193,7 +4045,6 @@ class rice_gen(rv_continuous):
     %(example)s
 
     """
-
     def _argcheck(self, b):
         return b >= 0
 
@@ -4217,7 +4068,6 @@ rice = rice_gen(a=0.0, name="rice")
 
 # FIXME: PPF does not work.
 class recipinvgauss_gen(rv_continuous):
-
     """A reciprocal inverse Gaussian continuous random variable.
 
     %(before_notes)s
@@ -4233,7 +4083,6 @@ class recipinvgauss_gen(rv_continuous):
     %(example)s
 
     """
-
     def _rvs(self, mu):
         return 1.0 / mtrand.wald(mu, 1.0, size=self._size)
 
@@ -4255,7 +4104,6 @@ recipinvgauss = recipinvgauss_gen(a=0.0, name='recipinvgauss')
 
 
 class semicircular_gen(rv_continuous):
-
     """A semicircular continuous random variable.
 
     %(before_notes)s
@@ -4271,7 +4119,6 @@ class semicircular_gen(rv_continuous):
     %(example)s
 
     """
-
     def _pdf(self, x):
         return 2.0 / pi * sqrt(1 - x * x)
 
@@ -4287,7 +4134,6 @@ semicircular = semicircular_gen(a=-1.0, b=1.0, name="semicircular")
 
 
 class triang_gen(rv_continuous):
-
     """A triangular continuous random variable.
 
     %(before_notes)s
@@ -4305,7 +4151,6 @@ class triang_gen(rv_continuous):
     %(example)s
 
     """
-
     def _rvs(self, c):
         return mtrand.triangular(0, c, 1, self._size)
 
@@ -4334,7 +4179,6 @@ triang = triang_gen(a=0.0, b=1.0, name="triang")
 
 
 class truncexpon_gen(rv_continuous):
-
     """A truncated exponential continuous random variable.
 
     %(before_notes)s
@@ -4350,7 +4194,6 @@ class truncexpon_gen(rv_continuous):
     %(example)s
 
     """
-
     def _argcheck(self, b):
         self.b = b
         return (b > 0)
@@ -4386,7 +4229,6 @@ truncexpon = truncexpon_gen(a=0.0, name='truncexpon')
 
 
 class truncnorm_gen(rv_continuous):
-
     """A truncated normal continuous random variable.
 
     %(before_notes)s
@@ -4403,7 +4245,6 @@ class truncnorm_gen(rv_continuous):
     %(example)s
 
     """
-
     def _argcheck(self, a, b):
         self.a = a
         self.b = b
@@ -4445,7 +4286,6 @@ truncnorm = truncnorm_gen(name='truncnorm')
 
 # FIXME: RVS does not work.
 class tukeylambda_gen(rv_continuous):
-
     """A Tukey-Lamdba continuous random variable.
 
     %(before_notes)s
@@ -4464,7 +4304,6 @@ class tukeylambda_gen(rv_continuous):
     %(example)s
 
     """
-
     def _argcheck(self, lam):
         return np.ones(np.shape(lam), dtype=bool)
 
@@ -4494,7 +4333,6 @@ tukeylambda = tukeylambda_gen(name='tukeylambda')
 
 
 class uniform_gen(rv_continuous):
-
     """A uniform continuous random variable.
 
     This distribution is constant between `loc` and ``loc + scale``.
@@ -4504,7 +4342,6 @@ class uniform_gen(rv_continuous):
     %(example)s
 
     """
-
     def _rvs(self):
         return mtrand.uniform(0.0, 1.0, self._size)
 
@@ -4526,7 +4363,6 @@ uniform = uniform_gen(a=0.0, b=1.0, name='uniform')
 
 
 class vonmises_gen(rv_continuous):
-
     """A Von Mises continuous random variable.
 
     %(before_notes)s
@@ -4550,7 +4386,6 @@ class vonmises_gen(rv_continuous):
     %(example)s
 
     """
-
     def _rvs(self, kappa):
         return mtrand.vonmises(0.0, kappa, size=self._size)
 
@@ -4567,7 +4402,6 @@ vonmises_line = vonmises_gen(a=-np.pi, b=np.pi, name='vonmises_line')
 
 
 class wald_gen(invgauss_gen):
-
     """A Wald continuous random variable.
 
     %(before_notes)s
@@ -4584,7 +4418,6 @@ class wald_gen(invgauss_gen):
 
     %(example)s
     """
-
     def _rvs(self):
         return mtrand.wald(1.0, 1.0, size=self._size)
 
@@ -4603,7 +4436,6 @@ wald = wald_gen(a=0.0, name="wald")
 
 
 class wrapcauchy_gen(rv_continuous):
-
     """A wrapped Cauchy continuous random variable.
 
     %(before_notes)s
@@ -4619,7 +4451,6 @@ class wrapcauchy_gen(rv_continuous):
     %(example)s
 
     """
-
     def _argcheck(self, c):
         return (c > 0) & (c < 1)
 
