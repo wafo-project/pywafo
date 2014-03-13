@@ -152,8 +152,8 @@ class Profile(object):
         with ML or MPS estimated distribution parameters.
     **kwds : named arguments with keys
         i : scalar integer
-            defining which distribution parameter to profile, i.e. which
-            parameter to keep fixed (default first non-fixed parameter)
+            defining which distribution parameter to keep fixed in the 
+            profiling process (default first non-fixed parameter)
         pmin, pmax : real scalars
             Interval for either the parameter, phat(i), prb, or x, used in the
             optimization of the profile function (default is based on the
@@ -166,8 +166,8 @@ class Profile(object):
             log survival probability,i.e., SF = Prob(X>x;phat) (default None)
         link : function connecting the x-quantile and the survival probability
             (SF) with the fixed distribution parameter, i.e.:
-            self.par[i] = link(x,logSF,self.par,i), where
-            logSF = log(Prob(X>x;phat)).
+            self.par[i] = link(x, logSF, self.par, i), where
+                logSF = log(Prob(X>x;phat)).
             This means that if:
                 1) x is not None then x is profiled
                 2) logSF is not None then logSF is profiled
@@ -236,22 +236,21 @@ class Profile(object):
         self.fit_dist = fit_dist
         self.data = None
         self.args = None
-        self.title = 'Profile log'
+        self.title = ''
         self.xlabel = ''
-        self.ylabel = ''
+        self.ylabel = 'Profile log'
         (self.i_fixed, self.N, self.alpha, self.pmin, self.pmax, self.x,
          self.logSF, self.link) = map(
             kwds.get,
-            ['i', 'N', 'alpha', 'pmin',
-                                'pmax', 'x', 'logSF', 'link'],
+            ['i', 'N', 'alpha', 'pmin', 'pmax', 'x', 'logSF', 'link'],
             [i0, 100, 0.05, None, None, None, None, None])
 
-        self.ylabel = '%g%s CI' % (100 * (1.0 - self.alpha), '%')
+        self.title = '%g%s CI' % (100 * (1.0 - self.alpha), '%')
         if fit_dist.method.startswith('ml'):
-            self.title = self.title + 'likelihood'
+            self.ylabel = self.ylabel + 'likelihood'
             Lmax = fit_dist.LLmax
         elif fit_dist.method.startswith('mps'):
-            self.title = self.title + ' product spacing'
+            self.ylabel = self.ylabel + ' product spacing'
             Lmax = fit_dist.LPSmax
         else:
             raise ValueError(
@@ -267,7 +266,7 @@ class Profile(object):
         self.i_fixed = atleast_1d(self.i_fixed)
 
         if 1 - isnotfixed[self.i_fixed]:
-            raise ValueError(
+            raise IndexError(
                 "Index i must be equal to an index to one of the free " +
                 "parameters.")
 
@@ -295,7 +294,7 @@ class Profile(object):
             self.xlabel = 'phat(%d)' % self.i_fixed
             p_opt = self._par[self.i_fixed]
         elif self.profile_x:
-            self.logSF = log(fit_dist.sf(self.x))
+            self.logSF = fit_dist.logsf(self.x)
             self._local_link = lambda fix_par, par: self.link(
                 fix_par, self.logSF, par, self.i_fixed)
             self.xlabel = 'x'
@@ -522,16 +521,23 @@ class Profile(object):
             CI = ecross(self.args, self.data, ind[[0, -1]], cross_level)
         return CI
 
-    def plot(self):
+    def plot(self, axis=None):
         ''' Plot profile function with 100(1-alpha)% CI
         '''
-        plotbackend.plot(
+        if axis is None:
+            axis = plotbackend.gca()
+            
+        p_ci = self.get_bounds(self.alpha)
+        axis.plot(
             self.args, self.data,
-            self.args[[0, -1]], [self.Lmax, ] * 2, 'r',
-            self.args[[0, -1]], [self.alpha_cross_level, ] * 2, 'r')
-        plotbackend.title(self.title)
-        plotbackend.ylabel(self.ylabel)
-        plotbackend.xlabel(self.xlabel)
+            self.args[[0, -1]], [self.Lmax, ] * 2, 'r--',
+            self.args[[0, -1]], [self.alpha_cross_level, ] * 2, 'r--')
+        axis.vlines(p_ci, ymin=axis.get_ylim()[0],
+                           ymax=self.Lmax, #self.alpha_cross_level,
+                           color='r', linestyles='--')
+        axis.set_title(self.title)
+        axis.set_ylabel(self.ylabel)
+        axis.set_xlabel(self.xlabel)
 
 
 def _discretize_adaptive(fun, a, b, tol=0.005, n=5):
