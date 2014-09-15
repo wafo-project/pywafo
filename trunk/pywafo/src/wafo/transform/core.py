@@ -1,15 +1,17 @@
-''' 
+'''
 '''
 from __future__ import division
 #import numpy as np
-from numpy import trapz, sqrt, linspace #@UnresolvedImport
+from numpy import trapz, sqrt, linspace  # @UnresolvedImport
 
-from wafo.wafodata import PlotData
-from wafo.misc import tranproc #, trangood
+from wafo.containers import PlotData
+from wafo.misc import tranproc  # , trangood
 
 __all__ = ['TrData', 'TrCommon']
 
+
 class TrCommon(object):
+
     """
     <generic> transformation model, g.
 
@@ -27,7 +29,7 @@ class TrCommon(object):
                 int (g(x)-xn)**2 dx  where int. limits are given by X.
     dat2gauss : Transform non-linear data to Gaussian scale
     gauss2dat : Transform Gaussian data to non-linear scale
-    
+
     Member variables
     ----------------
     mean, sigma, skew, kurt : real, scalar
@@ -35,9 +37,9 @@ class TrCommon(object):
         non-Gaussian process. Default mean=0, sigma=1, skew=0.16, kurt=3.04.
         skew=kurt-3=0 for a Gaussian process.
     """
-    
+
     def __init__(self, mean=0.0, var=1.0, skew=0.16, kurt=3.04, *args, **kwds):
-        sigma = kwds.get('sigma',None)
+        sigma = kwds.get('sigma', None)
         if sigma is None:
             sigma = sqrt(var)
         self.mean = mean
@@ -74,12 +76,12 @@ class TrCommon(object):
         """
         if x is None:
             xn = linspace(xnmin, xnmax, n)
-            x = self.sigma*xn+self.mean
+            x = self.sigma * xn + self.mean
         else:
-            xn = (x-self.mean)/self.sigma
+            xn = (x - self.mean) / self.sigma
 
-        yn = (self._dat2gauss(x)-self.ymean)/self.ysigma
-        t0 = trapz((xn-yn)**2., xn)
+        yn = (self._dat2gauss(x) - self.ymean) / self.ysigma
+        t0 = trapz((xn - yn) ** 2., xn)
         return t0
 
     def gauss2dat(self, y, *yi):
@@ -102,8 +104,10 @@ class TrCommon(object):
         tranproc
         """
         return self._gauss2dat(y, *yi)
+
     def _gauss2dat(self, y, *yi):
         pass
+
     def dat2gauss(self, x, *xi):
         """
         Transforms non-linear data, x, to Gaussian scale.
@@ -111,8 +115,8 @@ class TrCommon(object):
         Parameters
         ----------
         x, x1,...,xn : array-like
-            input vectors with non-linear data values, where xi is the i'th time
-            derivative of x. (n<=4)
+            input vectors with non-linear data values, where xi is the i'th
+            time derivative of x. (n<=4)
         Returns
         -------
         y, y1,...,yn : array-like
@@ -124,24 +128,27 @@ class TrCommon(object):
         tranproc.
         """
         return self._dat2gauss(x, *xi)
+
     def _dat2gauss(self, x, *xi):
         pass
-    
+
+
 class TrData(PlotData, TrCommon):
-    __doc__ = TrCommon.__doc__.split('mean')[0].replace('<generic>','Data' #@ReservedAssignment
-                                                        ) + """ 
+    __doc__ = TrCommon.__doc__.split('mean')[0].replace('<generic>',
+                                                        'Data') + """
     data : array-like
         Gaussian values, Y
     args : array-like
         non-Gaussian values, X
     ymean, ysigma : real, scalars (default ymean=0, ysigma=1)
-        mean and standard-deviation, respectively, of the process in Gaussian world.
+        mean and standard-deviation, respectively, of the process in Gaussian
+        world.
     mean, sigma : real, scalars
-        mean and standard-deviation, respectively, of the non-Gaussian process. 
-        Default: 
-        mean = self.gauss2dat(ymean), 
+        mean and standard-deviation, respectively, of the non-Gaussian process.
+        Default:
+        mean = self.gauss2dat(ymean),
         sigma = (self.gauss2dat(ysigma)-self.gauss2dat(-ysigma))/2
-    
+
     Example
     -------
     Construct a linear transformation model
@@ -154,7 +161,7 @@ class TrData(PlotData, TrCommon):
     array([ 1.])
     >>> g.sigma
     array([ 5.])
-    
+
     >>> g = wt.TrData(y,x,mean=1,sigma=5)
     >>> g.mean
     1
@@ -162,47 +169,52 @@ class TrData(PlotData, TrCommon):
     5
     >>> g.dat2gauss(1,2,3)
     [array([ 0.]), array([ 0.4]), array([ 0.6])]
-    
+
     Check that the departure from a Gaussian model is zero
     >>> g.dist2gauss() < 1e-16
     True
     """
-    def __init__(self, *args, **kwds): 
+
+    def __init__(self, *args, **kwds):
         options = dict(title='Transform',
-                            xlab='x', ylab='g(x)',
-                            plot_args=['r'],
-                            plot_args_children=['g--'],)
+                       xlab='x', ylab='g(x)',
+                       plot_args=['r'],
+                       plot_args_children=['g--'],)
         options.update(**kwds)
         super(TrData, self).__init__(*args, **options)
         self.ymean = kwds.get('ymean', 0e0)
         self.ysigma = kwds.get('ysigma', 1e0)
         self.mean = kwds.get('mean', None)
         self.sigma = kwds.get('sigma', None)
-        
-        if self.mean is None: 
-            #self.mean = np.mean(self.args) # 
+
+        if self.mean is None:
+            #self.mean = np.mean(self.args) #
             self.mean = self.gauss2dat(self.ymean)
         if self.sigma is None:
-            yp = self.ymean+self.ysigma
-            ym = self.ymean-self.ysigma
-            self.sigma = (self.gauss2dat(yp)-self.gauss2dat(ym))/2.
-            
-        self.children = [PlotData((self.args-self.mean)/self.sigma, self.args)]
+            yp = self.ymean + self.ysigma
+            ym = self.ymean - self.ysigma
+            self.sigma = (self.gauss2dat(yp) - self.gauss2dat(ym)) / 2.
+
+        self.children = [
+            PlotData((self.args - self.mean) / self.sigma, self.args)]
 
     def trdata(self):
         return self
-    
+
     def _gauss2dat(self, y, *yi):
         return tranproc(self.data, self.args, y, *yi)
-    
+
     def _dat2gauss(self, x, *xi):
         return tranproc(self.args, self.data, x, *xi)
-    
+
+class EstimateTransform(object):
+    pass
+
 def main():
     pass
 
 if __name__ == '__main__':
-    if  True: #False : #  
+    if True:  # False : #
         import doctest
         doctest.testmod()
     else:

@@ -13,13 +13,15 @@ Examples
 In order to view the documentation do the following in an ipython window:
 
 >>> import wafo.definitions as wd
->>> wd.crossings() 
+>>> wd.crossings()
 
 or
 >>> wd.crossings?
 
 
 """
+
+
 def wave_amplitudes():
     r"""
     Wave amplitudes and heights definitions and nomenclature
@@ -35,7 +37,7 @@ def wave_amplitudes():
            Hd  |           _/ |  \        |  Hu
        M       |          /   |   \       |
       / \      |     M   / Ac |    \_     |     c_
-     F   \     |    / \m/     |      \    |    /  \          
+     F   \     |    / \m/     |      \    |    /  \
     ------d----|---u------------------d---|---u----d------ level v
            \   |  /|                   \  |  /      \L
             \_ | / | At                 \_|_/
@@ -55,6 +57,7 @@ def wave_amplitudes():
     """
     print(wave_amplitudes.__doc__)
 
+
 def crossings():
     r"""
     Level v crossing definitions and nomenclature
@@ -68,7 +71,7 @@ def crossings():
     -----------------------u-------d-------o----------------- level v
                    .     .           .   .   u
                      .                 m
-    		           m
+                           m
 
     Let the letters 'm', 'M', 'F', 'L','d' and 'u' in the
     figure above denote local minimum, maximum, first value, last
@@ -98,7 +101,8 @@ def crossings():
     wave_periods, waves, turning_points, findcross, findtp
     """
     print(crossings.__doc__)
-    
+
+
 def cycle_pairs():
     r"""
     Cycle pairs definitions and numenclature
@@ -115,7 +119,8 @@ def cycle_pairs():
     turning_points
     """
     print(cycle_pairs.__doc__)
-    
+
+
 def wave_periods():
     r"""
     Wave periods (lengths) definitions and nomenclature
@@ -203,6 +208,8 @@ def wave_periods():
     turning_points
     """
     print(wave_periods.__doc__)
+
+
 def turning_points():
     r"""
     Turning points definitions and numenclature
@@ -238,6 +245,8 @@ def turning_points():
 
     """
     print(turning_points.__doc__)
+
+
 def waves():
     r"""
     Wave definitions and nomenclature
@@ -275,7 +284,7 @@ def waves():
        <------Mw-----> <----mw---->
        M             : :  c       :
       / \            M : / \_     :     c_            c
-     F   \          / \m/    \    :    /: \          /:\               
+     F   \          / \m/    \    :    /: \          /:\
     ------d--------u----------d-------u----d--------u---d------ level v
            \      /:           \  :  /: :  :\_    _/  : :\_   L
             \_   / :            \_t_/ : :  :  \t_/    : :  \m/

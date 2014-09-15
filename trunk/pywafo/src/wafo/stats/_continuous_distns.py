@@ -6,23 +6,23 @@ from __future__ import division, print_function, absolute_import
 
 import warnings
 
-from scipy.misc import comb  # @UnresolvedImport
+from scipy.special import comb
 from scipy.misc.doccer import inherit_docstring_from
 from scipy import special
 from scipy import optimize
 from scipy import integrate
-from scipy.special import (gammaln as gamln, gamma as gam, log1p)
+from scipy.special import (gammaln as gamln, gamma as gam, boxcox, boxcox1p, log1p, expm1)
 
 from numpy import (where, arange, putmask, ravel, sum, shape,
                    log, sqrt, exp, arctanh, tan, sin, arcsin, arctan,
-                   tanh, cos, cosh, sinh, expm1)
+                   tanh, cos, cosh, sinh)
 
 from numpy import polyval, place, extract, any, asarray, nan, inf, pi
 
 import numpy as np
 import numpy.random as mtrand
 try:
-    from scipy.stats.distributions import vonmises_cython
+    from scipy.stats import vonmises_cython
 except:
     vonmises_cython = None
 # try:
@@ -36,13 +36,12 @@ from ._tukeylambda_stats import (tukeylambda_variance as _tlvar,
                                  tukeylambda_kurtosis as _tlkurt)
 
 from ._distn_infrastructure import (
-        rv_continuous, valarray,
-        _skew, _kurtosis, _lazywhere,
-        _ncx2_log_pdf, _ncx2_pdf, _ncx2_cdf,
+        rv_continuous, valarray, _skew, _kurtosis, _lazywhere,
+        _ncx2_log_pdf, _ncx2_pdf, _ncx2_cdf, get_distribution_names,
         )
 
 from ._constants import _XMIN, _EULER, _ZETA3, _EPS
-
+from .stats import mode
 #from .estimation import FitDistribution
 
 __all__ = [
@@ -94,25 +93,25 @@ class kstwobign_gen(rv_continuous):
         return special.kolmogorov(x)
 
     def _ppf(self, q):
-        return special.kolmogi(1.0 - q)
+        return special.kolmogi(1.0-q)
 kstwobign = kstwobign_gen(a=0.0, name='kstwobign')
 
 
-# Normal distribution
+## Normal distribution
 
 # loc = mu, scale = std
 # Keep these implementations out of the class definition so they can be reused
 # by other distributions.
-_norm_pdf_C = np.sqrt(2 * pi)
+_norm_pdf_C = np.sqrt(2*pi)
 _norm_pdf_logC = np.log(_norm_pdf_C)
 
 
 def _norm_pdf(x):
-    return exp(-x ** 2 / 2.0) / _norm_pdf_C
+    return exp(-x**2/2.0) / _norm_pdf_C
 
 
 def _norm_logpdf(x):
-    return -x ** 2 / 2.0 - _norm_pdf_logC
+    return -x**2 / 2.0 - _norm_pdf_logC
 
 
 def _norm_cdf(x):
@@ -187,7 +186,7 @@ class norm_gen(rv_continuous):
         return 0.0, 1.0, 0.0, 0.0
 
     def _entropy(self):
-        return 0.5 * (log(2 * pi) + 1)
+        return 0.5*(log(2*pi)+1)
 
     @inherit_docstring_from(rv_continuous)
     def fit(self, data, **kwds):
@@ -214,7 +213,7 @@ class norm_gen(rv_continuous):
             loc = floc
 
         if fscale is None:
-            scale = np.sqrt(((data - loc) ** 2).mean())
+            scale = np.sqrt(((data - loc)**2).mean())
         else:
             scale = fscale
 
@@ -240,19 +239,19 @@ class alpha_gen(rv_continuous):
 
     """
     def _pdf(self, x, a):
-        return 1.0 / (x ** 2) / special.ndtr(a) * _norm_pdf(a - 1.0 / x)
+        return 1.0/(x**2)/special.ndtr(a)*_norm_pdf(a-1.0/x)
 
     def _logpdf(self, x, a):
-        return -2 * log(x) + _norm_logpdf(a - 1.0 / x) - log(special.ndtr(a))
+        return -2*log(x) + _norm_logpdf(a-1.0/x) - log(special.ndtr(a))
 
     def _cdf(self, x, a):
-        return special.ndtr(a - 1.0 / x) / special.ndtr(a)
+        return special.ndtr(a-1.0/x) / special.ndtr(a)
 
     def _ppf(self, q, a):
-        return 1.0 / asarray(a - special.ndtri(q * special.ndtr(a)))
+        return 1.0/asarray(a-special.ndtri(q*special.ndtr(a)))
 
     def _stats(self, a):
-        return [inf] * 2 + [nan] * 2
+        return [inf]*2 + [nan]*2
 alpha = alpha_gen(a=0.0, name='alpha')
 
 
@@ -273,21 +272,20 @@ class anglit_gen(rv_continuous):
 
     """
     def _pdf(self, x):
-        return cos(2 * x)
+        return cos(2*x)
 
     def _cdf(self, x):
-        return sin(x + pi / 4) ** 2.0
+        return sin(x+pi/4)**2.0
 
     def _ppf(self, q):
-        return (arcsin(sqrt(q)) - pi / 4)
+        return (arcsin(sqrt(q))-pi/4)
 
     def _stats(self):
-        return (0.0, pi * pi / 16 - 0.5, 0.0,
-                -2 * (pi ** 4 - 96) / (pi * pi - 8) ** 2)
+        return 0.0, pi*pi/16-0.5, 0.0, -2*(pi**4 - 96)/(pi*pi-8)**2
 
     def _entropy(self):
-        return 1 - log(2)
-anglit = anglit_gen(a=-pi / 4, b=pi / 4, name='anglit')
+        return 1-log(2)
+anglit = anglit_gen(a=-pi/4, b=pi/4, name='anglit')
 
 
 class arcsine_gen(rv_continuous):
@@ -306,19 +304,19 @@ class arcsine_gen(rv_continuous):
 
     """
     def _pdf(self, x):
-        return 1.0 / pi / sqrt(x * (1 - x))
+        return 1.0/pi/sqrt(x*(1-x))
 
     def _cdf(self, x):
-        return 2.0 / pi * arcsin(sqrt(x))
+        return 2.0/pi*arcsin(sqrt(x))
 
     def _ppf(self, q):
-        return sin(pi / 2.0 * q) ** 2.0
+        return sin(pi/2.0*q)**2.0
 
     def _stats(self):
         mu = 0.5
-        mu2 = 1.0 / 8
+        mu2 = 1.0/8
         g1 = 0
-        g2 = -3.0 / 2.0
+        g2 = -3.0/2.0
         return mu, mu2, g1, g2
 
     def _entropy(self):
@@ -380,10 +378,12 @@ class beta_gen(rv_continuous):
     -----
     The probability density function for `beta` is::
 
-        beta.pdf(x, a, b) = gamma(a+b)/(gamma(a)*gamma(b)) * x**(a-1) *
-        (1-x)**(b-1),
+                            gamma(a+b) * x**(a-1) * (1-x)**(b-1)
+        beta.pdf(x, a, b) = ------------------------------------
+                                     gamma(a)*gamma(b)
 
-    for ``0 < x < 1``, ``a > 0``, ``b > 0``.
+    for ``0 < x < 1``, ``a > 0``, ``b > 0``, where ``gamma(z)`` is the gamma
+    function (`scipy.special.gamma`).
 
     %(example)s
 
@@ -395,7 +395,7 @@ class beta_gen(rv_continuous):
         return np.exp(self._logpdf(x, a, b))
 
     def _logpdf(self, x, a, b):
-        lPx = special.xlog1py(b - 1.0, -x) + special.xlogy(a - 1.0, x)
+        lPx = special.xlog1py(b-1.0, -x) + special.xlogy(a-1.0, x)
         lPx -= special.betaln(a, b)
         return lPx
 
@@ -406,13 +406,11 @@ class beta_gen(rv_continuous):
         return special.btdtri(a, b, q)
 
     def _stats(self, a, b):
-        mn = a * 1.0 / (a + b)
-        var = (a * b * 1.0) / (a + b + 1.0) / (a + b) ** 2.0
-        g1 = 2.0 * (b - a) * sqrt((1.0 + a + b) / (a * b)) / (2 + a + b)
-        g2 = 6.0 * \
-            (a ** 3 + a ** 2 * (1 - 2 * b) +
-             b ** 2 * (1 + b) - 2 * a * b * (2 + b))
-        g2 /= a * b * (a + b + 2) * (a + b + 3)
+        mn = a*1.0 / (a + b)
+        var = (a*b*1.0)/(a+b+1.0)/(a+b)**2.0
+        g1 = 2.0*(b-a)*sqrt((1.0+a+b)/(a*b)) / (2+a+b)
+        g2 = 6.0*(a**3 + a**2*(1-2*b) + b**2*(1+b) - 2*a*b*(2+b))
+        g2 /= a*b*(a+b+2)*(a+b+3)
         return mn, var, g1, g2
 
     def _fitstart(self, data):
@@ -421,12 +419,11 @@ class beta_gen(rv_continuous):
 
         def func(x):
             a, b = x
-            sk = 2 * (b - a) * sqrt(a + b + 1) / (a + b + 2) / sqrt(a * b)
-            ku = a ** 3 - a ** 2 * \
-                (2 * b - 1) + b ** 2 * (b + 1) - 2 * a * b * (b + 2)
-            ku /= a * b * (a + b + 2) * (a + b + 3)
+            sk = 2*(b-a)*sqrt(a + b + 1) / (a + b + 2) / sqrt(a*b)
+            ku = a**3 - a**2*(2*b-1) + b**2*(b+1) - 2*a*b*(b+2)
+            ku /= a*b*(a+b+2)*(a+b+3)
             ku *= 6
-            return [sk - g1, ku - g2]
+            return [sk-g1, ku-g2]
         a, b = optimize.fsolve(func, (1.0, 1.0))
         return super(beta_gen, self)._fitstart(data, args=(a, b))
 
@@ -486,7 +483,7 @@ class beta_gen(rv_continuous):
             a = b * xbar / (1 - xbar)
 
             # Compute the MLE for `a` by solving _beta_mle_a.
-            theta, _info, ier, mesg = optimize.fsolve(
+            theta, info, ier, mesg = optimize.fsolve(
                 _beta_mle_a, a,
                 args=(b, len(data), np.log(data).sum()),
                 full_output=True
@@ -515,7 +512,7 @@ class beta_gen(rv_continuous):
             b = (1 - xbar) * fac
 
             # Compute the MLE for a and b by solving _beta_mle_ab.
-            theta, _info, ier, mesg = optimize.fsolve(
+            theta, info, ier, mesg = optimize.fsolve(
                 _beta_mle_ab, [a, b],
                 args=(len(data), s1, s2),
                 full_output=True
@@ -555,29 +552,39 @@ class betaprime_gen(rv_continuous):
         return np.exp(self._logpdf(x, a, b))
 
     def _logpdf(self, x, a, b):
-        return (special.xlogy(a - 1.0, x) - special.xlog1py(a + b, x) -
+        return (special.xlogy(a-1.0, x) - special.xlog1py(a+b, x) -
                 special.betaln(a, b))
 
-    def _cdf_skip(self, x, a, b):
+    def _cdf(self, x, a, b):
+        return special.betainc(a, b, x/(1.+x))
         # remove for now: special.hyp2f1 is incorrect for large a
-        x = where(x == 1.0, 1.0 - 1e-6, x)
-        return (pow(x, a) * special.hyp2f1(a + b, a, 1 + a, -x) / a /
-                special.beta(a, b))
+        # x = where(x == 1.0, 1.0-1e-6, x)
+        # return pow(x, a)*special.hyp2f1(a+b, a, 1+a, -x)/a/special.beta(a, b)
+
+    def _fitstart(self, data):
+        g1 = np.mean(data)
+        g2 = mode(data)[0]
+
+        def func(x):
+            a, b = x
+            me = a / (b-1) if 1 < b else 1e100
+            mo = (a-1)/(b+1) if 1 <= a else 0
+            return [me-g1, mo-g2]
+        a, b = optimize.fsolve(func, (1.0, 1.5))
+        return super(betaprime_gen, self)._fitstart(data, args=(a, b))
 
     def _munp(self, n, a, b):
         if (n == 1.0):
-            return where(b > 1, a / (b - 1.0), inf)
+            return where(b > 1, a/(b-1.0), inf)
         elif (n == 2.0):
-            return where(b > 2, a * (a + 1.0) / ((b - 2.0) * (b - 1.0)), inf)
+            return where(b > 2, a*(a+1.0)/((b-2.0)*(b-1.0)), inf)
         elif (n == 3.0):
-            return where(
-                b > 3, a *
-                (a + 1.0) * (a + 2.0) / ((b - 3.0) * (b - 2.0) * (b - 1.0)),
-                inf)
+            return where(b > 3, a*(a+1.0)*(a+2.0)/((b-3.0)*(b-2.0)*(b-1.0)),
+                         inf)
         elif (n == 4.0):
             return where(b > 4,
-                         a * (a + 1.0) * (a + 2.0) * (a + 3.0) /
-                         ((b - 4.0) * (b - 3.0) * (b - 2.0) * (b - 1.0)), inf)
+                         a*(a+1.0)*(a+2.0)*(a+3.0)/((b-4.0)*(b-3.0)
+                                                    * (b-2.0)*(b-1.0)), inf)
         else:
             raise NotImplementedError
 betaprime = betaprime_gen(a=0.0, name='betaprime')
@@ -606,7 +613,7 @@ class bradford_gen(rv_continuous):
         return log1p(c * x) / log1p(c)
 
     def _ppf(self, q, c):
-        return ((1.0 + c) ** q - 1) / c
+        return ((1.0+c)**q-1)/c
 
     def _stats(self, c, moments='mv'):
         k = log1p(c)
@@ -615,15 +622,12 @@ class bradford_gen(rv_continuous):
         g1 = None
         g2 = None
         if 's' in moments:
-            g1 = sqrt(2) * \
-                (12 * c * c - 9 * c * k * (c + 2)
-                 + 2 * k * k * (c * (c + 3) + 3))
-            g1 /= sqrt(c * (c * (k - 2) + 2 * k)) * (3 * c * (k - 2) + 6 * k)
+            g1 = sqrt(2)*(12*c*c-9*c*k*(c+2)+2*k*k*(c*(c+3)+3))
+            g1 /= sqrt(c*(c*(k-2)+2*k))*(3*c*(k-2)+6*k)
         if 'k' in moments:
-            g2 = (c ** 3 * (k - 3) * (k * (3 * k - 16) + 24) +
-                  12 * k * c * c * (k - 4) * (k - 3) +
-                  6 * c * k * k * (3 * k - 14) + 12 * k ** 3)
-            g2 /= 3 * c * (c * (k - 2) + 2 * k) ** 2
+            g2 = (c**3*(k-3)*(k*(3*k-16)+24)+12*k*c*c*(k-4)*(k-3)
+                  + 6*c*k*k*(3*k-14) + 12*k**3)
+            g2 /= 3*c*(c*(k-2)+2*k)**2
         return mu, mu2, g1, g2
 
     def _entropy(self, c):
@@ -662,13 +666,13 @@ class burr_gen(rv_continuous):
 
     """
     def _pdf(self, x, c, d):
-        return c * d * (x ** (-c - 1.0)) * ((1 + x ** (-c * 1.)) ** (-d - 1.))
+        return c*d*(x**(-c-1.0))*((1+x**(-c*1.0))**(-d-1.0))
 
     def _cdf(self, x, c, d):
-        return (1 + x ** (-c * 1.0)) ** (-d ** 1.0)
+        return (1+x**(-c*1.0))**(-d**1.0)
 
     def _ppf(self, q, c, d):
-        return (q ** (-1.0 / d) - 1) ** (-1.0 / c)
+        return (q**(-1.0/d)-1)**(-1.0/c)
 
     def _munp(self, n, c, d):
         nc = 1. * n / c
@@ -724,25 +728,25 @@ class cauchy_gen(rv_continuous):
 
     """
     def _pdf(self, x):
-        return 1.0 / pi / (1.0 + x * x)
+        return 1.0/pi/(1.0+x*x)
 
     def _cdf(self, x):
-        return 0.5 + 1.0 / pi * arctan(x)
+        return 0.5 + 1.0/pi*arctan(x)
 
     def _ppf(self, q):
-        return tan(pi * q - pi / 2.0)
+        return tan(pi*q-pi/2.0)
 
     def _sf(self, x):
-        return 0.5 - 1.0 / pi * arctan(x)
+        return 0.5 - 1.0/pi*arctan(x)
 
     def _isf(self, q):
-        return tan(pi / 2.0 - pi * q)
+        return tan(pi/2.0-pi*q)
 
     def _stats(self):
         return inf, inf, nan, nan
 
     def _entropy(self):
-        return log(4 * pi)
+        return log(4*pi)
 
     def _fitstart(self, data, args=None):
         return (0, 1)
@@ -764,33 +768,31 @@ class chi_gen(rv_continuous):
 
     Special cases of `chi` are:
 
-        - ``chi(1, loc, scale) = `halfnormal`
-        - ``chi(2, 0, scale) = `rayleigh`
-        - ``chi(3, 0, scale) : `maxwell`
+        - ``chi(1, loc, scale)`` is equivalent to `halfnorm`
+        - ``chi(2, 0, scale)`` is equivalent to `rayleigh`
+        - ``chi(3, 0, scale)`` is equivalent to `maxwell`
 
     %(example)s
 
     """
-
     def _rvs(self, df):
         return sqrt(chi2.rvs(df, size=self._size))
 
     def _pdf(self, x, df):
-        return (x ** (df - 1.) * exp(-x * x * 0.5) / (2.0) ** (df * 0.5 - 1) /
-                gam(df * 0.5))
+        return x**(df-1.)*exp(-x*x*0.5)/(2.0)**(df*0.5-1)/gam(df*0.5)
 
     def _cdf(self, x, df):
-        return special.gammainc(df * 0.5, 0.5 * x * x)
+        return special.gammainc(df*0.5, 0.5*x*x)
 
     def _ppf(self, q, df):
-        return sqrt(2 * special.gammaincinv(df * 0.5, q))
+        return sqrt(2*special.gammaincinv(df*0.5, q))
 
     def _stats(self, df):
-        mu = sqrt(2) * special.gamma(df / 2.0 + 0.5) / special.gamma(df / 2.0)
-        mu2 = df - mu * mu
-        g1 = (2 * mu ** 3.0 + mu * (1 - 2 * df)) / asarray(np.power(mu2, 1.5))
-        g2 = 2 * df * (1.0 - df) - 6 * mu ** 4 + 4 * mu ** 2 * (2 * df - 1)
-        g2 /= asarray(mu2 ** 2.0)
+        mu = sqrt(2)*special.gamma(df/2.0+0.5)/special.gamma(df/2.0)
+        mu2 = df - mu*mu
+        g1 = (2*mu**3.0 + mu*(1-2*df))/asarray(np.power(mu2, 1.5))
+        g2 = 2*df*(1.0-df)-6*mu**4 + 4*mu**2 * (2*df-1)
+        g2 /= asarray(mu2**2.0)
         return mu, mu2, g1, g2
 
     def _fitstart(self, data):
@@ -802,7 +804,7 @@ class chi_gen(rv_continuous):
 chi = chi_gen(a=0.0, name='chi')
 
 
-# Chi-squared (gamma-distributed with loc=0 and scale=2 and shape=df/2)
+## Chi-squared (gamma-distributed with loc=0 and scale=2 and shape=df/2)
 class chi2_gen(rv_continuous):
     """A chi-squared continuous random variable.
 
@@ -824,8 +826,7 @@ class chi2_gen(rv_continuous):
         return exp(self._logpdf(x, df))
 
     def _logpdf(self, x, df):
-        return (special.xlogy(df / 2. - 1, x) - x / 2. - gamln(df / 2.) -
-                (log(2) * df) / 2.)
+        return special.xlogy(df/2.-1, x) - x/2. - gamln(df/2.) - (log(2)*df)/2.
 
     def _cdf(self, x, df):
         return special.chdtr(df, x)
@@ -837,13 +838,13 @@ class chi2_gen(rv_continuous):
         return special.chdtri(df, p)
 
     def _ppf(self, p, df):
-        return self._isf(1.0 - p, df)
+        return self._isf(1.0-p, df)
 
     def _stats(self, df):
         mu = df
-        mu2 = 2 * df
-        g1 = 2 * sqrt(2.0 / df)
-        g2 = 12.0 / df
+        mu2 = 2*df
+        g1 = 2*sqrt(2.0/df)
+        g2 = 12.0/df
         return mu, mu2, g1, g2
 
     def _fitstart(self, data):
@@ -873,17 +874,16 @@ class cosine_gen(rv_continuous):
 
     """
     def _pdf(self, x):
-        return 1.0 / 2 / pi * (1 + cos(x))
+        return 1.0/2/pi*(1+cos(x))
 
     def _cdf(self, x):
-        return 1.0 / 2 / pi * (pi + x + sin(x))
+        return 1.0/2/pi*(pi + x + sin(x))
 
     def _stats(self):
-        return (0.0, pi * pi / 3.0 - 2.0, 0.0,
-                -6.0 * (pi ** 4 - 90) / (5.0 * (pi * pi - 6) ** 2))
+        return 0.0, pi*pi/3.0-2.0, 0.0, -6.0*(pi**4-90)/(5.0*(pi*pi-6)**2)
 
     def _entropy(self):
-        return log(4 * pi) - 1.0
+        return log(4*pi)-1.0
 cosine = cosine_gen(a=-pi, b=pi, name='cosine')
 
 
@@ -905,31 +905,31 @@ class dgamma_gen(rv_continuous):
     """
     def _rvs(self, a):
         u = mtrand.random_sample(size=self._size)
-        return (gamma.rvs(a, size=self._size) * where(u >= 0.5, 1, -1))
+        return (gamma.rvs(a, size=self._size)*where(u >= 0.5, 1, -1))
 
     def _pdf(self, x, a):
         ax = abs(x)
-        return 1.0 / (2 * special.gamma(a)) * ax ** (a - 1.0) * exp(-ax)
+        return 1.0/(2*special.gamma(a))*ax**(a-1.0) * exp(-ax)
 
     def _logpdf(self, x, a):
         ax = abs(x)
-        return special.xlogy(a - 1.0, ax) - ax - log(2) - gamln(a)
+        return special.xlogy(a-1.0, ax) - ax - log(2) - gamln(a)
 
     def _cdf(self, x, a):
-        fac = 0.5 * special.gammainc(a, abs(x))
+        fac = 0.5*special.gammainc(a, abs(x))
         return where(x > 0, 0.5 + fac, 0.5 - fac)
 
     def _sf(self, x, a):
-        fac = 0.5 * special.gammainc(a, abs(x))
-        return where(x > 0, 0.5 - fac, 0.5 + fac)
+        fac = 0.5*special.gammainc(a, abs(x))
+        return where(x > 0, 0.5-fac, 0.5+fac)
 
     def _ppf(self, q, a):
-        fac = special.gammainccinv(a, 1 - abs(2 * q - 1))
+        fac = special.gammainccinv(a, 1-abs(2*q-1))
         return where(q > 0.5, fac, -fac)
 
     def _stats(self, a):
-        mu2 = a * (a + 1.0)
-        return 0.0, mu2, 0.0, (a + 2.0) * (a + 3.0) / mu2 - 3.0
+        mu2 = a*(a+1.0)
+        return 0.0, mu2, 0.0, (a+2.0)*(a+3.0)/mu2-3.0
 dgamma = dgamma_gen(name='dgamma')
 
 
@@ -953,15 +953,15 @@ class dweibull_gen(rv_continuous):
 
     def _pdf(self, x, c):
         ax = abs(x)
-        Px = c / 2.0 * ax ** (c - 1.0) * exp(-ax ** c)
+        Px = c / 2.0 * ax**(c-1.0) * exp(-ax**c)
         return Px
 
     def _logpdf(self, x, c):
         ax = abs(x)
-        return log(c) - log(2.0) + special.xlogy(c - 1.0, ax) - ax ** c
+        return log(c) - log(2.0) + special.xlogy(c - 1.0, ax) - ax**c
 
     def _cdf(self, x, c):
-        Cx1 = 0.5 * exp(-abs(x) ** c)
+        Cx1 = 0.5 * exp(-abs(x)**c)
         return where(x > 0, 1 - Cx1, Cx1)
 
     def _ppf(self, q, c):
@@ -980,7 +980,7 @@ class dweibull_gen(rv_continuous):
 dweibull = dweibull_gen(name='dweibull')
 
 
-# Exponential (gamma distributed with a=1.0, loc=loc and scale=scale)
+## Exponential (gamma distributed with a=1.0, loc=loc and scale=scale)
 class expon_gen(rv_continuous):
     """An exponential continuous random variable.
 
@@ -1063,9 +1063,11 @@ class exponweib_gen(rv_continuous):
         return exp(self._logpdf(x, a, c))
 
     def _logpdf(self, x, a, c):
-        exc = exp(-x ** c)
-        return (log(a) + log(c) + special.xlog1py(a - 1., -exc) - x ** c +
-                special.xlogy(c - 1.0, x))
+        negxc = -x**c
+        exm1c = -special.expm1(negxc)
+        logp = (log(a) + log(c) + special.xlogy(a - 1.0, exm1c) +
+                negxc + special.xlogy(c - 1.0, x))
+        return logp
 
     def _cdf(self, x, a, c):
         exm1c = -expm1(-x ** c)
@@ -1099,9 +1101,9 @@ class exponpow_gen(rv_continuous):
 
     """
     def _pdf(self, x, b):
-        xbm1 = x ** (b - 1.0)
+        xbm1 = x**(b-1.0)
         xb = xbm1 * x
-        return exp(1) * b * xbm1 * exp(xb - exp(xb))
+        return exp(1)*b*xbm1 * exp(xb - exp(xb))
 
     def _logpdf(self, x, b):
         xb = x ** (b - 1.0) * x
@@ -1122,7 +1124,7 @@ exponpow = exponpow_gen(a=0.0, name='exponpow')
 
 
 class fatiguelife_gen(rv_continuous):
-    """A fatigue-life (Birnbaum-Sanders) continuous random variable.
+    """A fatigue-life (Birnbaum-Saunders) continuous random variable.
 
     %(before_notes)s
 
@@ -1135,29 +1137,34 @@ class fatiguelife_gen(rv_continuous):
 
     for ``x > 0``.
 
+    References
+    ----------
+    .. [1] "Birnbaum-Saunders distribution",
+           http://en.wikipedia.org/wiki/Birnbaum-Saunders_distribution
+
     %(example)s
 
     """
     def _rvs(self, c):
         z = mtrand.standard_normal(self._size)
-        x = 0.5 * c * z
-        x2 = x * x
-        t = 1.0 + 2 * x2 + 2 * x * sqrt(1 + x2)
+        x = 0.5*c*z
+        x2 = x*x
+        t = 1.0 + 2*x2 + 2*x*sqrt(1 + x2)
         return t
 
     def _pdf(self, x, c):
         return np.exp(self._logpdf(x, c))
 
     def _logpdf(self, x, c):
-        return (log(x + 1) - (x - 1) ** 2 / (2.0 * x * c ** 2) - log(2 * c) -
-                0.5 * (log(2 * pi) + 3 * log(x)))
+        return (log(x+1) - (x-1)**2 / (2.0*x*c**2) - log(2*c) -
+                0.5*(log(2*pi) + 3*log(x)))
 
     def _cdf(self, x, c):
-        return special.ndtr(1.0 / c * (sqrt(x) - 1.0 / sqrt(x)))
+        return special.ndtr(1.0 / c * (sqrt(x) - 1.0/sqrt(x)))
 
     def _ppf(self, q, c):
-        tmp = c * special.ndtri(q)
-        return 0.25 * (tmp + sqrt(tmp ** 2 + 4)) ** 2
+        tmp = c*special.ndtri(q)
+        return 0.25 * (tmp + sqrt(tmp**2 + 4))**2
 
     def _stats(self, c):
         # NB: the formula for kurtosis in wikipedia seems to have an error:
@@ -1165,12 +1172,12 @@ class fatiguelife_gen(rv_continuous):
         # Alpha.  And the latter one, below, passes the tests, while the wiki
         # one doesn't So far I didn't have the guts to actually check the
         # coefficients from the expressions for the raw moments.
-        c2 = c * c
+        c2 = c*c
         mu = c2 / 2.0 + 1.0
         den = 5.0 * c2 + 4.0
-        mu2 = c2 * den / 4.0
-        g1 = 4 * c * (11 * c2 + 6.0) / np.power(den, 1.5)
-        g2 = 6 * c2 * (93 * c2 + 40.0) / den ** 2.0
+        mu2 = c2*den / 4.0
+        g1 = 4 * c * (11*c2 + 6.0) / np.power(den, 1.5)
+        g2 = 6 * c2 * (93*c2 + 40.0) / den**2.0
         return mu, mu2, g1, g2
 fatiguelife = fatiguelife_gen(a=0.0, name='fatiguelife')
 
@@ -1195,10 +1202,10 @@ class foldcauchy_gen(rv_continuous):
         return abs(cauchy.rvs(loc=c, size=self._size))
 
     def _pdf(self, x, c):
-        return 1.0 / pi * (1.0 / (1 + (x - c) ** 2) + 1.0 / (1 + (x + c) ** 2))
+        return 1.0/pi*(1.0/(1+(x-c)**2) + 1.0/(1+(x+c)**2))
 
     def _cdf(self, x, c):
-        return 1.0 / pi * (arctan(x - c) + arctan(x + c))
+        return 1.0/pi*(arctan(x-c) + arctan(x+c))
 
     def _stats(self, c):
         return inf, inf, nan, nan
@@ -1232,8 +1239,8 @@ class f_gen(rv_continuous):
     def _logpdf(self, x, dfn, dfd):
         n = 1.0 * dfn
         m = 1.0 * dfd
-        lPx = m / 2 * log(m) + n / 2 * log(n) + (n / 2 - 1) * log(x)
-        lPx -= ((n + m) / 2) * log(m + n * x) + special.betaln(n / 2, m / 2)
+        lPx = m/2 * log(m) + n/2 * log(n) + (n/2 - 1) * log(x)
+        lPx -= ((n+m)/2) * log(m + n*x) + special.betaln(n/2, m/2)
         return lPx
 
     def _cdf(self, x, dfn, dfd):
@@ -1257,7 +1264,7 @@ class f_gen(rv_continuous):
         mu2 = _lazywhere(
             v2 > 4, (v1, v2, v2_2, v2_4),
             lambda v1, v2, v2_2, v2_4:
-            2 * v2 * v2 * (v1 + v2_2) / (v1 * v2_2 ** 2 * v2_4),
+            2 * v2 * v2 * (v1 + v2_2) / (v1 * v2_2**2 * v2_4),
             np.inf)
 
         g1 = _lazywhere(
@@ -1318,36 +1325,36 @@ class foldnorm_gen(rv_continuous):
         return abs(mtrand.standard_normal(self._size) + c)
 
     def _pdf(self, x, c):
-        return _norm_pdf(x + c) + _norm_pdf(x - c)
+        return _norm_pdf(x + c) + _norm_pdf(x-c)
 
     def _cdf(self, x, c):
-        return special.ndtr(x - c) + special.ndtr(x + c) - 1.0
+        return special.ndtr(x-c) + special.ndtr(x+c) - 1.0
 
     def _stats(self, c):
         # Regina C. Elandt, Technometrics 3, 551 (1961)
         # http://www.jstor.org/stable/1266561
         #
-        c2 = c * c
-        expfac = np.exp(-0.5 * c2) / np.sqrt(2. * pi)
+        c2 = c*c
+        expfac = np.exp(-0.5*c2) / np.sqrt(2.*pi)
 
-        mu = 2. * expfac + c * special.erf(c / sqrt(2))
-        mu2 = c2 + 1 - mu * mu
+        mu = 2.*expfac + c * special.erf(c/sqrt(2))
+        mu2 = c2 + 1 - mu*mu
 
-        g1 = 2. * (mu * mu * mu - c2 * mu - expfac)
+        g1 = 2. * (mu*mu*mu - c2*mu - expfac)
         g1 /= np.power(mu2, 1.5)
 
-        g2 = c2 * (c2 + 6.) + 3 + 8. * expfac * mu
-        g2 += (2. * (c2 - 3.) - 3. * mu ** 2) * mu ** 2
-        g2 = g2 / mu2 ** 2.0 - 3.
+        g2 = c2 * (c2 + 6.) + 3 + 8.*expfac*mu
+        g2 += (2. * (c2 - 3.) - 3. * mu**2) * mu**2
+        g2 = g2 / mu2**2.0 - 3.
 
         return mu, mu2, g1, g2
 foldnorm = foldnorm_gen(a=0.0, name='foldnorm')
 
 
-# Extreme Value Type II or Frechet
-# (defined in Regress+ documentation as Extreme LB) as
-# a limiting value distribution.
-#
+## Extreme Value Type II or Frechet
+## (defined in Regress+ documentation as Extreme LB) as
+##   a limiting value distribution.
+##
 class frechet_r_gen(rv_continuous):
     """A Frechet right (or Weibull minimum) continuous random variable.
 
@@ -1382,7 +1389,7 @@ class frechet_r_gen(rv_continuous):
         return phati
 
     def _pdf(self, x, c):
-        return c * pow(x, c - 1) * exp(-pow(x, c))
+        return c*pow(x, c-1)*exp(-pow(x, c))
 
     def _logpdf(self, x, c):
         return log(c) + special.xlogy(c - 1, x) - pow(x, c)
@@ -1394,7 +1401,7 @@ class frechet_r_gen(rv_continuous):
         return pow(-log1p(-q), 1.0 / c)
 
     def _munp(self, n, c):
-        return special.gamma(1.0 + n * 1.0 / c)
+        return special.gamma(1.0+n*1.0/c)
 
     def _entropy(self, c):
         return -_EULER / c - log(c) + _EULER + 1
@@ -1431,16 +1438,16 @@ class frechet_l_gen(rv_continuous):
 
     """
     def _pdf(self, x, c):
-        return c * pow(-x, c - 1) * exp(-pow(-x, c))
+        return c*pow(-x, c-1)*exp(-pow(-x, c))
 
     def _cdf(self, x, c):
         return exp(-pow(-x, c))
 
     def _ppf(self, q, c):
-        return -pow(-log(q), 1.0 / c)
+        return -pow(-log(q), 1.0/c)
 
     def _munp(self, n, c):
-        val = special.gamma(1.0 + n * 1.0 / c)
+        val = special.gamma(1.0+n*1.0/c)
         if (int(n) % 2):
             sgn = -1
         else:
@@ -1482,21 +1489,21 @@ class genlogistic_gen(rv_continuous):
         return log(c) - x - (c + 1.0) * log1p(exp(-x))
 
     def _cdf(self, x, c):
-        Cx = (1 + exp(-x)) ** (-c)
+        Cx = (1+exp(-x))**(-c)
         return Cx
 
     def _ppf(self, q, c):
-        vals = -log(pow(q, -1.0 / c) - 1)
+        vals = -log(pow(q, -1.0/c)-1)
         return vals
 
     def _stats(self, c):
         zeta = special.zeta
         mu = _EULER + special.psi(c)
-        mu2 = pi * pi / 6.0 + zeta(2, c)
-        g1 = -2 * zeta(3, c) + 2 * _ZETA3
+        mu2 = pi*pi/6.0 + zeta(2, c)
+        g1 = -2*zeta(3, c) + 2*_ZETA3
         g1 /= np.power(mu2, 1.5)
-        g2 = pi ** 4 / 15.0 + 6 * zeta(4, c)
-        g2 /= mu2 ** 2.0
+        g2 = pi**4/15.0 + 6*zeta(4, c)
+        g2 /= mu2**2.0
         return mu, mu2, g1, g2
 genlogistic = genlogistic_gen(name='genlogistic')
 
@@ -1518,14 +1525,19 @@ class genpareto_gen(rv_continuous):
     -----
     The probability density function for `genpareto` is::
 
-        genpareto.pdf(x, c) = exp(-x)
-
-    for c==0
-
         genpareto.pdf(x, c) = (1 + c * x)**(-1 - 1/c)
 
-    for ``c != 0``, and for ``x >= 0`` for all c,
-    and ``x < 1/abs(c)`` for ``c < 0``.
+    for ``c >= 0`` ``x >= 0``, and
+    for ``c < 0`` ``0 <= x <= -1/c``
+
+    For ``c == 0``, `genpareto` reduces to the exponential
+    distribution, `expon`::
+
+        genpareto.pdf(x, c=0) = exp(-x)
+
+    For ``c == -1``, `genpareto` is uniform on ``[0, 1]``::
+
+        genpareto.cdf(x, c=-1) = x
 
     %(example)s
 
@@ -1561,55 +1573,32 @@ class genpareto_gen(rv_continuous):
         c = asarray(c)
         self.b = _lazywhere(c < 0, (c,),
                             lambda c: -1. / c, np.inf)
-        return where(abs(c) == inf, 0, 1)
+        return where(abs(c) == inf, False, True)
 
     def _pdf(self, x, c):
         return exp(self._logpdf(x, c))
 
     def _logpdf(self, x, c):
         return _lazywhere((x == x) & (c != 0), (x, c),
-             lambda x, c: -special.xlog1py(c+1., c*x) / c,
-             -x)
-        #return -(c + 1.) * self._log1pcx(x, c)
-#         x1 = where((c == 0) & (x == inf), 0.0, x)
-#         cx = where((c == 0) & (x == inf), 0.0, c * x1)
-#         logpdf = where((cx == inf) | (cx == -1),
-#                            -inf, -(x + cx) * log1pxdx(cx))
-#         putmask(logpdf, (c == -1) & (x == 1.0), 0.0)
-#         return logpdf
-        # return (-1.0-1.0/c) * np.log1p(c*x)
-
-    def _logsf(self, x, c):
-        return -self._log1pcx(x, c)
-        #cx = c * x
-        # return where((0.0 < x) & (-1.0 <= cx) & (c != 0), -log1p(cx) / c, -x)
+            lambda x, c: -special.xlog1py(c+1., c*x) / c,
+            -x)
 
     def _cdf(self, x, c):
-        log_sf = self._logsf(x, c)
-        return - expm1(log_sf)
-        # return 1.0 - power(1+c*x,asarray(-1.0/c))
+        return - expm1( self._logsf(x, c))
 
     def _sf(self, x, c):
-        log_sf = self._logsf(x, c)
-        return exp(log_sf)
+        return exp(self._logsf(x, c))
 
+    def _logsf(self, x, c):
+        return _lazywhere((x == x) & (c != 0), (x, c),
+                          lambda x, c: -log1p(c * x) / c,
+                          -x)
     def _ppf(self, q, c):
-        log_sf = log1p(-q)
-        return where((c != 0) & (-inf < log_sf), expm1(-c * log_sf) / c,
-                     -log_sf)
+        return -boxcox1p(-q, -c)
 
     def _isf(self, q, c):
-        log_sf = log(q)
-        return where((c != 0) & (-inf < log_sf), expm1(-c * log_sf) / c,
-                     -log_sf)
-        #vals = 1.0/c * (power(1-q, -c)-1)
-        # return vals
+        return -boxcox(q, -c)
 
-    def _log1pcx(self, x, c):
-        ''' log(1+c*x)/c incl c\to 0 limit'''
-        return _lazywhere((x == x) & (c != 0), (x, c),
-                          lambda x, c: np.log1p(c * x) / c,
-                          x)
 
     def _fitstart(self, data):
         d = asarray(data)
@@ -1705,14 +1694,8 @@ class genpareto_gen(rv_continuous):
         munp = lambda c: __munp(n, c)
         return _lazywhere(c != 0, (c,), munp, gam(n + 1))
 
-    def _munp2(self, n, c):
-        k = arange(0, n + 1)
-        val = (-1.0 / c) ** n * \
-            sum(comb(n, k) * (-1) ** k / (1.0 - c * k), axis=0)
-        return where(c * n < 1, val, inf)
-
     def _entropy(self, c):
-        return 1 + c
+        return 1. + c
 genpareto = genpareto_gen(a=0.0, name='genpareto')
 
 
@@ -1754,7 +1737,7 @@ class genexpon_gen(rv_continuous):
             raise NotImplementedError('Only implemented for index in [0,1]!')
         else:
             raise IndexError('Index to the fixed parameter is out of bounds')
-            
+
         return phati
 
     def _pdf(self, x, a, b, c):
@@ -1788,12 +1771,15 @@ class genextreme_gen(rv_continuous):
             exp(-exp(-x))*exp(-x),                    for c==0
             exp(-(1-c*x)**(1/c))*(1-c*x)**(1/c-1),    for x <= 1/c, c > 0
 
+    Note that several sources and software packages use the opposite 
+    convention for the sign of the shape parameter ``c``. 
+
     %(example)s
 
     """
     def _argcheck(self, c):
-        min = np.minimum  # @ReservedAssignment
-        max = np.maximum  # @ReservedAssignment
+        min = np.minimum
+        max = np.maximum
         self.b = where(c > 0, 1.0 / max(c, _XMIN), inf)
         self.a = where(c < 0, 1.0 / min(c, -_XMIN), -inf)
         return where(abs(c) == inf, 0, 1)
@@ -1807,13 +1793,13 @@ class genextreme_gen(rv_continuous):
         cond1 = (c == 0) * (x == x)
         logex2 = where(cond1, 0.0, log1p(-cx))
         logpex2 = -x * log1pxdx(-cx)
-        #logpex2 = where(cond1,-x,logex2/c)
+        # logpex2 = where(cond1,-x, logex2/c)
         pex2 = exp(logpex2)
         # Handle special cases
         logpdf = where(
             (cx == 1) | (cx == -inf), -inf, -pex2 + logpex2 - logex2)
         putmask(logpdf, (c == 1) & (x == 1), 0.0)
-        return exp(logpdf)
+        return logpdf
 
     def _cdf(self, x, c):
         return exp(self._logcdf(x, c))
@@ -1830,45 +1816,41 @@ class genextreme_gen(rv_continuous):
 
     def _ppf(self, q, c):
         x = -log(-log(q))
-        #return where((c == 0) * (x == x), x, -expm1(-c * x) / c)
-        return _lazywhere((x==x) & (c != 0), (x, c),
-                  lambda x, c: -expm1(-c*x) / c, x)
+        return _lazywhere((x == x) & (c != 0), (x, c),
+                  lambda x, c: -expm1(-c * x) / c, x)
 
     def _stats(self, c):
-        g = lambda n: gam(n * c + 1)
+        g = lambda n: gam(n*c+1)
         g1 = g(1)
         g2 = g(2)
         g3 = g(3)
         g4 = g(4)
-        g2mg12 = where(abs(c) < 1e-7, (c * pi) ** 2.0 / 6.0, g2 - g1 ** 2.0)
-        gam2k = where(abs(c) < 1e-7, pi ** 2.0 / 6.0,
-                      expm1(gamln(2.0 * c + 1.0) -
-                            2 * gamln(c + 1.0)) / c ** 2.0)
+        g2mg12 = where(abs(c) < 1e-7, (c*pi)**2.0/6.0, g2-g1**2.0)
+        gam2k = where(abs(c) < 1e-7, pi**2.0/6.0,
+                      expm1(gamln(2.0*c+1.0)-2*gamln(c+1.0))/c**2.0)
         eps = 1e-14
         gamk = where(abs(c) < eps, -_EULER, expm1(gamln(c + 1)) / c)
 
         m = where(c < -1.0, nan, -gamk)
-        v = where(c < -0.5, nan, g1 ** 2.0 * gam2k)
+        v = where(c < -0.5, nan, g1**2.0*gam2k)
 
         # skewness
-        sk1 = where(c < -1. / 3, nan,
-                    np.sign(c) * (-g3 + (g2 + 2 * g2mg12) * g1) /
-                    ((g2mg12) ** (3. / 2.)))
-        sk = where(abs(c) <= eps ** 0.29, 12 * sqrt(6) * _ZETA3 / pi ** 3, sk1)
+        sk1 = where(c < -1./3, nan,
+                    np.sign(c)*(-g3+(g2+2*g2mg12)*g1)/((g2mg12)**(3./2.)))
+        sk = where(abs(c) <= eps**0.29, 12*sqrt(6)*_ZETA3/pi**3, sk1)
 
         # kurtosis
-        ku1 = where(c < -1. / 4, nan,
-                    (g4 + (-4 * g3 + 3 * (g2 + g2mg12) * g1) * g1) /
-                    ((g2mg12) ** 2))
-        ku = where(abs(c) <= (eps) ** 0.23, 12.0 / 5.0, ku1 - 3.0)
+        ku1 = where(c < -1./4, nan,
+                    (g4+(-4*g3+3*(g2+g2mg12)*g1)*g1)/((g2mg12)**2))
+        ku = where(abs(c) <= (eps)**0.23, 12.0/5.0, ku1-3.0)
         return m, v, sk, ku
 
     def _munp(self, n, c):
-        k = arange(0, n + 1)
-        vals = 1.0 / c ** n * sum(
-            comb(n, k) * (-1) ** k * special.gamma(c * k + 1),
+        k = arange(0, n+1)
+        vals = 1.0/c**n * sum(
+            comb(n, k) * (-1)**k * special.gamma(c*k + 1),
             axis=0)
-        return where(c * n > -1, vals, inf)
+        return where(c*n > -1, vals, inf)
 
     def _fitstart(self, data):
         d = asarray(data)
@@ -1914,11 +1896,11 @@ def _digammainv(y):
             value = optimize.newton(func, x0, tol=1e-10)
             return value
     elif y > -3:
-        x0 = exp(y / 2.332) + 0.08661
+        x0 = exp(y/2.332) + 0.08661
     else:
         x0 = 1.0 / (-y - _em)
 
-    value, _info, ier, _msg = optimize.fsolve(func, x0, xtol=1e-11,
+    value, info, ier, mesg = optimize.fsolve(func, x0, xtol=1e-11,
                                              full_output=True)
     if ier != 1:
         raise RuntimeError("_digammainv: fsolve failed, y = %r" % y)
@@ -1926,11 +1908,11 @@ def _digammainv(y):
     return value[0]
 
 
-# Gamma (Use MATLAB and MATHEMATICA (b=theta=scale, a=alpha=shape) definition)
+## Gamma (Use MATLAB and MATHEMATICA (b=theta=scale, a=alpha=shape) definition)
 
-# gamma(a, loc, scale)  with a an integer is the Erlang distribution
-# gamma(1, loc, scale)  is the Exponential distribution
-# gamma(df/2, 0, 2) is the chi2 distribution with df degrees of freedom.
+## gamma(a, loc, scale)  with a an integer is the Erlang distribution
+## gamma(1, loc, scale)  is the Exponential distribution
+## gamma(df/2, 0, 2) is the chi2 distribution with df degrees of freedom.
 
 class gamma_gen(rv_continuous):
     """A gamma continuous random variable.
@@ -1973,7 +1955,7 @@ class gamma_gen(rv_continuous):
         return exp(self._logpdf(x, a))
 
     def _logpdf(self, x, a):
-        return special.xlogy(a - 1.0, x) - x - gamln(a)
+        return special.xlogy(a-1.0, x) - x - gamln(a)
 
     def _cdf(self, x, a):
         return special.gammainc(a, x)
@@ -1985,10 +1967,10 @@ class gamma_gen(rv_continuous):
         return special.gammaincinv(a, q)
 
     def _stats(self, a):
-        return a, a, 2.0 / sqrt(a), 6.0 / a
+        return a, a, 2.0/sqrt(a), 6.0/a
 
     def _entropy(self, a):
-        return special.psi(a) * (1 - a) + a + gamln(a)
+        return special.psi(a)*(1-a) + a + gamln(a)
 
     def _fitstart(self, data):
         # The skewness of the gamma distribution is `4 / sqrt(a)`.
@@ -1996,7 +1978,7 @@ class gamma_gen(rv_continuous):
         # of the data.  The formula is regularized with 1e-8 in the
         # denominator to allow for degenerate data where the skewness
         # is close to 0.
-        a = 4 / (1e-8 + _skew(data) ** 2)
+        a = 4 / (1e-8 + _skew(data)**2)
         return super(gamma_gen, self)._fitstart(data, args=(a,))
 
     @inherit_docstring_from(rv_continuous)
@@ -2044,9 +2026,9 @@ class gamma_gen(rv_continuous):
                 # log(a) - special.digamma(a) - log(xbar) + log(data.mean) = 0
                 s = log(xbar) - log(data).mean()
                 func = lambda a: log(a) - special.digamma(a) - s
-                aest = (3 - s + np.sqrt((s - 3) ** 2 + 24 * s)) / (12 * s)
-                xa = aest * (1 - 0.4)
-                xb = aest * (1 + 0.4)
+                aest = (3-s + np.sqrt((s-3)**2 + 24*s)) / (12*s)
+                xa = aest*(1-0.4)
+                xb = aest*(1+0.4)
                 a = optimize.brentq(func, xa, xb, disp=0)
 
             # The MLE for the scale parameter is just the data mean
@@ -2101,7 +2083,7 @@ class erlang_gen(gamma_gen):
         # Override gamma_gen_fitstart so that an integer initial value is
         # used.  (Also regularize the division, to avoid issues when
         # _skew(data) is 0 or close to 0.)
-        a = int(4.0 / (1e-8 + _skew(data) ** 2))
+        a = int(4.0 / (1e-8 + _skew(data)**2))
         return super(gamma_gen, self)._fitstart(data, args=(a,))
 
     # Trivial override of the fit method, so we can monkey-patch its
@@ -2150,28 +2132,27 @@ class gengamma_gen(rv_continuous):
         return log(abs(c)) + special.xlogy(c * a - 1, x) - x ** c - gamln(a)
 
     def _cdf(self, x, a, c):
-        val = special.gammainc(a, x ** c)
-        cond = c + 0 * val
-        return where(cond > 0, val, 1 - val)
+        val = special.gammainc(a, x**c)
+        cond = c + 0*val
+        return where(cond > 0, val, 1-val)
 
     def _ppf(self, q, a, c):
         val1 = special.gammaincinv(a, q)
-        val2 = special.gammaincinv(a, 1.0 - q)
-        ic = 1.0 / c
-        cond = c + 0 * val1
-        return where(cond > 0, val1 ** ic, val2 ** ic)
+        val2 = special.gammaincinv(a, 1.0-q)
+        ic = 1.0/c
+        cond = c+0*val1
+        return where(cond > 0, val1**ic, val2**ic)
 
     def _munp(self, n, a, c):
-        return special.gamma(a + n * 1.0 / c) / special.gamma(a)
+        return special.gamma(a+n*1.0/c) / special.gamma(a)
 
     def _entropy(self, a, c):
         val = special.psi(a)
-        return a * (1 - val) + 1.0 / c * val + gamln(a) - log(abs(c))
+        return a*(1-val) + 1.0/c*val + gamln(a)-log(abs(c))
 gengamma = gengamma_gen(a=0.0, name='gengamma')
 
 
 class genhalflogistic_gen(rv_continuous):
-
     """A generalized half-logistic continuous random variable.
 
     %(before_notes)s
@@ -2180,36 +2161,35 @@ class genhalflogistic_gen(rv_continuous):
     -----
     The probability density function for `genhalflogistic` is::
 
-    genhalflogistic.pdf(x, c) = 2 * (1-c*x)**(1/c-1) / (1+(1-c*x)**(1/c))**2
+        genhalflogistic.pdf(x, c) = 2 * (1-c*x)**(1/c-1) / (1+(1-c*x)**(1/c))**2
 
     for ``0 <= x <= 1/c``, and ``c > 0``.
 
     %(example)s
 
     """
-
     def _argcheck(self, c):
         self.b = 1.0 / c
         return (c > 0)
 
     def _pdf(self, x, c):
-        limit = 1.0 / c
-        tmp = asarray(1 - c * x)
-        tmp0 = tmp ** (limit - 1)
-        tmp2 = tmp0 * tmp
-        return 2 * tmp0 / (1 + tmp2) ** 2
+        limit = 1.0/c
+        tmp = asarray(1-c*x)
+        tmp0 = tmp**(limit-1)
+        tmp2 = tmp0*tmp
+        return 2*tmp0 / (1+tmp2)**2
 
     def _cdf(self, x, c):
-        limit = 1.0 / c
-        tmp = asarray(1 - c * x)
-        tmp2 = tmp ** (limit)
-        return (1.0 - tmp2) / (1 + tmp2)
+        limit = 1.0/c
+        tmp = asarray(1-c*x)
+        tmp2 = tmp**(limit)
+        return (1.0-tmp2) / (1+tmp2)
 
     def _ppf(self, q, c):
-        return 1.0 / c * (1 - ((1.0 - q) / (1.0 + q)) ** c)
+        return 1.0/c*(1-((1.0-q)/(1.0+q))**c)
 
     def _entropy(self, c):
-        return 2 - (2 * c + 1) * log(2)
+        return 2 - (2*c+1)*log(2)
 genhalflogistic = genhalflogistic_gen(a=0.0, name='genhalflogistic')
 
 
@@ -2284,7 +2264,7 @@ class gumbel_r_gen(rv_continuous):
         return -log(-log(q))
 
     def _stats(self):
-        return _EULER, pi * pi / 6.0, 12 * sqrt(6) / pi ** 3 * _ZETA3, 12.0 / 5
+        return _EULER, pi*pi/6.0, 12*sqrt(6)/pi**3 * _ZETA3, 12.0/5
 
     def _entropy(self):
         # http://en.wikipedia.org/wiki/Gumbel_distribution
@@ -2327,8 +2307,8 @@ class gumbel_l_gen(rv_continuous):
         return log(-log1p(-q))
 
     def _stats(self):
-        return -_EULER, pi * pi / 6.0, \
-               -12 * sqrt(6) / pi ** 3 * _ZETA3, 12.0 / 5
+        return -_EULER, pi*pi/6.0, \
+               -12*sqrt(6)/pi**3 * _ZETA3, 12.0/5
 
     def _entropy(self):
         return _EULER + 1.
@@ -2352,22 +2332,22 @@ class halfcauchy_gen(rv_continuous):
 
     """
     def _pdf(self, x):
-        return 2.0 / pi / (1.0 + x * x)
+        return 2.0/pi/(1.0+x*x)
 
     def _logpdf(self, x):
-        return np.log(2.0 / pi) - np.log1p(x * x)
+        return np.log(2.0/pi) - special.log1p(x*x)
 
     def _cdf(self, x):
-        return 2.0 / pi * arctan(x)
+        return 2.0/pi*arctan(x)
 
     def _ppf(self, q):
-        return tan(pi / 2 * q)
+        return tan(pi/2*q)
 
     def _stats(self):
         return inf, inf, nan, nan
 
     def _entropy(self):
-        return log(2 * pi)
+        return log(2*pi)
 halfcauchy = halfcauchy_gen(a=0.0, name='halfcauchy')
 
 
@@ -2394,25 +2374,24 @@ class halflogistic_gen(rv_continuous):
         return log(2) - x - 2. * special.log1p(exp(-x))
 
     def _cdf(self, x):
-        return tanh(x / 2.0)
+        return tanh(x/2.0)
 
     def _ppf(self, q):
-        return 2 * arctanh(q)
+        return 2*arctanh(q)
 
     def _munp(self, n):
         if n == 1:
-            return 2 * log(2)
+            return 2*log(2)
         if n == 2:
-            return pi * pi / 3.0
+            return pi*pi/3.0
         if n == 3:
-            return 9 * _ZETA3
+            return 9*_ZETA3
         if n == 4:
-            return 7 * pi ** 4 / 15.0
-        return (2 * (1 - pow(2.0, 1 - n)) * special.gamma(n + 1) *
-                special.zeta(n, 1))
+            return 7*pi**4 / 15.0
+        return 2*(1-pow(2.0, 1-n))*special.gamma(n+1)*special.zeta(n, 1)
 
     def _entropy(self):
-        return 2 - log(2)
+        return 2-log(2)
 halflogistic = halflogistic_gen(a=0.0, name='halflogistic')
 
 
@@ -2438,24 +2417,23 @@ class halfnorm_gen(rv_continuous):
         return abs(mtrand.standard_normal(size=self._size))
 
     def _pdf(self, x):
-        return sqrt(2.0 / pi) * exp(-x * x / 2.0)
+        return sqrt(2.0/pi)*exp(-x*x/2.0)
 
     def _logpdf(self, x):
-        return 0.5 * np.log(2.0 / pi) - x * x / 2.0
+        return 0.5 * np.log(2.0/pi) - x*x/2.0
 
     def _cdf(self, x):
-        return special.ndtr(x) * 2 - 1.0
+        return special.ndtr(x)*2-1.0
 
     def _ppf(self, q):
-        return special.ndtri((1 + q) / 2.0)
+        return special.ndtri((1+q)/2.0)
 
     def _stats(self):
-        return (
-            sqrt(2.0 / pi), 1 - 2.0 / pi, sqrt(2) * (4 - pi) / (pi - 2) ** 1.5,
-            8 * (pi - 3) / (pi - 2) ** 2)
+        return (sqrt(2.0/pi), 1-2.0/pi, sqrt(2)*(4-pi)/(pi-2)**1.5,
+                8*(pi-3)/(pi-2)**2)
 
     def _entropy(self):
-        return 0.5 * log(pi / 2.0) + 0.5
+        return 0.5*log(pi/2.0)+0.5
 halfnorm = halfnorm_gen(a=0.0, name='halfnorm')
 
 
@@ -2474,19 +2452,19 @@ class hypsecant_gen(rv_continuous):
 
     """
     def _pdf(self, x):
-        return 1.0 / (pi * cosh(x))
+        return 1.0/(pi*cosh(x))
 
     def _cdf(self, x):
-        return 2.0 / pi * arctan(exp(x))
+        return 2.0/pi*arctan(exp(x))
 
     def _ppf(self, q):
-        return log(tan(pi * q / 2.0))
+        return log(tan(pi*q/2.0))
 
     def _stats(self):
-        return 0, pi * pi / 4, 0, 2
+        return 0, pi*pi/4, 0, 2
 
     def _entropy(self):
-        return log(2 * pi)
+        return log(2*pi)
 hypsecant = hypsecant_gen(name='hypsecant')
 
 
@@ -2512,15 +2490,14 @@ class gausshyper_gen(rv_continuous):
         return (a > 0) & (b > 0) & (c == c) & (z == z)
 
     def _pdf(self, x, a, b, c, z):
-        Cinv = gam(a) * gam(b) / gam(a + b) * special.hyp2f1(c, a, a + b, -z)
-        return (1.0 / Cinv * x ** (a - 1.0) * (1.0 - x) ** (b - 1.0) /
-                (1.0 + z * x) ** c)
+        Cinv = gam(a)*gam(b)/gam(a+b)*special.hyp2f1(c, a, a+b, -z)
+        return 1.0/Cinv * x**(a-1.0) * (1.0-x)**(b-1.0) / (1.0+z*x)**c
 
     def _munp(self, n, a, b, c, z):
-        fac = special.beta(n + a, b) / special.beta(a, b)
-        num = special.hyp2f1(c, a + n, a + b + n, -z)
-        den = special.hyp2f1(c, a, a + b, -z)
-        return fac * num / den
+        fac = special.beta(n+a, b) / special.beta(a, b)
+        num = special.hyp2f1(c, a+n, a+b+n, -z)
+        den = special.hyp2f1(c, a, a+b, -z)
+        return fac*num / den
 gausshyper = gausshyper_gen(a=0.0, b=1.0, name='gausshyper')
 
 
@@ -2546,17 +2523,17 @@ class invgamma_gen(rv_continuous):
         return exp(self._logpdf(x, a))
 
     def _logpdf(self, x, a):
-        return (-(a + 1) * log(x) - gamln(a) - 1.0 / x)
+        return (-(a+1) * log(x) - gamln(a) - 1.0/x)
 
     def _cdf(self, x, a):
-        return 1.0 - special.gammainc(a, 1.0 / x)
+        return 1.0 - special.gammainc(a, 1.0/x)
 
     def _ppf(self, q, a):
-        return 1.0 / special.gammaincinv(a, 1. - q)
+        return 1.0 / special.gammaincinv(a, 1.-q)
 
     def _stats(self, a, moments='mvsk'):
         m1 = _lazywhere(a > 1, (a,), lambda x: 1. / (x - 1.), np.inf)
-        m2 = _lazywhere(a > 2, (a,), lambda x: 1. / (x - 1.) ** 2 / (x - 2.),
+        m2 = _lazywhere(a > 2, (a,), lambda x: 1. / (x - 1.)**2 / (x - 2.),
                         np.inf)
 
         g1, g2 = None, None
@@ -2571,7 +2548,7 @@ class invgamma_gen(rv_continuous):
         return m1, m2, g1, g2
 
     def _entropy(self, a):
-        return a - (a + 1.0) * special.psi(a) + gamln(a)
+        return a - (a+1.0) * special.psi(a) + gamln(a)
 invgamma = invgamma_gen(a=0.0, name='invgamma')
 
 
@@ -2600,22 +2577,20 @@ class invgauss_gen(rv_continuous):
         return mtrand.wald(mu, 1.0, size=self._size)
 
     def _pdf(self, x, mu):
-        return (1.0 / sqrt(2 * pi * x ** 3.0) *
-                exp(-1.0 / (2 * x) * ((x - mu) / mu) ** 2))
+        return 1.0/sqrt(2*pi*x**3.0)*exp(-1.0/(2*x)*((x-mu)/mu)**2)
 
     def _logpdf(self, x, mu):
-        return (-0.5 * log(2 * pi) - 1.5 * log(x) -
-                ((x - mu) / mu) ** 2 / (2 * x))
+        return -0.5*log(2*pi) - 1.5*log(x) - ((x-mu)/mu)**2/(2*x)
 
     def _cdf(self, x, mu):
-        fac = sqrt(1.0 / x)
+        fac = sqrt(1.0/x)
         # Numerical accuracy for small `mu` is bad.  See #869.
-        C1 = _norm_cdf(fac * (x - mu) / mu)
-        C1 += exp(1.0 / mu) * _norm_cdf(-fac * (x + mu) / mu) * exp(1.0 / mu)
+        C1 = _norm_cdf(fac*(x-mu)/mu)
+        C1 += exp(1.0/mu) * _norm_cdf(-fac*(x+mu)/mu) * exp(1.0/mu)
         return C1
 
     def _stats(self, mu):
-        return mu, mu ** 3.0, 3 * sqrt(mu), 15 * mu
+        return mu, mu**3.0, 3*sqrt(mu), 15*mu
 invgauss = invgauss_gen(a=0.0, name='invgauss')
 
 
@@ -2651,13 +2626,13 @@ class invweibull_gen(rv_continuous):
         return exp(-xc1)
 
     def _ppf(self, q, c):
-        return np.power(-log(q), -1.0 / c)
+        return np.power(-log(q), -1.0/c)
 
     def _munp(self, n, c):
         return special.gamma(1 - n / c)
 
     def _entropy(self, c):
-        return 1 + _EULER + _EULER / c - log(c)
+        return 1+_EULER + _EULER / c - log(c)
 invweibull = invweibull_gen(a=0, name='invweibull')
 
 
@@ -2685,15 +2660,15 @@ class johnsonsb_gen(rv_continuous):
         return (b > 0) & (a == a)
 
     def _pdf(self, x, a, b):
-        trm = _norm_pdf(a + b * log(x / (1.0 - x)))
-        return b * 1.0 / (x * (1 - x)) * trm
+        trm = _norm_pdf(a + b*log(x/(1.0-x)))
+        return b*1.0/(x*(1-x))*trm
 
     def _cdf(self, x, a, b):
-        return _norm_cdf(a + b * log(x / (1.0 - x)))
+        return _norm_cdf(a + b*log(x/(1.0-x)))
 
     def _ppf(self, q, a, b):
         return 1.0 / (1 + exp(-1.0 / b * (_norm_ppf(q) - a)))
-johnsonsb = johnsonsb_gen(a=0.0, b=1.0, name='johnsonb')
+johnsonsb = johnsonsb_gen(a=0.0, b=1.0, name='johnsonsb')
 
 
 class johnsonsu_gen(rv_continuous):
@@ -2721,12 +2696,12 @@ class johnsonsu_gen(rv_continuous):
         return (b > 0) & (a == a)
 
     def _pdf(self, x, a, b):
-        x2 = x * x
-        trm = _norm_pdf(a + b * log(x + sqrt(x2 + 1)))
-        return b * 1.0 / sqrt(x2 + 1.0) * trm
+        x2 = x*x
+        trm = _norm_pdf(a + b * log(x + sqrt(x2+1)))
+        return b*1.0/sqrt(x2+1.0)*trm
 
     def _cdf(self, x, a, b):
-        return _norm_cdf(a + b * log(x + sqrt(x * x + 1)))
+        return _norm_cdf(a + b * log(x + sqrt(x*x + 1)))
 
     def _ppf(self, q, a, b):
         return sinh((_norm_ppf(q) - a) / b)
@@ -2751,10 +2726,10 @@ class laplace_gen(rv_continuous):
         return mtrand.laplace(0, 1, size=self._size)
 
     def _pdf(self, x):
-        return 0.5 * exp(-abs(x))
+        return 0.5*exp(-abs(x))
 
     def _cdf(self, x):
-        return where(x > 0, 1.0 - 0.5 * exp(-x), 0.5 * exp(x))
+        return where(x > 0, 1.0-0.5*exp(-x), 0.5*exp(x))
 
     def _ppf(self, q):
         return where(q > 0.5, -log(2) - log1p(-q), log(2 * q))
@@ -2763,7 +2738,7 @@ class laplace_gen(rv_continuous):
         return 0, 2, 0, 3
 
     def _entropy(self):
-        return log(2) + 1
+        return log(2)+1
 laplace = laplace_gen(name='laplace')
 
 
@@ -2789,15 +2764,16 @@ class levy_gen(rv_continuous):
     %(example)s
 
     """
-
     def _pdf(self, x):
         return 1 / sqrt(2*pi*x) / x * exp(-1/(2*x))
 
     def _cdf(self, x):
-        return 2 * (1 - _norm_cdf(1 / sqrt(x)))
+        # Equivalent to 2*norm.sf(sqrt(1/x))
+        return special.erfc(sqrt(0.5 / x))
 
     def _ppf(self, q):
-        val = _norm_ppf(1 - q / 2.0)
+        # Equivalent to 1.0/(norm.isf(q/2)**2) or 0.5/(erfcinv(q)**2)
+        val = -special.ndtri(q/2)
         return 1.0 / (val * val)
 
     def _stats(self):
@@ -2829,7 +2805,7 @@ class levy_l_gen(rv_continuous):
     """
     def _pdf(self, x):
         ax = abs(x)
-        return 1 / sqrt(2 * pi * ax) / ax * exp(-1 / (2 * ax))
+        return 1/sqrt(2*pi*ax)/ax*exp(-1/(2*ax))
 
     def _cdf(self, x):
         ax = abs(x)
@@ -2863,24 +2839,20 @@ class levy_stable_gen(rv_continuous):
     """
     def _rvs(self, alpha, beta):
         sz = self._size
-        TH = uniform.rvs(loc=-pi / 2.0, scale=pi, size=sz)
+        TH = uniform.rvs(loc=-pi/2.0, scale=pi, size=sz)
         W = expon.rvs(size=sz)
         if alpha == 1:
-            return (2. / pi * (pi / 2 + beta * TH) * tan(TH) -
-                    beta * log((pi / 2 * W * cos(TH)) / (pi / 2 + beta * TH)))
+            return 2/pi*(pi/2+beta*TH)*tan(TH)-beta*log((pi/2*W*cos(TH))/(pi/2+beta*TH))
 
-        ialpha = 1.0 / alpha
-        aTH = alpha * TH
+        ialpha = 1.0/alpha
+        aTH = alpha*TH
         if beta == 0:
-            return (W / (cos(TH) / tan(aTH) + sin(TH)) *
-                    ((cos(aTH) + sin(aTH) * tan(TH)) / W) ** ialpha)
+            return W/(cos(TH)/tan(aTH)+sin(TH))*((cos(aTH)+sin(aTH)*tan(TH))/W)**ialpha
 
-        val0 = beta * tan(pi * alpha / 2)
-        th0 = arctan(val0) / alpha
-        val3 = W / (cos(TH) / tan(alpha * (th0 + TH)) + sin(TH))
-        res3 = val3 * \
-            ((cos(aTH) + sin(aTH) * tan(TH) - val0 *
-             (sin(aTH) - cos(aTH) * tan(TH))) / W) ** ialpha
+        val0 = beta*tan(pi*alpha/2)
+        th0 = arctan(val0)/alpha
+        val3 = W/(cos(TH)/tan(alpha*(th0+TH))+sin(TH))
+        res3 = val3*((cos(aTH)+sin(aTH)*tan(TH)-val0*(sin(aTH)-cos(aTH)*tan(TH)))/W)**ialpha
         return res3
 
     def _argcheck(self, alpha, beta):
@@ -2924,10 +2896,10 @@ class logistic_gen(rv_continuous):
         return special.expit(x)
 
     def _ppf(self, q):
-        return -log(1.0 / q - 1)
+        return -log1p(-q) + log(q)
 
     def _stats(self):
-        return 0, pi * pi / 3.0, 0, 6.0 / 5.0
+        return 0, pi*pi/3.0, 0, 6.0/5.0
 
     def _entropy(self):
         # http://en.wikipedia.org/wiki/Logistic_distribution
@@ -2955,7 +2927,7 @@ class loggamma_gen(rv_continuous):
         return log(mtrand.gamma(c, size=self._size))
 
     def _pdf(self, x, c):
-        return exp(c * x - exp(x) - gamln(c))
+        return exp(c*x-exp(x)-gamln(c))
 
     def _cdf(self, x, c):
         return special.gammainc(c, exp(x))
@@ -2969,7 +2941,7 @@ class loggamma_gen(rv_continuous):
         mean = special.digamma(c)
         var = special.polygamma(1, c)
         skewness = special.polygamma(2, c) / np.power(var, 1.5)
-        excess_kurtosis = special.polygamma(3, c) / (var * var)
+        excess_kurtosis = special.polygamma(3, c) / (var*var)
         return mean, var, skewness, excess_kurtosis
 
 loggamma = loggamma_gen(name='loggamma')
@@ -2998,28 +2970,26 @@ class loglaplace_gen(rv_continuous):
 
     """
     def _pdf(self, x, c):
-        cd2 = c / 2.0
+        cd2 = c/2.0
         c = where(x < 1, c, -c)
-        return cd2 * x ** (c - 1)
+        return cd2*x**(c-1)
 
     def _cdf(self, x, c):
-        return where(x < 1, 0.5 * x ** c, 1 - 0.5 * x ** (-c))
+        return where(x < 1, 0.5*x**c, 1-0.5*x**(-c))
 
     def _ppf(self, q, c):
-        return where(q < 0.5, (2.0 * q) ** (1.0 / c),
-                     (2 * (1.0 - q)) ** (-1.0 / c))
+        return where(q < 0.5, (2.0*q)**(1.0/c), (2*(1.0-q))**(-1.0/c))
 
     def _munp(self, n, c):
-        return c ** 2 / (c ** 2 - n ** 2)
+        return c**2 / (c**2 - n**2)
 
     def _entropy(self, c):
-        return log(2.0 / c) + 1.0
+        return log(2.0/c) + 1.0
 loglaplace = loglaplace_gen(a=0.0, name='loglaplace')
 
 
 def _lognorm_logpdf(x, s):
-    return (-log(x) ** 2 / (2 * s ** 2) + np.where(x == 0, 0,
-                                                   -log(s * x * sqrt(2 * pi))))
+    return -log(x)**2 / (2*s**2) + np.where(x == 0, 0, -log(s*x*sqrt(2*pi)))
 
 
 class lognorm_gen(rv_continuous):
@@ -3058,15 +3028,15 @@ class lognorm_gen(rv_continuous):
         return exp(s * _norm_ppf(q))
 
     def _stats(self, s):
-        p = exp(s * s)
+        p = exp(s*s)
         mu = sqrt(p)
-        mu2 = p * (p - 1)
-        g1 = sqrt((p - 1)) * (2 + p)
+        mu2 = p*(p-1)
+        g1 = sqrt((p-1))*(2+p)
         g2 = np.polyval([1, 2, 3, 0, -6.0], p)
         return mu, mu2, g1, g2
 
     def _entropy(self, s):
-        return 0.5 * (1 + log(2 * pi) + 2 * log(s))
+        return 0.5 * (1 + log(2*pi) + 2 * log(s))
 
     def _fitstart(self, data):
         scale = data.std()
@@ -3154,23 +3124,21 @@ class maxwell_gen(rv_continuous):
         return chi.rvs(3.0, size=self._size)
 
     def _pdf(self, x):
-        return sqrt(2.0 / pi) * x * x * exp(-x * x / 2.0)
+        return sqrt(2.0/pi)*x*x*exp(-x*x/2.0)
 
     def _cdf(self, x):
-        return special.gammainc(1.5, x * x / 2.0)
+        return special.gammainc(1.5, x*x/2.0)
 
     def _ppf(self, q):
-        return sqrt(2 * special.gammaincinv(1.5, q))
+        return sqrt(2*special.gammaincinv(1.5, q))
 
     def _stats(self):
-        val = 3 * pi - 8
-        return (
-            2 * sqrt(2.0 / pi), 3 - 8 / pi, sqrt(
-                2) * (32 - 10 * pi) / val ** 1.5,
-            (-12 * pi * pi + 160 * pi - 384) / val ** 2.0)
+        val = 3*pi-8
+        return (2*sqrt(2.0/pi), 3-8/pi, sqrt(2)*(32-10*pi)/val**1.5,
+                (-12*pi*pi + 160*pi - 384) / val**2.0)
 
     def _entropy(self):
-        return _EULER + 0.5 * log(2 * pi) - 0.5
+        return _EULER + 0.5*log(2*pi)-0.5
 maxwell = maxwell_gen(a=0.0, name='maxwell')
 
 
@@ -3191,14 +3159,14 @@ class mielke_gen(rv_continuous):
 
     """
     def _pdf(self, x, k, s):
-        return k * x ** (k - 1.0) / (1.0 + x ** s) ** (1.0 + k * 1.0 / s)
+        return k*x**(k-1.0) / (1.0+x**s)**(1.0+k*1.0/s)
 
     def _cdf(self, x, k, s):
-        return x ** k / (1.0 + x ** s) ** (k * 1.0 / s)
+        return x**k / (1.0+x**s)**(k*1.0/s)
 
     def _ppf(self, q, k, s):
-        qsk = pow(q, s * 1.0 / k)
-        return pow(qsk / (1.0 - qsk), 1.0 / s)
+        qsk = pow(q, s*1.0/k)
+        return pow(qsk/(1.0-qsk), 1.0/s)
 mielke = mielke_gen(a=0.0, name='mielke')
 
 
@@ -3220,21 +3188,20 @@ class nakagami_gen(rv_continuous):
 
     """
     def _pdf(self, x, nu):
-        return (2 * nu ** nu / gam(nu) * (x ** (2 * nu - 1.0)) *
-                exp(-nu * x * x))
+        return 2*nu**nu/gam(nu)*(x**(2*nu-1.0))*exp(-nu*x*x)
 
     def _cdf(self, x, nu):
-        return special.gammainc(nu, nu * x * x)
+        return special.gammainc(nu, nu*x*x)
 
     def _ppf(self, q, nu):
-        return sqrt(1.0 / nu * special.gammaincinv(nu, q))
+        return sqrt(1.0/nu*special.gammaincinv(nu, q))
 
     def _stats(self, nu):
-        mu = gam(nu + 0.5) / gam(nu) / sqrt(nu)
-        mu2 = 1.0 - mu * mu
-        g1 = mu * (1 - 4 * nu * mu2) / 2.0 / nu / np.power(mu2, 1.5)
-        g2 = -6 * mu ** 4 * nu + (8 * nu - 2) * mu ** 2 - 2 * nu + 1
-        g2 /= nu * mu2 ** 2.0
+        mu = gam(nu+0.5)/gam(nu)/sqrt(nu)
+        mu2 = 1.0-mu*mu
+        g1 = mu * (1 - 4*nu*mu2) / 2.0 / nu / np.power(mu2, 1.5)
+        g2 = -6*mu**4*nu + (8*nu-2)*mu**2-2*nu + 1
+        g2 /= nu*mu2**2.0
         return mu, mu2, g1, g2
 nakagami = nakagami_gen(a=0.0, name="nakagami")
 
@@ -3272,9 +3239,9 @@ class ncx2_gen(rv_continuous):
         return special.chndtrix(q, df, nc)
 
     def _stats(self, df, nc):
-        val = df + 2.0 * nc
-        return (df + nc, 2 * val, sqrt(8) * (val + nc) / val ** 1.5,
-                12.0 * (val + 2 * nc) / val ** 2.0)
+        val = df + 2.0*nc
+        return (df + nc, 2*val, sqrt(8)*(val+nc)/val**1.5,
+                12.0*(val+2*nc)/val**2.0)
 
     def _fitstart(self, data):
         m = data.mean()
@@ -3295,12 +3262,12 @@ class ncf_gen(rv_continuous):
     -----
     The probability density function for `ncf` is::
 
-    ncf.pdf(x, df1, df2, nc) = exp(nc/2 + nc*df1*x/(2*(df1*x+df2)))
-                    * df1**(df1/2) * df2**(df2/2) * x**(df1/2-1)
-                    * (df2+df1*x)**(-(df1+df2)/2)
-                    * gamma(df1/2)*gamma(1+df2/2)
-                    * L^{v1/2-1}^{v2/2}(-nc*v1*x/(2*(v1*x+v2)))
-                    / (B(v1/2, v2/2) * gamma((v1+v2)/2))
+        ncf.pdf(x, df1, df2, nc) = exp(nc/2 + nc*df1*x/(2*(df1*x+df2))) *
+                    df1**(df1/2) * df2**(df2/2) * x**(df1/2-1) *
+                    (df2+df1*x)**(-(df1+df2)/2) *
+                    gamma(df1/2)*gamma(1+df2/2) *
+                    L^{v1/2-1}^{v2/2}(-nc*v1*x/(2*(v1*x+v2))) /
+                    (B(v1/2, v2/2) * gamma((v1+v2)/2))
 
     for ``df1, df2, nc > 0``.
 
@@ -3312,17 +3279,15 @@ class ncf_gen(rv_continuous):
 
     def _pdf_skip(self, x, dfn, dfd, nc):
         n1, n2 = dfn, dfd
-        term = -nc / 2 + nc * n1 * x / \
-            (2 * (n2 + n1 * x)) + gamln(n1 / 2.) + gamln(1 + n2 / 2.)
-        term -= gamln((n1 + n2) / 2.0)
+        term = -nc/2+nc*n1*x/(2*(n2+n1*x)) + gamln(n1/2.)+gamln(1+n2/2.)
+        term -= gamln((n1+n2)/2.0)
         Px = exp(term)
-        Px *= n1 ** (n1 / 2) * n2 ** (n2 / 2) * x ** (n1 / 2 - 1)
-        Px *= (n2 + n1 * x) ** (-(n1 + n2) / 2)
-        Px *= special.assoc_laguerre(
-            -nc * n1 * x / (2.0 * (n2 + n1 * x)), n2 / 2, n1 / 2 - 1)
-        Px /= special.beta(n1 / 2, n2 / 2)
-        # this function does not have a return
-        #   drop it for now, the generic function seems to work ok
+        Px *= n1**(n1/2) * n2**(n2/2) * x**(n1/2-1)
+        Px *= (n2+n1*x)**(-(n1+n2)/2)
+        Px *= special.assoc_laguerre(-nc*n1*x/(2.0*(n2+n1*x)), n2/2, n1/2-1)
+        Px /= special.beta(n1/2, n2/2)
+        # This function does not have a return.  Drop it for now, the generic
+        # function seems to work OK.
 
     def _cdf(self, x, dfn, dfd, nc):
         return special.ncfdtr(dfn, dfd, nc, x)
@@ -3331,17 +3296,17 @@ class ncf_gen(rv_continuous):
         return special.ncfdtri(dfn, dfd, nc, q)
 
     def _munp(self, n, dfn, dfd, nc):
-        val = (dfn * 1.0 / dfd) ** n
-        term = gamln(n + 0.5 * dfn) + gamln(0.5 * dfd - n) - gamln(dfd * 0.5)
-        val *= exp(-nc / 2.0 + term)
-        val *= special.hyp1f1(n + 0.5 * dfn, 0.5 * dfn, 0.5 * nc)
+        val = (dfn * 1.0/dfd)**n
+        term = gamln(n+0.5*dfn) + gamln(0.5*dfd-n) - gamln(dfd*0.5)
+        val *= exp(-nc / 2.0+term)
+        val *= special.hyp1f1(n+0.5*dfn, 0.5*dfn, 0.5*nc)
         return val
 
     def _stats(self, dfn, dfd, nc):
-        mu = where(dfd <= 2, inf, dfd / (dfd - 2.0) * (1 + nc * 1.0 / dfn))
-        mu2 = where(dfd <= 4, inf, 2 * (dfd * 1.0 / dfn) ** 2.0 *
-                    ((dfn + nc / 2.0) ** 2.0 + (dfn + nc) * (dfd - 2.0)) /
-                    ((dfd - 2.0) ** 2.0 * (dfd - 4.0)))
+        mu = where(dfd <= 2, inf, dfd / (dfd-2.0)*(1+nc*1.0/dfn))
+        mu2 = where(dfd <= 4, inf, 2*(dfd*1.0/dfn)**2.0 *
+                    ((dfn+nc/2.0)**2.0 + (dfn+nc)*(dfd-2.0)) /
+                    ((dfd-2.0)**2.0 * (dfd-4.0)))
         return mu, mu2, None, None
 ncf = ncf_gen(a=0.0, name='ncf')
 
@@ -3368,15 +3333,15 @@ class t_gen(rv_continuous):
         return mtrand.standard_t(df, size=self._size)
 
     def _pdf(self, x, df):
-        r = asarray(df * 1.0)
-        Px = exp(gamln((r + 1) / 2) - gamln(r / 2))
-        Px /= sqrt(r * pi) * (1 + (x ** 2) / r) ** ((r + 1) / 2)
+        r = asarray(df*1.0)
+        Px = exp(gamln((r+1)/2)-gamln(r/2))
+        Px /= sqrt(r*pi)*(1+(x**2)/r)**((r+1)/2)
         return Px
 
     def _logpdf(self, x, df):
-        r = df * 1.0
-        lPx = gamln((r + 1) / 2) - gamln(r / 2)
-        lPx -= 0.5 * log(r * pi) + (r + 1) / 2 * log1p((x ** 2) / r)
+        r = df*1.0
+        lPx = gamln((r+1)/2)-gamln(r/2)
+        lPx -= 0.5*log(r*pi) + (r+1)/2*log(1+(x**2)/r)
         return lPx
 
     def _cdf(self, x, df):
@@ -3392,9 +3357,9 @@ class t_gen(rv_continuous):
         return -special.stdtrit(df, q)
 
     def _stats(self, df):
-        mu2 = where(df > 2, df / (df - 2.0), inf)
+        mu2 = where(df > 2, df / (df-2.0), inf)
         g1 = where(df > 3, 0.0, nan)
-        g2 = where(df > 4, 6.0 / (df - 4.0), nan)
+        g2 = where(df > 4, 6.0/(df-4.0), nan)
         return 0, mu2, g1, g2
 t = t_gen(name='t')
 
@@ -3408,9 +3373,9 @@ class nct_gen(rv_continuous):
     -----
     The probability density function for `nct` is::
 
-                                         df**(df/2) * gamma(df+1)
-    nct.pdf(x, df, nc) = ----------------------------------------------------
-                         2**df*exp(nc**2/2) * (df+x**2)**(df/2) * gamma(df/2)
+                                            df**(df/2) * gamma(df+1)
+        nct.pdf(x, df, nc) = ----------------------------------------------------
+                             2**df*exp(nc**2/2) * (df+x**2)**(df/2) * gamma(df/2)
 
     for ``df > 0``.
 
@@ -3425,21 +3390,20 @@ class nct_gen(rv_continuous):
                 sqrt(chi2.rvs(df, size=self._size)))
 
     def _pdf(self, x, df, nc):
-        n = df * 1.0
-        nc = nc * 1.0
-        x2 = x * x
-        ncx2 = nc * nc * x2
+        n = df*1.0
+        nc = nc*1.0
+        x2 = x*x
+        ncx2 = nc*nc*x2
         fac1 = n + x2
-        trm1 = n / 2. * log(n) + gamln(n + 1)
-        trm1 -= n * \
-            log(2) + nc * nc / 2. + (n / 2.) * log(fac1) + gamln(n / 2.)
+        trm1 = n/2.*log(n) + gamln(n+1)
+        trm1 -= n*log(2)+nc*nc/2.+(n/2.)*log(fac1)+gamln(n/2.)
         Px = exp(trm1)
-        valF = ncx2 / (2 * fac1)
-        trm1 = sqrt(2) * nc * x * special.hyp1f1(n / 2 + 1, 1.5, valF)
-        trm1 /= asarray(fac1 * special.gamma((n + 1) / 2))
-        trm2 = special.hyp1f1((n + 1) / 2, 0.5, valF)
-        trm2 /= asarray(sqrt(fac1) * special.gamma(n / 2 + 1))
-        Px *= trm1 + trm2
+        valF = ncx2 / (2*fac1)
+        trm1 = sqrt(2)*nc*x*special.hyp1f1(n/2+1, 1.5, valF)
+        trm1 /= asarray(fac1*special.gamma((n+1)/2))
+        trm2 = special.hyp1f1((n+1)/2, 0.5, valF)
+        trm2 /= asarray(sqrt(fac1)*special.gamma(n/2+1))
+        Px *= trm1+trm2
         return Px
 
     def _cdf(self, x, df, nc):
@@ -3448,6 +3412,20 @@ class nct_gen(rv_continuous):
     def _ppf(self, q, df, nc):
         return special.nctdtrit(df, nc, q)
 
+    def _fitstart(self, data):
+        me = np.mean(data)
+        # g2 = mode(data)[0]
+        sa = np.std(data)
+
+        def func(df):
+            return ((df-2)*(4 * df - 1)-(4 * df - 1)*df/(sa**2+me**2) +
+                    me**2/(sa**2+me**2) * (df*(4 * df - 1) - 3*df))
+
+        df0 = np.maximum(2*sa/(sa-1), 1)
+        df = optimize.fsolve(func, df0)
+        mu = me*(1 - 3 / (4 * df - 1))
+        return super(nct_gen, self)._fitstart(data, args=(df, mu))
+
     def _stats(self, df, nc, moments='mv'):
         #
         # See D. Hogben, R.S. Pinkham, and M.B. Wilk,
@@ -3455,30 +3433,30 @@ class nct_gen(rv_continuous):
         # Biometrika 48, p. 465 (2961).
         # e.g. http://www.jstor.org/stable/2332772 (gated)
         #
-        _mu, _mu2, g1, g2 = None, None, None, None
+        mu, mu2, g1, g2 = None, None, None, None
 
-        gfac = gam(df / 2. - 0.5) / gam(df / 2.)
-        c11 = sqrt(df / 2.) * gfac
-        c20 = df / (df - 2.)
-        c22 = c20 - c11 * c11
-        mu = np.where(df > 1, nc * c11, np.inf)
-        mu2 = np.where(df > 2, c22 * nc * nc + c20, np.inf)
+        gfac = gam(df/2.-0.5) / gam(df/2.)
+        c11 = sqrt(df/2.) * gfac
+        c20 = df / (df-2.)
+        c22 = c20 - c11*c11
+        mu = np.where(df > 1, nc*c11, np.inf)
+        mu2 = np.where(df > 2, c22*nc*nc + c20, np.inf)
         if 's' in moments:
-            c33t = df * (7. - 2. * df) / (df - 2.) / (df - 3.) + 2. * c11 * c11
-            c31t = 3. * df / (df - 2.) / (df - 3.)
-            mu3 = (c33t * nc * nc + c31t) * c11 * nc
+            c33t = df * (7.-2.*df) / (df-2.) / (df-3.) + 2.*c11*c11
+            c31t = 3.*df / (df-2.) / (df-3.)
+            mu3 = (c33t*nc*nc + c31t) * c11*nc
             g1 = np.where(df > 3, mu3 / np.power(mu2, 1.5), np.nan)
-        # kurtosis
+        #kurtosis
         if 'k' in moments:
-            c44 = df * df / (df - 2.) / (df - 4.)
-            c44 -= c11 * c11 * 2. * df * (5. - df) / (df - 2.) / (df - 3.)
-            c44 -= 3. * c11 ** 4
-            c42 = df / (df - 4.) - c11 * c11 * (df - 1.) / (df - 3.)
-            c42 *= 6. * df / (df - 2.)
-            c40 = 3. * df * df / (df - 2.) / (df - 4.)
+            c44 = df*df / (df-2.) / (df-4.)
+            c44 -= c11*c11 * 2.*df*(5.-df) / (df-2.) / (df-3.)
+            c44 -= 3.*c11**4
+            c42 = df / (df-4.) - c11*c11 * (df-1.) / (df-3.)
+            c42 *= 6.*df / (df-2.)
+            c40 = 3.*df*df / (df-2.) / (df-4.)
 
-            mu4 = c44 * nc ** 4 + c42 * nc ** 2 + c40
-            g2 = np.where(df > 4, mu4 / mu2 ** 2 - 3., np.nan)
+            mu4 = c44 * nc**4 + c42*nc**2 + c40
+            g2 = np.where(df > 4, mu4/mu2**2 - 3., np.nan)
         return mu, mu2, g1, g2
 nct = nct_gen(name="nct")
 
@@ -3500,13 +3478,13 @@ class pareto_gen(rv_continuous):
 
     """
     def _pdf(self, x, b):
-        return b * x ** (-b - 1)
+        return b * x**(-b-1)
 
     def _cdf(self, x, b):
-        return 1 - x ** (-b)
+        return 1 - x**(-b)
 
     def _ppf(self, q, b):
-        return pow(1 - q, -1.0 / b)
+        return pow(1-q, -1.0/b)
 
     def _stats(self, b, moments='mv'):
         mu, mu2, g1, g2 = None, None, None, None
@@ -3514,12 +3492,12 @@ class pareto_gen(rv_continuous):
             mask = b > 1
             bt = extract(mask, b)
             mu = valarray(shape(b), value=inf)
-            place(mu, mask, bt / (bt - 1.0))
+            place(mu, mask, bt / (bt-1.0))
         if 'v' in moments:
             mask = b > 2
             bt = extract(mask, b)
             mu2 = valarray(shape(b), value=inf)
-            place(mu2, mask, bt / (bt - 2.0) / (bt - 1.0) ** 2)
+            place(mu2, mask, bt / (bt-2.0) / (bt-1.0)**2)
         if 's' in moments:
             mask = b > 3
             bt = extract(mask, b)
@@ -3530,13 +3508,13 @@ class pareto_gen(rv_continuous):
             mask = b > 4
             bt = extract(mask, b)
             g2 = valarray(shape(b), value=nan)
-            vals = (6.0 * polyval([1.0, 1.0, -6, -2], bt) /
+            vals = (6.0*polyval([1.0, 1.0, -6, -2], bt) /
                     polyval([1.0, -7.0, 12.0, 0.0], bt))
             place(g2, mask, vals)
         return mu, mu2, g1, g2
 
     def _entropy(self, c):
-        return 1 + 1.0 / c - log(c)
+        return 1 + 1.0/c - log(c)
 pareto = pareto_gen(a=1.0, name="pareto")
 
 
@@ -3560,29 +3538,29 @@ class lomax_gen(rv_continuous):
 
     """
     def _pdf(self, x, c):
-        return c * 1.0 / (1.0 + x) ** (c + 1.0)
+        return c*1.0/(1.0+x)**(c+1.0)
 
     def _logpdf(self, x, c):
         return log(c) - (c + 1) * log1p(x)
 
     def _cdf(self, x, c):
-        return 1.0 - 1.0 / (1.0 + x) ** c
+        return 1.0-1.0/(1.0+x)**c
 
     def _sf(self, x, c):
-        return 1.0 / (1.0 + x) ** c
+        return 1.0/(1.0+x)**c
 
     def _logsf(self, x, c):
         return -c * log1p(x)
 
     def _ppf(self, q, c):
-        return pow(1.0 - q, -1.0 / c) - 1
+        return pow(1.0-q, -1.0/c)-1
 
     def _stats(self, c):
         mu, mu2, g1, g2 = pareto.stats(c, loc=-1.0, moments='mvsk')
         return mu, mu2, g1, g2
 
     def _entropy(self, c):
-        return 1 + 1.0 / c - log(c)
+        return 1+1.0/c-log(c)
 lomax = lomax_gen(a=0.0, name="lomax")
 
 
@@ -3679,7 +3657,7 @@ class pearson3_gen(rv_continuous):
         # + (alpha - 1)*log(beta*(x - zeta))          + (a - 1)*log(x)
         # - beta*(x - zeta)                           - x
         # - gamln(alpha)                              - gamln(a)
-        ans, x, transx, skew, mask, invmask, beta, alpha, _zeta = (
+        ans, x, transx, skew, mask, invmask, beta, alpha, zeta = (
             self._preprocess(x, skew))
 
         ans[mask] = np.log(_norm_pdf(x[mask]))
@@ -3687,7 +3665,7 @@ class pearson3_gen(rv_continuous):
         return ans
 
     def _cdf(self, x, skew):
-        ans, x, transx, skew, mask, invmask, beta, alpha, _zeta = (
+        ans, x, transx, skew, mask, invmask, beta, alpha, zeta = (
             self._preprocess(x, skew))
 
         ans[mask] = _norm_cdf(x[mask])
@@ -3695,7 +3673,7 @@ class pearson3_gen(rv_continuous):
         return ans
 
     def _rvs(self, skew):
-        _ans, _x, _transx, skew, mask, _invmask, beta, alpha, zeta = (
+        ans, x, transx, skew, mask, invmask, beta, alpha, zeta = (
             self._preprocess([0], skew))
         if mask[0]:
             return mtrand.standard_normal(self._size)
@@ -3726,25 +3704,25 @@ class powerlaw_gen(rv_continuous):
 
     for ``0 <= x <= 1``, ``a > 0``.
 
-    `powerlaw` is a special case of `beta` with ``d == 1``.
+    `powerlaw` is a special case of `beta` with ``b == 1``.
 
     %(example)s
 
     """
     def _pdf(self, x, a):
-        return a * x ** (a - 1.0)
+        return a*x**(a-1.0)
 
     def _logpdf(self, x, a):
         return log(a) + special.xlogy(a - 1, x)
 
     def _cdf(self, x, a):
-        return x ** (a * 1.0)
+        return x**(a*1.0)
 
     def _logcdf(self, x, a):
-        return a * log(x)
+        return a*log(x)
 
     def _ppf(self, q, a):
-        return pow(q, 1.0 / a)
+        return pow(q, 1.0/a)
 
     def _stats(self, a):
         return (a / (a + 1.0),
@@ -3753,7 +3731,7 @@ class powerlaw_gen(rv_continuous):
                 6 * polyval([1, -1, -6, 2], a) / (a * (a + 3.0) * (a + 4)))
 
     def _entropy(self, a):
-        return 1 - 1.0 / a - log(a)
+        return 1 - 1.0/a - log(a)
 powerlaw = powerlaw_gen(a=0.0, b=1.0, name="powerlaw")
 
 
@@ -3776,11 +3754,11 @@ class powerlognorm_gen(rv_continuous):
 
     """
     def _pdf(self, x, c, s):
-        return (c / (x * s) * _norm_pdf(log(x) / s) *
-                pow(_norm_cdf(-log(x) / s), c * 1.0 - 1.0))
+        return (c/(x*s) * _norm_pdf(log(x)/s) *
+                pow(_norm_cdf(-log(x)/s), c*1.0-1.0))
 
     def _cdf(self, x, c, s):
-        return 1.0 - pow(_norm_cdf(-log(x) / s), c * 1.0)
+        return 1.0 - pow(_norm_cdf(-log(x)/s), c*1.0)
 
     def _ppf(self, q, c, s):
         return exp(-s * _norm_ppf(pow(1.0 - q, 1.0 / c)))
@@ -3805,13 +3783,13 @@ class powernorm_gen(rv_continuous):
 
     """
     def _pdf(self, x, c):
-        return (c * _norm_pdf(x) * (_norm_cdf(-x) ** (c - 1.0)))
+        return (c*_norm_pdf(x) * (_norm_cdf(-x)**(c-1.0)))
 
     def _logpdf(self, x, c):
-        return log(c) + _norm_logpdf(x) + (c - 1) * _norm_logcdf(-x)
+        return log(c) + _norm_logpdf(x) + (c-1)*_norm_logcdf(-x)
 
     def _cdf(self, x, c):
-        return 1.0 - _norm_cdf(-x) ** (c * 1.0)
+        return 1.0-_norm_cdf(-x)**(c*1.0)
 
     def _ppf(self, q, c):
         return -_norm_ppf(pow(1.0 - q, 1.0 / c))
@@ -3835,12 +3813,11 @@ class rdist_gen(rv_continuous):
 
     """
     def _pdf(self, x, c):
-        return (np.power((1.0 - x ** 2), c / 2.0 - 1) /
-                special.beta(0.5, c / 2.0))
+        return np.power((1.0 - x**2), c / 2.0 - 1) / special.beta(0.5, c / 2.0)
 
     def _cdf(self, x, c):
         term1 = x / special.beta(0.5, c / 2.0)
-        res = 0.5 + term1 * special.hyp2f1(0.5, 1 - c / 2.0, 1.5, x ** 2)
+        res = 0.5 + term1 * special.hyp2f1(0.5, 1 - c / 2.0, 1.5, x**2)
         # There's an issue with hyp2f1, it returns nans near x = +-1, c > 100.
         # Use the generic implementation in that case.  See gh-1285 for
         # background.
@@ -3902,11 +3879,11 @@ class rayleigh_gen(rv_continuous):
 
     def _stats(self):
         val = 4 - pi
-        return (np.sqrt(pi / 2), val / 2, 2 * (pi - 3) * sqrt(pi) / val ** 1.5,
-                6 * pi / val - 16 / val ** 2)
+        return (np.sqrt(pi/2), val/2, 2*(pi-3)*sqrt(pi)/val**1.5,
+                6*pi/val-16/val**2)
 
     def _entropy(self):
-        return _EULER / 2.0 + 1 - 0.5 * log(2)
+        return _EULER/2.0 + 1 - 0.5*log(2)
 rayleigh = rayleigh_gen(a=0.0, name="rayleigh")
 
 
@@ -4005,7 +3982,7 @@ class reciprocal_gen(rv_continuous):
     def _argcheck(self, a, b):
         self.a = a
         self.b = b
-        self.d = log(b * 1.0 / a)
+        self.d = log(b*1.0 / a)
         return (a > 0) & (b > 0) & (b > a)
 
     def _pdf(self, x, a, b):
@@ -4015,16 +3992,27 @@ class reciprocal_gen(rv_continuous):
         return -log(x) - log(self.d)
 
     def _cdf(self, x, a, b):
-        return (log(x) - log(a)) / self.d
+        return (log(x)-log(a)) / self.d
 
     def _ppf(self, q, a, b):
-        return a * pow(b * 1.0 / a, q)
+        return a*pow(b*1.0/a, q)
 
     def _munp(self, n, a, b):
-        return 1.0 / self.d / n * (pow(b * 1.0, n) - pow(a * 1.0, n))
+        return 1.0/self.d / n * (pow(b*1.0, n) - pow(a*1.0, n))
+
+    def _fitstart(self, data):
+        a = np.min(data)
+        a -= 0.01*np.abs(a)
+        b = np.max(data)
+        b += 0.01*np.abs(b)
+        if a <= 0:
+            da = np.abs(a)+0.001
+            a += da
+            b += da
+        return super(reciprocal_gen, self)._fitstart(data, args=(a, b))
 
     def _entropy(self, a, b):
-        return 0.5 * log(a * b) + log(log(b / a))
+        return 0.5*log(a*b)+log(log(b/a))
 reciprocal = reciprocal_gen(name="reciprocal")
 
 
@@ -4051,17 +4039,17 @@ class rice_gen(rv_continuous):
     def _rvs(self, b):
         # http://en.wikipedia.org/wiki/Rice_distribution
         sz = self._size if self._size else 1
-        t = b / np.sqrt(2) + mtrand.standard_normal(size=(2, sz))
-        return np.sqrt((t * t).sum(axis=0))
+        t = b/np.sqrt(2) + mtrand.standard_normal(size=(2, sz))
+        return np.sqrt((t*t).sum(axis=0))
 
     def _pdf(self, x, b):
-        return x * exp(-(x - b) * (x - b) / 2.0) * special.i0e(x * b)
+        return x * exp(-(x-b)*(x-b)/2.0) * special.i0e(x*b)
 
     def _munp(self, n, b):
-        nd2 = n / 2.0
+        nd2 = n/2.0
         n1 = 1 + nd2
-        b2 = b * b / 2.0
-        return (2.0 ** (nd2) * exp(-b2) * special.gamma(n1) *
+        b2 = b*b/2.0
+        return (2.0**(nd2) * exp(-b2) * special.gamma(n1) *
                 special.hyp1f1(n1, 1, b2))
 rice = rice_gen(a=0.0, name="rice")
 
@@ -4076,7 +4064,7 @@ class recipinvgauss_gen(rv_continuous):
     -----
     The probability density function for `recipinvgauss` is::
 
-    recipinvgauss.pdf(x, mu) = 1/sqrt(2*pi*x) * exp(-(1-mu*x)**2/(2*x*mu**2))
+        recipinvgauss.pdf(x, mu) = 1/sqrt(2*pi*x) * exp(-(1-mu*x)**2/(2*x*mu**2))
 
     for ``x >= 0``.
 
@@ -4084,22 +4072,19 @@ class recipinvgauss_gen(rv_continuous):
 
     """
     def _rvs(self, mu):
-        return 1.0 / mtrand.wald(mu, 1.0, size=self._size)
+        return 1.0/mtrand.wald(mu, 1.0, size=self._size)
 
     def _pdf(self, x, mu):
-        return (1.0 / sqrt(2 * pi * x) * exp(-(1 - mu * x) ** 2.0 /
-                                             (2 * x * mu ** 2.0)))
+        return 1.0/sqrt(2*pi*x)*exp(-(1-mu*x)**2.0 / (2*x*mu**2.0))
 
     def _logpdf(self, x, mu):
-        return (-(1 - mu * x) ** 2.0 / (2 * x * mu ** 2.0) -
-                0.5 * log(2 * pi * x))
+        return -(1-mu*x)**2.0 / (2*x*mu**2.0) - 0.5*log(2*pi*x)
 
     def _cdf(self, x, mu):
-        trm1 = 1.0 / mu - x
-        trm2 = 1.0 / mu + x
-        isqx = 1.0 / sqrt(x)
-        return (1.0 - _norm_cdf(isqx * trm1) -
-                exp(2.0 / mu) * _norm_cdf(-isqx * trm2))
+        trm1 = 1.0/mu - x
+        trm2 = 1.0/mu + x
+        isqx = 1.0/sqrt(x)
+        return 1.0-_norm_cdf(isqx*trm1)-exp(2.0/mu)*_norm_cdf(-isqx*trm2)
 recipinvgauss = recipinvgauss_gen(a=0.0, name='recipinvgauss')
 
 
@@ -4120,10 +4105,10 @@ class semicircular_gen(rv_continuous):
 
     """
     def _pdf(self, x):
-        return 2.0 / pi * sqrt(1 - x * x)
+        return 2.0/pi*sqrt(1-x*x)
 
     def _cdf(self, x):
-        return 0.5 + 1.0 / pi * (x * sqrt(1 - x * x) + arcsin(x))
+        return 0.5+1.0/pi*(x*sqrt(1-x*x) + arcsin(x))
 
     def _stats(self):
         return 0, 0.25, 0, -1.0
@@ -4158,23 +4143,20 @@ class triang_gen(rv_continuous):
         return (c >= 0) & (c <= 1)
 
     def _pdf(self, x, c):
-        return where(x < c, 2 * x / c, 2 * (1 - x) / (1 - c))
+        return where(x < c, 2*x/c, 2*(1-x)/(1-c))
 
     def _cdf(self, x, c):
-        return where(x < c, x * x / c, (x * x - 2 * x + c) / (c - 1))
+        return where(x < c, x*x/c, (x*x-2*x+c)/(c-1))
 
     def _ppf(self, q, c):
-        return where(q < c, sqrt(c * q), 1 - sqrt((1 - c) * (1 - q)))
+        return where(q < c, sqrt(c*q), 1-sqrt((1-c)*(1-q)))
 
     def _stats(self, c):
-        return ((c + 1.0) / 3.0,
-                (1.0 - c + c * c) / 18,
-                sqrt(2) * (2 * c - 1) * (c + 1) * (c - 2) /
-                (5 * np.power((1.0 - c + c * c), 1.5)),
-                -3.0 / 5.0)
+        return (c+1.0)/3.0, (1.0-c+c*c)/18, sqrt(2)*(2*c-1)*(c+1)*(c-2) / \
+               (5 * np.power((1.0-c+c*c), 1.5)), -3.0/5.0
 
     def _entropy(self, c):
-        return 0.5 - log(2)
+        return 0.5-log(2)
 triang = triang_gen(a=0.0, b=1.0, name="triang")
 
 
@@ -4224,7 +4206,7 @@ class truncexpon_gen(rv_continuous):
 
     def _entropy(self, b):
         eB = exp(b)
-        return log(eB - 1) + (1 + eB * (b - 1.0)) / (1.0 - eB)
+        return log(eB-1)+(1+eB*(b-1.0))/(1.0-eB)
 truncexpon = truncexpon_gen(a=0.0, name='truncexpon')
 
 
@@ -4270,16 +4252,16 @@ class truncnorm_gen(rv_continuous):
 
     def _ppf(self, q, a, b):
         if self.a > 0:
-            return _norm_isf(q * self._sb + self._sa * (1.0 - q))
+            return _norm_isf(q*self._sb + self._sa*(1.0-q))
         else:
-            return _norm_ppf(q * self._nb + self._na * (1.0 - q))
+            return _norm_ppf(q*self._nb + self._na*(1.0-q))
 
     def _stats(self, a, b):
         nA, nB = self._na, self._nb
         d = nB - nA
         pA, pB = _norm_pdf(a), _norm_pdf(b)
         mu = (pA - pB) / d   # correction sign
-        mu2 = 1 + (a * pA - b * pB) / d - mu * mu
+        mu2 = 1 + (a*pA - b*pB) / d - mu*mu
         return mu, mu2, None, None
 truncnorm = truncnorm_gen(name='truncnorm')
 
@@ -4309,17 +4291,17 @@ class tukeylambda_gen(rv_continuous):
 
     def _pdf(self, x, lam):
         Fx = asarray(special.tklmbda(x, lam))
-        Px = Fx ** (lam - 1.0) + (asarray(1 - Fx)) ** (lam - 1.0)
-        Px = 1.0 / asarray(Px)
-        return where((lam <= 0) | (abs(x) < 1.0 / asarray(lam)), Px, 0.0)
+        Px = Fx**(lam-1.0) + (asarray(1-Fx))**(lam-1.0)
+        Px = 1.0/asarray(Px)
+        return where((lam <= 0) | (abs(x) < 1.0/asarray(lam)), Px, 0.0)
 
     def _cdf(self, x, lam):
         return special.tklmbda(x, lam)
 
     def _ppf(self, q, lam):
-        q = q * 1.0
-        vals1 = (q ** lam - (1 - q) ** lam) / lam
-        vals2 = log(q / (1 - q))
+        q = q*1.0
+        vals1 = (q**lam - (1-q)**lam)/lam
+        vals2 = log(q/(1-q))
         return where((lam == 0) & (q == q), vals2, vals1)
 
     def _stats(self, lam):
@@ -4327,7 +4309,7 @@ class tukeylambda_gen(rv_continuous):
 
     def _entropy(self, lam):
         def integ(p):
-            return log(pow(p, lam - 1) + pow(1 - p, lam - 1))
+            return log(pow(p, lam-1)+pow(1-p, lam-1))
         return integrate.quad(integ, 0, 1)[0]
 tukeylambda = tukeylambda_gen(name='tukeylambda')
 
@@ -4346,7 +4328,7 @@ class uniform_gen(rv_continuous):
         return mtrand.uniform(0.0, 1.0, self._size)
 
     def _pdf(self, x):
-        return 1.0 * (x == x)
+        return 1.0*(x == x)
 
     def _cdf(self, x):
         return x
@@ -4355,7 +4337,7 @@ class uniform_gen(rv_continuous):
         return q
 
     def _stats(self):
-        return 0.5, 1.0 / 12, 0, -1.2
+        return 0.5, 1.0/12, 0, -1.2
 
     def _entropy(self):
         return 0.0
@@ -4390,7 +4372,7 @@ class vonmises_gen(rv_continuous):
         return mtrand.vonmises(0.0, kappa, size=self._size)
 
     def _pdf(self, x, kappa):
-        return exp(kappa * cos(x)) / (2 * pi * special.i0(kappa))
+        return exp(kappa * cos(x)) / (2*pi*special.i0(kappa))
 
     def _cdf(self, x, kappa):
         return vonmises_cython.von_mises_cdf(kappa, x)
@@ -4410,7 +4392,7 @@ class wald_gen(invgauss_gen):
     -----
     The probability density function for `wald` is::
 
-        wald.pdf(x, a) = 1/sqrt(2*pi*x**3) * exp(-(x-1)**2/(2*x))
+        wald.pdf(x) = 1/sqrt(2*pi*x**3) * exp(-(x-1)**2/(2*x))
 
     for ``x > 0``.
 
@@ -4455,34 +4437,41 @@ class wrapcauchy_gen(rv_continuous):
         return (c > 0) & (c < 1)
 
     def _pdf(self, x, c):
-        return (1.0 - c * c) / (2 * pi * (1 + c * c - 2 * c * cos(x)))
+        return (1.0-c*c)/(2*pi*(1+c*c-2*c*cos(x)))
 
     def _cdf(self, x, c):
-        output = 0.0 * x
-        val = (1.0 + c) / (1.0 - c)
+        output = 0.0*x
+        val = (1.0+c)/(1.0-c)
         c1 = x < pi
-        c2 = 1 - c1
+        c2 = 1-c1
         xp = extract(c1, x)
         xn = extract(c2, x)
         if (any(xn)):
-            valn = extract(c2, np.ones_like(x) * val)
-            xn = 2 * pi - xn
-            yn = tan(xn / 2.0)
-            on = 1.0 - 1.0 / pi * arctan(valn * yn)
+            valn = extract(c2, np.ones_like(x)*val)
+            xn = 2*pi - xn
+            yn = tan(xn/2.0)
+            on = 1.0-1.0/pi*arctan(valn*yn)
             place(output, c2, on)
         if (any(xp)):
-            valp = extract(c1, np.ones_like(x) * val)
-            yp = tan(xp / 2.0)
-            op = 1.0 / pi * arctan(valp * yp)
+            valp = extract(c1, np.ones_like(x)*val)
+            yp = tan(xp/2.0)
+            op = 1.0/pi*arctan(valp*yp)
             place(output, c1, op)
         return output
 
     def _ppf(self, q, c):
-        val = (1.0 - c) / (1.0 + c)
-        rcq = 2 * arctan(val * tan(pi * q))
-        rcmq = 2 * pi - 2 * arctan(val * tan(pi * (1 - q)))
-        return where(q < 1.0 / 2, rcq, rcmq)
+        val = (1.0-c)/(1.0+c)
+        rcq = 2*arctan(val*tan(pi*q))
+        rcmq = 2*pi-2*arctan(val*tan(pi*(1-q)))
+        return where(q < 1.0/2, rcq, rcmq)
 
     def _entropy(self, c):
-        return log(2 * pi * (1 - c * c))
-wrapcauchy = wrapcauchy_gen(a=0.0, b=2 * pi, name='wrapcauchy')
+        return log(2*pi*(1-c*c))
+wrapcauchy = wrapcauchy_gen(a=0.0, b=2*pi, name='wrapcauchy')
+
+
+# Collect names of classes and objects in this module.
+pairs = list(globals().items())
+_distn_names, _distn_gen_names = get_distribution_names(pairs, rv_continuous)
+
+__all__ = _distn_names + _distn_gen_names

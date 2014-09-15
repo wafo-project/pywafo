@@ -7,15 +7,16 @@ import sys
 import fractions
 import numpy as np
 from numpy import (
-                   meshgrid,
+    meshgrid,
     abs, amax, any, logical_and, arange, linspace, atleast_1d,
-    array, asarray, ceil, floor, frexp, hypot,
-    sqrt, arctan2, sin, cos, exp, log, mod, diff, empty_like,
+    asarray, ceil, floor, frexp, hypot,
+    sqrt, arctan2, sin, cos, exp, log, log1p, mod, diff, empty_like,
     finfo, inf, pi, interp, isnan, isscalar, zeros, ones, linalg,
     r_, sign, unique, hstack, vstack, nonzero, where, extract)
 from scipy.special import gammaln, gamma, psi
 from scipy.integrate import trapz, simps
 import warnings
+from time import strftime, gmtime
 from plotbackend import plotbackend
 from collections import OrderedDict
 
@@ -36,6 +37,334 @@ __all__ = [
     'stirlerr', 'getshipchar', 'betaloge', 'gravity', 'nextpow2',
     'discretize', 'polar2cart', 'cart2polar', 'meshgrid', 'ndgrid',
     'trangood', 'tranproc', 'plot_histgrm', 'num2pistr', 'test_docstrings']
+
+
+def rotation_matrix(heading, pitch, roll):
+    '''
+
+    Examples
+    >>> import numpy as np
+    >>> rotation_matrix(heading=0, pitch=0, roll=0)
+    array([[ 1.,  0.,  0.],
+           [ 0.,  1.,  0.],
+           [ 0.,  0.,  1.]])
+
+    >>> np.all(np.abs(rotation_matrix(heading=180, pitch=0, roll=0)-
+    ... np.array([[ -1.000000e+00,  -1.224647e-16,   0.000000e+00],
+    ...       [  1.224647e-16,  -1.000000e+00,   0.000000e+00],
+    ...       [ -0.000000e+00,   0.000000e+00,   1.000000e+00]]))<1e-7)
+    True
+    >>> np.all(np.abs(rotation_matrix(heading=0, pitch=180, roll=0)-
+    ... np.array([[ -1.000000e+00,   0.000000e+00,   1.224647e-16],
+    ...       [ -0.000000e+00,   1.000000e+00,   0.000000e+00],
+    ...       [ -1.224647e-16,  -0.000000e+00,  -1.000000e+00]]))<1e-7)
+    True
+    >>> np.all(np.abs(rotation_matrix(heading=0, pitch=0, roll=180)-
+    ... np.array([[  1.000000e+00,   0.000000e+00,   0.000000e+00],
+    ...       [  0.000000e+00,  -1.000000e+00,  -1.224647e-16],
+    ...       [ -0.000000e+00,   1.224647e-16,  -1.000000e+00]]))<1e-7)
+    True
+    '''
+    data = np.diag(np.ones(3))  # No transform if H=P=R=0
+    if heading != 0 or pitch != 0 or roll != 0:
+        deg2rad = np.pi / 180
+        H = heading * deg2rad
+        P = pitch * deg2rad
+        R = roll * deg2rad       # Convert to radians
+
+        data.put(0, cos(H) * cos(P))
+        data.put(1, cos(H) * sin(P) * sin(R) - sin(H) * cos(R))
+        data.put(2, cos(H) * sin(P) * cos(R) + sin(H) * sin(R))
+        data.put(3, sin(H) * cos(P))
+        data.put(4, sin(H) * sin(P) * sin(R) + cos(H) * cos(R))
+        data.put(5, sin(H) * sin(P) * cos(R) - cos(H) * sin(R))
+        data.put(6, -sin(P))
+        data.put(7, cos(P) * sin(R))
+        data.put(8, cos(P) * cos(R))
+    return data
+
+
+def rotate(x, y, z, heading=0, pitch=0, roll=0):
+    rot_param = rotation_matrix(heading, pitch, roll).ravel()
+    X = x * rot_param[0] + y * rot_param[1] + z * rot_param[2]
+    Y = x * rot_param[3] + y * rot_param[4] + z * rot_param[5]
+    Z = x * rot_param[6] + y * rot_param[7] + z * rot_param[8]
+    return X, Y, Z
+
+
+def rotate_2d(x, y, angle_deg):
+    '''
+    Rotate points in the xy cartesian plane counter clockwise
+
+    Examples
+    --------
+    >>> rotate_2d(x=1, y=0, angle_deg=0)
+    (1.0, 0.0)
+    >>> rotate_2d(x=1, y=0, angle_deg=90)
+    (6.123233995736766e-17, 1.0)
+    >>> rotate_2d(x=1, y=0, angle_deg=180)
+    (-1.0, 1.2246467991473532e-16)
+    >>> rotate_2d(x=1, y=0, angle_deg=360)
+    (1.0, -2.4492935982947064e-16)
+    '''
+    angle_rad = angle_deg * pi / 180
+    ch = cos(angle_rad)
+    sh = sin(angle_rad)
+    return ch * x - sh * y, sh * x + ch * y
+
+
+def now(show_seconds=True):
+    '''
+    Return current date and time as a string
+    '''
+    if show_seconds:
+        return strftime("%a, %d %b %Y %H:%M:%S", gmtime())
+    else:
+        return strftime("%a, %d %b %Y %H:%M", gmtime())
+
+
+def _assert(cond, txt=''):
+    if not cond:
+        raise ValueError(txt)
+
+
+def spaceline(start_point, stop_point, num=10):
+    '''Return `num` evenly spaced points between the start and stop points.
+
+    Parameters
+    ----------
+    start_point : vector, size=3
+        The starting point of the sequence.
+    stop_point : vector, size=3
+        The end point of the sequence.
+    num : int, optional
+        Number of samples to generate. Default is 10.
+
+    Returns
+    -------
+    space_points : ndarray of shape n x 3
+        There are `num` equally spaced points in the closed interval
+        ``[start, stop]``.
+
+    See Also
+    --------
+    linspace : similar to spaceline, but in 1D.
+    arange : Similiar to `linspace`, but uses a step size (instead of the
+             number of samples).
+    logspace : Samples uniformly distributed in log space.
+
+    Example
+    -------
+    >>> import wafo.misc as pm
+    >>> pm.spaceline((2,0,0), (3,0,0), num=5)
+    array([[ 2.  ,  0.  ,  0.  ],
+           [ 2.25,  0.  ,  0.  ],
+           [ 2.5 ,  0.  ,  0.  ],
+           [ 2.75,  0.  ,  0.  ],
+           [ 3.  ,  0.  ,  0.  ]])
+    '''
+    num = int(num)
+    e1, e2 = np.atleast_1d(start_point, stop_point)
+    e2m1 = e2 - e1
+    length = np.sqrt((e2m1 ** 2).sum())
+    #length = sqrt((E2[0]-E1(1))^2 + (E2(2)-E1(2))^2 + (E2(3)-E1(3))^2);
+    C = e2m1 / length
+    delta = length / float(num - 1)
+    return np.array([e1 + n * delta * C for n in range(num)])
+
+
+def narg_smallest(n, arr):
+    ''' Return the n smallest indicis to the arr
+    '''
+    return np.array(arr).argsort()[:n]
+
+
+def args_flat(*args):
+    '''
+    Return x,y,z positions as a N x 3 ndarray
+
+    Parameters
+    ----------
+    pos : array-like, shape N x 3
+        [x,y,z] positions
+    or
+
+    x,y,z : array-like
+        [x,y,z] positions
+
+    Returns
+    ------
+    pos : ndarray, shape N x 3
+        [x,y,z] positions
+    common_shape : None or tuple
+        common shape of x, y and z variables if given as triple input.
+
+    Examples
+    --------
+    >>> x = [1,2,3]
+    >>> pos, c_shape =args_flat(x,2,3)
+    >>> pos
+    array([[1, 2, 3],
+           [2, 2, 3],
+           [3, 2, 3]])
+    >>> c_shape
+    (3,)
+    >>> pos1, c_shape1 = args_flat([1,2,3])
+    >>> pos1
+    array([[1, 2, 3]])
+    >>> c_shape1 is None
+    True
+    >>> pos1, c_shape1 = args_flat(1,2,3)
+    >>> pos1
+    array([[1, 2, 3]])
+    >>> c_shape1
+    ()
+    >>> pos1, c_shape1 = args_flat([1],2,3)
+    >>> pos1
+    array([[1, 2, 3]])
+    >>> c_shape1
+    (1,)
+
+    '''
+    nargin = len(args)
+
+    if (nargin == 1):  # pos
+        pos = np.atleast_2d(args[0])
+        _assert((pos.shape[1] == 3) and (pos.ndim == 2),
+                'POS array must be of shape N x 3!')
+        return pos, None
+    elif nargin == 3:
+        x, y, z = np.broadcast_arrays(*args[:3])
+        c_shape = x.shape
+        return np.vstack((x.ravel(), y.ravel(), z.ravel())).T, c_shape
+    else:
+        raise ValueError('Number of arguments must be 1 or 3!')
+
+
+def _check_and_adjust_shape(shape, nsub=None):
+    s = np.atleast_1d(shape)
+    ndim = len(s)
+    if ndim < 1:
+        raise ValueError('Shape vector must have at least 1 element.')
+    ndim = len(s)
+    if nsub is None:
+        nsub = ndim
+    if ndim <= nsub:  # add trailing singleton dimensions
+        s = np.hstack([s, np.ones(nsub - ndim, dtype=int)])
+    else:  # Adjust for linear indexing on last element
+        s = np.hstack([s[:nsub - 1], np.prod(s[nsub - 1:])])
+    return s
+
+
+def _sub2index_factor(shape, order='C'):
+    '''Return multiplier needed for calculating linear index from subscripts.
+    '''
+    step = 1 if order == 'F' else -1  # C order
+    return np.hstack([1, np.cumprod(shape[::step][:-1])])[::step]
+
+
+def index2sub(shape, index, nsub=None, order='C'):
+    '''
+    Returns Multiple subscripts from linear index.
+
+    Parameters
+    ----------
+    shape : array-like
+        shape of array
+    index :
+        linear index into array
+    nsub : int optional
+        Number of subscripts returned. default nsub=len(shape)
+    order : {'C','F'}, optional
+        The order of the linear index.
+        'C' means C (row-major) order.
+        'F' means Fortran (column-major) order.
+        By default, 'C' order is used.
+
+    This function is used to determine the equivalent subscript values
+    corresponding to a given single index into an array.
+
+    Example
+    -------
+    >>> shape = (3,3,4)
+    >>> a = np.arange(np.prod(shape)).reshape(shape)
+    >>> order = 'C'
+    >>> a[1, 2, 3]
+    23
+    >>> i = sub2index(shape, 1, 2, 3, order=order)
+    >>> a.ravel(order)[i]
+    23
+    >>> index2sub(shape, i, order=order)
+    (array([1]), array([2]), array([3]))
+
+    See also
+    --------
+    sub2index
+    '''
+    ndx = np.atleast_1d(index)
+    s = _check_and_adjust_shape(shape, nsub)
+    k = _sub2index_factor(s, order)
+    n = len(s)
+    step = -1 if order == 'F' else 1  # C order
+    subscripts = [0, ] * n
+    for i in range(n)[::step]:
+        vi = np.remainder(ndx, k[i])
+        subscript = np.array((ndx - vi) / k[i], dtype=int)
+        subscripts[i] = subscript
+        ndx = vi
+    return tuple(subscripts)
+
+
+def sub2index(shape, *subscripts, **kwds):
+    '''
+    Returns linear index from multiple subscripts.
+
+    Parameters
+    ----------
+    shape : array-like
+        shape of array
+    *subscripts :
+        subscripts into array
+    order : {'C','F'}, optional
+        The order of the linear index.
+        'C' means C (row-major) order.
+        'F' means Fortran (column-major) order.
+        By default, 'C' order is used.
+
+    This function is used to determine the equivalent single index
+    corresponding to a given set of subscript values into an array.
+
+    Example
+    -------
+    >>> shape = (3,3,4)
+    >>> a = np.arange(np.prod(shape)).reshape(shape)
+    >>> order = 'C'
+    >>> i = sub2index(shape, 1, 2, 3, order=order)
+    >>> a[1, 2, 3]
+    23
+    >>> a.ravel(order)[i]
+    23
+    >>> index2sub(shape, i, order=order)
+    (array([1]), array([2]), array([3]))
+
+    See also
+    --------
+    index2sub
+    '''
+    nsub = len(subscripts)
+    s = _check_and_adjust_shape(shape, nsub)
+    k = _sub2index_factor(s, **kwds)
+
+    ndx = 0
+    s0 = np.shape(subscripts[0])
+    for i, subscript in enumerate(subscripts):
+        np.testing.assert_equal(s0, np.shape(subscript),
+                'The subscripts vectors must all be of the same shape.')
+        if (np.any(subscript < 0)) or (np.any(s[i] <= subscript)):
+            raise IndexError('Out of range subscript.')
+
+        ndx = ndx + k[i] * subscript
+    return ndx
 
 
 def is_numlike(obj):
@@ -160,7 +489,7 @@ def parse_kwargs(options, **kwargs):
 def testfun(*args, **kwargs):
     opts = dict(opt1=1, opt2=2)
     if (len(args) == 1 and len(kwargs) == 0 and type(args[0]) is str and
-        args[0].startswith('default')):
+            args[0].startswith('default')):
         return opts
     opts = parse_kwargs(opts, **kwargs)
     return opts
@@ -186,14 +515,14 @@ def detrendma(x, L):
     Examples
     --------
     >>> import wafo.misc as wm
-    >>> import pylab as plb
-    >>> exp = plb.exp; cos = plb.cos; randn = plb.randn
-    >>> x = plb.linspace(0,1,200)
+    >>> import pylab as plt
+    >>> exp = plt.exp; cos = plt.cos; randn = plt.randn
+    >>> x = plt.linspace(0,1,200)
     >>> y = exp(x)+cos(5*2*pi*x)+1e-1*randn(x.size)
     >>> y0 = wm.detrendma(y,20); tr = y-y0
-    >>> h = plb.plot(x, y, x, y0, 'r', x, exp(x), 'k', x, tr, 'm')
+    >>> h = plt.plot(x, y, x, y0, 'r', x, exp(x), 'k', x, tr, 'm')
 
-    >>> plb.close('all')
+    >>> plt.close('all')
 
     See also
     --------
@@ -247,22 +576,22 @@ def ecross(t, f, ind, v=0):
 
     Example
     -------
-    >>> from matplotlib import pylab as plb
+    >>> from matplotlib import pylab as plt
     >>> import wafo.misc as wm
-    >>> ones = plb.ones
-    >>> t = plb.linspace(0,7*plb.pi,250)
-    >>> x = plb.sin(t)
+    >>> ones = np.ones
+    >>> t = np.linspace(0,7*np.pi,250)
+    >>> x = np.sin(t)
     >>> ind = wm.findcross(x,0.75)
     >>> ind
     array([  9,  25,  80,  97, 151, 168, 223, 239])
     >>> t0 = wm.ecross(t,x,ind,0.75)
-    >>> t0
-    array([  0.84910514,   2.2933879 ,   7.13205663,   8.57630119,
-            13.41484739,  14.85909194,  19.69776067,  21.14204343])
-    >>> a = plb.plot(t, x, '.', t[ind], x[ind], 'r.', t, ones(t.shape)*0.75,
-    ...              t0, ones(t0.shape)*0.75, 'g.')
+    >>> np.abs(t0 - np.array([0.84910514, 2.2933879 , 7.13205663, 8.57630119,
+    ...        13.41484739, 14.85909194, 19.69776067, 21.14204343]))<1e-7
+    array([ True,  True,  True,  True,  True,  True,  True,  True], dtype=bool)
 
-    >>> plb.close('all')
+    >>> a = plt.plot(t, x, '.', t[ind], x[ind], 'r.', t, ones(t.shape)*0.75,
+    ...              t0, ones(t0.shape)*0.75, 'g.')
+    >>> plt.close('all')
 
     See also
     --------
@@ -337,23 +666,23 @@ def findcross(x, v=0.0, kind=None):
 
     Example
     -------
-    >>> from matplotlib import pylab as plb
+    >>> from matplotlib import pylab as plt
     >>> import wafo.misc as wm
-    >>> ones = plb.ones
+    >>> ones = np.ones
     >>> findcross([0, 1, -1, 1],0)
     array([0, 1, 2])
     >>> v = 0.75
-    >>> t = plb.linspace(0,7*plb.pi,250)
-    >>> x = plb.sin(t)
+    >>> t = np.linspace(0,7*np.pi,250)
+    >>> x = np.sin(t)
     >>> ind = wm.findcross(x,v) # all crossings
     >>> ind
     array([  9,  25,  80,  97, 151, 168, 223, 239])
-    >>> t0 = plb.plot(t,x,'.',t[ind],x[ind],'r.', t, ones(t.shape)*v)
+    >>> t0 = plt.plot(t,x,'.',t[ind],x[ind],'r.', t, ones(t.shape)*v)
     >>> ind2 = wm.findcross(x,v,'u')
     >>> ind2
     array([  9,  80, 151, 223])
-    >>> t0 = plb.plot(t[ind2],x[ind2],'o')
-    >>> plb.close('all')
+    >>> t0 = plt.plot(t[ind2],x[ind2],'o')
+    >>> plt.close('all')
 
     See also
     --------
@@ -411,13 +740,13 @@ def findextrema(x):
     Examples
     --------
     >>> import numpy as np
-    >>> import pylab as pb
+    >>> import pylab as plt
     >>> import wafo.misc as wm
     >>> t = np.linspace(0,7*np.pi,250)
     >>> x = np.sin(t)
     >>> ind = wm.findextrema(x)
-    >>> a = pb.plot(t,x,'.',t[ind],x[ind],'r.')
-    >>> pb.close('all')
+    >>> a = plt.plot(t,x,'.',t[ind],x[ind],'r.')
+    >>> plt.close('all')
 
     See also
     --------
@@ -566,19 +895,19 @@ def findrfc(tp, h=0.0, method='clib'):
 
     Example:
     --------
-    >>> import pylab as pb
+    >>> import matplotlib.pyplot as plt
     >>> import wafo.misc as wm
-    >>> t = pb.linspace(0,7*np.pi,250)
-    >>> x = pb.sin(t)+0.1*np.sin(50*t)
+    >>> t = np.linspace(0,7*np.pi,250)
+    >>> x = np.sin(t)+0.1*np.sin(50*t)
     >>> ind = wm.findextrema(x)
     >>> ti, tp = t[ind], x[ind]
-    >>> a = pb.plot(t,x,'.',ti,tp,'r.')
+    >>> a = plt.plot(t,x,'.',ti,tp,'r.')
     >>> ind1 = wm.findrfc(tp,0.3); ind1
     array([  0,   9,  32,  53,  74,  95, 116, 137])
     >>> ind2 = wm.findrfc(tp,0.3, method=''); ind2
     array([  0,   9,  32,  53,  74,  95, 116, 137])
-    >>> a = pb.plot(ti[ind1],tp[ind1])
-    >>> pb.close('all')
+    >>> a = plt.plot(ti[ind1],tp[ind1])
+    >>> plt.close('all')
 
     See also
     --------
@@ -699,18 +1028,21 @@ def mctp2rfc(fmM, fMm=None):
     ...            [0.0000,         0,         0,         0,         0],
     ...            [     0,         0,         0,         0,         0]])
 
-    >>> mctp2rfc(fmM)
-    array([[  2.66998090e-02,   7.79970042e-03,   4.90607697e-07,
-              0.00000000e+00,   0.00000000e+00],
-           [  9.59962873e-03,   5.48500862e-01,   9.53995094e-02,
-              0.00000000e+00,   0.00000000e+00],
-           [  5.62297379e-07,   8.14994377e-02,   0.00000000e+00,
-              0.00000000e+00,   0.00000000e+00],
-           [  0.00000000e+00,   0.00000000e+00,   0.00000000e+00,
-              0.00000000e+00,   0.00000000e+00],
-           [  0.00000000e+00,   0.00000000e+00,   0.00000000e+00,
-              0.00000000e+00,   0.00000000e+00]])
-
+    >>> np.abs(mctp2rfc(fmM)-np.array([[2.669981e-02, 7.799700e-03,
+    ...        4.906077e-07, 0.000000e+00, 0.000000e+00],
+    ...       [  9.599629e-03,   5.485009e-01,   9.539951e-02,   0.000000e+00,
+    ...          0.000000e+00],
+    ...       [  5.622974e-07,   8.149944e-02,   0.000000e+00,   0.000000e+00,
+    ...          0.000000e+00],
+    ...       [  0.000000e+00,   0.000000e+00,   0.000000e+00,   0.000000e+00,
+    ...          0.000000e+00],
+    ...       [  0.000000e+00,   0.000000e+00,   0.000000e+00,   0.000000e+00,
+    ...          0.000000e+00]]))<1.e-7
+    array([[ True,  True,  True,  True,  True],
+           [ True,  True,  True,  True,  True],
+           [ True,  True,  True,  True,  True],
+           [ True,  True,  True,  True,  True],
+           [ True,  True,  True,  True,  True]], dtype=bool)
     '''
 
     if fMm is None:
@@ -755,7 +1087,7 @@ def mctp2rfc(fmM, fMm=None):
                 # end
                 fx = 0.0
                 if (max(abs(e)) > 1e-6 and
-                    max(abs(NN)) > 1e-6 * max(MA[0], mA[0])):
+                        max(abs(NN)) > 1e-6 * max(MA[0], mA[0])):
                     PMm = AA1.copy()
                     for j in range(nA):
                         norm = MA[j]
@@ -772,7 +1104,7 @@ def mctp2rfc(fmM, fMm=None):
                         fx = NN * (A / (1 - B * A) * e)
                     else:
                         rh = np.eye(A.shape[0]) - np.dot(B, A)
-                        #least squares
+                        # least squares
                         fx = np.dot(NN, np.dot(A, linalg.solve(rh, e)))
                     # end
                 # end
@@ -839,22 +1171,19 @@ def rfcfilter(x, h, method=0):
     >>> import wafo.misc as wm
     >>> x = wafo.data.sea()
     >>> y = wm.rfcfilter(x[:,1], h=0, method=1)
+    >>> np.all(np.abs(y[0:5]-np.array([-1.2004945 ,  0.83950546, -0.09049454,
+    ...        -0.02049454, -0.09049454]))<1e-7)
+    True
     >>> y.shape
     (2172,)
-    >>> y[0:5]
-    array([-1.2004945 ,  0.83950546, -0.09049454, -0.02049454, -0.09049454])
-    >>> y[-5::]
-    array([ 0.18950546,  0.15950546,  0.91950546, -0.51049454, -0.48049454])
 
     # 2. This removes all rainflow cycles with range less than 0.5.
     >>> y1 = wm.rfcfilter(x[:,1], h=0.5)
     >>> y1.shape
     (863,)
-    >>> y1[0:5]
-    array([-1.2004945 ,  0.83950546, -0.43049454,  0.34950546, -0.51049454])
-    >>> y1[-5::]
-    array([-0.64049454,  0.65950546, -1.0004945 ,  0.91950546, -0.51049454])
-
+    >>> np.all(np.abs(y1[0:5]-np.array([-1.2004945 ,  0.83950546, -0.43049454,
+    ...        0.34950546, -0.51049454]))<1e-7)
+    True
     >>> ind = wm.findtp(x[:,1], h=0.5)
     >>> y2 = x[ind,1]
     >>> y2[0:5]
@@ -899,7 +1228,7 @@ def rfcfilter(x, h, method=0):
             t1, y1 = (t0, y0) if z1 == 0 else (ti, yi)
         else:
             if (((z0 == +1) & cmpfun1(yi, fmi)) |
-                ((z0 == -1) & cmpfun2(yi, fpi))):
+                    ((z0 == -1) & cmpfun2(yi, fpi))):
                 z1 = -1
             elif (((z0 == +1) & cmpfun2(fmi, yi)) |
                   ((z0 == -1) & cmpfun1(fpi, yi))):
@@ -962,26 +1291,23 @@ def findtp(x, h=0.0, kind=None):
 
     Example:
     --------
-    >>> import wafo.data
-    >>> import pylab as plb
+    >>> import pylab as plt
     >>> import wafo.misc as wm
-    >>> x = wafo.data.sea()
-    >>> x1 = x[0:200,:]
+    >>> t = np.linspace(0,30,500).reshape((-1,1))
+    >>> x = np.hstack((t, np.cos(t) + 0.3 * np.sin(5*t)))
+    >>> x1 = x[0:100,:]
     >>> itp = wm.findtp(x1[:,1],0,'Mw')
     >>> itph = wm.findtp(x1[:,1],0.3,'Mw')
     >>> tp = x1[itp,:]
     >>> tph = x1[itph,:]
-    >>> a = plb.plot(x1[:,0],x1[:,1],
+    >>> a = plt.plot(x1[:,0],x1[:,1],
     ...             tp[:,0],tp[:,1],'ro',
-    ...             tph[:,1],tph[:,1],'k.')
-    >>> plb.close('all')
+    ...             tph[:,0],tph[:,1],'k.')
+    >>> plt.close('all')
     >>> itp
-    array([ 11,  21,  22,  24,  26,  28,  31,  39,  43,  45,  47,  51,  56,
-            64,  70,  78,  82,  84,  89,  94, 101, 108, 119, 131, 141, 148,
-           149, 150, 159, 173, 184, 190, 199])
+    array([ 5, 18, 24, 38, 46, 57, 70, 76, 91, 98, 99])
     >>> itph
-    array([ 11,  28,  31,  39,  47,  51,  56,  64,  70,  78,  89,  94, 101,
-           108, 119, 131, 141, 148, 159, 173, 184, 190, 199])
+    array([91])
 
     See also
     ---------
@@ -999,10 +1325,10 @@ def findtp(x, h=0.0, kind=None):
     if ind.size < 2:
         return None
 
-    #% In order to get the exact up-crossing intensity from rfc by
-    #% mm2lc(tp2mm(rfc))  we have to add the indices
-    #% to the last value (and also the first if the
-    #% sequence of turning points does not start with a minimum).
+    # In order to get the exact up-crossing intensity from rfc by
+    # mm2lc(tp2mm(rfc))  we have to add the indices to the last value
+    # (and also the first if the sequence of turning points does not start
+    # with a minimum).
 
     if kind == 'astm':
         # the Nieslony approach always put the first loading point as the first
@@ -1068,14 +1394,15 @@ def findtc(x_in, v=None, kind=None):
     Example:
     --------
     >>> import wafo.data
-    >>> import pylab as plb
+    >>> import pylab as plt
     >>> import wafo.misc as wm
-    >>> x = wafo.data.sea()
+    >>> t = np.linspace(0,30,500).reshape((-1,1))
+    >>> x = np.hstack((t, np.cos(t)))
     >>> x1 = x[0:200,:]
     >>> itc, iv = wm.findtc(x1[:,1],0,'dw')
     >>> tc = x1[itc,:]
-    >>> a = plb.plot(x1[:,0],x1[:,1],tc[:,0],tc[:,1],'ro')
-    >>> plb.close('all')
+    >>> a = plt.plot(x1[:,0],x1[:,1],tc[:,0],tc[:,1],'ro')
+    >>> plt.close('all')
 
     See also
     --------
@@ -1095,38 +1422,35 @@ def findtc(x_in, v=None, kind=None):
         return zeros(0, dtype=np.int), zeros(0, dtype=np.int)
 
     # determine the number of trough2crest (or crest2trough) cycles
-    isodd = mod(n_c, 2)
-    if isodd:
-        n_tc = int((n_c - 1) / 2)
-    else:
-        n_tc = int((n_c - 2) / 2)
+    is_even = mod(n_c + 1, 2)
+    n_tc = int((n_c - 1 - is_even) / 2)
 
-    #% allocate variables before the loop increases the speed
+    # allocate variables before the loop increases the speed
     ind = zeros(n_c - 1, dtype=np.int)
 
     first_is_down_crossing = (x[v_ind[0]] > x[v_ind[0] + 1])
     if first_is_down_crossing:
         for i in xrange(n_tc):
-            #% trough
+            # trough
             j = 2 * i
             ind[j] = x[v_ind[j] + 1:v_ind[j + 1] + 1].argmin()
-            #% crest
+            # crest
             ind[j + 1] = x[v_ind[j + 1] + 1:v_ind[j + 2] + 1].argmax()
 
         if (2 * n_tc + 1 < n_c) and (kind in (None, 'tw')):
-            #% trough
+            # trough
             ind[n_c - 2] = x[v_ind[n_c - 2] + 1:v_ind[n_c - 1]].argmin()
 
-    else:  # %%%% the first is a up-crossing
+    else:  # the first is a up-crossing
         for i in xrange(n_tc):
-            #% trough
+            # crest
             j = 2 * i
             ind[j] = x[v_ind[j] + 1:v_ind[j + 1] + 1].argmax()
-            #% crest
+            # trough
             ind[j + 1] = x[v_ind[j + 1] + 1:v_ind[j + 2] + 1].argmin()
 
         if (2 * n_tc + 1 < n_c) and (kind in (None, 'cw')):
-            #% trough
+            # crest
             ind[n_c - 2] = x[v_ind[n_c - 2] + 1:v_ind[n_c - 1]].argmax()
 
     return v_ind[:n_c - 1] + ind + 1, v_ind
@@ -1174,7 +1498,8 @@ def findoutliers(x, zcrit=0.0, dcrit=None, ddcrit=None, verbose=False):
     >>> import numpy as np
     >>> import wafo
     >>> import wafo.misc as wm
-    >>> xx = wafo.data.sea()
+    >>> t = np.linspace(0,30,500).reshape((-1,1))
+    >>> xx = np.hstack((t, np.cos(t)))
     >>> dt = np.diff(xx[:2,0])
     >>> dcrit = 5*dt
     >>> ddcrit = 9.81/2*dt*dt
@@ -1182,10 +1507,11 @@ def findoutliers(x, zcrit=0.0, dcrit=None, ddcrit=None, verbose=False):
     >>> [inds, indg] = wm.findoutliers(xx[:,1],zcrit,dcrit,ddcrit,verbose=True)
     Found 0 spurious positive jumps of Dx
     Found 0 spurious negative jumps of Dx
-    Found 37 spurious positive jumps of D^2x
-    Found 200 spurious negative jumps of D^2x
-    Found 244 consecutive equal values
-    Found the total of 1152 spurious points
+    Found 0 spurious positive jumps of D^2x
+    Found 0 spurious negative jumps of D^2x
+    Found 0 consecutive equal values
+    Found the total of 0 spurious points
+
 
     #waveplot(xx,'-',xx(inds,:),1,1,1)
 
@@ -1448,8 +1774,8 @@ def stirlerr(n):
     Example
     -------
     >>> import wafo.misc as wm
-    >>> wm.stirlerr(2)
-    array([ 0.0413407])
+    >>> np.abs(wm.stirlerr(2)- 0.0413407)<1e-7
+    array([ True], dtype=bool)
 
     See also
     ---------
@@ -1460,8 +1786,7 @@ def stirlerr(n):
     -----------
     Catherine Loader (2000).
     Fast and Accurate Computation of Binomial Probabilities
-    <http://www.herine.net/stat/software/dbinom.html>
-    <http://www.citeseer.ist.psu.edu/312695.html>
+    <http://lists.gnu.org/archive/html/octave-maintainers/2011-09/pdfK0uKOST642.pdf>
     '''
 
     S0 = 0.083333333333333333333   # /* 1/12 */
@@ -1494,11 +1819,9 @@ def stirlerr(n):
 
     return y
 
-#@ReservedAssignment
-
 
 def getshipchar(value=None, property="max_deadweight",  # @ReservedAssignment
-                **kwds):
+                **kwds):  # @IgnorePep8
     '''
     Return ship characteristics from value of one ship-property
 
@@ -1609,6 +1932,43 @@ def getshipchar(value=None, property="max_deadweight",  # @ReservedAssignment
     return shipchar
 
 
+def binomln(z, w):
+    '''
+    Natural Logarithm of binomial coefficient.
+
+    CALL binomln(z,w)
+
+    BINOMLN computes the natural logarithm of the binomial
+    function for corresponding elements of Z and W.   The arrays Z and
+    W must be real and nonnegative. Both arrays must be the same size,
+    or either can be scalar.  BETALOGE is defined as:
+
+    y = LOG(binom(Z,W)) = gammaln(Z)-gammaln(W)-gammaln(Z-W)
+
+    and is obtained without computing BINOM(Z,W). Since the binom
+    function can range over very large or very small values, its
+    logarithm is sometimes more useful.
+    This implementation is more accurate than the log(BINOM(Z,W) implementation
+    for large arguments
+
+    Example
+    -------
+
+    >>> abs(binomln(3,2)- 1.09861229)<1e-7
+    array([ True], dtype=bool)
+
+    See also
+    --------
+    binom
+    '''
+    # log(n!) = stirlerr(n)  + log( sqrt(2*pi*n)*(n/exp(1))**n )
+    # y = gammaln(z+1)-gammaln(w+1)-gammaln(z-w+1)
+    zpw = z - w
+    return (stirlerr(z + 1) - stirlerr(w + 1) - 0.5 * log(2 * pi) -
+            (w + 0.5) * log1p(w) + (z + 0.5) * log1p(z) - stirlerr(zpw + 1) -
+            (zpw + 0.5) * log1p(zpw) + 1)
+
+
 def betaloge(z, w):
     '''
     Natural Logarithm of beta function.
@@ -1631,8 +1991,8 @@ def betaloge(z, w):
     Example
     -------
     >>> import wafo.misc as wm
-    >>> wm.betaloge(3,2)
-    array([-2.48490665])
+    >>> abs(wm.betaloge(3,2)+2.48490665)<1e-7
+    array([ True], dtype=bool)
 
     See also
     --------
@@ -1673,8 +2033,10 @@ def gravity(phi=45):
     >>> import wafo.misc as wm
     >>> import numpy as np
     >>> phi = np.linspace(0,45,5)
-    >>> wm.gravity(phi)
-    array([ 9.78049   ,  9.78245014,  9.78803583,  9.79640552,  9.80629387])
+    >>> np.abs(wm.gravity(phi)-np.array([ 9.78049   ,  9.78245014,  9.78803583,
+    ...            9.79640552,  9.80629387]))<1.e-7
+    array([ True,  True,  True,  True,  True], dtype=bool)
+
 
     See also
     --------
@@ -1808,12 +2170,13 @@ def hyp2f1(a, b, c, z, rho=0.5):
     e7 = gammaln(c - b)
     e8 = gammaln(c - a - b)
     e9 = gammaln(a + b - c)
-    _cmab = c-a-b
+    _cmab = c - a - b
     #~(np.round(cmab) == cmab & cmab <= 0)
     if abs(z) <= rho:
         h = hyp2f1_taylor(a, b, c, z, 1e-15)
     elif abs(1 - z) <= rho:  # % Require that |arg(1-z)|<pi
-        h = exp(e3 + e8 - e6 - e7) * hyp2f1_taylor(a, b, a + b - c, 1 - z, 1e-15) \
+        h = exp(e3 + e8 - e6 - e7) * \
+            hyp2f1_taylor(a, b, a + b - c, 1 - z, 1e-15) \
             + (1 - z) ** (c - a - b) * exp(e3 + e9 - e1 - e2) \
             * hyp2f1_taylor(c - a, c - b, c - a - b + 1, 1 - z, 1e-15)
     elif abs(z / (z - 1)) <= rho:
@@ -1991,7 +2354,8 @@ def hygfz(A, B, C, Z):
                         SM = 0.0
                         for J in range(1, M):
                             SM += (1.0 - A) / (
-                                (J + K) * (A + J + K - 1.0)) + 1.0 / (B + J + K - 1.0)
+                                (J + K) * (A + J + K - 1.0)) + \
+                                1.0 / (B + J + K - 1.0)
 
                         ZP = PA + PB + 2.0 * EL + SP + SM + np.log(1.0 - Z)
                         ZR1 = ZR1 * \
@@ -2057,7 +2421,7 @@ def hygfz(A, B, C, Z):
                 ZHF = ZHF + ZC0 + ZC1
         else:
             ZW = 0.0
-            Z00 = 1.0 #+ 0j
+            Z00 = 1.0  # + 0j
             if (C - A < A and C - B < B):
                 Z00 = (1.0 - Z) ** (C - A - B)
                 A = C - A
@@ -2199,7 +2563,8 @@ def hygfz(A, B, C, Z):
 #     [Sn1,err1] = hypgf(1,1,1,x)
 #     plot(x,abs(Sn1-1./(1-x)),'b',x,err1,'r'),set(gca,'yscale','log')
 #     [Sn2,err2] = hypgf(.5,.5,1.5,x.^2);
-#     plot(x,abs(x.*Sn2-asin(x)),'b',x,abs(x.*err2),'r'),set(gca,'yscale','log')
+#     plot(x,abs(x.*Sn2-asin(x)),'b',x,abs(x.*err2),'r')
+#     set(gca,'yscale','log')
 #
 #
 #     Reference:
@@ -2242,7 +2607,7 @@ def hygfz(A, B, C, Z):
 #         E{3} = fsum(k);
 #         converge = 'n';
 #         for  ix=0:Kmax-1,
-#           delta(k1) = delta(k1).*((a(k1)+ix)./(ix+1)).*((b(k1)+ix)./(c(k1)+ ix)).*x(k1);
+#           delta(k1) = delta(k1).*((a(k1)+ix)./(ix+1)).*((b(k1)+ix)./(c(k1)+ ix)).*x(k1); @IgnorePep8
 #           fsum(k1) = fsum(k1)+delta(k1);
 #
 #           E(1:2) = E(2:3);
@@ -2260,7 +2625,7 @@ def hygfz(A, B, C, Z):
 #           end
 #           k0 = (find((abs(err(k1))) > max(absEps,abs(relEps.*fsum(k1)))));
 #            if any(k0),% compute more terms
-#              %nk=length(k0);%# of values we have to compute again
+# %nk=length(k0);%# of values we have to compute again
 #              E{2} = E{2}(k0);
 #              E{3} = E{3}(k0);
 #            else
@@ -2272,7 +2637,7 @@ def hygfz(A, B, C, Z):
 #            k0 = (find((abs(err(k1))) > max(absEps,abs(relEps.* ...
 #                                 fsum(k1)))));
 #            if any(k0),% compute more terms
-#              %nk=length(k0);%# of values we have to compute again
+# %nk=length(k0);%# of values we have to compute again
 #            else
 #              converge='y';
 #              break;
@@ -2282,7 +2647,7 @@ def hygfz(A, B, C, Z):
 #           end
 #         end
 #         if ~strncmpi(converge,'y',1)
-#           disp(sprintf('#%d values did not converge',length(k1)))
+# disp(sprintf('#%d values did not converge',length(k1)))
 #         end
 #       end
 #       %ix
@@ -2338,13 +2703,13 @@ def discretize(fun, a, b, tol=0.005, n=5, method='linear'):
     -------
     >>> import wafo.misc as wm
     >>> import numpy as np
-    >>> import pylab as plb
+    >>> import pylab as plt
     >>> x,y = wm.discretize(np.cos, 0, np.pi)
     >>> xa,ya = wm.discretize(np.cos, 0, np.pi, method='adaptive')
-    >>> t = plb.plot(x, y, xa, ya, 'r.')
-    >>> plb.show()
+    >>> t = plt.plot(x, y, xa, ya, 'r.')
 
-    >>> plb.close('all')
+    plt.show()
+    >>> plt.close('all')
 
     '''
     if method.startswith('a'):
@@ -2437,6 +2802,7 @@ def polar2cart(theta, rho, z=None):
         return x, y
     else:
         return x, y, z
+pol2cart = polar2cart
 
 
 def cart2polar(x, y, z=None):
@@ -2445,9 +2811,9 @@ def cart2polar(x, y, z=None):
     Returns
     -------
     theta : array-like
-        arctan2(y,x)
+        radial angle, arctan2(y,x)
     rho : array-like
-        sqrt(x**2+y**2)
+        radial distance, sqrt(x**2+y**2)
 
     See also
     --------
@@ -2458,6 +2824,7 @@ def cart2polar(x, y, z=None):
         return t, r
     else:
         return t, r, z
+cart2pol = cart2polar
 
 
 def ndgrid(*args, **kwargs):
@@ -2595,19 +2962,19 @@ def tranproc(x, f, x0, *xi):
     Example
     --------
     Derivative of g and the transformed Gaussian model.
-    >>> import pylab as plb
+    >>> import pylab as plt
     >>> import wafo.misc as wm
     >>> import wafo.transform.models as wtm
     >>> tr = wtm.TrHermite()
     >>> x = linspace(-5,5,501)
     >>> g = tr(x)
     >>> gder = wm.tranproc(x, g, x, ones(g.shape[0]))
-    >>> h = plb.plot(x, g, x, gder[1])
+    >>> h = plt.plot(x, g, x, gder[1])
 
-    plb.plot(x,pdfnorm(g)*gder[1],x,pdfnorm(x))
-    plb.legend('Transformed model','Gaussian model')
+    plt.plot(x,pdfnorm(g)*gder[1],x,pdfnorm(x))
+    plt.legend('Transformed model','Gaussian model')
 
-    >>> plb.close('all')
+    >>> plt.close('all')
 
     See also
     --------
@@ -2638,7 +3005,8 @@ def tranproc(x, f, x0, *xi):
         hn = xo[1] - xo[0]
         if hn ** N < sqrt(_EPS):
             msg = ('Numerical problems may occur for the derivatives in ' +
-            'tranproc.\nThe sampling of the transformation may be too small.')
+                   'tranproc.\n' +
+                   'The sampling of the transformation may be too small.')
             warnings.warn(msg)
 
         # Transform X with the derivatives of  f.
@@ -2773,13 +3141,15 @@ def plot_histgrm(data, bins=None, range=None,  # @ReservedAssignment
 
     Example
     -------
-    >>> import pylab as plb
+    >>> import pylab as plt
     >>> import wafo.misc as wm
     >>> import wafo.stats as ws
     >>> R = ws.weibull_min.rvs(2,loc=0,scale=2, size=100)
     >>> h0 = wm.plot_histgrm(R, 20, normed=True)
-    >>> x = linspace(-3,16,200)
-    >>> h1 = plb.plot(x,ws.weibull_min.pdf(x,2,0,2),'r')
+    >>> x = np.linspace(-3,16,200)
+    >>> h1 = plt.plot(x,ws.weibull_min.pdf(x,2,0,2),'r')
+    >>> plt.close('all')
+
 
     See also
     --------
@@ -2791,7 +3161,6 @@ def plot_histgrm(data, bins=None, range=None,  # @ReservedAssignment
     if bins is None:
         bins = np.ceil(4 * np.sqrt(np.sqrt(len(x))))
 
-    #, new=True)
     bin_, limits = np.histogram(
         data, bins=bins, normed=normed, weights=weights)
     limits.shape = (-1, 1)
@@ -2892,8 +3261,10 @@ def fourier(data, t=None, T=None, m=None, n=None, method='trapz'):
     >>> t = np.linspace(0,4*T)
     >>> x = np.sin(t)
     >>> a, b = wm.fourier(x, t, T=T, m=5)
-    >>> (np.round(a.ravel()), np.round(b.ravel()))
-    (array([ 0., -0.,  0., -0.,  0.]), array([ 0.,  4., -0., -0.,  0.]))
+    >>> np.abs(a.ravel())<1e-12
+    array([ True,  True,  True,  True,  True], dtype=bool)
+    >>> np.abs(b.ravel()-np.array([ 0.,  4.,  0.,  0.,  0.]))<1e-12
+    array([ True,  True,  True,  True,  True], dtype=bool)
 
     See also
     --------
@@ -2951,127 +3322,43 @@ def fourier(data, t=None, T=None, m=None, n=None, method='trapz'):
     return a, b
 
 
-def _test_find_cross():
-    t = findcross([0, 0, 1, -1, 1], 0)  # @UnusedVariable
+def real_main0():
+    x = np.arange(10000)
+    y = np.arange(100).reshape(-1, 1)
+    np.broadcast_arrays(x, y, x, x, x, x, x, x, x, x)
 
 
-def _test_common_shape():
-
-    A = ones((4, 1))
-    B = 2
-    C = ones((1, 5)) * 5
-    common_shape(A, B, C)
-
-    common_shape(A, B, C, shape=(3, 4, 1))
-
-    A = ones((4, 1))
-    B = 2
-    C = ones((1, 5)) * 5
-    common_shape(A, B, C, shape=(4, 5))
+def real_main():
+    x = np.arange(100000)
+    y = np.arange(100).reshape(-1, 1)
+    common_shape(x, y, x, x, x, x, x, x, x, x)
 
 
-def _test_meshgrid():
-    x = array([-1, -0.5, 1, 4, 5], float)
-    y = array([0, -2, -5], float)
-    xv, yv = meshgrid(x, y, sparse=False)
-    print(xv)
-    print(yv)
-    xv, yv = meshgrid(x, y, sparse=True)  # make sparse output arrays
-    print(xv)
-    print(yv)
-    print(meshgrid(0, 1, 5, sparse=True))  # just a 3D point
-    print(meshgrid([0, 1, 5], sparse=True))  # just a 3D point
-    xv, yv = meshgrid(y, y)
-    yv[0, 0] = 10
-    print(xv)
-    print(yv)
-# >>> xv
-##    array([[ 0. ,  0.5,  1. ]])
-# >>> yv
-# array([[ 0.],
-# [ 1.]])
-# array([[-1. , -0.5,  1. ,  4. ,  5. ],
-##           [-1. , -0.5,  1. ,  4. ,  5. ],
-# [-1. , -0.5,  1. ,  4. ,  5. ]])
-#
-# array([[ 0.,  0.,  0.,  0.,  0.],
-##           [-2., -2., -2., -2., -2.],
-# [-5., -5., -5., -5., -5.]])
+def profile_main1():
+    # This is the main function for profiling
+    # We've renamed our original main() above to real_main()
+    import cProfile
+    import pstats
+    prof = cProfile.Profile()
+    prof = prof.runctx("real_main()", globals(), locals())
+    print "<pre>"
+    stats = pstats.Stats(prof)
+    stats.sort_stats("time")  # Or cumulative
+    stats.print_stats(80)  # 80 = how many to print
+    # The rest is optional.
+    # stats.print_callees()
+    # stats.print_callers()
+    print "</pre>"
 
 
-def _test_tranproc():
-    import wafo.transform.models as wtm
-    tr = wtm.TrHermite()
-    x = linspace(-5, 5, 501)
-    g = tr(x)
-    _gder = tranproc(x, g, x, ones(g.size))
-    pass
-    #>>> gder(:,1) = g(:,1)
-    #>>> plot(g(:,1),[g(:,2),gder(:,2)])
-    #>>> plot(g(:,1),pdfnorm(g(:,2)).*gder(:,2),g(:,1),pdfnorm(g(:,1)))
-    #>>> legend('Transformed model','Gaussian model')
-
-
-def _test_detrend():
-    import pylab as plb
-    cos = plb.cos
-    randn = plb.randn
-    x = linspace(0, 1, 200)
-    y = exp(x) + cos(5 * 2 * pi * x) + 1e-1 * randn(x.size)
-    y0 = detrendma(y, 20)
-    tr = y - y0
-    plb.plot(x, y, x, y0, 'r', x, exp(x), 'k', x, tr, 'm')
-
-
-def _test_extrema():
-    import pylab as pb
-    from pylab import plot
-    t = pb.linspace(0, 7 * pi, 250)
-    x = pb.sin(t) + 0.1 * sin(50 * t)
-    ind = findextrema(x)
-    ti, tp = t[ind], x[ind]
-    plot(t, x, '.', ti, tp, 'r.')
-    _ind1 = findrfc(tp, 0.3)
-
-
-def _test_discretize():
-    import pylab as plb
-    x, y = discretize(cos, 0, pi)
-    plb.plot(x, y)
-    plb.show()
-    plb.close('all')
-
-
-def _test_stirlerr():
-    x = linspace(1, 5, 6)
-    print stirlerr(x)
-    print stirlerr(1)
-    print getshipchar(1000)
-    print betaloge(3, 2)
-
-
-def _test_parse_kwargs():
-    opt = dict(arg1=1, arg2=3)
-    print opt
-    opt = parse_kwargs(opt, arg1=5)
-    print opt
-    opt2 = dict(arg3=15)
-    opt = parse_kwargs(opt, **opt2)
-    print opt
-
-    opt0 = testfun('default')
-    print opt0
-    opt0.update(opt1=100)
-    print opt0
-    opt0 = parse_kwargs(opt0, opt2=200)
-    print opt0
-    out1 = testfun(opt0['opt1'], **opt0)
-    print out1
+main = profile_main1
 
 
 def test_docstrings():
+    # np.set_printoptions(precision=6)
     import doctest
-    doctest.testmod()
+    print('Testing docstrings in %s' % __file__)
+    doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
 
 
 def test_hyp2f1():
@@ -3083,9 +3370,9 @@ def test_hyp2f1():
 #     log(1+x)-log(1-x) = 2*x*F(.5,1,1.5,x^2)
     x = linspace(0., .7, 20)
     y = hyp2f1_taylor(-1, -4, 1, .9)
-    y2 = hygfz(-1, -4, 1, .9)
-    y3 = hygfz(5, -300, 10, 0.5)
-    y4 = hyp2f1_taylor(5, -300, 10, 0.5)
+    _y2 = hygfz(-1, -4, 1, .9)
+    _y3 = hygfz(5, -300, 10, 0.5)
+    _y4 = hyp2f1_taylor(5, -300, 10, 0.5)
     #y = hyp2f1(0.1, 0.2, 0.3, 0.5)
     #y = hyp2f1(1, 1.5, 3, -4 +3j)
     #y = hyp2f1(5, 7.5, 2.5, 5)
@@ -3096,10 +3383,10 @@ def test_hyp2f1():
 #
     plt = plotbackend
     plt.interactive(False)
-    plt.semilogy(x, np.abs(y- 1. / (1 - x)) + 1e-20, 'r')
+    plt.semilogy(x, np.abs(y - 1. / (1 - x)) + 1e-20, 'r')
     plt.show()
 
 
 if __name__ == "__main__":
-    #test_docstrings()
-    test_hyp2f1()
+    test_docstrings()
+    #test_hyp2f1()

@@ -13,17 +13,10 @@ import numpy as np
 import numpy.random as mtrand
 
 from ._distn_infrastructure import (
-    rv_discrete, _lazywhere, _ncx2_pdf, _ncx2_cdf)
-
-__all__ = [
-    'binom', 'bernoulli', 'nbinom', 'geom', 'hypergeom',
-    'logser', 'poisson', 'planck', 'boltzmann', 'randint',
-    'zipf', 'dlaplace', 'skellam'
-]
+        rv_discrete, _lazywhere, _ncx2_pdf, _ncx2_cdf, get_distribution_names)
 
 
 class binom_gen(rv_discrete):
-
     """A binomial discrete random variable.
 
     %(before_notes)s
@@ -41,7 +34,6 @@ class binom_gen(rv_discrete):
     %(example)s
 
     """
-
     def _rvs(self, n, p):
         return mtrand.binomial(n, p, self._size)
 
@@ -51,8 +43,8 @@ class binom_gen(rv_discrete):
 
     def _logpmf(self, x, n, p):
         k = floor(x)
-        combiln = (gamln(n + 1) - (gamln(k + 1) + gamln(n - k + 1)))
-        return combiln + special.xlogy(k, p) + special.xlog1py(n - k, -p)
+        combiln = (gamln(n+1) - (gamln(k+1) + gamln(n-k+1)))
+        return combiln + special.xlogy(k, p) + special.xlog1py(n-k, -p)
 
     def _pmf(self, x, n, p):
         return exp(self._logpmf(x, n, p))
@@ -68,16 +60,19 @@ class binom_gen(rv_discrete):
 
     def _ppf(self, q, n, p):
         vals = ceil(special.bdtrik(q, n, p))
-        vals1 = vals - 1
+        vals1 = np.maximum(vals - 1, 0)
         temp = special.bdtr(vals1, n, p)
         return np.where(temp >= q, vals1, vals)
 
-    def _stats(self, n, p):
+    def _stats(self, n, p, moments='mv'):
         q = 1.0 - p
         mu = n * p
         var = n * p * q
-        g1 = (q - p) / sqrt(n * p * q)
-        g2 = (1.0 - 6 * p * q) / (n * p * q)
+        g1, g2 = None, None
+        if 's' in moments:
+            g1 = (q - p) / sqrt(var)
+        if 'k' in moments:
+            g2 = (1.0 - 6*p*q) / var
         return mu, var, g1, g2
 
     def _entropy(self, n, p):
@@ -89,7 +84,6 @@ binom = binom_gen(name='binom')
 
 
 class bernoulli_gen(binom_gen):
-
     """A Bernoulli discrete random variable.
 
     %(before_notes)s
@@ -108,7 +102,6 @@ class bernoulli_gen(binom_gen):
     %(example)s
 
     """
-
     def _rvs(self, p):
         return binom_gen._rvs(self, 1, p)
 
@@ -140,7 +133,6 @@ bernoulli = bernoulli_gen(b=1, name='bernoulli')
 
 
 class nbinom_gen(rv_discrete):
-
     """A negative binomial discrete random variable.
 
     %(before_notes)s
@@ -158,7 +150,6 @@ class nbinom_gen(rv_discrete):
     %(example)s
 
     """
-
     def _rvs(self, n, p):
         return mtrand.negative_binomial(n, p, self._size)
 
@@ -174,7 +165,7 @@ class nbinom_gen(rv_discrete):
 
     def _cdf(self, x, n, p):
         k = floor(x)
-        return special.betainc(n, k + 1, p)
+        return special.betainc(n, k+1, p)
 
     def _sf_skip(self, x, n, p):
         # skip because special.nbdtrc doesn't work for 0<n<1
@@ -183,23 +174,22 @@ class nbinom_gen(rv_discrete):
 
     def _ppf(self, q, n, p):
         vals = ceil(special.nbdtrik(q, n, p))
-        vals1 = (vals - 1).clip(0.0, np.inf)
+        vals1 = (vals-1).clip(0.0, np.inf)
         temp = self._cdf(vals1, n, p)
         return np.where(temp >= q, vals1, vals)
 
     def _stats(self, n, p):
         Q = 1.0 / p
         P = Q - 1.0
-        mu = n * P
-        var = n * P * Q
-        g1 = (Q + P) / sqrt(n * P * Q)
-        g2 = (1.0 + 6 * P * Q) / (n * P * Q)
+        mu = n*P
+        var = n*P*Q
+        g1 = (Q+P)/sqrt(n*P*Q)
+        g2 = (1.0 + 6*P*Q) / (n*P*Q)
         return mu, var, g1, g2
 nbinom = nbinom_gen(name='nbinom')
 
 
 class geom_gen(rv_discrete):
-
     """A geometric discrete random variable.
 
     %(before_notes)s
@@ -217,7 +207,6 @@ class geom_gen(rv_discrete):
     %(example)s
 
     """
-
     def _rvs(self, p):
         return mtrand.geometric(p, size=self._size)
 
@@ -225,7 +214,7 @@ class geom_gen(rv_discrete):
         return (p <= 1) & (p >= 0)
 
     def _pmf(self, k, p):
-        return np.power(1 - p, k - 1) * p
+        return np.power(1-p, k-1) * p
 
     def _logpmf(self, k, p):
         return (k - 1) * log1p(-p) + log(p)
@@ -247,17 +236,16 @@ class geom_gen(rv_discrete):
         return np.where((temp >= q) & (vals > 0), vals - 1, vals)
 
     def _stats(self, p):
-        mu = 1.0 / p
-        qr = 1.0 - p
+        mu = 1.0/p
+        qr = 1.0-p
         var = qr / p / p
-        g1 = (2.0 - p) / sqrt(qr)
-        g2 = np.polyval([1, -6, 6], p) / (1.0 - p)
+        g1 = (2.0-p) / sqrt(qr)
+        g2 = np.polyval([1, -6, 6], p)/(1.0-p)
         return mu, var, g1, g2
 geom = geom_gen(a=1, name='geom', longname="A geometric")
 
 
 class hypergeom_gen(rv_discrete):
-
     """A hypergeometric discrete random variable.
 
     The hypergeometric distribution models drawing objects from a bin.
@@ -277,6 +265,7 @@ class hypergeom_gen(rv_discrete):
     Examples
     --------
     >>> from scipy.stats import hypergeom
+    >>> import matplotlib.pyplot as plt
 
     Suppose we have a collection of 20 animals, of which 7 are dogs.  Then if
     we want to know the probability of finding a given number of dogs if we
@@ -307,23 +296,22 @@ class hypergeom_gen(rv_discrete):
     >>> R = hypergeom.rvs(M, n, N, size=10)
 
     """
-
     def _rvs(self, M, n, N):
-        return mtrand.hypergeometric(n, M - n, N, size=self._size)
+        return mtrand.hypergeometric(n, M-n, N, size=self._size)
 
     def _argcheck(self, M, n, N):
         cond = rv_discrete._argcheck(self, M, n, N)
         cond &= (n <= M) & (N <= M)
-        self.a = max(N - (M - n), 0)
+        self.a = max(N-(M-n), 0)
         self.b = min(n, N)
         return cond
 
     def _logpmf(self, k, M, n, N):
         tot, good = M, n
         bad = tot - good
-        return gamln(good + 1) - gamln(good - k + 1) - gamln(k + 1) + \
-            gamln(bad + 1) - gamln(bad - N + k + 1) - gamln(N - k + 1) - \
-            gamln(tot + 1) + gamln(tot - N + 1) + gamln(N + 1)
+        return gamln(good+1) - gamln(good-k+1) - gamln(k+1) + gamln(bad+1) \
+            - gamln(bad-N+k+1) - gamln(N-k+1) - gamln(tot+1) + gamln(tot-N+1) \
+            + gamln(N+1)
 
     def _pmf(self, k, M, n, N):
         # same as the following but numerically more precise
@@ -333,19 +321,18 @@ class hypergeom_gen(rv_discrete):
     def _stats(self, M, n, N):
         # tot, good, sample_size = M, n, N
         # "wikipedia".replace('N', 'M').replace('n', 'N').replace('K', 'n')
-        M, n, N = 1. * M, 1. * n, 1. * N
+        M, n, N = 1.*M, 1.*n, 1.*N
         m = M - n
-        p = n / M
-        mu = N * p
+        p = n/M
+        mu = N*p
 
-        var = m * n * N * (M - N) * 1.0 / (M * M * (M - 1))
-        g1 = (m - n) * (M - 2 * N) / (M - 2.0) * \
-            sqrt((M - 1.0) / (m * n * N * (M - N)))
+        var = m*n*N*(M - N)*1.0/(M*M*(M-1))
+        g1 = (m - n)*(M-2*N) / (M-2.0) * sqrt((M-1.0) / (m*n*N*(M-N)))
 
-        g2 = M * (M + 1) - 6. * N * (M - N) - 6. * n * m
-        g2 *= (M - 1) * M * M
-        g2 += 6. * n * N * (M - N) * m * (5. * M - 6)
-        g2 /= n * N * (M - N) * m * (M - 2.) * (M - 3.)
+        g2 = M*(M+1) - 6.*N*(M-N) - 6.*n*m
+        g2 *= (M-1)*M*M
+        g2 += 6.*n*N*(M-N)*m*(5.*M-6)
+        g2 /= n * N * (M-N) * m * (M-2.) * (M-3.)
         return mu, var, g1, g2
 
     def _entropy(self, M, n, N):
@@ -372,7 +359,6 @@ hypergeom = hypergeom_gen(name='hypergeom')
 
 # FIXME: Fails _cdfvec
 class logser_gen(rv_discrete):
-
     """A Logarithmic (Log-Series, Series) discrete random variable.
 
     %(before_notes)s
@@ -390,7 +376,6 @@ class logser_gen(rv_discrete):
     %(example)s
 
     """
-
     def _rvs(self, p):
         # looks wrong for p>0.5, too few k=1
         # trying to use generic is worse, no k=1 at all
@@ -405,22 +390,21 @@ class logser_gen(rv_discrete):
     def _stats(self, p):
         r = log1p(-p)
         mu = p / (p - 1.0) / r
-        mu2p = -p / r / (p - 1.0) ** 2
-        var = mu2p - mu * mu
-        mu3p = -p / r * (1.0 + p) / (1.0 - p) ** 3
-        mu3 = mu3p - 3 * mu * mu2p + 2 * mu ** 3
+        mu2p = -p / r / (p - 1.0)**2
+        var = mu2p - mu*mu
+        mu3p = -p / r * (1.0+p) / (1.0 - p)**3
+        mu3 = mu3p - 3*mu*mu2p + 2*mu**3
         g1 = mu3 / np.power(var, 1.5)
 
         mu4p = -p / r * (
-            1.0 / (p - 1) ** 2 - 6 * p / (p - 1) ** 3 + 6 * p * p / (p - 1) ** 4)
-        mu4 = mu4p - 4 * mu3p * mu + 6 * mu2p * mu * mu - 3 * mu ** 4
-        g2 = mu4 / var ** 2 - 3.0
+            1.0 / (p-1)**2 - 6*p / (p - 1)**3 + 6*p*p / (p-1)**4)
+        mu4 = mu4p - 4*mu3p*mu + 6*mu2p*mu*mu - 3*mu**4
+        g2 = mu4 / var**2 - 3.0
         return mu, var, g1, g2
 logser = logser_gen(a=1, name='logser', longname='A logarithmic')
 
 
 class poisson_gen(rv_discrete):
-
     """A Poisson discrete random variable.
 
     %(before_notes)s
@@ -438,12 +422,11 @@ class poisson_gen(rv_discrete):
     %(example)s
 
     """
-
     def _rvs(self, mu):
         return mtrand.poisson(mu, self._size)
 
     def _logpmf(self, k, mu):
-        Pk = k * log(mu) - gamln(k + 1) - mu
+        Pk = k*log(mu)-gamln(k+1) - mu
         return Pk
 
     def _pmf(self, k, mu):
@@ -459,9 +442,9 @@ class poisson_gen(rv_discrete):
 
     def _ppf(self, q, mu):
         vals = ceil(special.pdtrik(q, mu))
-        vals1 = vals - 1
+        vals1 = np.maximum(vals - 1, 0)
         temp = special.pdtr(vals1, mu)
-        return np.where((temp >= q), vals1, vals)
+        return np.where(temp >= q, vals1, vals)
 
     def _stats(self, mu):
         var = mu
@@ -473,7 +456,6 @@ poisson = poisson_gen(name="poisson", longname='A Poisson')
 
 
 class planck_gen(rv_discrete):
-
     """A Planck discrete exponential random variable.
 
     %(before_notes)s
@@ -491,7 +473,6 @@ class planck_gen(rv_discrete):
     %(example)s
 
     """
-
     def _argcheck(self, lambda_):
         if (lambda_ > 0):
             self.a = 0
@@ -513,27 +494,26 @@ class planck_gen(rv_discrete):
         return - expm1(-lambda_ * (k + 1))
 
     def _ppf(self, q, lambda_):
-        vals = ceil(-1.0 / lambda_ * log1p(-q) - 1)
-        vals1 = (vals - 1).clip(self.a, np.inf)
+        vals = ceil(-1.0/lambda_ * log1p(-q)-1)
+        vals1 = (vals-1).clip(self.a, np.inf)
         temp = self._cdf(vals1, lambda_)
         return np.where(temp >= q, vals1, vals)
 
     def _stats(self, lambda_):
-        mu = 1 / (exp(lambda_) - 1)
-        var = exp(-lambda_) / (expm1(-lambda_)) ** 2
-        g1 = 2 * cosh(lambda_ / 2.0)
-        g2 = 4 + 2 * cosh(lambda_)
+        mu = 1/(exp(lambda_)-1)
+        var = exp(-lambda_)/(expm1(-lambda_))**2
+        g1 = 2*cosh(lambda_/2.0)
+        g2 = 4+2*cosh(lambda_)
         return mu, var, g1, g2
 
     def _entropy(self, lambda_):
         l = lambda_
         C = -expm1(-l)
-        return l * exp(-l) / C - log(C)
+        return l*exp(-l)/C - log(C)
 planck = planck_gen(name='planck', longname='A discrete exponential ')
 
 
 class boltzmann_gen(rv_discrete):
-
     """A Boltzmann (Truncated Discrete Exponential) random variable.
 
     %(before_notes)s
@@ -551,7 +531,6 @@ class boltzmann_gen(rv_discrete):
     %(example)s
 
     """
-
     def _pmf(self, k, lambda_, N):
         fact = (expm1(-lambda_)) / (expm1(-lambda_ * N))
         return fact * exp(-lambda_ * k)
@@ -569,23 +548,21 @@ class boltzmann_gen(rv_discrete):
 
     def _stats(self, lambda_, N):
         z = exp(-lambda_)
-        zN = exp(-lambda_ * N)
-        mu = z / (1.0 - z) - N * zN / (1 - zN)
-        var = z / (1.0 - z) ** 2 - N * N * zN / (1 - zN) ** 2
-        trm = (1 - zN) / (1 - z)
-        trm2 = (z * trm ** 2 - N * N * zN)
-        g1 = z * (1 + z) * trm ** 3 - N ** 3 * zN * (1 + zN)
-        g1 = g1 / trm2 ** (1.5)
-        g2 = z * (1 + 4 * z + z * z) * \
-            trm ** 4 - N ** 4 * zN * (1 + 4 * zN + zN * zN)
+        zN = exp(-lambda_*N)
+        mu = z/(1.0-z)-N*zN/(1-zN)
+        var = z/(1.0-z)**2 - N*N*zN/(1-zN)**2
+        trm = (1-zN)/(1-z)
+        trm2 = (z*trm**2 - N*N*zN)
+        g1 = z*(1+z)*trm**3 - N**3*zN*(1+zN)
+        g1 = g1 / trm2**(1.5)
+        g2 = z*(1+4*z+z*z)*trm**4 - N**4 * zN*(1+4*zN+zN*zN)
         g2 = g2 / trm2 / trm2
         return mu, var, g1, g2
 boltzmann = boltzmann_gen(name='boltzmann',
-                          longname='A truncated discrete exponential ')
+        longname='A truncated discrete exponential ')
 
 
 class randint_gen(rv_discrete):
-
     """A uniform discrete random variable.
 
     %(before_notes)s
@@ -606,7 +583,6 @@ class randint_gen(rv_discrete):
     %(example)s
 
     """
-
     def _argcheck(self, low, high):
         self.a = low
         self.b = high - 1
@@ -630,9 +606,9 @@ class randint_gen(rv_discrete):
         m2, m1 = np.asarray(high), np.asarray(low)
         mu = (m2 + m1 - 1.0) / 2
         d = m2 - m1
-        var = (d * d - 1) / 12.0
+        var = (d*d - 1) / 12.0
         g1 = 0.0
-        g2 = -6.0 / 5.0 * (d * d + 1.0) / (d * d - 1.0)
+        g2 = -6.0/5.0 * (d*d + 1.0) / (d*d - 1.0)
         return mu, var, g1, g2
 
     def _rvs(self, low, high=None):
@@ -648,9 +624,22 @@ randint = randint_gen(name='randint', longname='A discrete uniform '
                       '(random integer)')
 
 
+def harmonic(n,r):
+    return 1./n + special.polygamma(r-1, n)/special.gamma(r) + special.zeta(r, 1)
+
+
+def H(n):
+    """Returns the n-th harmonic number.
+
+       http://en.wikipedia.org/wiki/Harmonic_number
+    """
+    # Euler-Mascheroni constant
+    gamma = 0.57721566490153286060651209008240243104215933593992
+    return gamma + special.digamma(n+1)
+
+
 # FIXME: problems sampling.
 class zipf_gen(rv_discrete):
-
     """A Zipf discrete random variable.
 
     %(before_notes)s
@@ -668,7 +657,6 @@ class zipf_gen(rv_discrete):
     %(example)s
 
     """
-
     def _rvs(self, a):
         return mtrand.zipf(a, size=self._size)
 
@@ -676,7 +664,7 @@ class zipf_gen(rv_discrete):
         return a > 1
 
     def _pmf(self, k, a):
-        Pk = 1.0 / special.zeta(a, 1) / k ** a
+        Pk = 1.0 / special.zeta(a, 1) / k**a
         return Pk
 
     def _munp(self, n, a):
@@ -688,7 +676,6 @@ zipf = zipf_gen(a=1, name='zipf', longname='A Zipf')
 
 
 class dlaplace_gen(rv_discrete):
-
     """A  Laplacian discrete random variable.
 
     %(before_notes)s
@@ -706,37 +693,35 @@ class dlaplace_gen(rv_discrete):
     %(example)s
 
     """
-
     def _pmf(self, k, a):
-        return tanh(a / 2.0) * exp(-a * abs(k))
+        return tanh(a/2.0) * exp(-a * abs(k))
 
     def _cdf(self, x, a):
         k = floor(x)
         f = lambda k, a: 1.0 - exp(-a * k) / (exp(a) + 1)
-        f2 = lambda k, a: exp(a * (k + 1)) / (exp(a) + 1)
+        f2 = lambda k, a: exp(a * (k+1)) / (exp(a) + 1)
         return _lazywhere(k >= 0, (k, a), f=f, f2=f2)
 
     def _ppf(self, q, a):
         const = 1 + exp(a)
-        vals = ceil(np.where(q < 1.0 / (1 + exp(-a)), log(q * const) / a - 1,
-                             -log((1 - q) * const) / a))
+        vals = ceil(np.where(q < 1.0 / (1 + exp(-a)), log(q*const) / a - 1,
+                                                      -log((1-q) * const) / a))
         vals1 = vals - 1
         return np.where(self._cdf(vals1, a) >= q, vals1, vals)
 
     def _stats(self, a):
         ea = exp(a)
-        mu2 = 2. * ea / (ea - 1.) ** 2
-        mu4 = 2. * ea * (ea ** 2 + 10. * ea + 1.) / (ea - 1.) ** 4
-        return 0., mu2, 0., mu4 / mu2 ** 2 - 3.
+        mu2 = 2.*ea/(ea-1.)**2
+        mu4 = 2.*ea*(ea**2+10.*ea+1.) / (ea-1.)**4
+        return 0., mu2, 0., mu4/mu2**2 - 3.
 
     def _entropy(self, a):
-        return a / sinh(a) - log(tanh(a / 2.0))
+        return a / sinh(a) - log(tanh(a/2.0))
 dlaplace = dlaplace_gen(a=-np.inf,
                         name='dlaplace', longname='A discrete Laplacian')
 
 
 class skellam_gen(rv_discrete):
-
     """A  Skellam discrete random variable.
 
     %(before_notes)s
@@ -762,29 +747,35 @@ class skellam_gen(rv_discrete):
     %(example)s
 
     """
-
     def _rvs(self, mu1, mu2):
         n = self._size
         return mtrand.poisson(mu1, n) - mtrand.poisson(mu2, n)
 
     def _pmf(self, x, mu1, mu2):
         px = np.where(x < 0,
-                      _ncx2_pdf(2 * mu2, 2 * (1 - x), 2 * mu1) * 2,
-                      _ncx2_pdf(2 * mu1, 2 * (1 + x), 2 * mu2) * 2)
+                _ncx2_pdf(2*mu2, 2*(1-x), 2*mu1)*2,
+                _ncx2_pdf(2*mu1, 2*(1+x), 2*mu2)*2)
         # ncx2.pdf() returns nan's for extremely low probabilities
         return px
 
     def _cdf(self, x, mu1, mu2):
         x = floor(x)
         px = np.where(x < 0,
-                      _ncx2_cdf(2 * mu2, -2 * x, 2 * mu1),
-                      1 - _ncx2_cdf(2 * mu1, 2 * (x + 1), 2 * mu2))
+                _ncx2_cdf(2*mu2, -2*x, 2*mu1),
+                1-_ncx2_cdf(2*mu1, 2*(x+1), 2*mu2))
         return px
 
     def _stats(self, mu1, mu2):
         mean = mu1 - mu2
         var = mu1 + mu2
-        g1 = mean / sqrt((var) ** 3)
+        g1 = mean / sqrt((var)**3)
         g2 = 1 / var
         return mean, var, g1, g2
 skellam = skellam_gen(a=-np.inf, name="skellam", longname='A Skellam')
+
+
+# Collect names of classes and objects in this module.
+pairs = list(globals().items())
+_distn_names, _distn_gen_names = get_distribution_names(pairs, rv_discrete)
+
+__all__ = _distn_names + _distn_gen_names

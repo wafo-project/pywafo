@@ -1,7 +1,9 @@
 import wafo.spectrum.models as sm
+import wafo.transform.models as wtm
+import wafo.objects as wo
 from wafo.spectrum import SpecData1D
 import numpy as np
-import unittest 
+import unittest
 
 
 def slow(f):
@@ -18,9 +20,9 @@ class TestSpectrum(unittest.TestCase):
         acfmat = S.tocov_matrix(nr=3, nt=256, dt=0.1)
         vals = acfmat[:2, :]
         true_vals = np.array([[3.06073383,  0.0000000, -1.67748256, 0.],
-                              [3.05235423, -0.1674357, -1.66811444, 0.18693242]])
+                              [3.05235423, -0.1674357, -1.66811444,
+                               0.18693242]])
         self.assertTrue((np.abs(vals - true_vals) < 1e-7).all())
-
 
 
 def test_tocovdata():
@@ -41,22 +43,25 @@ def test_to_t_pdf():
     f = S.to_t_pdf(pdef='Tc', paramt=(0, 10, 51), speed=7, seed=100)
     vals = ['%2.3f' % val for val in f.data[:10]]
     truevals = ['0.000', '0.014', '0.027', '0.040',
-                '0.050', '0.059', '0.067', '0.072', '0.077', '0.081']
+                '0.050', '0.059', '0.067', '0.073', '0.077', '0.082']
+    for t, v in zip(truevals, vals):
+        assert(t == v)
 
     # estimated error bounds
     vals = ['%2.4f' % val for val in f.err[:10]]
     truevals = ['0.0000', '0.0003', '0.0003', '0.0004',
-                '0.0006', '0.0009', '0.0016', '0.0019', '0.0020', '0.0021']
+                '0.0006', '0.0008', '0.0016', '0.0019', '0.0020', '0.0021']
+    for t, v in zip(truevals, vals):
+        assert(t == v)
 
 
 @slow
 def test_sim():
-
     Sj = sm.Jonswap()
     S = Sj.tospecdata()
-    ns = 100
-    dt = .2
-    x1 = S.sim(ns, dt=dt)
+    #ns = 100
+    #dt = .2
+    #x1 = S.sim(ns, dt=dt)
 
     import scipy.stats as st
     x2 = S.sim(20000, 20)
@@ -75,13 +80,11 @@ def test_sim_nl():
 
     Sj = sm.Jonswap()
     S = Sj.tospecdata()
-    ns = 100
-    dt = .2
-    x1 = S.sim_nl(ns, dt=dt)
-
-    import numpy as np
+#    ns = 100
+#    dt = .2
+#    x1 = S.sim_nl(ns, dt=dt)
     import scipy.stats as st
-    x2, x1 = S.sim_nl(ns=20000, cases=40)
+    x2, _x1 = S.sim_nl(ns=20000, cases=40)
     truth1 = [0, np.sqrt(S.moment(1)[0][0])] + S.stats_nl(moments='sk')
     truth1[-1] = truth1[-1] - 3
 
@@ -110,26 +113,22 @@ def test_stats_nl():
 
 
 def test_testgaussian():
-    '''
-    >>> import wafo.spectrum.models as sm
-    >>> import wafo.transform.models as wtm
-    >>> import wafo.objects as wo
-    >>> Hs = 7
-    >>> Sj = sm.Jonswap(Hm0=Hs)
-    >>> S0 = Sj.tospecdata()
-    >>> ns =100; dt = .2
-    >>> x1 = S0.sim(ns, dt=dt)
-    
-    >>> S = S0.copy()
-    >>> me, va, sk, ku = S.stats_nl(moments='mvsk')
-    >>> S.tr = wtm.TrHermite(mean=me, sigma=Hs/4, skew=sk, kurt=ku, ysigma=Hs/4)
-    >>> ys = wo.mat2timeseries(S.sim(ns=2**13))         
-    >>> g0, gemp = ys.trdata()
-    >>> t0 = g0.dist2gauss()
-    >>> t1 = S0.testgaussian(ns=2**13, t0=t0, cases=50) 
-    >>> sum(t1>t0)<5
-    True
-    '''
+
+    Hs = 7
+    Sj = sm.Jonswap(Hm0=Hs)
+    S0 = Sj.tospecdata()
+    #ns =100; dt = .2
+    #x1 = S0.sim(ns, dt=dt)
+
+    S = S0.copy()
+    me, _va, sk, ku = S.stats_nl(moments='mvsk')
+    S.tr = wtm.TrHermite(
+        mean=me, sigma=Hs / 4, skew=sk, kurt=ku, ysigma=Hs / 4)
+    ys = wo.mat2timeseries(S.sim(ns=2 ** 13))
+    g0, _gemp = ys.trdata()
+    t0 = g0.dist2gauss()
+    t1 = S0.testgaussian(ns=2 ** 13, t0=t0, cases=50)
+    assert(sum(t1 > t0) < 5)
 
 
 def test_moment():
@@ -140,29 +139,28 @@ def test_moment():
     true_txt = ['m0', 'm0tt']
     for tv, v in zip(true_vals, vals):
         assert(tv == v)
+    for tv, v in zip(true_txt, txt):
+        assert(tv == v)
 
 
 def test_nyquist_freq():
-
     Sj = sm.Jonswap(Hm0=5)
     S = Sj.tospecdata()  # Make spectrum ob
     assert(S.nyquist_freq() == 3.0)
 
 
 def test_sampling_period():
-
     Sj = sm.Jonswap(Hm0=5)
     S = Sj.tospecdata()  # Make spectrum ob
     assert(S.sampling_period() == 1.0471975511965976)
 
 
 def test_normalize():
-
     Sj = sm.Jonswap(Hm0=5)
     S = Sj.tospecdata()  # Make spectrum ob
     S.moment(2)
     ([1.5614600345079888, 0.95567089481941048], ['m0', 'm0tt'])
-    vals, txt = S.moment(2)
+    vals, _txt = S.moment(2)
     true_vals = [1.5614600345079888, 0.95567089481941048]
     for tv, v in zip(true_vals, vals):
         assert(tv == v)
@@ -171,7 +169,7 @@ def test_normalize():
     Sn.normalize()
 
     # Now the moments should be one
-    new_vals, txt = Sn.moment(2)
+    new_vals, _txt = Sn.moment(2)
     for v in new_vals:
         assert(np.abs(v - 1.0) < 1e-7)
 
@@ -191,7 +189,7 @@ def test_characteristic():
            [ 0.02834263,  0.0274645 ,         nan],
            [        nan,         nan,  0.01500249]])
     ['Tm01', 'Tm02', 'Tm24']
-    
+
     >>> S.characteristic('Ss')               # fact a string
     (array([ 0.04963112]), array([[  2.63624782e-06]]), ['Ss'])
 

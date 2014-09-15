@@ -21,7 +21,7 @@ from scipy.ndimage.morphology import distance_transform_edt
 from numpy import pi, sqrt, atleast_2d, exp, newaxis  # @UnresolvedImport
 
 from wafo.misc import meshgrid, nextpow2, tranproc  # , trangood
-from wafo.wafodata import PlotData
+from wafo.containers import PlotData
 from wafo.dctpack import dct, dctn, idctn
 from wafo.plotbackend import plotbackend as plt
 try:
@@ -3984,7 +3984,8 @@ def kreg_demo3(x, y, fun1, hs=None, fun='hisj', plotlog=False):
     eerr = np.abs((yiii - fiii)).std() + 0.5 * (df[:-1] * df[1:] < 0).sum() / n
     err = (fiii - fit).std()
     f = kreg(
-        xiii, output='plotobj', title='%s err=%1.3f,eerr=%1.3f, n=%d, hs=%1.3f, hs1=%1.3f, hs2=%1.3f' %
+        xiii, output='plotobj',
+        title='%s err=%1.3f,eerr=%1.3f, n=%d, hs=%1.3f, hs1=%1.3f, hs2=%1.3f' %
         (fun, err, eerr, n, hs, hs1, hs2), plotflag=1)
 
     #yi[yi==0] = 1.0/(c[c!=0].min()+4)
@@ -4051,8 +4052,8 @@ def kreg_demo3(x, y, fun1, hs=None, fun='hisj', plotlog=False):
     # Wilson score
     den = 1 + (z0 ** 2. / ciii)
     xc = (pi1 + (z0 ** 2) / (2 * ciii)) / den
-    halfwidth = (
-        z0 * sqrt((pi1 * (1 - pi1) / ciii) + (z0 ** 2 / (4 * (ciii ** 2))))) / den
+    halfwidth = (z0 * sqrt((pi1 * (1 - pi1) / ciii) +
+                           (z0 ** 2 / (4 * (ciii ** 2))))) / den
     plo = (xc - halfwidth).clip(min=0)  # wilson score
     pup = (xc + halfwidth).clip(max=1.0)  # wilson score
     # pup = (pi + z0*np.sqrt(pi*(1-pi)/ciii)).clip(min=0,max=1) # dont use
@@ -4061,14 +4062,18 @@ def kreg_demo3(x, y, fun1, hs=None, fun='hisj', plotlog=False):
     #mi = kreg.eval_grid(x)
     #sigma = (stineman_interp(x, xiii, pup)-stineman_interp(x, xiii, plo))/4
     #aic = np.abs((y-mi)/sigma).std()+ 0.5*(df[:-1]*df[1:]<0).sum()/n
-    #aic = np.abs((yiii-fiii)/(pup-plo)).std()+ 0.5*(df[:-1]*df[1:]<0).sum() + ((yiii-pup).clip(min=0)-(yiii-plo).clip(max=0)).sum()
+    #aic = np.abs((yiii-fiii)/(pup-plo)).std() + \
+    #                0.5*(df[:-1]*df[1:]<0).sum() + \
+    #            ((yiii-pup).clip(min=0)-(yiii-plo).clip(max=0)).sum()
 
     k = (df[:-1] * df[1:] < 0).sum()  # numpeaks
     sigmai = (pup - plo)
-    aic = (((yiii - fiii) / sigmai) ** 2).sum() + 2 * k * (k + 1) / np.maximum(ni - k + 1, 1) + \
+    aic = (((yiii - fiii) / sigmai) ** 2).sum() + \
+        2 * k * (k + 1) / np.maximum(ni - k + 1, 1) + \
         np.abs((yiii - pup).clip(min=0) - (yiii - plo).clip(max=0)).sum()
 
-    #aic = (((yiii-fiii)/sigmai)**2).sum()+ 2*k*(k+1)/(ni-k+1) + np.abs((yiii-pup).clip(min=0)-(yiii-plo).clip(max=0)).sum()
+    #aic = (((yiii-fiii)/sigmai)**2).sum()+ 2*k*(k+1)/(ni-k+1) + \
+    #        np.abs((yiii-pup).clip(min=0)-(yiii-plo).clip(max=0)).sum()
 
     #aic = averr + ((yiii-pup).clip(min=0)-(yiii-plo).clip(max=0)).sum()
 
@@ -4140,14 +4145,16 @@ def kreg_demo4(x, y, hs, hopt, alpha=0.05):
     yi = np.where(c == 0, 0, c0 / c)
 
     f.children = [PlotData(
-        [plo, pup], xiii, plotmethod='fill_between', plot_kwds=dict(alpha=0.2, color='r')),
+        [plo, pup], xiii, plotmethod='fill_between',
+        plot_kwds=dict(alpha=0.2, color='r')),
         PlotData(yi, xi, plotmethod='scatter', plot_kwds=dict(color='r', s=5))]
 
     yiii = interpolate.interp1d(xi, yi)(xiii)
     df = np.diff(fiii)
     k = (df[:-1] * df[1:] < 0).sum()  # numpeaks
     sigmai = (pup - plo)
-    aicc = (((yiii - fiii) / sigmai) ** 2).sum() + 2 * k * (k + 1) / np.maximum(ni - k + 1, 1) + \
+    aicc = (((yiii - fiii) / sigmai) ** 2).sum() + \
+        2 * k * (k + 1) / np.maximum(ni - k + 1, 1) + \
         np.abs((yiii - pup).clip(min=0) - (yiii - plo).clip(max=0)).sum()
 
     f.aicc = aicc
@@ -4168,7 +4175,7 @@ def check_kreg_demo3():
 
         for fun in ['hste', ]:
             #@UnusedVariable
-            hsmax, hs1, hs2 = _get_regression_smooting(x, y, fun=fun)
+            hsmax, _hs1, _hs2 = _get_regression_smooting(x, y, fun=fun)
             for hi in np.linspace(hsmax * 0.25, hsmax, 9):
                 plt.figure(k)
                 k += 1
@@ -4197,7 +4204,7 @@ def check_kreg_demo4():
         hopt = sqrt(hopt1 * hopt2)
         #hopt = _get_regression_smooting(x,y,fun='hos')[0]
         # , 'hisj', 'hns', 'hstt' @UnusedVariable
-        for j, fun in enumerate(['hste']):
+        for _j, fun in enumerate(['hste']):
             hsmax, _hs1, _hs2 = _get_regression_smooting(x, y, fun=fun)
 
             fmax = kreg_demo4(x, y, hsmax + 0.1, hopt)
@@ -4295,18 +4302,18 @@ def _get_regression_smooting(x, y, fun='hste'):
 def empirical_bin_prb(x, y, hopt, color='r'):
     '''
     Returns empirical binomial probabiltity
-    
+
     Parameters
     ----------
     x : ndarray
         position ve
     y : ndarray
         binomial response variable (zeros and ones)
-        
+
     Returns
     -------
     P(x) : PlotData object
-        empirical probability 
+        empirical probability
     '''
     xmin, xmax = x.min(), x.max()
     ni = max(2 * int((xmax - xmin) / hopt) + 3, 5)
@@ -4320,10 +4327,12 @@ def empirical_bin_prb(x, y, hopt, color='r'):
     else:
         c0 = np.zeros(xi.shape)
     yi = np.where(c == 0, 0, c0 / c)
-    return PlotData(yi, xi, plotmethod='scatter', plot_kwds=dict(color=color, s=5))
+    return PlotData(yi, xi, plotmethod='scatter',
+                    plot_kwds=dict(color=color, s=5))
 
 
-def smoothed_bin_prb(x, y, hs, hopt, alpha=0.05, color='r', label='', bin_prb=None):
+def smoothed_bin_prb(x, y, hs, hopt, alpha=0.05, color='r', label='',
+                     bin_prb=None):
     '''
     Parameters
     ----------
@@ -4379,14 +4388,16 @@ def smoothed_bin_prb(x, y, hs, hopt, alpha=0.05, color='r', label='', bin_prb=No
     if label:
         f.plot_kwds['label'] = label
     f.children = [PlotData(
-        [plo, pup], xiii, plotmethod='fill_between', plot_kwds=dict(alpha=0.2, color=color)),
+        [plo, pup], xiii, plotmethod='fill_between',
+        plot_kwds=dict(alpha=0.2, color=color)),
         bin_prb]
 
     yiii = interpolate.interp1d(xi, yi)(xiii)
     df = np.diff(fiii)
     k = (df[:-1] * df[1:] < 0).sum()  # numpeaks
     sigmai = (pup - plo)
-    aicc = (((yiii - fiii) / sigmai) ** 2).sum() + 2 * k * (k + 1) / np.maximum(ni - k + 1, 1) + \
+    aicc = (((yiii - fiii) / sigmai) ** 2).sum() + \
+        2 * k * (k + 1) / np.maximum(ni - k + 1, 1) + \
         np.abs((yiii - pup).clip(min=0) - (yiii - plo).clip(max=0)).sum()
 
     f.aicc = aicc
@@ -4400,7 +4411,7 @@ def smoothed_bin_prb(x, y, hs, hopt, alpha=0.05, color='r', label='', bin_prb=No
 def regressionbin(x, y, alpha=0.05, color='r', label=''):
     '''
     Return kernel regression estimate for binomial data
-    
+
     Parameters
     ----------
     x : arraylike
@@ -4408,17 +4419,15 @@ def regressionbin(x, y, alpha=0.05, color='r', label=''):
     y : arraylike
         of 0 and 1
     '''
-    # @UnusedVariable
-    hopt1, h1, h2 = _get_regression_smooting(x, y, fun='hos')
-    # @UnusedVariable
-    hopt2, h1, h2 = _get_regression_smooting(x, y, fun='hste')
+
+    hopt1, _h1, _h2 = _get_regression_smooting(x, y, fun='hos')
+    hopt2, _h1, _h2 = _get_regression_smooting(x, y, fun='hste')
     hopt = sqrt(hopt1 * hopt2)
 
     fbest = smoothed_bin_prb(x, y, hopt2 + 0.1, hopt, alpha, color, label)
     bin_prb = fbest.children[-1]
     for fun in ['hste']:  # , 'hisj', 'hns', 'hstt'
-        #@UnusedVariable
-        hsmax, hs1, hs2 = _get_regression_smooting(x, y, fun=fun)
+        hsmax, _hs1, _hs2 = _get_regression_smooting(x, y, fun=fun)
         for hi in np.linspace(hsmax * 0.1, hsmax, 55):
             f = smoothed_bin_prb(x, y, hi, hopt, alpha, color, label, bin_prb)
             if f.aicc <= fbest.aicc:
@@ -4479,8 +4488,8 @@ def kde_gauss_demo(n=50):
     print(fmax / f2.data.max())
     format_ = ''.join(('%g, ') * d)
     format_ = 'hs0=%s hs1=%s hs2=%s' % (format_, format_, format_)
-    print(
-        format_ % tuple(kde0.hs.tolist() + kde1.tkde.hs.tolist() + kde2.hs.tolist()))
+    print(format_ % tuple(kde0.hs.tolist() +
+                        kde1.tkde.hs.tolist() + kde2.hs.tolist()))
     print('inc0 = %d, inc1 = %d, inc2 = %d' % (kde0.inc, kde1.inc, kde2.inc))
 
 

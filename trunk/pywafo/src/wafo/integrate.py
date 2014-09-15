@@ -797,15 +797,15 @@ def qrule(n, wfun=1, alpha=0, beta=0):
         number of base points
     wfun : integer
         defining the weight function, p(x). (default wfun = 1)
-         1,11,21: p(x) = 1                       a =-1,   b = 1  Gauss-Legendre
-         2,12   : p(x) = exp(-x^2)               a =-inf, b = inf Hermite
-         3,13   : p(x) = x^alpha*exp(-x)         a = 0,   b = inf Laguerre
-         4,14   : p(x) = (x-a)^alpha*(b-x)^beta  a =-1,   b = 1 Jacobi
-         5      : p(x) = 1/sqrt((x-a)*(b-x)),    a =-1,   b = 1 Chebyshev 1'st kind
-         6      : p(x) = sqrt((x-a)*(b-x)),      a =-1,   b = 1 Chebyshev 2'nd kind
-         7      : p(x) = sqrt((x-a)/(b-x)),      a = 0,   b = 1
-         8      : p(x) = 1/sqrt(b-x),            a = 0,   b = 1
-         9      : p(x) = sqrt(b-x),              a = 0,   b = 1
+        1,11,21: p(x) = 1                       a =-1,   b = 1  Gauss-Legendre
+        2,12   : p(x) = exp(-x^2)               a =-inf, b = inf Hermite
+        3,13   : p(x) = x^alpha*exp(-x)         a = 0,   b = inf Laguerre
+        4,14   : p(x) = (x-a)^alpha*(b-x)^beta  a =-1,   b = 1 Jacobi
+        5      : p(x) = 1/sqrt((x-a)*(b-x)), a =-1,   b = 1 Chebyshev 1'st kind
+        6      : p(x) = sqrt((x-a)*(b-x)),   a =-1,   b = 1 Chebyshev 2'nd kind
+        7      : p(x) = sqrt((x-a)/(b-x)),   a = 0,   b = 1
+        8      : p(x) = 1/sqrt(b-x),         a = 0,   b = 1
+        9      : p(x) = sqrt(b-x),           a = 0,   b = 1
 
     Returns
     -------
@@ -1428,8 +1428,8 @@ def qdemo(f, a, b):
     formats = ['%4.0f, ', ] + ['%10.10f, ', ] * 6
     formats[-1] = formats[-1].split(',')[0]
     data = np.vstack((neval, qt, et, qs, es, qb, eb)).T
-    print(' ftn         Trapezoid                  Simpson''s                   Boole''s')
-    print('evals    approx       error          approx       error           approx        error')
+    print(' ftn         Trapezoid                  Simpson''s                   Boole''s')  # @IgnorePep8
+    print('evals    approx       error          approx       error           approx        error')  # @IgnorePep8
 
     for k in xrange(kmax):
         tmp = data[k].tolist()
@@ -1437,8 +1437,8 @@ def qdemo(f, a, b):
 
     # display results
     data = np.vstack((neval, qc, ec, qc2, ec2, qg, eg)).T
-    print(' ftn         Clenshaw                    Chebychev                    Gauss-L')
-    print('evals    approx       error          approx       error           approx        error')
+    print(' ftn         Clenshaw                    Chebychev                    Gauss-L')  # @IgnorePep8
+    print('evals    approx       error          approx       error           approx        error')  # @IgnorePep8
     for k in xrange(kmax):
         tmp = data[k].tolist()
         print(''.join(fi % t for fi, t in zip(formats, tmp)))
@@ -1447,7 +1447,7 @@ def qdemo(f, a, b):
     plt.xlabel('number of function evaluations')
     plt.ylabel('error')
     plt.legend(
-        ('Trapezoid', 'Simpsons', 'Booles', 'Clenshaw', 'Chebychev', 'Gauss-L'))
+        ('Trapezoid', 'Simpsons', 'Booles', 'Clenshaw', 'Chebychev', 'Gauss-L'))  # @IgnorePep8
     # ec3'
 
 

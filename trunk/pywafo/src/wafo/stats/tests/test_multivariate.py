@@ -4,20 +4,32 @@ Test functions for multivariate normal distributions.
 """
 from __future__ import division, print_function, absolute_import
 
-from numpy.testing import (assert_almost_equal,
-        run_module_suite, assert_allclose, assert_equal, assert_raises)
+from numpy.testing import (
+    assert_allclose,
+    assert_almost_equal,
+    assert_array_almost_equal,
+    assert_equal,
+    assert_raises,
+    run_module_suite,
+)
 
 import numpy
 import numpy as np
 
 import scipy.linalg
-#import wafo.stats._multivariate
+from wafo.stats._multivariate import _PSD, _lnB
 from wafo.stats import multivariate_normal
+from wafo.stats import dirichlet, beta
 from wafo.stats import norm
 
-from wafo.stats._multivariate import _psd_pinv_decomposed_log_pdet
-
 from scipy.integrate import romb
+
+
+def test_input_shape():
+    mu = np.arange(3)
+    cov = np.identity(2)
+    assert_raises(ValueError, multivariate_normal.pdf, (0, 1), mu, cov)
+    assert_raises(ValueError, multivariate_normal.pdf, (0, 1, 2), mu, cov)
 
 
 def test_scalar_values():
@@ -47,6 +59,63 @@ def test_logpdf():
     assert_allclose(d1, np.log(d2))
 
 
+def test_rank():
+    # Check that the rank is detected correctly.
+    np.random.seed(1234)
+    n = 4
+    mean = np.random.randn(n)
+    for expected_rank in range(1, n + 1):
+        s = np.random.randn(n, expected_rank)
+        cov = np.dot(s, s.T)
+        distn = multivariate_normal(mean, cov, allow_singular=True)
+        assert_equal(distn.cov_info.rank, expected_rank)
+
+
+def _sample_orthonormal_matrix(n):
+    M = np.random.randn(n, n)
+    u, s, v = scipy.linalg.svd(M)
+    return u
+
+
+def test_degenerate_distributions():
+    for n in range(1, 5):
+        x = np.random.randn(n)
+        for k in range(1, n + 1):
+            # Sample a small covariance matrix.
+            s = np.random.randn(k, k)
+            cov_kk = np.dot(s, s.T)
+
+            # Embed the small covariance matrix into a larger low rank matrix.
+            cov_nn = np.zeros((n, n))
+            cov_nn[:k, :k] = cov_kk
+
+            # Define a rotation of the larger low rank matrix.
+            u = _sample_orthonormal_matrix(n)
+            cov_rr = np.dot(u, np.dot(cov_nn, u.T))
+            y = np.dot(u, x)
+
+            # Check some identities.
+            distn_kk = multivariate_normal(np.zeros(k), cov_kk,
+                                           allow_singular=True)
+            distn_nn = multivariate_normal(np.zeros(n), cov_nn,
+                                           allow_singular=True)
+            distn_rr = multivariate_normal(np.zeros(n), cov_rr,
+                                           allow_singular=True)
+            assert_equal(distn_kk.cov_info.rank, k)
+            assert_equal(distn_nn.cov_info.rank, k)
+            assert_equal(distn_rr.cov_info.rank, k)
+            pdf_kk = distn_kk.pdf(x[:k])
+            pdf_nn = distn_nn.pdf(x)
+            pdf_rr = distn_rr.pdf(y)
+            assert_allclose(pdf_kk, pdf_nn)
+            assert_allclose(pdf_kk, pdf_rr)
+            logpdf_kk = distn_kk.logpdf(x[:k])
+            logpdf_nn = distn_nn.logpdf(x)
+            logpdf_rr = distn_rr.logpdf(y)
+            assert_allclose(logpdf_kk, logpdf_nn)
+            assert_allclose(logpdf_kk, logpdf_rr)
+
+
 def test_large_pseudo_determinant():
     # Check that large pseudo-determinants are handled appropriately.
 
@@ -67,11 +136,12 @@ def test_large_pseudo_determinant():
 
     # np.linalg.slogdet is only available in numpy 1.6+
     # but scipy currently supports numpy 1.5.1.
-    #assert_allclose(np.linalg.slogdet(cov[:npos, :npos]), (1, large_total_log))
+    # assert_allclose(np.linalg.slogdet(cov[:npos, :npos]),
+    #                 (1, large_total_log))
 
     # Check the pseudo-determinant.
-    U, log_pdet = _psd_pinv_decomposed_log_pdet(cov)
-    assert_allclose(log_pdet, large_total_log)
+    psd = _PSD(cov)
+    assert_allclose(psd.log_pdet, large_total_log)
 
 
 def test_broadcasting():
@@ -111,7 +181,7 @@ def test_marginalization():
     # yield a 1D Gaussian
     mean = np.array([2.5, 3.5])
     cov = np.array([[.5, 0.2], [0.2, .6]])
-    n = 2**8 + 1  # Number of samples
+    n = 2 ** 8 + 1  # Number of samples
     delta = 6 / (n - 1)  # Grid spacing
 
     v = np.linspace(0, 6, n)
@@ -126,8 +196,8 @@ def test_marginalization():
     margin_y = romb(pdf, delta, axis=1)
 
     # Compare with standard normal distribution
-    gauss_x = norm.pdf(v, loc=mean[0], scale=cov[0, 0]**0.5)
-    gauss_y = norm.pdf(v, loc=mean[1], scale=cov[1, 1]**0.5)
+    gauss_x = norm.pdf(v, loc=mean[0], scale=cov[0, 0] ** 0.5)
+    gauss_y = norm.pdf(v, loc=mean[1], scale=cov[1, 1] ** 0.5)
     assert_allclose(margin_x, gauss_x, rtol=1e-2, atol=1e-2)
     assert_allclose(margin_y, gauss_y, rtol=1e-2, atol=1e-2)
 
@@ -160,33 +230,43 @@ def test_pseudodet_pinv():
 
     # Set cond so that the lowest eigenvalue is below the cutoff
     cond = 1e-5
-    U, log_pdet = _psd_pinv_decomposed_log_pdet(cov, cond)
-    pinv = np.dot(U, U.T)
-    _, log_pdet_pinv = _psd_pinv_decomposed_log_pdet(pinv, cond)
+    psd = _PSD(cov, cond=cond)
+    psd_pinv = _PSD(psd.pinv, cond=cond)
 
     # Check that the log pseudo-determinant agrees with the sum
     # of the logs of all but the smallest eigenvalue
-    assert_allclose(log_pdet, np.sum(np.log(s[:-1])))
+    assert_allclose(psd.log_pdet, np.sum(np.log(s[:-1])))
     # Check that the pseudo-determinant of the pseudo-inverse
     # agrees with 1 / pseudo-determinant
-    assert_allclose(-log_pdet, log_pdet_pinv)
+    assert_allclose(-psd.log_pdet, psd_pinv.log_pdet)
 
 
 def test_exception_nonsquare_cov():
     cov = [[1, 2, 3], [4, 5, 6]]
-    assert_raises(ValueError, _psd_pinv_decomposed_log_pdet, cov)
+    assert_raises(ValueError, _PSD, cov)
 
 
 def test_exception_nonfinite_cov():
     cov_nan = [[1, 0], [0, np.nan]]
-    assert_raises(ValueError, _psd_pinv_decomposed_log_pdet, cov_nan)
+    assert_raises(ValueError, _PSD, cov_nan)
     cov_inf = [[1, 0], [0, np.inf]]
-    assert_raises(ValueError, _psd_pinv_decomposed_log_pdet, cov_inf)
+    assert_raises(ValueError, _PSD, cov_inf)
 
 
 def test_exception_non_psd_cov():
     cov = [[1, 0], [0, -1]]
-    assert_raises(ValueError, _psd_pinv_decomposed_log_pdet, cov)
+    assert_raises(ValueError, _PSD, cov)
+
+
+def test_exception_singular_cov():
+    np.random.seed(1234)
+    x = np.random.randn(5)
+    mean = np.random.randn(5)
+    cov = np.ones((5, 5))
+    e = np.linalg.LinAlgError
+    assert_raises(e, multivariate_normal, mean, cov)
+    assert_raises(e, multivariate_normal.pdf, x, mean, cov)
+    assert_raises(e, multivariate_normal.logpdf, x, mean, cov)
 
 
 def test_R_values():
@@ -214,6 +294,14 @@ def test_R_values():
 
     pdf = multivariate_normal.pdf(r, mean, cov)
     assert_allclose(pdf, r_pdf, atol=1e-10)
+
+
+def test_multivariate_normal_rvs_zero_covariance():
+    mean = np.zeros(2)
+    covariance = np.zeros((2, 2))
+    model = multivariate_normal(mean, covariance, allow_singular=True)
+    sample = model.rvs()
+    assert_equal(sample, [0, 0])
 
 
 def test_rvs_shape():
@@ -267,8 +355,130 @@ def test_entropy():
     # Compare entropy with manually computed expression involving
     # the sum of the logs of the eigenvalues of the covariance matrix
     eigs = np.linalg.eig(cov)[0]
-    desired = 1/2 * (n * (np.log(2*np.pi) + 1) + np.sum(np.log(eigs)))
+    desired = 1 / 2 * (n * (np.log(2 * np.pi) + 1) + np.sum(np.log(eigs)))
     assert_almost_equal(desired, rv.entropy())
+
+
+def test_lnB():
+    alpha = np.array([1, 1, 1])
+    desired = .5  # e^lnB = 1/2 for [1, 1, 1]
+
+    assert_almost_equal(np.exp(_lnB(alpha)), desired)
+
+
+def test_frozen_dirichlet():
+    np.random.seed(2846)
+
+    n = np.random.randint(1, 32)
+    alpha = np.random.uniform(10e-10, 100, n)
+
+    d = dirichlet(alpha)
+
+    assert_equal(d.var(), dirichlet.var(alpha))
+    assert_equal(d.mean(), dirichlet.mean(alpha))
+    assert_equal(d.entropy(), dirichlet.entropy(alpha))
+    num_tests = 10
+    for i in range(num_tests):
+        x = np.random.uniform(10e-10, 100, n)
+        x /= np.sum(x)
+        assert_equal(d.pdf(x[:-1]), dirichlet.pdf(x[:-1], alpha))
+        assert_equal(d.logpdf(x[:-1]), dirichlet.logpdf(x[:-1], alpha))
+
+
+def test_simple_values():
+    alpha = np.array([1, 1])
+    d = dirichlet(alpha)
+
+    assert_almost_equal(d.mean(), 0.5)
+    assert_almost_equal(d.var(), 1. / 12.)
+
+    b = beta(1, 1)
+    assert_almost_equal(d.mean(), b.mean())
+    assert_almost_equal(d.var(), b.var())
+
+
+def test_K_and_K_minus_1_calls_equal():
+    # Test that calls with K and K-1 entries yield the same results.
+
+    np.random.seed(2846)
+
+    n = np.random.randint(1, 32)
+    alpha = np.random.uniform(10e-10, 100, n)
+
+    d = dirichlet(alpha)
+    num_tests = 10
+    for i in range(num_tests):
+        x = np.random.uniform(10e-10, 100, n)
+        x /= np.sum(x)
+        assert_almost_equal(d.pdf(x[:-1]), d.pdf(x))
+
+
+def test_multiple_entry_calls():
+    # Test that calls with multiple x vectors as matrix work
+
+    np.random.seed(2846)
+
+    n = np.random.randint(1, 32)
+    alpha = np.random.uniform(10e-10, 100, n)
+    d = dirichlet(alpha)
+
+    num_tests = 10
+    num_multiple = 5
+    xm = None
+    for i in range(num_tests):
+        for m in range(num_multiple):
+            x = np.random.uniform(10e-10, 100, n)
+            x /= np.sum(x)
+            if xm is not None:
+                xm = np.vstack((xm, x))
+            else:
+                xm = x
+        rm = d.pdf(xm.T)
+        rs = None
+        for xs in xm:
+            r = d.pdf(xs)
+            if rs is not None:
+                rs = np.append(rs, r)
+            else:
+                rs = r
+        assert_array_almost_equal(rm, rs)
+
+
+def test_2D_dirichlet_is_beta():
+    np.random.seed(2846)
+
+    alpha = np.random.uniform(10e-10, 100, 2)
+    d = dirichlet(alpha)
+    b = beta(alpha[0], alpha[1])
+
+    num_tests = 10
+    for i in range(num_tests):
+        x = np.random.uniform(10e-10, 100, 2)
+        x /= np.sum(x)
+        assert_almost_equal(b.pdf(x), d.pdf([x]))
+
+    assert_almost_equal(b.mean(), d.mean()[0])
+    assert_almost_equal(b.var(), d.var()[0])
+
+
+def test_dimensions_mismatch():
+    # Regression test for GH #3493. Check that setting up a PDF with a mean of
+    # length M and a covariance matrix of size (N, N), where M != N, raises a
+    # ValueError with an informative error message.
+
+    mu = np.array([0.0, 0.0])
+    sigma = np.array([[1.0]])
+
+    assert_raises(ValueError, multivariate_normal, mu, sigma)
+
+    # A simple check that the right error message was passed along. Checking
+    # that the entire message is there, word for word, would be somewhat
+    # fragile, so we just check for the leading part.
+    try:
+        multivariate_normal(mu, sigma)
+    except ValueError as e:
+        msg = "Dimension mismatch"
+        assert_equal(str(e)[:len(msg)], msg)
 
 
 if __name__ == "__main__":

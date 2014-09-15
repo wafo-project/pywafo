@@ -7,10 +7,11 @@ Distributions
 Author:  Per A. Brodtkorb 2008
 '''
 
-from __future__ import division
+from __future__ import division, absolute_import
 import warnings
-from wafo.plotbackend import plotbackend
-from wafo.misc import ecross, findcross
+
+from ..plotbackend import plotbackend
+from ..misc import ecross, findcross
 
 
 import numdifftools  # @UnresolvedImport
@@ -27,12 +28,10 @@ from numpy import (
 from numpy import flatnonzero as nonzero
 
 
-__all__ = [
-    'Profile', 'FitDistribution'
-]
+__all__ = ['Profile', 'FitDistribution']
 
 floatinfo = np.finfo(float)
-# arr = atleast_1d
+
 arr = asarray
 all = alltrue  # @ReservedAssignment
 
@@ -77,7 +76,8 @@ class rv_frozen(object):
     def __init__(self, dist, *args, **kwds):
         self.dist = dist
         args, loc, scale = dist._parse_args(*args, **kwds)
-        if len(args) == dist.numargs - 2:  # isinstance(dist, rv_continuous):
+        if len(args) == dist.numargs - 2:  #
+            # if isinstance(dist, rv_continuous):
             self.par = args + (loc, scale)
         else:  # rv_discrete
             self.par = args + (loc,)
@@ -152,7 +152,7 @@ class Profile(object):
         with ML or MPS estimated distribution parameters.
     **kwds : named arguments with keys
         i : scalar integer
-            defining which distribution parameter to keep fixed in the 
+            defining which distribution parameter to keep fixed in the
             profiling process (default first non-fixed parameter)
         pmin, pmax : real scalars
             Interval for either the parameter, phat(i), prb, or x, used in the
@@ -283,27 +283,25 @@ class Profile(object):
         self._par = phatv.copy()
 
         # Set up variable to profile and _local_link function
-        self.profile_x = not self.x == None
-        self.profile_logSF = not (self.logSF == None or self.profile_x)
+        self.profile_x = self.x is not None
+        self.profile_logSF = not (self.logSF is None or self.profile_x)
         self.profile_par = not (self.profile_x or self.profile_logSF)
 
-        if self.link == None:
+        if self.link is None:
             self.link = self.fit_dist.dist.link
         if self.profile_par:
-            self._local_link = lambda fix_par, par: fix_par
+            self._local_link = self._par_link
             self.xlabel = 'phat(%d)' % self.i_fixed
             p_opt = self._par[self.i_fixed]
         elif self.profile_x:
             self.logSF = fit_dist.logsf(self.x)
-            self._local_link = lambda fix_par, par: self.link(
-                fix_par, self.logSF, par, self.i_fixed)
+            self._local_link = self._x_link
             self.xlabel = 'x'
             p_opt = self.x
         elif self.profile_logSF:
             p_opt = self.logSF
             self.x = fit_dist.isf(exp(p_opt))
-            self._local_link = lambda fix_par, par: self.link(
-                self.x, fix_par, par, self.i_fixed)
+            self._local_link = self._logSF_link
             self.xlabel = 'log(SF)'
         else:
             raise ValueError(
@@ -314,6 +312,15 @@ class Profile(object):
 
         phatfree = phatv[self.i_free].copy()
         self._set_profile(phatfree, p_opt)
+
+    def _par_link(self, fix_par, par):
+        return fix_par
+
+    def _x_link(self, fix_par, par):
+        return self.link(fix_par, self.logSF, par, self.i_fixed)
+
+    def _logSF_link(self, fix_par, par):
+        return self.link(self.x, fix_par, par, self.i_fixed)
 
     def _correct_Lmax(self, Lmax):
         if Lmax > self.Lmax:  # foundNewphat = True
@@ -386,7 +393,7 @@ class Profile(object):
         '''
 
         linspace = numpy.linspace
-        if self.pmin == None or self.pmax == None:
+        if self.pmin is None or self.pmax is None:
 
             pvar = self._get_variance()
 
@@ -395,12 +402,12 @@ class Profile(object):
 
             p_crit = (-norm_ppf(self.alpha / 2.0) *
                       sqrt(numpy.ravel(pvar)) * 1.5)
-            if self.pmin == None:
+            if self.pmin is None:
                 self.pmin = self._search_pmin(phatfree0,
                                               p_opt - 5.0 * p_crit, p_opt)
             p_crit_low = (p_opt - self.pmin) / 5
 
-            if self.pmax == None:
+            if self.pmax is None:
                 self.pmax = self._search_pmax(phatfree0,
                                               p_opt + 5.0 * p_crit, p_opt)
             p_crit_up = (self.pmax - p_opt) / 5
@@ -526,64 +533,18 @@ class Profile(object):
         '''
         if axis is None:
             axis = plotbackend.gca()
-            
+
         p_ci = self.get_bounds(self.alpha)
         axis.plot(
             self.args, self.data,
             self.args[[0, -1]], [self.Lmax, ] * 2, 'r--',
             self.args[[0, -1]], [self.alpha_cross_level, ] * 2, 'r--')
         axis.vlines(p_ci, ymin=axis.get_ylim()[0],
-                           ymax=self.Lmax, #self.alpha_cross_level,
-                           color='r', linestyles='--')
+                    ymax=self.Lmax,  # self.alpha_cross_level,
+                    color='r', linestyles='--')
         axis.set_title(self.title)
         axis.set_ylabel(self.ylabel)
         axis.set_xlabel(self.xlabel)
-
-
-def _discretize_adaptive(fun, a, b, tol=0.005, n=5):
-    '''
-    Automatic discretization of function, adaptive gridding.
-    '''
-    tiny = floatinfo.tiny
-    n += (np.mod(n, 2) == 0)  # make sure n is odd
-    x = np.linspace(a, b, n)
-    fx = fun(x)
-
-    n2 = (n - 1) / 2
-    erri = np.hstack((np.zeros((n2, 1)), np.ones((n2, 1)))).ravel()
-    err = erri.max()
-    err0 = np.inf
-    # while (err != err0 and err > tol and n < nmax):
-    for j in range(50):
-        if err != err0 and np.any(erri > tol):
-            err0 = err
-            # find top errors
-
-            I, = np.where(erri > tol)
-            # double the sample rate in intervals with the most error
-            y = (np.vstack(((x[I] + x[I - 1]) / 2,
-                           (x[I + 1] + x[I]) / 2)).T).ravel()
-            fy = fun(y)
-
-            fy0 = np.interp(y, x, fx)
-            erri = 0.5 * (abs((fy0 - fy) / (abs(fy0 + fy) + tiny)))
-
-            err = erri.max()
-
-            x = np.hstack((x, y))
-
-            I = x.argsort()
-            x = x[I]
-            erri = np.hstack((zeros(len(fx)), erri))[I]
-            fx = np.hstack((fx, fy))[I]
-
-        else:
-            break
-    else:
-        warnings.warn('Recursion level limit reached j=%d' % j)
-
-    return x, fx
-# class to fit given distribution to data
 
 
 class FitDistribution(rv_frozen):
@@ -846,7 +807,7 @@ class FitDistribution(rv_frozen):
             optimizer = kwds.get('optimizer', optimize.fmin)
             # convert string to function in scipy.optimize
             if (not callable(optimizer) and
-                isinstance(optimizer, (str, unicode))):
+                    isinstance(optimizer, (str, unicode))):
                 if not optimizer.startswith('fmin_'):
                     optimizer = "fmin_" + optimizer
                 if optimizer == 'fmin_':
@@ -867,7 +828,7 @@ class FitDistribution(rv_frozen):
     def _compute_cov(self):
         '''Compute covariance
         '''
-        somefixed = (self.par_fix != None) and any(isfinite(self.par_fix))
+        somefixed = (self.par_fix is not None) and any(isfinite(self.par_fix))
         # H1 = numpy.asmatrix(self.dist.hessian_nnlf(self.par, self.data))
         H = numpy.asmatrix(self.dist.hessian_nlogps(self.par, self.data))
         self.H = H
@@ -1000,7 +961,7 @@ class FitDistribution(rv_frozen):
         self.plotresprb()
 
         fixstr = ''
-        if not self.par_fix == None:
+        if self.par_fix is not None:
             numfix = len(self.i_fixed)
             if numfix > 0:
                 format0 = ', '.join(['%d'] * numfix)
@@ -1160,7 +1121,7 @@ class FitDistribution(rv_frozen):
 
         n = len(x)
         np1 = n + 1
-        if unknown_numpar == None:
+        if unknown_numpar is None:
             k = len(theta)
         else:
             k = unknown_numpar
@@ -1184,7 +1145,7 @@ def test_doctstrings():
 def test1():
     import wafo.stats as ws
     dist = ws.weibull_min
-    #dist = ws.bradford
+    # dist = ws.bradford
     R = dist.rvs(0.3, size=1000)
     phat = FitDistribution(dist, R, method='ml')
 
