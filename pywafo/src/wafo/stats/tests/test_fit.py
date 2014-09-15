@@ -33,6 +33,7 @@ failing_fits = [
         'tukeylambda',
         'vonmises',
         'wrapcauchy',
+        'levy_stable'
 ]
 
 # Don't run the fit test on these:
@@ -45,14 +46,15 @@ skip_fit = [
 def test_cont_fit():
     # this tests the closeness of the estimated parameters to the true
     # parameters with fit method of continuous distributions
-    # Note: slow, some distributions don't converge with sample size <= 10000
+    # Note: is slow, some distributions don't converge with sample size <= 10000
 
     for distname, arg in distcont:
         if distname not in skip_fit:
-            yield check_cont_fit, distname, arg
+            yield check_cont_fit, distname,arg
 
 
-def check_cont_fit(distname, arg):
+def check_cont_fit(distname,arg):
+    options = dict(method='mps', floc=0.)
     if distname in failing_fits:
         # Skip failing fits unless overridden
         xfail = True
@@ -62,16 +64,18 @@ def check_cont_fit(distname, arg):
             pass
         if xfail:
             msg = "Fitting %s doesn't work reliably yet" % distname
-            msg += " [Set environment variable SCIPY_XFAIL=1 to run this " + \
-                "test nevertheless.]"
-            dec.knownfailureif(True, msg)(lambda: None)()
+            msg += " [Set environment variable SCIPY_XFAIL=1 to run this test nevertheless.]"
+            #dec.knownfailureif(True, msg)(lambda: None)()
+            options['floc']=0.
+            options['fscale']=1.
 
+
+    # print('Testing %s' % distname)
     distfn = getattr(stats, distname)
 
-    truearg = np.hstack([arg, [0.0, 1.0]])
-    diffthreshold = np.max(np.vstack([
-        truearg * thresh_percent,
-        np.ones(distfn.numargs + 2) * thresh_min]), 0)
+    truearg = np.hstack([arg,[0.0,1.0]])
+    diffthreshold = np.max(np.vstack([truearg*thresh_percent,
+                                      np.ones(distfn.numargs+2)*thresh_min]),0)
 
     for fit_size in fit_sizes:
         # Note that if a fit succeeds, the other fit_sizes are skipped
@@ -79,16 +83,17 @@ def check_cont_fit(distname, arg):
 
         with np.errstate(all='ignore'):
             rvs = distfn.rvs(size=fit_size, *arg)
-            #phat = distfn.fit2(rvs)
-            phat = distfn.fit2(rvs, method='mps')
+            # phat = distfn.fit2(rvs)
+
+            phat = distfn.fit2(rvs, **options)
+
             est = phat.par
             #est = distfn.fit(rvs)  # start with default values
 
         diff = est - truearg
 
         # threshold for location
-        diffthreshold[-2] = np.max([np.abs(rvs.mean()) * thresh_percent,
-                                    thresh_min])
+        diffthreshold[-2] = np.max([np.abs(rvs.mean())*thresh_percent,thresh_min])
 
         if np.any(np.isnan(est)):
             raise AssertionError('nan returned in fit')

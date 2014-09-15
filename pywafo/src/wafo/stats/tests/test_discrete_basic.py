@@ -2,36 +2,16 @@ from __future__ import division, print_function, absolute_import
 
 import numpy.testing as npt
 import numpy as np
-try:
-    from wafo.stats.six import xrange
-except:
-    pass
+from scipy.lib.six import xrange
+
 from wafo import stats
 from wafo.stats.tests.common_tests import (check_normalization, check_moment,
                                            check_mean_expect,
         check_var_expect, check_skew_expect, check_kurt_expect,
         check_entropy, check_private_entropy, check_edge_support,
         check_named_args)
+from wafo.stats._distr_params import distdiscrete
 knf = npt.dec.knownfailureif
-
-distdiscrete = [
-    ['bernoulli', (0.3, )],
-    ['binom', (5, 0.4)],
-    ['boltzmann', (1.4, 19)],
-    ['dlaplace', (0.8,)],  # 0.5
-    ['geom', (0.5,)],
-    ['hypergeom', (30, 12, 6)],
-    ['hypergeom', (21, 3, 12)],  # numpy.random (3,18,12) numpy ticket:921
-    ['hypergeom', (21, 18, 11)],  # numpy.random (18,3,11) numpy ticket:921
-    ['logser', (0.6,)],  # reenabled, numpy ticket:921
-    ['nbinom', (5, 0.5)],
-    ['nbinom', (0.4, 0.4)],  # from tickets: 583
-    ['planck', (0.51,)],   # 4.1
-    ['poisson', (0.6,)],
-    ['randint', (7, 31)],
-    ['skellam', (15, 8)],
-    ['zipf', (6.5,)]
-]
 
 
 def test_discrete_basic():
@@ -40,7 +20,7 @@ def test_discrete_basic():
         np.random.seed(9765456)
         rvs = distfn.rvs(size=2000, *arg)
         supp = np.unique(rvs)
-        #_m, v = distfn.stats(*arg)
+        m, v = distfn.stats(*arg)
         yield check_cdf_ppf, distfn, arg, supp, distname + ' cdf_ppf'
 
         yield check_pmf_cdf, distfn, arg, distname
@@ -56,7 +36,7 @@ def test_discrete_basic():
         if distname in seen:
             continue
         seen.add(distname)
-        distfn = getattr(stats, distname)
+        distfn = getattr(stats,distname)
         locscale_defaults = (0,)
         meths = [distfn.pmf, distfn.logpmf, distfn.cdf, distfn.logcdf,
                  distfn.logsf]
@@ -74,7 +54,7 @@ def test_discrete_basic():
 
 def test_moments():
     for distname, arg in distdiscrete:
-        distfn = getattr(stats, distname)
+        distfn = getattr(stats,distname)
         m, v, s, k = distfn.stats(*arg, moments='mvsk')
         yield check_normalization, distfn, arg, distname
 
@@ -84,13 +64,13 @@ def test_moments():
         yield check_var_expect, distfn, arg, m, v, distname
         yield check_skew_expect, distfn, arg, m, v, s, distname
 
-        cond = distname in ['zipf']
+        cond = False #distname in ['zipf']
         msg = distname + ' fails kurtosis'
         yield knf(cond, msg)(check_kurt_expect), distfn, arg, m, v, k, distname
 
         # frozen distr moments
         yield check_moment_frozen, distfn, arg, m, 1
-        yield check_moment_frozen, distfn, arg, v + m * m, 2
+        yield check_moment_frozen, distfn, arg, v+m*m, 2
 
 
 def check_cdf_ppf(distfn, arg, supp, msg):
@@ -108,7 +88,7 @@ def check_cdf_ppf(distfn, arg, supp, msg):
 def check_pmf_cdf(distfn, arg, distname):
     startind = np.int(distfn.ppf(0.01, *arg) - 1)
     index = list(range(startind, startind + 10))
-    cdfs, pmfs_cum = distfn.cdf(index, *arg), distfn.pmf(index, *arg).cumsum()
+    cdfs, pmfs_cum = distfn.cdf(index,*arg), distfn.pmf(index, *arg).cumsum()
 
     atol, rtol = 1e-10, 1e-10
     if distname == 'skellam':    # ncx2 accuracy
@@ -158,7 +138,7 @@ def check_discrete_chisquare(distfn, arg, rvs, alpha, msg):
     """
     n = len(rvs)
     nsupp = 20
-    wsupp = 1.0 / nsupp
+    wsupp = 1.0/nsupp
 
     # construct intervals with minimum mass 1/nsupp
     # intervals are left-half-open as in a cdf difference
@@ -167,30 +147,30 @@ def check_discrete_chisquare(distfn, arg, rvs, alpha, msg):
     distsupp = [max(distfn.a, -1000)]
     distmass = []
     for ii in distsupport:
-        current = distfn.cdf(ii, *arg)
-        if current - last >= wsupp - 1e-14:
+        current = distfn.cdf(ii,*arg)
+        if current - last >= wsupp-1e-14:
             distsupp.append(ii)
             distmass.append(current - last)
             last = current
-            if current > (1 - wsupp):
+            if current > (1-wsupp):
                 break
     if distsupp[-1] < distfn.b:
         distsupp.append(distfn.b)
-        distmass.append(1 - last)
+        distmass.append(1-last)
     distsupp = np.array(distsupp)
     distmass = np.array(distmass)
 
     # convert intervals to right-half-open as required by histogram
-    histsupp = distsupp + 1e-8
+    histsupp = distsupp+1e-8
     histsupp[0] = distfn.a
 
     # find sample frequencies and perform chisquare test
-    freq, _hsupp = np.histogram(rvs, histsupp)
-    #cdfs = distfn.cdf(distsupp, *arg)
-    (_chis, pval) = stats.chisquare(np.array(freq), n * distmass)
+    freq,hsupp = np.histogram(rvs,histsupp)
+    cdfs = distfn.cdf(distsupp,*arg)
+    (chis,pval) = stats.chisquare(np.array(freq),n*distmass)
 
     npt.assert_(pval > alpha, 'chisquare - test for %s'
-           ' at arg = %s with pval = %s' % (msg, str(arg), str(pval)))
+           ' at arg = %s with pval = %s' % (msg,str(arg),str(pval)))
 
 
 def check_scale_docstring(distfn):

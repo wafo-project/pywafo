@@ -1,6 +1,6 @@
 from __future__ import division
 import warnings
-from wafo.wafodata import PlotData
+from wafo.containers import PlotData
 from wafo.misc import findextrema
 from scipy import special
 import numpy as np

@@ -12,9 +12,9 @@
 from __future__ import division
 import numpy as np
 import scipy.signal
-import scipy.special as spec
-import scipy.sparse as sp
+#import scipy.special as spec
 import scipy.sparse.linalg  # @UnusedImport
+import scipy.sparse as sparse
 from numpy.ma.core import ones, zeros, prod, sin
 from numpy import diff, pi, inf  # @UnresolvedImport
 from numpy.lib.shape_base import vstack
@@ -546,7 +546,7 @@ class SmoothSpline(PPform):
         else:
 
             dx1 = 1. / dx
-            D = sp.spdiags(var * ones(n), 0, n, n)  # The variance
+            D = sparse.spdiags(var * ones(n), 0, n, n)  # The variance
 
             u, p = self._compute_u(p, D, dydx, dx, dx1, n)
             dx1.shape = (n - 1, -1)
@@ -590,10 +590,10 @@ class SmoothSpline(PPform):
     def _compute_u(self, p, D, dydx, dx, dx1, n):
         if p is None or p != 0:
             data = [dx[1:n - 1], 2 * (dx[:n - 2] + dx[1:n - 1]), dx[:n - 2]]
-            R = sp.spdiags(data, [-1, 0, 1], n - 2, n - 2)
+            R = sparse.spdiags(data, [-1, 0, 1], n - 2, n - 2)
 
         if p is None or p < 1:
-            Q = sp.spdiags(
+            Q = sparse.spdiags(
                 [dx1[:n - 2], -(dx1[:n - 2] + dx1[1:n - 1]), dx1[1:n - 1]],
                 [0, -1, -2], n, n - 2)
             QDQ = (Q.T * D * Q)
@@ -612,8 +612,8 @@ class SmoothSpline(PPform):
 
         # Make sure it uses symmetric matrix solver
         ddydx = diff(dydx, axis=0)
-        sp.linalg.use_solver(useUmfpack=True)
-        u = 2 * sp.linalg.spsolve((QQ + QQ.T), ddydx)
+        #sp.linalg.use_solver(useUmfpack=True)
+        u = 2 * sparse.linalg.spsolve((QQ + QQ.T), ddydx)  # @UndefinedVariable
         return u.reshape(n - 2, -1), p
 
 
@@ -923,7 +923,7 @@ class StinemanInterp(object):
     '''
     def __init__(self, x, y, yp=None, method='parabola', monotone=False):
         if yp is None:
-            yp = slopes(x, y, method, monotone)
+            yp = slopes(x, y, method, monotone=monotone)
         self.x = np.asarray(x, np.float_)
         self.y = np.asarray(y, np.float_)
         self.yp = np.asarray(yp, np.float_)
@@ -1058,7 +1058,8 @@ class Pchip(PiecewisePolynomial):
 
     >>> h=plt.xlabel("X")
     >>> h=plt.ylabel("Y")
-    >>> h=plt.title("Comparing pypchip() vs. Scipy interp1d() vs. non-monotonic CHS")
+    >>> txt = "Comparing pypchip() vs. Scipy interp1d() vs. non-monotonic CHS"
+    >>> h=plt.title(txt)
     >>> legends = ["Data", "pypchip()", "interp1d","CHS", 'SI']
     >>> h=plt.legend(legends, loc="upper left")
     >>> plt.show()
@@ -1210,10 +1211,10 @@ def test_func():
     _tck1, _u = interpolate.splprep([t, y], s=0)  # @UndefinedVariable
     tck2 = interpolate.splrep(t, y, s=len(t), task=0)  # @UndefinedVariable
     # interpolate.spl
-    tck = interpolate.splmake(t, y, order=3, kind='smoothest', conds=None)  # @UndefinedVariable
+    tck = interpolate.splmake(t, y, order=3, kind='smoothest', conds=None)
     self = interpolate.ppform.fromspline(*tck2)  # @UndefinedVariable
     plt.plot(t, self(t))
-    plt.show()
+    plt.show('hold')
     pass
 
 
@@ -1238,12 +1239,13 @@ def test_pp():
 
 def test_docstrings():
     import doctest
-    doctest.testmod()
+    print('Testing docstrings in %s' % __file__)
+    doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
 
 
 if __name__ == '__main__':
-    test_func()
+    #test_func()
     # test_doctstrings()
     # test_smoothing_spline()
-    # compare_methods()
-    #demo_monoticity()
+    #compare_methods()
+    demo_monoticity()
