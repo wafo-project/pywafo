@@ -1,7 +1,7 @@
 """
     Extended functions to operate on polynomials
 """
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 # Name:        polynomial
 # Purpose:     Functions to operate on polynomials.
 #
@@ -15,8 +15,8 @@
 # Created:     30.12.2008
 # Copyright:   (c) pab 2008
 # Licence:     LGPL
-#-------------------------------------------------------------------------
-#!/usr/bin/env python
+# -------------------------------------------------------------------------
+# !/usr/bin/env python
 
 from plotbackend import plotbackend as plt
 import numpy as np

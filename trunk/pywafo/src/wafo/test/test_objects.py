@@ -4,8 +4,9 @@ Created on 5. aug. 2010
 
 @author: pab
 """
-import wafo.data
-import numpy as np
+import wafo.data  # @UnusedImport
+import numpy as np  # @UnusedImport
+
 
 def test_timeseries():
     '''
@@ -15,20 +16,22 @@ def test_timeseries():
     >>> ts = wo.mat2timeseries(x)
     >>> ts.sampling_period()
     0.25
-    
+
     Estimate spectrum
     >>> S = ts.tospecdata()
     The default L is set to 325
     >>> S.data[:10]
     array([ 0.00913087,  0.00881073,  0.00791944,  0.00664244,  0.00522429,
             0.00389816,  0.00282753,  0.00207843,  0.00162678,  0.0013916 ])
-            
+
     Estimated covariance function
     >>> rf = ts.tocovdata(lag=150)
     >>> rf.data[:10]
     array([ 0.22368637,  0.20838473,  0.17110733,  0.12237803,  0.07024054,
             0.02064859, -0.02218831, -0.0555993 , -0.07859847, -0.09166187])
     '''
+
+
 def test_timeseries_trdata():
     '''
     >>> import wafo.spectrum.models as sm
@@ -51,8 +54,8 @@ def test_timeseries_trdata():
     1.0
     >>> np.round(g2.dist2gauss())
     1.0
-  
+
     '''
-if __name__=='__main__':
+if __name__ == '__main__':
     import doctest
     doctest.testmod()

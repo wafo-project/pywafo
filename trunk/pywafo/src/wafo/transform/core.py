@@ -1,7 +1,6 @@
 '''
 '''
 from __future__ import division
-#import numpy as np
 from numpy import trapz, sqrt, linspace  # @UnresolvedImport
 
 from wafo.containers import PlotData
@@ -188,7 +187,7 @@ class TrData(PlotData, TrCommon):
         self.sigma = kwds.get('sigma', None)
 
         if self.mean is None:
-            #self.mean = np.mean(self.args) #
+            # self.mean = np.mean(self.args)
             self.mean = self.gauss2dat(self.ymean)
         if self.sigma is None:
             yp = self.ymean + self.ysigma
@@ -207,8 +206,10 @@ class TrData(PlotData, TrCommon):
     def _dat2gauss(self, x, *xi):
         return tranproc(self.args, self.data, x, *xi)
 
+
 class EstimateTransform(object):
     pass
+
 
 def main():
     pass

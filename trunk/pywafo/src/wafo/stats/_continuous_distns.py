@@ -298,7 +298,8 @@ class arcsine_gen(rv_continuous):
     The probability density function for `arcsine` is::
 
         arcsine.pdf(x) = 1/(pi*sqrt(x*(1-x)))
-        for 0 < x < 1.
+
+    for ``0 < x < 1``.
 
     %(example)s
 
@@ -1101,13 +1102,12 @@ class exponpow_gen(rv_continuous):
 
     """
     def _pdf(self, x, b):
-        xbm1 = x**(b-1.0)
-        xb = xbm1 * x
-        return exp(1)*b*xbm1 * exp(xb - exp(xb))
+        return exp(self._logpdf(x, b))
 
     def _logpdf(self, x, b):
-        xb = x ** (b - 1.0) * x
-        return 1 + log(b) + special.xlogy(b - 1.0, x) + xb - exp(xb)
+        xb = x**b
+        f = 1 + log(b) + special.xlogy(b - 1.0, x) + xb - exp(xb)
+        return f
 
     def _cdf(self, x, b):
         return -expm1(-expm1(x ** b))
@@ -1294,13 +1294,13 @@ class f_gen(rv_continuous):
 f = f_gen(a=0.0, name='f')
 
 
-# Folded Normal
-# abs(Z) where (Z is normal with mu=L and std=S so that c=abs(L)/S)
-#
-# note: regress docs have scale parameter correct, but first parameter
-# he gives is a shape parameter A = c * scale
+## Folded Normal
+##   abs(Z) where (Z is normal with mu=L and std=S so that c=abs(L)/S)
+##
+##  note: regress docs have scale parameter correct, but first parameter
+##    he gives is a shape parameter A = c * scale
 
-# Half-normal is folded normal with shape-parameter c=0.
+##  Half-normal is folded normal with shape-parameter c=0.
 
 class foldnorm_gen(rv_continuous):
     """A folded normal continuous random variable.
@@ -1527,8 +1527,8 @@ class genpareto_gen(rv_continuous):
 
         genpareto.pdf(x, c) = (1 + c * x)**(-1 - 1/c)
 
-    for ``c >= 0`` ``x >= 0``, and
-    for ``c < 0`` ``0 <= x <= -1/c``
+    defined for ``x >= 0`` if ``c >=0``, and for 
+    ``0 <= x <= -1/c`` if ``c < 0``.
 
     For ``c == 0``, `genpareto` reduces to the exponential
     distribution, `expon`::
@@ -1691,8 +1691,9 @@ class genpareto_gen(rv_continuous):
             for ki, cnk in zip(k, comb(n, k)):
                 val = val + cnk * (-1) ** ki / (1.0 - c * ki)
             return where(c * n < 1, val * (-1.0 / c) ** n, inf)
-        munp = lambda c: __munp(n, c)
-        return _lazywhere(c != 0, (c,), munp, gam(n + 1))
+        return _lazywhere(c != 0, (c,),
+                lambda c: __munp(n, c),
+                gam(n + 1))
 
     def _entropy(self, c):
         return 1. + c
@@ -2956,8 +2957,8 @@ class loglaplace_gen(rv_continuous):
     -----
     The probability density function for `loglaplace` is::
 
-    loglaplace.pdf(x, c) = c / 2 * x**(c-1),   for 0 < x < 1
-                         = c / 2 * x**(-c-1),  for x >= 1
+        loglaplace.pdf(x, c) = c / 2 * x**(c-1),   for 0 < x < 1
+                             = c / 2 * x**(-c-1),  for x >= 1
 
     for ``c > 0``.
 
@@ -3544,16 +3545,16 @@ class lomax_gen(rv_continuous):
         return log(c) - (c + 1) * log1p(x)
 
     def _cdf(self, x, c):
-        return 1.0-1.0/(1.0+x)**c
+        return -expm1(-c*log1p(x))
 
     def _sf(self, x, c):
-        return 1.0/(1.0+x)**c
+        return exp(-c*log1p(x))
 
     def _logsf(self, x, c):
         return -c * log1p(x)
 
     def _ppf(self, q, c):
-        return pow(1.0-q, -1.0/c)-1
+        return expm1(-log1p(-q)/c)
 
     def _stats(self, c):
         mu, mu2, g1, g2 = pareto.stats(c, loc=-1.0, moments='mvsk')
@@ -3876,6 +3877,9 @@ class rayleigh_gen(rv_continuous):
 
     def _ppf(self, q):
         return sqrt(-2 * log1p(-q))
+
+    def _isf(self, q):
+        return sqrt(-2 * log(q))
 
     def _stats(self):
         val = 4 - pi
