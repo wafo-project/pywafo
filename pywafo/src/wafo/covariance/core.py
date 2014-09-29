@@ -19,7 +19,7 @@ import warnings
 import numpy as np
 from numpy import (zeros, ones, sqrt, inf, where, nan,
                    atleast_1d, hstack, r_, linspace, flatnonzero, size,
-                   isnan, finfo, diag, ceil, floor, random, pi)
+                   isnan, finfo, diag, ceil, random, pi)
 from numpy.fft import fft
 from numpy.random import randn
 import scipy.interpolate as interpolate
@@ -33,13 +33,13 @@ import wafo.spectrum as _wafospec
 from scipy.sparse.linalg.dsolve.linsolve import spsolve
 from scipy.sparse.base import issparse
 from scipy.signal.windows import parzen
-#_wafospec = JITImport('wafo.spectrum')
+# _wafospec = JITImport('wafo.spectrum')
 
 __all__ = ['CovData1D']
 
 
 def _set_seed(iseed):
-    if iseed != None:
+    if iseed is not None:
         try:
             random.set_state(iseed)
         except:
@@ -385,7 +385,7 @@ class CovData1D(PlotData):
             m2 = 2 * n - 1
             nfft = 2 ** nextpow2(max(m2, 2 * ns))
             acf = r_[acf, zeros((nfft - m2, 1)), acf[-1:0:-1, :]]
-            #warnings,warn('I am now assuming that ACF(k)=0 for k>MAXLAG.')
+            # warnings,warn('I am now assuming that ACF(k)=0 for k>MAXLAG.')
         else:  # ACF(n)==0
             m2 = 2 * n - 2
             nfft = 2 ** nextpow2(max(m2, 2 * ns))
@@ -397,10 +397,10 @@ class CovData1D(PlotData):
         I = S.argmax()
         k = flatnonzero(S < 0)
         if k.size > 0:
-            #disp('Warning: Not able to construct a nonnegative circulant ')
-            #disp('vector from the ACF. Apply the parzen windowfunction ')
-            #disp('to the ACF in order to avoid this.')
-            #disp('The returned result is now only an approximation.')
+            _msg = '''
+                Not able to construct a nonnegative circulant vector from ACF.
+                Apply parzen windowfunction to the ACF in order to avoid this.
+                The returned result is now only an approximation.'''
 
             # truncating negative values to zero to ensure that
             # that this noise is not added to the simulated timeseries
@@ -409,10 +409,10 @@ class CovData1D(PlotData):
 
             ix = flatnonzero(k > 2 * I)
             if ix.size > 0:
-# truncating all oscillating values above 2 times the peak
-# frequency to zero to ensure that
-# that high frequency noise is not added to
-# the simulated timeseries.
+                # truncating all oscillating values above 2 times the peak
+                # frequency to zero to ensure that
+                # that high frequency noise is not added to
+                # the simulated timeseries.
                 ix0 = k[ix[0]]
                 S[ix0:-ix0] = 0.0
 
@@ -429,7 +429,7 @@ class CovData1D(PlotData):
         cases2 = int(ceil(cases / 2))
 # Generate standard normal random numbers for the simulations
 
-        #randn = np.random.randn
+        # randn = np.random.randn
         epsi = randn(nfft, cases2) + 1j * randn(nfft, cases2)
         Ssqr = sqrt(S / (nfft))  # sqrt(S(wn)*dw )
         ephat = epsi * Ssqr  # [:,np.newaxis]
@@ -573,7 +573,7 @@ class CovData1D(PlotData):
         num_x = len(x)
         num_acf = len(acf)
 
-        if not i_unknown is None:
+        if i_unknown is not None:
             x[i_unknown] = nan
         i_unknown = flatnonzero(isnan(x))
         num_unknown = len(i_unknown)
@@ -625,7 +625,8 @@ class CovData1D(PlotData):
             Sigma = toeplitz(hstack((acf, zeros(Nsig - num_acf))))
             overlap = int(Nsig / 4)
             # indices to the points used
-            idx = r_[0:Nsig] + max(0, min(i_unknown[0] - overlap, num_x - Nsig))
+            idx = r_[0:Nsig] + max(0, min(i_unknown[0] - overlap,
+                                          num_x - Nsig))
             mask_unknown = zeros(num_x, dtype=bool)
             # temporary storage of indices to missing points
             mask_unknown[i_unknown] = True
@@ -644,7 +645,7 @@ class CovData1D(PlotData):
                     S1o_Sooinv = spsolve(Soo + Soo.T, 2 * So1).T
                 else:
                     Sooinv_So1, _res, _rank, _s = lstsq(Soo + Soo.T, 2 * So1,
-                                                 cond=1e-4)
+                                                        cond=1e-4)
                     S1o_Sooinv = Sooinv_So1.T
                 Sigma1o = S11 - S1o_Sooinv.dot(So1)
                 if (diag(Sigma1o) < 0).any():
@@ -665,10 +666,10 @@ class CovData1D(PlotData):
                 else:
                     x2[idx[t_unknown]] = mu1o[ix]  # expected surface
                     x[idx[t_unknown]] = sample[ix]  # sampled surface
-                            # removing indices to data which has been simulated
+                    # removing indices to data which has been simulated
                     mask_unknown[idx[:-overlap]] = False
                     # data we want to simulate once more
-                    nw = sum(mask_unknown[idx[-overlap:]] == True)
+                    nw = sum(mask_unknown[idx[-overlap:]] is True)
                     num_restored += ns - nw  # update # points simulated so far
 
                     idx = self._update_window(idx, i_unknown, num_x, num_acf,
@@ -716,10 +717,11 @@ def main():
     inds = np.hstack((21 + np.arange(20),
                      1000 + np.arange(20),
                      1024 * 4 - 21 + np.arange(20)))
-    sample, mu1o, mu1o_std = R.simcond(x[:, 1], method='approx', i_unknown=inds)
+    sample, mu1o, mu1o_std = R.simcond(x[:, 1], method='approx',
+                                       i_unknown=inds)
 
     import matplotlib.pyplot as plt
-    #inds = np.atleast_2d(inds).reshape((-1,1))
+    # inds = np.atleast_2d(inds).reshape((-1,1))
     plt.plot(x[:, 1], 'k.', label='observed values')
     plt.plot(inds, mu1o, '*', label='mu1o')
     plt.plot(inds, sample.ravel(), 'r+', label='samples')

@@ -70,7 +70,7 @@ def rotation_matrix(heading, pitch, roll):
         deg2rad = np.pi / 180
         H = heading * deg2rad
         P = pitch * deg2rad
-        R = roll * deg2rad       # Convert to radians
+        R = roll * deg2rad  # Convert to radians
 
         data.put(0, cos(H) * cos(P))
         data.put(1, cos(H) * sin(P) * sin(R) - sin(H) * cos(R))
@@ -167,7 +167,7 @@ def spaceline(start_point, stop_point, num=10):
     e1, e2 = np.atleast_1d(start_point, stop_point)
     e2m1 = e2 - e1
     length = np.sqrt((e2m1 ** 2).sum())
-    #length = sqrt((E2[0]-E1(1))^2 + (E2(2)-E1(2))^2 + (E2(3)-E1(3))^2);
+    # length = sqrt((E2[0]-E1(1))^2 + (E2(2)-E1(2))^2 + (E2(3)-E1(3))^2)
     C = e2m1 / length
     delta = length / float(num - 1)
     return np.array([e1 + n * delta * C for n in range(num)])
@@ -358,8 +358,9 @@ def sub2index(shape, *subscripts, **kwds):
     ndx = 0
     s0 = np.shape(subscripts[0])
     for i, subscript in enumerate(subscripts):
-        np.testing.assert_equal(s0, np.shape(subscript),
-                'The subscripts vectors must all be of the same shape.')
+        np.testing.assert_equal(
+            s0, np.shape(subscript),
+            'The subscripts vectors must all be of the same shape.')
         if (np.any(subscript < 0)) or (np.any(s[i] <= subscript)):
             raise IndexError('Out of range subscript.')
 
@@ -399,7 +400,7 @@ class JITImport(object):
         except:
             if self._module is None:
                 self._module = __import__(self._module_name, None, None, ['*'])
-                #assert(isinstance(self._module, types.ModuleType), 'module')
+                # assert(isinstance(self._module, types.ModuleType), 'module')
                 return getattr(self._module, attr)
             else:
                 raise
@@ -634,7 +635,7 @@ def _findcross(xn):
         for ix in iz.tolist():
             xn[ix] = xn[ix - 1]
 
-    #% indices to local level crossings ( without turningpoints)
+    # indices to local level crossings ( without turningpoints)
     ind, = (xn[:n - 1] * xn[1:] < 0).nonzero()
     return ind
 
@@ -708,7 +709,8 @@ def findcross(x, v=0.0, kind=None):
             # make sure the first is a level v down-crossing if wdef=='tw'
             # or make sure the first is a level v up-crossing if
             # wdef=='cw'
-            xor = lambda a, b: a ^ b
+            def xor(a, b):
+                return a ^ b
             first_is_down_crossing = int(xn[ind[0]] > xn[ind[0] + 1])
             if xor(first_is_down_crossing, kind in ('dw', 'tw')):
                 ind = ind[1::]
@@ -979,7 +981,7 @@ def findrfc(tp, h=0.0, method='clib'):
                         ix += 1
                         ind[ix] = (Tstart + 2 * i + 1)
                         ix += 1
-                    #iy = i
+                    # iy = i
                     continue
 
                 # goto L180
@@ -1119,7 +1121,7 @@ def mctp2rfc(fmM, fMm=None):
         m0 = max(0, f_min[0] - np.sum(f_rfc[N - k + 1:N, 0]))
         M0 = max(0, f_max[N - 1 - k] - np.sum(f_rfc[N - 1 - k, 1:k]))
         f_rfc[N - 1 - k, 0] = min(m0, M0)
-        #%  n_loops_left=N-k+1
+        #  n_loops_left=N-k+1
     # end
 
     for k in range(1, N):
@@ -1202,21 +1204,27 @@ def rfcfilter(x, h, method=0):
     j = 0
     t0 = 0
     y0 = y[t0]
-
     z0 = 0
+
+    def aleb(a, b):
+        return a <= b
+
+    def altb(a, b):
+        return a < b
+
     if method == 0:
-        cmpfun1 = lambda a, b: a <= b
-        cmpfun2 = lambda a, b: a < b
+        cmpfun1 = aleb
+        cmpfun2 = altb
     else:
-        cmpfun1 = lambda a, b: a < b
-        cmpfun2 = lambda a, b: a <= b
+        cmpfun1 = altb
+        cmpfun2 = aleb
 
     # The rainflow filter
     for tim1, yi in enumerate(y[1::]):
         fpi = y0 + h
         fmi = y0 - h
         ti = tim1 + 1
-        #yi = y[ti]
+        # yi = y[ti]
 
         if z0 == 0:
             if cmpfun1(yi, fmi):
@@ -1255,7 +1263,7 @@ def rfcfilter(x, h, method=0):
         t0, y0, z0 = t1, y1, z1
     # end
 
-    #% Update y if last y0 is greater than (or equal) threshold
+    # Update y if last y0 is greater than (or equal) threshold
     if cmpfun1(h, abs(y0 - y[t[j]])):
         j += 1
         t[j] = t0
@@ -1349,7 +1357,8 @@ def findtp(x, h=0.0, kind=None):
         ind = ind[ind1]
 
     if kind in ('mw', 'Mw'):
-        xor = lambda a, b: a ^ b
+        def xor(a, b):
+            return a ^ b
         # make sure that the first is a Max if wdef == 'Mw'
         # or make sure that the first is a min if wdef == 'mw'
         first_is_max = (x[ind[0]] > x[ind[1]])
@@ -1605,15 +1614,15 @@ def findoutliers(x, zcrit=0.0, dcrit=None, ddcrit=None, verbose=False):
             print('Found %d spurious negative jumps of D^2x' % tmp.size)
 
     if zcrit >= 0.0:
-        #% finding consecutive values less than zcrit apart.
+        # finding consecutive values less than zcrit apart.
         indzeros = (abs(dxn) <= zcrit)
         indz, = nonzero(indzeros)
         if indz.size > 0:
             indz = indz + 1
-            #%finding the beginning and end of consecutive equal values
+            # finding the beginning and end of consecutive equal values
             indtr, = nonzero((diff(indzeros)))
             indtr = indtr + 1
-            #%indices to consecutive equal points
+            # indices to consecutive equal points
             # removing the point before + all equal points + the point after
             if True:
                 ind = hstack((ind, indtr - 1, indz, indtr, indtr + 1))
@@ -1789,7 +1798,7 @@ def stirlerr(n):
     <http://lists.gnu.org/archive/html/octave-maintainers/2011-09/pdfK0uKOST642.pdf>
     '''
 
-    S0 = 0.083333333333333333333   # /* 1/12 */
+    S0 = 0.083333333333333333333  # /* 1/12 */
     S1 = 0.00277777777777777777778  # /* 1/360 */
     S2 = 0.00079365079365079365079365  # /* 1/1260 */
     S3 = 0.000595238095238095238095238  # /* 1/1680 */
@@ -1821,7 +1830,7 @@ def stirlerr(n):
 
 
 def getshipchar(value=None, property="max_deadweight",  # @ReservedAssignment
-                **kwds):  # @IgnorePep8
+                ** kwds):  # @IgnorePep8
     '''
     Return ship characteristics from value of one ship-property
 
@@ -1909,7 +1918,7 @@ def getshipchar(value=None, property="max_deadweight",  # @ReservedAssignment
     draught = round(0.80 * max_deadweight ** 0.24 * 10) / 10
     draught_err = draught * 0.22
 
-    #S    = round(2/3*(L)**0.525)
+    # S    = round(2/3*(L)**0.525)
     speed = round(1.14 * max_deadweight ** 0.21 * 10) / 10
     speed_err = speed * 0.10
 
@@ -2171,7 +2180,7 @@ def hyp2f1(a, b, c, z, rho=0.5):
     e8 = gammaln(c - a - b)
     e9 = gammaln(a + b - c)
     _cmab = c - a - b
-    #~(np.round(cmab) == cmab & cmab <= 0)
+    # ~(np.round(cmab) == cmab & cmab <= 0)
     if abs(z) <= rho:
         h = hyp2f1_taylor(a, b, c, z, 1e-15)
     elif abs(1 - z) <= rho:  # % Require that |arg(1-z)|<pi
@@ -2253,7 +2262,7 @@ def hygfz(A, B, C, Z):
     PI = 3.141592653589793
     EL = .5772156649015329
     if (L0 or L1):
-    # 'The hypergeometric series is divergent'
+        # 'The hypergeometric series is divergent'
         return np.inf
 
     NM = 0
@@ -2869,7 +2878,7 @@ def trangood(x, f, min_n=None, min_x=None, max_x=None, max_n=inf):
     numpy.interp
     """
     xo, fo = atleast_1d(x, f)
-    #n = xo.size
+    # n = xo.size
     if (xo.ndim != 1):
         raise ValueError('x must be a vector.')
     if (fo.ndim != 1):
@@ -2901,14 +2910,14 @@ def trangood(x, f, min_n=None, min_x=None, max_x=None, max_n=inf):
     x0 = xo[0]
     L = float(xn - x0)
     if ((nf < min_n) or (max_n < nf) or any(abs(ddx) > 10 * _EPS * (L))):
-# % pab 07.01.2001: Always choose the stepsize df so that
-# % it is an exactly representable number.
-# % This is important when calculating numerical derivatives and is
-# % accomplished by the following.
+        # pab 07.01.2001: Always choose the stepsize df so that
+        #  it is an exactly representable number.
+        #  This is important when calculating numerical derivatives and is
+        #  accomplished by the following.
         dx = L / (min(min_n, max_n) - 1)
         dx = (dx + 2.) - 2.
         xi = arange(x0, xn + dx / 2., dx)
-        #% New call pab 11.11.2000: This is much quicker
+        # New call pab 11.11.2000: This is much quicker
         fo = interp(xi, xo, fo)
         xo = xi
 
@@ -2989,7 +2998,7 @@ def tranproc(x, f, x0, *xi):
     xo, fo = trangood(xo, fo, min_x=min(x0), max_x=max(x0), max_n=nmax)
 
     n = f.shape[0]
-    #y  = x0.copy()
+    # y  = x0.copy()
     xu = (n - 1) * (x0 - xo[0]) / (xo[-1] - xo[0])
 
     fi = asarray(floor(xu), dtype=int)
@@ -3294,7 +3303,7 @@ def fourier(data, t=None, T=None, m=None, n=None, method='trapz'):
 
     # Compute M-1 more coefficients
     tmp = 2 * pi * t / T
-    #% tmp =  2*pi*(0:N-1).'/(N-1);
+    # tmp =  2*pi*(0:N-1).'/(N-1);
     for i in range(1, m):
         a[i] = intfun(x * cos(i * tmp), t, axis=-1)
         b[i] = intfun(x * sin(i * tmp), t, axis=-1)
@@ -3363,24 +3372,24 @@ def test_docstrings():
 
 def test_hyp2f1():
     #     1/(1-x) = F(1,1,1,x) = F(1,b,b,x) = F(a,1,a,x)
-#     (1+x)^n = F(-n,b,b,-x)
-#     atan(x) = x*F(.5,1,1.5,-x^2)
-#     asin(x) = x*F(.5,.5,1.5,x^2)
-#     log(x)  = x*F(1,1,2,-x)
-#     log(1+x)-log(1-x) = 2*x*F(.5,1,1.5,x^2)
+    #     (1+x)^n = F(-n,b,b,-x)
+    #     atan(x) = x*F(.5,1,1.5,-x^2)
+    #     asin(x) = x*F(.5,.5,1.5,x^2)
+    #     log(x)  = x*F(1,1,2,-x)
+    #     log(1+x)-log(1-x) = 2*x*F(.5,1,1.5,x^2)
     x = linspace(0., .7, 20)
     y = hyp2f1_taylor(-1, -4, 1, .9)
     _y2 = hygfz(-1, -4, 1, .9)
     _y3 = hygfz(5, -300, 10, 0.5)
     _y4 = hyp2f1_taylor(5, -300, 10, 0.5)
-    #y = hyp2f1(0.1, 0.2, 0.3, 0.5)
-    #y = hyp2f1(1, 1.5, 3, -4 +3j)
-    #y = hyp2f1(5, 7.5, 2.5, 5)
-#     fun = lambda x : 1./(1-x)
-#     x = .99
-#     y = hyp2f1(1,1,1,x)
-#     print(y-fun(x))
-#
+    # y = hyp2f1(0.1, 0.2, 0.3, 0.5)
+    # y = hyp2f1(1, 1.5, 3, -4 +3j)
+    # y = hyp2f1(5, 7.5, 2.5, 5)
+    #     fun = lambda x : 1./(1-x)
+    #     x = .99
+    #     y = hyp2f1(1,1,1,x)
+    #     print(y-fun(x))
+    #
     plt = plotbackend
     plt.interactive(False)
     plt.semilogy(x, np.abs(y - 1. / (1 - x)) + 1e-20, 'r')
@@ -3389,4 +3398,4 @@ def test_hyp2f1():
 
 if __name__ == "__main__":
     test_docstrings()
-    #test_hyp2f1()
+    # test_hyp2f1()

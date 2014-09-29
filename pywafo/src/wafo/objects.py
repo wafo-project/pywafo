@@ -1822,7 +1822,7 @@ class TimeSeries(PlotData):
 
         if pdef[2] in ('u', 'd'):
             t1 = ecross(ti, x, index[(start + dist):nn:step], vh)
-        else:  # % min, Max, trough, crest or all crossings wanted
+        else:  # min, Max, trough, crest or all crossings wanted
             t1 = x[index[(start + dist):nn:step]]
 
         T = t1 - t0
@@ -1918,7 +1918,7 @@ class TimeSeries(PlotData):
         expect = 1   # reconstruct by expectation? 1=yes 0=no
         tol = 0.001  # absolute tolerance of e(g_new-g_old)
 
-        cmvmax = 100; # if number of consecutive missing values (cmv) are longer they
+        cmvmax = 100 # if number of consecutive missing values (cmv) are longer they
                      # are not used in estimation of g, due to the fact that the
                      # conditional expectation approaches zero as the length to
                      # the closest known points increases, see below in the for loop 
@@ -1977,7 +1977,7 @@ class TimeSeries(PlotData):
             indNaN = np.sort(indNaN)
 
         # initial reconstruction attempt
-        # xn(indg,2)=detrendma(xn(indg,2),1500);
+        # xn(indg,2) = detrendma(xn(indg,2),1500);
 #         [g, test, cmax, irr, g2]  = dat2tr(xn(indg,:),def,opt);
 #         xnt=xn;
 #         xnt(indg,:)=dat2gaus(xn(indg,:),g);
@@ -2014,7 +2014,7 @@ class TimeSeries(PlotData):
 #         #     [g0 test0 cmax irr g2]  = dat2tr(xs,def,opt);
 #         #     [test0 ind0]=sort(test0);
 #         #   end
-#           
+
 #            if 1, #test>test0(end-5),
 #              # 95# sure the data comes from a non-Gaussian process
 #              def = olddef; #Non Gaussian process
@@ -2208,7 +2208,6 @@ class TimeSeries(PlotData):
             for ix in xrange(nsub):
                 if nsub > 1:
                     subplot(nsub, 1, ix)
-
                 h_scale = array([tn[ind[0]], tn[ind[-1]]])
                 ind2 = where((h_scale[0] <= tn2) & (tn2 <= h_scale[1]))[0]
                 plot(tn[ind] * dT, xn[ind], sym1)
@@ -2216,12 +2215,9 @@ class TimeSeries(PlotData):
                     plot(tn2[ind2] * dT, xn2[ind2], sym2)
                 plot(h_scale * dT, [0, 0], 'k-')
                 #plotbackend.axis([h_scale*dT, v_scale])
-
                 for iy in [-2, 2]:
                     plot(h_scale * dT, iy * sigma * ones(2), ':')
-
                 ind = ind + Ns
-            # end
             plotbackend.xlabel(XlblTxt)
 
         return figs
@@ -2274,7 +2270,6 @@ class TimeSeries(PlotData):
             wave_idx = wave_idx[wave_idx > -1]
         else:
             Nwp[0] = wave_idx[-1] - wave_idx[0] + 1
-        # end
 
         Nsub = min(6, Nsub)
         Nfig = int(ceil(Nsub / 6))
@@ -2298,7 +2293,6 @@ class TimeSeries(PlotData):
                     plotbackend.ylabel(
                         'Wave %d - %d' % (wave_idx[ix],
                                           wave_idx[ix] + Nwp[ix] - 1))
-
             plotbackend.xlabel('Time [sec]')
             # wafostamp
         return figs

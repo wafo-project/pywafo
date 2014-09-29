@@ -161,7 +161,7 @@ class nbinom_gen(rv_discrete):
 
     def _logpmf(self, x, n, p):
         coeff = gamln(n + x) - gamln(x + 1) - gamln(n)
-        return coeff + n * log(p) + x * log1p(-p)
+        return coeff + special.xlogy(n, p) + special.xlog1py(x, -p)
 
     def _cdf(self, x, n, p):
         k = floor(x)
@@ -217,7 +217,7 @@ class geom_gen(rv_discrete):
         return np.power(1-p, k-1) * p
 
     def _logpmf(self, k, p):
-        return (k - 1) * log1p(-p) + log(p)
+        return special.xlog1py(k - 1, -p) + log(p)
 
     def _cdf(self, x, p):
         k = floor(x)
