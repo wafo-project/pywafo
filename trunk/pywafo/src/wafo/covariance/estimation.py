@@ -76,7 +76,7 @@ class CovarianceEstimatior(object):
         Lmax = min(300, len(R) - 1)  # maximum lag if L is undetermined
         # finding where ACF is less than 2 st. deviations.
         sigma = np.sqrt(np.r_[0, R[0] ** 2,
-                    R[0] ** 2 + 2 * np.cumsum(R[1:] ** 2)] / Ncens)
+                              R[0] ** 2 + 2 * np.cumsum(R[1:] ** 2)] / Ncens)
         lag = Lmax + 2 - (np.abs(R[Lmax::-1]) > 2 * sigma[Lmax::-1]).argmax()
         if self.window == 'parzen':
             lag = int(4 * lag / 3)

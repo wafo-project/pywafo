@@ -1,6 +1,6 @@
 from __future__ import division
 from wafo.misc import meshgrid, gravity, cart2polar, polar2cart
-from wafo.objects import TimeSeries  # mat2timeseries,
+from wafo.objects import TimeSeries, mat2timeseries
 import warnings
 import os
 import numpy as np
@@ -23,6 +23,7 @@ from wafo.containers import PlotData, now
 from wafo.misc import sub_dict_select, nextpow2, discretize, JITImport
 # from wafo.graphutil import cltext
 from wafo.kdetools import qlevels
+from scipy.interpolate.interpolate import interp1d
 
 try:
     from wafo.gaussian import Rind
@@ -55,7 +56,7 @@ __all__ = ['SpecData1D', 'SpecData2D', 'plotspec']
 
 def _set_seed(iseed):
     '''Set seed of random generator'''
-    if iseed != None:
+    if iseed is not None:
         try:
             random.set_state(iseed)
         except:
@@ -136,7 +137,7 @@ def qtf(w, h=inf, g=9.81):
 
     # tmp1 = 0.5*g*k_w./(w.*sqrt(g*h))
     # tmp2 = 0.25*w.^2/g
-# Wave group velocity
+    # Wave group velocity
     c_g = 0.5 * g * (tanh(k_w * h) + k_w * h * (1.0 - tanh(k_w * h) ** 2)) / w
     h_dii = (0.5 * (0.5 * g * (k_w / w) ** 2. - 0.5 * w ** 2 / g +
                     g * k_w / (w * c_g))
@@ -146,7 +147,7 @@ def qtf(w, h=inf, g=9.81):
     # k    = find(w_1==w_2)
     # h_d(k) = h_dii
 
-    #% The NaN's occur due to division by zero. => Set the isnans to zero
+    # The NaN's occur due to division by zero. => Set the isnans to zero
 
     h_dii = where(isnan(h_dii), 0, h_dii)
     h_d = where(isnan(h_d), 0, h_d)
@@ -197,8 +198,8 @@ def plotspec(specdata, linetype='b-', flag=1):
 #
 #      S = demospec('dir'); S2 = mkdspec(jonswap,spreading);
 #      plotspec(S,2), hold on
-#      plotspec(S,3,'g')  % Same as previous fig. due to frequency independent spreading
-#      plotspec(S2,2,'r') % Not the same as previous figs. due to frequency dependent spreading
+#      plotspec(S,3,'g')  # Same as previous fig. due to frequency independent spreading
+#      plotspec(S2,2,'r') # Not the same as previous figs. due to frequency dependent spreading
 #      plotspec(S2,3,'m')
 #      % transform from angular frequency and radians to frequency and degrees
 #      Sf = ttspec(S,'f','d'); clf
@@ -1004,8 +1005,7 @@ class SpecData1D(PlotData):
         max_sim = 30
         tolerance = 5e-4
 
-        L = 200  # %maximum lag size of the window function used in
-                        #%spectral estimate
+        L = 200  # maximum lag size of the window function used in estimate
         # ftype = self.freqtype #options are 'f' and 'w' and 'k'
 #        switch ftype
 #         case 'f',
@@ -1015,8 +1015,8 @@ class SpecData1D(PlotData):
         Hm0 = self.characteristic('Hm0')
         Tm02 = self.characteristic('Tm02')
 
-        if not iseed is None:
-            _set_seed(iseed)  # % set the the seed
+        if iseed is not None:
+            _set_seed(iseed)  # set the the seed
 
         n = len(self.data)
         if ns is None:
@@ -1050,25 +1050,27 @@ class SpecData1D(PlotData):
             SL.data[indZero] = 0
 
         maxS = max(S.data)
-        # Fs = 2*freq(end)+eps % sampling frequency
+        # Fs = 2*freq(end)+eps  # sampling frequency
 
         for ix in xrange(max_sim):
             x2, x1 = self.sim_nl(ns=np, cases=cases, dt=None, iseed=iseed,
-                                   method=method,
-                                   fnlimit=fn_limit)
-            #%x2(:,2:end) = x2(:,2:end) -x1(:,2:end)
+                                 method=method, fnlimit=fn_limit,
+                                 output='timeseries')
+            x2.data -= x1.data  # x2(:,2:end) = x2(:,2:end) -x1(:,2:end)
+            S2 = x2.tospecdata(L)
+            S1 = x1.tospecdata(L)
+
             # TODO: Finish spec.to_linspec
 #             S2 = dat2spec(x2, L)
 #             S1 = dat2spec(x1, L)
 # %[tf21,fi] = tfe(x2(:,2),x1(:,2),1024,Fs,[],512)
 # %Hw11 = interp1q(fi,tf21.*conj(tf21),freq)
-#             if True:
-#                 Hw1 = exp(interp1q(S2.args, log(abs(S1.data / S2.data)), freq))
-#             else:
-# Geometric mean
-#                 Hw1 = exp(
-#                     (interp1q(S2.args, log(abs(S1.data / S2.data)),
-#                               freq) + log(Hw2)) / 2)
+            if True:
+                Hw1 = exp(interp1d(log(abs(S1.data / S2.data)), S2.args)(freq))
+            else:
+                # Geometric mean
+                Hw1 = exp((interp1d(log(abs(S1.data / S2.data)), S2.args)(freq)
+                           + log(Hw2)) / 2)
                 # end
             # Hw1  = (interp1q( S2.w,abs(S1.S./S2.S),freq)+Hw2)/2
             # plot(freq, abs(Hw11-Hw1),'g')
@@ -1085,7 +1087,7 @@ class SpecData1D(PlotData):
                 # end
             k = nonzero(SL.data < 0)[0]
             if len(k):  # Make sure that the current guess is larger than zero
-                #%k
+                # k
                 # Hw1(k)
                 Hw1[k] = min(S1.data[k] * 0.9, S.data[k])
                 SL.data[k] = max(Hw1[k] * S.data[k], eps)
@@ -1120,7 +1122,7 @@ class SpecData1D(PlotData):
 
         #%Hw1(end)
         #%maxS*1e-3
-        #%if Hw1(end)*S.>maxS*1e-3,
+        #%if Hw1[-1]*S.data>maxS*1e-3,
         #%  warning('The Nyquist frequency of the spectrum may be too low')
         #%end
 
@@ -2639,7 +2641,8 @@ class SpecData1D(PlotData):
 # function [x2,x,svec,dvec,amp]=spec2nlsdat(spec,np,dt,iseed,method,
 #                                truncationLimit)
     def sim_nl(self, ns=None, cases=1, dt=None, iseed=None, method='random',
-               fnlimit=1.4142, reltol=1e-3, g=9.81, verbose=False):
+               fnlimit=1.4142, reltol=1e-3, g=9.81, verbose=False,
+               output='timeseries'):
         """
         Simulates a Randomized 2nd order non-linear wave X(t)
 
@@ -2894,7 +2897,7 @@ class SpecData1D(PlotData):
                   (f_limit_lo, f_limit_up))
 
 # if nargout>3,
-# %compute the sum and frequency effects separately
+# #compute the sum and frequency effects separately
 # [svec, dvec] = disufq((amp.'),w,kw,min(h,10^30),g,nmin,nmax)
 # svec = svec.'
 # dvec = dvec.'
@@ -2902,7 +2905,7 @@ class SpecData1D(PlotData):
 # x2s  = fft(svec) % 2'nd order sum frequency component
 # x2d  = fft(dvec) % 2'nd order difference frequency component
 ##
-# % 1'st order + 2'nd order component.
+# # 1'st order + 2'nd order component.
 # x2(:,2:end) =x(:,2:end)+ real(x2s(1:np,:))+real(x2d(1:np,:))
 # else
         if False:
@@ -2926,7 +2929,10 @@ class SpecData1D(PlotData):
 
         # 1'st order + 2'nd order component.
         x2[:, 1::] = x[:, 1::] + x2o[0:ns, :].real
-
+        if output=='timeseries':
+            xx2 = mat2timeseries(x2[:, 1::], x2[:, 0].ravel())
+            xx = mat2timeseries(x[:, 1::], x[:, 0].ravel())
+            return xx2, xx
         return x2, x
 
     def stats_nl(self, h=None, moments='sk', method='approximate', g=9.81):
@@ -4323,6 +4329,7 @@ def test_mm_pdf():
     w = np.linspace(0, 4, 256)
     S1 = Sj.tospecdata(w)  # Make spectrum object from numerical values
     S = sm.SpecData1D(Sj(w), w)  # Alternatively do it manually
+    S0 = S.to_linspec()
     mm = S.to_mm_pdf()
 
 
@@ -4332,6 +4339,6 @@ def test_docstrings():
 
 
 if __name__ == '__main__':
-    test_docstrings()
-    # test_mm_pdf()
+    #test_docstrings()
+    test_mm_pdf()
         # main()
