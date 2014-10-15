@@ -24,7 +24,7 @@ from numpy.fft import fft, ifft
 from numpy import (zeros, ones, zeros_like, array, asarray, newaxis, arange,
                    logical_or, any, pi, cos, round, diff, all, exp,
                    where, extract, linalg, sign, concatenate, floor, isreal,
-                   conj, remainder, linspace, atleast_1d, hstack, sum)
+                   conj, remainder, linspace, sum)
 from numpy.lib.polynomial import *  # @UnusedWildImport
 from scipy.misc.common import pade  # @UnresolvedImport
 __all__ = np.lib.polynomial.__all__
@@ -272,8 +272,8 @@ def polydeg(x, y):
         p = orthofit(x, y, n)
         ys = orthoval(p, x)
         # -- Akaike's Information Criterion
-        aic = 2 * (n + 1) * (1 + (n + 2) / (N - n - 2)) + \
-                N * (np.log(2 * pi * sum((ys - y) ** 2) / N) + 1)
+        aic = (2 * (n + 1) * (1 + (n + 2) / (N - n - 2)) +
+               N * (np.log(2 * pi * sum((ys - y) ** 2) / N) + 1))
 
         if aic >= AIC:
             nit += 1
@@ -634,17 +634,17 @@ def poly2hstr(p, variable='x'):
     ix = 1
     for expon in range(order, -1, -1):
         coef = coefs[order - expon]
-        #% There is no point in adding a zero term (except if it's the only
-        #% term, but we'll take care of that later).
+        # There is no point in adding a zero term (except if it's the only
+        # term, but we'll take care of that later).
         if coef == 0:
             ix += 1
         else:
-        #% Append exponent if necessary.
+            # Append exponent if necessary.
             if ix > 1:
                 exponstr = '%.0f' % ix
                 s = '%s**%s' % (s, exponstr)
                 ix = 1
-            #% Is it the first term?
+            # Is it the first term?
             isfirst = s == ''
 
             # We need the coefficient only if it is different from 1 or -1 or
@@ -656,7 +656,7 @@ def poly2hstr(p, variable='x'):
             # We need the variable except in the constant term.
             needvar = (expon != 0)
 
-            #% Add sign, but we don't need a leading plus-sign.
+            # Add sign, but we don't need a leading plus-sign.
             if isfirst:
                 if coef < 0:
                     s = '-'  # % Unary minus.
@@ -666,22 +666,22 @@ def poly2hstr(p, variable='x'):
                 else:
                     s = '%s + ' % s  # % Binary plus (addition).
 
-            #% Append the coefficient if it is different from one or when it is
-            #% the constant term.
+            # Append the coefficient if it is different from one or when it is
+            # the constant term.
             if needcoef:
                 coefstr = '%.20g' % abs(coef)
                 s = '%s%s' % (s, coefstr)
 
-            #% Append variable if necessary.
+            # Append variable if necessary.
             if needvar:
-                #% Append a multiplication sign if necessary.
+                # Append a multiplication sign if necessary.
                 if needcoef:
                     if 1 - isfirst:
                         s = '(%s)' % s
                     s = '%s*' % s
                 s = '%s%s' % (s, var)
 
-    #% Now treat the special case where the polynomial is zero.
+    # Now treat the special case where the polynomial is zero.
     if s == '':
         s = '0'
     return s
@@ -1170,7 +1170,6 @@ def chebfit(fun, n=10, a=-1, b=1, trace=False):
     else:
         f = fun
         n = len(f)
-        #raise ValueError('Function must be callable!')
     #                     N-1
     #       c(k) = (2/N) sum w(n) f(n)*cos(pi*k*(2n+1)/(2N)), 0 <= k < N.
     #                    n=0
@@ -1618,7 +1617,7 @@ class Cheb1d(object):
         return self.coeffs[val]
 
     def __setitem__(self, key, val):
-        #ind = self.order - key
+        # ind = self.order - key
         if key < 0:
             raise ValueError("Does not support negative powers.")
         if key > self.order:
@@ -1921,7 +1920,7 @@ def test_polydeg():
     x = np.linspace(0, 10, 300)
     y = np.sin(x ** 3 / 100) ** 2 + 0.05 * np.random.randn(x.size)
     n = polydeg(x, y)
-    #n = 2
+    # n = 2
     p = orthofit(x, y, n)
     xi = linspace(x.min(), x.max())
     ys0 = orthoval(p, x)
@@ -1946,4 +1945,4 @@ if __name__ == '__main__':
         main()
     else:
         test_docstrings()
-        #test_polydeg()
+        # test_polydeg()
