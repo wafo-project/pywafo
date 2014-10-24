@@ -285,7 +285,7 @@ def plotspec(specdata, linetype='b-', flag=1):
 #        txt = ''.join(txt)
 #        if (flag == 3):
 #            plotbackend.subplot(2, 1, 1)
-# if (flag == 1) or (flag == 3):#% Plot in normal scale
+# if (flag == 1) or (flag == 3):#  Plot in normal scale
 #            plotbackend.plot(np.vstack([Fp, Fp]),
 #                np.vstack([zeros(len(indm)), data.take(indm)]),
 #                ':', label=txt)
@@ -1120,11 +1120,11 @@ class SpecData1D(PlotData):
             Hw2 = Hw1
         # end
 
-        #%Hw1(end)
-        #%maxS*1e-3
-        #%if Hw1[-1]*S.data>maxS*1e-3,
-        #%  warning('The Nyquist frequency of the spectrum may be too low')
-        #%end
+        # Hw1(end)
+        # maxS*1e-3
+        # if Hw1[-1]*S.data>maxS*1e-3,
+        #   warning('The Nyquist frequency of the spectrum may be too low')
+        # end
 
         SL.date = now()  # datestr(now)
         # if nargout>1
@@ -1354,11 +1354,11 @@ class SpecData1D(PlotData):
 
         B_up = hstack([un + XtInf, XdInf, 0])
         B_lo = hstack([un, 0, -XdInf])
-        #%INFIN = [1 1 0]
+        # INFIN = [1 1 0]
         # BIG   = zeros((Ntime+2,Ntime+2))
         ex = zeros(Ntime + 2, dtype=float)
-        #%CC    = 2*pi*sqrt(-R(1,1)/R(1,3))*exp(un^2/(2*R(1,1)))
-        #%  XcScale = log(CC)
+        # CC    = 2*pi*sqrt(-R(1,1)/R(1,3))*exp(un^2/(2*R(1,1)))
+        #   XcScale = log(CC)
         opts['xcscale'] = log(
             2 * pi * sqrt(-R[0, 0] / R[0, 2])) + (un ** 2 / (2 * R[0, 0]))
 
@@ -1376,7 +1376,7 @@ class SpecData1D(PlotData):
             indI[2] = Nt
             indI[3] = Ntd - 1
 
-            #% positive wave period
+            #  positive wave period
             BIG = self._covinput_t_pdf(pt, R)
 
             tmp = rind(BIG, ex[:Ntdc], B_lo, B_up, indI, xc, Nt)
@@ -1450,14 +1450,14 @@ class SpecData1D(PlotData):
         Scd = array([[0, R[pt, 1]], [-R[pt, 1], 0]])
 
         if pt > 1:
-            #%cov(Xt)
+            # cov(Xt)
             # Cov(X(tn),X(ts))  = r(ts-tn)   = r(|ts-tn|)
             Stt = toeplitz(R[:pt - 1, 0])
-            #%cov(Xc,Xt)
+            # cov(Xc,Xt)
             # Cov(X(tn),X(ts))  = r(ts-tn)   = r(|ts-tn|)
             Sct = R[1:pt, 0]
             Sct = vstack((Sct, Sct[::-1]))
-            #%Cov(Xd,Xt)
+            # Cov(Xd,Xt)
             # Cov(X'(t1),X(ts)) = -r'(ts-t1) = r(|s-t|)
             Sdt = -R[1:pt, 1]
             Sdt = vstack((Sdt, -Sdt[::-1]))
@@ -1577,7 +1577,7 @@ class SpecData1D(PlotData):
             in_space = (kind[-2].upper() == 'L')
 
         if in_space:
-            # spec = spec2spec(spec,'k1d') 
+            # spec = spec2spec(spec,'k1d')
             ptxt = 'space'
         else:
             # spec = spec2spec(spec,'freq')
@@ -1623,7 +1623,6 @@ class SpecData1D(PlotData):
                     'Discretization levels must be larger than zero')
 
         # Transform amplitudes to Gaussian levels:
-        #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
         h = linspace(*paramu)
 
         if defnr > 1:  # level v separated Max2min densities
@@ -2045,9 +2044,9 @@ class SpecData1D(PlotData):
             # end %do
             # close(h11)
             err = sqrt(err)
-            #%  goto 800
+            #   goto 800
         else:  # def_nr>3
-            #%200 continue
+            # 200 continue
             # waitTxt = sprintf('Please wait ...(start at: %s)',datestr(now))
             # h11 = fwaitbar(0,[],waitTxt)
             tnold = -1
@@ -2095,14 +2094,14 @@ class SpecData1D(PlotData):
                             # end
                         elif def_nr == 5:
                             if (Nx == 1):
-                                #% Joint density (Tdm,TMm) given the Max and the min.
-                                #% Note the density is not scaled to unity
+                                #  Joint density (Tdm,TMm) given the Max and the min.
+                                #  Note the density is not scaled to unity
                                 pdf[0, tn - ts, tn] = fxind[0]  #  %*CC
                                 err[0, tn - ts, tn] = err0[0] ** 2
                                 terr[0, tn - ts, tn] = terr0[0]
                             else:
-                                #% 5,  gives level u separated Max2min and wave period from
-                                #% the crossing of level u to the min (M,m,Tdm).
+                                #  5,  gives level u separated Max2min and wave period from
+                                #  the crossing of level u to the min (M,m,Tdm).
                                   
                                 IJ = 0
                                 for i in range(1, Nx1):  # = 2:Nx1
@@ -2120,11 +2119,11 @@ class SpecData1D(PlotData):
                         # end % SELECT
                     # end%         enddo
                 else:  # % exploit symmetry
-                    #%300   Symmetry
+                    # 300   Symmetry
                     for ts in range(1, Ntd // 2):  # = 2:floor(Ntd//2)
-                        #% Using the symmetry since U = 0 and the transformation is
-                        #% linear.
-                        #% positive wave period
+                        #  Using the symmetry since U = 0 and the transformation is
+                        #  linear.
+                        #  positive wave period
                         BIG[:Ntdc, :Ntdc] = covinput(BIG[:Ntdc, :Ntdc],
                                                      R0, R1, R2, R3, R4,
                                                      tn, ts, tnold)
@@ -2132,11 +2131,11 @@ class SpecData1D(PlotData):
                                                     a_lo, a_up, indI, xc, Nt, *opt0)
 
                         #[fxind,err0] = rind(BIG(1:Ntdc,1:Ntdc),ex,a_lo,a_up,indI, xc,Nt,opt0{:})
-                        #%tnold = tn
+                        # tnold = tn
                         if (Nx == 1):  # % THEN
-                            #% Joint density of (TMd,TMm),(Tdm,TMm) given the max and
-                            #% the min.
-                            #% Note that the density is not scaled to unity
+                            #  Joint density of (TMd,TMm),(Tdm,TMm) given the max and
+                            #  the min.
+                            #  Note that the density is not scaled to unity
                             pdf[0, ts, tn] = fxind[0]  # %*CC
                             err[0, ts, tn] = err0[0] ** 2
                             err[0, ts, tn] = terr0(1)
@@ -2145,12 +2144,12 @@ class SpecData1D(PlotData):
                                  err[0, tn - ts, tn] = err0[0] ** 2
                                  terr[0, tn - ts, tn] = terr0[0]
                             # end
-                            #%GOTO 350
+                            # GOTO 350
                         else:
                             IJ = 0
                             if def_nr == 4:
-                                #% 4,  gives level u separated Max2min and wave period from
-                                #% Max to the crossing of level u (M,m,TMd).
+                                #  4,  gives level u separated Max2min and wave period from
+                                #  Max to the crossing of level u (M,m,TMd).
                                 for i in range(1, Nx1):
                                     J = IJ + Nx1
                                     pdf[1:Nx1, i, ts] = pdf[
@@ -2160,7 +2159,7 @@ class SpecData1D(PlotData):
                                     terr[1:Nx1, i, ts] = terr[
                                         1:Nx1, i, ts] + (terr0[IJ:J] * dt)
                                     if (ts < tn - ts):
-                                        #% exploiting the symmetry
+                                        #  exploiting the symmetry
                                         # %*CC
                                         pdf[i, 1:Nx1, tn - ts] = pdf[i,
                                                                      1:Nx1, tn - ts] + fxind[IJ:J] * dt
@@ -2172,8 +2171,8 @@ class SpecData1D(PlotData):
                                     IJ = J
                                # end %do
                             elif def_nr == 5:
-                                #% 5,   gives level u separated Max2min and wave period
-                                #% from the crossing of level u to min (M,m,Tdm).
+                                #  5,   gives level u separated Max2min and wave period
+                                #  from the crossing of level u to min (M,m,Tdm).
                                 for i in range(1, Nx1):  # = 2:Nx1,
                                     J = IJ + Nx1
                                     pdf[1:Nx1, i, tn - ts] = pdf[1:Nx1,
@@ -2195,7 +2194,7 @@ class SpecData1D(PlotData):
                                 # end %do
                             # end %END SELECT
                         # end
-                        #%350
+                        # 350
                     # end %do
                 # end
                 # waitTxt = sprintf('%s Ready: %d of %d',datestr(now),tn,Ntime)
@@ -2206,7 +2205,7 @@ class SpecData1D(PlotData):
             err = sqrt(err)
         # end % if
 
-        #%Nx1,size(pdf) def  Ntime
+        # Nx1,size(pdf) def  Ntime
         if (Nx > 1):  # % THEN
             IJ = 1
             if (def_nr > 2 or def_nr == 1):
@@ -2267,14 +2266,14 @@ class SpecData1D(PlotData):
             # Cov(Xt,Xc)
             # for
             i = np.arange(tn - 2)  # 1:tn-2
-            #%j = abs(i+1-ts)
-            #%BIG(i,N)  = -sign(R1(j+1),R1(j+1)*dble(ts-i-1)) %cov(X'(ti+1),X(ts))
+            # j = abs(i+1-ts)
+            # BIG(i,N)  = -sign(R1(j+1),R1(j+1)*dble(ts-i-1)) %cov(X'(ti+1),X(ts))
             j = i + 1 - ts
             tau = abs(j)
-            #%BIG(i,N)  = abs(R1(tau)).*sign(R1(tau).*j.')
+            # BIG(i,N)  = abs(R1(tau)).*sign(R1(tau).*j.')
             BIG[i, N] = R1[tau] * sign(j)
-            #%end do
-            #%Cov(Xc)
+            # end do
+            # Cov(Xc)
             BIG[N, N] = R0[0]       # cov(X(ts),X(ts))
             BIG[tn + shft + 1, N] = -R1[ts]      # cov(X'(t1),X(ts))
             BIG[tn + shft + 2, N] = R1[tn - ts]  # cov(X'(tn),X(ts))
@@ -2284,20 +2283,20 @@ class SpecData1D(PlotData):
             BIG[tn - 1, N] = R2[ts]  # %cov(X''(t1),X(ts))
             BIG[tn, N] = R2[tn - ts]  # %cov(X''(tn),X(ts))
            
-            #%ADD a level u crossing  at ts
+            # ADD a level u crossing  at ts
            
-            #%Cov(Xt,Xd)
-            #%for
+            # Cov(Xt,Xd)
+            # for
             i = np.arange(tn - 2)  # 1:tn-2
             j = abs(i + 1 - ts)
             BIG[i, tn + shft] = -R2[j]  #  %cov(X'(ti+1),X'(ts))
-            #%end do
-            #%Cov(Xd)
+            # end do
+            # Cov(Xd)
             BIG[tn + shft, tn + shft] = -R2[0]  #   %cov(X'(ts),X'(ts))
             BIG[tn - 1, tn + shft] = R3[ts]  #  %cov(X''(t1),X'(ts))
             BIG[tn, tn + shft] = -R3[tn - ts]  #   %cov(X''(tn),X'(ts))
 
-            #%Cov(Xd,Xc)
+            # Cov(Xd,Xc)
             BIG[tn + shft, N] = 0.0  # %cov(X'(ts),X(ts))
             #       % cov(X'(ts),X'(t1))
             BIG[tn + shft, tn + shft + 1] = -R2[ts]
@@ -2308,19 +2307,19 @@ class SpecData1D(PlotData):
             BIG[tn + shft, tn + shft + 4] = -R1[tn - ts]
 
             if (tnold == tn):
-                #% A previous call to covinput with tn==tnold has been made
-                #% need only to update  row and column N and tn+1 of big:
+                #  A previous call to covinput with tn==tnold has been made
+                #  need only to update  row and column N and tn+1 of big:
                 return BIG
-        #%      % make lower triangular part equal to upper and then return
-        #%      for j=1:tn+shft
-        #%         BIG(N,j)      = BIG(j,N)
-        #%         BIG(tn+shft,j) = BIG(j,tn+shft)
-        #%      end
-        #%      for j=tn+shft+1:N-1
-        #%         BIG(N,j) = BIG(j,N)
-        #%         BIG(j,tn+shft) = BIG(tn+shft,j)
-        #%      end
-        #%      return
+        #       % make lower triangular part equal to upper and then return
+        #       for j=1:tn+shft
+        #          BIG(N,j)      = BIG(j,N)
+        #          BIG(tn+shft,j) = BIG(j,tn+shft)
+        #       end
+        #       for j=tn+shft+1:N-1
+        #          BIG(N,j) = BIG(j,N)
+        #          BIG(j,tn+shft) = BIG(tn+shft,j)
+        #       end
+        #       return
         #   end %if
         #   %tnold = tn
         else:
@@ -2329,11 +2328,11 @@ class SpecData1D(PlotData):
         # end %if
                   
         if (tn > 2):
-            #%for i=1:tn-2
-            #%cov(Xt)
-            #%   for j=i:tn-2
-            #%     BIG(i,j) = -R2(j-i+1)              % cov(X'(ti+1),X'(tj+1))
-            #%  end %do
+            # for i=1:tn-2
+            # cov(Xt)
+            #    for j=i:tn-2
+            #      BIG(i,j) = -R2(j-i+1)              % cov(X'(ti+1),X'(tj+1))
+            #   end %do
            
             # % cov(Xt) =   % cov(X'(ti+1),X'(tj+1))
             BIG[:tn - 2, :tn - 2] = toeplitz(-R2[:tn - 2])
@@ -2346,17 +2345,17 @@ class SpecData1D(PlotData):
             # cov(X'(ti+1),X(tn))
             BIG[:tn - 2, tn + shft + 3] = -R1[tn - 2:0:-1]
           
-            #%Cov(Xt,Xd)
+            # Cov(Xt,Xd)
             BIG[:tn - 2, tn - 2] = R3[1:tn - 1]     # cov(X'(ti+1),X''(t1))
             BIG[:tn - 2, tn - 1] = -R3[tn - 2:0:-1]  # cov(X'(ti+1),X''(tn))
-            #%end %do
+            # end %do
         # end
-        #%cov(Xd)
+        # cov(Xd)
         BIG[tn - 2, tn - 2] = R4[0]
         BIG[tn - 2, tn - 1] = R4[tn - 1]  # cov(X''(t1),X''(tn))
         BIG[tn - 1, tn - 1] = R4[0]
         
-        #%cov(Xc)
+        # cov(Xc)
         BIG[tn + shft + 2, tn + shft + 2] = R0[0]        # cov(X(t1),X(t1))
         # cov(X(t1),X(tn))
         BIG[tn + shft + 2, tn + shft + 3] = R0[tn - 1]
@@ -2408,10 +2407,10 @@ class SpecData1D(PlotData):
             f.write('%12.10f\n', hg)
 
         # XSPLT = options.xsplit
-        nit   = options.nit
+        nit = options.nit
         speed = options.speed
-        seed  = options.seed
-        SCIS  = abs(options.method) # method<=0
+        seed = options.seed
+        SCIS = abs(options.method)  # method<=0
 
         with open('reflev.in', 'wt') as fid:
             fid.write('%2.0f \n', Ntime)
@@ -2428,10 +2427,10 @@ class SpecData1D(PlotData):
         filenames2 = self._writecov(R)
 
         print('   Starting Fortran executable.')
-        #compiled cov2mmtpdf.f with rind70.f
-        #dos([ wafoexepath 'cov2mmtpdf.exe'])
+        # compiled cov2mmtpdf.f with rind70.f
+        # dos([ wafoexepath 'cov2mmtpdf.exe'])
 
-        dens =  1 #load('dens.out')
+        dens =  1  # load('dens.out')
 
         self._cleanup(*filenames)
         self._cleanup(*filenames2)
@@ -2929,7 +2928,7 @@ class SpecData1D(PlotData):
 
         # 1'st order + 2'nd order component.
         x2[:, 1::] = x[:, 1::] + x2o[0:ns, :].real
-        if output=='timeseries':
+        if output == 'timeseries':
             xx2 = mat2timeseries(x2[:, 1::], x2[:, 0].ravel())
             xx = mat2timeseries(x[:, 1::], x[:, 0].ravel())
             return xx2, xx
@@ -3016,7 +3015,7 @@ class SpecData1D(PlotData):
         Vol. 3, pp.1-15
         """
 
-        #% default options
+        #  default options
         if h is None:
             h = self.h
 
@@ -3055,7 +3054,7 @@ class SpecData1D(PlotData):
         else:
             raise ValueError('Unknown option!')
 
-# elif method[0]== 'q': #, #% quasi method
+# elif method[0]== 'q': #, #  quasi method
 # Fn = self.nyquist_freq()
 # dw = Fn/Nw
 # tmp1 =sqrt(S[:,newaxis]*S[newaxis,:])*dw
@@ -3373,7 +3372,7 @@ class SpecData1D(PlotData):
         w = self.args.ravel()
         n = w.size
 
-        #%doInterpolate = 0
+        # doInterpolate = 0
         # Nyquist to sampling interval factor
         Cnf2dt = 0.5 if ftype == 'f' else pi  # % ftype == w og ftype == k
 
@@ -3762,9 +3761,9 @@ class SpecData1D(PlotData):
                        ** 2 + m[2] * mij[8] / m[4] ** 3),
                m_11 / m[0] ** 2 + (m[5] / m[0] ** 2) ** 2 *
                mij[0] - 2 * m[5] / m[0] ** 3 * m_10,
-               nan,
-               (8 * pi / g) ** 2 * (m[2] ** 2 / (4 * m[0] ** 3) *
-                        mij[0] + mij[4] / m[0] - m[2] / m[0] ** 2 * mij[2]),
+               nan, (8 * pi / g) ** 2 *
+               (m[2] ** 2 / (4 * m[0] ** 3) *
+                mij[0] + mij[4] / m[0] - m[2] / m[0] ** 2 * mij[2]),
                nan * ones(4),
                m[2] ** 2 * mij[0] / (4 * m[0] ** 3 * m[4]) + mij[4] /
                (m[0] * m[4]) + mij[8] * m[2] ** 2 / (4 * m[0] * m[4] ** 3) -
@@ -3785,7 +3784,7 @@ class SpecData1D(PlotData):
         S0 = r_[2. / (sqrt(m[0]) * m[1]) * (mij[0] - m[0] * mij[1] / m[1]),
                 1. / sqrt(m[2]) * (mij[0] / m[0] - mij[2] / m[2]),
                 1. / (2 * m[1]) * sqrt(m[0] / m[2]) * (mij[0] / m[0] - mij[2] /
-                        m[2] - mij[1] / m[1] + m[0] * mij[3] / (m[1] * m[2]))]
+                m[2] - mij[1] / m[1] + m[0] * mij[3] / (m[1] * m[2]))]
 
         R1 = ones((15, 15))
         R1[:, :] = nan
@@ -4093,11 +4092,11 @@ class SpecData2D(PlotData):
         if self.type not in two_dim_spectra:
             raise ValueError('Unknown 2D spectrum type!')
 
-        if vari == None and nr <= 1:
+        if vari is None and nr <= 1:
             vari = 'x'
-        elif vari == None:
+        elif vari is None:
             vari = 'xt'
-        else:  # % secure the mutual order ('xyt')
+        else:  # secure the mutual order ('xyt')
             vari = ''.join(sorted(vari.lower()))
             Nv = len(vari)
 
