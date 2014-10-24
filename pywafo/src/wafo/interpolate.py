@@ -1,19 +1,8 @@
-#-------------------------------------------------------------------------
-# Name:        module1
-# Purpose:
-#
-# Author:      pab
-#
-# Created:     30.12.2008
-# Copyright:   (c) pab 2008
-# Licence:     <your licence>
-#-------------------------------------------------------------------------
 #!/usr/bin/env python
 from __future__ import division
 import numpy as np
 import scipy.signal
-#import scipy.special as spec
-import scipy.sparse.linalg  # @UnusedImport
+# import scipy.sparse.linalg  # @UnusedImport
 import scipy.sparse as sparse
 from numpy.ma.core import ones, zeros, prod, sin
 from numpy import diff, pi, inf  # @UnresolvedImport
@@ -270,7 +259,7 @@ def sgolay2d(z, window_size, order, derivative=None):
             np.fliplr(Z[-half_size:, half_size + 1:2 * half_size + 1]) - band)
 
     # solve system and convolve
-    if derivative == None:
+    if derivative is None:
         m = np.linalg.pinv(A)[0].reshape((window_size, -1))
         return scipy.signal.fftconvolve(Z, m, mode='valid')
     elif derivative == 'col':
@@ -364,7 +353,7 @@ class PPform(object):
                 return
         breaks = self.breaks.copy()
         coefs = self.coeffs.copy()
-        #pieces = len(breaks) - 1
+        # pieces = len(breaks) - 1
 
         # Add new breaks beyond each end
         breaks2add = breaks[[0, -1]] + np.array([-1, 1])
@@ -526,7 +515,7 @@ class SmoothSpline(PPform):
 
         n = len(x)
 
-        #ndy = y.ndim
+        # ndy = y.ndim
         szy = y.shape
 
         nd = prod(szy[:-1])
@@ -554,10 +543,9 @@ class SmoothSpline(PPform):
             zrs = zeros(nd)
             if p < 1:
                 # faster than yi-6*(1-p)*Q*u
-                ai = (y - (6 * (1 - p) * D *
-                           diff(vstack([zrs,
-                                    diff(vstack([zrs, u, zrs]), axis=0) * dx1,
-                                                          zrs]), axis=0)).T).T
+                Qu = D * diff(vstack([zrs, diff(vstack([zrs, u, zrs]),
+                                                axis=0) * dx1, zrs]), axis=0)
+                ai = (y - (6 * (1 - p) * Qu).T).T
             else:
                 ai = y.reshape(n, -1)
 
@@ -612,7 +600,7 @@ class SmoothSpline(PPform):
 
         # Make sure it uses symmetric matrix solver
         ddydx = diff(dydx, axis=0)
-        #sp.linalg.use_solver(useUmfpack=True)
+        # sp.linalg.use_solver(useUmfpack=True)
         u = 2 * sparse.linalg.spsolve((QQ + QQ.T), ddydx)  # @UndefinedVariable
         return u.reshape(n - 2, -1), p
 
@@ -786,7 +774,7 @@ def stineman_interp(xi, x, y, yp=None):
     x = np.asarray(x, np.float_)
     y = np.asarray(y, np.float_)
     assert x.shape == y.shape
-    #N = len(y)
+    # N = len(y)
 
     if yp is None:
         yp = slopes(x, y)
@@ -794,7 +782,7 @@ def stineman_interp(xi, x, y, yp=None):
         yp = np.asarray(yp, np.float_)
 
     xi = np.asarray(xi, np.float_)
-    #yi = np.zeros(xi.shape, np.float_)
+    # yi = np.zeros(xi.shape, np.float_)
 
     # calculate linear slopes
     dx = x[1:] - x[:-1]
@@ -1082,13 +1070,13 @@ def test_smoothing_spline():
     pp0 = pp1.integrate()
     dy1 = pp1(x1)
     y01 = pp0(x1)
-    #dy = y-y1
+    # dy = y-y1
     import matplotlib.pyplot as plb
 
     plb.plot(x, y, x1, y1, '.', x1, dy1, 'ro', x1, y01, 'r-')
     plb.show()
     pass
-    #tck = interpolate.splrep(x, y, s=len(x))
+    # tck = interpolate.splrep(x, y, s=len(x))
 
 
 def compare_methods():
@@ -1168,7 +1156,7 @@ def demo_monoticity():
     plt.plot(xvec, yvec2, 'k', label='interp1d')
     plt.plot(xvec, yvec3, 'g', label='CHS')
     plt.plot(xvec, yvec4, 'm', label='Stineman')
-    #plt.plot(xvec, yvec5, 'yo', label='Pchip2')
+    # plt.plot(xvec, yvec5, 'yo', label='Pchip2')
     plt.xlabel("X")
     plt.ylabel("Y")
     plt.title("Comparing Pchip() vs. Scipy interp1d() vs. non-monotonic CHS")
@@ -1244,8 +1232,8 @@ def test_docstrings():
 
 
 if __name__ == '__main__':
-    #test_func()
+    # test_func()
     # test_doctstrings()
     # test_smoothing_spline()
-    #compare_methods()
+    # compare_methods()
     demo_monoticity()
