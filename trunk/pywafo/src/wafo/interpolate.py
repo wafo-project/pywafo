@@ -4,11 +4,8 @@ import numpy as np
 import scipy.signal
 # import scipy.sparse.linalg  # @UnusedImport
 import scipy.sparse as sparse
-from numpy.ma.core import ones, zeros, prod, sin
-from numpy import diff, pi, inf  # @UnresolvedImport
-from numpy.lib.shape_base import vstack
-from numpy.lib.function_base import linspace
-from scipy.interpolate import PiecewisePolynomial
+from numpy import ones, zeros, prod, sin, diff, pi, inf, vstack, linspace
+from scipy.interpolate import PiecewisePolynomial, interp1d
 
 import polynomial as pl
 
@@ -323,17 +320,11 @@ class PPform(object):
         indxs = indxs.clip(0, len(self.breaks))
         pp = self.coeffs
         dx = xx - self.breaks.take(indxs)
-        if True:
-            v = pp[0, indxs]
-            for i in xrange(1, self.order):
-                v = dx * v + pp[i, indxs]
-            values = v
-        else:
-            V = np.vander(dx, N=self.order)
-            # values = np.diag(dot(V,pp[:,indxs]))
-            dot = np.dot
-            values = np.array([dot(V[k, :], pp[:, indxs[k]])
-                              for k in xrange(len(xx))])
+
+        v = pp[0, indxs]
+        for i in xrange(1, self.order):
+            v = dx * v + pp[i, indxs]
+        values = v
 
         res[mask] = values
         res.shape = saveshape
@@ -1060,6 +1051,46 @@ class Pchip(PiecewisePolynomial):
         super(Pchip, self).__init__(x, zip(y, yp), orders=3)
 
 
+def interp3(x, y, z, v, xi, yi, zi, method='cubic'):
+    """Interpolation on 3-D. x, y, xi, yi should be 1-D
+    and z.shape == (len(x), len(y), len(z))"""
+    q = (x, y, z)
+    qi = (xi, yi, zi)
+    for j in range(3):
+        pp = interp1d(q[j], v, axis=j, kind=method)
+        v = pp(qi[j])
+    return v
+
+
+def somefunc(x, y, z):
+    return x**2 + y**2 - z**2 + x*y*z
+
+
+def test_interp3():
+    # some input data
+    x = np.linspace(0, 1, 5)
+    y = np.linspace(0, 2, 6)
+    z = np.linspace(0, 3, 7)
+    v = somefunc(x[:, None, None], y[None, :, None], z[None, None, :])
+
+    # interpolate
+    xi = np.linspace(0, 1, 45)
+    yi = np.linspace(0, 2, 46)
+    zi = np.linspace(0, 3, 47)
+    vi = interp3(x, y, z, v, xi, yi, zi)
+
+    import matplotlib.pyplot as plt
+    X, Y = np.meshgrid(xi, yi)
+    plt.figure(1)
+    plt.subplot(1, 2, 1)
+    plt.pcolor(X, Y, vi[:, :, 12].T)
+    plt.title('interpolated')
+    plt.subplot(1, 2, 2)
+    plt.pcolor(X, Y, somefunc(xi[:, None], yi[None, :], zi[12]).T)
+    plt.title('exact')
+    plt.show('hold')
+
+
 def test_smoothing_spline():
     x = linspace(0, 2 * pi + pi / 4, 20)
     y = sin(x)  # + np.random.randn(x.size)
@@ -1074,7 +1105,7 @@ def test_smoothing_spline():
     import matplotlib.pyplot as plb
 
     plb.plot(x, y, x1, y1, '.', x1, dy1, 'ro', x1, y01, 'r-')
-    plb.show()
+    plb.show('hold')
     pass
     # tck = interpolate.splrep(x, y, s=len(x))
 
@@ -1234,6 +1265,7 @@ def test_docstrings():
 if __name__ == '__main__':
     # test_func()
     # test_doctstrings()
-    # test_smoothing_spline()
+    test_smoothing_spline()
     # compare_methods()
-    demo_monoticity()
+    # demo_monoticity()
+    # test_interp3()

@@ -81,7 +81,7 @@ def dea3(v0, v1, v2):
         smalle2 = (abs(ss * E1) <= 1.0e-3).ravel()
 
     result = 1.0 * E2
-    abserr = err1 + err2 + E2 * _EPS * 10.0
+    abserr = err1 + err2 + abs(E2) * _EPS * 10.0
     converged = (err1 <= tol1) & (err2 <= tol2).ravel() | smalle2
     k4, = (1 - converged).nonzero()
     if k4.size > 0:
