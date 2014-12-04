@@ -22,7 +22,7 @@ from plotbackend import plotbackend as plt
 import numpy as np
 from numpy.fft import fft, ifft
 from numpy import (zeros, ones, zeros_like, array, asarray, newaxis, arange,
-                   logical_or, any, pi, cos, round, diff, all, exp,
+                   logical_or, any, pi, cos, round, diff, all, exp, atleast_1d,
                    where, extract, linalg, sign, concatenate, floor, isreal,
                    conj, remainder, linspace, sum)
 from numpy.lib.polynomial import *  # @UnusedWildImport

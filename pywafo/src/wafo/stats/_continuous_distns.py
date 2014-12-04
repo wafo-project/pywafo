@@ -11,7 +11,9 @@ from scipy.misc.doccer import inherit_docstring_from
 from scipy import special
 from scipy import optimize
 from scipy import integrate
-from scipy.special import (gammaln as gamln, gamma as gam, boxcox, boxcox1p, log1p, expm1)
+from scipy.special import (gammaln as gamln, gamma as gam, boxcox, boxcox1p, 
+                           log1p, expm1)
+                           #inv_boxcox, inv_boxcox1p)
 
 from numpy import (where, arange, putmask, ravel, sum, shape,
                    log, sqrt, exp, arctanh, tan, sin, arcsin, arctan,
