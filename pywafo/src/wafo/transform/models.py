@@ -8,8 +8,8 @@ TrLinear
 # !/usr/bin/env python
 from __future__ import division
 from scipy.optimize import brentq
-from numpy import (sqrt, atleast_1d, abs, imag, sign, where, cos, arccos, ceil,  # @UnresolvedImport
-                   expm1, log1p, pi)  # @UnresolvedImport
+from numpy import (sqrt, atleast_1d, abs, imag, sign, where, cos, arccos, ceil,
+                   expm1, log1p, pi)
 import numpy as np
 import warnings
 from core import TrCommon, TrData
@@ -69,7 +69,7 @@ class TrCommon2(TrCommon):
 
 
 class TrHermite(TrCommon2):
-    __doc__ = TrCommon2.__doc__.replace('<generic>', 'Hermite'  # @ReservedAssignment
+    __doc__ = TrCommon2.__doc__.replace('<generic>', 'Hermite'
                                         ) + """
     pardef : scalar, integer
         1  Winterstein et. al. (1994) parametrization [1]_ (default)
@@ -319,13 +319,13 @@ class TrHermite(TrCommon2):
                 A0 = (q1 - q0) ** (1. / 3.)
                 B0 = -(q1 + q0) ** (1. / 3.)
                 return A0 + B0 - x0  # % real root
-                #%% The other complex roots are given by
-                #%x= -(A0+B0)/2+(A0-B0)*sqrt(3)/2-x0
-                #%x=-(A0+B0)/2+(A0-B0)*sqrt(-3)/2-x0
+                # The other complex roots are given by
+                # x= -(A0+B0)/2+(A0-B0)*sqrt(3)/2-x0
+                # x=-(A0+B0)/2+(A0-B0)*sqrt(-3)/2-x0
 
 
 class TrLinear(TrCommon2):
-    __doc__ = TrCommon2.__doc__.replace('<generic>', 'Linear'  # @ReservedAssignment
+    __doc__ = TrCommon2.__doc__.replace('<generic>', 'Linear'
                                         ) + """
     Description
     -----------
@@ -368,7 +368,7 @@ class TrLinear(TrCommon2):
 
 
 class TrOchi(TrCommon2):
-    __doc__ = TrCommon2.__doc__.replace('<generic>', 'Ochi'  # @ReservedAssignment
+    __doc__ = TrCommon2.__doc__.replace('<generic>', 'Ochi'
                                         ) + """
 
     Description
@@ -450,7 +450,8 @@ class TrOchi(TrCommon2):
 
         # Let x = [a sig2^2 ]
         # Set up the 2D non-linear equations for a and sig2^2:
-        # g1='[x(2)-2.*x(1).^2.*x(2).^2-P1, 2.*x(1).*x(2).^2.*(3-8.*x(1).^2.*x(2))-P2  ]'
+        # g1='[x(2)-2.*x(1).^2.*x(2).^2-P1,
+        #      2.*x(1).*x(2).^2.*(3-8.*x(1).^2.*x(2))-P2  ]'
         # Or solve the following 1D non-linear equation for sig2^2:
         g2 = lambda x: -sqrt(abs(x - 1) * 2) * \
             (3. * x - 4 * abs(x - 1)) + abs(skew)

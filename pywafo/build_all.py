@@ -1,6 +1,14 @@
 """
 builds all extensions
 
+In notepad (or your favourite text editor) create a new text file and enter the following in the file:
+[build]
+compiler = mingw32
+
+Save the file as "C:\Python25\Lib\distutils\distutils.cfg".
+This will tell python to use the MinGW compiler when compiling extensions
+
+
 See also http://www.scipy.org/Cookbook/CompilingExtensionsOnWindowsWithMinGW
 """
 import os

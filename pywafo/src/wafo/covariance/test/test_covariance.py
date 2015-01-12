@@ -1,6 +1,6 @@
 from numpy.testing import (run_module_suite, assert_equal,
-                           assert_array_almost_equal,
-                           assert_almost_equal, assert_array_equal)  # @UnusedImport @IgnorePep8
+                           assert_array_almost_equal)
+# assert_almost_equal, assert_array_equal)
 import wafo.spectrum.models as sm
 # from wafo.covariance import CovData1D
 

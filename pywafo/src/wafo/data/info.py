@@ -23,27 +23,32 @@ from numpy import (loadtxt, nan)
 import os
 __path2data = os.path.dirname(os.path.realpath(__file__))
 
-__all__ = ['atlantic', 'gfaks89', 'gfaksr89', 'japansea', 'northsea', 'sea', 
+__all__ = ['atlantic', 'gfaks89', 'gfaksr89', 'japansea', 'northsea', 'sea',
            'sfa89', 'sn', 'yura87']
 
 _NANS = set(['nan', 'NaN', '-1.#IND00+00', '1.#IND00+00', '-1.#INF00+00'])
 
+
 def _tofloat(x):
     return nan if x in _NANS else float(x or 0)
-    
+
+
 _MYCONVERTER = {}
 for i in range(2):
     _MYCONVERTER[i] = _tofloat
 
-def _load(file):
+
+def _load(file):  # @ReservedAssignment
     """ local load function
     """
     return loadtxt(os.path.join(__path2data, file))
-    
-def _loadnan(file):
+
+
+def _loadnan(file):  # @ReservedAssignment
     """ local load function accepting nan's
     """
     return loadtxt(os.path.join(__path2data, file), converters=_MYCONVERTER)
+
 
 def atlantic():
     """
@@ -76,6 +81,8 @@ def atlantic():
     and Dr. David Cotton, Satellite Observing Systems, UK.
     """
     return _load('atlantic.dat')
+
+
 def gfaks89():
     """
     Return Surface elevation measured at Gullfaks C 24.12.1989
@@ -102,8 +109,8 @@ def gfaks89():
     affected by diffraction effects for incoming waves in the western sector.
     The wind direction for this period is from the south.
     Some difficulties in calibration of the instruments have been reported
-    resulting in several consecutive measured values being equal or almost equal
-    in the observed data set.
+    resulting in several consecutive measured values being equal or almost
+    equal in the observed data set.
 
     This dataset is for non-commercial use only.
 
@@ -127,9 +134,12 @@ def gfaks89():
 
     """
     return _loadnan('gfaks89.dat')
+
+
 def gfaksr89():
     """
-    Return a reconstruction of surface elevation measured at Gullfaks C 24.12.1989.
+    Return a reconstruction of surface elevation measured at Gullfaks C
+    24.12.1989.
 
 
     Data summary
@@ -160,8 +170,8 @@ def gfaksr89():
     affected by diffraction effects for incoming waves in the western sector.
     The wind direction for this period is from the south.
     Some difficulties in calibration of the instruments have been reported
-    resulting in several consecutive measured values being equal or almost equal
-    in the observed data set.
+    resulting in several consecutive measured values being equal or almost
+    equal in the observed data set.
 
     Hm0 = 6.8m, Tm02 = 8s, Tp = 10.5
 
@@ -179,6 +189,8 @@ def gfaksr89():
     gfaks89
     """
     return _loadnan('gfaksr89.dat')
+
+
 def japansea():
     """
     Return coastline map of The Japan Sea
@@ -225,6 +237,8 @@ def japansea():
     m_text(139,35.7,'Tokyo');
     """
     return _loadnan('japansea.dat')
+
+
 def northsea():
     """
     NORTHSEA  coastline map of The Nortsea
@@ -285,6 +299,8 @@ def northsea():
             m.text(lon,lat,name,horizontalalignment=algn)
     """
     return _loadnan('northsea.dat')
+
+
 def sea():
     """
     Return Surface elevation dataset used in WAT version 1.1.
@@ -311,6 +327,8 @@ def sea():
     >>> h = pylab.plot(x[:,0],x[:,1])
     """
     return _load('sea.dat')
+
+
 def sfa89():
     """
     Return Wind measurements at Statfjord A 24.12.1989
@@ -355,6 +373,8 @@ def sfa89():
     northsea
     """
     return _load('sfa89.dat')
+
+
 def sn():
     """
     Return SN Fatigue experiment, constant-amplitude loading.
@@ -388,6 +408,8 @@ def sn():
 
     """
     return _load('sn.dat')
+
+
 def yura87():
     """
     Return Surface elevation measured off the coast of Yura.

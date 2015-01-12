@@ -34,7 +34,7 @@ def sampling_period(t_vec):
     return dt
 
 
-class CovarianceEstimatior(object):
+class CovarianceEstimator(object):
     '''
     Class for estimating AutoCovariance from timeseries
 
@@ -64,7 +64,7 @@ class CovarianceEstimatior(object):
     '''
     def __init__(self, lag=None, tr=None, detrend=None, window='boxcar',
                  flag='biased', norm=False, dt=None):
-        self.lag
+        self.lag = lag
         self.tr = tr
         self.detrend = detrend
         self.window = window
