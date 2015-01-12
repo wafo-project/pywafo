@@ -82,7 +82,7 @@ class TransformEstimator(object):
     def __init__(self, method='nonlinear', chkder=True, plotflag=False,
                  csm=.95, gsm=.05, param=(-5, 5, 513), delay=2, ntr=10000,
                  linextrap=True, ne=7, cvar=1, gvar=1, multip=False,
-                 crossdef='uM'):
+                 crossdef='uM', monitor=False):
         self.method = method
         self.chkder = chkder
         self.plotflag = plotflag
@@ -349,7 +349,7 @@ class TransformEstimator(object):
 
         if self.chkder:
             tr_raw = TrData(tmp[Ne:nd - Ne], cdf.args[ind1], mean=mean,
-                             sigma=sigma)
+                            sigma=sigma)
             tr = self._check_tr(tr, tr_raw)
 
         if self.plotflag > 0:

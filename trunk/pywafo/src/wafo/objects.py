@@ -13,13 +13,13 @@
 
 
 from __future__ import division
-from .transform.core import TrData
-from .transform.estimation import TransformEstimator
-from .stats import distributions
-from .misc import (nextpow2, findtp, findrfc, findtc, findcross,
-                   ecross, JITImport, DotDict, gravity, findrfc_astm)
-from .interpolate import stineman_interp
-from .containers import PlotData
+from wafo.transform.core import TrData
+from wafo.transform.estimation import TransformEstimator
+from wafo.stats import distributions
+from wafo.misc import (nextpow2, findtp, findrfc, findtc, findcross,
+                       ecross, JITImport, DotDict, gravity, findrfc_astm)
+from wafo.interpolate import stineman_interp
+from wafo.containers import PlotData
 from scipy.integrate import trapz
 from scipy.signal import welch, lfilter
 from scipy.signal.windows import get_window  # @UnusedImport
@@ -32,7 +32,7 @@ from numpy import (inf, pi, zeros, ones, sqrt, where, log, exp, cos, sin,
                    arcsin, mod,
                    linspace, arange, sort, all, abs, vstack, hstack,
                    atleast_1d, finfo, polyfit, r_, nonzero,
-                   cumsum, ravel, size, isnan, ceil, diff, array)
+                   cumsum, ravel, isnan, ceil, diff, array)
 from numpy.fft import fft  # @UnusedImport
 from numpy.random import randn
 import matplotlib
@@ -1231,6 +1231,8 @@ class TimeSeries(PlotData):
             fact = 2.0 * pi
             w = fact * f
             spec = _wafospec.SpecData1D(S / fact, w)
+        elif method == 'cov':
+            pass
         else:
             raise ValueError('Unknown method (%s)' % method)
 
@@ -1327,18 +1329,18 @@ class TimeSeries(PlotData):
         >>> xs = S.sim(ns=2**16, iseed=10)
         >>> ts = mat2timeseries(xs)
         >>> g0, g0emp = ts.trdata(plotflag=1)
-        >>> g1, g1emp = ts.trdata(method='m', gvar=0.5 )
-        >>> g2, g2emp = ts.trdata(method='n', gvar=[3.5, 0.5, 3.5])
-        >>> int(S.tr.dist2gauss()*100)
-        141
-        >>> int(g0emp.dist2gauss()*100)
-        217949
-        >>> int(g0.dist2gauss()*100)
-        93
-        >>> int(g1.dist2gauss()*100)
-        66
-        >>> int(g2.dist2gauss()*100)
-        84
+        >>> g1, g1emp = ts.trdata(method='mnonlinear', gvar=0.5 )
+        >>> g2, g2emp = ts.trdata(method='nonlinear', gvar=[3.5, 0.5, 3.5])
+        >>> 100 < S.tr.dist2gauss()*100 < 200
+        True
+        >>> 2000 < g0emp.dist2gauss() < 4000
+        True
+        >>> 80 < g0.dist2gauss()*100 < 150
+        True
+        >>> 50 < g1.dist2gauss()*100 < 100
+        True
+        >>> 70 < g2.dist2gauss()*100 < 140
+        True
 
         See also
         --------
@@ -1927,37 +1929,38 @@ class TimeSeries(PlotData):
         Lm = np.minimum([n, 200, int(200/dT)])  # Lagmax 200 seconds
         if L is not None:
             Lm = max(L, Lm)
-        Lma = 1500  # size of the moving average window used
-                    # for detrending the reconstructed signal
-        if not inds is None:
+        # Lma: size of the moving average window used for detrending the
+        #     reconstructed signal
+        Lma = 1500
+        if inds is not None:
             xn[inds] = np.nan
 
         inds = isnan(xn)
         if not inds.any():
             raise ValueError('No spurious data given')
 
-        endpos  = np.diff(inds)
-        strtpos = np.flatnonzero(endpos>0)
-        endpos  = np.flatnonzero(endpos<0)
+        endpos = np.diff(inds)
+        strtpos = np.flatnonzero(endpos > 0)
+        endpos = np.flatnonzero(endpos < 0)
 
-        indg = np.flatnonzero(1-inds) # indices to good points
+        indg = np.flatnonzero(1-inds)  # indices to good points
         inds = np.flatnonzero(inds)  # indices to spurious points
 
-        indNaN = [] # indices to points omitted in the covariance estimation
-        indr = np.arange(n) # indices to point used in the estimation of g
+        indNaN = []  # indices to points omitted in the covariance estimation
+        indr = np.arange(n)  # indices to point used in the estimation of g
 
-        # Finding more than cmvmax consecutive spurios points. 
-        # They will not be used in the estimation of g and are thus removed 
+        # Finding more than cmvmax consecutive spurios points.
+        # They will not be used in the estimation of g and are thus removed
         # from indr.
 
-        if strtpos.size>0 and (endpos.size==0 or endpos[-1] < strtpos[-1]):
-            if (n - strtpos[-1]) > cmvmax: 
+        if strtpos.size > 0 and (endpos.size == 0 or endpos[-1] < strtpos[-1]):
+            if (n - strtpos[-1]) > cmvmax:
                 indNaN = indr[strtpos[-1]+1:n]
                 indr = indr[:strtpos[-1]+1]
             strtpos = strtpos[:-1]
 
-        if endpos.size>0 and (strtpos.size==0 or endpos[0] < strtpos[0]):
-            if endpos[0] > cmvmax: 
+        if endpos.size > 0 and (strtpos.size == 0 or endpos[0] < strtpos[0]):
+            if endpos[0] > cmvmax:
                 indNaN = np.hstack((indNaN, indr[:endpos[0]]))
                 indr = indr[endpos[0]:]
 
@@ -1965,12 +1968,13 @@ class TimeSeries(PlotData):
             endpos = endpos-endpos[0]
             endpos = endpos[1:]
 
-        for ix in range(len(strtpos)-1,-1,-1):
-            if (endpos[ix]-strtpos[ix]>cmvmax):
+        for ix in range(len(strtpos)-1, -1, -1):
+            if (endpos[ix]-strtpos[ix] > cmvmax):
                 indNaN = np.hstack((indNaN, indr[strtpos[ix]+1:endpos[ix]]))
-                del indr[strtpos[ix]+1:endpos[ix]] # remove this when estimating the transform
+                # remove this when estimating the transform
+                del indr[strtpos[ix]+1:endpos[ix]]
 
-        if len(indr)<0.1*n:
+        if len(indr) < 0.1*n:
             raise ValueError('Not possible to reconstruct signal')
 
         if indNaN.any():
@@ -1984,7 +1988,8 @@ class TimeSeries(PlotData):
 #         xnt(inds,2)=NaN;
 #         rwin=findrwin(xnt,Lm,L);
 #         disp(['First reconstruction attempt,    e(g-u)=', num2str(test)] )
-#         [samp ,mu1o, mu1oStd]  = cov2csdat(xnt(:,2),rwin,1,method,inds); # old simcgauss
+#         # old simcgauss
+#         [samp ,mu1o, mu1oStd]  = cov2csdat(xnt(:,2),rwin,1,method,inds);
 #         if expect1,# reconstruction by expectation
 #           xnt(inds,2) =mu1o;
 #         else
@@ -2214,7 +2219,7 @@ class TimeSeries(PlotData):
                 if len(ind2) > 0:
                     plot(tn2[ind2] * dT, xn2[ind2], sym2)
                 plot(h_scale * dT, [0, 0], 'k-')
-                #plotbackend.axis([h_scale*dT, v_scale])
+                # plotbackend.axis([h_scale*dT, v_scale])
                 for iy in [-2, 2]:
                     plot(h_scale * dT, iy * sigma * ones(2), ':')
                 ind = ind + Ns
@@ -2301,7 +2306,7 @@ class TimeSeries(PlotData):
 def main():
     import wafo
     ts = wafo.objects.mat2timeseries(wafo.data.sea())
-    S = ts.tospecdata(method='psd')
+    _S = ts.tospecdata(method='psd')
     tp = ts.turning_points()
     mm = tp.cycle_pairs()
     lc = mm.level_crossings()
@@ -2346,5 +2351,5 @@ def test_docstrings():
 
 if __name__ == '__main__':
     test_docstrings()
-    #main()
-#    test_levelcrossings_extrapolate()
+    # main()
+    # test_levelcrossings_extrapolate()

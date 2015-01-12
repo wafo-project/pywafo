@@ -1,7 +1,22 @@
 import numpy as np
+from scipy.fftpack import _fftpack
 from scipy.fftpack import dct as _dct
 from scipy.fftpack import idct as _idct
+import os
+path = os.path.dirname(os.path.realpath(__file__))
+
 __all__ = ['dct', 'idct', 'dctn', 'idctn']
+
+
+def _truncate_or_zero_pad(x, n, axis):
+    nt = n - np.shape(x)[axis]
+    if nt < 0:
+        x = np.take(x, np.r_[0:n], axis=axis)
+    elif 0 < nt:
+        pads = [(0, 0)] * np.ndim(x)
+        pads[axis] = 0, nt
+        x = np.pad(x, pads, 'constant')
+    return x
 
 
 def dct(x, type=2, n=None, axis=-1, norm='ortho'):  # @ReservedAssignment
@@ -89,21 +104,54 @@ def dct(x, type=2, n=None, axis=-1, norm='ortho'):  # @ReservedAssignment
     to a factor `2N`. The orthonormalized DCT-III is exactly the inverse of
     the orthonormalized DCT-II.
 
+    Examples
+    --------
+    >>> import numpy as np
+    >>> x = np.arange(5)
+    >>> np.abs(x-idct(dct(x)))<1e-14
+    array([ True,  True,  True,  True,  True], dtype=bool)
+    >>> np.abs(x-dct(idct(x)))<1e-14
+    array([ True,  True,  True,  True,  True], dtype=bool)
+
     References
     ----------
 
     http://en.wikipedia.org/wiki/Discrete_cosine_transform
+    http://users.ece.utexas.edu/~bevans/courses/ee381k/lectures/
 
     'A Fast Cosine Transform in One and Two Dimensions', by J. Makhoul, `IEEE
     Transactions on acoustics, speech and signal processing` vol. 28(1),
     pp. 27-34, http://dx.doi.org/10.1109/TASSP.1980.1163351 (1980).
     '''
-    farr = np.asfarray
-    if np.iscomplex(x).any():
-        return _dct(farr(x.real), type, n, axis, norm) + \
-            1j * _dct(farr(x.imag), type, n, axis, norm)
+    if n is not None:
+        # Hack until scipy.fftpack.dct implement this functionality
+        x = _truncate_or_zero_pad(x, n, axis)
+        n = None
+    return _dct(x, type, n, axis, norm)
+    dtype = np.result_type(np.float32, np.asarray(x))
+    x0 = np.asarray(x, dtype=dtype)
+    if dtype == complex:
+        return (_dct(x0.real, type, n, axis, norm) + 1j *
+                _dct(x0.imag, type, n, axis, norm))
     else:
-        return _dct(farr(x), type, n, axis, norm)
+        return _dct(x0, type, n, axis, norm)
+
+
+def test(type=2, dtype=None, normalize='ortho'):  # @ReservedAssignment
+    dtype = np.result_type(np.float64)
+    try:
+        nm = {None: 0, 'ortho': 1}[normalize]
+    except KeyError:
+        raise ValueError("Unknown normalize mode %s" % normalize)
+    try:
+        name = {'float64': 'ddct%d', 'float32': 'dct%d'}[dtype.name]
+    except KeyError:
+        raise ValueError("dtype %s not supported" % dtype)
+    try:
+        f = getattr(_fftpack, name % type)
+    except AttributeError as e:
+        raise ValueError(str(e) + ". Type %d not understood" % type)
+    return f, nm
 
 
 def idct(x, type=2, n=None, axis=-1, norm='ortho'):  # @ReservedAssignment
@@ -144,25 +192,93 @@ def idct(x, type=2, n=None, axis=-1, norm='ortho'):  # @ReservedAssignment
     see `dct`.
     '''
     farr = np.asarray
+    if n is not None:
+        # Hack until scipy.fftpack.idct implement this functionality
+        x = _truncate_or_zero_pad(x, n, axis)
+        n = None
     if np.iscomplex(x).any():
-        return _idct(farr(x.real), type, n, axis, norm) + \
-            1j * _idct(farr(x.imag), type, n, axis, norm)
+        x0 = farr(x, dtype=complex)
+        return (_idct(x0.real, type, n, axis, norm) + 1j *
+                _idct(x0.imag, type, n, axis, norm))
     else:
-        return _idct(farr(x), type, n, axis, norm)
+        return _idct(farr(x, dtype=float), type, n, axis, norm)
 
 
-def dctn(x, type=2, axis=None, norm='ortho'):  # @ReservedAssignment
+def _get_shape(y, shape, axes):
+    if shape is None:
+        if axes is None:
+            shape = y.shape
+        else:
+            shape = np.take(y.shape, axes)
+    shape = tuple(shape)
+    return shape
+
+
+def _get_axes(y, shape, axes):
+    if axes is None:
+        axes = range(y.ndim)
+    if len(axes) != len(shape):
+        raise ValueError("when given, axes and shape arguments "
+                         "have to be of the same length")
+    return list(axes)
+
+
+def _raw_dctn(y, type, shape, axes, norm, fun):  # @ReservedAssignment
+    shape = _get_shape(y, shape, axes)
+    axes = _get_axes(y, shape, axes)
+    shape0 = list(y.shape)
+    ndim = y.ndim
+    isvector = max(shape0) == y.size
+    if isvector and ndim == 1:
+        y = np.atleast_2d(y)
+        y = y.T
+    for dim in range(ndim):
+        y = shiftdim(y, 1)
+        if dim not in axes:
+            continue
+        n = shape[axes.index(dim)]
+        shape0[dim] = n
+        y = fun(y, type, n, norm=norm)
+
+    return y.reshape(shape0)
+
+
+def dctn(x, type=2, shape=None, axes=None,  # @ReservedAssignment
+         norm='ortho'):
     '''
-    DCTN N-D discrete cosine transform.
+    Return the N-D Discrete Cosine Transform of array x.
 
+    Parameters
+    ----------
+    x : array_like
+        The input array.
+    type : {1, 2, 3}, optional
+        Type of the DCT (see Notes). Default type is 2.
+    shape : tuple of ints, optional
+        The shape of the result.  If both `shape` and `axes` (see below) are
+        None, `shape` is ``x.shape``; if `shape` is None but `axes` is
+        not None, then `shape` is ``scipy.take(x.shape, axes, axis=0)``.
+        If ``shape[i] > x.shape[i]``, the i-th dimension is padded with zeros.
+        If ``shape[i] < x.shape[i]``, the i-th dimension is truncated to
+        length ``shape[i]``.
+    axes : array_like of ints, optional
+        The axes of `x` (`y` if `shape` is not None) along which the
+        transform is applied.
+    norm : {None, 'ortho'}, optional
+        Normalization mode (see Notes in dct). Default is 'ortho'.
+
+    Returns
+    -------
+    y : ndarray of real
+        The transformed input array.
+
+
+    Notes
+    -----
     Y = DCTN(X) returns the discrete cosine transform of X. The array Y is
     the same size as X and contains the discrete cosine transform
     coefficients. This transform can be inverted using IDCTN.
 
-    DCTN(X,axis) applies the DCTN operation across the dimension axis.
-
-    Class Support
-    -------------
     Input array can be numeric or logical. The returned array is of class
     double.
 
@@ -173,410 +289,62 @@ def dctn(x, type=2, axis=None, norm='ortho'):  # @ReservedAssignment
 
     Example
     -------
-    RGB = imread('autumn.tif');
-    I = rgb2gray(RGB);
-    J = dctn(I);
-    imshow(log(abs(J)),[]), colormap(jet), colorbar
+    >>> import os
+    >>> import numpy as np
+    >>> import scipy.ndimage as sn
+    >>> import matplotlib.pyplot as plt
+    >>> name = os.path.join(path, 'autumn.gif')
+    >>> rgb = sn.imread(name)
+    >>> J = dctn(rgb)
+    >>> (np.abs(rgb-idctn(J))<1e-7).all()
+    True
+
+    plt.imshow(np.log(np.abs(J)))
+    plt.colorbar() #colormap(jet), colorbar
 
     The commands below set values less than magnitude 10 in the DCT matrix
     to zero, then reconstruct the image using the inverse DCT.
 
-        J(abs(J)<10) = 0;
-        K = idctn(J);
-        figure, imshow(I)
-        figure, imshow(K,[0 255])
+    J[np.abs(J)<10] = 0
+    K = idctn(J)
+    plt.figure(0)
+    plt.imshow(rgb)
+    plt.figure(1)
+    plt.imshow(K,[0 255])
 
     See also
     --------
     idctn, dct, idct
     '''
-
     y = np.atleast_1d(x)
-    shape0 = y.shape
-    if axis is None:
-        y = y.squeeze()  # Working across singleton dimensions is useless
-    ndim = y.ndim
-    isvector = max(shape0) == y.size
-    if isvector:
-        if ndim == 1:
-            y = np.atleast_2d(y)
-            y = y.T
-        elif y.shape[0] == 1:
-            if axis == 0:
-                return x
-            elif axis == 1:
-                axis = 0
-            y = y.T
-        elif axis == 1:
-            return y
-
-    if np.iscomplex(y).any():
-        y = dctn(y.real, type, axis, norm) + 1j * \
-            dctn(y.imag, type, axis, norm)
-    else:
-        y = np.asfarray(y)
-        for dim in range(ndim):
-            y = y.transpose(np.roll(range(y.ndim), -1))
-            #y = shiftdim(y,1)
-            if axis is not None and dim != axis:
-                continue
-            y = _dct(y, type, norm=norm)
-    return y.reshape(shape0)
+    return _raw_dctn(y, type, shape, axes, norm, dct)
 
 
-def idctn(x, type=2, axis=None, norm='ortho'):  # @ReservedAssignment
+def idctn(x, type=2, shape=None, axes=None,  # @ReservedAssignment
+          norm='ortho'):
+    '''Return inverse N-D Discrete Cosine Transform of array x.
+
+    For description of parameters see `dctn`.
+
+    See Also
+    --------
+    dctn : for detailed information.
+    '''
     y = np.atleast_1d(x)
-    shape0 = y.shape
-    if axis is None:
-        y = y.squeeze()  # Working across singleton dimensions is useless
-    ndim = y.ndim
-    isvector = max(shape0) == y.size
-    if isvector:
-        if ndim == 1:
-            y = np.atleast_2d(y)
-            y = y.T
-        elif y.shape[0] == 1:
-            if axis == 0:
-                return x
-            elif axis == 1:
-                axis = 0
-            y = y.T
-        elif axis == 1:
-            return y
-
-    if np.iscomplex(y).any():
-        y = idctn(y.real, type, axis, norm) + 1j * \
-            idctn(y.imag, type, axis, norm)
-    else:
-        y = np.asfarray(y)
-        for dim in range(ndim):
-            y = y.transpose(np.roll(range(y.ndim), -1))
-            #y = shiftdim(y,1)
-            if axis is not None and dim != axis:
-                continue
-            y = _idct(y, type, norm=norm)
-    return y.reshape(shape0)
-
-# def dct(x, n=None):
-#    """
-#    Discrete Cosine Transform
-#
-#                      N-1
-#           y[k] = 2* sum x[n]*cos(pi*k*(2n+1)/(2*N)), 0 <= k < N.
-#                      n=0
-#
-#    Examples
-#    --------
-#    >>> import numpy as np
-#    >>> x = np.arange(5)
-#    >>> np.abs(x-idct(dct(x)))<1e-14
-#    array([ True,  True,  True,  True,  True], dtype=bool)
-#    >>> np.abs(x-dct(idct(x)))<1e-14
-#    array([ True,  True,  True,  True,  True], dtype=bool)
-#
-#    Reference
-#    ---------
-#    http://en.wikipedia.org/wiki/Discrete_cosine_transform
-#    http://users.ece.utexas.edu/~bevans/courses/ee381k/lectures/
-#    """
-#    fft = np.fft.fft
-#    x = np.atleast_1d(x)
-#
-#    if n is None:
-#        n = x.shape[-1]
-#
-#    if x.shape[-1] < n:
-#        n_shape = x.shape[:-1] + (n - x.shape[-1],)
-#        xx = np.hstack((x, np.zeros(n_shape)))
-#    else:
-#        xx = x[..., :n]
-#
-#    real_x = np.all(np.isreal(xx))
-#    if (real_x and (np.remainder(n, 2) == 0)):
-#        xp = 2 * fft(np.hstack((xx[..., ::2], xx[..., ::-2])))
-#    else:
-#        xp = fft(np.hstack((xx, xx[..., ::-1])))
-#        xp = xp[..., :n]
-#
-#    w = np.exp(-1j * np.arange(n) * np.pi / (2 * n))
-#
-#    y = xp * w
-#
-#    if real_x:
-#        return y.real
-#    else:
-#        return y
-#
-# def idct(x, n=None):
-#    """
-#    Inverse Discrete Cosine Transform
-#
-#                N-1
-#    x[k] = 1/N sum w[n]*y[n]*cos(pi*k*(2n+1)/(2*N)), 0 <= k < N.
-#               n=0
-#
-#    w(0) = 1/2
-#    w(n) = 1 for n>0
-#
-#    Examples
-#    --------
-#    >>> import numpy as np
-#    >>> x = np.arange(5)
-#    >>> np.abs(x-idct(dct(x)))<1e-14
-#    array([ True,  True,  True,  True,  True], dtype=bool)
-#    >>> np.abs(x-dct(idct(x)))<1e-14
-#    array([ True,  True,  True,  True,  True], dtype=bool)
-#
-#    Reference
-#    ---------
-#    http://en.wikipedia.org/wiki/Discrete_cosine_transform
-#    http://users.ece.utexas.edu/~bevans/courses/ee381k/lectures/
-#    """
-#
-#    ifft = np.fft.ifft
-#    x = np.atleast_1d(x)
-#
-#    if n is None:
-#        n = x.shape[-1]
-#
-#    w = np.exp(1j * np.arange(n) * np.pi / (2 * n))
-#
-#    if x.shape[-1] < n:
-#        n_shape = x.shape[:-1] + (n - x.shape[-1],)
-#        xx = np.hstack((x, np.zeros(n_shape))) * w
-#    else:
-#        xx = x[..., :n] * w
-#
-#    real_x = np.all(np.isreal(x))
-#    if (real_x and (np.remainder(n, 2) == 0)):
-#        xx[..., 0] = xx[..., 0] * 0.5
-#        yp = ifft(xx)
-#        y = np.zeros(xx.shape, dtype=complex)
-#        y[..., ::2] = yp[..., :n / 2]
-#        y[..., ::-2] = yp[..., n / 2::]
-#    else:
-#        yp = ifft(np.hstack((xx, np.zeros_like(xx[..., 0]),
-#                                        np.conj(xx[..., :0:-1]))))
-#        y = yp[..., :n]
-#
-#    if real_x:
-#        return y.real
-#    else:
-#        return y
-#
-# def dctn(y, axis=None, w=None):
-#    '''
-#    DCTN N-D discrete cosine transform.
-#
-#    Y = DCTN(X) returns the discrete cosine transform of X. The array Y is
-#    the same size as X and contains the discrete cosine transform
-#    coefficients. This transform can be inverted using IDCTN.
-#
-#    DCTN(X,axis) applies the DCTN operation across the dimension axis.
-#
-#    Class Support
-#    -------------
-#    Input array can be numeric or logical. The returned array is of class
-#    double.
-#
-#    Reference
-#    ---------
-#    Narasimha M. et al, On the computation of the discrete cosine
-#    transform, IEEE Trans Comm, 26, 6, 1978, pp 934-936.
-#
-#    Example
-#    -------
-#    RGB = imread('autumn.tif');
-#    I = rgb2gray(RGB);
-#    J = dctn(I);
-#    imshow(log(abs(J)),[]), colormap(jet), colorbar
-#
-#    The commands below set values less than magnitude 10 in the DCT matrix
-#    to zero, then reconstruct the image using the inverse DCT.
-#
-#        J(abs(J)<10) = 0;
-#        K = idctn(J);
-#        figure, imshow(I)
-#        figure, imshow(K,[0 255])
-#
-#    See also
-#    --------
-#    idctn, dct, idct
-#    '''
-#
-#    y = np.atleast_1d(y)
-#    shape0 = y.shape
-#
-#
-#    if axis is None:
-# y = y.squeeze() # Working across singleton dimensions is useless
-#    dimy = y.ndim
-#    if dimy==1:
-#        y = np.atleast_2d(y)
-#        y = y.T
-# Some modifications are required if Y is a vector
-# if isvector(y):
-# if y.shape[0]==1:
-# if axis==0:
-# return y, None
-# elif axis==1:
-# axis=0
-##            y = y.T
-# elif axis==1:
-# return y, None
-#
-#    if w is None:
-#        w = [0,] * dimy
-#        for dim in range(dimy):
-#            if axis is not None and dim!=axis:
-#                continue
-#            n = (dimy==1)*y.size + (dimy>1)*shape0[dim]
-# w{dim} = exp(1i*(0:n-1)'*pi/2/n);
-#            w[dim] = np.exp(1j * np.arange(n) * np.pi / (2 * n))
-#
-# --- DCT algorithm ---
-#    if np.iscomplex(y).any():
-#        y = dctn(np.real(y),axis,w) + 1j*dctn(np.imag(y),axis,w)
-#    else:
-#        for dim in range(dimy):
-#            y = shiftdim(y,1)
-#            if axis is not None and dim!=axis:
-# y = shiftdim(y, 1)
-#                continue
-#            siz = y.shape
-#            n = siz[-1]
-#            y = y[...,np.r_[0:n:2, 2*int(n//2)-1:0:-2]]
-#            y = y.reshape((-1,n))
-#            y = y*np.sqrt(2*n);
-#            y = (np.fft.ifft(y, n=n, axis=1) * w[dim]).real
-#            y[:,0] = y[:,0]/np.sqrt(2)
-#            y = y.reshape(siz)
-#
-# end
-# end
-#
-#    return y.reshape(shape0), w
-#
-# def idctn(y, axis=None, w=None):
-#    '''
-#    IDCTN N-D inverse discrete cosine transform.
-#       X = IDCTN(Y) inverts the N-D DCT transform, returning the original
-#       array if Y was obtained using Y = DCTN(X).
-#
-#       IDCTN(X,DIM) applies the IDCTN operation across the dimension DIM.
-#
-#       Class Support
-#       -------------
-#       Input array can be numeric or logical. The returned array is of class
-#       double.
-#
-#       Reference
-#       ---------
-#       Narasimha M. et al, On the computation of the discrete cosine
-#       transform, IEEE Trans Comm, 26, 6, 1978, pp 934-936.
-#
-#       Example
-#       -------
-#           RGB = imread('autumn.tif');
-#           I = rgb2gray(RGB);
-#           J = dctn(I);
-#           imshow(log(abs(J)),[]), colormap(jet), colorbar
-#
-#       The commands below set values less than magnitude 10 in the DCT matrix
-#       to zero, then reconstruct the image using the inverse DCT.
-#
-#           J(abs(J)<10) = 0;
-#           K = idctn(J);
-#           figure, imshow(I)
-#           figure, imshow(K,[0 255])
-#
-#       See also
-#       --------
-#       dctn, idct, dct
-#
-#       -- Damien Garcia -- 2009/04, revised 2009/11
-#       website: <a
-#       href="matlab:web('http://www.biomecardio.com')">www.BiomeCardio.com</a>
-#
-#     ----------
-#       [Y,W] = IDCTN(X,DIM,W) uses and returns the weights which are used by
-#       the program. If IDCTN is required for several large arrays of same
-#       size, the weights can be reused to make the algorithm faster. A typical
-#       syntax is the following:
-#          w = [];
-#          for k = 1:10
-#              [y{k},w] = idctn(x{k},[],w);
-#          end
-#       The weights (w) are calculated during the first call of IDCTN then
-#       reused in the next calls.
-#    '''
-#
-#    y = np.atleast_1d(y)
-#    shape0 = y.shape
-#
-#    if axis is None:
-# y = y.squeeze() # Working across singleton dimensions is useless
-#
-#    dimy = y.ndim
-#    if dimy==1:
-#        y = np.atleast_2d(y)
-#        y = y.T
-# Some modifications are required if Y is a vector
-# if isvector(y):
-# if y.shape[0]==1:
-# if axis==0:
-# return y, None
-# elif axis==1:
-# axis=0
-##            y = y.T
-# elif axis==1:
-# return y, None
-##
-#
-#
-#    if w is None:
-#        w = [0,] * dimy
-#        for dim in range(dimy):
-#            if axis is not None and dim!=axis:
-#                continue
-#            n = (dimy==1)*y.size + (dimy>1)*shape0[dim]
-# w{dim} = exp(1i*(0:n-1)'*pi/2/n);
-#            w[dim] = np.exp(1j * np.arange(n) * np.pi / (2 * n))
-# --- IDCT algorithm ---
-#    if np.iscomplex(y).any():
-#        y = np.complex(idctn(np.real(y),axis,w),idctn(np.imag(y),axis,w))
-#    else:
-#        for dim in range(dimy):
-#            y = shiftdim(y,1)
-#            if axis is not None and dim!=axis:
-# y = shiftdim(y, 1)
-#                continue
-#            siz = y.shape
-#            n = siz[-1]
-#
-#            y = y.reshape((-1,n)) * w[dim]
-#            y[:,0] = y[:,0]/np.sqrt(2)
-#            y = (np.fft.ifft(y, n=n, axis=1)).real
-#            y = y * np.sqrt(2*n)
-#
-#            I = np.empty(n,dtype=int)
-#            I.put(np.r_[0:n:2],np.r_[0:int(n//2)+np.remainder(n,2)])
-#            I.put(np.r_[1:n:2],np.r_[n-1:int(n//2)-1:-1])
-#            y = y[:,I]
-#
-#            y = y.reshape(siz)
-#
-#
-#    y = y.reshape(shape0);
-#    return y, w
+    return _raw_dctn(y, type, shape, axes, norm, idct)
 
 
-def no_leading_ones(x):
+def num_leading_ones(x):
     first = 0
     for i, xi in enumerate(x):
         if xi != 1:
             first = i
             break
+    return first
+
+
+def no_leading_ones(x):
+    first = num_leading_ones(x)
     return x[first:]
 
 
@@ -615,11 +383,53 @@ def shiftdim(x, n=None):
         return x.reshape((1,) * -n + x.shape)
 
 
+def test_shiftdim():
+    a = np.arange(6).reshape((1, 1, 3, 1, 2))
+
+    print a.shape
+    print a.ndim
+
+    print range(a.ndim)
+    # move items 2 places to the left so that x0 <- x2, x1 <- x3, etc
+    print np.roll(range(a.ndim), -2)
+    print a.transpose(np.roll(range(a.ndim), -2))  # transposition of the axes
+    # with a matrix 2x2, A.transpose((1,0)) would be the transpose of A
+    b = shiftdim(a)
+    print b.shape
+
+    c = shiftdim(b, -2)
+    print c.shape
+
+    print(c == a)
+
+
+def test_dct3():
+    a = np.array([[[0.51699637,  0.42946223,  0.89843545],
+                   [0.27853391,  0.8931508,  0.34319118],
+                   [0.51984431,  0.09217771,  0.78764716]],
+                  [[0.25019845,  0.92622331,  0.06111409],
+                   [0.81363641,  0.06093368,  0.13123373],
+                   [0.47268657,  0.39635091,  0.77978269]],
+                  [[0.86098829,  0.07901332,  0.82169182],
+                   [0.12560088,  0.78210188,  0.69805434],
+                   [0.33544628,  0.81540172,  0.9393219]]])
+
+    d = dct(dct(dct(a).transpose(0, 2, 1)).transpose(2, 1, 0)
+            ).transpose(2, 1, 0).transpose(0, 2, 1)
+    d0 = dctn(a)
+    e = idct(idct(idct(d).transpose(0, 2, 1)).transpose(2, 1, 0)
+             ).transpose(2, 1, 0).transpose(0, 2, 1)
+    print(d)
+    print(d0)
+    print(np.allclose(d, d0))
+    print(np.allclose(a, e))
+
+
 def test_dctn():
-    a = np.arange(12)  # .reshape((3,-1))
+    a = np.arange(12).reshape((3, -1))
     print('a = ', a)
     print(' ')
-    y = dct(a)
+    y = dct(a, n=10)
     x = idct(y)
     print('y = dct(a)')
     print(y)
@@ -627,28 +437,42 @@ def test_dctn():
     print(x)
     print(' ')
 
-#    y1 = dct1(a)
-#    x1 = idct1(y)
-#    print('y1 = dct1(a)')
-#    print(y1)
-#    print('x1 = idct1(y)')
-#    print(x1)
-#    print(' ')
-
-    yn = dctn(a)
-    xn = idctn(yn)
+    yn = dctn(a) #, shape=(10,), axes=(1,))
+    xn = idctn(yn) #, axes=(1,))
     print('yn = dctn(a)')
     print(yn)
     print('xn = idctn(yn)')
     print(xn)
     print(' ')
+    print xn-a
 
-#    yn1 = dctn1(a)
-#    xn1 = idctn1(yn1)
-#    print('yn1 = dctn1(a)')
-#    print(yn1)
-#    print('xn1 = idctn1(yn)')
-#    print(xn1)
+def test_dct2():
+    import scipy.ndimage as sn
+    import matplotlib.pyplot as plt
+    name = os.path.join(path, 'autumn.gif')
+    rgb = np.asarray(sn.imread(name), dtype=np.float16)
+    # np.fft.fft(rgb)
+    print(np.max(rgb), np.min(rgb))
+    plt.set_cmap('jet')
+    J = dctn(rgb)
+    irgb = idctn(J)
+    print(np.abs(rgb-irgb).max())
+    plt.imshow(np.log(np.abs(J)))
+    # plt.colorbar() #colormap(jet), colorbar
+    plt.show('hold')
+    v = np.percentile(np.abs(J.ravel()), 10.0)
+    print(len(np.flatnonzero(J)), v)
+    J[np.abs(J) < v] = 0
+    print(len(np.flatnonzero(J)))
+    plt.imshow(np.log(np.abs(J)))
+    plt.show('hold')
+    K = idctn(J)
+    print(np.abs(rgb-K).max())
+    plt.figure(1)
+    plt.imshow(rgb)
+    plt.figure(2)
+    plt.imshow(K, vmin=0, vmax=255)
+    plt.show('hold')
 
 
 def test_docstrings():
@@ -658,5 +482,9 @@ def test_docstrings():
 
 
 if __name__ == '__main__':
-    test_docstrings()
+    test_dct2()
+    # test_docstrings()
     # test_dctn()
+    # test_shiftdim()
+    # test_dct3()
+    # test()

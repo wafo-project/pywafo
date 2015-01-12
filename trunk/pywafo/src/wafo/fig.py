@@ -33,9 +33,9 @@ Example
 >>> fig.close('all')
 '''
 
-#/usr/bin/env python
+#!/usr/bin/env python
 from __future__ import division
-#import win32api
+# import win32api
 import win32gui
 import win32con
 import msvcrt

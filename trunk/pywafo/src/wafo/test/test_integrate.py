@@ -12,15 +12,15 @@ from wafo.integrate import gaussq
 
 class Gaussq(unittest.TestCase):
     '''
-        1 : p(x) = 1                       a =-1,   b = 1   Gauss-Legendre
-        2 : p(x) = exp(-x^2)               a =-inf, b = inf Hermite
-        3 : p(x) = x^alpha*exp(-x)         a = 0,   b = inf Laguerre
-        4 : p(x) = (x-a)^alpha*(b-x)^beta  a =-1,   b = 1 Jacobi
-        5 : p(x) = 1/sqrt((x-a)*(b-x)),    a =-1,   b = 1 Chebyshev 1'st kind
-        6 : p(x) = sqrt((x-a)*(b-x)),      a =-1,   b = 1 Chebyshev 2'nd kind
-        7 : p(x) = sqrt((x-a)/(b-x)),      a = 0,   b = 1
-        8 : p(x) = 1/sqrt(b-x),            a = 0,   b = 1
-        9 : p(x) = sqrt(b-x),              a = 0,   b = 1
+    1 : p(x) = 1                       a =-1,   b = 1   Gauss-Legendre
+    2 : p(x) = exp(-x^2)               a =-inf, b = inf Hermite
+    3 : p(x) = x^alpha*exp(-x)         a = 0,   b = inf Laguerre
+    4 : p(x) = (x-a)^alpha*(b-x)^beta  a =-1,   b = 1 Jacobi
+    5 : p(x) = 1/sqrt((x-a)*(b-x)),    a =-1,   b = 1 Chebyshev 1'st kind
+    6 : p(x) = sqrt((x-a)*(b-x)),      a =-1,   b = 1 Chebyshev 2'nd kind
+    7 : p(x) = sqrt((x-a)/(b-x)),      a = 0,   b = 1
+    8 : p(x) = 1/sqrt(b-x),            a = 0,   b = 1
+    9 : p(x) = sqrt(b-x),              a = 0,   b = 1
     '''
 
     def test_gauss_legendre(self):
@@ -68,5 +68,5 @@ class Gaussq(unittest.TestCase):
         self.assertAlmostEqual(val, 0.26666667)
 
 if __name__ == "__main__":
-    #import sys;sys.argv = ['', 'Test.testName']
+    # import sys;sys.argv = ['', 'Test.testName']
     unittest.main()

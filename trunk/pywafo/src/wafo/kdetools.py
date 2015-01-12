@@ -1,4 +1,4 @@
-#-------------------------------------------------------------------------
+# -------------------------------------------------------------------------
 # Name:        kdetools
 # Purpose:
 #
@@ -7,8 +7,8 @@
 # Created:     01.11.2008
 # Copyright:   (c) pab 2008
 # Licence:     LGPL
-#-------------------------------------------------------------------------
-#!/usr/bin/env python
+# -------------------------------------------------------------------------
+#!/usr/bin/env python  # @IgnorePep8
 from __future__ import division
 import copy
 import numpy as np
@@ -17,7 +17,6 @@ import warnings
 from itertools import product
 from scipy import interpolate, linalg, optimize, sparse, special, stats
 from scipy.special import gamma
-from scipy.ndimage.morphology import distance_transform_edt
 from numpy import pi, sqrt, atleast_2d, exp, newaxis  # @UnresolvedImport
 
 from wafo.misc import meshgrid, nextpow2, tranproc  # , trangood
@@ -28,8 +27,6 @@ try:
     from wafo import fig
 except ImportError:
     print 'fig import only supported on Windows'
-
-_TINY = np.finfo(float).machar.tiny
 
 
 def _invnorm(q):
@@ -128,8 +125,7 @@ class KDEgauss(object):
         self._compute_smoothing()
 
     def _compute_smoothing(self):
-        """Computes the smoothing matrix
-        """
+        """Computes the smoothing matrix."""
         get_smoothing = self.kernel.get_smoothing
         h = self.hs
         if h is None:
@@ -163,8 +159,8 @@ class KDEgauss(object):
         amax = self.dataset.max(axis=-1)
         iqr = iqrange(self.dataset, axis=-1)
         sigma = np.minimum(np.std(self.dataset, axis=-1, ddof=1), iqr / 1.34)
-        #xyzrange = amax - amin
-        #offset = xyzrange / 4.0
+        # xyzrange = amax - amin
+        # offset = xyzrange / 4.0
         offset = 2 * sigma
         if self.xmin is None:
             self.xmin = amin - offset
@@ -203,7 +199,7 @@ class KDEgauss(object):
     def _eval_grid_fast(self, *args, **kwds):
         X = np.vstack(args)
         d, inc = X.shape
-        #dx = X[:, 1] - X[:, 0]
+        # dx = X[:, 1] - X[:, 0]
         R = X.max(axis=-1) - X.min(axis=-1)
 
         t_star = (self.hs / R) ** 2
@@ -281,6 +277,7 @@ class KDEgauss(object):
         ------
         ValueError if the dimensionality of the input points is different than
         the dimensionality of the KDE.
+
         """
 
         points = self._check_shape(points)
@@ -356,8 +353,8 @@ class _KDE(object):
         iqr = iqrange(self.dataset, axis=-1)
         self._sigma = np.minimum(
             np.std(self.dataset, axis=-1, ddof=1), iqr / 1.34)
-        #xyzrange = amax - amin
-        #offset = xyzrange / 4.0
+        # xyzrange = amax - amin
+        # offset = xyzrange / 4.0
         offset = self._sigma
         if self.xmin is None:
             self.xmin = amin - offset
@@ -367,6 +364,20 @@ class _KDE(object):
             self.xmax = amax + offset
         else:
             self.xmax = self.xmax * np.ones((self.d, 1))
+
+    def get_args(self, xmin=None, xmax=None):
+        if xmin is None:
+            xmin = self.xmin
+        else:
+            xmin = [min(i, j) for i, j in zip(xmin, self.xmin)]
+        if xmax is None:
+            xmax = self.xmax
+        else:
+            xmax = [max(i, j) for i, j in zip(xmax, self.xmax)]
+        args = []
+        for i in range(self.d):
+            args.append(np.linspace(xmin[i], xmax[i], self.inc))
+        return args
 
     def eval_grid_fast(self, *args, **kwds):
         """Evaluate the estimated pdf on a grid.
@@ -387,9 +398,7 @@ class _KDE(object):
 
         """
         if len(args) == 0:
-            args = []
-            for i in range(self.d):
-                args.append(np.linspace(self.xmin[i], self.xmax[i], self.inc))
+            args = self.get_args()
         self.args = args
         return self._eval_grid_fun(self._eval_grid_fast, *args, **kwds)
 
@@ -479,6 +488,7 @@ class _KDE(object):
         ------
         ValueError if the dimensionality of the input points is different than
         the dimensionality of the KDE.
+
         """
 
         points = self._check_shape(points)
@@ -568,8 +578,8 @@ class TKDE(_KDE):
             0.20717946,  0.15907684,  0.1201074 ,  0.08941027,  0.06574882])
 
     >>> kde.eval_grid_fast(x)
-    array([ 1.06437223,  0.46203314,  0.39593137,  0.32781899,  0.26276433,
-            0.20532206,  0.15723498,  0.11843998,  0.08797755,  0.        ])
+    array([ 1.04018924,  0.45838973,  0.39514689,  0.32860532,  0.26433301,
+            0.20717976,  0.15907697,  0.1201077 ,  0.08941129,  0.06574899])
 
     import pylab as plb
     h1 = plb.plot(x, f) #  1D probability density plot
@@ -650,7 +660,7 @@ class TKDE(_KDE):
         arg_0,arg_1,... arg_d-1 : vectors
            Alternatively, if no vectors is passed in then
             arg_i = gauss2dat(linspace(dat2gauss(self.xmin[i]),
-                                        dat2gauss(self.xmax[i]), self.inc))
+                                       dat2gauss(self.xmax[i]), self.inc))
         output : string optional
             'value' if value output
             'data' if object output
@@ -659,6 +669,7 @@ class TKDE(_KDE):
         -------
         values : array-like
            The values evaluated at meshgrid(*args).
+
         """
         return self._eval_grid_fun(self._eval_grid_fast, *args, **kwds)
 
@@ -667,24 +678,29 @@ class TKDE(_KDE):
             f = self.tkde.eval_grid_fast(*args, **kwds)
             self.args = self.tkde.args
             return f
-        #targs = self._dat2gaus(list(args)) if len(args) else args
-        tf = self.tkde.eval_grid_fast()
+        targs = []
+        if len(args):
+            targs0 = self._dat2gaus(list(args))
+            xmin = [min(t) for t in targs0]
+            xmax = [max(t) for t in targs0]
+            targs = self.tkde.get_args(xmin, xmax)
+        tf = self.tkde.eval_grid_fast(*targs)
         self.args = self._gaus2dat(list(self.tkde.args))
         points = meshgrid(*self.args) if self.d > 1 else self.args
         f = self._scale_pdf(tf, points)
         if len(args):
             ipoints = meshgrid(*args) if self.d > 1 else args
-            #shape0 = points[0].shape
-            #shape0i = ipoints[0].shape
+            # shape0 = points[0].shape
+            # shape0i = ipoints[0].shape
             for i in range(self.d):
                 points[i].shape = (-1,)
-                #ipoints[i].shape = (-1,)
+                # ipoints[i].shape = (-1,)
             points = np.asarray(points).T
-            #ipoints = np.asarray(ipoints).T
-            fi = interpolate.griddata(  # @UndefinedVariable
-                points, f.ravel(), tuple(ipoints), method='linear',
-                fill_value=0.0)
-            #fi.shape = shape0i
+            # ipoints = np.asarray(ipoints).T
+            fi = interpolate.griddata(points, f.ravel(), tuple(ipoints),
+                                      method='linear',
+                                      fill_value=0.0)
+            # fi.shape = shape0i
             self.args = args
             r = kwds.get('r', 0)
             if r == 0:
@@ -720,6 +736,7 @@ class TKDE(_KDE):
         ------
         ValueError if the dimensionality of the input points is different than
         the dimensionality of the KDE.
+
         """
         if self.L2 is None:
             return self.tkde.eval_points(points)
@@ -755,9 +772,8 @@ class KDE(_KDE):
         (default min(data)-range(data)/4, max(data)-range(data)/4)
         If a single value of xmin or xmax is given then the boundary is the is
         the same for all dimensions.
-    inc :  scalar integer
+    inc :  scalar integer (default 512)
         defining the default dimension of the output from kde.eval_grid methods
-        (default 512)
         (For kde.eval_grid_fast: A value below 50 is very fast to compute but
         may give some inaccuracies. Values between 100 and 500 give very
         accurate results)
@@ -816,13 +832,15 @@ class KDE(_KDE):
             0.26381501,  0.16407362,  0.08270612,  0.02991145,  0.00720821])
 
     >>> f = kde0.eval_grid_fast()
-    >>> np.interp(x, kde0.args[0], f)
-    array([ 0.21227584,  0.41256459,  0.5495661 ,  0.5176579 ,  0.38431616,
-            0.2591162 ,  0.15978948,  0.07889179,  0.02769818,  0.00791829])
+    >>> np.allclose(np.interp(x, kde0.args[0], f),
+    ...    [ 0.20397743,  0.40252228,  0.54594119,  0.52219025,  0.39062189,
+    ...      0.2638171 ,  0.16407487,  0.08270755,  0.04784434,  0.04784434])
+    True
     >>> f1 = kde0.eval_grid_fast(output='plot')
-    >>> np.interp(x, f1.args, f1.data)
-    array([ 0.21227584,  0.41256459,  0.5495661 ,  0.5176579 ,  0.38431616,
-            0.2591162 ,  0.15978948,  0.07889179,  0.02769818,  0.00791829])
+    >>> np.allclose(np.interp(x, f1.args, f1.data),
+    ...   [ 0.20397743,  0.40252228,  0.54594119,  0.52219025,  0.39062189,
+    ...     0.2638171 ,  0.16407487,  0.08270755,  0.04784434,  0.04784434])
+    True
     >>> h = f1.plot()
 
     import pylab as plb
@@ -838,8 +856,8 @@ class KDE(_KDE):
         self._compute_smoothing()
         self._lambda = np.ones(self.n)
         if self.alpha > 0:
-            #pilot = KDE(self.dataset, hs=self.hs, kernel=self.kernel, alpha=0)
-            # f = pilot.eval_points(self.dataset) # get a pilot estimate by
+            # pilt = KDE(self.dataset, hs=self.hs, kernel=self.kernel, alpha=0)
+            # f = pilt.eval_points(self.dataset) # get a pilot estimate by
             # regular KDE (alpha=0)
             f = self.eval_points(self.dataset)  # pilot estimate
             g = np.exp(np.mean(np.log(f)))
@@ -854,8 +872,7 @@ class KDE(_KDE):
             pass
 
     def _compute_smoothing(self):
-        """Computes the smoothing matrix
-        """
+        """Computes the smoothing matrix."""
         get_smoothing = self.kernel.get_smoothing
         h = self.hs
         if h is None:
@@ -915,8 +932,8 @@ class KDE(_KDE):
         if np.abs(norm_fact0 - norm_fact) > 0.05 * norm_fact:
             warnings.warn(
                 'Numerical inaccuracy due to too low discretization. ' +
-                'Increase the discretization of the evaluation grid (inc=%d)!'
-                % inc)
+                'Increase the discretization of the evaluation grid ' +
+                '(inc=%d)!' % inc)
             norm_fact = norm_fact0
 
         kw = kw / norm_fact
@@ -971,6 +988,7 @@ class KDE(_KDE):
         ------
         ValueError if the dimensionality of the input points is different than
         the dimensionality of the KDE.
+
         """
         d, m = points.shape
 
@@ -978,9 +996,11 @@ class KDE(_KDE):
 
         r = kwds.get('r', 0)
         if r == 0:
-            fun = lambda xi: 1
+            def fun(xi):
+                return 1
         else:
-            fun = lambda xi: (xi ** r).sum(axis=0)
+            def fun(xi):
+                return (xi ** r).sum(axis=0)
 
         if m >= self.n:
             y = kwds.get('y', np.ones(self.n))
@@ -988,8 +1008,8 @@ class KDE(_KDE):
             for i in range(self.n):
                 diff = self.dataset[:, i, np.newaxis] - points
                 tdiff = np.dot(self.inv_hs / self._lambda[i], diff)
-                result += y[i] * fun(diff) * self.kernel(
-                    tdiff) / self._lambda[i] ** d
+                result += y[i] * \
+                    fun(diff) * self.kernel(tdiff) / self._lambda[i] ** d
         else:
             y = kwds.get('y', 1)
             # loop over points
@@ -1030,13 +1050,11 @@ class KRegression(_KDE):
     xmin, xmax  : vectors
         specifying the default argument range for the kde.eval_grid methods.
         For the kde.eval_grid_fast methods the values must cover the range of
-        the data.
-        (default min(data)-range(data)/4, max(data)-range(data)/4)
+        the data. (default min(data)-range(data)/4, max(data)-range(data)/4)
         If a single value of xmin or xmax is given then the boundary is the is
         the same for all dimensions.
-    inc :  scalar integer
+    inc :  scalar integer   (default 128)
         defining the default dimension of the output from kde.eval_grid methods
-        (default 128)
         (For kde.eval_grid_fast: A value below 50 is very fast to compute but
         may give some inaccuracies. Values between 100 and 500 give very
         accurate results)
@@ -1058,6 +1076,7 @@ class KRegression(_KDE):
         evaluate the estimated pdf on a provided set of points
     kde(x0, x1,..., xd) : array
         same as kde.eval_grid(x0, x1,..., xd)
+
 
     Example
     -------
@@ -1139,9 +1158,7 @@ class BKRegression(object):
     hs = property(fset=_set_smoothing, fget=lambda cls: cls.kreg.tkde.hs)
 
     def _get_max_smoothing(self, fun=None):
-        '''
-        Return maximum value for smoothing parameter
-        '''
+        """Return maximum value for smoothing parameter."""
         x = self.x
         y = self.y
         if fun is None:
@@ -1150,13 +1167,13 @@ class BKRegression(object):
             get_smoothing = getattr(self.kernel, fun)
 
         hs1 = get_smoothing(x)
-        #hx = np.median(np.abs(x-np.median(x)))/0.6745*(4.0/(3*n))**0.2
-        if (y == True).any():
-            hs2 = get_smoothing(x[y == True])
-            #hy = np.median(np.abs(y-np.mean(y)))/0.6745*(4.0/(3*n))**0.2
+        # hx = np.median(np.abs(x-np.median(x)))/0.6745*(4.0/(3*n))**0.2
+        if (y == 1).any():
+            hs2 = get_smoothing(x[y == 1])
+            # hy = np.median(np.abs(y-np.mean(y)))/0.6745*(4.0/(3*n))**0.2
         else:
             hs2 = 4 * hs1
-            #hy = 4*hx
+            # hy = 4*hx
 
         hopt = sqrt(hs1 * hs2)
         return hopt, hs1, hs2
@@ -1176,8 +1193,7 @@ class BKRegression(object):
         return xi
 
     def prb_ci(self, n, p, alpha=0.05, **kwds):
-        '''
-        Return Confidence Interval for the binomial probability p
+        """Return Confidence Interval for the binomial probability p.
 
         Parameters
         ----------
@@ -1196,7 +1212,8 @@ class BKRegression(object):
             distribution of p, i.e.,
             the Bayes estimator for p: p = (y+a)/(n+a+b).
             Setting a=b=0.5 gives Jeffreys interval.
-        '''
+
+        """
         if self.method.startswith('w'):
             # Wilson score
             z0 = -_invnorm(alpha / 2)
@@ -1220,8 +1237,7 @@ class BKRegression(object):
         return plo, pup
 
     def prb_empirical(self, xi=None, hs_e=None, alpha=0.05, color='r', **kwds):
-        '''
-        Returns empirical binomial probabiltity
+        """Returns empirical binomial probabiltity.
 
         Parameters
         ----------
@@ -1238,7 +1254,8 @@ class BKRegression(object):
         -------
         P(x) : PlotData object
             empirical probability
-        '''
+
+        """
         if xi is None:
             xi = self.get_grid(hs_e)
 
@@ -1246,8 +1263,8 @@ class BKRegression(object):
         y = self.y
 
         c = gridcount(x, xi)  # + self.a + self.b # count data
-        if (y == True).any():
-            c0 = gridcount(x[y == True], xi)  # + self.a # count success
+        if (y == 1).any():
+            c0 = gridcount(x[y == 1], xi)  # + self.a # count success
         else:
             c0 = np.zeros(xi.shape)
         prb = np.where(c == 0, 0, c0 / (c + _TINY))  # assume prb==0 for c==0
@@ -1260,8 +1277,7 @@ class BKRegression(object):
         return prb_e
 
     def prb_smoothed(self, prb_e, hs, alpha=0.05, color='r', label=''):
-        '''
-        Return smoothed binomial probability
+        """Return smoothed binomial probability.
 
         Parameters
         ----------
@@ -1270,7 +1286,8 @@ class BKRegression(object):
         alpha : confidence level
         color : color of plot object
         label : label for plot object
-        '''
+
+        """
 
         x_e = prb_e.args
         n_e = len(x_e)
@@ -1286,7 +1303,7 @@ class BKRegression(object):
         if m_nan.any():  # assume 0/0 division
             prb_s.data[m_nan] = 0.0
 
-        #prb_s.data[np.isnan(prb_s.data)] = 0
+        # prb_s.data[np.isnan(prb_s.data)] = 0
         # expected number of data in each bin
         c_s = self.kreg.tkde.eval_grid_fast(x_s) * dx_e * n
         plo, pup = self.prb_ci(c_s, prb_s.data, alpha)
@@ -1317,36 +1334,35 @@ class BKRegression(object):
         dp_s = np.sign(np.diff(p_s))
         k = (dp_s[:-1] != dp_s[1:]).sum()  # numpeaks
 
-        #sigmai = (pup-plo)+_EPS
-        #aicc = (((p_e-p_s)/sigmai)**2).sum()+ 2*k*(k+1)/np.maximum(n_e-k+1,1)
+        # sigmai = (pup-plo)+_EPS
+        # aicc = (((p_e-p_s)/sigmai)**2).sum()+ 2*k*(k+1)/np.maximum(n_e-k+1,1)
         # + np.abs((p_e-pup).clip(min=0)-(p_e-plo).clip(max=0)).sum()
         sigmai = _logit(pup) - _logit(plo) + _EPS
         aicc = ((((_logit(p_e) - _logit(p_s)) / sigmai) ** 2).sum() +
-            2 * k * (k + 1) / np.maximum(n_e - k + 1, 1) +
-            np.abs((p_e - pup).clip(min=0) - (p_e - plo).clip(max=0)).sum())
+                2 * k * (k + 1) / np.maximum(n_e - k + 1, 1) +
+                np.abs((p_e - pup).clip(min=0) -
+                       (p_e - plo).clip(max=0)).sum())
 
         prb_s.aicc = aicc
-        #prb_s.labels.title = ''
-        #prb_s.labels.title='perr=%1.3f,aicc=%1.3f, n=%d, hs=%1.3f' %
-        #(prb_s.prediction_error_avg,aicc,n,hs)
+        # prb_s.labels.title = ''
+        # prb_s.labels.title='perr=%1.3f,aicc=%1.3f, n=%d, hs=%1.3f' %
+        # (prb_s.prediction_error_avg,aicc,n,hs)
 
         return prb_s
 
     def prb_search_best(self, prb_e=None, hsvec=None, hsfun='hste',
                         alpha=0.05, color='r', label=''):
-        '''
-        Return best smoothed binomial probability
+        """Return best smoothed binomial probability.
 
         Parameters
         ----------
         prb_e : PlotData object with empirical binomial probabilites
-        hsvec : arraylike
+        hsvec : arraylike  (default np.linspace(hsmax*0.1,hsmax,55))
             vector smoothing parameters
-            (default np.linspace(hsmax*0.1,hsmax,55))
         hsfun :
             method for calculating hsmax
 
-        '''
+        """
         if prb_e is None:
             prb_e = self.prb_empirical(
                 hs_e=self.hs_e, alpha=alpha, color=color)
@@ -1390,13 +1406,13 @@ class _Kernel(object):
         raise Exception('Method not implemented for this kernel!')
 
     def effective_support(self):
-        '''
-        Return the effective support of kernel.
+        """Return the effective support of kernel.
 
         The kernel must be symmetric and compactly supported on [-tau tau]
         if the kernel has infinite support then the kernel must have the
         effective support in [-tau tau], i.e., be negligible outside the range
-        '''
+
+        """
         return self._effective_support()
 
     def _effective_support(self):
@@ -1445,7 +1461,7 @@ class _KernelProduct(_KernelMulti):
         r = self.r
         p = self.p
         c = (2 ** p * np.prod(np.r_[1:p + 1]) * sphere_volume(1, r) /
-                    np.prod(np.r_[(1 + 2):(2 * p + 2):2]))
+             np.prod(np.r_[(1 + 2):(2 * p + 2):2]))
         return c ** d
 
     def _kernel(self, x):
@@ -1489,9 +1505,8 @@ class _KernelGaussian(_Kernel):
         return (2 * pi * sigma) ** (d / 2.0)
 
     def deriv4_6_8_10(self, t, numout=4):
-        '''
-        Returns 4th, 6th, 8th and 10th derivatives of the kernel function.
-        '''
+        """Returns 4th, 6th, 8th and 10th derivatives of the kernel
+        function."""
         phi0 = exp(-0.5 * t ** 2) / sqrt(2 * pi)
         p4 = [1, 0, -6, 0, +3]
         p4val = np.polyval(p4, t) * phi0
@@ -1551,8 +1566,7 @@ _KERNEL_EXPONENT_DICT = dict(
 
 class Kernel(object):
 
-    '''
-    Multivariate kernel
+    """Multivariate kernel.
 
     Parameters
     ----------
@@ -1585,32 +1599,33 @@ class Kernel(object):
     >>> gauss = wk.Kernel('gaussian')
     >>> gauss.stats()
     (1, 0.28209479177387814, 0.21157109383040862)
-    >>> gauss.hscv(data)
-    array([ 0.21555043])
-    >>> gauss.hstt(data)
-    array([ 0.15165387])
-    >>> gauss.hste(data)
-    array([ 0.18942238])
-    >>> gauss.hldpi(data)
-    array([ 0.1718688])
-
+    >>> np.allclose(gauss.hscv(data), 0.21779575)
+    True
+    >>> np.allclose(gauss.hstt(data), 0.16341135)
+    True
+    >>> np.allclose(gauss.hste(data), 0.19179399)
+    True
+    >>> np.allclose(gauss.hldpi(data), 0.22502733)
+    True
     >>> wk.Kernel('laplace').stats()
     (2, 0.25, inf)
 
-    >>> triweight = wk.Kernel('triweight'); triweight.stats()
-    (0.1111111111111111, 0.81585081585081587, inf)
-
-    >>> triweight(np.linspace(-1,1,11))
-    array([ 0.      ,  0.046656,  0.262144,  0.592704,  0.884736,  1.      ,
-            0.884736,  0.592704,  0.262144,  0.046656,  0.      ])
-    >>> triweight.hns(data)
-    array([ 0.82087056])
-    >>> triweight.hos(data)
-    array([ 0.88265652])
-    >>> triweight.hste(data)
-    array([ 0.56570278])
-    >>> triweight.hscv(data)
-    array([ 0.64193201])
+    >>> triweight = wk.Kernel('triweight')
+    >>> np.allclose(triweight.stats(),
+    ...            (0.1111111111111111, 0.81585081585081587, np.inf))
+    True
+    >>> np.allclose(triweight(np.linspace(-1,1,11)),
+    ...   [ 0.,  0.046656,  0.262144,  0.592704,  0.884736,  1.,
+    ...     0.884736,  0.592704,  0.262144,  0.046656,  0.])
+    True
+    >>> np.allclose(triweight.hns(data), 0.82, rtol=1e-2)
+    True
+    >>> np.allclose(triweight.hos(data), 0.88, rtol=1e-2)
+    True
+    >>> np.allclose(triweight.hste(data), 0.57, rtol=1e-2)
+    True
+    >>> np.allclose(triweight.hscv(data), 0.648, rtol=1e-2)
+    True
 
     See also
     --------
@@ -1625,11 +1640,12 @@ class Kernel(object):
     Wand, M. P. and Jones, M. C. (1995)
     'Density estimation for statistics and data analysis'
      Chapman and Hall, pp 31, 103,  175
-    '''
+
+    """
 
     def __init__(self, name, fun='hste'):  # 'hns'):
         self.kernel = _MKERNEL_DICT[name[:4]]
-        #self.name = self.kernel.__name__.replace('mkernel_', '').title()
+        # self.name = self.kernel.__name__.replace('mkernel_', '').title()
         try:
             self.get_smoothing = getattr(self, fun)
         except:
@@ -1643,7 +1659,7 @@ class Kernel(object):
         pass
 
     def stats(self):
-        ''' Return some 1D statistics of the kernel.
+        """Return some 1D statistics of the kernel.
 
         Returns
         -------
@@ -1660,7 +1676,8 @@ class Kernel(object):
         Wand,M.P. and Jones, M.C. (1995)
         'Kernel smoothing'
         Chapman and Hall, pp 176.
-        '''
+
+        """
         return self.kernel.stats
 
     def deriv4_6_8_10(self, t, numout=4):
@@ -1670,8 +1687,7 @@ class Kernel(object):
         return self.kernel.effective_support()
 
     def hns(self, data):
-        '''
-        Returns Normal Scale Estimate of Smoothing Parameter.
+        """Returns Normal Scale Estimate of Smoothing Parameter.
 
         Parameter
         ---------
@@ -1711,7 +1727,8 @@ class Kernel(object):
         Wand,M.P. and Jones, M.C. (1995)
         'Kernel smoothing'
         Chapman and Hall, pp 60--63
-        '''
+
+        """
 
         A = np.atleast_2d(data)
         n = A.shape[1]
@@ -1729,8 +1746,7 @@ class Kernel(object):
                         np.minimum(stdA, iqr / 1.349), stdA) * AMISEconstant
 
     def hos(self, data):
-        '''
-        Returns Oversmoothing Parameter.
+        """Returns Oversmoothing Parameter.
 
         Parameter
         ---------
@@ -1770,12 +1786,12 @@ class Kernel(object):
         Wand,M.P. and Jones, M.C. (1986)
         'Kernel smoothing'
         Chapman and Hall, pp 60--63
-        '''
+
+        """
         return self.hns(data) / 0.93
 
     def hmns(self, data):
-        '''
-        Returns Multivariate Normal Scale Estimate of Smoothing Parameter.
+        """Returns Multivariate Normal Scale Estimate of Smoothing Parameter.
 
          CALL:  h = hmns(data,kernel)
 
@@ -1814,7 +1830,8 @@ class Kernel(object):
           Wand,M.P. and Jones, M.C. (1995)
          'Kernel smoothing'
           Chapman and Hall, pp 60--63, 86--88
-        '''
+
+        """
         # TODO: implement more kernels
 
         A = np.atleast_2d(data)
@@ -1894,8 +1911,8 @@ class Kernel(object):
         amax = A.max(axis=1)  # Find the maximum value of A.
         arange = amax - amin  # Find the range of A.
 
-        #% xa holds the x 'axis' vector, defining a grid of x values where
-        #% the k.d. function will be evaluated.
+        # xa holds the x 'axis' vector, defining a grid of x values where
+        # the k.d. function will be evaluated.
 
         ax1 = amin - arange / 8.0
         bx1 = amax + arange / 8.0
@@ -1953,7 +1970,7 @@ class Kernel(object):
                          (-psi6 * R)) ** (1.0 / 7)
 
                 # Now estimate psi4 given gamma.
-                #kernel weights.
+                # kernel weights.
                 kw4 = kernel2.deriv4_6_8_10(xn / gamma, numout=1)
                 kw = np.r_[kw4, 0, kw4[-1:0:-1]]  # Apply 'fftshift' to kw.
                 z = np.real(ifft(fft(c, nfft) * fft(kw)))  # convolution.
@@ -1970,7 +1987,7 @@ class Kernel(object):
                 warnings.warn('The obtained value did not converge.')
 
             h[dim] = h1
-        # end % for dim loop
+        # end for dim loop
         return h
 
     def hisj(self, data, inc=512, L=7):
@@ -2008,8 +2025,8 @@ class Kernel(object):
         amax = A.max(axis=1)  # Find the maximum value of A.
         arange = amax - amin  # Find the range of A.
 
-        #% xa holds the x 'axis' vector, defining a grid of x values where
-        #% the k.d. function will be evaluated.
+        # xa holds the x 'axis' vector, defining a grid of x values where
+        # the k.d. function will be evaluated.
 
         ax1 = amin - arange / 8.0
         bx1 = amax + arange / 8.0
@@ -2022,16 +2039,15 @@ class Kernel(object):
             ''' this implements the function t-zeta*gamma^[L](t)'''
 
             prod = np.prod
-            #L = 7
+            # L = 7
             logI = np.log(I)
-            f = 2 * \
-                pi ** (2 * L) * (a2 * exp(L * logI - I * pi ** 2 * t)).sum()
+            f = 2 * pi ** (2 * L) * \
+                (a2 * exp(L * logI - I * pi ** 2 * t)).sum()
             for s in range(L - 1, 1, -1):
                 K0 = prod(np.r_[1:2 * s:2]) / sqrt(2 * pi)
                 const = (1 + (1. / 2) ** (s + 1. / 2)) / 3
                 time = (2 * const * K0 / N / f) ** (2. / (3 + 2 * s))
-                f = 2 * \
-                    pi ** (2 * s) * \
+                f = 2 * pi ** (2 * s) * \
                     (a2 * exp(s * logI - I * pi ** 2 * time)).sum()
             return t - (2 * N * sqrt(pi) * f) ** (-2. / 5)
 
@@ -2044,24 +2060,26 @@ class Kernel(object):
 
             c = gridcount(A[dim], xa)
             N = len(set(A[dim]))
-            #a = dct(c/c.sum(), norm=None)
+            # a = dct(c/c.sum(), norm=None)
             a = dct(c / len(A[dim]), norm=None)
 
             # now compute the optimal bandwidth^2 using the referenced method
             I = np.asfarray(np.arange(1, inc)) ** 2
             a2 = (a[1:] / 2) ** 2
-            fun = lambda t: fixed_point(t, N, I, a2)
+
+            def fun(t):
+                return fixed_point(t, N, I, a2)
             x = np.linspace(0, 0.1, 150)
             ai = x[0]
             f0 = fun(ai)
             for bi in x[1:]:
                 f1 = fun(bi)
                 if f1 * f0 <= 0:
-                    #print('ai = %g, bi = %g' % (ai,bi))
+                    # print('ai = %g, bi = %g' % (ai,bi))
                     break
                 else:
                     ai = bi
-            #y = np.asarray([fun(j) for j in x])
+            # y = np.asarray([fun(j) for j in x])
             # plt.figure(1)
             # plt.plot(x,y)
             # plt.show()
@@ -2076,14 +2094,14 @@ class Kernel(object):
             # smooth the discrete cosine transform of initial data using t_star
             # a_t = a*exp(-np.arange(inc)**2*pi**2*t_star/2)
             # now apply the inverse discrete cosine transform
-            #density = idct(a_t)/R;
+            # density = idct(a_t)/R;
 
             # take the rescaling of the data into account
             bandwidth = sqrt(t_star) * R
 
             # Kernel other than Gaussian scale bandwidth
             h[dim] = bandwidth * (STEconstant / STEconstant2) ** (1.0 / 5)
-        # end % for dim loop
+        # end  for dim loop
         return h
 
     def hstt(self, data, h0=None, inc=128, maxit=100, releps=0.01, abseps=0.0):
@@ -2146,8 +2164,8 @@ class Kernel(object):
         amax = A.max(axis=1)  # Find the maximum value of A.
         arange = amax - amin  # Find the range of A.
 
-        #% xa holds the x 'axis' vector, defining a grid of x values where
-        #% the k.d. function will be evaluated.
+        # xa holds the x 'axis' vector, defining a grid of x values where
+        # the k.d. function will be evaluated.
 
         ax1 = amin - arange / 8.0
         bx1 = amax + arange / 8.0
@@ -2241,8 +2259,8 @@ class Kernel(object):
         amax = A.max(axis=1)  # Find the maximum value of A.
         arange = amax - amin  # Find the range of A.
 
-        #% xa holds the x 'axis' vector, defining a grid of x values where
-        #% the k.d. function will be evaluated.
+        # xa holds the x 'axis' vector, defining a grid of x values where
+        # the k.d. function will be evaluated.
 
         ax1 = amin - arange / 8.0
         bx1 = amax + arange / 8.0
@@ -2378,8 +2396,8 @@ class Kernel(object):
         amax = A.max(axis=1)  # Find the maximum value of A.
         arange = amax - amin  # Find the range of A.
 
-        #% xa holds the x 'axis' vector, defining a grid of x values where
-        #% the k.d. function will be evaluated.
+        # xa holds the x 'axis' vector, defining a grid of x values where
+        # the k.d. function will be evaluated.
 
         ax1 = amin - arange / 8.0
         bx1 = amax + arange / 8.0
@@ -2443,8 +2461,7 @@ class Kernel(object):
 
 
 def mkernel(X, kernel):
-    '''
-    MKERNEL Multivariate Kernel Function.
+    """MKERNEL Multivariate Kernel Function.
 
     Paramaters
     ----------
@@ -2483,7 +2500,8 @@ def mkernel(X, kernel):
     Wand, M. P. and Jones, M. C. (1995)
     'Density estimation for statistics and data analysis'
      Chapman and Hall, pp 31, 103,  175
-    '''
+
+    """
     fun = _MKERNEL_DICT[kernel[:4]]
     return fun(np.atleast_2d(X))
 
@@ -2510,8 +2528,7 @@ def accumsum2(accmap, a, size):
 
 
 def accum(accmap, a, func=None, size=None, fill_value=0, dtype=None):
-    """
-    An accumulation function similar to Matlab's `accumarray` function.
+    """An accumulation function similar to Matlab's `accumarray` function.
 
     Parameters
     ----------
@@ -2579,6 +2596,7 @@ def accum(accmap, a, func=None, size=None, fill_value=0, dtype=None):
     >>> accum(accmap, a, func=lambda x: x, dtype='O')
     array([[[1, 2, 4, -1], [3, 6]],
            [[-1, 8], [9]]], dtype=object)
+
     """
 
     # Check for bad arguments and handle the defaults.
@@ -2616,7 +2634,7 @@ def accum(accmap, a, func=None, size=None, fill_value=0, dtype=None):
 
 
 def qlevels(pdf, p=(10, 30, 50, 70, 90, 95, 99, 99.9), x1=None, x2=None):
-    '''QLEVELS Calculates quantile levels which encloses P% of PDF
+    """QLEVELS Calculates quantile levels which encloses P% of PDF.
 
       CALL: [ql PL] = qlevels(pdf,PL,x1,x2);
 
@@ -2651,7 +2669,8 @@ def qlevels(pdf, p=(10, 30, 50, 70, 90, 95, 99, 99.9), x1=None, x2=None):
     See also
     --------
     qlevels2, tranproc
-    '''
+
+    """
 
     norm = 1  # normalize cdf to unity
     pdf = np.atleast_1d(pdf)
@@ -2728,8 +2747,7 @@ def qlevels(pdf, p=(10, 30, 50, 70, 90, 95, 99, 99.9), x1=None, x2=None):
 
 
 def qlevels2(data, p=(10, 30, 50, 70, 90, 95, 99, 99.9), method=1):
-    '''
-    QLEVELS2 Calculates quantile levels which encloses P% of data
+    """QLEVELS2 Calculates quantile levels which encloses P% of data.
 
      CALL: [ql PL] = qlevels2(data,PL,method);
 
@@ -2754,8 +2772,10 @@ def qlevels2(data, p=(10, 30, 50, 70, 90, 95, 99, 99.9), method=1):
     >>> import wafo.stats as ws
     >>> PL = np.r_[10:90:20, 90, 95, 99, 99.9]
     >>> xs = ws.norm.rvs(size=2500000)
-    >>> np.round(qlevels2(ws.norm.pdf(xs), p=PL), decimals=3)
-    array([ 0.396,  0.37 ,  0.318,  0.233,  0.103,  0.058,  0.014,  0.002])
+    >>> np.allclose(qlevels2(ws.norm.pdf(xs), p=PL),
+    ...  [0.3958, 0.3704, 0.3179, 0.2331, 0.1031, 0.05841, 0.01451, 0.001751],
+    ...   rtol=1e-1)
+    True
 
     # compared with the exact values
     >>> ws.norm.pdf(ws.norm.ppf((100-PL)/200))
@@ -2769,7 +2789,8 @@ def qlevels2(data, p=(10, 30, 50, 70, 90, 95, 99, 99.9), method=1):
     See also
     --------
     qlevels
-    '''
+
+    """
     q = 100 - np.atleast_1d(p)
     return percentile(data, q, axis=-1, method=method)
 
@@ -2879,8 +2900,7 @@ def _compute_qth_percentile(sorted_, q, axis, out, method):
 
 def percentile(a, q, axis=None, out=None, overwrite_input=False, method=1,
                weights=None):
-    """
-    Compute the qth percentile of the data along the specified axis.
+    """Compute the qth percentile of the data along the specified axis.
 
     Returns the qth percentile of the array elements.
 
@@ -2975,7 +2995,7 @@ def percentile(a, q, axis=None, out=None, overwrite_input=False, method=1,
     >>> wk.percentile(b, 50, axis=None, overwrite_input=True)
     3.5
     >>> np.all(a==b)
-    False
+    True
 
     """
     a = np.asarray(a)
@@ -2991,8 +3011,7 @@ def percentile(a, q, axis=None, out=None, overwrite_input=False, method=1,
                                                 weights, overwrite_input)
     elif overwrite_input:
         if axis is None:
-            sorted_ = a.ravel()
-            sorted_.sort()
+            sorted_ = np.sort(a, axis=axis)
         else:
             a.sort(axis=axis)
             sorted_ = a
@@ -3005,8 +3024,7 @@ def percentile(a, q, axis=None, out=None, overwrite_input=False, method=1,
 
 
 def iqrange(data, axis=None):
-    '''
-    Returns the Inter Quartile Range of data
+    """Returns the Inter Quartile Range of data.
 
     Parameters
     ----------
@@ -3035,20 +3053,21 @@ def iqrange(data, axis=None):
     See also
     --------
     np.std
-    '''
+
+    """
     return np.abs(np.percentile(data, 75, axis=axis) -
                   np.percentile(data, 25, axis=axis))
 
 
 def bitget(int_type, offset):
-    '''
-    Returns the value of the bit at the offset position in int_type.
+    """Returns the value of the bit at the offset position in int_type.
 
     Example
     -------
     >>> bitget(5, np.r_[0:4])
     array([1, 0, 1, 0])
-    '''
+
+    """
     return np.bitwise_and(int_type, 1 << offset) >> offset
 
 
@@ -3086,7 +3105,7 @@ def gridcount(data, X, y=1):
     >>> import numpy as np
     >>> import wafo.kdetools as wk
     >>> import pylab as plb
-    >>> N = 20;
+    >>> N = 200
     >>> data  = np.random.rayleigh(1,N)
     >>> x = np.linspace(0,max(data)+1,50)
     >>> dx = x[1]-x[0]
@@ -3096,8 +3115,8 @@ def gridcount(data, X, y=1):
     >>> h = plb.plot(x,c,'.')   # 1D histogram
     >>> pdf = c/dx/N
     >>> h1 = plb.plot(x, pdf) #  1D probability density plot
-    >>> '%1.3f' % np.trapz(pdf, x)
-    '1.000'
+    >>> '%1.2f' % np.trapz(pdf, x)
+    '1.00'
 
     See also
     --------
@@ -3142,7 +3161,7 @@ def gridcount(data, X, y=1):
         c = np.asarray((acfun(binx, (x[binx + 1] - dat) * y, size=(inc, )) +
                         acfun(binx + 1, (dat - x[binx]) * y, size=(inc, ))) /
                        w).ravel()
-    else:  # % d>2
+    else:  # d>2
 
         Nc = csiz.prod()
         c = np.zeros((Nc,))
@@ -3160,7 +3179,7 @@ def gridcount(data, X, y=1):
                 one = np.mod(ix, 2)
                 two = np.mod(ix + 1, 2)
                 # Convert to linear index
-                #linear index to c
+                # linear index to c
                 b1 = np.sum((binx + bt0[one]) * fact1, axis=0)
                 bt2 = bt0[two] + fact2
                 b2 = binx + bt2                     # linear index to X
@@ -3176,509 +3195,14 @@ def gridcount(data, X, y=1):
     return c
 
 
-def evar(y):
-    '''
-    Noise variance estimation.
-    Assuming that the deterministic function Y has additive Gaussian noise,
-    EVAR(Y) returns an estimated variance of this noise.
-
-    Note:
-    ----
-    A thin-plate smoothing spline model is used to smooth Y. It is assumed
-    that the model whose generalized cross-validation score is minimum can
-    provide the variance of the additive noise. A few tests showed that
-    EVAR works very well with "not too irregular" functions.
-
-    Examples:
-    --------
-    1D signal
-    >>> n = 1e6
-    >>> x = np.linspace(0,100,n);
-    >>> y = np.cos(x/10)+(x/50)
-    >>> var0 = 0.02   #  noise variance
-    >>> yn = y + sqrt(var0)*np.random.randn(*y.shape)
-    >>> s = evar(yn)  #estimated variance
-    >>> np.abs(s-var0)/var0 < 3.5/np.sqrt(n)
-    True
-
-    2D function
-    >>> xp = np.linspace(0,1,50)
-    >>> x, y = np.meshgrid(xp,xp)
-    >>> f = np.exp(x+y) + np.sin((x-2*y)*3)
-    >>> var0 = 0.04 #  noise variance
-    >>> fn = f + sqrt(var0)*np.random.randn(*f.shape)
-    >>> s = evar(fn)  # estimated variance
-    >>> np.abs(s-var0)/var0 < 3.5/np.sqrt(50)
-    True
-
-    3D function
-    >>> yp = np.linspace(-2,2,50)
-    >>> [x,y,z] = meshgrid(yp,yp,yp, sparse=True)
-    >>> f = x*exp(-x**2-y**2-z**2)
-    >>> var0 = 0.5  # noise variance
-    >>> fn = f + sqrt(var0)*np.random.randn(*f.shape)
-    >>> s = evar(fn)  # estimated variance
-    >>> np.abs(s-var0)/var0 < 3.5/np.sqrt(50)
-    True
-
-    Other example
-    -------------
-    http://www.biomecardio.com/matlab/evar.html
-
-    Note:
-    ----
-    EVAR is only adapted to evenly-gridded 1-D to N-D data.
-
-    See also
-    --------
-    VAR, STD, SMOOTHN
-    '''
-
-    # Damien Garcia -- 2008/04, revised 2009/10
-    y = np.atleast_1d(y)
-    d = y.ndim
-    sh0 = y.shape
-
-    S = np.zeros(sh0)
-    sh1 = np.ones((d,))
-    cos = np.cos
-    pi = np.pi
-    for i in range(d):
-        ni = sh0[i]
-        sh1[i] = ni
-        t = np.arange(ni).reshape(sh1) / ni
-        S += cos(pi * t)
-        sh1[i] = 1
-
-    S2 = 2 * (d - S).ravel()
-    # N-D Discrete Cosine Transform of Y
-    dcty2 = dctn(y).ravel() ** 2
-
-    def score_fun(L, S2, dcty2):
-        # Generalized cross validation score
-        M = 1 - 1. / (1 + 10 ** L * S2)
-        noisevar = (dcty2 * M ** 2).mean()
-        return noisevar / M.mean() ** 2
-    #fun = lambda x : score_fun(x, S2, dcty2)
-    Lopt = optimize.fminbound(score_fun, -38, 38, args=(S2, dcty2))
-    M = 1.0 - 1.0 / (1 + 10 ** Lopt * S2)
-    noisevar = (dcty2 * M ** 2).mean()
-    return noisevar
-
-
-def smoothn(data, s=None, weight=None, robust=False, z0=None, tolz=1e-3,
-            maxiter=100, fulloutput=False):
-    '''
-    SMOOTHN fast and robust spline smoothing for 1-D to N-D data.
-
-    Parameters
-    ----------
-    data : array like
-        uniformly-sampled data array to smooth. Non finite values (NaN or Inf)
-        are treated as missing values.
-    s : real positive scalar
-        smooting parameter. The larger S is, the smoother the output will be.
-        Default value is automatically determined using the generalized
-        cross-validation (GCV) method.
-    weight : string or array weights
-        weighting array of real positive values, that must have the same size
-        as DATA. Note that a zero weight corresponds to a missing value.
-    robust  : bool
-        If true carry out a robust smoothing that minimizes the influence of
-        outlying data.
-    tolz : real positive scalar
-        Termination tolerance on Z (default = 1e-3)
-    maxiter :  scalar integer
-        Maximum number of iterations allowed (default = 100)
-    z0 : array-like
-        Initial value for the iterative process (default = original data)
-
-    Returns
-    -------
-    z : array like
-        smoothed data
-
-    To be made
-    ----------
-    Estimate the confidence bands (see Wahba 1983, Nychka 1988).
-
-    Reference
-    ---------
-    Garcia D, Robust smoothing of gridded data in one and higher dimensions
-    with missing values. Computational Statistics & Data Analysis, 2010.
-    http://www.biomecardio.com/pageshtm/publi/csda10.pdf
-
-    Examples:
-    --------
-
-    1-D example
-    >>> import matplotlib.pyplot as plt
-    >>> x = np.linspace(0,100,2**8)
-    >>> y = np.cos(x/10)+(x/50)**2 + np.random.randn(*x.shape)/10
-    >>> y[np.r_[70, 75, 80]] = np.array([5.5, 5, 6])
-    >>> z = smoothn(y) # Regular smoothing
-    >>> zr = smoothn(y,robust=True) #  Robust smoothing
-    >>> h=plt.subplot(121),
-    >>> h = plt.plot(x,y,'r.',x,z,'k',linewidth=2)
-    >>> h=plt.title('Regular smoothing')
-    >>> h=plt.subplot(122)
-    >>> h=plt.plot(x,y,'r.',x,zr,'k',linewidth=2)
-    >>> h=plt.title('Robust smoothing')
-
-     2-D example
-    >>> xp = np.r_[0:1:.02]
-    >>> [x,y] = np.meshgrid(xp,xp)
-    >>> f = np.exp(x+y) + np.sin((x-2*y)*3);
-    >>> fn = f + np.random.randn(*f.shape)*0.5;
-    >>> fs = smoothn(fn);
-    >>> h=plt.subplot(121),
-    >>> h=plt.contourf(xp,xp,fn)
-    >>> h=plt.subplot(122)
-    >>> h=plt.contourf(xp,xp,fs)
-
-     2-D example with missing data
-    n = 256;
-    y0 = peaks(n);
-    y = y0 + rand(size(y0))*2;
-    I = randperm(n^2);
-    y(I(1:n^2*0.5)) = NaN;  lose 1/2 of data
-    y(40:90,140:190) = NaN;  create a hole
-    z = smoothn(y);  smooth data
-    subplot(2,2,1:2), imagesc(y), axis equal off
-    title('Noisy corrupt data')
-    subplot(223), imagesc(z), axis equal off
-    title('Recovered data ...')
-    subplot(224), imagesc(y0), axis equal off
-    title('... compared with original data')
-
-     3-D example
-    [x,y,z] = meshgrid(-2:.2:2);
-    xslice = [-0.8,1]; yslice = 2; zslice = [-2,0];
-    vn = x.*exp(-x.^2-y.^2-z.^2) + randn(size(x))*0.06;
-    subplot(121), slice(x,y,z,vn,xslice,yslice,zslice,'cubic')
-    title('Noisy data')
-    v = smoothn(vn);
-    subplot(122), slice(x,y,z,v,xslice,yslice,zslice,'cubic')
-    title('Smoothed data')
-
-    Cardioid
-
-    t = linspace(0,2*pi,1000);
-    x = 2*cos(t).*(1-cos(t)) + randn(size(t))*0.1;
-    y = 2*sin(t).*(1-cos(t)) + randn(size(t))*0.1;
-    z = smoothn(complex(x,y));
-    plot(x,y,'r.',real(z),imag(z),'k','linewidth',2)
-    axis equal tight
-
-     Cellular vortical flow
-    [x,y] = meshgrid(linspace(0,1,24));
-    Vx = cos(2*pi*x+pi/2).*cos(2*pi*y);
-    Vy = sin(2*pi*x+pi/2).*sin(2*pi*y);
-    Vx = Vx + sqrt(0.05)*randn(24,24);  adding Gaussian noise
-    Vy = Vy + sqrt(0.05)*randn(24,24);  adding Gaussian noise
-    I = randperm(numel(Vx));
-    Vx(I(1:30)) = (rand(30,1)-0.5)*5;  adding outliers
-    Vy(I(1:30)) = (rand(30,1)-0.5)*5;  adding outliers
-    Vx(I(31:60)) = NaN;  missing values
-    Vy(I(31:60)) = NaN;  missing values
-    Vs = smoothn(complex(Vx,Vy),'robust');  automatic smoothing
-    subplot(121), quiver(x,y,Vx,Vy,2.5), axis square
-    title('Noisy velocity field')
-    subplot(122), quiver(x,y,real(Vs),imag(Vs)), axis square
-    title('Smoothed velocity field')
-
-    See also SMOOTH, SMOOTH3, DCTN, IDCTN.
-
-    -- Damien Garcia -- 2009/03, revised 2010/11
-    Visit
-    http://www.biomecardio.com/matlab/smoothn.html
-    for more details about SMOOTHN
-    '''
-
-    y = np.atleast_1d(data)
-    sizy = y.shape
-    noe = y.size
-    if noe < 2:
-        return data
-
-    weightstr = 'bisquare'
-    W = np.ones(sizy)
-    # Smoothness parameter and weights
-    if weight is None:
-        pass
-    elif isinstance(weight, str):
-        weightstr = weight.lower()
-    else:
-        W = weight
-
-    # Weights. Zero weights are assigned to not finite values (Inf or NaN),
-    # (Inf/NaN values = missing data).
-    IsFinite = np.isfinite(y)
-    nof = IsFinite.sum()  # number of finite elements
-    W = W * IsFinite
-    if (W < 0).any():
-        raise ValueError('Weights must all be >=0')
-    else:
-        W = W / W.max()
-
-    # Weighted or missing data?
-    isweighted = (W < 1).any()
-
-    # Automatic smoothing?
-    isauto = s is None
-    # Creation of the Lambda tensor
-    # Lambda contains the eingenvalues of the difference matrix used in this
-    # penalized least squares process.
-    d = y.ndim
-    Lambda = np.zeros(sizy)
-    siz0 = [1, ] * d
-    for i in range(d):
-        siz0[i] = sizy[i]
-        Lambda = Lambda + \
-            np.cos(pi * np.arange(sizy[i]) / sizy[i]).reshape(siz0)
-        siz0[i] = 1
-
-    Lambda = -2 * (d - Lambda)
-    if not isauto:
-        Gamma = 1. / (1 + s * Lambda ** 2)
-
-    # Upper and lower bound for the smoothness parameter
-    # The average leverage (h) is by definition in [0 1]. Weak smoothing occurs
-    # if h is close to 1, while over-smoothing appears when h is near 0. Upper
-    # and lower bounds for h are given to avoid under- or over-smoothing. See
-    # equation relating h to the smoothness parameter (Equation #12 in the
-    # referenced CSDA paper).
-    N = (np.array(sizy) != 1).sum()  # tensor rank of the y-array
-    hMin = 1e-6
-    hMax = 0.99
-    sMinBnd = (((1 + sqrt(1 + 8 * hMax ** (2. / N))) / 4. /
-                hMax ** (2. / N)) ** 2 - 1) / 16
-    sMaxBnd = (((1 + sqrt(1 + 8 * hMin ** (2. / N))) / 4. /
-                hMin ** (2. / N)) ** 2 - 1) / 16
-
-    # Initialize before iterating
-
-    Wtot = W
-    # Initial conditions for z
-    if isweighted:
-        # With weighted/missing data
-        # An initial guess is provided to ensure faster convergence. For that
-        # purpose, a nearest neighbor interpolation followed by a coarse
-        # smoothing are performed.
-
-        if z0 is None:
-            z = InitialGuess(y, IsFinite)
-        else:
-            # an initial guess (z0) has been provided
-            z = z0
-    else:
-        z = np.zeros(sizy)
-    z0 = z
-    y[~IsFinite] = 0  # arbitrary values for missing y-data
-
-    tol = 1
-    RobustIterativeProcess = True
-    RobustStep = 1
-
-    # Error on p. Smoothness parameter s = 10^p
-    errp = 0.1
-
-    # Relaxation factor RF: to speedup convergence
-    RF = 1 + 0.75 if weight is None else 1.0
-
-    norm = linalg.norm
-    # Main iterative process
-    while RobustIterativeProcess:
-        # "amount" of weights (see the function GCVscore)
-        aow = Wtot.sum() / noe  # 0 < aow <= 1
-        exitflag = True
-        for nit in range(1, maxiter + 1):
-            DCTy = dctn(Wtot * (y - z) + z)
-            if isauto and not np.remainder(np.log2(nit), 1):
-
-                # The generalized cross-validation (GCV) method is used.
-                # We seek the smoothing parameter s that minimizes the GCV
-                # score i.e. s = Argmin(GCVscore).
-                # Because this process is time-consuming, it is performed from
-                # time to time (when nit is a power of 2)
-                log10s = optimize.fminbound(
-                    gcv, np.log10(sMinBnd), np.log10(sMaxBnd),
-                    args=(aow, Lambda, DCTy, y, Wtot, IsFinite, nof, noe),
-                    xtol=errp, full_output=False, disp=False)
-                s = 10 ** log10s
-                Gamma = 1.0 / (1 + s * Lambda ** 2)
-            z = RF * idctn(Gamma * DCTy) + (1 - RF) * z
-
-            # if no weighted/missing data => tol=0 (no iteration)
-            tol = norm(z0.ravel() - z.ravel()) / norm(
-                z.ravel()) if isweighted else 0.0
-            if tol <= tolz:
-                break
-            z0 = z  # re-initialization
-        else:
-            exitflag = False  # nit<MaxIter;
-
-        if robust:
-            #-- Robust Smoothing: iteratively re-weighted process
-            #--- average leverage
-            h = sqrt(1 + 16 * s)
-            h = sqrt(1 + h) / sqrt(2) / h
-            h = h ** N
-            # take robust weights into account
-            Wtot = W * RobustWeights(y - z, IsFinite, h, weightstr)
-            # re-initialize for another iterative weighted process
-            isweighted = True
-            tol = 1
-            #%---
-            RobustStep = RobustStep + 1
-            # 3 robust steps are enough.
-            RobustIterativeProcess = RobustStep < 4
-        else:
-            RobustIterativeProcess = False  # stop the whole process
-
-    # Warning messages
-    if isauto:
-        if abs(np.log10(s) - np.log10(sMinBnd)) < errp:
-            warnings.warn('''s = %g: the lower bound for s has been reached.
-            Put s as an input variable if required.''' % s)
-        elif abs(np.log10(s) - np.log10(sMaxBnd)) < errp:
-            warnings.warn('''s = %g: the Upper bound for s has been reached.
-            Put s as an input variable if required.''' % s)
-
-    if not exitflag:
-        warnings.warn('''Maximum number of iterations (%d) has been exceeded.
-        Increase MaxIter option or decrease TolZ value.''' % (maxiter))
-    if fulloutput:
-        return z, s
-    else:
-        return z
-
-
-def gcv(p, aow, Lambda, DCTy, y, Wtot, IsFinite, nof, noe):
-    # Search the smoothing parameter s that minimizes the GCV score
-    s = 10 ** p
-    Gamma = 1.0 / (1 + s * Lambda ** 2)
-    # RSS = Residual sum-of-squares
-    if aow > 0.9:  # aow = 1 means that all of the data are equally weighted
-        # very much faster: does not require any inverse DCT
-        RSS = linalg.norm(DCTy.ravel() * (Gamma.ravel() - 1)) ** 2
-    else:
-        # take account of the weights to calculate RSS:
-        yhat = idctn(Gamma * DCTy)
-        RSS = linalg.norm(
-            sqrt(Wtot[IsFinite]) * (y[IsFinite] - yhat[IsFinite])) ** 2
-        # end
-
-    TrH = Gamma.sum()
-    GCVscore = RSS / nof / (1.0 - TrH / noe) ** 2
-    return GCVscore
-
-
-# Robust weights
-def RobustWeights(r, I, h, wstr):
-    # weights for robust smoothing.
-    MAD = np.median(abs(r[I] - np.median(r[I])))  # median absolute deviation
-    u = abs(r / (1.4826 * MAD) / sqrt(1 - h))  # studentized residuals
-    if wstr == 'cauchy':
-        c = 2.385
-        W = 1. / (1 + (u / c) ** 2)  # Cauchy weights
-    elif wstr == 'talworth':
-        c = 2.795
-        W = u < c  # Talworth weights
-    else:  # bisquare weights
-        c = 4.685
-        W = (1 - (u / c) ** 2) ** 2 * ((u / c) < 1)
-
-    W[np.isnan(W)] = 0
-    return W
-
-# Initial Guess with weighted/missing data
-
-
-def InitialGuess(y, I):
-    # nearest neighbor interpolation (in case of missing values)
-    z = y
-    if (1 - I).any():
-
-        if True:  # license('test','image_toolbox')
-            notI = ~I
-            z, L = distance_transform_edt(notI,  return_indices=True)
-            #[z,L] = bwdist(I);
-            z[notI] = y[L.flat[notI]]
-        else:
-        #% If BWDIST does not exist, NaN values are all replaced with the
-        #% same scalar. The initial guess is not optimal and a warning
-        #% message thus appears.
-            z[1 - I] = y[I].mean()
-
-    # coarse fast smoothing using one-tenth of the DCT coefficients
-    siz = z.shape
-    d = z.ndim
-    z = dctn(z)
-    for k in range(d):
-        z[int((siz[k] + 0.5) / 10) + 1::, ...] = 0
-        z = z.reshape(np.roll(siz, -k))
-        z = z.transpose(np.roll(range(z.ndim), -1))
-        #z = shiftdim(z,1);
-    # end
-    z = idctn(z)
-
-    return z
-
-
-def test_smoothn_1d():
-    x = np.linspace(0, 100, 2 ** 8)
-    y = np.cos(x / 10) + (x / 50) ** 2 + np.random.randn(x.size) / 10
-    y[np.r_[70, 75, 80]] = np.array([5.5, 5, 6])
-    z = smoothn(y)  # Regular smoothing
-    zr = smoothn(y, robust=True)  # Robust smoothing
-    plt.subplot(121),
-    unused_h = plt.plot(x, y, 'r.', x, z, 'k', linewidth=2)
-    plt.title('Regular smoothing')
-    plt.subplot(122)
-    plt.plot(x, y, 'r.', x, zr, 'k', linewidth=2)
-    plt.title('Robust smoothing')
-    plt.show()
-
-
-def test_smoothn_2d():
-
-    #import mayavi.mlab as plt
-    xp = np.r_[0:1:.02]
-    [x, y] = np.meshgrid(xp, xp)
-    f = np.exp(x + y) + np.sin((x - 2 * y) * 3)
-    fn = f + np.random.randn(*f.shape) * 0.5
-    fs, s = smoothn(fn, fulloutput=True)  # @UnusedVariable
-    fs2 = smoothn(fn, s=2 * s)
-    plt.subplot(131),
-    plt.contourf(xp, xp, fn)
-    plt.subplot(132),
-    plt.contourf(xp, xp, fs2)
-    plt.subplot(133),
-    plt.contourf(xp, xp, f)
-    plt.show()
-
-
-def test_smoothn_cardioid():
-    t = np.linspace(0, 2 * pi, 1000)
-    cos = np.cos
-    sin = np.sin
-    randn = np.random.randn
-    x = 2 * cos(t) * (1 - cos(t)) + randn(t.size) * 0.1
-    y = 2 * sin(t) * (1 - cos(t)) + randn(t.size) * 0.1
-    z = smoothn(x + 1j * y)
-    plt.plot(x, y, 'r.', z.real, z.imag, 'k', linewidth=2)
-    plt.show()
-
-
 def kde_demo1():
-    '''
-    KDEDEMO1 Demonstrate the smoothing parameter impact on KDE
+    """KDEDEMO1 Demonstrate the smoothing parameter impact on KDE.
 
     KDEDEMO1 shows the true density (dotted) compared to KDE based on 7
     observations (solid) and their individual kernels (dashed) for 3
     different values of the smoothing parameter, hs.
-    '''
+
+    """
 
     import scipy.stats as st
     x = np.linspace(-4, 4, 101)
@@ -3745,7 +3269,7 @@ def kde_demo3():
     import scipy.stats as st
     data = st.rayleigh.rvs(scale=1, size=(2, 300))
 
-    #x = np.linspace(1.5e-3, 5, 55)
+    # x = np.linspace(1.5e-3, 5, 55)
 
     kde = KDE(data)
     f = kde(output='plot', title='Ordinary KDE', plotflag=1)
@@ -3780,7 +3304,7 @@ def kde_demo4(N=50):
     data = np.hstack((st.norm.rvs(loc=5, scale=1, size=(N,)),
                       st.norm.rvs(loc=-5, scale=1, size=(N,))))
 
-    #x = np.linspace(1.5e-3, 5, 55)
+    # x = np.linspace(1.5e-3, 5, 55)
 
     kde = KDE(data, kernel=Kernel('gauss', 'hns'))
     f = kde(output='plot', title='Ordinary KDE', plotflag=1)
@@ -3829,47 +3353,30 @@ def kde_demo5(N=500):
 
 
 def kreg_demo1(hs=None, fast=False, fun='hisj'):
-    '''
-    '''
+    """"""
     N = 100
-    #ei = np.random.normal(loc=0, scale=0.075, size=(N,))
-    ei = np.array(
-        [-0.08508516,  0.10462496,  0.07694448, -0.03080661,  0.05777525,
-         0.06096313, -0.16572389,  0.01838912, -
-         0.06251845, -0.09186784,
-         -0.04304887, -0.13365788, -
-         0.0185279, -0.07289167,  0.02319097,
-         0.06887854, -0.08938374, -
-         0.15181813,  0.03307712,  0.08523183,
-         -0.0378058, -
-         0.06312874,  0.01485772,  0.06307944, -0.0632959,
-         0.18963205,  0.0369126, -
-         0.01485447,  0.04037722,  0.0085057,
-         -0.06912903,  0.02073998,  0.1174351,  0.17599277, -
-         0.06842139,
-         0.12587608,  0.07698113, -
-         0.0032394, -0.12045792, -0.03132877,
-         0.05047314,  0.02013453,  0.04080741,  0.00158392,  0.10237899,
-         -0.09069682,  0.09242174, -
-         0.15445323,  0.09190278,  0.07138498,
-         0.03002497,  0.02495252,  0.01286942,  0.06449978,  0.03031802,
-         0.11754861, -0.02322272,  0.00455867, -
-         0.02132251,  0.09119446,
-         -0.03210086, -
-         0.06509545,  0.07306443,  0.04330647,  0.078111,
-         -0.04146907,  0.05705476,  0.02492201, -
-         0.03200572, -0.02859788,
-         -
-         0.05893749,  0.00089538,  0.0432551,  0.04001474,  0.04888828,
-         -
-         0.17708392,  0.16478644,  0.1171006,  0.11664846,  0.01410477,
-         -0.12458953, -0.11692081,  0.0413047, -
-         0.09292439, -0.07042327,
-         0.14119701, -0.05114335,  0.04994696, -
-         0.09520663,  0.04829406,
-         -0.01603065, -
-         0.1933216,  0.19352763,  0.11819496,  0.04567619,
-         -0.08348306,  0.00812816, -0.00908206,  0.14528945,  0.02901065])
+    # ei = np.random.normal(loc=0, scale=0.075, size=(N,))
+    ei = np.array([
+        -0.08508516, 0.10462496, 0.07694448, -0.03080661, 0.05777525,
+        0.06096313, -0.16572389, 0.01838912, -0.06251845, -0.09186784,
+        -0.04304887, -0.13365788, -0.0185279, -0.07289167, 0.02319097,
+        0.06887854, -0.08938374, -0.15181813, 0.03307712, 0.08523183,
+        -0.0378058, -0.06312874, 0.01485772, 0.06307944, -0.0632959,
+        0.18963205, 0.0369126, -0.01485447, 0.04037722, 0.0085057,
+        -0.06912903, 0.02073998, 0.1174351, 0.17599277, -0.06842139,
+        0.12587608, 0.07698113, -0.0032394, -0.12045792, -0.03132877,
+        0.05047314, 0.02013453, 0.04080741, 0.00158392, 0.10237899,
+        -0.09069682, 0.09242174, -0.15445323, 0.09190278, 0.07138498,
+        0.03002497, 0.02495252, 0.01286942, 0.06449978, 0.03031802,
+        0.11754861, -0.02322272, 0.00455867, -0.02132251, 0.09119446,
+        -0.03210086, -0.06509545, 0.07306443, 0.04330647, 0.078111,
+        -0.04146907, 0.05705476, 0.02492201, -0.03200572, -0.02859788,
+        -0.05893749, 0.00089538, 0.0432551, 0.04001474, 0.04888828,
+        -0.17708392, 0.16478644, 0.1171006, 0.11664846, 0.01410477,
+        -0.12458953, -0.11692081, 0.0413047, -0.09292439, -0.07042327,
+        0.14119701, -0.05114335, 0.04994696, -0.09520663, 0.04829406,
+        -0.01603065, -0.1933216, 0.19352763, 0.11819496, 0.04567619,
+        -0.08348306, 0.00812816, -0.00908206, 0.14528945, 0.02901065])
     x = np.linspace(0, 1, N)
 
     y0 = 2 * np.exp(-x ** 2 / (2 * 0.3 ** 2)) + \
@@ -3899,6 +3406,7 @@ def kreg_demo1(hs=None, fast=False, fun='hisj'):
     print(kreg.tkde.tkde.inv_hs)
     print(kreg.tkde.tkde.hs)
 
+_TINY = np.finfo(float).machar.tiny
 _REALMIN = np.finfo(float).machar.xmin
 _REALMAX = np.finfo(float).machar.xmax
 _EPS = np.finfo(float).eps
@@ -3915,20 +3423,20 @@ def _logitinv(x):
 
 def _get_data(n=100, symmetric=False, loc1=1.1, scale1=0.6, scale2=1.0):
     import scipy.stats as st
-    #from sg_filter import SavitzkyGolay
+    # from sg_filter import SavitzkyGolay
     dist = st.norm
 
-    norm1 = scale2 * \
-        (dist.pdf(-loc1, loc=-loc1, scale=scale1)
-         + dist.pdf(-loc1, loc=loc1, scale=scale1))
-    fun1 = lambda x: ((dist.pdf(x, loc=-loc1, scale=scale1) +
-                       dist.pdf(x, loc=loc1, scale=scale1)) /
-                      norm1).clip(max=1.0)
+    norm1 = scale2 * (dist.pdf(-loc1, loc=-loc1, scale=scale1) +
+                      dist.pdf(-loc1, loc=loc1, scale=scale1))
+
+    def fun1(x):
+        return ((dist.pdf(x, loc=-loc1, scale=scale1) +
+                 dist.pdf(x, loc=loc1, scale=scale1)) / norm1).clip(max=1.0)
 
     x = np.sort(6 * np.random.rand(n, 1) - 3, axis=0)
 
     y = (fun1(x) > np.random.rand(n, 1)).ravel()
-    #y = (np.cos(x)>2*np.random.rand(n, 1)-1).ravel()
+    # y = (np.cos(x)>2*np.random.rand(n, 1)-1).ravel()
     x = x.ravel()
 
     if symmetric:
@@ -3958,8 +3466,8 @@ def kreg_demo3(x, y, fun1, hs=None, fun='hisj', plotlog=False):
 
     forward = _logit
     reverse = _logitinv
-    #forward = np.log
-    #reverse = np.exp
+    # forward = np.log
+    # reverse = np.exp
 
     xmin, xmax = x.min(), x.max()
     ni = max(2 * int((xmax - xmin) / hopt) + 3, 5)
@@ -3970,8 +3478,8 @@ def kreg_demo3(x, y, fun1, hs=None, fun='hisj', plotlog=False):
     xiii = np.linspace(xmin - sml, xmax + sml, 4 * ni + 1)
 
     c = gridcount(x, xi)
-    if (y == True).any():
-        c0 = gridcount(x[y == True], xi)
+    if (y == 1).any():
+        c0 = gridcount(x[y == 1], xi)
     else:
         c0 = np.zeros(xi.shape)
     yi = np.where(c == 0, 0, c0 / c)
@@ -3988,11 +3496,11 @@ def kreg_demo3(x, y, fun1, hs=None, fun='hisj', plotlog=False):
         title='%s err=%1.3f,eerr=%1.3f, n=%d, hs=%1.3f, hs1=%1.3f, hs2=%1.3f' %
         (fun, err, eerr, n, hs, hs1, hs2), plotflag=1)
 
-    #yi[yi==0] = 1.0/(c[c!=0].min()+4)
-    #yi[yi==1] = 1-1.0/(c[c!=0].min()+4)
-    #yi[yi==0] = fi[yi==0]
-    #yi[yi==0] = np.exp(stineman_interp(xi[yi==0], xi[yi>0],np.log(yi[yi>0])))
-    #yi[yi==0] = fun1(xi[yi==0])
+    # yi[yi==0] = 1.0/(c[c!=0].min()+4)
+    # yi[yi==1] = 1-1.0/(c[c!=0].min()+4)
+    # yi[yi==0] = fi[yi==0]
+    # yi[yi==0] = np.exp(stineman_interp(xi[yi==0], xi[yi>0],np.log(yi[yi>0])))
+    # yi[yi==0] = fun1(xi[yi==0])
     try:
         yi[yi == 0] = yi[yi > 0].min() / sqrt(n)
     except:
@@ -4006,7 +3514,7 @@ def kreg_demo3(x, y, fun1, hs=None, fun='hisj', plotlog=False):
         xi, output='plotobj', title='Kernel regression', plotflag=1)
     sa = (fg.data - logity).std()
     sa2 = iqrange(fg.data - logity) / 1.349
-    #print('sa=%g %g' % (sa, sa2))
+    # print('sa=%g %g' % (sa, sa2))
     sa = min(sa, sa2)
 
 #    plt.figure(1)
@@ -4022,7 +3530,7 @@ def kreg_demo3(x, y, fun1, hs=None, fun='hisj', plotlog=False):
 
     dx = xi[1] - xi[0]
     ckreg = KDE(x, hs=hs)
-    #ci = ckreg.eval_grid_fast(xi)*n*dx
+    # ci = ckreg.eval_grid_fast(xi)*n*dx
     ciii = ckreg.eval_grid_fast(xiii) * dx * x.size  # n*(1+symmetric)
 
 #    sa1 = np.sqrt(1./(ciii*pi*(1-pi)))
@@ -4037,18 +3545,24 @@ def kreg_demo3(x, y, fun1, hs=None, fun='hisj', plotlog=False):
 #    plo2 = ((a-sqrt(a**2-2*pi**2*b))/b).clip(min=0,max=1)
 #    pup2 = ((a+sqrt(a**2-2*pi**2*b))/b).clip(min=0,max=1)
     # Jeffreys intervall a=b=0.5
-    #st.beta.isf(alpha/2, x+a, n-x+b)
+    # st.beta.isf(alpha/2, x+a, n-x+b)
     ab = 0.07  # 0.055
     pi1 = pi  # fun1(xiii)
-    pup2 = np.where(pi == 1, 1, st.beta.isf(
-        alpha / 2, ciii * pi1 + ab, ciii * (1 - pi1) + ab))
-    plo2 = np.where(pi == 0, 0, st.beta.isf(
-        1 - alpha / 2, ciii * pi1 + ab, ciii * (1 - pi1) + ab))
+    pup2 = np.where(pi == 1,
+                    1,
+                    st.beta.isf(alpha / 2,
+                                ciii * pi1 + ab,
+                                ciii * (1 - pi1) + ab))
+    plo2 = np.where(pi == 0,
+                    0,
+                    st.beta.isf(1 - alpha / 2,
+                                ciii * pi1 + ab,
+                                ciii * (1 - pi1) + ab))
 
-    averr = np.trapz(pup2 - plo2, xiii) / (
-        xiii[-1] - xiii[0]) + 0.5 * (df[:-1] * df[1:] < 0).sum()
+    averr = np.trapz(pup2 - plo2, xiii) / \
+        (xiii[-1] - xiii[0]) + 0.5 * (df[:-1] * df[1:] < 0).sum()
 
-    #f2 = kreg_demo4(x, y, hs, hopt)
+    # f2 = kreg_demo4(x, y, hs, hopt)
     # Wilson score
     den = 1 + (z0 ** 2. / ciii)
     xc = (pi1 + (z0 ** 2) / (2 * ciii)) / den
@@ -4057,12 +3571,12 @@ def kreg_demo3(x, y, fun1, hs=None, fun='hisj', plotlog=False):
     plo = (xc - halfwidth).clip(min=0)  # wilson score
     pup = (xc + halfwidth).clip(max=1.0)  # wilson score
     # pup = (pi + z0*np.sqrt(pi*(1-pi)/ciii)).clip(min=0,max=1) # dont use
-    #plo = (pi - z0*np.sqrt(pi*(1-pi)/ciii)).clip(min=0,max=1)
+    # plo = (pi - z0*np.sqrt(pi*(1-pi)/ciii)).clip(min=0,max=1)
 
-    #mi = kreg.eval_grid(x)
-    #sigma = (stineman_interp(x, xiii, pup)-stineman_interp(x, xiii, plo))/4
-    #aic = np.abs((y-mi)/sigma).std()+ 0.5*(df[:-1]*df[1:]<0).sum()/n
-    #aic = np.abs((yiii-fiii)/(pup-plo)).std() + \
+    # mi = kreg.eval_grid(x)
+    # sigma = (stineman_interp(x, xiii, pup)-stineman_interp(x, xiii, plo))/4
+    # aic = np.abs((y-mi)/sigma).std()+ 0.5*(df[:-1]*df[1:]<0).sum()/n
+    # aic = np.abs((yiii-fiii)/(pup-plo)).std() + \
     #                0.5*(df[:-1]*df[1:]<0).sum() + \
     #            ((yiii-pup).clip(min=0)-(yiii-plo).clip(max=0)).sum()
 
@@ -4072,10 +3586,10 @@ def kreg_demo3(x, y, fun1, hs=None, fun='hisj', plotlog=False):
         2 * k * (k + 1) / np.maximum(ni - k + 1, 1) + \
         np.abs((yiii - pup).clip(min=0) - (yiii - plo).clip(max=0)).sum()
 
-    #aic = (((yiii-fiii)/sigmai)**2).sum()+ 2*k*(k+1)/(ni-k+1) + \
+    # aic = (((yiii-fiii)/sigmai)**2).sum()+ 2*k*(k+1)/(ni-k+1) + \
     #        np.abs((yiii-pup).clip(min=0)-(yiii-plo).clip(max=0)).sum()
 
-    #aic = averr + ((yiii-pup).clip(min=0)-(yiii-plo).clip(max=0)).sum()
+    # aic = averr + ((yiii-pup).clip(min=0)-(yiii-plo).clip(max=0)).sum()
 
     fg.plot(label='KReg grid aic=%2.3f' % (aic))
     f.plot(label='KReg averr=%2.3f ' % (averr))
@@ -4118,7 +3632,7 @@ def kreg_demo4(x, y, hs, hopt, alpha=0.05):
     pi = f.data
 
     # Jeffreys intervall a=b=0.5
-    #st.beta.isf(alpha/2, x+a, n-x+b)
+    # st.beta.isf(alpha/2, x+a, n-x+b)
     ab = 0.07  # 0.5
     pi1 = pi
     pup = np.where(pi1 == 1, 1, st.beta.isf(
@@ -4133,21 +3647,21 @@ def kreg_demo4(x, y, hs, hopt, alpha=0.05):
 #    halfwidth=(z0*sqrt((pi1*(1-pi1)/ciii)+(z0**2/(4*(ciii**2)))))/den
 # plo2 = (xc-halfwidth).clip(min=0) # wilson score
 # pup2 = (xc+halfwidth).clip(max=1.0) # wilson score
-    #f.dataCI = np.vstack((plo,pup)).T
+    # f.dataCI = np.vstack((plo,pup)).T
     f.prediction_error_avg = np.trapz(pup - plo, xiii) / (xiii[-1] - xiii[0])
     fiii = f.data
 
     c = gridcount(x, xi)
-    if (y == True).any():
-        c0 = gridcount(x[y == True], xi)
+    if (y == 1).any():
+        c0 = gridcount(x[y == 1], xi)
     else:
         c0 = np.zeros(xi.shape)
     yi = np.where(c == 0, 0, c0 / c)
 
-    f.children = [PlotData(
-        [plo, pup], xiii, plotmethod='fill_between',
-        plot_kwds=dict(alpha=0.2, color='r')),
-        PlotData(yi, xi, plotmethod='scatter', plot_kwds=dict(color='r', s=5))]
+    f.children = [PlotData([plo, pup], xiii, plotmethod='fill_between',
+                           plot_kwds=dict(alpha=0.2, color='r')),
+                  PlotData(yi, xi, plotmethod='scatter',
+                           plot_kwds=dict(color='r', s=5))]
 
     yiii = interpolate.interp1d(xi, yi)(xiii)
     df = np.diff(fiii)
@@ -4174,14 +3688,13 @@ def check_kreg_demo3():
         k0 = k
 
         for fun in ['hste', ]:
-            #@UnusedVariable
             hsmax, _hs1, _hs2 = _get_regression_smooting(x, y, fun=fun)
             for hi in np.linspace(hsmax * 0.25, hsmax, 9):
                 plt.figure(k)
                 k += 1
                 unused = kreg_demo3(x, y, fun1, hs=hi, fun=fun, plotlog=False)
 
-            #kreg_demo2(n=n,symmetric=True,fun='hste', plotlog=False)
+            # kreg_demo2(n=n,symmetric=True,fun='hste', plotlog=False)
         fig.tile(range(k0, k))
     plt.ioff()
     plt.show()
@@ -4193,18 +3706,17 @@ def check_kreg_demo4():
     # kde_demo2()
     # kreg_demo1(fast=True)
     # kde_gauss_demo()
-    #kreg_demo2(n=120,symmetric=True,fun='hste', plotlog=True)
+    # kreg_demo2(n=120,symmetric=True,fun='hste', plotlog=True)
     k = 0
-    for i, n in enumerate([100, 300, 600, 4000]):  # @UnusedVariable
+    for _i, n in enumerate([100, 300, 600, 4000]):
         x, y, fun1 = _get_data(
             n, symmetric=True, loc1=0.1, scale1=0.6, scale2=0.75)
-        #k0 = k
+        # k0 = k
         hopt1, _h1, _h2 = _get_regression_smooting(x, y, fun='hos')
         hopt2, _h1, _h2 = _get_regression_smooting(x, y, fun='hste')
         hopt = sqrt(hopt1 * hopt2)
-        #hopt = _get_regression_smooting(x,y,fun='hos')[0]
-        # , 'hisj', 'hns', 'hstt' @UnusedVariable
-        for _j, fun in enumerate(['hste']):
+        # hopt = _get_regression_smooting(x,y,fun='hos')[0]
+        for _j, fun in enumerate(['hste']):  # , 'hisj', 'hns', 'hstt'
             hsmax, _hs1, _hs2 = _get_regression_smooting(x, y, fun=fun)
 
             fmax = kreg_demo4(x, y, hsmax + 0.1, hopt)
@@ -4217,7 +3729,7 @@ def check_kreg_demo4():
             fmax.plot()
             plt.plot(x, fun1(x), 'r')
 
-            #kreg_demo2(n=n,symmetric=True,fun='hste', plotlog=False)
+            # kreg_demo2(n=n,symmetric=True,fun='hste', plotlog=False)
     fig.tile(range(0, k))
     plt.ioff()
     plt.show()
@@ -4229,9 +3741,9 @@ def check_regression_bin():
     # kde_demo2()
     # kreg_demo1(fast=True)
     # kde_gauss_demo()
-    #kreg_demo2(n=120,symmetric=True,fun='hste', plotlog=True)
+    # kreg_demo2(n=120,symmetric=True,fun='hste', plotlog=True)
     k = 0
-    for i, n in enumerate([100, 300, 600, 4000]):  # @UnusedVariable
+    for _i, n in enumerate([100, 300, 600, 4000]):
         x, y, fun1 = _get_data(
             n, symmetric=True, loc1=0.1, scale1=0.6, scale2=0.75)
         fbest = regressionbin(x, y, alpha=0.05, color='g', label='Transit_D')
@@ -4239,10 +3751,11 @@ def check_regression_bin():
         figk = plt.figure(k)
         ax = figk.gca()
         k += 1
+        fbest.labels.title = 'N = %d' % n
         fbest.plot(axis=ax)
         ax.plot(x, fun1(x), 'r')
         ax.legend(frameon=False, markerscale=4)
-        #ax = plt.gca()
+        # ax = plt.gca()
         ax.set_yticklabels(ax.get_yticks() * 100.0)
         ax.grid(True)
 
@@ -4254,7 +3767,7 @@ def check_regression_bin():
 def check_bkregression():
     plt.ion()
     k = 0
-    for i, n in enumerate([50, 100, 300, 600]):  # @UnusedVariable
+    for _i, n in enumerate([50, 100, 300, 600]):
         x, y, fun1 = _get_data(
             n, symmetric=True, loc1=0.1, scale1=0.6, scale2=0.75)
         bkreg = BKRegression(x, y)
@@ -4268,10 +3781,11 @@ def check_bkregression():
 #        axsize = ax.axis()
 #        ax.vlines(fbest.hs,axsize[2]+1,axsize[3])
 #        ax.set(yscale='log')
+        fbest.labels.title = 'N = %d' % n
         fbest.plot(axis=ax)
         ax.plot(x, fun1(x), 'r')
         ax.legend(frameon=False, markerscale=4)
-        #ax = plt.gca()
+        # ax = plt.gca()
         ax.set_yticklabels(ax.get_yticks() * 100.0)
         ax.grid(True)
 
@@ -4282,26 +3796,25 @@ def check_bkregression():
 
 def _get_regression_smooting(x, y, fun='hste'):
     hs1 = Kernel('gauss', fun=fun).get_smoothing(x)
-    #hx = np.median(np.abs(x-np.median(x)))/0.6745*(4.0/(3*n))**0.2
-    if (y == True).any():
-        hs2 = Kernel('gauss', fun=fun).get_smoothing(x[y == True])
-        #hy = np.median(np.abs(y-np.mean(y)))/0.6745*(4.0/(3*n))**0.2
+    # hx = np.median(np.abs(x-np.median(x)))/0.6745*(4.0/(3*n))**0.2
+    if (y == 1).any():
+        hs2 = Kernel('gauss', fun=fun).get_smoothing(x[y == 1])
+        # hy = np.median(np.abs(y-np.mean(y)))/0.6745*(4.0/(3*n))**0.2
     else:
         hs2 = 4 * hs1
-        #hy = 4*hx
+        # hy = 4*hx
 
-    #hy2 = Kernel('gauss', fun=fun).get_smoothing(y)
-    #kernel = Kernel('gauss',fun=fun)
-    #hopt = (hs1+2*hs2)/3
+    # hy2 = Kernel('gauss', fun=fun).get_smoothing(y)
+    # kernel = Kernel('gauss',fun=fun)
+    # hopt = (hs1+2*hs2)/3
     # hopt = (hs1+4*hs2)/5 #kernel.get_smoothing(x)
-    #hopt = hs2
+    # hopt = hs2
     hopt = sqrt(hs1 * hs2)
     return hopt, hs1, hs2
 
 
 def empirical_bin_prb(x, y, hopt, color='r'):
-    '''
-    Returns empirical binomial probabiltity
+    """Returns empirical binomial probabiltity.
 
     Parameters
     ----------
@@ -4314,7 +3827,8 @@ def empirical_bin_prb(x, y, hopt, color='r'):
     -------
     P(x) : PlotData object
         empirical probability
-    '''
+
+    """
     xmin, xmax = x.min(), x.max()
     ni = max(2 * int((xmax - xmin) / hopt) + 3, 5)
 
@@ -4322,8 +3836,8 @@ def empirical_bin_prb(x, y, hopt, color='r'):
     xi = np.linspace(xmin - sml, xmax + sml, ni)
 
     c = gridcount(x, xi)
-    if (y == True).any():
-        c0 = gridcount(x[y == True], xi)
+    if (y == 1).any():
+        c0 = gridcount(x[y == 1], xi)
     else:
         c0 = np.zeros(xi.shape)
     yi = np.where(c == 0, 0, c0 / c)
@@ -4364,7 +3878,7 @@ def smoothed_bin_prb(x, y, hs, hopt, alpha=0.05, color='r', label='',
 
     st = stats
     # Jeffreys intervall a=b=0.5
-    #st.beta.isf(alpha/2, x+a, n-x+b)
+    # st.beta.isf(alpha/2, x+a, n-x+b)
     ab = 0.07  # 0.5
     pi1 = pi
     pup = np.where(pi1 == 1, 1, st.beta.isf(
@@ -4379,7 +3893,7 @@ def smoothed_bin_prb(x, y, hs, hopt, alpha=0.05, color='r', label='',
 #    halfwidth=(z0*sqrt((pi1*(1-pi1)/ciii)+(z0**2/(4*(ciii**2)))))/den
 # plo2 = (xc-halfwidth).clip(min=0) # wilson score
 # pup2 = (xc+halfwidth).clip(max=1.0) # wilson score
-    #f.dataCI = np.vstack((plo,pup)).T
+    # f.dataCI = np.vstack((plo,pup)).T
     f.prediction_error_avg = np.trapz(pup - plo, xiii) / (xiii[-1] - xiii[0])
     fiii = f.data
 
@@ -4387,10 +3901,9 @@ def smoothed_bin_prb(x, y, hs, hopt, alpha=0.05, color='r', label='',
     f.plot_kwds['linewidth'] = 2
     if label:
         f.plot_kwds['label'] = label
-    f.children = [PlotData(
-        [plo, pup], xiii, plotmethod='fill_between',
-        plot_kwds=dict(alpha=0.2, color=color)),
-        bin_prb]
+    f.children = [PlotData([plo, pup], xiii, plotmethod='fill_between',
+                           plot_kwds=dict(alpha=0.2, color=color)),
+                  bin_prb]
 
     yiii = interpolate.interp1d(xi, yi)(xiii)
     df = np.diff(fiii)
@@ -4409,8 +3922,7 @@ def smoothed_bin_prb(x, y, hs, hopt, alpha=0.05, color='r', label='',
 
 
 def regressionbin(x, y, alpha=0.05, color='r', label=''):
-    '''
-    Return kernel regression estimate for binomial data
+    """Return kernel regression estimate for binomial data.
 
     Parameters
     ----------
@@ -4418,7 +3930,8 @@ def regressionbin(x, y, alpha=0.05, color='r', label=''):
         positions
     y : arraylike
         of 0 and 1
-    '''
+
+    """
 
     hopt1, _h1, _h2 = _get_regression_smooting(x, y, fun='hos')
     hopt2, _h1, _h2 = _get_regression_smooting(x, y, fun='hste')
@@ -4432,39 +3945,39 @@ def regressionbin(x, y, alpha=0.05, color='r', label=''):
             f = smoothed_bin_prb(x, y, hi, hopt, alpha, color, label, bin_prb)
             if f.aicc <= fbest.aicc:
                 fbest = f
-                #hbest = hi
+                # hbest = hi
     return fbest
 
 
 def kde_gauss_demo(n=50):
-    '''
-    KDEDEMO Demonstrate the KDEgauss
+    """KDEDEMO Demonstrate the KDEgauss.
 
     KDEDEMO1 shows the true density (dotted) compared to KDE based on 7
     observations (solid) and their individual kernels (dashed) for 3
     different values of the smoothing parameter, hs.
-    '''
+
+    """
 
     st = stats
-    #x = np.linspace(-4, 4, 101)
-    #data = np.random.normal(loc=0, scale=1.0, size=n)
-    #data = np.random.exponential(scale=1.0, size=n)
+    # x = np.linspace(-4, 4, 101)
+    # data = np.random.normal(loc=0, scale=1.0, size=n)
+    # data = np.random.exponential(scale=1.0, size=n)
 #    n1 = 128
 #    I = (np.arange(n1)*pi)**2 *0.01*0.5
 #    kw = exp(-I)
 #    plt.plot(idctn(kw))
 #    return
-    #dist = st.norm
+    # dist = st.norm
     dist = st.expon
     data = dist.rvs(loc=0, scale=1.0, size=n)
-    d, N = np.atleast_2d(data).shape  # @UnusedVariable
+    d, _N = np.atleast_2d(data).shape
 
     if d == 1:
         plot_options = [dict(color='red'), dict(
             color='green'), dict(color='black')]
     else:
-        plot_options = [dict(colors='red'), dict(
-            colors='green'), dict(colors='black')]
+        plot_options = [dict(colors='red'), dict(colors='green'),
+                        dict(colors='black')]
 
     plt.figure(1)
     kde0 = KDE(data, kernel=Kernel('gauss', 'hste'))
@@ -4489,28 +4002,51 @@ def kde_gauss_demo(n=50):
     format_ = ''.join(('%g, ') * d)
     format_ = 'hs0=%s hs1=%s hs2=%s' % (format_, format_, format_)
     print(format_ % tuple(kde0.hs.tolist() +
-                        kde1.tkde.hs.tolist() + kde2.hs.tolist()))
+                          kde1.tkde.hs.tolist() + kde2.hs.tolist()))
     print('inc0 = %d, inc1 = %d, inc2 = %d' % (kde0.inc, kde1.inc, kde2.inc))
+
+
+def test_kde():
+    data = np.array([
+        0.75355792, 0.72779194, 0.94149169, 0.07841119, 2.32291887,
+        1.10419995, 0.77055114, 0.60288273, 1.36883635, 1.74754326,
+        1.09547561, 1.01671133, 0.73211143, 0.61891719, 0.75903487,
+        1.8919469, 0.72433808, 1.92973094, 0.44749838, 1.36508452])
+
+    x = np.linspace(0.01, max(data.ravel()) + 1, 10)
+    kde = TKDE(data, hs=0.5, L2=0.5)
+    _f = kde(x)
+    # f = array([1.03982714, 0.45839018, 0.39514782, 0.32860602, 0.26433318,
+    #   0.20717946,  0.15907684,  0.1201074 ,  0.08941027,  0.06574882])
+
+    _f1 = kde.eval_grid(x)
+    # array([ 1.03982714,  0.45839018,  0.39514782,  0.32860602,  0.26433318,
+    #        0.20717946,  0.15907684,  0.1201074 ,  0.08941027,  0.06574882])
+
+    _f2 = kde.eval_grid_fast(x)
+    # array([ 1.06437223,  0.46203314,  0.39593137,  0.32781899,  0.26276433,
+    #        0.20532206,  0.15723498,  0.11843998,  0.08797755,  0.        ])
 
 
 def test_docstrings():
     import doctest
-    doctest.testmod()
+    print('Testing docstrings in %s' % __file__)
+    doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
+
 
 if __name__ == '__main__':
     test_docstrings()
-
+    # test_kde()
     # check_bkregression()
     # check_regression_bin()
     # check_kreg_demo3()
     # check_kreg_demo4()
 
-
+    # test_smoothn_1d()
     # test_smoothn_2d()
-    # test_smoothn_cardioid()
-
 
     # kde_demo2()
     # kreg_demo1(fast=True)
     # kde_gauss_demo()
-    #kreg_demo2(n=120,symmetric=True,fun='hste', plotlog=True)
+    # kreg_demo2(n=120,symmetric=True,fun='hste', plotlog=True)
+    # plt.show('hold')

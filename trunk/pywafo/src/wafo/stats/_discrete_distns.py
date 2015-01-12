@@ -12,8 +12,8 @@ from numpy import floor, ceil, log, exp, sqrt, log1p, expm1, tanh, cosh, sinh
 import numpy as np
 import numpy.random as mtrand
 
-from ._distn_infrastructure import (
-        rv_discrete, _lazywhere, _ncx2_pdf, _ncx2_cdf, get_distribution_names)
+from ._distn_infrastructure import (rv_discrete, _lazywhere, _ncx2_pdf,
+                                    _ncx2_cdf, get_distribution_names)
 
 
 class binom_gen(rv_discrete):
@@ -559,7 +559,7 @@ class boltzmann_gen(rv_discrete):
         g2 = g2 / trm2 / trm2
         return mu, var, g1, g2
 boltzmann = boltzmann_gen(name='boltzmann',
-        longname='A truncated discrete exponential ')
+                          longname='A truncated discrete exponential ')
 
 
 class randint_gen(rv_discrete):
@@ -624,8 +624,9 @@ randint = randint_gen(name='randint', longname='A discrete uniform '
                       '(random integer)')
 
 
-def harmonic(n,r):
-    return 1./n + special.polygamma(r-1, n)/special.gamma(r) + special.zeta(r, 1)
+def harmonic(n, r):
+    return (1./n + special.polygamma(r-1, n)/special.gamma(r) +
+            special.zeta(r, 1))
 
 
 def H(n):
@@ -704,8 +705,9 @@ class dlaplace_gen(rv_discrete):
 
     def _ppf(self, q, a):
         const = 1 + exp(a)
-        vals = ceil(np.where(q < 1.0 / (1 + exp(-a)), log(q*const) / a - 1,
-                                                      -log((1-q) * const) / a))
+        vals = ceil(np.where(q < 1.0 / (1 + exp(-a)),
+                             log(q*const) / a - 1,
+                             -log((1-q) * const) / a))
         vals1 = vals - 1
         return np.where(self._cdf(vals1, a) >= q, vals1, vals)
 
@@ -753,16 +755,16 @@ class skellam_gen(rv_discrete):
 
     def _pmf(self, x, mu1, mu2):
         px = np.where(x < 0,
-                _ncx2_pdf(2*mu2, 2*(1-x), 2*mu1)*2,
-                _ncx2_pdf(2*mu1, 2*(1+x), 2*mu2)*2)
+                      _ncx2_pdf(2*mu2, 2*(1-x), 2*mu1)*2,
+                      _ncx2_pdf(2*mu1, 2*(1+x), 2*mu2)*2)
         # ncx2.pdf() returns nan's for extremely low probabilities
         return px
 
     def _cdf(self, x, mu1, mu2):
         x = floor(x)
         px = np.where(x < 0,
-                _ncx2_cdf(2*mu2, -2*x, 2*mu1),
-                1-_ncx2_cdf(2*mu1, 2*(x+1), 2*mu2))
+                      _ncx2_cdf(2*mu2, -2*x, 2*mu1),
+                      1-_ncx2_cdf(2*mu1, 2*(x+1), 2*mu2))
         return px
 
     def _stats(self, mu1, mu2):

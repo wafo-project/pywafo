@@ -68,7 +68,7 @@ class PlotData(object):
     >>> h1 = d2()
 
     Plot with confidence interval
-    >>> d3 = PlotData(np.sin(x),x)
+    >>> d3 = PlotData(np.sin(x), x)
     >>> d3.children = [PlotData(np.vstack([np.sin(x)*0.9, np.sin(x)*1.2]).T,x)]
     >>> d3.plot_args_children=[':r']
     >>> h = d3.plot()
@@ -170,7 +170,7 @@ class PlotData(object):
         fun = getattr(integrate, method)
         if isinstance(self.args, (list, tuple)):  # Multidimensional data
             raise NotImplementedError('integration for ndim>1 not implemented')
-            #ndim = len(self.args)
+            # ndim = len(self.args)
             # if ndim < 2:
 #                msg = '''Unable to determine plotter-type, because
 #                len(self.args)<2.
