@@ -1,7 +1,7 @@
-from numpy import (pi, r_, minimum, maximum, atleast_1d, atleast_2d, mod, ones,
+from numpy import (r_, minimum, maximum, atleast_1d, atleast_2d, mod, ones,
                    floor, random, eye, nonzero, where, repeat, sqrt, exp, inf,
-                   diag, zeros, sin, arcsin, nan)  # @UnresolvedImport
-from numpy import triu  # @UnresolvedImport
+                   diag, zeros, sin, arcsin, nan)
+from numpy import triu
 from scipy.special import ndtr as cdfnorm, ndtri as invnorm
 from scipy.special import erfc
 from wafo import mvn
@@ -95,8 +95,9 @@ class Rind(object):
     >>> Bup, Blo = np.atleast_2d(Bup,Blo)
     >>> Bup[0,ind] = np.minimum(Bup[0,ind] , infinity*dev[indI[ind+1]])
     >>> Blo[0,ind] = np.maximum(Blo[0,ind] ,-infinity*dev[indI[ind+1]])
-    >>> rind(Sc,m,Blo,Bup,indI, xc, nt=0)
-    (array([ 0.05494076]), array([ 0.00083066]), array([  1.00000000e-10]))
+    >>> np.allclose(rind(Sc,m,Blo,Bup,indI, xc, nt=0),
+    ...   ([0.05494076], [ 0.00083066], [  1.00000000e-10]), rtol=1e-3)
+    True
 
     Compute expectation E( X1^{+}*X2^{+} ) with random
     correlation coefficient,Cov(X1,X2) = rho2.
@@ -104,7 +105,8 @@ class Rind(object):
     >>> Sc2 = [[1, rho2], [rho2 ,1]]
     >>> Blo2 = 0; Bup2 = np.inf; indI2 = [-1, 1]
     >>> rind2 = wg.Rind(method=1)
-    >>> g2 = lambda x : (x*(np.pi/2+np.arcsin(x))+np.sqrt(1-x**2))/(2*np.pi)
+    >>> def g2(x):
+    ...     return (x*(np.pi/2+np.arcsin(x))+np.sqrt(1-x**2))/(2*np.pi)
     >>> E2 = g2(rho2)   # exact value
     >>> E3 = rind(Sc2,m2,Blo2,Bup2,indI2,nt=0)
     >>> E4 = rind2(Sc2,m2,Blo2,Bup2,indI2,nt=0)
@@ -482,18 +484,21 @@ def prbnormtndpc(rho, a, b, D=None, df=0, abseps=1e-4, IERC=0, HNC=0.24):
     >>> a2   = np.zeros(2)
     >>> b2   = np.repeat(np.inf,2)
     >>> [val2,err2, ift2] = wg.prbnormtndpc(rho2,a2,b2)
-    >>> g2 = lambda x : 0.25+np.arcsin(x[0]*x[1])/(2*pi)
+    >>> def g2(x):
+    ...     return 0.25+np.arcsin(x[0]*x[1])/(2*np.pi)
     >>> E2 = g2(rho2)  # exact value
     >>> np.abs(E2-val2)<err2
     True
 
     >>> rho3 = np.random.rand(3)
-    >>> a3   = np.zeros(3)
-    >>> b3   = np.repeat(inf,3)
-    >>> [val3,err3, ift3] = wg.prbnormtndpc(rho3,a3,b3)
-    >>> g3 = lambda x : 0.5-sum(np.sort(np.arccos([x[0]*x[1],x[0]*x[2],x[1]*x[2]])))/(4*pi)
+    >>> a3 = np.zeros(3)
+    >>> b3 = np.repeat(inf,3)
+    >>> [val3, err3, ift3] = wg.prbnormtndpc(rho3,a3,b3)
+    >>> def g3(x):
+    ...     return 0.5-sum(np.sort(np.arccos([x[0]*x[1],
+    ...                                       x[0]*x[2],x[1]*x[2]])))/(4*np.pi)
     >>> E3 = g3(rho3)   #  Exact value
-    >>> np.abs(E3-val3)<err2
+    >>> np.abs(E3-val3) < 5 * err2
     True
 
 
@@ -547,7 +552,7 @@ def prbnormndpc(rho, a, b, abserr=1e-4, relerr=1e-4, usesimpson=True,
     >>> a2   = np.zeros(2)
     >>> b2   = np.repeat(np.inf,2)
     >>> [val2,err2, ift2] = wg.prbnormndpc(rho2,a2,b2)
-    >>> g2 = lambda x : 0.25+np.arcsin(x[0]*x[1])/(2*pi)
+    >>> g2 = lambda x : 0.25+np.arcsin(x[0]*x[1])/(2*np.pi)
     >>> E2 = g2(rho2)  #% exact value
     >>> np.abs(E2-val2)<err2
     True
@@ -556,7 +561,9 @@ def prbnormndpc(rho, a, b, abserr=1e-4, relerr=1e-4, usesimpson=True,
     >>> a3   = np.zeros(3)
     >>> b3   = np.repeat(inf,3)
     >>> [val3,err3, ift3] = wg.prbnormndpc(rho3,a3,b3)
-    >>> g3 = lambda x : 0.5-sum(np.sort(np.arccos([x[0]*x[1],x[0]*x[2],x[1]*x[2]])))/(4*pi)
+    >>> def g3(x):
+    ...     return 0.5-sum(np.sort(np.arccos([x[0]*x[1],
+    ...                                       x[0]*x[2],x[1]*x[2]])))/(4*np.pi)
     >>> E3 = g3(rho3)   #  Exact value
     >>> np.abs(E3-val3)<err2
     True
