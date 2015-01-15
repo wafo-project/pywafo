@@ -357,8 +357,8 @@ def test_rind():
     Blo = -inf
     Bup = -1.2
     indI = [-1, n - 1]  # Barriers
-#    A = np.repeat(Blo, n)
-# B = np.repeat(Bup, n)  # Integration limits
+    # A = np.repeat(Blo, n)
+    # B = np.repeat(Bup, n)  # Integration limits
     m = zeros(n)
     rho = 0.3
     Sc = (ones((n, n)) - eye(n)) * rho + eye(n)
