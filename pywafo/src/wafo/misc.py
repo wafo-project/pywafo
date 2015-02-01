@@ -2,7 +2,6 @@
 Misc
 '''
 from __future__ import division
-
 import sys
 import fractions
 import numpy as np

@@ -5,7 +5,7 @@ import warnings
 verbose = False
 if False:
     try:
-        from scitools import easyviz as plotbackend
+        from scitools import easyviz as plotbackend  # @UnresolvedImport
         if verbose:
             print('wafo: plotbackend is set to scitools.easyviz')
     except:
