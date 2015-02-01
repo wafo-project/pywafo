@@ -14,7 +14,7 @@ from scipy.ndimage.morphology import distance_transform_edt
 import warnings
 from wafo.plotbackend import plotbackend as plt
 
-__all__ = ['SavitzkyGolay', 'Kalman', 'HodrickPrescott']
+__all__ = ['SavitzkyGolay', 'Kalman', 'HodrickPrescott', 'smoothn']
 
 
 class SavitzkyGolay(object):

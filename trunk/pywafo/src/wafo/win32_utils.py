@@ -223,7 +223,7 @@ class WarnDlg(Thread):
         self.start()              # Run the thread
 
     def run(self):
-#        MessageBox(self.message, self.title, win32con.MB_ICONWARNING)
+        # MessageBox(self.message, self.title, win32con.MB_ICONWARNING)
         MessageBox(0, self.message, self.title,
                    win32con.MB_ICONWARNING | win32con.MB_SYSTEMMODAL)
 
@@ -240,7 +240,7 @@ class ErrorDlg(Thread):
             self.start()            # Run in thread
 
     def run(self):
-#        MessageBox(self.message, self.title, win32con.MB_ICONERROR)
+        # MessageBox(self.message, self.title, win32con.MB_ICONERROR)
         MessageBox(0, self.message, self.title,
                    win32con.MB_ICONERROR | win32con.MB_SYSTEMMODAL)
 

@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.fftpack import _fftpack
+# from scipy.fftpack import _fftpack
 from scipy.fftpack import dct as _dct
 from scipy.fftpack import idct as _idct
 import os
@@ -127,7 +127,7 @@ def dct(x, type=2, n=None, axis=-1, norm='ortho'):  # @ReservedAssignment
         # Hack until scipy.fftpack.dct implement this functionality
         x = _truncate_or_zero_pad(x, n, axis)
         n = None
-    return _dct(x, type, n, axis, norm)
+    # return _dct(x, type, n, axis, norm)
     dtype = np.result_type(np.float32, np.asarray(x))
     x0 = np.asarray(x, dtype=dtype)
     if dtype == complex:
@@ -137,21 +137,21 @@ def dct(x, type=2, n=None, axis=-1, norm='ortho'):  # @ReservedAssignment
         return _dct(x0, type, n, axis, norm)
 
 
-def test(type=2, dtype=None, normalize='ortho'):  # @ReservedAssignment
-    dtype = np.result_type(np.float64)
-    try:
-        nm = {None: 0, 'ortho': 1}[normalize]
-    except KeyError:
-        raise ValueError("Unknown normalize mode %s" % normalize)
-    try:
-        name = {'float64': 'ddct%d', 'float32': 'dct%d'}[dtype.name]
-    except KeyError:
-        raise ValueError("dtype %s not supported" % dtype)
-    try:
-        f = getattr(_fftpack, name % type)
-    except AttributeError as e:
-        raise ValueError(str(e) + ". Type %d not understood" % type)
-    return f, nm
+# def test(type=2, dtype=None, normalize='ortho'):  # @ReservedAssignment
+#     dtype = np.result_type(np.float64)
+#     try:
+#         nm = {None: 0, 'ortho': 1}[normalize]
+#     except KeyError:
+#         raise ValueError("Unknown normalize mode %s" % normalize)
+#     try:
+#         name = {'float64': 'ddct%d', 'float32': 'dct%d'}[dtype.name]
+#     except KeyError:
+#         raise ValueError("dtype %s not supported" % dtype)
+#     try:
+#         f = getattr(_fftpack, name % type)
+#     except AttributeError as e:
+#         raise ValueError(str(e) + ". Type %d not understood" % type)
+#     return f, nm
 
 
 def idct(x, type=2, n=None, axis=-1, norm='ortho'):  # @ReservedAssignment
@@ -437,14 +437,15 @@ def test_dctn():
     print(x)
     print(' ')
 
-    yn = dctn(a) #, shape=(10,), axes=(1,))
-    xn = idctn(yn) #, axes=(1,))
+    yn = dctn(a)  # , shape=(10,), axes=(1,))
+    xn = idctn(yn)  # , axes=(1,))
     print('yn = dctn(a)')
     print(yn)
     print('xn = idctn(yn)')
     print(xn)
     print(' ')
     print xn-a
+
 
 def test_dct2():
     import scipy.ndimage as sn
@@ -481,8 +482,14 @@ def test_docstrings():
     doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
 
 
+def test_commands():
+    import commands
+    commands.getstatusoutput('preprocess -DFORMAT=html -DDEVICE=screen tutorial.do.txt > tmp_preprocess__tutorial.do.txt')
+
+
 if __name__ == '__main__':
-    test_dct2()
+    print(test_commands())
+    # test_dct2()
     # test_docstrings()
     # test_dctn()
     # test_shiftdim()

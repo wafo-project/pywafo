@@ -21,7 +21,7 @@ def empty_copy(obj):
 
 
 def _set_seed(iseed):
-    if iseed != None:
+    if iseed is not None:
         try:
             np.random.set_state(iseed)
         except:
@@ -29,16 +29,13 @@ def _set_seed(iseed):
 
 
 def now():
-    '''
-    Return current date and time as a string
-    '''
+    """Return current date and time as a string."""
     return strftime("%a, %d %b %Y %H:%M:%S", gmtime())
 
 
 class PlotData(object):
 
-    '''
-    Container class for data objects in WAFO
+    """Container class for data objects in WAFO.
 
     Member variables
     ----------------
@@ -72,7 +69,8 @@ class PlotData(object):
     --------
     specdata,
     covdata
-    '''
+
+    """
 
     def __init__(self, data=None, args=None, *args2, **kwds):
         self.data = data
@@ -95,7 +93,7 @@ class PlotData(object):
             axis = plotbackend.gca()
         tmp = None
         plotflag = kwds.get('plotflag', None)
-        if not plotflag and self.children != None:
+        if not plotflag and self.children is not None:
             plotbackend.hold('on')
             tmp = []
             child_args = kwds.pop(
@@ -105,7 +103,7 @@ class PlotData(object):
             child_kwds['axis'] = axis
             for child in self.children:
                 tmp1 = child.plot(*child_args, **child_kwds)
-                if tmp1 != None:
+                if tmp1 is not None:
                     tmp.append(tmp1)
             if len(tmp) == 0:
                 tmp = None
@@ -179,9 +177,8 @@ class PlotData(object):
         return newcopy
 
     def setplotter(self, plotmethod=None):
-        '''
-            Set plotter based on the data type data_1d, data_2d, data_3d or data_nd
-        '''
+        """Set plotter based on the data type data_1d, data_2d, data_3d or
+        data_nd."""
         if isinstance(self.args, (list, tuple)):  # Multidimensional data
             ndim = len(self.args)
             if ndim < 2:
@@ -212,7 +209,8 @@ class AxisLabels:
         return self.__str__()
 
     def __str__(self):
-        return '%s\n%s\n%s\n%s\n' % (self.title, self.xlab, self.ylab, self.zlab)
+        return '%s\n%s\n%s\n%s\n' % (self.title, self.xlab, self.ylab,
+                                     self.zlab)
 
     def copy(self):
         newcopy = empty_copy(self)
@@ -226,7 +224,7 @@ class AxisLabels:
             h1 = axis.set_title(self.title)
             h2 = axis.set_xlabel(self.xlab)
             h3 = axis.set_ylabel(self.ylab)
-            #h4 = plotbackend.zlabel(self.zlab)
+            # h4 = plotbackend.zlabel(self.zlab)
             return h1, h2, h3
         except:
             pass
@@ -306,8 +304,9 @@ def plot1d(axis, args, data, dataCI, plotflag, *varargin, **kwds):
     elif plottype == 3:
         H = axis.stem(args, data, *varargin, **kwds)
     elif plottype == 4:
-        H = axis.errorbar(
-            args, data, yerr=[dataCI[:, 0] - data, dataCI[:, 1] - data], *varargin, **kwds)
+        H = axis.errorbar(args, data,
+                          yerr=[dataCI[:, 0] - data, dataCI[:, 1] - data],
+                          *varargin, **kwds)
     elif plottype == 5:
         H = axis.bar(args, data, *varargin, **kwds)
     elif plottype == 6:
@@ -354,13 +353,12 @@ def plot1d(axis, args, data, dataCI, plotflag, *varargin, **kwds):
 
 
 def plotscale(plotflag):
-    '''
-    Return plotscale from plotflag
+    """Return plotscale from plotflag.
 
      CALL scale = plotscale(plotflag)
 
      plotflag = integer defining plotscale.
-       Let scaleId = floor(plotflag/100). 
+       Let scaleId = floor(plotflag/100).
        If scaleId < 8 then:
           0 'linear' : Linear scale on all axes.
           1 'xlog'   : Log scale on x-axis.
@@ -377,11 +375,11 @@ def plotscale(plotflag):
 
      scale    = string defining plotscale valid options are:
            'linear', 'xlog', 'ylog', 'xylog', 'zlog', 'xzlog',
-           'yzlog',  'xyzlog' 
+           'yzlog',  'xyzlog'
 
     Example
     >>> for id in range(100,701,100):
-    ...    plotscale(id)  
+    ...    plotscale(id)
     'xlog'
     'ylog'
     'xylog'
@@ -390,17 +388,18 @@ def plotscale(plotflag):
     'yzlog'
     'xyzlog'
 
-    >>> plotscale(200)  
+    >>> plotscale(200)
     'ylog'
-    >>> plotscale(300) 
+    >>> plotscale(300)
     'xylog'
-    >>> plotscale(300) 
+    >>> plotscale(300)
     'xylog'
 
-    See also 
+    See also
     --------
     transformdata
-    '''
+
+    """
     scaleId = plotflag // 100
     if scaleId > 7:
         logXscaleId = np.mod(scaleId, 10) > 0
@@ -429,8 +428,8 @@ def transformdata(x, f, plotflag):
             data = -np.log1p(-cumtrapz(f, x))
         else:
             if any(f < 0):
-                raise ValueError(
-                    'Invalid plotflag: Data or dataCI is negative, but must be positive')
+                raise ValueError('Invalid plotflag: Data or dataCI is '
+                                 'negative, but must be positive')
             data = 10 * np.log10(f)
     return data
 

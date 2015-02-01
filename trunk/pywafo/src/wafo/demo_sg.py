@@ -1,6 +1,7 @@
-# @UnresolvedImport
-from pylab import subplot, plot, title, savefig, figure, arange, sin, random
-from sg_filter import calc_coeff, smooth
+import matplotlib.pyplot as plt
+from pylab import subplot, plot, title, figure
+from numpy import random, arange, sin
+from sg_filter import SavitzkyGolay, smoothn  # calc_coeff, smooth
 
 
 figure(figsize=(7, 12))
@@ -8,11 +9,11 @@ figure(figsize=(7, 12))
 
 # generate chirp signal
 tvec = arange(0, 6.28, .02)
-signal = sin(tvec * (2.0 + tvec))
+true_signal = sin(tvec * (2.0 + tvec))
 
 # add noise to signal
-noise = random.normal(size=signal.shape)
-signal += (2000. + .15 * noise)
+noise = random.normal(size=true_signal.shape)
+signal = true_signal + .15 * noise
 
 # plot signal
 subplot(311)
@@ -21,19 +22,21 @@ title('signal')
 
 # smooth and plot signal
 subplot(312)
-coeff = calc_coeff(8, 4)
-s_signal = smooth(signal, coeff)
-
+savgol = SavitzkyGolay(n=8, degree=4)
+s_signal = savgol.smooth(signal)
+s2 = smoothn(signal, robust=True)
 plot(s_signal)
+plot(s2)
+plot(true_signal, 'r--')
 title('smoothed signal')
 
 # smooth derivative of signal and plot it
 subplot(313)
-coeff = calc_coeff(8, 1, 1)
-d_signal = smooth(signal, coeff)
+savgol1 = SavitzkyGolay(n=8, degree=1, diff_order=1)
+
+d_signal = savgol1.smooth(signal)
 
 plot(d_signal)
 title('smoothed derivative of signal')
 
-# show plot
-savefig("savitzky.png")
+plt.show('hold')  # show plot

@@ -7,7 +7,7 @@ TrLinear
 '''
 # !/usr/bin/env python
 from __future__ import division
-from scipy.optimize import brentq
+from scipy.optimize import brentq  # @UnresolvedImport
 from numpy import (sqrt, atleast_1d, abs, imag, sign, where, cos, arccos, ceil,
                    expm1, log1p, pi)
 import numpy as np
@@ -106,10 +106,10 @@ class TrHermite(TrCommon2):
     Example:
     --------
     """ + _example.replace('<generic>', 'TrHermite') + """
-    >>> g.dist2gauss()
-    0.88230868748851499
-    >>> g2.dist2gauss()
-    1.1411663205144991
+    >>> np.allclose(g.dist2gauss(), 0.88230868748851499)
+    True
+    >>> np.allclose(g2.dist2gauss(), 1.1411663205144991)
+    True
 
     See also
     --------
@@ -336,10 +336,10 @@ class TrLinear(TrCommon2):
     Example:
     --------
     """ + _example.replace('<generic>', 'TrLinear') + """
-    >>> g.dist2gauss()
-    0.0
-    >>> g2.dist2gauss()
-    3.8594770921678001e-31
+    >>> np.allclose(g.dist2gauss(), 0)
+    True
+    >>> np.allclose(g2.dist2gauss(), 0)
+    True
 
     See also
     --------
@@ -404,10 +404,10 @@ class TrOchi(TrCommon2):
     Example
     -------
     """ + _example.replace('<generic>', 'TrOchi') + """
-    >>> g.dist2gauss()
-    1.410698801056657
-    >>> g2.dist2gauss()
-    1.988807188766706
+    >>> np.allclose(g.dist2gauss(), 1.410698801056657)
+    True
+    >>> np.allclose(g2.dist2gauss(), 1.988807188766706)
+    True
 
     See also
     --------
