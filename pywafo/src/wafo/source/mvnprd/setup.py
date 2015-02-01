@@ -5,24 +5,26 @@ See also http://www.scipy.org/Cookbook/CompilingExtensionsOnWindowsWithMinGW
 '''
 
 # File setup.py
+
+
 def compile_all():
     import os
     files = ['mvnprd', 'mvnprodcorrprb']
     compile1_format = 'gfortran -fPIC -c %s.f'
-    for file in files:
-        os.system(compile1_format % file)
-    file_objects = ['%s.o' % file for file in files]
+    for file_ in files:
+        os.system(compile1_format % file_)
+    file_objects = ['%s.o' % file_ for file_ in files]
     return file_objects
-	
 
-def configuration(parent_package='',top_path=None):
+
+def configuration(parent_package='', top_path=None):
     from numpy.distutils.misc_util import Configuration
     libs = compile_all()
-    config = Configuration('',parent_package,top_path)
+    config = Configuration('', parent_package, top_path)
 
     config.add_extension('mvnprdmod',
-                         libraries = libs,
-                         sources = ['mvnprd_interface.f'])
+                         libraries=libs,
+                         sources=['mvnprd_interface.f'])
     return config
 if __name__ == "__main__":
 
