@@ -16,38 +16,35 @@ python setup.py sdist bdist_wininst upload --show-response
 #!/usr/bin/env python
 
 import os
+import shutil
 import sys
 import subprocess
 import re
 import warnings
-
+from Cython.Build import cythonize
 MAJOR               = 0
 MINOR               = 1
 MICRO               = 2
 ISRELEASED          = False
 VERSION             = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
-
-
-#sys.argv.append("develop")
-#sys.argv.append("install")
+# sys.argv.append("build_src")
+# sys.argv.append("build_ext")
+# sys.argv.append("--inplace")
+# sys.argv.append("develop")
+# sys.argv.append("install")
 DISTUTILS_DEBUG = True
-pkg_name = 'wafo'
-root_dir = os.path.join('src',pkg_name)
+PKG_NAME = 'wafo'
+ROOT_DIR = os.path.join('src',PKG_NAME)
 
 # make sure we import from this package, not an installed one:
-sys.path.insert(0, root_dir)
+sys.path.insert(0, ROOT_DIR)
 import info
-#import wafo
 
-if  True: #__file__ == 'setupegg.py':
-    # http://peak.telecommunity.com/DevCenter/setuptools
-    from setuptools import setup, Extension, find_packages
-else:
-    from distutils.core import setup
+from setuptools import find_packages  # setup, Extension
+from numpy.distutils.core import setup, Extension  # as FExtension
 
-
-# Return the svn version as a string, raise a ValueError otherwise
 def svn_version():
+    '''Return the svn version as a string, raise a ValueError otherwise'''
     from numpy.compat import asstr
 
     env = os.environ.copy()
@@ -84,59 +81,107 @@ short_version='%(version)s'
 version='%(version)s'
 release=%(isrelease)s
 """
-    fid = open(os.path.join(root_dir,filename), 'w')
+    fid = open(os.path.join(ROOT_DIR,filename), 'w')
     try:
         fid.write(cnt % {'version': VERSION, 'isrelease': str(ISRELEASED)})
     finally:
         fid.close()
 
-if __name__=='__main__':
-    write_version_py()
+
+def get_library_extension():
+    '''Return extension of an executable library'''
+    if os.name == 'posix':  # executable library on Linux has extension .so
+        lib_ext = '.so'
+    elif os.name == 'nt':  # extension on Windows is .pyd
+        lib_ext = '.pyd'
+    else:
+        raise UserWarning('Platform not supported:', os.name)
+    return lib_ext
+
+
+def compile_all():
+    wd = os.getcwd()
+    root_dir = os.path.join(wd,'src',PKG_NAME)
+    root_src = os.path.join(root_dir, 'source')
+    buildscript = 'build_all.py'
+    lib_ext = get_library_extension()
+
+    if os.name == 'nt':  # On Windows
+        build_call = 'python.exe  %s' % buildscript
+    else:
+        build_call = 'python %s' % buildscript
     
+    for root, dirs, files in os.walk(root_src):
+        dir1 = [dir for dir in dirs
+                if not os.path.exists(os.path.join(root, dir, buildscript))]
+        for dir in dir1:
+            dirs.remove(dir)  # don't visit directories without buildscript
+        if buildscript in files:
+            print('Building: ', root) 
+            os.chdir(root)
+            t = os.system(build_call)
+            print(t)
+
+            for file in os.listdir('.'):
+                if file.endswith(lib_ext):
+                    dest_file = os.path.join(root_dir, file)
+                    if os.path.exists(dest_file):
+                        os.remove(dest_file)
+                    shutil.copy(os.path.join(root, file), root_dir)
+    os.chdir(wd)
+
+
+def setup_package():
+    write_version_py()
+    join = os.path.join
     packages = find_packages('src')
     for p in packages:
         print(p)
-    package_paths =[p.replace(pkg_name+'.','').replace(pkg_name,'').replace('.',os.path.sep) for p in packages]
-    test_paths = [os.path.join(pkg_path,'test') for pkg_path in package_paths
-                  if os.path.exists(os.path.join(root_dir,pkg_path,'test'))]
-    testscripts = [os.path.join(subtst, f) for subtst in test_paths
-        for f in os.listdir(os.path.join(root_dir, subtst))
+    def convert_package2path(p):
+        return p.replace(PKG_NAME + '.',
+                         '').replace(PKG_NAME, '').replace('.', os.path.sep)
+    package_paths = [convert_package2path(p) for p in packages]
+    test_paths = [join(pkg_path, 'test') for pkg_path in package_paths
+                  if os.path.exists(join(ROOT_DIR, pkg_path, 'test'))]
+    testscripts = [join(subtst, f) for subtst in test_paths
+                   for f in os.listdir(join(ROOT_DIR, subtst))
                    if not (f.startswith('.') or f.endswith('~') or
                            f.endswith('.old') or f.endswith('.bak'))]
-    
-    #subpackages = ('spectrum','data','transform','covariance')
-    #subpackagesfull = [os.path.join(pkg_name,f) for f in subpackages]
-    
-    #subtests = [os.path.join(subpkg,'test') for subpkg in subpackages]
-    
-    #testscripts = [os.path.join(subtst, f) for subtst in subtests
-    #    for f in os.listdir(os.path.join(root_dir, subtst))
-    #               if not (f.startswith('.') or f.endswith('~') or
-    #                       f.endswith('.old') or f.endswith('.bak'))]
+
     datadir = 'data'
-    datafiles = [os.path.join(datadir, f)   for f in os.listdir(os.path.join(root_dir, datadir))
+    datafiles = [join(datadir, f)  for f in os.listdir(join(ROOT_DIR, datadir))
     				if  not (f.startswith('.') or f.endswith('~') or
                            f.endswith('.old') or f.endswith('.bak') or 
                            f.endswith('.py') or f.endswith('test') )]
+    if 'build_ext' in sys.argv:
+        compile_all()
+    lib_ext = get_library_extension()
+    libs = [f for f in os.listdir(join(ROOT_DIR)) if f.endswith(lib_ext)]
     
-    # executable library on Linux has extension .so
-    if os.name == 'posix':
-        lib_ext = '.so'
-    
-    # extension on Windows is .pyd
-    elif os.name == 'nt':
-        lib_ext = '.pyd'
-    
-    # give an Error for other OS-es
-    else:
-        raise UserWarning, \
-        'Platform not supported:', os.name                       
-    
-    libs = [f   for f in os.listdir(os.path.join(root_dir)) if  f.endswith(lib_ext) ]
-#    libs = [f   for f in os.listdir(os.path.join(root_dir)) if  f.endswith('.pyd') ]
-    
-    packagedata = testscripts + datafiles + libs #['c_library.pyd'] #,'disufq1.c','diffsumfunq.pyd','diffsumfunq.pyf','findrfc.c','rfc.pyd','rfc.pyf']
-    
+    packagedata = testscripts + datafiles + libs
+
+#     ext_module_list =  cythonize(join(ROOT_DIR, "primes.pyx"))
+# 
+#     for ext_module in ext_module_list:
+#         if not isinstance(ext_module, Extension):
+#             ext_module.__class__ = Extension
+
+#     for name, src_files in [('mvn',('mvn.pyf', 'mvndst.f')),
+#                             ('c_library',('c_library.pyf', 'c_functions.c'))]: 
+#         sources = [join(ROOT_DIR, 'source', name, f) for f in src_files]
+#         ext_module_list.append(Extension(name='%s.%s' % (PKG_NAME, name),
+#                                          sources=sources))
+
+#     sources = [join(ROOT_DIR, 'source', 'mreg', 'cov2mmpdfreg_intfc.f'), ]
+#     libs = [join(ROOT_DIR, 'source', 'mreg', f)
+#             for f in ['dsvdc', 'mregmodule', 'intfcmod'] ]
+#     ext_module_list.append(Extension(name='wafo.covmod', sources=sources,
+#                                      libraries=libs))
+
+#     mvn_sources = [join(root_mvn, 'source', 'mvn', 'mvn.pyf'),
+#                    join(root_mvn, 'source', 'mvn','mvndst.f')]
+#     ext_module_list.append(Extension(name='wafo.mvn', sources=mvn_sources))
+
     setup(
         version = VERSION,
         author='WAFO-group',
@@ -146,10 +191,11 @@ if __name__=='__main__':
     	install_requires = ['numpy>=1.4','numdifftools>=0.2'],
         license = "GPL",
         url='http://code.google.com/p/pywafo/',
-    	name = pkg_name,
+    	name = PKG_NAME,
         package_dir = {'': 'src'},
         packages = packages,
         package_data = {'': packagedata}, 
+        # ext_modules = ext_module_list,
         classifiers=[
               'Development Status :: 4 - Beta',
               'Intended Audience :: Education',
@@ -159,11 +205,8 @@ if __name__=='__main__':
               'Programming Language :: Python :: 2.6',
               'Topic :: Scientific/Engineering :: Mathematics',
               ],
-        #packages = [package_name,] + list(subpackagesfull),
-        #package_data = {package_name: packagedata},
-        #package_data = {'': ['wafo.cfg']},
-        #scripts = [os.path.join('bin', f)
-        #           for f in os.listdir('bin')
-        #           if not (f.startswith('.') or f.endswith('~') or
-        #                   f.endswith('.old') or f.endswith('.bak'))],
         )
+
+
+if __name__=='__main__':
+    setup_package()

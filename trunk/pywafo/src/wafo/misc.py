@@ -240,29 +240,7 @@ def args_flat(*args):
         raise ValueError('Number of arguments must be 1 or 3!')
 
 
-def _check_and_adjust_shape(shape, nsub=None):
-    s = np.atleast_1d(shape)
-    ndim = len(s)
-    if ndim < 1:
-        raise ValueError('Shape vector must have at least 1 element.')
-    ndim = len(s)
-    if nsub is None:
-        nsub = ndim
-    if ndim <= nsub:  # add trailing singleton dimensions
-        s = np.hstack([s, np.ones(nsub - ndim, dtype=int)])
-    else:  # Adjust for linear indexing on last element
-        s = np.hstack([s[:nsub - 1], np.prod(s[nsub - 1:])])
-    return s
-
-
-def _sub2index_factor(shape, order='C'):
-    '''Return multiplier needed for calculating linear index from subscripts.
-    '''
-    step = 1 if order == 'F' else -1  # C order
-    return np.hstack([1, np.cumprod(shape[::step][:-1])])[::step]
-
-
-def index2sub(shape, index, nsub=None, order='C'):
+def index2sub(shape, index, order='C'):
     '''
     Returns Multiple subscripts from linear index.
 
@@ -272,8 +250,6 @@ def index2sub(shape, index, nsub=None, order='C'):
         shape of array
     index :
         linear index into array
-    nsub : int optional
-        Number of subscripts returned. default nsub=len(shape)
     order : {'C','F'}, optional
         The order of the linear index.
         'C' means C (row-major) order.
@@ -300,18 +276,7 @@ def index2sub(shape, index, nsub=None, order='C'):
     --------
     sub2index
     '''
-    ndx = np.atleast_1d(index)
-    s = _check_and_adjust_shape(shape, nsub)
-    k = _sub2index_factor(s, order)
-    n = len(s)
-    step = -1 if order == 'F' else 1  # C order
-    subscripts = [0, ] * n
-    for i in range(n)[::step]:
-        vi = np.remainder(ndx, k[i])
-        subscript = np.array((ndx - vi) / k[i], dtype=int)
-        subscripts[i] = subscript
-        ndx = vi
-    return tuple(subscripts)
+    return np.unravel_index(index, shape, order=order)
 
 
 def sub2index(shape, *subscripts, **kwds):
@@ -350,21 +315,7 @@ def sub2index(shape, *subscripts, **kwds):
     --------
     index2sub
     '''
-    nsub = len(subscripts)
-    s = _check_and_adjust_shape(shape, nsub)
-    k = _sub2index_factor(s, **kwds)
-
-    ndx = 0
-    s0 = np.shape(subscripts[0])
-    for i, subscript in enumerate(subscripts):
-        np.testing.assert_equal(
-            s0, np.shape(subscript),
-            'The subscripts vectors must all be of the same shape.')
-        if (np.any(subscript < 0)) or (np.any(s[i] <= subscript)):
-            raise IndexError('Out of range subscript.')
-
-        ndx = ndx + k[i] * subscript
-    return ndx
+    return np.ravel_multi_index(subscripts, shape, **kwds)
 
 
 def is_numlike(obj):

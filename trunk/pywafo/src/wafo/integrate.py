@@ -8,6 +8,7 @@ from scipy import special as sp
 from wafo.plotbackend import plotbackend as plt
 from scipy.integrate import simps, trapz
 from wafo.demos import humps
+from pychebfun import Chebfun
 
 _EPS = np.finfo(float).eps
 _POINTS_AND_WEIGHTS = {}
@@ -1423,8 +1424,208 @@ def test_docstrings():
     doctest.testmod()
 
 
+def levin_integrate():
+    ''' An oscillatory integral
+    Sheehan Olver, December 2010
+
+
+    (Chebfun example quad/LevinIntegrate.m)
+
+    This example computes the highly oscillatory integral of
+
+         f * exp( 1i * w * g ),
+
+    over (0,1) using the Levin method [1]. This method computes the integral
+    by rewriting it as an ODE
+
+         u' + 1i * w * g' u = f,
+
+    so that the indefinite integral of f * exp( 1i * w * g ) is
+
+         u * exp( 1i * w * g ).
+
+
+
+    We use as an example
+
+         f = 1 / ( x + 2 );
+         g = cos( x - 2 );
+         w = 100000;
+
+         #
+    References:
+
+    [1] Levin, D., Procedures for computing one and two-dimensional integrals
+    of functions with rapid irregular oscillations, Maths Comp.,  38 (1982) 531--538
+    '''
+    exp = np.exp
+    domain=[0, 1]
+    x = Chebfun.identity(domain=domain)
+    f = 1./(x+2)
+    g = np.cos(x-2)
+    D = np.diff(domain)
+
+
+    # Here is are plots of this integrand, with w = 100, in complex space
+    w = 100;
+    line_opts = dict(line_width=1.6)
+    font_opts = dict(font_size= 14)
+    #
+
+    intg = f*exp(1j*w*g)
+    xs, ys, xi, yi, d = intg.plot_data(1000)
+    #intg.plot(with_interpolation_points=True)
+    #xi = np.linspace(0, 1, 1024)
+#     plt.plot(xs, ys) # , **line_opts)
+#     plt.plot(xi, yi, 'r.')
+#     #axis equal
+#     plt.title('Complex plot of integrand') #,**font_opts)
+#     plt.show('hold')
+    ##
+    # and of just the real part
+#     intgr = np.real(intg)
+#     xs, ys, xi, yi, d = intgr.plot_data(1000)
+    #intgr.plot()
+#     plt.plot(xs, np.real(ys)) # , **line_opts)
+#     plt.plot(xi, np.real(yi), 'r.')
+    #axis equal
+#     plt.title('Real part of integrand') #,**font_opts)
+#     plt.show('hold')
+
+    ##
+    # The Levin method will be accurate for large and small w, and the time
+    # taken is independent of w. Here we take a reasonably large value of w.
+    w = 1000;
+    intg = f*exp(1j*w*g)
+    val0 = np.sum(intg)
+    # val1 = sum(intg)
+    print(val0)
+    ##
+    # Start timing
+    #tic
+
+    ##
+    # Construct the operator L
+    L = D + 1j*w*np.diag(g.differentiate())
+
+    ##
+    # From asymptotic analysis, we know that there exists a solution to the
+    # equation which is non-oscillatory, though we do not know what initial
+    # condition it satisfies.  Thus we find a particular solution to this
+    # equation with no boundary conditions.
+
+    u = L / f
+
+    ##
+    # Because L is a differential operator with derivative order 1, \ expects
+    # it to be given a boundary condition, which is why the warning message is
+    # displayed. However, this doesn't cause any problems: though there are,
+    # in fact, a family of solutions to the ODE without boundary conditions
+    # due to the kernel
+    #
+    #     exp(- 1i * w * g),
+    #
+    # it does not actually matter which particular solution is computed.
+    # Non-uniqueness is also not an issue: \ in matlab is least squares, hence
+    # does not require uniqueness. The existence of a non-oscillatory solution
+    # ensures that \ converges to a u with length independent of w.
+    #
+    # One could prevent the warning by applying a boundary condition consistent
+    # with the rest of the system, that is
+    #  L.lbc = {L(1,:),f(0)};
+
+    ##
+    # Now we evaluate the antiderivative at the endpoints to obtain the
+    # integral.
+
+    u(1)*exp(1j*w*g(1)) - u(0)*exp(1j*w*g(0))
+
+    #toc
+
+
+    ##
+    # Here is a way to compute the integral using Clenshaw--Curtis quadrature.
+    # As w becomes large, this takes an increasingly long time as the
+    # oscillations must be resolved.
+
+    #tic
+    sum( f*exp(1j*w*g) )
+    #toc
+
+
+# aLevinTQ[omega_,a_,b_,f_,g_,nu_,wprec_,prm_,test_,basis_,np_]:=
+#
+# Module[{r,betam,A,AA,BB,S,F,w=N[omega, wprec]},
+#        M=Length[nu]-1;
+# PB[k_,t_]:=If[basis==1,t^k,ChebyshevT[k,t]];
+#
+# ff[t_]:=((b-a)/2)*f[(b-a)*t/2+(a+b)/2];
+#
+# gg[t_]:=g[(b-a)*t/2+(a+b)/2];
+# dgg[t_]:=Derivative[1][gg][t];
+#
+# If[test==0, betam=Min[Abs[dgg[-1]*w], Abs[dgg[1]*w]];
+# While[prm*M/betam >=1, betam=2*betam]];
+# If[test>0,x[k_]:=N[Cos[k*Pi/M], wprec],x[k_]:=
+# Which[k<prm*M, N[-1+k/betam, wprec], k==Ceiling[prm*M],0,
+# k>prm*M, N[1-(M-k)/betam, wprec]]];
+#
+# Psi[k_,t_]:=Derivative[0,1][PB][k,t]+I*w*dgg[t]*PB[k,t];
+#
+# ne[j_]:=nu[[j+1]]; S[-1]=0; S[j_]:=Sum[ne[i],{i,0,j}];
+# nn=S[M]-1;
+# A=ConstantArray[0,{nn+1,nn+1}];
+# F=ConstantArray[0,nn+1]; r=0;
+# While[r<M+1, Do[Do[ AA[j,k]=
+# Limit[Derivative[0,Mod[j-S[r-1],ne[r]]][Psi][k,t],t->x[r]],
+# {k,0,S[M]-1}],{j,S[r-1],S[r]-1}];
+#
+# Do[BB[j]=Limit[Derivative[Mod[j-S[r-1],ne[r]]][ff][t],
+# t->x[r]],{j,S[r-1],S[r]-1}];
+# Do[F[[j]]=BB[j-1],{j,S[r-1]+1,S[r]}];
+# Do[Do[A[[j,k]]=AA[j-1,k-1],{k,1,S[M]}],{j,S[r-1]+1,S[r]}];
+# r=r+1;]; (*sv=SingularValueList[N[A,wprec]];
+# con=sv[[1]]/sv[[-1]]; Print["cond2(A)= ",N[con,3]];*)
+# LS=Block[{MaxExtraPrecision=0},LeastSquares[N[A, wprec],F]];
+# vvv[t_]:=Sum[LS[[k+1]]*PB[k,t], {k,0,nn}];
+# NR=vvv[1]*Exp[I*w*gg[1]]-vvv[-1]*Exp[I*w*gg[-1]];
+# Print["n=", np+ii+2s-2, ", Result= ", N[NR, wprec/2+5]];
+# If[ii==0,PR=NR];];
+# (* End of subroutine aLevinTQ /A.I. Hascelik, July 2013/ *)
+#
+# def main_levin():
+#     a=1; b=2;
+#     omega=100;
+#     prm=1/2;
+#     f[t_]=Exp[4t]
+#     g[t_]=t+Exp[4t]*Gamma[t]
+#
+#     dg[t_]:=Derivative[1][g][t];
+#
+#     prec=16
+#     wprec=2*prec
+#     delta = min(abs(omega*dg(a)), abs(omega*dg(b)))
+#     alpha = min(abs(omega*g(a)), abs(omega*g(b)))
+#     s=1; #(*if s>1, the integral is computed by Q_s^L*)
+#     test= 1 if delta<10 or alpha <=10 or s>1 else 0
+#
+#     m = 1 if s>1 else np.floor(prec/max(np.log10(beta+1),1)+2)
+#     nc = 2*m+1   #(*or np=2m, number of collocation points*)
+#     basis=1; # (*take basis=0 for the Chebysev basis*)
+#     for ii in range(0, 2, 2):
+#        nu = np.ones((nc+ii,)) # ConstantArray[1,nc+ii];
+#        nu[0] = s
+#        nu[-1] = s
+#        #nu[[1]]=s;
+#        #nu[[-1]]=s;
+#        aLevinTQ[omega,a,b,f,g,nu,wprec,prm,test,basis,nc],
+#     #{ii,0,2,2}];
+#     Print["Error= ",Abs[NR-PR]];
+
+
 if __name__ == '__main__':
-    test_docstrings()
+    levin_integrate()
+    # test_docstrings()
     # qdemo(np.exp, 0, 3, plot_error=True)
     # plt.show('hold')
     # main()

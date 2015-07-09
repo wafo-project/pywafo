@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 f2py c_library.pyf c_functions.c -c
 
@@ -61,3 +62,4 @@ def f2py_call_str():
     except NameError:
         raise UserWarning('Couldn\'t locate f2py. '
                           'Should be part of NumPy installation.')
+
