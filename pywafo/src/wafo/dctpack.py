@@ -1,22 +1,10 @@
 import numpy as np
-# from scipy.fftpack import _fftpack
 from scipy.fftpack import dct as _dct
 from scipy.fftpack import idct as _idct
 import os
 path = os.path.dirname(os.path.realpath(__file__))
 
 __all__ = ['dct', 'idct', 'dctn', 'idctn']
-
-
-def _truncate_or_zero_pad(x, n, axis):
-    nt = n - np.shape(x)[axis]
-    if nt < 0:
-        x = np.take(x, np.r_[0:n], axis=axis)
-    elif 0 < nt:
-        pads = [(0, 0)] * np.ndim(x)
-        pads[axis] = 0, nt
-        x = np.pad(x, pads, 'constant')
-    return x
 
 
 def dct(x, type=2, n=None, axis=-1, norm='ortho'):  # @ReservedAssignment
@@ -71,7 +59,6 @@ def dct(x, type=2, n=None, axis=-1, norm='ortho'):  # @ReservedAssignment
     There are several definitions of the DCT-II; we use the following
     (for ``norm=None``)::
 
-
                 N-1
       y[k] = 2* sum x[n]*cos(pi*k*(2n+1)/(2*N)), 0 <= k < N.
                 n=0
@@ -115,7 +102,6 @@ def dct(x, type=2, n=None, axis=-1, norm='ortho'):  # @ReservedAssignment
 
     References
     ----------
-
     http://en.wikipedia.org/wiki/Discrete_cosine_transform
     http://users.ece.utexas.edu/~bevans/courses/ee381k/lectures/
 
@@ -123,35 +109,7 @@ def dct(x, type=2, n=None, axis=-1, norm='ortho'):  # @ReservedAssignment
     Transactions on acoustics, speech and signal processing` vol. 28(1),
     pp. 27-34, http://dx.doi.org/10.1109/TASSP.1980.1163351 (1980).
     '''
-    if n is not None:
-        # Hack until scipy.fftpack.dct implement this functionality
-        x = _truncate_or_zero_pad(x, n, axis)
-        n = None
-    # return _dct(x, type, n, axis, norm)
-    dtype = np.result_type(np.float32, np.asarray(x))
-    x0 = np.asarray(x, dtype=dtype)
-    if dtype == complex:
-        return (_dct(x0.real, type, n, axis, norm) + 1j *
-                _dct(x0.imag, type, n, axis, norm))
-    else:
-        return _dct(x0, type, n, axis, norm)
-
-
-# def test(type=2, dtype=None, normalize='ortho'):  # @ReservedAssignment
-#     dtype = np.result_type(np.float64)
-#     try:
-#         nm = {None: 0, 'ortho': 1}[normalize]
-#     except KeyError:
-#         raise ValueError("Unknown normalize mode %s" % normalize)
-#     try:
-#         name = {'float64': 'ddct%d', 'float32': 'dct%d'}[dtype.name]
-#     except KeyError:
-#         raise ValueError("dtype %s not supported" % dtype)
-#     try:
-#         f = getattr(_fftpack, name % type)
-#     except AttributeError as e:
-#         raise ValueError(str(e) + ". Type %d not understood" % type)
-#     return f, nm
+    return _dct(x, type, n, axis, norm)
 
 
 def idct(x, type=2, n=None, axis=-1, norm='ortho'):  # @ReservedAssignment
@@ -191,17 +149,7 @@ def idct(x, type=2, n=None, axis=-1, norm='ortho'):  # @ReservedAssignment
     and IDCT of type 3 is the DCT of type 2. For the definition of these types,
     see `dct`.
     '''
-    farr = np.asarray
-    if n is not None:
-        # Hack until scipy.fftpack.idct implement this functionality
-        x = _truncate_or_zero_pad(x, n, axis)
-        n = None
-    if np.iscomplex(x).any():
-        x0 = farr(x, dtype=complex)
-        return (_idct(x0.real, type, n, axis, norm) + 1j *
-                _idct(x0.imag, type, n, axis, norm))
-    else:
-        return _idct(farr(x, dtype=float), type, n, axis, norm)
+    return _idct(x, type, n, axis, norm)
 
 
 def _get_shape(y, shape, axes):
@@ -488,9 +436,9 @@ def test_commands():
 
 
 if __name__ == '__main__':
-    print(test_commands())
+    # print(test_commands())
     # test_dct2()
-    # test_docstrings()
+    test_docstrings()
     # test_dctn()
     # test_shiftdim()
     # test_dct3()
