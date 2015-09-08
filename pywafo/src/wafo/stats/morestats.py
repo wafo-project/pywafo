@@ -13,7 +13,7 @@ from numpy import (isscalar, r_, log, sum, around, unique, asarray,
      floor, array, poly1d, compress, not_equal, pi, exp, ravel, angle)
 from numpy.testing.decorators import setastest
 
-from scipy.lib.six import string_types
+from scipy._lib.six import string_types
 from ._numpy_compat import count_nonzero
 from scipy import optimize
 from scipy import special
@@ -2066,7 +2066,7 @@ def median_test(*args, **kwds):
     References
     ----------
     .. [1] Mood, A. M., Introduction to the Theory of Statistics. McGraw-Hill
-        (1950), pp. 394-399. 
+        (1950), pp. 394-399.
     .. [2] Zar, J. H., Biostatistical Analysis, 5th ed. Prentice Hall (2010).
         See Sections 8.12 and 10.15.
 
@@ -2100,7 +2100,7 @@ def median_test(*args, **kwds):
            [11,  5, 10]])
 
     `p` is too large to conclude that the medians are not the same:
-    
+
     >>> p
     0.12609082774093244
 
@@ -2120,7 +2120,7 @@ def median_test(*args, **kwds):
 
     >>> tbl
     array([[ 5, 11,  9],
-           [11,  4,  8]]) 
+           [11,  4,  8]])
 
     This example demonstrates that if the data set is not large and there
     are values equal to the median, the p-value can be sensitive to the
