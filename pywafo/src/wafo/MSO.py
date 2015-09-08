@@ -1,4 +1,4 @@
-# -*- coding: mbcs -*-
+# -*- coding: utf-8 -*-
 # Created by makepy.py version 0.5.00
 # By python version 2.6.2 (r262:71605, Apr 14 2009, 22:40:02) [MSC v.1500 32 bit (Intel)]
 # From type library 'MSO.DLL'
@@ -8655,9 +8655,9 @@ Adjustments_vtables_dispatch_ = 1
 Adjustments_vtables_ = [
 	(( u'Parent' , u'Parent' , ), 1, (1, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
 	(( u'Count' , u'Count' , ), 2, (2, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Val' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Val' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16388, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Val' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Val' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(4, 1, None, None) , ], 1 , 4 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
 ]
 
@@ -8672,7 +8672,7 @@ AnswerWizard_vtables_ = [
 AnswerWizardFiles_vtables_dispatch_ = 1
 AnswerWizardFiles_vtables_ = [
 	(( u'Parent' , u'ppidisp' , ), 1610809344, (1610809344, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'pbstr' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'pbstr' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16392, 10, None, None) , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Count' , u'pCount' , ), 1610809346, (1610809346, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
 	(( u'Add' , u'FileName' , ), 1610809347, (1610809347, (), [ (8, 1, None, None) , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
@@ -8682,21 +8682,21 @@ AnswerWizardFiles_vtables_ = [
 Assistant_vtables_dispatch_ = 1
 Assistant_vtables_ = [
 	(( u'Parent' , u'ppidisp' , ), 1610809344, (1610809344, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
-	(( u'Move' , u'xLeft' , u'yTop' , ), 1610809345, (1610809345, (), [ (3, 1, None, None) , 
+	(( u'Move' , u'xLeft' , u'yTop' , ), 1610809345, (1610809345, (), [ (3, 1, None, None) ,
 			(3, 1, None, None) , ], 1 , 1 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Top' , u'pyTop' , ), 1610809346, (1610809346, (), [ (3, 1, None, None) , ], 1 , 4 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
 	(( u'Top' , u'pyTop' , ), 1610809346, (1610809346, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
 	(( u'Left' , u'pxLeft' , ), 1610809348, (1610809348, (), [ (3, 1, None, None) , ], 1 , 4 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
 	(( u'Left' , u'pxLeft' , ), 1610809348, (1610809348, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 56 , (3, 0, None, None) , 0 , )),
 	(( u'Help' , ), 1610809350, (1610809350, (), [ ], 1 , 1 , 4 , 0 , 60 , (3, 0, None, None) , 0 , )),
-	(( u'StartWizard' , u'On' , u'Callback' , u'PrivateX' , u'Animation' , 
-			u'CustomTeaser' , u'Top' , u'Left' , u'Bottom' , u'Right' , 
-			u'plWizID' , ), 1610809351, (1610809351, (), [ (11, 1, None, None) , (8, 1, None, None) , (3, 1, None, None) , 
-			(12, 17, None, None) , (12, 17, None, None) , (12, 17, None, None) , (12, 17, None, None) , (12, 17, None, None) , 
+	(( u'StartWizard' , u'On' , u'Callback' , u'PrivateX' , u'Animation' ,
+			u'CustomTeaser' , u'Top' , u'Left' , u'Bottom' , u'Right' ,
+			u'plWizID' , ), 1610809351, (1610809351, (), [ (11, 1, None, None) , (8, 1, None, None) , (3, 1, None, None) ,
+			(12, 17, None, None) , (12, 17, None, None) , (12, 17, None, None) , (12, 17, None, None) , (12, 17, None, None) ,
 			(12, 17, None, None) , (16387, 10, None, None) , ], 1 , 1 , 4 , 6 , 64 , (3, 0, None, None) , 0 , )),
-	(( u'EndWizard' , u'WizardID' , u'varfSuccess' , u'Animation' , ), 1610809352, (1610809352, (), [ 
+	(( u'EndWizard' , u'WizardID' , u'varfSuccess' , u'Animation' , ), 1610809352, (1610809352, (), [
 			(3, 1, None, None) , (11, 1, None, None) , (12, 17, None, None) , ], 1 , 1 , 4 , 1 , 68 , (3, 0, None, None) , 0 , )),
-	(( u'ActivateWizard' , u'WizardID' , u'act' , u'Animation' , ), 1610809353, (1610809353, (), [ 
+	(( u'ActivateWizard' , u'WizardID' , u'act' , u'Animation' , ), 1610809353, (1610809353, (), [
 			(3, 1, None, None) , (3, 1, None, None) , (12, 17, None, None) , ], 1 , 1 , 4 , 1 , 72 , (3, 0, None, None) , 0 , )),
 	(( u'ResetTips' , ), 1610809354, (1610809354, (), [ ], 1 , 1 , 4 , 0 , 76 , (3, 0, None, None) , 0 , )),
 	(( u'NewBalloon' , u'ppibal' , ), 1610809355, (1610809355, (), [ (16393, 10, None, "IID('{000C0324-0000-0000-C000-000000000046}')") , ], 1 , 2 , 4 , 0 , 80 , (3, 0, None, None) , 0 , )),
@@ -8737,9 +8737,9 @@ Assistant_vtables_ = [
 	(( u'Name' , u'pbstrName' , ), 1610809390, (1610809390, (), [ (16392, 10, None, None) , ], 1 , 2 , 4 , 0 , 220 , (3, 0, None, None) , 0 , )),
 	(( u'On' , u'pvarfOn' , ), 1610809391, (1610809391, (), [ (16395, 10, None, None) , ], 1 , 2 , 4 , 0 , 224 , (3, 0, None, None) , 0 , )),
 	(( u'On' , u'pvarfOn' , ), 1610809391, (1610809391, (), [ (11, 1, None, None) , ], 1 , 4 , 4 , 0 , 228 , (3, 0, None, None) , 0 , )),
-	(( u'DoAlert' , u'bstrAlertTitle' , u'bstrAlertText' , u'alb' , u'alc' , 
-			u'ald' , u'alq' , u'varfSysAlert' , u'pibtn' , ), 1610809393, (1610809393, (), [ 
-			(8, 1, None, None) , (8, 1, None, None) , (3, 1, None, None) , (3, 1, None, None) , (3, 1, None, None) , 
+	(( u'DoAlert' , u'bstrAlertTitle' , u'bstrAlertText' , u'alb' , u'alc' ,
+			u'ald' , u'alq' , u'varfSysAlert' , u'pibtn' , ), 1610809393, (1610809393, (), [
+			(8, 1, None, None) , (8, 1, None, None) , (3, 1, None, None) , (3, 1, None, None) , (3, 1, None, None) ,
 			(3, 1, None, None) , (11, 1, None, None) , (16387, 10, None, None) , ], 1 , 1 , 4 , 0 , 232 , (3, 0, None, None) , 0 , )),
 ]
 
@@ -8766,7 +8766,7 @@ Balloon_vtables_ = [
 	(( u'Callback' , u'pbstr' , ), 1610809361, (1610809361, (), [ (16392, 10, None, None) , ], 1 , 2 , 4 , 0 , 108 , (3, 0, None, None) , 0 , )),
 	(( u'Private' , u'plPrivate' , ), 1610809363, (1610809363, (), [ (3, 1, None, None) , ], 1 , 4 , 4 , 0 , 112 , (3, 0, None, None) , 0 , )),
 	(( u'Private' , u'plPrivate' , ), 1610809363, (1610809363, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 116 , (3, 0, None, None) , 0 , )),
-	(( u'SetAvoidRectangle' , u'Left' , u'Top' , u'Right' , u'Bottom' , 
+	(( u'SetAvoidRectangle' , u'Left' , u'Top' , u'Right' , u'Bottom' ,
 			), 1610809365, (1610809365, (), [ (3, 1, None, None) , (3, 1, None, None) , (3, 1, None, None) , (3, 1, None, None) , ], 1 , 1 , 4 , 0 , 120 , (3, 0, None, None) , 0 , )),
 	(( u'Name' , u'pbstrName' , ), 1610809366, (1610809366, (), [ (16392, 10, None, None) , ], 1 , 2 , 4 , 0 , 124 , (3, 0, None, None) , 0 , )),
 	(( u'Show' , u'pibtn' , ), 1610809367, (1610809367, (), [ (16387, 10, None, None) , ], 1 , 1 , 4 , 0 , 128 , (3, 0, None, None) , 0 , )),
@@ -8788,7 +8788,7 @@ BalloonCheckboxes_vtables_dispatch_ = 1
 BalloonCheckboxes_vtables_ = [
 	(( u'Name' , u'pbstrName' , ), 1610809344, (1610809344, (), [ (16392, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'ppidisp' , ), 1610809345, (1610809345, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'ppidisp' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'ppidisp' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
 	(( u'Count' , u'pccbx' , ), 1610809347, (1610809347, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
 	(( u'Count' , u'pccbx' , ), 1610809347, (1610809347, (), [ (3, 1, None, None) , ], 1 , 4 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
@@ -8808,7 +8808,7 @@ BalloonLabels_vtables_dispatch_ = 1
 BalloonLabels_vtables_ = [
 	(( u'Name' , u'pbstrName' , ), 1610809344, (1610809344, (), [ (16392, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'ppidisp' , ), 1610809345, (1610809345, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'ppidisp' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'ppidisp' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
 	(( u'Count' , u'pcwz' , ), 1610809347, (1610809347, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
 	(( u'Count' , u'pcwz' , ), 1610809347, (1610809347, (), [ (3, 1, None, None) , ], 1 , 4 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
@@ -8830,7 +8830,7 @@ COMAddIn_vtables_ = [
 
 COMAddIns_vtables_dispatch_ = 1
 COMAddIns_vtables_ = [
-	(( u'Item' , u'Index' , u'RetValue' , ), 0, (0, (), [ (16396, 1, None, None) , 
+	(( u'Item' , u'Index' , u'RetValue' , ), 0, (0, (), [ (16396, 1, None, None) ,
 			(16393, 10, None, "IID('{000C033A-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
 	(( u'Count' , u'RetValue' , ), 1, (1, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'_NewEnum' , u'RetValue' , ), -4, (-4, (), [ (16397, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 1025 , )),
@@ -8868,42 +8868,42 @@ CanvasShapes_vtables_dispatch_ = 1
 CanvasShapes_vtables_ = [
 	(( u'Parent' , u'Parent' , ), 1, (1, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
 	(( u'Count' , u'Count' , ), 2, (2, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (12, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (12, 1, None, None) ,
 			(16393, 10, None, "IID('{000C031C-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
 	(( u'_NewEnum' , u'_NewEnum' , ), -4, (-4, (), [ (16397, 10, None, None) , ], 1 , 2 , 4 , 0 , 48 , (3, 0, None, None) , 1024 , )),
-	(( u'AddCallout' , u'Type' , u'Left' , u'Top' , u'Width' , 
-			u'Height' , u'Callout' , ), 10, (10, (), [ (3, 1, None, None) , (4, 1, None, None) , 
+	(( u'AddCallout' , u'Type' , u'Left' , u'Top' , u'Width' ,
+			u'Height' , u'Callout' , ), 10, (10, (), [ (3, 1, None, None) , (4, 1, None, None) ,
 			(4, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , (16393, 10, None, "IID('{000C031C-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
-	(( u'AddConnector' , u'Type' , u'BeginX' , u'BeginY' , u'EndX' , 
-			u'EndY' , u'Connector' , ), 11, (11, (), [ (3, 1, None, None) , (4, 1, None, None) , 
+	(( u'AddConnector' , u'Type' , u'BeginX' , u'BeginY' , u'EndX' ,
+			u'EndY' , u'Connector' , ), 11, (11, (), [ (3, 1, None, None) , (4, 1, None, None) ,
 			(4, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , (16393, 10, None, "IID('{000C031C-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 56 , (3, 0, None, None) , 0 , )),
-	(( u'AddCurve' , u'SafeArrayOfPoints' , u'Curve' , ), 12, (12, (), [ (12, 1, None, None) , 
+	(( u'AddCurve' , u'SafeArrayOfPoints' , u'Curve' , ), 12, (12, (), [ (12, 1, None, None) ,
 			(16393, 10, None, "IID('{000C031C-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 60 , (3, 0, None, None) , 0 , )),
-	(( u'AddLabel' , u'Orientation' , u'Left' , u'Top' , u'Width' , 
-			u'Height' , u'Label' , ), 13, (13, (), [ (3, 1, None, None) , (4, 1, None, None) , 
+	(( u'AddLabel' , u'Orientation' , u'Left' , u'Top' , u'Width' ,
+			u'Height' , u'Label' , ), 13, (13, (), [ (3, 1, None, None) , (4, 1, None, None) ,
 			(4, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , (16393, 10, None, "IID('{000C031C-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 64 , (3, 0, None, None) , 0 , )),
-	(( u'AddLine' , u'BeginX' , u'BeginY' , u'EndX' , u'EndY' , 
-			u'Line' , ), 14, (14, (), [ (4, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , 
+	(( u'AddLine' , u'BeginX' , u'BeginY' , u'EndX' , u'EndY' ,
+			u'Line' , ), 14, (14, (), [ (4, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) ,
 			(4, 1, None, None) , (16393, 10, None, "IID('{000C031C-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 68 , (3, 0, None, None) , 0 , )),
-	(( u'AddPicture' , u'FileName' , u'LinkToFile' , u'SaveWithDocument' , u'Left' , 
-			u'Top' , u'Width' , u'Height' , u'Picture' , ), 15, (15, (), [ 
-			(8, 1, None, None) , (3, 1, None, None) , (3, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , 
+	(( u'AddPicture' , u'FileName' , u'LinkToFile' , u'SaveWithDocument' , u'Left' ,
+			u'Top' , u'Width' , u'Height' , u'Picture' , ), 15, (15, (), [
+			(8, 1, None, None) , (3, 1, None, None) , (3, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) ,
 			(4, 49, '-1.0', None) , (4, 49, '-1.0', None) , (16393, 10, None, "IID('{000C031C-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 72 , (3, 0, None, None) , 0 , )),
-	(( u'AddPolyline' , u'SafeArrayOfPoints' , u'Polyline' , ), 16, (16, (), [ (12, 1, None, None) , 
+	(( u'AddPolyline' , u'SafeArrayOfPoints' , u'Polyline' , ), 16, (16, (), [ (12, 1, None, None) ,
 			(16393, 10, None, "IID('{000C031C-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 76 , (3, 0, None, None) , 0 , )),
-	(( u'AddShape' , u'Type' , u'Left' , u'Top' , u'Width' , 
-			u'Height' , u'Shape' , ), 17, (17, (), [ (3, 1, None, None) , (4, 1, None, None) , 
+	(( u'AddShape' , u'Type' , u'Left' , u'Top' , u'Width' ,
+			u'Height' , u'Shape' , ), 17, (17, (), [ (3, 1, None, None) , (4, 1, None, None) ,
 			(4, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , (16393, 10, None, "IID('{000C031C-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 80 , (3, 0, None, None) , 0 , )),
-	(( u'AddTextEffect' , u'PresetTextEffect' , u'Text' , u'FontName' , u'FontSize' , 
-			u'FontBold' , u'FontItalic' , u'Left' , u'Top' , u'TextEffect' , 
-			), 18, (18, (), [ (3, 1, None, None) , (8, 1, None, None) , (8, 1, None, None) , (4, 1, None, None) , 
+	(( u'AddTextEffect' , u'PresetTextEffect' , u'Text' , u'FontName' , u'FontSize' ,
+			u'FontBold' , u'FontItalic' , u'Left' , u'Top' , u'TextEffect' ,
+			), 18, (18, (), [ (3, 1, None, None) , (8, 1, None, None) , (8, 1, None, None) , (4, 1, None, None) ,
 			(3, 1, None, None) , (3, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , (16393, 10, None, "IID('{000C031C-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 84 , (3, 0, None, None) , 0 , )),
-	(( u'AddTextbox' , u'Orientation' , u'Left' , u'Top' , u'Width' , 
-			u'Height' , u'Textbox' , ), 19, (19, (), [ (3, 1, None, None) , (4, 1, None, None) , 
+	(( u'AddTextbox' , u'Orientation' , u'Left' , u'Top' , u'Width' ,
+			u'Height' , u'Textbox' , ), 19, (19, (), [ (3, 1, None, None) , (4, 1, None, None) ,
 			(4, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , (16393, 10, None, "IID('{000C031C-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 88 , (3, 0, None, None) , 0 , )),
-	(( u'BuildFreeform' , u'EditingType' , u'X1' , u'Y1' , u'FreeformBuilder' , 
+	(( u'BuildFreeform' , u'EditingType' , u'X1' , u'Y1' , u'FreeformBuilder' ,
 			), 20, (20, (), [ (3, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , (16393, 10, None, "IID('{000C0315-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 92 , (3, 0, None, None) , 0 , )),
-	(( u'Range' , u'Index' , u'Range' , ), 21, (21, (), [ (12, 1, None, None) , 
+	(( u'Range' , u'Index' , u'Range' , ), 21, (21, (), [ (12, 1, None, None) ,
 			(16393, 10, None, "IID('{000C031D-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 96 , (3, 0, None, None) , 0 , )),
 	(( u'SelectAll' , ), 22, (22, (), [ ], 1 , 1 , 4 , 0 , 100 , (3, 0, None, None) , 0 , )),
 	(( u'Background' , u'Background' , ), 100, (100, (), [ (16393, 10, None, "IID('{000C031C-0000-0000-C000-000000000046}')") , ], 1 , 2 , 4 , 0 , 104 , (3, 0, None, None) , 0 , )),
@@ -8930,8 +8930,8 @@ CommandBar_vtables_ = [
 	(( u'Delete' , ), 1610874884, (1610874884, (), [ ], 1 , 1 , 4 , 0 , 136 , (3, 0, None, None) , 0 , )),
 	(( u'Enabled' , u'pvarfEnabled' , ), 1610874885, (1610874885, (), [ (16395, 10, None, None) , ], 1 , 2 , 4 , 0 , 140 , (3, 0, None, None) , 0 , )),
 	(( u'Enabled' , u'pvarfEnabled' , ), 1610874885, (1610874885, (), [ (11, 1, None, None) , ], 1 , 4 , 4 , 0 , 144 , (3, 0, None, None) , 0 , )),
-	(( u'FindControl' , u'Type' , u'Id' , u'Tag' , u'Visible' , 
-			u'Recursive' , u'ppcbc' , ), 1610874887, (1610874887, (), [ (12, 17, None, None) , (12, 17, None, None) , 
+	(( u'FindControl' , u'Type' , u'Id' , u'Tag' , u'Visible' ,
+			u'Recursive' , u'ppcbc' , ), 1610874887, (1610874887, (), [ (12, 17, None, None) , (12, 17, None, None) ,
 			(12, 17, None, None) , (12, 17, None, None) , (12, 17, None, None) , (16393, 10, None, "IID('{000C0308-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 5 , 148 , (3, 0, None, None) , 0 , )),
 	(( u'Height' , u'pdy' , ), 1610874888, (1610874888, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 152 , (3, 0, None, None) , 0 , )),
 	(( u'Height' , u'pdy' , ), 1610874888, (1610874888, (), [ (3, 1, None, None) , ], 1 , 4 , 4 , 0 , 156 , (3, 0, None, None) , 0 , )),
@@ -8951,7 +8951,7 @@ CommandBar_vtables_ = [
 	(( u'Protection' , u'pprot' , ), 1610874903, (1610874903, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 212 , (3, 0, None, None) , 0 , )),
 	(( u'Protection' , u'pprot' , ), 1610874903, (1610874903, (), [ (3, 1, None, None) , ], 1 , 4 , 4 , 0 , 216 , (3, 0, None, None) , 0 , )),
 	(( u'Reset' , ), 1610874905, (1610874905, (), [ ], 1 , 1 , 4 , 0 , 220 , (3, 0, None, None) , 0 , )),
-	(( u'ShowPopup' , u'x' , u'y' , ), 1610874906, (1610874906, (), [ (12, 17, None, None) , 
+	(( u'ShowPopup' , u'x' , u'y' , ), 1610874906, (1610874906, (), [ (12, 17, None, None) ,
 			(12, 17, None, None) , ], 1 , 1 , 4 , 2 , 224 , (3, 0, None, None) , 0 , )),
 	(( u'Top' , u'pypTop' , ), 1610874907, (1610874907, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 228 , (3, 0, None, None) , 0 , )),
 	(( u'Top' , u'pypTop' , ), 1610874907, (1610874907, (), [ (3, 1, None, None) , ], 1 , 4 , 4 , 0 , 232 , (3, 0, None, None) , 0 , )),
@@ -8973,7 +8973,7 @@ CommandBarControl_vtables_ = [
 	(( u'Caption' , u'pbstrCaption' , ), 1610874883, (1610874883, (), [ (16392, 10, None, None) , ], 1 , 2 , 4 , 0 , 132 , (3, 0, None, None) , 0 , )),
 	(( u'Caption' , u'pbstrCaption' , ), 1610874883, (1610874883, (), [ (8, 1, None, None) , ], 1 , 4 , 4 , 0 , 136 , (3, 0, None, None) , 0 , )),
 	(( u'Control' , u'ppidisp' , ), 1610874885, (1610874885, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 140 , (3, 0, None, None) , 64 , )),
-	(( u'Copy' , u'Bar' , u'Before' , u'ppcbc' , ), 1610874886, (1610874886, (), [ 
+	(( u'Copy' , u'Bar' , u'Before' , u'ppcbc' , ), 1610874886, (1610874886, (), [
 			(12, 17, None, None) , (12, 17, None, None) , (16393, 10, None, "IID('{000C0308-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 2 , 144 , (3, 0, None, None) , 0 , )),
 	(( u'Delete' , u'Temporary' , ), 1610874887, (1610874887, (), [ (12, 17, None, None) , ], 1 , 1 , 4 , 1 , 148 , (3, 0, None, None) , 0 , )),
 	(( u'DescriptionText' , u'pbstrText' , ), 1610874888, (1610874888, (), [ (16392, 10, None, None) , ], 1 , 2 , 4 , 0 , 152 , (3, 0, None, None) , 0 , )),
@@ -8990,7 +8990,7 @@ CommandBarControl_vtables_ = [
 	(( u'Id' , u'pid' , ), 1610874899, (1610874899, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 196 , (3, 0, None, None) , 0 , )),
 	(( u'Index' , u'pi' , ), 1610874900, (1610874900, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 200 , (3, 0, None, None) , 0 , )),
 	(( u'InstanceId' , u'pid' , ), 1610874901, (1610874901, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 204 , (3, 0, None, None) , 64 , )),
-	(( u'Move' , u'Bar' , u'Before' , u'ppcbc' , ), 1610874902, (1610874902, (), [ 
+	(( u'Move' , u'Bar' , u'Before' , u'ppcbc' , ), 1610874902, (1610874902, (), [
 			(12, 17, None, None) , (12, 17, None, None) , (16393, 10, None, "IID('{000C0308-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 2 , 208 , (3, 0, None, None) , 0 , )),
 	(( u'Left' , u'px' , ), 1610874903, (1610874903, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 212 , (3, 0, None, None) , 0 , )),
 	(( u'OLEUsage' , u'pcou' , ), 1610874904, (1610874904, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 216 , (3, 0, None, None) , 0 , )),
@@ -9026,11 +9026,11 @@ CommandBarControl_vtables_ = [
 
 CommandBarControls_vtables_dispatch_ = 1
 CommandBarControls_vtables_ = [
-	(( u'Add' , u'Type' , u'Id' , u'Parameter' , u'Before' , 
-			u'Temporary' , u'ppcbc' , ), 1610809344, (1610809344, (), [ (12, 17, None, None) , (12, 17, None, None) , 
+	(( u'Add' , u'Type' , u'Id' , u'Parameter' , u'Before' ,
+			u'Temporary' , u'ppcbc' , ), 1610809344, (1610809344, (), [ (12, 17, None, None) , (12, 17, None, None) ,
 			(12, 17, None, None) , (12, 17, None, None) , (12, 17, None, None) , (16393, 10, None, "IID('{000C0308-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 5 , 36 , (3, 0, None, None) , 0 , )),
 	(( u'Count' , u'pcToolbarControls' , ), 1610809345, (1610809345, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'ppcbc' , ), 0, (0, (), [ (12, 1, None, None) , 
+	(( u'Item' , u'Index' , u'ppcbc' , ), 0, (0, (), [ (12, 1, None, None) ,
 			(16393, 10, None, "IID('{000C0308-0000-0000-C000-000000000046}')") , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
 	(( u'_NewEnum' , u'ppienum' , ), -4, (-4, (), [ (16397, 10, None, None) , ], 1 , 2 , 4 , 0 , 48 , (3, 0, None, None) , 1024 , )),
 	(( u'Parent' , u'ppcb' , ), 1610809348, (1610809348, (), [ (16393, 10, None, "IID('{000C0304-0000-0000-C000-000000000046}')") , ], 1 , 2 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
@@ -9047,10 +9047,10 @@ CommandBarPopup_vtables_ = [
 ConnectorFormat_vtables_dispatch_ = 1
 ConnectorFormat_vtables_ = [
 	(( u'Parent' , u'Parent' , ), 1, (1, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
-	(( u'BeginConnect' , u'ConnectedShape' , u'ConnectionSite' , ), 10, (10, (), [ (9, 1, None, "IID('{000C031C-0000-0000-C000-000000000046}')") , 
+	(( u'BeginConnect' , u'ConnectedShape' , u'ConnectionSite' , ), 10, (10, (), [ (9, 1, None, "IID('{000C031C-0000-0000-C000-000000000046}')") ,
 			(3, 1, None, None) , ], 1 , 1 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'BeginDisconnect' , ), 11, (11, (), [ ], 1 , 1 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'EndConnect' , u'ConnectedShape' , u'ConnectionSite' , ), 12, (12, (), [ (9, 1, None, "IID('{000C031C-0000-0000-C000-000000000046}')") , 
+	(( u'EndConnect' , u'ConnectedShape' , u'ConnectionSite' , ), 12, (12, (), [ (9, 1, None, "IID('{000C031C-0000-0000-C000-000000000046}')") ,
 			(3, 1, None, None) , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
 	(( u'EndDisconnect' , ), 13, (13, (), [ ], 1 , 1 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
 	(( u'BeginConnected' , u'BeginConnected' , ), 100, (100, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 56 , (3, 0, None, None) , 0 , )),
@@ -9065,15 +9065,15 @@ ConnectorFormat_vtables_ = [
 
 DiagramNode_vtables_dispatch_ = 1
 DiagramNode_vtables_ = [
-	(( u'AddNode' , u'Pos' , u'NodeType' , u'NewNode' , ), 10, (10, (), [ 
+	(( u'AddNode' , u'Pos' , u'NodeType' , u'NewNode' , ), 10, (10, (), [
 			(3, 49, '2', None) , (3, 49, '1', None) , (16393, 10, None, "IID('{000C0370-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
 	(( u'Delete' , ), 11, (11, (), [ ], 1 , 1 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
-	(( u'MoveNode' , u'TargetNode' , u'Pos' , ), 12, (12, (), [ (9, 1, None, "IID('{000C0370-0000-0000-C000-000000000046}')") , 
+	(( u'MoveNode' , u'TargetNode' , u'Pos' , ), 12, (12, (), [ (9, 1, None, "IID('{000C0370-0000-0000-C000-000000000046}')") ,
 			(3, 1, None, None) , ], 1 , 1 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
 	(( u'ReplaceNode' , u'TargetNode' , ), 13, (13, (), [ (9, 1, None, "IID('{000C0370-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
-	(( u'SwapNode' , u'TargetNode' , u'SwapChildren' , ), 14, (14, (), [ (9, 1, None, "IID('{000C0370-0000-0000-C000-000000000046}')") , 
+	(( u'SwapNode' , u'TargetNode' , u'SwapChildren' , ), 14, (14, (), [ (9, 1, None, "IID('{000C0370-0000-0000-C000-000000000046}')") ,
 			(11, 49, 'True', None) , ], 1 , 1 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
-	(( u'CloneNode' , u'CopyChildren' , u'TargetNode' , u'Pos' , u'Node' , 
+	(( u'CloneNode' , u'CopyChildren' , u'TargetNode' , u'Pos' , u'Node' ,
 			), 15, (15, (), [ (11, 1, None, None) , (9, 1, None, "IID('{000C0370-0000-0000-C000-000000000046}')") , (3, 49, '2', None) , (16393, 10, None, "IID('{000C0370-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 56 , (3, 0, None, None) , 0 , )),
 	(( u'TransferChildren' , u'ReceivingNode' , ), 16, (16, (), [ (9, 1, None, "IID('{000C0370-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 60 , (3, 0, None, None) , 0 , )),
 	(( u'NextNode' , u'NextNode' , ), 17, (17, (), [ (16393, 10, None, "IID('{000C0370-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 64 , (3, 0, None, None) , 0 , )),
@@ -9091,9 +9091,9 @@ DiagramNode_vtables_ = [
 DiagramNodeChildren_vtables_dispatch_ = 1
 DiagramNodeChildren_vtables_ = [
 	(( u'_NewEnum' , u'ppunkEnum' , ), -4, (-4, (), [ (16397, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 1024 , )),
-	(( u'Item' , u'Index' , u'Node' , ), 0, (0, (), [ (12, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Node' , ), 0, (0, (), [ (12, 1, None, None) ,
 			(16393, 10, None, "IID('{000C0370-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
-	(( u'AddNode' , u'Index' , u'NodeType' , u'NewNode' , ), 10, (10, (), [ 
+	(( u'AddNode' , u'Index' , u'NodeType' , u'NewNode' , ), 10, (10, (), [
 			(12, 49, '-1', None) , (3, 49, '1', None) , (16393, 10, None, "IID('{000C0370-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
 	(( u'SelectAll' , ), 11, (11, (), [ ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 100, (100, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
@@ -9105,7 +9105,7 @@ DiagramNodeChildren_vtables_ = [
 DiagramNodes_vtables_dispatch_ = 1
 DiagramNodes_vtables_ = [
 	(( u'_NewEnum' , u'ppunkEnum' , ), -4, (-4, (), [ (16397, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 1024 , )),
-	(( u'Item' , u'Index' , u'ppdn' , ), 0, (0, (), [ (12, 1, None, None) , 
+	(( u'Item' , u'Index' , u'ppdn' , ), 0, (0, (), [ (12, 1, None, None) ,
 			(16393, 10, None, "IID('{000C0370-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'SelectAll' , ), 10, (10, (), [ ], 1 , 1 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 100, (100, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
@@ -9126,7 +9126,7 @@ DocumentLibraryVersion_vtables_ = [
 
 DocumentLibraryVersions_vtables_dispatch_ = 1
 DocumentLibraryVersions_vtables_ = [
-	(( u'Item' , u'lIndex' , u'ppidisp' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'lIndex' , u'ppidisp' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16393, 10, None, "IID('{000C0387-0000-0000-C000-000000000046}')") , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
 	(( u'Count' , u'lCount' , ), 1, (1, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'ppidisp' , ), 2, (2, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
@@ -9169,11 +9169,11 @@ FileDialogFilters_vtables_ = [
 	(( u'Parent' , u'Parent' , ), 1610809344, (1610809344, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
 	(( u'_NewEnum' , u'ppienum' , ), -4, (-4, (), [ (16397, 10, None, None) , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 1024 , )),
 	(( u'Count' , u'pcFilters' , ), 1610809346, (1610809346, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16393, 10, None, "IID('{000C0364-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
 	(( u'Delete' , u'filter' , ), 1610809348, (1610809348, (), [ (12, 17, None, None) , ], 1 , 1 , 4 , 1 , 52 , (3, 0, None, None) , 0 , )),
 	(( u'Clear' , ), 1610809349, (1610809349, (), [ ], 1 , 1 , 4 , 0 , 56 , (3, 0, None, None) , 0 , )),
-	(( u'Add' , u'Description' , u'Extensions' , u'Position' , u'Add' , 
+	(( u'Add' , u'Description' , u'Extensions' , u'Position' , u'Add' ,
 			), 1610809350, (1610809350, (), [ (8, 1, None, None) , (8, 1, None, None) , (12, 17, None, None) , (16393, 10, None, "IID('{000C0364-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 1 , 60 , (3, 0, None, None) , 0 , )),
 ]
 
@@ -9182,7 +9182,7 @@ FileDialogSelectedItems_vtables_ = [
 	(( u'Parent' , u'Parent' , ), 1610809344, (1610809344, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
 	(( u'_NewEnum' , u'ppienum' , ), -4, (-4, (), [ (16397, 10, None, None) , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 1024 , )),
 	(( u'Count' , u'pcFiles' , ), 1610809346, (1610809346, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16392, 10, None, None) , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
 ]
 
@@ -9204,7 +9204,7 @@ FileSearch_vtables_ = [
 	(( u'TextOrProperty' , u'TextOrProperty' , ), 7, (7, (), [ (8, 1, None, None) , ], 1 , 4 , 4 , 0 , 88 , (3, 0, None, None) , 0 , )),
 	(( u'LookIn' , u'LookInRetVal' , ), 8, (8, (), [ (16392, 10, None, None) , ], 1 , 2 , 4 , 0 , 92 , (3, 0, None, None) , 0 , )),
 	(( u'LookIn' , u'LookInRetVal' , ), 8, (8, (), [ (8, 1, None, None) , ], 1 , 4 , 4 , 0 , 96 , (3, 0, None, None) , 0 , )),
-	(( u'Execute' , u'SortBy' , u'SortOrder' , u'AlwaysAccurate' , u'pRet' , 
+	(( u'Execute' , u'SortBy' , u'SortOrder' , u'AlwaysAccurate' , u'pRet' ,
 			), 9, (9, (), [ (3, 49, '1', None) , (3, 49, '1', None) , (11, 49, 'True', None) , (16387, 10, None, None) , ], 1 , 1 , 4 , 0 , 100 , (3, 0, None, None) , 0 , )),
 	(( u'NewSearch' , ), 10, (10, (), [ ], 1 , 1 , 4 , 0 , 104 , (3, 0, None, None) , 0 , )),
 	(( u'FoundFiles' , u'FoundFilesRet' , ), 11, (11, (), [ (16393, 10, None, "IID('{000C0331-0000-0000-C000-000000000046}')") , ], 1 , 2 , 4 , 0 , 108 , (3, 0, None, None) , 0 , )),
@@ -9217,7 +9217,7 @@ FileSearch_vtables_ = [
 
 FileTypes_vtables_dispatch_ = 1
 FileTypes_vtables_ = [
-	(( u'Item' , u'Index' , u'MsoFileTypeRet' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'MsoFileTypeRet' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
 	(( u'Count' , u'iCountRetVal' , ), 2, (2, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Add' , u'FileType' , ), 3, (3, (), [ (3, 1, None, None) , ], 1 , 1 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
@@ -9229,14 +9229,14 @@ FillFormat_vtables_dispatch_ = 1
 FillFormat_vtables_ = [
 	(( u'Parent' , u'Parent' , ), 1, (1, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
 	(( u'Background' , ), 10, (10, (), [ ], 1 , 1 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
-	(( u'OneColorGradient' , u'Style' , u'Variant' , u'Degree' , ), 11, (11, (), [ 
+	(( u'OneColorGradient' , u'Style' , u'Variant' , u'Degree' , ), 11, (11, (), [
 			(3, 1, None, None) , (3, 1, None, None) , (4, 1, None, None) , ], 1 , 1 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
 	(( u'Patterned' , u'Pattern' , ), 12, (12, (), [ (3, 1, None, None) , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
-	(( u'PresetGradient' , u'Style' , u'Variant' , u'PresetGradientType' , ), 13, (13, (), [ 
+	(( u'PresetGradient' , u'Style' , u'Variant' , u'PresetGradientType' , ), 13, (13, (), [
 			(3, 1, None, None) , (3, 1, None, None) , (3, 1, None, None) , ], 1 , 1 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
 	(( u'PresetTextured' , u'PresetTexture' , ), 14, (14, (), [ (3, 1, None, None) , ], 1 , 1 , 4 , 0 , 56 , (3, 0, None, None) , 0 , )),
 	(( u'Solid' , ), 15, (15, (), [ ], 1 , 1 , 4 , 0 , 60 , (3, 0, None, None) , 0 , )),
-	(( u'TwoColorGradient' , u'Style' , u'Variant' , ), 16, (16, (), [ (3, 1, None, None) , 
+	(( u'TwoColorGradient' , u'Style' , u'Variant' , ), 16, (16, (), [ (3, 1, None, None) ,
 			(3, 1, None, None) , ], 1 , 1 , 4 , 0 , 64 , (3, 0, None, None) , 0 , )),
 	(( u'UserPicture' , u'PictureFile' , ), 17, (17, (), [ (8, 1, None, None) , ], 1 , 1 , 4 , 0 , 68 , (3, 0, None, None) , 0 , )),
 	(( u'UserTextured' , u'TextureFile' , ), 18, (18, (), [ (8, 1, None, None) , ], 1 , 1 , 4 , 0 , 72 , (3, 0, None, None) , 0 , )),
@@ -9262,7 +9262,7 @@ FillFormat_vtables_ = [
 
 FoundFiles_vtables_dispatch_ = 1
 FoundFiles_vtables_ = [
-	(( u'Item' , u'Index' , u'lcid' , u'pbstrFile' , ), 0, (0, (), [ 
+	(( u'Item' , u'Index' , u'lcid' , u'pbstrFile' , ), 0, (0, (), [
 			(3, 1, None, None) , (3, 5, None, None) , (16392, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
 	(( u'Count' , u'pc' , ), 4, (4, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'_NewEnum' , u'ppunkEnum' , ), -4, (-4, (), [ (16397, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 1024 , )),
@@ -9271,9 +9271,9 @@ FoundFiles_vtables_ = [
 FreeformBuilder_vtables_dispatch_ = 1
 FreeformBuilder_vtables_ = [
 	(( u'Parent' , u'Parent' , ), 1, (1, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
-	(( u'AddNodes' , u'SegmentType' , u'EditingType' , u'X1' , u'Y1' , 
-			u'X2' , u'Y2' , u'X3' , u'Y3' , ), 10, (10, (), [ 
-			(3, 1, None, None) , (3, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , (4, 49, '0.0', None) , 
+	(( u'AddNodes' , u'SegmentType' , u'EditingType' , u'X1' , u'Y1' ,
+			u'X2' , u'Y2' , u'X3' , u'Y3' , ), 10, (10, (), [
+			(3, 1, None, None) , (3, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , (4, 49, '0.0', None) ,
 			(4, 49, '0.0', None) , (4, 49, '0.0', None) , (4, 49, '0.0', None) , ], 1 , 1 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'ConvertToShape' , u'Freeform' , ), 11, (11, (), [ (16393, 10, None, "IID('{000C031C-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
 ]
@@ -9282,10 +9282,10 @@ GroupShapes_vtables_dispatch_ = 1
 GroupShapes_vtables_ = [
 	(( u'Parent' , u'ppidisp' , ), 1, (1, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
 	(( u'Count' , u'pnShapes' , ), 2, (2, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (12, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (12, 1, None, None) ,
 			(16393, 10, None, "IID('{000C031C-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
 	(( u'_NewEnum' , u'ppienum' , ), -4, (-4, (), [ (16397, 10, None, None) , ], 1 , 2 , 4 , 0 , 48 , (3, 0, None, None) , 1024 , )),
-	(( u'Range' , u'Index' , u'Range' , ), 10, (10, (), [ (12, 1, None, None) , 
+	(( u'Range' , u'Index' , u'Range' , ), 10, (10, (), [ (12, 1, None, None) ,
 			(16393, 10, None, "IID('{000C031D-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
 ]
 
@@ -9313,7 +9313,7 @@ HTMLProjectItem_vtables_ = [
 
 HTMLProjectItems_vtables_dispatch_ = 1
 HTMLProjectItems_vtables_ = [
-	(( u'Item' , u'Index' , u'RetValue' , ), 0, (0, (), [ (16396, 1, None, None) , 
+	(( u'Item' , u'Index' , u'RetValue' , ), 0, (0, (), [ (16396, 1, None, None) ,
 			(16393, 10, None, "IID('{000C0358-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
 	(( u'Count' , u'RetValue' , ), 1, (1, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'_NewEnum' , u'RetValue' , ), -4, (-4, (), [ (16397, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 1025 , )),
@@ -9324,69 +9324,69 @@ IAccessible_vtables_dispatch_ = 1
 IAccessible_vtables_ = [
 	(( u'accParent' , u'ppdispParent' , ), -5000, (-5000, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 28 , (3, 0, None, None) , 1088 , )),
 	(( u'accChildCount' , u'pcountChildren' , ), -5001, (-5001, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 32 , (3, 0, None, None) , 1088 , )),
-	(( u'accChild' , u'varChild' , u'ppdispChild' , ), -5002, (-5002, (), [ (12, 1, None, None) , 
+	(( u'accChild' , u'varChild' , u'ppdispChild' , ), -5002, (-5002, (), [ (12, 1, None, None) ,
 			(16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 1088 , )),
-	(( u'accName' , u'varChild' , u'pszName' , ), -5003, (-5003, (), [ (12, 17, None, None) , 
+	(( u'accName' , u'varChild' , u'pszName' , ), -5003, (-5003, (), [ (12, 17, None, None) ,
 			(16392, 10, None, None) , ], 1 , 2 , 4 , 1 , 40 , (3, 0, None, None) , 1088 , )),
-	(( u'accName' , u'varChild' , u'pszName' , ), -5003, (-5003, (), [ (12, 17, None, None) , 
+	(( u'accName' , u'varChild' , u'pszName' , ), -5003, (-5003, (), [ (12, 17, None, None) ,
 			(16392, 10, None, None) , ], 1 , 2 , 4 , 1 , 40 , (3, 0, None, None) , 1088 , )),
-	(( u'accValue' , u'varChild' , u'pszValue' , ), -5004, (-5004, (), [ (12, 17, None, None) , 
+	(( u'accValue' , u'varChild' , u'pszValue' , ), -5004, (-5004, (), [ (12, 17, None, None) ,
 			(16392, 10, None, None) , ], 1 , 2 , 4 , 1 , 44 , (3, 0, None, None) , 1088 , )),
-	(( u'accValue' , u'varChild' , u'pszValue' , ), -5004, (-5004, (), [ (12, 17, None, None) , 
+	(( u'accValue' , u'varChild' , u'pszValue' , ), -5004, (-5004, (), [ (12, 17, None, None) ,
 			(16392, 10, None, None) , ], 1 , 2 , 4 , 1 , 44 , (3, 0, None, None) , 1088 , )),
-	(( u'accDescription' , u'varChild' , u'pszDescription' , ), -5005, (-5005, (), [ (12, 17, None, None) , 
+	(( u'accDescription' , u'varChild' , u'pszDescription' , ), -5005, (-5005, (), [ (12, 17, None, None) ,
 			(16392, 10, None, None) , ], 1 , 2 , 4 , 1 , 48 , (3, 0, None, None) , 1088 , )),
-	(( u'accDescription' , u'varChild' , u'pszDescription' , ), -5005, (-5005, (), [ (12, 17, None, None) , 
+	(( u'accDescription' , u'varChild' , u'pszDescription' , ), -5005, (-5005, (), [ (12, 17, None, None) ,
 			(16392, 10, None, None) , ], 1 , 2 , 4 , 1 , 48 , (3, 0, None, None) , 1088 , )),
-	(( u'accRole' , u'varChild' , u'pvarRole' , ), -5006, (-5006, (), [ (12, 17, None, None) , 
+	(( u'accRole' , u'varChild' , u'pvarRole' , ), -5006, (-5006, (), [ (12, 17, None, None) ,
 			(16396, 10, None, None) , ], 1 , 2 , 4 , 1 , 52 , (3, 0, None, None) , 1088 , )),
-	(( u'accRole' , u'varChild' , u'pvarRole' , ), -5006, (-5006, (), [ (12, 17, None, None) , 
+	(( u'accRole' , u'varChild' , u'pvarRole' , ), -5006, (-5006, (), [ (12, 17, None, None) ,
 			(16396, 10, None, None) , ], 1 , 2 , 4 , 1 , 52 , (3, 0, None, None) , 1088 , )),
-	(( u'accState' , u'varChild' , u'pvarState' , ), -5007, (-5007, (), [ (12, 17, None, None) , 
+	(( u'accState' , u'varChild' , u'pvarState' , ), -5007, (-5007, (), [ (12, 17, None, None) ,
 			(16396, 10, None, None) , ], 1 , 2 , 4 , 1 , 56 , (3, 0, None, None) , 1088 , )),
-	(( u'accState' , u'varChild' , u'pvarState' , ), -5007, (-5007, (), [ (12, 17, None, None) , 
+	(( u'accState' , u'varChild' , u'pvarState' , ), -5007, (-5007, (), [ (12, 17, None, None) ,
 			(16396, 10, None, None) , ], 1 , 2 , 4 , 1 , 56 , (3, 0, None, None) , 1088 , )),
-	(( u'accHelp' , u'varChild' , u'pszHelp' , ), -5008, (-5008, (), [ (12, 17, None, None) , 
+	(( u'accHelp' , u'varChild' , u'pszHelp' , ), -5008, (-5008, (), [ (12, 17, None, None) ,
 			(16392, 10, None, None) , ], 1 , 2 , 4 , 1 , 60 , (3, 0, None, None) , 1088 , )),
-	(( u'accHelp' , u'varChild' , u'pszHelp' , ), -5008, (-5008, (), [ (12, 17, None, None) , 
+	(( u'accHelp' , u'varChild' , u'pszHelp' , ), -5008, (-5008, (), [ (12, 17, None, None) ,
 			(16392, 10, None, None) , ], 1 , 2 , 4 , 1 , 60 , (3, 0, None, None) , 1088 , )),
-	(( u'accHelpTopic' , u'pszHelpFile' , u'varChild' , u'pidTopic' , ), -5009, (-5009, (), [ 
+	(( u'accHelpTopic' , u'pszHelpFile' , u'varChild' , u'pidTopic' , ), -5009, (-5009, (), [
 			(16392, 2, None, None) , (12, 17, None, None) , (16387, 10, None, None) , ], 1 , 2 , 4 , 1 , 64 , (3, 0, None, None) , 1088 , )),
-	(( u'accHelpTopic' , u'pszHelpFile' , u'varChild' , u'pidTopic' , ), -5009, (-5009, (), [ 
+	(( u'accHelpTopic' , u'pszHelpFile' , u'varChild' , u'pidTopic' , ), -5009, (-5009, (), [
 			(16392, 2, None, None) , (12, 17, None, None) , (16387, 10, None, None) , ], 1 , 2 , 4 , 1 , 64 , (3, 0, None, None) , 1088 , )),
-	(( u'accKeyboardShortcut' , u'varChild' , u'pszKeyboardShortcut' , ), -5010, (-5010, (), [ (12, 17, None, None) , 
+	(( u'accKeyboardShortcut' , u'varChild' , u'pszKeyboardShortcut' , ), -5010, (-5010, (), [ (12, 17, None, None) ,
 			(16392, 10, None, None) , ], 1 , 2 , 4 , 1 , 68 , (3, 0, None, None) , 1088 , )),
-	(( u'accKeyboardShortcut' , u'varChild' , u'pszKeyboardShortcut' , ), -5010, (-5010, (), [ (12, 17, None, None) , 
+	(( u'accKeyboardShortcut' , u'varChild' , u'pszKeyboardShortcut' , ), -5010, (-5010, (), [ (12, 17, None, None) ,
 			(16392, 10, None, None) , ], 1 , 2 , 4 , 1 , 68 , (3, 0, None, None) , 1088 , )),
 	(( u'accFocus' , u'pvarChild' , ), -5011, (-5011, (), [ (16396, 10, None, None) , ], 1 , 2 , 4 , 0 , 72 , (3, 0, None, None) , 1088 , )),
 	(( u'accSelection' , u'pvarChildren' , ), -5012, (-5012, (), [ (16396, 10, None, None) , ], 1 , 2 , 4 , 0 , 76 , (3, 0, None, None) , 1088 , )),
-	(( u'accDefaultAction' , u'varChild' , u'pszDefaultAction' , ), -5013, (-5013, (), [ (12, 17, None, None) , 
+	(( u'accDefaultAction' , u'varChild' , u'pszDefaultAction' , ), -5013, (-5013, (), [ (12, 17, None, None) ,
 			(16392, 10, None, None) , ], 1 , 2 , 4 , 1 , 80 , (3, 0, None, None) , 1088 , )),
-	(( u'accDefaultAction' , u'varChild' , u'pszDefaultAction' , ), -5013, (-5013, (), [ (12, 17, None, None) , 
+	(( u'accDefaultAction' , u'varChild' , u'pszDefaultAction' , ), -5013, (-5013, (), [ (12, 17, None, None) ,
 			(16392, 10, None, None) , ], 1 , 2 , 4 , 1 , 80 , (3, 0, None, None) , 1088 , )),
-	(( u'accSelect' , u'flagsSelect' , u'varChild' , ), -5014, (-5014, (), [ (3, 1, None, None) , 
+	(( u'accSelect' , u'flagsSelect' , u'varChild' , ), -5014, (-5014, (), [ (3, 1, None, None) ,
 			(12, 17, None, None) , ], 1 , 1 , 4 , 1 , 84 , (3, 0, None, None) , 1088 , )),
-	(( u'accLocation' , u'pxLeft' , u'pyTop' , u'pcxWidth' , u'pcyHeight' , 
-			u'varChild' , ), -5015, (-5015, (), [ (16387, 2, None, None) , (16387, 2, None, None) , (16387, 2, None, None) , 
+	(( u'accLocation' , u'pxLeft' , u'pyTop' , u'pcxWidth' , u'pcyHeight' ,
+			u'varChild' , ), -5015, (-5015, (), [ (16387, 2, None, None) , (16387, 2, None, None) , (16387, 2, None, None) ,
 			(16387, 2, None, None) , (12, 17, None, None) , ], 1 , 1 , 4 , 1 , 88 , (3, 0, None, None) , 1088 , )),
-	(( u'accNavigate' , u'navDir' , u'varStart' , u'pvarEndUpAt' , ), -5016, (-5016, (), [ 
+	(( u'accNavigate' , u'navDir' , u'varStart' , u'pvarEndUpAt' , ), -5016, (-5016, (), [
 			(3, 1, None, None) , (12, 17, None, None) , (16396, 10, None, None) , ], 1 , 1 , 4 , 1 , 92 , (3, 0, None, None) , 1088 , )),
-	(( u'accHitTest' , u'xLeft' , u'yTop' , u'pvarChild' , ), -5017, (-5017, (), [ 
+	(( u'accHitTest' , u'xLeft' , u'yTop' , u'pvarChild' , ), -5017, (-5017, (), [
 			(3, 1, None, None) , (3, 1, None, None) , (16396, 10, None, None) , ], 1 , 1 , 4 , 0 , 96 , (3, 0, None, None) , 1088 , )),
 	(( u'accDoDefaultAction' , u'varChild' , ), -5018, (-5018, (), [ (12, 17, None, None) , ], 1 , 1 , 4 , 1 , 100 , (3, 0, None, None) , 1088 , )),
-	(( u'accName' , u'varChild' , u'pszName' , ), -5003, (-5003, (), [ (12, 17, None, None) , 
+	(( u'accName' , u'varChild' , u'pszName' , ), -5003, (-5003, (), [ (12, 17, None, None) ,
 			(8, 1, None, None) , ], 1 , 4 , 4 , 1 , 104 , (3, 0, None, None) , 1088 , )),
-	(( u'accName' , u'varChild' , u'pszName' , ), -5003, (-5003, (), [ (12, 17, None, None) , 
+	(( u'accName' , u'varChild' , u'pszName' , ), -5003, (-5003, (), [ (12, 17, None, None) ,
 			(8, 1, None, None) , ], 1 , 4 , 4 , 1 , 104 , (3, 0, None, None) , 1088 , )),
-	(( u'accValue' , u'varChild' , u'pszValue' , ), -5004, (-5004, (), [ (12, 17, None, None) , 
+	(( u'accValue' , u'varChild' , u'pszValue' , ), -5004, (-5004, (), [ (12, 17, None, None) ,
 			(8, 1, None, None) , ], 1 , 4 , 4 , 1 , 108 , (3, 0, None, None) , 1088 , )),
-	(( u'accValue' , u'varChild' , u'pszValue' , ), -5004, (-5004, (), [ (12, 17, None, None) , 
+	(( u'accValue' , u'varChild' , u'pszValue' , ), -5004, (-5004, (), [ (12, 17, None, None) ,
 			(8, 1, None, None) , ], 1 , 4 , 4 , 1 , 108 , (3, 0, None, None) , 1088 , )),
 ]
 
 ICommandBarButtonEvents_vtables_dispatch_ = 1
 ICommandBarButtonEvents_vtables_ = [
-	(( u'Click' , u'Ctrl' , u'CancelDefault' , ), 1, (1, (), [ (13, 1, None, "IID('{55F88891-7708-11D1-ACEB-006008961DA5}')") , 
+	(( u'Click' , u'Ctrl' , u'CancelDefault' , ), 1, (1, (), [ (13, 1, None, "IID('{55F88891-7708-11D1-ACEB-006008961DA5}')") ,
 			(16395, 3, None, None) , ], 1 , 1 , 4 , 0 , 28 , (24, 0, None, None) , 0 , )),
 ]
 
@@ -9454,7 +9454,7 @@ IFind_vtables_ = [
 
 IFoundFiles_vtables_dispatch_ = 1
 IFoundFiles_vtables_ = [
-	(( u'Item' , u'Index' , u'pbstr' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'pbstr' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16392, 10, None, None) , ], 1 , 2 , 4 , 0 , 28 , (3, 0, None, None) , 0 , )),
 	(( u'Count' , u'pCount' , ), 1610743809, (1610743809, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 32 , (3, 0, None, None) , 0 , )),
 	(( u'_NewEnum' , u'ppunkEnum' , ), -4, (-4, (), [ (16397, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 1025 , )),
@@ -9462,7 +9462,7 @@ IFoundFiles_vtables_ = [
 
 ILicAgent_vtables_dispatch_ = 1
 ILicAgent_vtables_ = [
-	(( u'Initialize' , u'dwBPC' , u'dwMode' , u'bstrLicSource' , u'pdwRetCode' , 
+	(( u'Initialize' , u'dwBPC' , u'dwMode' , u'bstrLicSource' , u'pdwRetCode' ,
 			), 1, (1, (), [ (19, 1, None, None) , (19, 1, None, None) , (8, 1, None, None) , (16403, 10, None, None) , ], 1 , 1 , 4 , 0 , 28 , (3, 0, None, None) , 0 , )),
 	(( u'GetFirstName' , u'pbstrVal' , ), 3, (3, (), [ (16392, 10, None, None) , ], 1 , 1 , 4 , 0 , 32 , (3, 0, None, None) , 0 , )),
 	(( u'SetFirstName' , u'bstrNewVal' , ), 4, (4, (), [ (8, 1, None, None) , ], 1 , 1 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
@@ -9517,11 +9517,11 @@ ILicAgent_vtables_ = [
 	(( u'SetBillingCountryCode' , u'bstrNewVal' , ), 58, (58, (), [ (8, 1, None, None) , ], 1 , 1 , 4 , 0 , 232 , (3, 0, None, None) , 0 , )),
 	(( u'GetBillingZip' , u'pbstrVal' , ), 59, (59, (), [ (16392, 10, None, None) , ], 1 , 1 , 4 , 0 , 236 , (3, 0, None, None) , 0 , )),
 	(( u'SetBillingZip' , u'bstrNewVal' , ), 60, (60, (), [ (8, 1, None, None) , ], 1 , 1 , 4 , 0 , 240 , (3, 0, None, None) , 0 , )),
-	(( u'SaveBillingInfo' , u'bSave' , u'pdwRetVal' , ), 61, (61, (), [ (3, 1, None, None) , 
+	(( u'SaveBillingInfo' , u'bSave' , u'pdwRetVal' , ), 61, (61, (), [ (3, 1, None, None) ,
 			(16403, 10, None, None) , ], 1 , 1 , 4 , 0 , 244 , (3, 0, None, None) , 0 , )),
-	(( u'IsCCRenewalCountry' , u'bstrCountryCode' , u'pbRetVal' , ), 64, (64, (), [ (8, 1, None, None) , 
+	(( u'IsCCRenewalCountry' , u'bstrCountryCode' , u'pbRetVal' , ), 64, (64, (), [ (8, 1, None, None) ,
 			(16387, 10, None, None) , ], 1 , 1 , 4 , 0 , 248 , (3, 0, None, None) , 0 , )),
-	(( u'GetVATLabel' , u'bstrCountryCode' , u'pbstrVATLabel' , ), 65, (65, (), [ (8, 1, None, None) , 
+	(( u'GetVATLabel' , u'bstrCountryCode' , u'pbstrVATLabel' , ), 65, (65, (), [ (8, 1, None, None) ,
 			(16392, 10, None, None) , ], 1 , 1 , 4 , 0 , 252 , (3, 0, None, None) , 0 , )),
 	(( u'GetCCRenewalExpiryDate' , u'pDateVal' , ), 66, (66, (), [ (16391, 10, None, None) , ], 1 , 1 , 4 , 0 , 256 , (3, 0, None, None) , 0 , )),
 	(( u'SetVATNumber' , u'bstrVATNumber' , ), 67, (67, (), [ (8, 1, None, None) , ], 1 , 1 , 4 , 0 , 260 , (3, 0, None, None) , 0 , )),
@@ -9530,9 +9530,9 @@ ILicAgent_vtables_ = [
 	(( u'SetCreditCardExpiryYear' , u'dwCCYear' , ), 70, (70, (), [ (19, 1, None, None) , ], 1 , 1 , 4 , 0 , 272 , (3, 0, None, None) , 0 , )),
 	(( u'SetCreditCardExpiryMonth' , u'dwCCMonth' , ), 71, (71, (), [ (19, 1, None, None) , ], 1 , 1 , 4 , 0 , 276 , (3, 0, None, None) , 0 , )),
 	(( u'GetCreditCardCount' , u'pdwCount' , ), 72, (72, (), [ (16403, 10, None, None) , ], 1 , 1 , 4 , 0 , 280 , (3, 0, None, None) , 0 , )),
-	(( u'GetCreditCardCode' , u'dwIndex' , u'pbstrCode' , ), 73, (73, (), [ (19, 1, None, None) , 
+	(( u'GetCreditCardCode' , u'dwIndex' , u'pbstrCode' , ), 73, (73, (), [ (19, 1, None, None) ,
 			(16392, 10, None, None) , ], 1 , 1 , 4 , 0 , 284 , (3, 0, None, None) , 0 , )),
-	(( u'GetCreditCardName' , u'dwIndex' , u'pbstrName' , ), 74, (74, (), [ (19, 1, None, None) , 
+	(( u'GetCreditCardName' , u'dwIndex' , u'pbstrName' , ), 74, (74, (), [ (19, 1, None, None) ,
 			(16392, 10, None, None) , ], 1 , 1 , 4 , 0 , 288 , (3, 0, None, None) , 0 , )),
 	(( u'GetVATNumber' , u'pbstrVATNumber' , ), 75, (75, (), [ (16392, 10, None, None) , ], 1 , 1 , 4 , 0 , 292 , (3, 0, None, None) , 0 , )),
 	(( u'GetCreditCardType' , u'pbstrCCCode' , ), 76, (76, (), [ (16392, 10, None, None) , ], 1 , 1 , 4 , 0 , 296 , (3, 0, None, None) , 0 , )),
@@ -9553,18 +9553,18 @@ ILicAgent_vtables_ = [
 	(( u'WantUpgrade' , u'bWantUpgrade' , ), 92, (92, (), [ (3, 1, None, None) , ], 1 , 1 , 4 , 0 , 356 , (3, 0, None, None) , 0 , )),
 	(( u'AsyncProcessDroppedLicenseRequest' , ), 93, (93, (), [ ], 1 , 1 , 4 , 0 , 360 , (3, 0, None, None) , 0 , )),
 	(( u'GenerateInstallationId' , u'pbstrVal' , ), 94, (94, (), [ (16392, 10, None, None) , ], 1 , 1 , 4 , 0 , 364 , (3, 0, None, None) , 0 , )),
-	(( u'DepositConfirmationId' , u'bstrVal' , u'pdwRetCode' , ), 95, (95, (), [ (8, 1, None, None) , 
+	(( u'DepositConfirmationId' , u'bstrVal' , u'pdwRetCode' , ), 95, (95, (), [ (8, 1, None, None) ,
 			(16403, 10, None, None) , ], 1 , 1 , 4 , 0 , 368 , (3, 0, None, None) , 0 , )),
-	(( u'VerifyCheckDigits' , u'bstrCIDIID' , u'pbValue' , ), 96, (96, (), [ (8, 1, None, None) , 
+	(( u'VerifyCheckDigits' , u'bstrCIDIID' , u'pbValue' , ), 96, (96, (), [ (8, 1, None, None) ,
 			(16387, 10, None, None) , ], 1 , 1 , 4 , 0 , 372 , (3, 0, None, None) , 0 , )),
 	(( u'GetCurrentExpiryDate' , u'pDateVal' , ), 97, (97, (), [ (16391, 10, None, None) , ], 1 , 1 , 4 , 0 , 376 , (3, 0, None, None) , 0 , )),
 	(( u'CancelAsyncProcessRequest' , u'bIsLicenseRequest' , ), 98, (98, (), [ (3, 1, None, None) , ], 1 , 1 , 4 , 0 , 380 , (3, 0, None, None) , 0 , )),
-	(( u'GetCurrencyDescription' , u'dwCurrencyIndex' , u'pbstrVal' , ), 100, (100, (), [ (19, 1, None, None) , 
+	(( u'GetCurrencyDescription' , u'dwCurrencyIndex' , u'pbstrVal' , ), 100, (100, (), [ (19, 1, None, None) ,
 			(16392, 10, None, None) , ], 1 , 1 , 4 , 0 , 384 , (3, 0, None, None) , 0 , )),
 	(( u'GetPriceItemCount' , u'pdwCount' , ), 101, (101, (), [ (16403, 10, None, None) , ], 1 , 1 , 4 , 0 , 388 , (3, 0, None, None) , 0 , )),
-	(( u'GetPriceItemLabel' , u'dwIndex' , u'pbstrVal' , ), 102, (102, (), [ (19, 1, None, None) , 
+	(( u'GetPriceItemLabel' , u'dwIndex' , u'pbstrVal' , ), 102, (102, (), [ (19, 1, None, None) ,
 			(16392, 10, None, None) , ], 1 , 1 , 4 , 0 , 392 , (3, 0, None, None) , 0 , )),
-	(( u'GetPriceItemValue' , u'dwCurrencyIndex' , u'dwIndex' , u'pbstrVal' , ), 103, (103, (), [ 
+	(( u'GetPriceItemValue' , u'dwCurrencyIndex' , u'dwIndex' , u'pbstrVal' , ), 103, (103, (), [
 			(19, 1, None, None) , (19, 1, None, None) , (16392, 10, None, None) , ], 1 , 1 , 4 , 0 , 396 , (3, 0, None, None) , 0 , )),
 	(( u'GetInvoiceText' , u'pNewVal' , ), 104, (104, (), [ (16392, 10, None, None) , ], 1 , 1 , 4 , 0 , 400 , (3, 0, None, None) , 0 , )),
 	(( u'GetBackendErrorMsg' , u'pbstrErrMsg' , ), 105, (105, (), [ (16392, 10, None, None) , ], 1 , 1 , 4 , 0 , 404 , (3, 0, None, None) , 0 , )),
@@ -9585,24 +9585,24 @@ ILicWizExternal_vtables_dispatch_ = 1
 ILicWizExternal_vtables_ = [
 	(( u'PrintHtmlDocument' , u'punkHtmlDoc' , ), 1, (1, (), [ (13, 1, None, None) , ], 1 , 1 , 4 , 0 , 28 , (3, 0, None, None) , 0 , )),
 	(( u'InvokeDateTimeApplet' , ), 2, (2, (), [ ], 1 , 1 , 4 , 0 , 32 , (3, 0, None, None) , 0 , )),
-	(( u'FormatDate' , u'date' , u'pFormat' , u'pDateString' , ), 3, (3, (), [ 
+	(( u'FormatDate' , u'date' , u'pFormat' , u'pDateString' , ), 3, (3, (), [
 			(7, 1, None, None) , (8, 49, "u''", None) , (16392, 10, None, None) , ], 1 , 1 , 4 , 0 , 36 , (3, 32, None, None) , 0 , )),
 	(( u'ShowHelp' , u'pvarId' , ), 4, (4, (), [ (16396, 17, None, None) , ], 1 , 1 , 4 , 1 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Terminate' , ), 5, (5, (), [ ], 1 , 1 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
 	(( u'DisableVORWReminder' , u'BPC' , ), 6, (6, (), [ (3, 1, None, None) , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
-	(( u'SaveReceipt' , u'bstrReceipt' , u'pbstrPath' , ), 7, (7, (), [ (8, 1, None, None) , 
+	(( u'SaveReceipt' , u'bstrReceipt' , u'pbstrPath' , ), 7, (7, (), [ (8, 1, None, None) ,
 			(16392, 10, None, None) , ], 1 , 1 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
 	(( u'OpenInDefaultBrowser' , u'bstrUrl' , ), 8, (8, (), [ (8, 1, None, None) , ], 1 , 1 , 4 , 0 , 56 , (3, 0, None, None) , 0 , )),
-	(( u'MsoAlert' , u'bstrText' , u'bstrButtons' , u'bstrIcon' , u'plRet' , 
+	(( u'MsoAlert' , u'bstrText' , u'bstrButtons' , u'bstrIcon' , u'plRet' ,
 			), 9, (9, (), [ (8, 1, None, None) , (8, 1, None, None) , (8, 1, None, None) , (16387, 10, None, None) , ], 1 , 1 , 4 , 0 , 60 , (3, 0, None, None) , 0 , )),
-	(( u'DepositPidKey' , u'bstrKey' , u'fMORW' , u'plRet' , ), 10, (10, (), [ 
+	(( u'DepositPidKey' , u'bstrKey' , u'fMORW' , u'plRet' , ), 10, (10, (), [
 			(8, 1, None, None) , (3, 1, None, None) , (16387, 10, None, None) , ], 1 , 1 , 4 , 0 , 64 , (3, 0, None, None) , 0 , )),
 	(( u'WriteLog' , u'bstrMessage' , ), 11, (11, (), [ (8, 1, None, None) , ], 1 , 1 , 4 , 0 , 68 , (3, 0, None, None) , 0 , )),
 	(( u'ResignDpc' , u'bstrProductCode' , ), 12, (12, (), [ (8, 1, None, None) , ], 1 , 1 , 4 , 0 , 72 , (3, 0, None, None) , 0 , )),
 	(( u'ResetPID' , ), 13, (13, (), [ ], 1 , 1 , 4 , 0 , 76 , (3, 0, None, None) , 0 , )),
-	(( u'SetDialogSize' , u'dx' , u'dy' , ), 14, (14, (), [ (3, 1, None, None) , 
+	(( u'SetDialogSize' , u'dx' , u'dy' , ), 14, (14, (), [ (3, 1, None, None) ,
 			(3, 1, None, None) , ], 1 , 1 , 4 , 0 , 80 , (3, 0, None, None) , 0 , )),
-	(( u'VerifyClock' , u'lMode' , u'plRet' , ), 15, (15, (), [ (3, 1, None, None) , 
+	(( u'VerifyClock' , u'lMode' , u'plRet' , ), 15, (15, (), [ (3, 1, None, None) ,
 			(16387, 10, None, None) , ], 1 , 1 , 4 , 0 , 84 , (3, 0, None, None) , 0 , )),
 	(( u'SortSelectOptions' , u'pdispSelect' , ), 16, (16, (), [ (9, 1, None, None) , ], 1 , 1 , 4 , 0 , 88 , (3, 0, None, None) , 0 , )),
 	(( u'InternetDisconnect' , ), 17, (17, (), [ ], 1 , 1 , 4 , 0 , 92 , (3, 0, None, None) , 0 , )),
@@ -9635,7 +9635,7 @@ IMsoDiagram_vtables_ = [
 
 IMsoDispCagNotifySink_vtables_dispatch_ = 1
 IMsoDispCagNotifySink_vtables_ = [
-	(( u'InsertClip' , u'pClipMoniker' , u'pItemMoniker' , ), 1, (1, (), [ (13, 1, None, None) , 
+	(( u'InsertClip' , u'pClipMoniker' , u'pItemMoniker' , ), 1, (1, (), [ (13, 1, None, None) ,
 			(13, 1, None, None) , ], 1 , 1 , 4 , 0 , 28 , (3, 0, None, None) , 0 , )),
 	(( u'WindowIsClosing' , ), 2, (2, (), [ ], 1 , 1 , 4 , 0 , 32 , (3, 0, None, None) , 0 , )),
 ]
@@ -9661,9 +9661,9 @@ IMsoEnvelopeVB_vtables_ = [
 
 LanguageSettings_vtables_dispatch_ = 1
 LanguageSettings_vtables_ = [
-	(( u'LanguageID' , u'Id' , u'plid' , ), 1, (1, (), [ (3, 1, None, None) , 
+	(( u'LanguageID' , u'Id' , u'plid' , ), 1, (1, (), [ (3, 1, None, None) ,
 			(16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
-	(( u'LanguagePreferredForEditing' , u'lid' , u'pf' , ), 2, (2, (), [ (3, 1, None, None) , 
+	(( u'LanguagePreferredForEditing' , u'lid' , u'pf' , ), 2, (2, (), [ (3, 1, None, None) ,
 			(16395, 10, None, None) , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'ppidisp' , ), 3, (3, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
 ]
@@ -9717,11 +9717,11 @@ MsoDebugOptions_vtables_ = [
 
 NewFile_vtables_dispatch_ = 1
 NewFile_vtables_ = [
-	(( u'Add' , u'FileName' , u'Section' , u'DisplayName' , u'Action' , 
-			u'pvarf' , ), 1, (1, (), [ (8, 1, None, None) , (12, 17, None, None) , (12, 17, None, None) , 
+	(( u'Add' , u'FileName' , u'Section' , u'DisplayName' , u'Action' ,
+			u'pvarf' , ), 1, (1, (), [ (8, 1, None, None) , (12, 17, None, None) , (12, 17, None, None) ,
 			(12, 17, None, None) , (16395, 10, None, None) , ], 1 , 1 , 4 , 3 , 36 , (3, 0, None, None) , 0 , )),
-	(( u'Remove' , u'FileName' , u'Section' , u'DisplayName' , u'Action' , 
-			u'pvarf' , ), 2, (2, (), [ (8, 1, None, None) , (12, 17, None, None) , (12, 17, None, None) , 
+	(( u'Remove' , u'FileName' , u'Section' , u'DisplayName' , u'Action' ,
+			u'pvarf' , ), 2, (2, (), [ (8, 1, None, None) , (12, 17, None, None) , (12, 17, None, None) ,
 			(12, 17, None, None) , (16395, 10, None, None) , ], 1 , 1 , 4 , 3 , 40 , (3, 0, None, None) , 0 , )),
 ]
 
@@ -9737,7 +9737,7 @@ ODSOColumns_vtables_dispatch_ = 1
 ODSOColumns_vtables_ = [
 	(( u'Count' , u'plCount' , ), 1, (1, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'ppParentOdso' , ), 2, (2, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'varIndex' , u'ppColumn' , ), 1610809346, (1610809346, (), [ (12, 1, None, None) , 
+	(( u'Item' , u'varIndex' , u'ppColumn' , ), 1610809346, (1610809346, (), [ (12, 1, None, None) ,
 			(16393, 10, None, None) , ], 1 , 1 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
 ]
 
@@ -9759,12 +9759,12 @@ ODSOFilters_vtables_dispatch_ = 1
 ODSOFilters_vtables_ = [
 	(( u'Count' , u'plCount' , ), 1, (1, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'ppParentOdso' , ), 2, (2, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'ppColumn' , ), 1610809346, (1610809346, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'ppColumn' , ), 1610809346, (1610809346, (), [ (3, 1, None, None) ,
 			(16393, 10, None, None) , ], 1 , 1 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Add' , u'Column' , u'Comparison' , u'Conjunction' , u'bstrCompareTo' , 
-			u'DeferUpdate' , ), 1610809347, (1610809347, (), [ (8, 1, None, None) , (3, 1, None, None) , (3, 1, None, None) , 
+	(( u'Add' , u'Column' , u'Comparison' , u'Conjunction' , u'bstrCompareTo' ,
+			u'DeferUpdate' , ), 1610809347, (1610809347, (), [ (8, 1, None, None) , (3, 1, None, None) , (3, 1, None, None) ,
 			(8, 49, "u''", None) , (11, 49, 'False', None) , ], 1 , 1 , 4 , 0 , 48 , (3, 32, None, None) , 0 , )),
-	(( u'Delete' , u'Index' , u'DeferUpdate' , ), 1610809348, (1610809348, (), [ (3, 1, None, None) , 
+	(( u'Delete' , u'Index' , u'DeferUpdate' , ), 1610809348, (1610809348, (), [ (3, 1, None, None) ,
 			(11, 49, 'False', None) , ], 1 , 1 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
 ]
 
@@ -9779,25 +9779,25 @@ OfficeDataSourceObject_vtables_ = [
 	(( u'Columns' , u'ppColumns' , ), 4, (4, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
 	(( u'RowCount' , u'pcRows' , ), 5, (5, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 56 , (3, 0, None, None) , 0 , )),
 	(( u'Filters' , u'ppFilters' , ), 6, (6, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 60 , (3, 0, None, None) , 0 , )),
-	(( u'Move' , u'MsoMoveRow' , u'RowNbr' , u'rval' , ), 1610743817, (1610743817, (), [ 
+	(( u'Move' , u'MsoMoveRow' , u'RowNbr' , u'rval' , ), 1610743817, (1610743817, (), [
 			(3, 1, None, None) , (3, 49, '1', None) , (16387, 10, None, None) , ], 1 , 1 , 4 , 0 , 64 , (3, 0, None, None) , 0 , )),
-	(( u'Open' , u'bstrSrc' , u'bstrConnect' , u'bstrTable' , u'fOpenExclusive' , 
-			u'fNeverPrompt' , ), 1610743818, (1610743818, (), [ (8, 49, "u''", None) , (8, 49, "u''", None) , (8, 49, "u''", None) , 
+	(( u'Open' , u'bstrSrc' , u'bstrConnect' , u'bstrTable' , u'fOpenExclusive' ,
+			u'fNeverPrompt' , ), 1610743818, (1610743818, (), [ (8, 49, "u''", None) , (8, 49, "u''", None) , (8, 49, "u''", None) ,
 			(3, 49, '0', None) , (3, 49, '1', None) , ], 1 , 1 , 4 , 0 , 68 , (3, 32, None, None) , 0 , )),
-	(( u'SetSortOrder' , u'SortField1' , u'SortAscending1' , u'SortField2' , u'SortAscending2' , 
-			u'SortField3' , u'SortAscending3' , ), 1610743819, (1610743819, (), [ (8, 1, None, None) , (11, 49, 'True', None) , 
+	(( u'SetSortOrder' , u'SortField1' , u'SortAscending1' , u'SortField2' , u'SortAscending2' ,
+			u'SortField3' , u'SortAscending3' , ), 1610743819, (1610743819, (), [ (8, 1, None, None) , (11, 49, 'True', None) ,
 			(8, 49, "u''", None) , (11, 49, 'True', None) , (8, 49, "u''", None) , (11, 49, 'True', None) , ], 1 , 1 , 4 , 0 , 72 , (3, 32, None, None) , 0 , )),
 	(( u'ApplyFilter' , ), 1610743820, (1610743820, (), [ ], 1 , 1 , 4 , 0 , 76 , (3, 0, None, None) , 0 , )),
 ]
 
 Permission_vtables_dispatch_ = 1
 Permission_vtables_ = [
-	(( u'Item' , u'Index' , u'UserPerm' , ), 0, (0, (), [ (12, 1, None, None) , 
+	(( u'Item' , u'Index' , u'UserPerm' , ), 0, (0, (), [ (12, 1, None, None) ,
 			(16393, 10, None, "IID('{000C0375-0000-0000-C000-000000000046}')") , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
 	(( u'Count' , u'Count' , ), 1, (1, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'EnableTrustedBrowser' , u'Enable' , ), 2, (2, (), [ (16395, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
 	(( u'EnableTrustedBrowser' , u'Enable' , ), 2, (2, (), [ (11, 1, None, None) , ], 1 , 4 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
-	(( u'Add' , u'UserId' , u'Permission' , u'ExpirationDate' , u'UserPerm' , 
+	(( u'Add' , u'UserId' , u'Permission' , u'ExpirationDate' , u'UserPerm' ,
 			), 3, (3, (), [ (8, 1, None, None) , (12, 17, None, None) , (12, 17, None, None) , (16393, 10, None, "IID('{000C0375-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 2 , 52 , (3, 0, None, None) , 0 , )),
 	(( u'ApplyPolicy' , u'FileName' , ), 4, (4, (), [ (8, 1, None, None) , ], 1 , 1 , 4 , 0 , 56 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'ppidisp' , ), 5, (5, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 60 , (3, 0, None, None) , 0 , )),
@@ -9852,11 +9852,11 @@ PropertyTest_vtables_ = [
 
 PropertyTests_vtables_dispatch_ = 1
 PropertyTests_vtables_ = [
-	(( u'Item' , u'Index' , u'lcid' , u'ppIDocProp' , ), 0, (0, (), [ 
+	(( u'Item' , u'Index' , u'lcid' , u'ppIDocProp' , ), 0, (0, (), [
 			(3, 1, None, None) , (3, 5, None, None) , (16393, 10, None, "IID('{000C0333-0000-0000-C000-000000000046}')") , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
 	(( u'Count' , u'pc' , ), 4, (4, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
-	(( u'Add' , u'Name' , u'Condition' , u'Value' , u'SecondValue' , 
-			u'Connector' , ), 5, (5, (), [ (8, 1, None, None) , (3, 1, None, None) , (12, 17, None, None) , 
+	(( u'Add' , u'Name' , u'Condition' , u'Value' , u'SecondValue' ,
+			u'Connector' , ), 5, (5, (), [ (8, 1, None, None) , (3, 1, None, None) , (12, 17, None, None) ,
 			(12, 17, None, None) , (3, 49, '1', None) , ], 1 , 1 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
 	(( u'Remove' , u'Index' , ), 6, (6, (), [ (3, 1, None, None) , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
 	(( u'_NewEnum' , u'ppunkEnum' , ), -4, (-4, (), [ (16397, 10, None, None) , ], 1 , 2 , 4 , 0 , 52 , (3, 0, None, None) , 1024 , )),
@@ -9872,7 +9872,7 @@ ScopeFolder_vtables_ = [
 
 ScopeFolders_vtables_dispatch_ = 1
 ScopeFolders_vtables_ = [
-	(( u'Item' , u'Index' , u'ScopeFolderRet' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'ScopeFolderRet' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16393, 10, None, "IID('{000C0368-0000-0000-C000-000000000046}')") , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
 	(( u'Count' , u'iCountRetVal' , ), 4, (4, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'_NewEnum' , u'ppunkEnum' , ), -4, (-4, (), [ (16397, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 1024 , )),
@@ -9899,18 +9899,18 @@ Scripts_vtables_ = [
 	(( u'Parent' , u'Parent' , ), 1610809344, (1610809344, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
 	(( u'Count' , u'Count' , ), 1610809345, (1610809345, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'_NewEnum' , u'_NewEnum' , ), -4, (-4, (), [ (16397, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 1024 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (12, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (12, 1, None, None) ,
 			(16393, 10, None, "IID('{000C0341-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
-	(( u'Add' , u'Anchor' , u'Location' , u'Language' , u'Id' , 
-			u'Extended' , u'ScriptText' , u'Add' , ), 1610809348, (1610809348, (), [ (9, 49, 'None', None) , 
-			(3, 49, '2', None) , (3, 49, '2', None) , (8, 49, "u''", None) , (8, 49, "u''", None) , (8, 49, "u''", None) , 
+	(( u'Add' , u'Anchor' , u'Location' , u'Language' , u'Id' ,
+			u'Extended' , u'ScriptText' , u'Add' , ), 1610809348, (1610809348, (), [ (9, 49, 'None', None) ,
+			(3, 49, '2', None) , (3, 49, '2', None) , (8, 49, "u''", None) , (8, 49, "u''", None) , (8, 49, "u''", None) ,
 			(16393, 10, None, "IID('{000C0341-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 52 , (3, 32, None, None) , 0 , )),
 	(( u'Delete' , ), 1610809349, (1610809349, (), [ ], 1 , 1 , 4 , 0 , 56 , (3, 0, None, None) , 0 , )),
 ]
 
 SearchFolders_vtables_dispatch_ = 1
 SearchFolders_vtables_ = [
-	(( u'Item' , u'Index' , u'ScopeFolderRet' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'ScopeFolderRet' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16393, 10, None, "IID('{000C0368-0000-0000-C000-000000000046}')") , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
 	(( u'Count' , u'iCountRetVal' , ), 2, (2, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Add' , u'ScopeFolder' , ), 3, (3, (), [ (9, 1, None, "IID('{000C0368-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
@@ -9926,7 +9926,7 @@ SearchScope_vtables_ = [
 
 SearchScopes_vtables_dispatch_ = 1
 SearchScopes_vtables_ = [
-	(( u'Item' , u'Index' , u'SearchScopeRet' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'SearchScopeRet' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16393, 10, None, "IID('{000C0367-0000-0000-C000-000000000046}')") , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
 	(( u'Count' , u'iCountRetVal' , ), 4, (4, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'_NewEnum' , u'ppunkEnum' , ), -4, (-4, (), [ (16397, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 1024 , )),
@@ -9965,9 +9965,9 @@ Shape_vtables_ = [
 	(( u'IncrementTop' , u'Increment' , ), 16, (16, (), [ (4, 1, None, None) , ], 1 , 1 , 4 , 0 , 64 , (3, 0, None, None) , 0 , )),
 	(( u'PickUp' , ), 17, (17, (), [ ], 1 , 1 , 4 , 0 , 68 , (3, 0, None, None) , 0 , )),
 	(( u'RerouteConnections' , ), 18, (18, (), [ ], 1 , 1 , 4 , 0 , 72 , (3, 0, None, None) , 0 , )),
-	(( u'ScaleHeight' , u'Factor' , u'RelativeToOriginalSize' , u'fScale' , ), 19, (19, (), [ 
+	(( u'ScaleHeight' , u'Factor' , u'RelativeToOriginalSize' , u'fScale' , ), 19, (19, (), [
 			(4, 1, None, None) , (3, 1, None, None) , (3, 49, '0', None) , ], 1 , 1 , 4 , 0 , 76 , (3, 0, None, None) , 0 , )),
-	(( u'ScaleWidth' , u'Factor' , u'RelativeToOriginalSize' , u'fScale' , ), 20, (20, (), [ 
+	(( u'ScaleWidth' , u'Factor' , u'RelativeToOriginalSize' , u'fScale' , ), 20, (20, (), [
 			(4, 1, None, None) , (3, 1, None, None) , (3, 49, '0', None) , ], 1 , 1 , 4 , 0 , 80 , (3, 0, None, None) , 0 , )),
 	(( u'Select' , u'Replace' , ), 21, (21, (), [ (12, 17, None, None) , ], 1 , 1 , 4 , 1 , 84 , (3, 0, None, None) , 0 , )),
 	(( u'SetShapesDefaultProperties' , ), 22, (22, (), [ ], 1 , 1 , 4 , 0 , 88 , (3, 0, None, None) , 0 , )),
@@ -10042,19 +10042,19 @@ ShapeNodes_vtables_dispatch_ = 1
 ShapeNodes_vtables_ = [
 	(( u'Parent' , u'Parent' , ), 1, (1, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
 	(( u'Count' , u'Count' , ), 2, (2, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (12, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (12, 1, None, None) ,
 			(16393, 10, None, "IID('{000C0318-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
 	(( u'_NewEnum' , u'_NewEnum' , ), -4, (-4, (), [ (16397, 10, None, None) , ], 1 , 2 , 4 , 0 , 48 , (3, 0, None, None) , 1024 , )),
 	(( u'Delete' , u'Index' , ), 11, (11, (), [ (3, 1, None, None) , ], 1 , 1 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
-	(( u'Insert' , u'Index' , u'SegmentType' , u'EditingType' , u'X1' , 
-			u'Y1' , u'X2' , u'Y2' , u'X3' , u'Y3' , 
-			), 12, (12, (), [ (3, 1, None, None) , (3, 1, None, None) , (3, 1, None, None) , (4, 1, None, None) , 
+	(( u'Insert' , u'Index' , u'SegmentType' , u'EditingType' , u'X1' ,
+			u'Y1' , u'X2' , u'Y2' , u'X3' , u'Y3' ,
+			), 12, (12, (), [ (3, 1, None, None) , (3, 1, None, None) , (3, 1, None, None) , (4, 1, None, None) ,
 			(4, 1, None, None) , (4, 49, '0.0', None) , (4, 49, '0.0', None) , (4, 49, '0.0', None) , (4, 49, '0.0', None) , ], 1 , 1 , 4 , 0 , 56 , (3, 0, None, None) , 0 , )),
-	(( u'SetEditingType' , u'Index' , u'EditingType' , ), 13, (13, (), [ (3, 1, None, None) , 
+	(( u'SetEditingType' , u'Index' , u'EditingType' , ), 13, (13, (), [ (3, 1, None, None) ,
 			(3, 1, None, None) , ], 1 , 1 , 4 , 0 , 60 , (3, 0, None, None) , 0 , )),
-	(( u'SetPosition' , u'Index' , u'X1' , u'Y1' , ), 14, (14, (), [ 
+	(( u'SetPosition' , u'Index' , u'X1' , u'Y1' , ), 14, (14, (), [
 			(3, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , ], 1 , 1 , 4 , 0 , 64 , (3, 0, None, None) , 0 , )),
-	(( u'SetSegmentType' , u'Index' , u'SegmentType' , ), 15, (15, (), [ (3, 1, None, None) , 
+	(( u'SetSegmentType' , u'Index' , u'SegmentType' , ), 15, (15, (), [ (3, 1, None, None) ,
 			(3, 1, None, None) , ], 1 , 1 , 4 , 0 , 68 , (3, 0, None, None) , 0 , )),
 ]
 
@@ -10062,14 +10062,14 @@ ShapeRange_vtables_dispatch_ = 1
 ShapeRange_vtables_ = [
 	(( u'Parent' , u'Parent' , ), 1, (1, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
 	(( u'Count' , u'Count' , ), 2, (2, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (12, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (12, 1, None, None) ,
 			(16393, 10, None, "IID('{000C031C-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
 	(( u'_NewEnum' , u'_NewEnum' , ), -4, (-4, (), [ (16397, 10, None, None) , ], 1 , 2 , 4 , 0 , 48 , (3, 0, None, None) , 1024 , )),
-	(( u'Align' , u'AlignCmd' , u'RelativeTo' , ), 10, (10, (), [ (3, 1, None, None) , 
+	(( u'Align' , u'AlignCmd' , u'RelativeTo' , ), 10, (10, (), [ (3, 1, None, None) ,
 			(3, 1, None, None) , ], 1 , 1 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
 	(( u'Apply' , ), 11, (11, (), [ ], 1 , 1 , 4 , 0 , 56 , (3, 0, None, None) , 0 , )),
 	(( u'Delete' , ), 12, (12, (), [ ], 1 , 1 , 4 , 0 , 60 , (3, 0, None, None) , 0 , )),
-	(( u'Distribute' , u'DistributeCmd' , u'RelativeTo' , ), 13, (13, (), [ (3, 1, None, None) , 
+	(( u'Distribute' , u'DistributeCmd' , u'RelativeTo' , ), 13, (13, (), [ (3, 1, None, None) ,
 			(3, 1, None, None) , ], 1 , 1 , 4 , 0 , 64 , (3, 0, None, None) , 0 , )),
 	(( u'Duplicate' , u'Duplicate' , ), 14, (14, (), [ (16393, 10, None, "IID('{000C031D-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 68 , (3, 0, None, None) , 0 , )),
 	(( u'Flip' , u'FlipCmd' , ), 15, (15, (), [ (3, 1, None, None) , ], 1 , 1 , 4 , 0 , 72 , (3, 0, None, None) , 0 , )),
@@ -10080,9 +10080,9 @@ ShapeRange_vtables_ = [
 	(( u'PickUp' , ), 20, (20, (), [ ], 1 , 1 , 4 , 0 , 92 , (3, 0, None, None) , 0 , )),
 	(( u'Regroup' , u'Regroup' , ), 21, (21, (), [ (16393, 10, None, "IID('{000C031C-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 96 , (3, 0, None, None) , 0 , )),
 	(( u'RerouteConnections' , ), 22, (22, (), [ ], 1 , 1 , 4 , 0 , 100 , (3, 0, None, None) , 0 , )),
-	(( u'ScaleHeight' , u'Factor' , u'RelativeToOriginalSize' , u'fScale' , ), 23, (23, (), [ 
+	(( u'ScaleHeight' , u'Factor' , u'RelativeToOriginalSize' , u'fScale' , ), 23, (23, (), [
 			(4, 1, None, None) , (3, 1, None, None) , (3, 49, '0', None) , ], 1 , 1 , 4 , 0 , 104 , (3, 0, None, None) , 0 , )),
-	(( u'ScaleWidth' , u'Factor' , u'RelativeToOriginalSize' , u'fScale' , ), 24, (24, (), [ 
+	(( u'ScaleWidth' , u'Factor' , u'RelativeToOriginalSize' , u'fScale' , ), 24, (24, (), [
 			(4, 1, None, None) , (3, 1, None, None) , (3, 49, '0', None) , ], 1 , 1 , 4 , 0 , 108 , (3, 0, None, None) , 0 , )),
 	(( u'Select' , u'Replace' , ), 25, (25, (), [ (12, 17, None, None) , ], 1 , 1 , 4 , 1 , 112 , (3, 0, None, None) , 0 , )),
 	(( u'SetShapesDefaultProperties' , ), 26, (26, (), [ ], 1 , 1 , 4 , 0 , 116 , (3, 0, None, None) , 0 , )),
@@ -10149,51 +10149,51 @@ Shapes_vtables_dispatch_ = 1
 Shapes_vtables_ = [
 	(( u'Parent' , u'Parent' , ), 1, (1, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
 	(( u'Count' , u'Count' , ), 2, (2, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (12, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (12, 1, None, None) ,
 			(16393, 10, None, "IID('{000C031C-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
 	(( u'_NewEnum' , u'_NewEnum' , ), -4, (-4, (), [ (16397, 10, None, None) , ], 1 , 2 , 4 , 0 , 48 , (3, 0, None, None) , 1024 , )),
-	(( u'AddCallout' , u'Type' , u'Left' , u'Top' , u'Width' , 
-			u'Height' , u'Callout' , ), 10, (10, (), [ (3, 1, None, None) , (4, 1, None, None) , 
+	(( u'AddCallout' , u'Type' , u'Left' , u'Top' , u'Width' ,
+			u'Height' , u'Callout' , ), 10, (10, (), [ (3, 1, None, None) , (4, 1, None, None) ,
 			(4, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , (16393, 10, None, "IID('{000C031C-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
-	(( u'AddConnector' , u'Type' , u'BeginX' , u'BeginY' , u'EndX' , 
-			u'EndY' , u'Connector' , ), 11, (11, (), [ (3, 1, None, None) , (4, 1, None, None) , 
+	(( u'AddConnector' , u'Type' , u'BeginX' , u'BeginY' , u'EndX' ,
+			u'EndY' , u'Connector' , ), 11, (11, (), [ (3, 1, None, None) , (4, 1, None, None) ,
 			(4, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , (16393, 10, None, "IID('{000C031C-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 56 , (3, 0, None, None) , 0 , )),
-	(( u'AddCurve' , u'SafeArrayOfPoints' , u'Curve' , ), 12, (12, (), [ (12, 1, None, None) , 
+	(( u'AddCurve' , u'SafeArrayOfPoints' , u'Curve' , ), 12, (12, (), [ (12, 1, None, None) ,
 			(16393, 10, None, "IID('{000C031C-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 60 , (3, 0, None, None) , 0 , )),
-	(( u'AddLabel' , u'Orientation' , u'Left' , u'Top' , u'Width' , 
-			u'Height' , u'Label' , ), 13, (13, (), [ (3, 1, None, None) , (4, 1, None, None) , 
+	(( u'AddLabel' , u'Orientation' , u'Left' , u'Top' , u'Width' ,
+			u'Height' , u'Label' , ), 13, (13, (), [ (3, 1, None, None) , (4, 1, None, None) ,
 			(4, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , (16393, 10, None, "IID('{000C031C-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 64 , (3, 0, None, None) , 0 , )),
-	(( u'AddLine' , u'BeginX' , u'BeginY' , u'EndX' , u'EndY' , 
-			u'Line' , ), 14, (14, (), [ (4, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , 
+	(( u'AddLine' , u'BeginX' , u'BeginY' , u'EndX' , u'EndY' ,
+			u'Line' , ), 14, (14, (), [ (4, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) ,
 			(4, 1, None, None) , (16393, 10, None, "IID('{000C031C-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 68 , (3, 0, None, None) , 0 , )),
-	(( u'AddPicture' , u'FileName' , u'LinkToFile' , u'SaveWithDocument' , u'Left' , 
-			u'Top' , u'Width' , u'Height' , u'Picture' , ), 15, (15, (), [ 
-			(8, 1, None, None) , (3, 1, None, None) , (3, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , 
+	(( u'AddPicture' , u'FileName' , u'LinkToFile' , u'SaveWithDocument' , u'Left' ,
+			u'Top' , u'Width' , u'Height' , u'Picture' , ), 15, (15, (), [
+			(8, 1, None, None) , (3, 1, None, None) , (3, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) ,
 			(4, 49, '-1.0', None) , (4, 49, '-1.0', None) , (16393, 10, None, "IID('{000C031C-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 72 , (3, 0, None, None) , 0 , )),
-	(( u'AddPolyline' , u'SafeArrayOfPoints' , u'Polyline' , ), 16, (16, (), [ (12, 1, None, None) , 
+	(( u'AddPolyline' , u'SafeArrayOfPoints' , u'Polyline' , ), 16, (16, (), [ (12, 1, None, None) ,
 			(16393, 10, None, "IID('{000C031C-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 76 , (3, 0, None, None) , 0 , )),
-	(( u'AddShape' , u'Type' , u'Left' , u'Top' , u'Width' , 
-			u'Height' , u'Shape' , ), 17, (17, (), [ (3, 1, None, None) , (4, 1, None, None) , 
+	(( u'AddShape' , u'Type' , u'Left' , u'Top' , u'Width' ,
+			u'Height' , u'Shape' , ), 17, (17, (), [ (3, 1, None, None) , (4, 1, None, None) ,
 			(4, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , (16393, 10, None, "IID('{000C031C-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 80 , (3, 0, None, None) , 0 , )),
-	(( u'AddTextEffect' , u'PresetTextEffect' , u'Text' , u'FontName' , u'FontSize' , 
-			u'FontBold' , u'FontItalic' , u'Left' , u'Top' , u'TextEffect' , 
-			), 18, (18, (), [ (3, 1, None, None) , (8, 1, None, None) , (8, 1, None, None) , (4, 1, None, None) , 
+	(( u'AddTextEffect' , u'PresetTextEffect' , u'Text' , u'FontName' , u'FontSize' ,
+			u'FontBold' , u'FontItalic' , u'Left' , u'Top' , u'TextEffect' ,
+			), 18, (18, (), [ (3, 1, None, None) , (8, 1, None, None) , (8, 1, None, None) , (4, 1, None, None) ,
 			(3, 1, None, None) , (3, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , (16393, 10, None, "IID('{000C031C-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 84 , (3, 0, None, None) , 0 , )),
-	(( u'AddTextbox' , u'Orientation' , u'Left' , u'Top' , u'Width' , 
-			u'Height' , u'Textbox' , ), 19, (19, (), [ (3, 1, None, None) , (4, 1, None, None) , 
+	(( u'AddTextbox' , u'Orientation' , u'Left' , u'Top' , u'Width' ,
+			u'Height' , u'Textbox' , ), 19, (19, (), [ (3, 1, None, None) , (4, 1, None, None) ,
 			(4, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , (16393, 10, None, "IID('{000C031C-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 88 , (3, 0, None, None) , 0 , )),
-	(( u'BuildFreeform' , u'EditingType' , u'X1' , u'Y1' , u'FreeformBuilder' , 
+	(( u'BuildFreeform' , u'EditingType' , u'X1' , u'Y1' , u'FreeformBuilder' ,
 			), 20, (20, (), [ (3, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , (16393, 10, None, "IID('{000C0315-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 92 , (3, 0, None, None) , 0 , )),
-	(( u'Range' , u'Index' , u'Range' , ), 21, (21, (), [ (12, 1, None, None) , 
+	(( u'Range' , u'Index' , u'Range' , ), 21, (21, (), [ (12, 1, None, None) ,
 			(16393, 10, None, "IID('{000C031D-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 96 , (3, 0, None, None) , 0 , )),
 	(( u'SelectAll' , ), 22, (22, (), [ ], 1 , 1 , 4 , 0 , 100 , (3, 0, None, None) , 0 , )),
 	(( u'Background' , u'Background' , ), 100, (100, (), [ (16393, 10, None, "IID('{000C031C-0000-0000-C000-000000000046}')") , ], 1 , 2 , 4 , 0 , 104 , (3, 0, None, None) , 0 , )),
 	(( u'Default' , u'Default' , ), 101, (101, (), [ (16393, 10, None, "IID('{000C031C-0000-0000-C000-000000000046}')") , ], 1 , 2 , 4 , 0 , 108 , (3, 0, None, None) , 0 , )),
-	(( u'AddDiagram' , u'Type' , u'Left' , u'Top' , u'Width' , 
-			u'Height' , u'Diagram' , ), 23, (23, (), [ (3, 1, None, None) , (4, 1, None, None) , 
+	(( u'AddDiagram' , u'Type' , u'Left' , u'Top' , u'Width' ,
+			u'Height' , u'Diagram' , ), 23, (23, (), [ (3, 1, None, None) , (4, 1, None, None) ,
 			(4, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , (16393, 10, None, "IID('{000C031C-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 112 , (3, 0, None, None) , 0 , )),
-	(( u'AddCanvas' , u'Left' , u'Top' , u'Width' , u'Height' , 
-			u'Shape' , ), 25, (25, (), [ (4, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , 
+	(( u'AddCanvas' , u'Left' , u'Top' , u'Width' , u'Height' ,
+			u'Shape' , ), 25, (25, (), [ (4, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) ,
 			(4, 1, None, None) , (16393, 10, None, "IID('{000C031C-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 116 , (3, 0, None, None) , 64 , )),
 ]
 
@@ -10207,7 +10207,7 @@ SharedWorkspace_vtables_ = [
 	(( u'Folders' , u'ppFolders' , ), 4, (4, (), [ (16393, 10, None, "IID('{000C037E-0000-0000-C000-000000000046}')") , ], 1 , 2 , 4 , 0 , 56 , (3, 0, None, None) , 0 , )),
 	(( u'Links' , u'ppLinks' , ), 5, (5, (), [ (16393, 10, None, "IID('{000C0380-0000-0000-C000-000000000046}')") , ], 1 , 2 , 4 , 0 , 60 , (3, 0, None, None) , 0 , )),
 	(( u'Refresh' , ), 6, (6, (), [ ], 1 , 1 , 4 , 0 , 64 , (3, 0, None, None) , 0 , )),
-	(( u'CreateNew' , u'URL' , u'Name' , ), 7, (7, (), [ (12, 17, None, None) , 
+	(( u'CreateNew' , u'URL' , u'Name' , ), 7, (7, (), [ (12, 17, None, None) ,
 			(12, 17, None, None) , ], 1 , 1 , 4 , 2 , 68 , (3, 0, None, None) , 0 , )),
 	(( u'Delete' , ), 8, (8, (), [ ], 1 , 1 , 4 , 0 , 72 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'ppidisp' , ), 9, (9, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 76 , (3, 0, None, None) , 0 , )),
@@ -10234,11 +10234,11 @@ SharedWorkspaceFile_vtables_ = [
 SharedWorkspaceFiles_vtables_dispatch_ = 1
 SharedWorkspaceFiles_vtables_ = [
 	(( u'_NewEnum' , u'ppienum' , ), -4, (-4, (), [ (16397, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 1024 , )),
-	(( u'Item' , u'Index' , u'ppidisp' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'ppidisp' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16393, 10, None, "IID('{000C037B-0000-0000-C000-000000000046}')") , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Count' , u'pcItems' , ), 1, (1, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Add' , u'FileName' , u'ParentFolder' , u'OverwriteIfFileAlreadyExists' , u'KeepInSync' , 
-			u'ppFile' , ), 2, (2, (), [ (8, 1, None, None) , (12, 17, None, None) , (12, 17, None, None) , 
+	(( u'Add' , u'FileName' , u'ParentFolder' , u'OverwriteIfFileAlreadyExists' , u'KeepInSync' ,
+			u'ppFile' , ), 2, (2, (), [ (8, 1, None, None) , (12, 17, None, None) , (12, 17, None, None) ,
 			(12, 17, None, None) , (16393, 10, None, "IID('{000C037B-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 3 , 48 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'ppidisp' , ), 3, (3, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
 	(( u'ItemCountExceeded' , u'pf' , ), 4, (4, (), [ (16395, 10, None, None) , ], 1 , 2 , 4 , 0 , 56 , (3, 0, None, None) , 0 , )),
@@ -10254,10 +10254,10 @@ SharedWorkspaceFolder_vtables_ = [
 SharedWorkspaceFolders_vtables_dispatch_ = 1
 SharedWorkspaceFolders_vtables_ = [
 	(( u'_NewEnum' , u'ppienum' , ), -4, (-4, (), [ (16397, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 1024 , )),
-	(( u'Item' , u'Index' , u'ppidisp' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'ppidisp' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16393, 10, None, "IID('{000C037D-0000-0000-C000-000000000046}')") , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Count' , u'pcItems' , ), 1, (1, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Add' , u'FolderName' , u'ParentFolder' , u'ppFolder' , ), 2, (2, (), [ 
+	(( u'Add' , u'FolderName' , u'ParentFolder' , u'ppFolder' , ), 2, (2, (), [
 			(8, 1, None, None) , (12, 17, None, None) , (16393, 10, None, "IID('{000C037D-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 1 , 48 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'ppidisp' , ), 3, (3, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
 	(( u'ItemCountExceeded' , u'pf' , ), 4, (4, (), [ (16395, 10, None, None) , ], 1 , 2 , 4 , 0 , 56 , (3, 0, None, None) , 0 , )),
@@ -10283,10 +10283,10 @@ SharedWorkspaceLink_vtables_ = [
 SharedWorkspaceLinks_vtables_dispatch_ = 1
 SharedWorkspaceLinks_vtables_ = [
 	(( u'_NewEnum' , u'ppienum' , ), -4, (-4, (), [ (16397, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 1024 , )),
-	(( u'Item' , u'Index' , u'ppidisp' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'ppidisp' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16393, 10, None, "IID('{000C037F-0000-0000-C000-000000000046}')") , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Count' , u'pcItems' , ), 1, (1, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Add' , u'URL' , u'Description' , u'Notes' , u'ppLink' , 
+	(( u'Add' , u'URL' , u'Description' , u'Notes' , u'ppLink' ,
 			), 2, (2, (), [ (8, 1, None, None) , (12, 17, None, None) , (12, 17, None, None) , (16393, 10, None, "IID('{000C037F-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 2 , 48 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'ppidisp' , ), 3, (3, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
 	(( u'ItemCountExceeded' , u'pf' , ), 4, (4, (), [ (16395, 10, None, None) , ], 1 , 2 , 4 , 0 , 56 , (3, 0, None, None) , 0 , )),
@@ -10305,11 +10305,11 @@ SharedWorkspaceMember_vtables_ = [
 SharedWorkspaceMembers_vtables_dispatch_ = 1
 SharedWorkspaceMembers_vtables_ = [
 	(( u'_NewEnum' , u'ppienum' , ), -4, (-4, (), [ (16397, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 1024 , )),
-	(( u'Item' , u'Index' , u'ppidisp' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'ppidisp' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16393, 10, None, "IID('{000C0381-0000-0000-C000-000000000046}')") , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Count' , u'pcItems' , ), 1, (1, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Add' , u'Email' , u'DomainName' , u'DisplayName' , u'Role' , 
-			u'ppMember' , ), 2, (2, (), [ (8, 1, None, None) , (8, 1, None, None) , (8, 1, None, None) , 
+	(( u'Add' , u'Email' , u'DomainName' , u'DisplayName' , u'Role' ,
+			u'ppMember' , ), 2, (2, (), [ (8, 1, None, None) , (8, 1, None, None) , (8, 1, None, None) ,
 			(12, 17, None, None) , (16393, 10, None, "IID('{000C0381-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 1 , 48 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'ppidisp' , ), 3, (3, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
 	(( u'ItemCountExceeded' , u'pf' , ), 4, (4, (), [ (16395, 10, None, None) , ], 1 , 2 , 4 , 0 , 56 , (3, 0, None, None) , 0 , )),
@@ -10340,12 +10340,12 @@ SharedWorkspaceTask_vtables_ = [
 
 SharedWorkspaceTasks_vtables_dispatch_ = 1
 SharedWorkspaceTasks_vtables_ = [
-	(( u'Item' , u'Index' , u'ppidisp' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'ppidisp' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16393, 10, None, "IID('{000C0379-0000-0000-C000-000000000046}')") , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
 	(( u'Count' , u'pcItems' , ), 1, (1, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
-	(( u'Add' , u'Title' , u'Status' , u'Priority' , u'Assignee' , 
-			u'Description' , u'DueDate' , u'ppTask' , ), 2, (2, (), [ (8, 1, None, None) , 
-			(12, 17, None, None) , (12, 17, None, None) , (12, 17, None, None) , (12, 17, None, None) , (12, 17, None, None) , 
+	(( u'Add' , u'Title' , u'Status' , u'Priority' , u'Assignee' ,
+			u'Description' , u'DueDate' , u'ppTask' , ), 2, (2, (), [ (8, 1, None, None) ,
+			(12, 17, None, None) , (12, 17, None, None) , (12, 17, None, None) , (12, 17, None, None) , (12, 17, None, None) ,
 			(16393, 10, None, "IID('{000C0379-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 5 , 44 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'ppidisp' , ), 3, (3, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
 	(( u'ItemCountExceeded' , u'pf' , ), 4, (4, (), [ (16395, 10, None, None) , ], 1 , 2 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
@@ -10371,7 +10371,7 @@ SignatureSet_vtables_dispatch_ = 1
 SignatureSet_vtables_ = [
 	(( u'_NewEnum' , u'ppienum' , ), -4, (-4, (), [ (16397, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 1024 , )),
 	(( u'Count' , u'pcSig' , ), 1610809345, (1610809345, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'iSig' , u'ppidisp' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'iSig' , u'ppidisp' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16393, 10, None, "IID('{000C0411-0000-0000-C000-000000000046}')") , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
 	(( u'Add' , u'ppidisp' , ), 1610809347, (1610809347, (), [ (16393, 10, None, "IID('{000C0411-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
 	(( u'Commit' , ), 1610809348, (1610809348, (), [ ], 1 , 1 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
@@ -10572,7 +10572,7 @@ WebPageFont_vtables_ = [
 WebPageFonts_vtables_dispatch_ = 1
 WebPageFonts_vtables_ = [
 	(( u'Count' , u'Count' , ), 1, (1, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16393, 10, None, "IID('{000C0913-0000-0000-C000-000000000046}')") , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'_NewEnum' , u'_NewEnum' , ), -4, (-4, (), [ (16397, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 1024 , )),
 ]
@@ -10581,7 +10581,7 @@ _CommandBarActiveX_vtables_dispatch_ = 1
 _CommandBarActiveX_vtables_ = [
 	(( u'ControlCLSID' , u'pbstrClsid' , ), 1610940416, (1610940416, (), [ (16392, 10, None, None) , ], 1 , 2 , 4 , 0 , 332 , (3, 0, None, None) , 0 , )),
 	(( u'ControlCLSID' , u'pbstrClsid' , ), 1610940416, (1610940416, (), [ (8, 1, None, None) , ], 1 , 4 , 4 , 0 , 336 , (3, 0, None, None) , 0 , )),
-	(( u'QueryControlInterface' , u'bstrIid' , u'ppUnk' , ), 1610940418, (1610940418, (), [ (8, 1, None, None) , 
+	(( u'QueryControlInterface' , u'bstrIid' , u'ppUnk' , ), 1610940418, (1610940418, (), [ (8, 1, None, None) ,
 			(16397, 10, None, None) , ], 1 , 2 , 4 , 0 , 340 , (3, 0, None, None) , 0 , )),
 	(( u'SetInnerObjectFactory' , u'pUnk' , ), 1610940419, (1610940419, (), [ (13, 1, None, None) , ], 1 , 1 , 4 , 0 , 344 , (3, 0, None, None) , 0 , )),
 	(( u'EnsureControl' , ), 1610940420, (1610940420, (), [ ], 1 , 1 , 4 , 0 , 348 , (3, 0, None, None) , 0 , )),
@@ -10612,16 +10612,16 @@ _CommandBarButton_vtables_ = [
 
 _CommandBarComboBox_vtables_dispatch_ = 1
 _CommandBarComboBox_vtables_ = [
-	(( u'AddItem' , u'Text' , u'Index' , ), 1610940416, (1610940416, (), [ (8, 1, None, None) , 
+	(( u'AddItem' , u'Text' , u'Index' , ), 1610940416, (1610940416, (), [ (8, 1, None, None) ,
 			(12, 17, None, None) , ], 1 , 1 , 4 , 1 , 332 , (3, 0, None, None) , 0 , )),
 	(( u'Clear' , ), 1610940417, (1610940417, (), [ ], 1 , 1 , 4 , 0 , 336 , (3, 0, None, None) , 0 , )),
 	(( u'DropDownLines' , u'pcLines' , ), 1610940418, (1610940418, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 340 , (3, 0, None, None) , 0 , )),
 	(( u'DropDownLines' , u'pcLines' , ), 1610940418, (1610940418, (), [ (3, 1, None, None) , ], 1 , 4 , 4 , 0 , 344 , (3, 0, None, None) , 0 , )),
 	(( u'DropDownWidth' , u'pdx' , ), 1610940420, (1610940420, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 348 , (3, 0, None, None) , 0 , )),
 	(( u'DropDownWidth' , u'pdx' , ), 1610940420, (1610940420, (), [ (3, 1, None, None) , ], 1 , 4 , 4 , 0 , 352 , (3, 0, None, None) , 0 , )),
-	(( u'List' , u'Index' , u'pbstrItem' , ), 1610940422, (1610940422, (), [ (3, 1, None, None) , 
+	(( u'List' , u'Index' , u'pbstrItem' , ), 1610940422, (1610940422, (), [ (3, 1, None, None) ,
 			(16392, 10, None, None) , ], 1 , 2 , 4 , 0 , 356 , (3, 0, None, None) , 0 , )),
-	(( u'List' , u'Index' , u'pbstrItem' , ), 1610940422, (1610940422, (), [ (3, 1, None, None) , 
+	(( u'List' , u'Index' , u'pbstrItem' , ), 1610940422, (1610940422, (), [ (3, 1, None, None) ,
 			(8, 1, None, None) , ], 1 , 4 , 4 , 0 , 360 , (3, 0, None, None) , 0 , )),
 	(( u'ListCount' , u'pcItems' , ), 1610940424, (1610940424, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 364 , (3, 0, None, None) , 0 , )),
 	(( u'ListHeaderCount' , u'pcItems' , ), 1610940425, (1610940425, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 368 , (3, 0, None, None) , 0 , )),
@@ -10639,18 +10639,18 @@ _CommandBars_vtables_dispatch_ = 1
 _CommandBars_vtables_ = [
 	(( u'ActionControl' , u'ppcbc' , ), 1610809344, (1610809344, (), [ (16393, 10, None, "IID('{000C0308-0000-0000-C000-000000000046}')") , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
 	(( u'ActiveMenuBar' , u'ppcb' , ), 1610809345, (1610809345, (), [ (16393, 10, None, "IID('{000C0304-0000-0000-C000-000000000046}')") , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
-	(( u'Add' , u'Name' , u'Position' , u'MenuBar' , u'Temporary' , 
-			u'ppcb' , ), 1610809346, (1610809346, (), [ (12, 17, None, None) , (12, 17, None, None) , (12, 17, None, None) , 
+	(( u'Add' , u'Name' , u'Position' , u'MenuBar' , u'Temporary' ,
+			u'ppcb' , ), 1610809346, (1610809346, (), [ (12, 17, None, None) , (12, 17, None, None) , (12, 17, None, None) ,
 			(12, 17, None, None) , (16393, 10, None, "IID('{000C0304-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 4 , 44 , (3, 0, None, None) , 0 , )),
 	(( u'Count' , u'pcToolbars' , ), 1610809347, (1610809347, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
 	(( u'DisplayTooltips' , u'pvarfDisplayTooltips' , ), 1610809348, (1610809348, (), [ (16395, 10, None, None) , ], 1 , 2 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
 	(( u'DisplayTooltips' , u'pvarfDisplayTooltips' , ), 1610809348, (1610809348, (), [ (11, 1, None, None) , ], 1 , 4 , 4 , 0 , 56 , (3, 0, None, None) , 0 , )),
 	(( u'DisplayKeysInTooltips' , u'pvarfDisplayKeys' , ), 1610809350, (1610809350, (), [ (16395, 10, None, None) , ], 1 , 2 , 4 , 0 , 60 , (3, 0, None, None) , 0 , )),
 	(( u'DisplayKeysInTooltips' , u'pvarfDisplayKeys' , ), 1610809350, (1610809350, (), [ (11, 1, None, None) , ], 1 , 4 , 4 , 0 , 64 , (3, 0, None, None) , 0 , )),
-	(( u'FindControl' , u'Type' , u'Id' , u'Tag' , u'Visible' , 
-			u'ppcbc' , ), 1610809352, (1610809352, (), [ (12, 17, None, None) , (12, 17, None, None) , (12, 17, None, None) , 
+	(( u'FindControl' , u'Type' , u'Id' , u'Tag' , u'Visible' ,
+			u'ppcbc' , ), 1610809352, (1610809352, (), [ (12, 17, None, None) , (12, 17, None, None) , (12, 17, None, None) ,
 			(12, 17, None, None) , (16393, 10, None, "IID('{000C0308-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 4 , 68 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'ppcb' , ), 0, (0, (), [ (12, 1, None, None) , 
+	(( u'Item' , u'Index' , u'ppcb' , ), 0, (0, (), [ (12, 1, None, None) ,
 			(16393, 10, None, "IID('{000C0304-0000-0000-C000-000000000046}')") , ], 1 , 2 , 4 , 0 , 72 , (3, 0, None, None) , 0 , )),
 	(( u'LargeButtons' , u'pvarfLargeButtons' , ), 1610809354, (1610809354, (), [ (16395, 10, None, None) , ], 1 , 2 , 4 , 0 , 76 , (3, 0, None, None) , 0 , )),
 	(( u'LargeButtons' , u'pvarfLargeButtons' , ), 1610809354, (1610809354, (), [ (11, 1, None, None) , ], 1 , 4 , 4 , 0 , 80 , (3, 0, None, None) , 0 , )),
@@ -10659,17 +10659,17 @@ _CommandBars_vtables_ = [
 	(( u'_NewEnum' , u'ppienum' , ), -4, (-4, (), [ (16397, 10, None, None) , ], 1 , 2 , 4 , 0 , 92 , (3, 0, None, None) , 1024 , )),
 	(( u'Parent' , u'ppidisp' , ), 1610809359, (1610809359, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 96 , (3, 0, None, None) , 0 , )),
 	(( u'ReleaseFocus' , ), 1610809360, (1610809360, (), [ ], 1 , 1 , 4 , 0 , 100 , (3, 0, None, None) , 0 , )),
-	(( u'IdsString' , u'ids' , u'pbstrName' , u'pcch' , ), 1610809361, (1610809361, (), [ 
+	(( u'IdsString' , u'ids' , u'pbstrName' , u'pcch' , ), 1610809361, (1610809361, (), [
 			(3, 1, None, None) , (16392, 2, None, None) , (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 104 , (3, 0, None, None) , 64 , )),
-	(( u'TmcGetName' , u'tmc' , u'pbstrName' , u'pcch' , ), 1610809362, (1610809362, (), [ 
+	(( u'TmcGetName' , u'tmc' , u'pbstrName' , u'pcch' , ), 1610809362, (1610809362, (), [
 			(3, 1, None, None) , (16392, 2, None, None) , (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 108 , (3, 0, None, None) , 64 , )),
 	(( u'AdaptiveMenus' , u'pvarfAdaptiveMenus' , ), 1610809363, (1610809363, (), [ (16395, 10, None, None) , ], 1 , 2 , 4 , 0 , 112 , (3, 0, None, None) , 0 , )),
 	(( u'AdaptiveMenus' , u'pvarfAdaptiveMenus' , ), 1610809363, (1610809363, (), [ (11, 1, None, None) , ], 1 , 4 , 4 , 0 , 116 , (3, 0, None, None) , 0 , )),
-	(( u'FindControls' , u'Type' , u'Id' , u'Tag' , u'Visible' , 
-			u'ppcbcs' , ), 1610809365, (1610809365, (), [ (12, 17, None, None) , (12, 17, None, None) , (12, 17, None, None) , 
+	(( u'FindControls' , u'Type' , u'Id' , u'Tag' , u'Visible' ,
+			u'ppcbcs' , ), 1610809365, (1610809365, (), [ (12, 17, None, None) , (12, 17, None, None) , (12, 17, None, None) ,
 			(12, 17, None, None) , (16393, 10, None, "IID('{000C0306-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 4 , 120 , (3, 0, None, None) , 0 , )),
-	(( u'AddEx' , u'TbidOrName' , u'Position' , u'MenuBar' , u'Temporary' , 
-			u'TbtrProtection' , u'ppcb' , ), 1610809366, (1610809366, (), [ (12, 17, None, None) , (12, 17, None, None) , 
+	(( u'AddEx' , u'TbidOrName' , u'Position' , u'MenuBar' , u'Temporary' ,
+			u'TbtrProtection' , u'ppcb' , ), 1610809366, (1610809366, (), [ (12, 17, None, None) , (12, 17, None, None) ,
 			(12, 17, None, None) , (12, 17, None, None) , (12, 17, None, None) , (16393, 10, None, "IID('{000C0304-0000-0000-C000-000000000046}')") , ], 1 , 1 , 4 , 5 , 124 , (3, 0, None, None) , 64 , )),
 	(( u'DisplayFonts' , u'pvarfDisplayFonts' , ), 1610809367, (1610809367, (), [ (16395, 10, None, None) , ], 1 , 2 , 4 , 0 , 128 , (3, 0, None, None) , 0 , )),
 	(( u'DisplayFonts' , u'pvarfDisplayFonts' , ), 1610809367, (1610809367, (), [ (11, 1, None, None) , ], 1 , 4 , 4 , 0 , 132 , (3, 0, None, None) , 0 , )),
