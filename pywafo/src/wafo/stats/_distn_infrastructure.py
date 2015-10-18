@@ -4,7 +4,7 @@
 #
 from __future__ import division, print_function, absolute_import
 
-from scipy.lib.six import string_types, exec_
+from scipy._lib.six import string_types, exec_
 
 import sys
 import keyword
@@ -2011,7 +2011,7 @@ class rv_continuous(rv_generic):
         return output
 
     def link(self, x, logSF, theta, i):
-        ''' 
+        '''
         Return theta[i] as function of quantile, survival probability and
             theta[j] for j!=i.
 
@@ -2034,7 +2034,7 @@ class rv_continuous(rv_generic):
             theta[i] = link(x, logSF, theta, i),
         where logSF = log(Prob(X>x; theta)).
 
-        See also 
+        See also
         estimation.Profile
         '''
         return self._link(x, logSF, theta, i)
@@ -2288,7 +2288,7 @@ class rv_continuous(rv_generic):
 
         # invert the Hessian matrix (i.e. invert the observed information number)
         #pcov = -pinv(H);
-        return - H    
+        return - H
 
     # return starting point for fit (shape arguments + loc + scale)
     def _fitstart(self, data, args=None):

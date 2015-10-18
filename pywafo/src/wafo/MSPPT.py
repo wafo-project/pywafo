@@ -1,4 +1,4 @@
-# -*- coding: mbcs -*-
+# -*- coding: utf-8 -*-
 # Created by makepy.py version 0.5.00
 # By python version 2.6.2 (r262:71605, Apr 14 2009, 22:40:02) [MSC v.1500 32 bit (Intel)]
 # From type library 'msppt.olb'
@@ -7589,7 +7589,7 @@ ActionSettings_vtables_dispatch_ = 1
 ActionSettings_vtables_ = [
 	(( u'Application' , u'Application' , ), 2001, (2001, (), [ (16397, 10, None, "IID('{91493441-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 2002, (2002, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16393, 10, None, "IID('{9149348D-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
 ]
 
@@ -7615,9 +7615,9 @@ AddIns_vtables_dispatch_ = 1
 AddIns_vtables_ = [
 	(( u'Application' , u'Application' , ), 2001, (2001, (), [ (16397, 10, None, "IID('{91493441-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 2002, (2002, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (16396, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (16396, 1, None, None) ,
 			(16393, 10, None, "IID('{91493461-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
-	(( u'Add' , u'FileName' , u'Add' , ), 2003, (2003, (), [ (8, 1, None, None) , 
+	(( u'Add' , u'FileName' , u'Add' , ), 2003, (2003, (), [ (8, 1, None, None) ,
 			(16393, 10, None, "IID('{91493461-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
 	(( u'Remove' , u'Index' , ), 2004, (2004, (), [ (16396, 1, None, None) , ], 1 , 1 , 4 , 0 , 56 , (3, 0, None, None) , 0 , )),
 ]
@@ -7628,9 +7628,9 @@ Adjustments_vtables_ = [
 	(( u'Creator' , u'plCreator' , ), 2002, (2002, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 32 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 1, (1, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
 	(( u'Count' , u'Count' , ), 2, (2, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Val' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Val' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16388, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Val' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Val' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(4, 1, None, None) , ], 1 , 4 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
 ]
 
@@ -7660,9 +7660,9 @@ AnimationBehaviors_vtables_dispatch_ = 1
 AnimationBehaviors_vtables_ = [
 	(( u'Application' , u'Application' , ), 2001, (2001, (), [ (16397, 10, None, "IID('{91493441-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 2002, (2002, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16393, 10, None, "IID('{914934E4-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
-	(( u'Add' , u'Type' , u'Index' , u'Add' , ), 2003, (2003, (), [ 
+	(( u'Add' , u'Type' , u'Index' , u'Add' , ), 2003, (2003, (), [
 			(3, 1, None, None) , (3, 49, '-1', None) , (16393, 10, None, "IID('{914934E4-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
 ]
 
@@ -7683,9 +7683,9 @@ AnimationPoints_vtables_dispatch_ = 1
 AnimationPoints_vtables_ = [
 	(( u'Application' , u'Application' , ), 2001, (2001, (), [ (16397, 10, None, "IID('{91493441-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 2002, (2002, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16393, 10, None, "IID('{914934EB-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
-	(( u'Add' , u'Index' , u'Add' , ), 2003, (2003, (), [ (3, 49, '-1', None) , 
+	(( u'Add' , u'Index' , u'Add' , ), 2003, (2003, (), [ (3, 49, '-1', None) ,
 			(16393, 10, None, "IID('{914934EB-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
 	(( u'Smooth' , u'Smooth' , ), 2004, (2004, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 56 , (3, 0, None, None) , 0 , )),
 	(( u'Smooth' , u'Smooth' , ), 2004, (2004, (), [ (3, 1, None, None) , ], 1 , 4 , 4 , 0 , 60 , (3, 0, None, None) , 0 , )),
@@ -7734,7 +7734,7 @@ Borders_vtables_dispatch_ = 1
 Borders_vtables_ = [
 	(( u'Application' , u'Application' , ), 2001, (2001, (), [ (16397, 10, None, "IID('{91493441-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 2002, (2002, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'BorderType' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'BorderType' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16393, 10, None, "IID('{9149347F-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
 ]
 
@@ -7796,42 +7796,42 @@ CanvasShapes_vtables_ = [
 	(( u'Creator' , u'plCreator' , ), 2002, (2002, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 32 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 1, (1, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
 	(( u'Count' , u'Count' , ), 2, (2, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (12, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (12, 1, None, None) ,
 			(16393, 10, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
 	(( u'_NewEnum' , u'_NewEnum' , ), -4, (-4, (), [ (16397, 10, None, None) , ], 1 , 2 , 4 , 0 , 48 , (3, 0, None, None) , 1024 , )),
-	(( u'AddCallout' , u'Type' , u'Left' , u'Top' , u'Width' , 
-			u'Height' , u'Callout' , ), 10, (10, (), [ (3, 1, None, None) , (4, 1, None, None) , 
+	(( u'AddCallout' , u'Type' , u'Left' , u'Top' , u'Width' ,
+			u'Height' , u'Callout' , ), 10, (10, (), [ (3, 1, None, None) , (4, 1, None, None) ,
 			(4, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , (16393, 10, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
-	(( u'AddConnector' , u'Type' , u'BeginX' , u'BeginY' , u'EndX' , 
-			u'EndY' , u'Connector' , ), 11, (11, (), [ (3, 1, None, None) , (4, 1, None, None) , 
+	(( u'AddConnector' , u'Type' , u'BeginX' , u'BeginY' , u'EndX' ,
+			u'EndY' , u'Connector' , ), 11, (11, (), [ (3, 1, None, None) , (4, 1, None, None) ,
 			(4, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , (16393, 10, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 56 , (3, 0, None, None) , 0 , )),
-	(( u'AddCurve' , u'SafeArrayOfPoints' , u'Curve' , ), 12, (12, (), [ (12, 1, None, None) , 
+	(( u'AddCurve' , u'SafeArrayOfPoints' , u'Curve' , ), 12, (12, (), [ (12, 1, None, None) ,
 			(16393, 10, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 60 , (3, 0, None, None) , 0 , )),
-	(( u'AddLabel' , u'Orientation' , u'Left' , u'Top' , u'Width' , 
-			u'Height' , u'Label' , ), 13, (13, (), [ (3, 1, None, None) , (4, 1, None, None) , 
+	(( u'AddLabel' , u'Orientation' , u'Left' , u'Top' , u'Width' ,
+			u'Height' , u'Label' , ), 13, (13, (), [ (3, 1, None, None) , (4, 1, None, None) ,
 			(4, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , (16393, 10, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 64 , (3, 0, None, None) , 0 , )),
-	(( u'AddLine' , u'BeginX' , u'BeginY' , u'EndX' , u'EndY' , 
-			u'Line' , ), 14, (14, (), [ (4, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , 
+	(( u'AddLine' , u'BeginX' , u'BeginY' , u'EndX' , u'EndY' ,
+			u'Line' , ), 14, (14, (), [ (4, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) ,
 			(4, 1, None, None) , (16393, 10, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 68 , (3, 0, None, None) , 0 , )),
-	(( u'AddPicture' , u'FileName' , u'LinkToFile' , u'SaveWithDocument' , u'Left' , 
-			u'Top' , u'Width' , u'Height' , u'Picture' , ), 15, (15, (), [ 
-			(8, 1, None, None) , (3, 1, None, None) , (3, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , 
+	(( u'AddPicture' , u'FileName' , u'LinkToFile' , u'SaveWithDocument' , u'Left' ,
+			u'Top' , u'Width' , u'Height' , u'Picture' , ), 15, (15, (), [
+			(8, 1, None, None) , (3, 1, None, None) , (3, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) ,
 			(4, 49, '-1.0', None) , (4, 49, '-1.0', None) , (16393, 10, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 72 , (3, 0, None, None) , 0 , )),
-	(( u'AddPolyline' , u'SafeArrayOfPoints' , u'Polyline' , ), 16, (16, (), [ (12, 1, None, None) , 
+	(( u'AddPolyline' , u'SafeArrayOfPoints' , u'Polyline' , ), 16, (16, (), [ (12, 1, None, None) ,
 			(16393, 10, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 76 , (3, 0, None, None) , 0 , )),
-	(( u'AddShape' , u'Type' , u'Left' , u'Top' , u'Width' , 
-			u'Height' , u'Shape' , ), 17, (17, (), [ (3, 1, None, None) , (4, 1, None, None) , 
+	(( u'AddShape' , u'Type' , u'Left' , u'Top' , u'Width' ,
+			u'Height' , u'Shape' , ), 17, (17, (), [ (3, 1, None, None) , (4, 1, None, None) ,
 			(4, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , (16393, 10, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 80 , (3, 0, None, None) , 0 , )),
-	(( u'AddTextEffect' , u'PresetTextEffect' , u'Text' , u'FontName' , u'FontSize' , 
-			u'FontBold' , u'FontItalic' , u'Left' , u'Top' , u'TextEffect' , 
-			), 18, (18, (), [ (3, 1, None, None) , (8, 1, None, None) , (8, 1, None, None) , (4, 1, None, None) , 
+	(( u'AddTextEffect' , u'PresetTextEffect' , u'Text' , u'FontName' , u'FontSize' ,
+			u'FontBold' , u'FontItalic' , u'Left' , u'Top' , u'TextEffect' ,
+			), 18, (18, (), [ (3, 1, None, None) , (8, 1, None, None) , (8, 1, None, None) , (4, 1, None, None) ,
 			(3, 1, None, None) , (3, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , (16393, 10, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 84 , (3, 0, None, None) , 0 , )),
-	(( u'AddTextbox' , u'Orientation' , u'Left' , u'Top' , u'Width' , 
-			u'Height' , u'Textbox' , ), 19, (19, (), [ (3, 1, None, None) , (4, 1, None, None) , 
+	(( u'AddTextbox' , u'Orientation' , u'Left' , u'Top' , u'Width' ,
+			u'Height' , u'Textbox' , ), 19, (19, (), [ (3, 1, None, None) , (4, 1, None, None) ,
 			(4, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , (16393, 10, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 88 , (3, 0, None, None) , 0 , )),
-	(( u'BuildFreeform' , u'EditingType' , u'X1' , u'Y1' , u'FreeformBuilder' , 
+	(( u'BuildFreeform' , u'EditingType' , u'X1' , u'Y1' , u'FreeformBuilder' ,
 			), 20, (20, (), [ (3, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , (16393, 10, None, "IID('{91493478-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 92 , (3, 0, None, None) , 0 , )),
-	(( u'Range' , u'Index' , u'Range' , ), 21, (21, (), [ (12, 1, None, None) , 
+	(( u'Range' , u'Index' , u'Range' , ), 21, (21, (), [ (12, 1, None, None) ,
 			(16393, 10, None, "IID('{9149347A-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 96 , (3, 0, None, None) , 0 , )),
 	(( u'SelectAll' , ), 22, (22, (), [ ], 1 , 1 , 4 , 0 , 100 , (3, 0, None, None) , 0 , )),
 	(( u'Background' , u'Background' , ), 100, (100, (), [ (16393, 10, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 104 , (3, 0, None, None) , 0 , )),
@@ -7844,7 +7844,7 @@ Cell_vtables_ = [
 	(( u'Shape' , u'Shape' , ), 2003, (2003, (), [ (16393, 10, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
 	(( u'Borders' , u'Borders' , ), 2004, (2004, (), [ (16393, 10, None, "IID('{914934CA-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Merge' , u'MergeTo' , ), 2005, (2005, (), [ (9, 1, None, "IID('{914934C9-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Split' , u'NumRows' , u'NumColumns' , ), 2006, (2006, (), [ (3, 1, None, None) , 
+	(( u'Split' , u'NumRows' , u'NumColumns' , ), 2006, (2006, (), [ (3, 1, None, None) ,
 			(3, 1, None, None) , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
 	(( u'Select' , ), 2007, (2007, (), [ ], 1 , 1 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
 	(( u'Selected' , u'Selected' , ), 2008, (2008, (), [ (16395, 10, None, None) , ], 1 , 2 , 4 , 0 , 56 , (3, 0, None, None) , 0 , )),
@@ -7854,7 +7854,7 @@ CellRange_vtables_dispatch_ = 1
 CellRange_vtables_ = [
 	(( u'Application' , u'Application' , ), 2001, (2001, (), [ (16397, 10, None, "IID('{91493441-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 2002, (2002, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16393, 10, None, "IID('{914934C9-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
 	(( u'Borders' , u'Borders' , ), 2003, (2003, (), [ (16393, 10, None, "IID('{914934CA-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
 ]
@@ -7862,7 +7862,7 @@ CellRange_vtables_ = [
 Collection_vtables_dispatch_ = 1
 Collection_vtables_ = [
 	(( u'_NewEnum' , u'_NewEnum' , ), -4, (-4, (), [ (16397, 10, None, None) , ], 1 , 2 , 4 , 0 , 28 , (3, 0, None, None) , 1 , )),
-	(( u'_Index' , u'Index' , u'_Index' , ), 10, (10, (), [ (3, 1, None, None) , 
+	(( u'_Index' , u'Index' , u'_Index' , ), 10, (10, (), [ (3, 1, None, None) ,
 			(16396, 10, None, None) , ], 1 , 1 , 4 , 0 , 32 , (3, 0, None, None) , 1 , )),
 	(( u'Count' , u'Count' , ), 11, (11, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
 ]
@@ -7894,7 +7894,7 @@ ColorScheme_vtables_dispatch_ = 1
 ColorScheme_vtables_ = [
 	(( u'Application' , u'Application' , ), 2001, (2001, (), [ (16397, 10, None, "IID('{91493441-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 2002, (2002, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Colors' , u'SchemeColor' , u'Colors' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Colors' , u'SchemeColor' , u'Colors' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16393, 10, None, "IID('{91493470-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
 	(( u'Delete' , ), 2003, (2003, (), [ ], 1 , 1 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
 ]
@@ -7903,9 +7903,9 @@ ColorSchemes_vtables_dispatch_ = 1
 ColorSchemes_vtables_ = [
 	(( u'Application' , u'Application' , ), 2001, (2001, (), [ (16397, 10, None, "IID('{91493441-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 2002, (2002, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16393, 10, None, "IID('{9149346F-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
-	(( u'Add' , u'Scheme' , u'Add' , ), 2003, (2003, (), [ (9, 49, '0', "IID('{9149346F-5A91-11CF-8700-00AA0060263B}')") , 
+	(( u'Add' , u'Scheme' , u'Add' , ), 2003, (2003, (), [ (9, 49, '0', "IID('{9149346F-5A91-11CF-8700-00AA0060263B}')") ,
 			(16393, 10, None, "IID('{9149346F-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
 ]
 
@@ -7924,9 +7924,9 @@ Columns_vtables_dispatch_ = 1
 Columns_vtables_ = [
 	(( u'Application' , u'Application' , ), 2001, (2001, (), [ (16397, 10, None, "IID('{91493441-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 2002, (2002, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16393, 10, None, "IID('{914934C5-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
-	(( u'Add' , u'BeforeColumn' , u'Add' , ), 2003, (2003, (), [ (3, 49, '-1', None) , 
+	(( u'Add' , u'BeforeColumn' , u'Add' , ), 2003, (2003, (), [ (3, 49, '-1', None) ,
 			(16393, 10, None, "IID('{914934C5-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
 ]
 
@@ -7958,10 +7958,10 @@ Comments_vtables_dispatch_ = 1
 Comments_vtables_ = [
 	(( u'Application' , u'Application' , ), 2001, (2001, (), [ (16397, 10, None, "IID('{91493441-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 2002, (2002, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16393, 10, None, "IID('{914934D5-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
-	(( u'Add' , u'Left' , u'Top' , u'Author' , u'AuthorInitials' , 
-			u'Text' , u'Add' , ), 2003, (2003, (), [ (4, 1, None, None) , (4, 1, None, None) , 
+	(( u'Add' , u'Left' , u'Top' , u'Author' , u'AuthorInitials' ,
+			u'Text' , u'Add' , ), 2003, (2003, (), [ (4, 1, None, None) , (4, 1, None, None) ,
 			(8, 1, None, None) , (8, 1, None, None) , (8, 1, None, None) , (16393, 10, None, "IID('{914934D5-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
 ]
 
@@ -7970,10 +7970,10 @@ ConnectorFormat_vtables_ = [
 	(( u'Application' , u'ppidisp' , ), 2001, (2001, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 28 , (3, 0, None, None) , 0 , )),
 	(( u'Creator' , u'plCreator' , ), 2002, (2002, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 32 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 1, (1, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
-	(( u'BeginConnect' , u'ConnectedShape' , u'ConnectionSite' , ), 10, (10, (), [ (9, 1, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , 
+	(( u'BeginConnect' , u'ConnectedShape' , u'ConnectionSite' , ), 10, (10, (), [ (9, 1, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") ,
 			(3, 1, None, None) , ], 1 , 1 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'BeginDisconnect' , ), 11, (11, (), [ ], 1 , 1 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'EndConnect' , u'ConnectedShape' , u'ConnectionSite' , ), 12, (12, (), [ (9, 1, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , 
+	(( u'EndConnect' , u'ConnectedShape' , u'ConnectionSite' , ), 12, (12, (), [ (9, 1, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") ,
 			(3, 1, None, None) , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
 	(( u'EndDisconnect' , ), 13, (13, (), [ ], 1 , 1 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
 	(( u'BeginConnected' , u'BeginConnected' , ), 100, (100, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 56 , (3, 0, None, None) , 0 , )),
@@ -8045,13 +8045,13 @@ Designs_vtables_dispatch_ = 1
 Designs_vtables_ = [
 	(( u'Application' , u'Application' , ), 2001, (2001, (), [ (16397, 10, None, "IID('{91493441-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 2002, (2002, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (12, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (12, 1, None, None) ,
 			(16393, 10, None, "IID('{914934D7-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
-	(( u'Add' , u'designName' , u'Index' , u'Add' , ), 2003, (2003, (), [ 
+	(( u'Add' , u'designName' , u'Index' , u'Add' , ), 2003, (2003, (), [
 			(8, 1, None, None) , (3, 49, '-1', None) , (16393, 10, None, "IID('{914934D7-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
-	(( u'Load' , u'TemplateName' , u'Index' , u'Load' , ), 2004, (2004, (), [ 
+	(( u'Load' , u'TemplateName' , u'Index' , u'Load' , ), 2004, (2004, (), [
 			(8, 1, None, None) , (3, 49, '-1', None) , (16393, 10, None, "IID('{914934D7-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 56 , (3, 0, None, None) , 0 , )),
-	(( u'Clone' , u'pOriginal' , u'Index' , u'Clone' , ), 2005, (2005, (), [ 
+	(( u'Clone' , u'pOriginal' , u'Index' , u'Clone' , ), 2005, (2005, (), [
 			(9, 1, None, "IID('{914934D7-5A91-11CF-8700-00AA0060263B}')") , (3, 49, '-1', None) , (16393, 10, None, "IID('{914934D7-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 60 , (3, 0, None, None) , 0 , )),
 ]
 
@@ -8076,15 +8076,15 @@ DiagramNode_vtables_dispatch_ = 1
 DiagramNode_vtables_ = [
 	(( u'Application' , u'ppidisp' , ), 2001, (2001, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 28 , (3, 0, None, None) , 0 , )),
 	(( u'Creator' , u'plCreator' , ), 2002, (2002, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 32 , (3, 0, None, None) , 0 , )),
-	(( u'AddNode' , u'Pos' , u'NodeType' , u'NewNode' , ), 10, (10, (), [ 
+	(( u'AddNode' , u'Pos' , u'NodeType' , u'NewNode' , ), 10, (10, (), [
 			(3, 49, '2', None) , (3, 49, '1', None) , (16393, 10, None, "IID('{914934D8-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
 	(( u'Delete' , ), 11, (11, (), [ ], 1 , 1 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
-	(( u'MoveNode' , u'TargetNode' , u'Pos' , ), 12, (12, (), [ (9, 1, None, "IID('{914934D8-5A91-11CF-8700-00AA0060263B}')") , 
+	(( u'MoveNode' , u'TargetNode' , u'Pos' , ), 12, (12, (), [ (9, 1, None, "IID('{914934D8-5A91-11CF-8700-00AA0060263B}')") ,
 			(3, 1, None, None) , ], 1 , 1 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
 	(( u'ReplaceNode' , u'TargetNode' , ), 13, (13, (), [ (9, 1, None, "IID('{914934D8-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
-	(( u'SwapNode' , u'TargetNode' , u'SwapChildren' , ), 14, (14, (), [ (9, 1, None, "IID('{914934D8-5A91-11CF-8700-00AA0060263B}')") , 
+	(( u'SwapNode' , u'TargetNode' , u'SwapChildren' , ), 14, (14, (), [ (9, 1, None, "IID('{914934D8-5A91-11CF-8700-00AA0060263B}')") ,
 			(11, 49, 'True', None) , ], 1 , 1 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
-	(( u'CloneNode' , u'CopyChildren' , u'TargetNode' , u'Pos' , u'Node' , 
+	(( u'CloneNode' , u'CopyChildren' , u'TargetNode' , u'Pos' , u'Node' ,
 			), 15, (15, (), [ (11, 1, None, None) , (9, 1, None, "IID('{914934D8-5A91-11CF-8700-00AA0060263B}')") , (3, 49, '2', None) , (16393, 10, None, "IID('{914934D8-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 56 , (3, 0, None, None) , 0 , )),
 	(( u'TransferChildren' , u'ReceivingNode' , ), 16, (16, (), [ (9, 1, None, "IID('{914934D8-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 60 , (3, 0, None, None) , 0 , )),
 	(( u'NextNode' , u'NextNode' , ), 17, (17, (), [ (16393, 10, None, "IID('{914934D8-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 64 , (3, 0, None, None) , 0 , )),
@@ -8104,9 +8104,9 @@ DiagramNodeChildren_vtables_ = [
 	(( u'Application' , u'ppidisp' , ), 2001, (2001, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 28 , (3, 0, None, None) , 0 , )),
 	(( u'Creator' , u'plCreator' , ), 2002, (2002, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 32 , (3, 0, None, None) , 0 , )),
 	(( u'_NewEnum' , u'ppunkEnum' , ), -4, (-4, (), [ (16397, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 1024 , )),
-	(( u'Item' , u'Index' , u'Node' , ), 0, (0, (), [ (12, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Node' , ), 0, (0, (), [ (12, 1, None, None) ,
 			(16393, 10, None, "IID('{914934D8-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
-	(( u'AddNode' , u'Index' , u'NodeType' , u'NewNode' , ), 10, (10, (), [ 
+	(( u'AddNode' , u'Index' , u'NodeType' , u'NewNode' , ), 10, (10, (), [
 			(12, 49, '-1', None) , (3, 49, '1', None) , (16393, 10, None, "IID('{914934D8-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
 	(( u'SelectAll' , ), 11, (11, (), [ ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 100, (100, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
@@ -8120,7 +8120,7 @@ DiagramNodes_vtables_ = [
 	(( u'Application' , u'ppidisp' , ), 2001, (2001, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 28 , (3, 0, None, None) , 0 , )),
 	(( u'Creator' , u'plCreator' , ), 2002, (2002, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 32 , (3, 0, None, None) , 0 , )),
 	(( u'_NewEnum' , u'ppunkEnum' , ), -4, (-4, (), [ (16397, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 1024 , )),
-	(( u'Item' , u'Index' , u'ppdn' , ), 0, (0, (), [ (12, 1, None, None) , 
+	(( u'Item' , u'Index' , u'ppdn' , ), 0, (0, (), [ (12, 1, None, None) ,
 			(16393, 10, None, "IID('{914934D8-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'SelectAll' , ), 10, (10, (), [ ], 1 , 1 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 100, (100, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
@@ -8152,9 +8152,9 @@ DocumentWindow_vtables_ = [
 	(( u'Height' , u'Height' , ), 2013, (2013, (), [ (4, 1, None, None) , ], 1 , 4 , 4 , 0 , 108 , (3, 0, None, None) , 0 , )),
 	(( u'FitToPage' , ), 2014, (2014, (), [ ], 1 , 1 , 4 , 0 , 112 , (3, 0, None, None) , 0 , )),
 	(( u'Activate' , ), 2015, (2015, (), [ ], 1 , 1 , 4 , 0 , 116 , (3, 0, None, None) , 0 , )),
-	(( u'LargeScroll' , u'Down' , u'Up' , u'ToRight' , u'ToLeft' , 
+	(( u'LargeScroll' , u'Down' , u'Up' , u'ToRight' , u'ToLeft' ,
 			), 2016, (2016, (), [ (3, 49, '1', None) , (3, 49, '0', None) , (3, 49, '0', None) , (3, 49, '0', None) , ], 1 , 1 , 4 , 0 , 120 , (3, 0, None, None) , 0 , )),
-	(( u'SmallScroll' , u'Down' , u'Up' , u'ToRight' , u'ToLeft' , 
+	(( u'SmallScroll' , u'Down' , u'Up' , u'ToRight' , u'ToLeft' ,
 			), 2017, (2017, (), [ (3, 49, '1', None) , (3, 49, '0', None) , (3, 49, '0', None) , (3, 49, '0', None) , ], 1 , 1 , 4 , 0 , 124 , (3, 0, None, None) , 0 , )),
 	(( u'NewWindow' , u'NewWindow' , ), 2018, (2018, (), [ (16393, 10, None, "IID('{91493457-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 128 , (3, 0, None, None) , 0 , )),
 	(( u'Close' , ), 2019, (2019, (), [ ], 1 , 1 , 4 , 0 , 132 , (3, 0, None, None) , 0 , )),
@@ -8165,14 +8165,14 @@ DocumentWindow_vtables_ = [
 	(( u'SplitVertical' , u'SplitVertical' , ), 2023, (2023, (), [ (3, 1, None, None) , ], 1 , 4 , 4 , 0 , 152 , (3, 0, None, None) , 0 , )),
 	(( u'SplitHorizontal' , u'SplitHorizontal' , ), 2024, (2024, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 156 , (3, 0, None, None) , 0 , )),
 	(( u'SplitHorizontal' , u'SplitHorizontal' , ), 2024, (2024, (), [ (3, 1, None, None) , ], 1 , 4 , 4 , 0 , 160 , (3, 0, None, None) , 0 , )),
-	(( u'RangeFromPoint' , u'X' , u'Y' , u'RangeFromPoint' , ), 2025, (2025, (), [ 
+	(( u'RangeFromPoint' , u'X' , u'Y' , u'RangeFromPoint' , ), 2025, (2025, (), [
 			(3, 1, None, None) , (3, 1, None, None) , (16393, 10, None, None) , ], 1 , 1 , 4 , 0 , 164 , (3, 0, None, None) , 0 , )),
-	(( u'PointsToScreenPixelsX' , u'Points' , u'PointsToScreenPixelsX' , ), 2026, (2026, (), [ (4, 1, None, None) , 
+	(( u'PointsToScreenPixelsX' , u'Points' , u'PointsToScreenPixelsX' , ), 2026, (2026, (), [ (4, 1, None, None) ,
 			(16387, 10, None, None) , ], 1 , 1 , 4 , 0 , 168 , (3, 0, None, None) , 0 , )),
-	(( u'PointsToScreenPixelsY' , u'Points' , u'PointsToScreenPixelsY' , ), 2027, (2027, (), [ (4, 1, None, None) , 
+	(( u'PointsToScreenPixelsY' , u'Points' , u'PointsToScreenPixelsY' , ), 2027, (2027, (), [ (4, 1, None, None) ,
 			(16387, 10, None, None) , ], 1 , 1 , 4 , 0 , 172 , (3, 0, None, None) , 0 , )),
-	(( u'ScrollIntoView' , u'Left' , u'Top' , u'Width' , u'Height' , 
-			u'Start' , ), 2028, (2028, (), [ (4, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , 
+	(( u'ScrollIntoView' , u'Left' , u'Top' , u'Width' , u'Height' ,
+			u'Start' , ), 2028, (2028, (), [ (4, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) ,
 			(4, 1, None, None) , (3, 49, '-1', None) , ], 1 , 1 , 4 , 0 , 176 , (3, 0, None, None) , 0 , )),
 ]
 
@@ -8180,7 +8180,7 @@ DocumentWindows_vtables_dispatch_ = 1
 DocumentWindows_vtables_ = [
 	(( u'Application' , u'Application' , ), 2001, (2001, (), [ (16397, 10, None, "IID('{91493441-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 2002, (2002, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16393, 10, None, "IID('{91493457-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
 	(( u'Arrange' , u'arrangeStyle' , ), 2003, (2003, (), [ (3, 49, '1', None) , ], 1 , 1 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
 ]
@@ -8246,7 +8246,7 @@ ExtraColors_vtables_dispatch_ = 1
 ExtraColors_vtables_ = [
 	(( u'Application' , u'Application' , ), 2001, (2001, (), [ (16397, 10, None, "IID('{91493441-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 2002, (2002, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16387, 10, None, None) , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
 	(( u'Add' , u'Type' , ), 2003, (2003, (), [ (3, 1, None, None) , ], 1 , 1 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
 ]
@@ -8257,14 +8257,14 @@ FillFormat_vtables_ = [
 	(( u'Creator' , u'plCreator' , ), 2002, (2002, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 32 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 1, (1, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
 	(( u'Background' , ), 10, (10, (), [ ], 1 , 1 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
-	(( u'OneColorGradient' , u'Style' , u'Variant' , u'Degree' , ), 11, (11, (), [ 
+	(( u'OneColorGradient' , u'Style' , u'Variant' , u'Degree' , ), 11, (11, (), [
 			(3, 1, None, None) , (3, 1, None, None) , (4, 1, None, None) , ], 1 , 1 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
 	(( u'Patterned' , u'Pattern' , ), 12, (12, (), [ (3, 1, None, None) , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
-	(( u'PresetGradient' , u'Style' , u'Variant' , u'PresetGradientType' , ), 13, (13, (), [ 
+	(( u'PresetGradient' , u'Style' , u'Variant' , u'PresetGradientType' , ), 13, (13, (), [
 			(3, 1, None, None) , (3, 1, None, None) , (3, 1, None, None) , ], 1 , 1 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
 	(( u'PresetTextured' , u'PresetTexture' , ), 14, (14, (), [ (3, 1, None, None) , ], 1 , 1 , 4 , 0 , 56 , (3, 0, None, None) , 0 , )),
 	(( u'Solid' , ), 15, (15, (), [ ], 1 , 1 , 4 , 0 , 60 , (3, 0, None, None) , 0 , )),
-	(( u'TwoColorGradient' , u'Style' , u'Variant' , ), 16, (16, (), [ (3, 1, None, None) , 
+	(( u'TwoColorGradient' , u'Style' , u'Variant' , ), 16, (16, (), [ (3, 1, None, None) ,
 			(3, 1, None, None) , ], 1 , 1 , 4 , 0 , 64 , (3, 0, None, None) , 0 , )),
 	(( u'UserPicture' , u'PictureFile' , ), 17, (17, (), [ (8, 1, None, None) , ], 1 , 1 , 4 , 0 , 68 , (3, 0, None, None) , 0 , )),
 	(( u'UserTextured' , u'TextureFile' , ), 18, (18, (), [ (8, 1, None, None) , ], 1 , 1 , 4 , 0 , 72 , (3, 0, None, None) , 0 , )),
@@ -8343,9 +8343,9 @@ Fonts_vtables_dispatch_ = 1
 Fonts_vtables_ = [
 	(( u'Application' , u'Application' , ), 2001, (2001, (), [ (16397, 10, None, "IID('{91493441-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 2002, (2002, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (12, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (12, 1, None, None) ,
 			(16393, 10, None, "IID('{91493495-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
-	(( u'Replace' , u'Original' , u'Replacement' , ), 2003, (2003, (), [ (8, 1, None, None) , 
+	(( u'Replace' , u'Original' , u'Replacement' , ), 2003, (2003, (), [ (8, 1, None, None) ,
 			(8, 1, None, None) , ], 1 , 1 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
 ]
 
@@ -8354,9 +8354,9 @@ FreeformBuilder_vtables_ = [
 	(( u'Application' , u'ppidisp' , ), 2001, (2001, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 28 , (3, 0, None, None) , 0 , )),
 	(( u'Creator' , u'plCreator' , ), 2002, (2002, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 32 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 1, (1, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
-	(( u'AddNodes' , u'SegmentType' , u'EditingType' , u'X1' , u'Y1' , 
-			u'X2' , u'Y2' , u'X3' , u'Y3' , ), 10, (10, (), [ 
-			(3, 1, None, None) , (3, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , (4, 49, '0.0', None) , 
+	(( u'AddNodes' , u'SegmentType' , u'EditingType' , u'X1' , u'Y1' ,
+			u'X2' , u'Y2' , u'X3' , u'Y3' , ), 10, (10, (), [
+			(3, 1, None, None) , (3, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , (4, 49, '0.0', None) ,
 			(4, 49, '0.0', None) , (4, 49, '0.0', None) , (4, 49, '0.0', None) , ], 1 , 1 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'ConvertToShape' , u'Freeform' , ), 11, (11, (), [ (16393, 10, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
 ]
@@ -8367,10 +8367,10 @@ GroupShapes_vtables_ = [
 	(( u'Creator' , u'plCreator' , ), 2002, (2002, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 32 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'ppidisp' , ), 1, (1, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
 	(( u'Count' , u'pnShapes' , ), 2, (2, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (12, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (12, 1, None, None) ,
 			(16393, 10, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
 	(( u'_NewEnum' , u'ppienum' , ), -4, (-4, (), [ (16397, 10, None, None) , ], 1 , 2 , 4 , 0 , 48 , (3, 0, None, None) , 1024 , )),
-	(( u'Range' , u'Index' , u'Range' , ), 10, (10, (), [ (12, 1, None, None) , 
+	(( u'Range' , u'Index' , u'Range' , ), 10, (10, (), [ (12, 1, None, None) ,
 			(16393, 10, None, "IID('{9149347A-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
 ]
 
@@ -8420,7 +8420,7 @@ Hyperlink_vtables_ = [
 	(( u'ShowAndReturn' , u'ShowAndReturn' , ), 2010, (2010, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 84 , (3, 0, None, None) , 0 , )),
 	(( u'ShowAndReturn' , u'ShowAndReturn' , ), 2010, (2010, (), [ (3, 1, None, None) , ], 1 , 4 , 4 , 0 , 88 , (3, 0, None, None) , 0 , )),
 	(( u'Follow' , ), 2011, (2011, (), [ ], 1 , 1 , 4 , 0 , 92 , (3, 0, None, None) , 0 , )),
-	(( u'CreateNewDocument' , u'FileName' , u'EditNow' , u'Overwrite' , ), 2012, (2012, (), [ 
+	(( u'CreateNewDocument' , u'FileName' , u'EditNow' , u'Overwrite' , ), 2012, (2012, (), [
 			(8, 1, None, None) , (3, 1, None, None) , (3, 1, None, None) , ], 1 , 1 , 4 , 0 , 96 , (3, 0, None, None) , 0 , )),
 	(( u'Delete' , ), 2013, (2013, (), [ ], 1 , 1 , 4 , 0 , 100 , (3, 0, None, None) , 0 , )),
 ]
@@ -8429,7 +8429,7 @@ Hyperlinks_vtables_dispatch_ = 1
 Hyperlinks_vtables_ = [
 	(( u'Application' , u'Application' , ), 2001, (2001, (), [ (16397, 10, None, "IID('{91493441-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 2002, (2002, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16393, 10, None, "IID('{91493465-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
 ]
 
@@ -8512,9 +8512,9 @@ MouseDownHandler_vtables_ = [
 
 MouseTracker_vtables_dispatch_ = 0
 MouseTracker_vtables_ = [
-	(( u'OnTrack' , u'X' , u'Y' , ), 2001, (2001, (), [ (4, 1, None, None) , 
+	(( u'OnTrack' , u'X' , u'Y' , ), 2001, (2001, (), [ (4, 1, None, None) ,
 			(4, 1, None, None) , ], 1 , 1 , 4 , 0 , 12 , (3, 0, None, None) , 0 , )),
-	(( u'EndTrack' , u'X' , u'Y' , ), 2002, (2002, (), [ (4, 1, None, None) , 
+	(( u'EndTrack' , u'X' , u'Y' , ), 2002, (2002, (), [ (4, 1, None, None) ,
 			(4, 1, None, None) , ], 1 , 1 , 4 , 0 , 16 , (3, 0, None, None) , 0 , )),
 ]
 
@@ -8532,9 +8532,9 @@ NamedSlideShows_vtables_dispatch_ = 1
 NamedSlideShows_vtables_ = [
 	(( u'Application' , u'Application' , ), 2001, (2001, (), [ (16397, 10, None, "IID('{91493441-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 2002, (2002, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (12, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (12, 1, None, None) ,
 			(16393, 10, None, "IID('{9149345C-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
-	(( u'Add' , u'Name' , u'safeArrayOfSlideIDs' , u'Add' , ), 2003, (2003, (), [ 
+	(( u'Add' , u'Name' , u'safeArrayOfSlideIDs' , u'Add' , ), 2003, (2003, (), [
 			(8, 1, None, None) , (12, 1, None, None) , (16393, 10, None, "IID('{9149345C-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
 ]
 
@@ -8574,7 +8574,7 @@ ObjectVerbs_vtables_dispatch_ = 1
 ObjectVerbs_vtables_ = [
 	(( u'Application' , u'Application' , ), 2001, (2001, (), [ (16397, 10, None, "IID('{91493441-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 2002, (2002, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16392, 10, None, None) , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
 ]
 
@@ -8614,7 +8614,7 @@ Pane_vtables_ = [
 Panes_vtables_dispatch_ = 1
 Panes_vtables_ = [
 	(( u'Application' , u'Application' , ), 2001, (2001, (), [ (16397, 10, None, "IID('{91493441-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16393, 10, None, "IID('{914934CC-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 2002, (2002, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
 ]
@@ -8688,7 +8688,7 @@ Placeholders_vtables_dispatch_ = 1
 Placeholders_vtables_ = [
 	(( u'Application' , u'Application' , ), 2001, (2001, (), [ (16397, 10, None, "IID('{91493441-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 2002, (2002, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16393, 10, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
 ]
 
@@ -8720,18 +8720,18 @@ Presentations_vtables_dispatch_ = 1
 Presentations_vtables_ = [
 	(( u'Application' , u'Application' , ), 2001, (2001, (), [ (16397, 10, None, "IID('{91493441-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 2002, (2002, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (12, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (12, 1, None, None) ,
 			(16397, 10, None, "IID('{91493444-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
-	(( u'Add' , u'WithWindow' , u'Add' , ), 2003, (2003, (), [ (3, 49, '-1', None) , 
+	(( u'Add' , u'WithWindow' , u'Add' , ), 2003, (2003, (), [ (3, 49, '-1', None) ,
 			(16397, 10, None, "IID('{91493444-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
-	(( u'OpenOld' , u'FileName' , u'ReadOnly' , u'Untitled' , u'WithWindow' , 
-			u'OpenOld' , ), 2004, (2004, (), [ (8, 1, None, None) , (3, 49, '0', None) , (3, 49, '0', None) , 
+	(( u'OpenOld' , u'FileName' , u'ReadOnly' , u'Untitled' , u'WithWindow' ,
+			u'OpenOld' , ), 2004, (2004, (), [ (8, 1, None, None) , (3, 49, '0', None) , (3, 49, '0', None) ,
 			(3, 49, '-1', None) , (16397, 10, None, "IID('{91493444-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 56 , (3, 0, None, None) , 64 , )),
-	(( u'Open' , u'FileName' , u'ReadOnly' , u'Untitled' , u'WithWindow' , 
-			u'Open' , ), 2005, (2005, (), [ (8, 1, None, None) , (3, 49, '0', None) , (3, 49, '0', None) , 
+	(( u'Open' , u'FileName' , u'ReadOnly' , u'Untitled' , u'WithWindow' ,
+			u'Open' , ), 2005, (2005, (), [ (8, 1, None, None) , (3, 49, '0', None) , (3, 49, '0', None) ,
 			(3, 49, '-1', None) , (16397, 10, None, "IID('{91493444-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 60 , (3, 0, None, None) , 0 , )),
 	(( u'CheckOut' , u'FileName' , ), 2006, (2006, (), [ (8, 1, None, None) , ], 1 , 1 , 4 , 0 , 64 , (3, 0, None, None) , 0 , )),
-	(( u'CanCheckOut' , u'FileName' , u'CanCheckOut' , ), 2007, (2007, (), [ (8, 1, None, None) , 
+	(( u'CanCheckOut' , u'FileName' , u'CanCheckOut' , ), 2007, (2007, (), [ (8, 1, None, None) ,
 			(16395, 10, None, None) , ], 1 , 1 , 4 , 0 , 68 , (3, 0, None, None) , 0 , )),
 ]
 
@@ -8781,11 +8781,11 @@ PrintRange_vtables_ = [
 
 PrintRanges_vtables_dispatch_ = 1
 PrintRanges_vtables_ = [
-	(( u'Add' , u'Start' , u'End' , u'Add' , ), 2001, (2001, (), [ 
+	(( u'Add' , u'Start' , u'End' , u'Add' , ), 2001, (2001, (), [
 			(3, 1, None, None) , (3, 1, None, None) , (16393, 10, None, "IID('{9149345F-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Application' , u'Application' , ), 2002, (2002, (), [ (16397, 10, None, "IID('{91493441-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
 	(( u'ClearAll' , ), 2003, (2003, (), [ ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16393, 10, None, "IID('{9149345F-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 2004, (2004, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 56 , (3, 0, None, None) , 0 , )),
 ]
@@ -8828,7 +8828,7 @@ PublishObjects_vtables_dispatch_ = 1
 PublishObjects_vtables_ = [
 	(( u'Application' , u'Application' , ), 2001, (2001, (), [ (16397, 10, None, "IID('{91493441-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 2002, (2002, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16393, 10, None, "IID('{914934D0-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
 ]
 
@@ -8867,9 +8867,9 @@ Rows_vtables_dispatch_ = 1
 Rows_vtables_ = [
 	(( u'Application' , u'Application' , ), 2001, (2001, (), [ (16397, 10, None, "IID('{91493441-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 2002, (2002, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16393, 10, None, "IID('{914934C7-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
-	(( u'Add' , u'BeforeRow' , u'Add' , ), 2003, (2003, (), [ (3, 49, '-1', None) , 
+	(( u'Add' , u'BeforeRow' , u'Add' , ), 2003, (2003, (), [ (3, 49, '-1', None) ,
 			(16393, 10, None, "IID('{914934C7-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
 ]
 
@@ -8895,7 +8895,7 @@ RulerLevels_vtables_dispatch_ = 1
 RulerLevels_vtables_ = [
 	(( u'Application' , u'Application' , ), 2001, (2001, (), [ (16397, 10, None, "IID('{91493441-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 2002, (2002, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16393, 10, None, "IID('{91493492-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
 ]
 
@@ -8937,27 +8937,27 @@ Sequence_vtables_dispatch_ = 1
 Sequence_vtables_ = [
 	(( u'Application' , u'Application' , ), 2001, (2001, (), [ (16397, 10, None, "IID('{91493441-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 2002, (2002, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16393, 10, None, "IID('{914934DF-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
-	(( u'AddEffect' , u'Shape' , u'effectId' , u'Level' , u'trigger' , 
-			u'Index' , u'Effect' , ), 2003, (2003, (), [ (9, 1, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , (3, 1, None, None) , 
+	(( u'AddEffect' , u'Shape' , u'effectId' , u'Level' , u'trigger' ,
+			u'Index' , u'Effect' , ), 2003, (2003, (), [ (9, 1, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , (3, 1, None, None) ,
 			(3, 49, '0', None) , (3, 49, '1', None) , (3, 49, '-1', None) , (16393, 10, None, "IID('{914934DF-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
-	(( u'Clone' , u'Effect' , u'Index' , u'Clone' , ), 2004, (2004, (), [ 
+	(( u'Clone' , u'Effect' , u'Index' , u'Clone' , ), 2004, (2004, (), [
 			(9, 1, None, "IID('{914934DF-5A91-11CF-8700-00AA0060263B}')") , (3, 49, '-1', None) , (16393, 10, None, "IID('{914934DF-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 56 , (3, 0, None, None) , 0 , )),
-	(( u'FindFirstAnimationFor' , u'Shape' , u'FindFirstAnimationFor' , ), 2005, (2005, (), [ (9, 1, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , 
+	(( u'FindFirstAnimationFor' , u'Shape' , u'FindFirstAnimationFor' , ), 2005, (2005, (), [ (9, 1, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") ,
 			(16393, 10, None, "IID('{914934DF-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 60 , (3, 0, None, None) , 0 , )),
-	(( u'FindFirstAnimationForClick' , u'click' , u'FindFirstAnimationForClick' , ), 2006, (2006, (), [ (3, 1, None, None) , 
+	(( u'FindFirstAnimationForClick' , u'click' , u'FindFirstAnimationForClick' , ), 2006, (2006, (), [ (3, 1, None, None) ,
 			(16393, 10, None, "IID('{914934DF-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 64 , (3, 0, None, None) , 0 , )),
-	(( u'ConvertToBuildLevel' , u'Effect' , u'Level' , u'ConvertToBuildLevel' , ), 2007, (2007, (), [ 
+	(( u'ConvertToBuildLevel' , u'Effect' , u'Level' , u'ConvertToBuildLevel' , ), 2007, (2007, (), [
 			(9, 1, None, "IID('{914934DF-5A91-11CF-8700-00AA0060263B}')") , (3, 1, None, None) , (16393, 10, None, "IID('{914934DF-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 68 , (3, 0, None, None) , 0 , )),
-	(( u'ConvertToAfterEffect' , u'Effect' , u'After' , u'DimColor' , u'DimSchemeColor' , 
-			u'ConvertToAfterEffect' , ), 2008, (2008, (), [ (9, 1, None, "IID('{914934DF-5A91-11CF-8700-00AA0060263B}')") , (3, 1, None, None) , (3, 49, '0', None) , 
+	(( u'ConvertToAfterEffect' , u'Effect' , u'After' , u'DimColor' , u'DimSchemeColor' ,
+			u'ConvertToAfterEffect' , ), 2008, (2008, (), [ (9, 1, None, "IID('{914934DF-5A91-11CF-8700-00AA0060263B}')") , (3, 1, None, None) , (3, 49, '0', None) ,
 			(3, 49, '0', None) , (16393, 10, None, "IID('{914934DF-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 72 , (3, 0, None, None) , 0 , )),
-	(( u'ConvertToAnimateBackground' , u'Effect' , u'AnimateBackground' , u'ConvertToAnimateBackground' , ), 2009, (2009, (), [ 
+	(( u'ConvertToAnimateBackground' , u'Effect' , u'AnimateBackground' , u'ConvertToAnimateBackground' , ), 2009, (2009, (), [
 			(9, 1, None, "IID('{914934DF-5A91-11CF-8700-00AA0060263B}')") , (3, 1, None, None) , (16393, 10, None, "IID('{914934DF-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 76 , (3, 0, None, None) , 0 , )),
-	(( u'ConvertToAnimateInReverse' , u'Effect' , u'animateInReverse' , u'ConvertToAnimateInReverse' , ), 2010, (2010, (), [ 
+	(( u'ConvertToAnimateInReverse' , u'Effect' , u'animateInReverse' , u'ConvertToAnimateInReverse' , ), 2010, (2010, (), [
 			(9, 1, None, "IID('{914934DF-5A91-11CF-8700-00AA0060263B}')") , (3, 1, None, None) , (16393, 10, None, "IID('{914934DF-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 80 , (3, 0, None, None) , 0 , )),
-	(( u'ConvertToTextUnitEffect' , u'Effect' , u'unitEffect' , u'ConvertToTextUnitEffect' , ), 2011, (2011, (), [ 
+	(( u'ConvertToTextUnitEffect' , u'Effect' , u'unitEffect' , u'ConvertToTextUnitEffect' , ), 2011, (2011, (), [
 			(9, 1, None, "IID('{914934DF-5A91-11CF-8700-00AA0060263B}')") , (3, 1, None, None) , (16393, 10, None, "IID('{914934DF-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 84 , (3, 0, None, None) , 0 , )),
 ]
 
@@ -8965,9 +8965,9 @@ Sequences_vtables_dispatch_ = 1
 Sequences_vtables_ = [
 	(( u'Application' , u'Application' , ), 2001, (2001, (), [ (16397, 10, None, "IID('{91493441-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 2002, (2002, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16393, 10, None, "IID('{914934DE-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
-	(( u'Add' , u'Index' , u'Add' , ), 2003, (2003, (), [ (3, 49, '-1', None) , 
+	(( u'Add' , u'Index' , u'Add' , ), 2003, (2003, (), [ (3, 49, '-1', None) ,
 			(16393, 10, None, "IID('{914934DE-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
 ]
 
@@ -9017,9 +9017,9 @@ Shape_vtables_ = [
 	(( u'IncrementTop' , u'Increment' , ), 16, (16, (), [ (4, 1, None, None) , ], 1 , 1 , 4 , 0 , 60 , (3, 0, None, None) , 0 , )),
 	(( u'PickUp' , ), 17, (17, (), [ ], 1 , 1 , 4 , 0 , 64 , (3, 0, None, None) , 0 , )),
 	(( u'RerouteConnections' , ), 18, (18, (), [ ], 1 , 1 , 4 , 0 , 68 , (3, 0, None, None) , 0 , )),
-	(( u'ScaleHeight' , u'Factor' , u'RelativeToOriginalSize' , u'fScale' , ), 19, (19, (), [ 
+	(( u'ScaleHeight' , u'Factor' , u'RelativeToOriginalSize' , u'fScale' , ), 19, (19, (), [
 			(4, 1, None, None) , (3, 1, None, None) , (3, 49, '0', None) , ], 1 , 1 , 4 , 0 , 72 , (3, 0, None, None) , 0 , )),
-	(( u'ScaleWidth' , u'Factor' , u'RelativeToOriginalSize' , u'fScale' , ), 20, (20, (), [ 
+	(( u'ScaleWidth' , u'Factor' , u'RelativeToOriginalSize' , u'fScale' , ), 20, (20, (), [
 			(4, 1, None, None) , (3, 1, None, None) , (3, 49, '0', None) , ], 1 , 1 , 4 , 0 , 76 , (3, 0, None, None) , 0 , )),
 	(( u'SetShapesDefaultProperties' , ), 22, (22, (), [ ], 1 , 1 , 4 , 0 , 80 , (3, 0, None, None) , 0 , )),
 	(( u'Ungroup' , u'Ungroup' , ), 23, (23, (), [ (16393, 10, None, "IID('{9149347A-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 84 , (3, 0, None, None) , 0 , )),
@@ -9081,8 +9081,8 @@ Shape_vtables_ = [
 	(( u'AlternativeText' , u'AlternativeText' , ), 131, (131, (), [ (8, 1, None, None) , ], 1 , 4 , 4 , 0 , 308 , (3, 0, None, None) , 0 , )),
 	(( u'HasTable' , u'HasTable' , ), 2016, (2016, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 312 , (3, 0, None, None) , 0 , )),
 	(( u'Table' , u'Table' , ), 2017, (2017, (), [ (16393, 10, None, "IID('{914934C3-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 316 , (3, 0, None, None) , 0 , )),
-	(( u'Export' , u'PathName' , u'Filter' , u'ScaleWidth' , u'ScaleHeight' , 
-			u'ExportMode' , ), 2018, (2018, (), [ (8, 1, None, None) , (3, 1, None, None) , (3, 49, '0', None) , 
+	(( u'Export' , u'PathName' , u'Filter' , u'ScaleWidth' , u'ScaleHeight' ,
+			u'ExportMode' , ), 2018, (2018, (), [ (8, 1, None, None) , (3, 1, None, None) , (3, 49, '0', None) ,
 			(3, 49, '0', None) , (3, 49, '1', None) , ], 1 , 1 , 4 , 0 , 320 , (3, 0, None, None) , 64 , )),
 	(( u'HasDiagram' , u'pHasDiagram' , ), 132, (132, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 324 , (3, 0, None, None) , 0 , )),
 	(( u'Diagram' , u'Diagram' , ), 133, (133, (), [ (16393, 10, None, "IID('{914934DB-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 328 , (3, 0, None, None) , 0 , )),
@@ -9115,19 +9115,19 @@ ShapeNodes_vtables_ = [
 	(( u'Creator' , u'plCreator' , ), 2002, (2002, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 32 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 1, (1, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
 	(( u'Count' , u'Count' , ), 2, (2, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (12, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (12, 1, None, None) ,
 			(16393, 10, None, "IID('{91493487-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
 	(( u'_NewEnum' , u'_NewEnum' , ), -4, (-4, (), [ (16397, 10, None, None) , ], 1 , 2 , 4 , 0 , 48 , (3, 0, None, None) , 1024 , )),
 	(( u'Delete' , u'Index' , ), 11, (11, (), [ (3, 1, None, None) , ], 1 , 1 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
-	(( u'Insert' , u'Index' , u'SegmentType' , u'EditingType' , u'X1' , 
-			u'Y1' , u'X2' , u'Y2' , u'X3' , u'Y3' , 
-			), 12, (12, (), [ (3, 1, None, None) , (3, 1, None, None) , (3, 1, None, None) , (4, 1, None, None) , 
+	(( u'Insert' , u'Index' , u'SegmentType' , u'EditingType' , u'X1' ,
+			u'Y1' , u'X2' , u'Y2' , u'X3' , u'Y3' ,
+			), 12, (12, (), [ (3, 1, None, None) , (3, 1, None, None) , (3, 1, None, None) , (4, 1, None, None) ,
 			(4, 1, None, None) , (4, 49, '0.0', None) , (4, 49, '0.0', None) , (4, 49, '0.0', None) , (4, 49, '0.0', None) , ], 1 , 1 , 4 , 0 , 56 , (3, 0, None, None) , 0 , )),
-	(( u'SetEditingType' , u'Index' , u'EditingType' , ), 13, (13, (), [ (3, 1, None, None) , 
+	(( u'SetEditingType' , u'Index' , u'EditingType' , ), 13, (13, (), [ (3, 1, None, None) ,
 			(3, 1, None, None) , ], 1 , 1 , 4 , 0 , 60 , (3, 0, None, None) , 0 , )),
-	(( u'SetPosition' , u'Index' , u'X1' , u'Y1' , ), 14, (14, (), [ 
+	(( u'SetPosition' , u'Index' , u'X1' , u'Y1' , ), 14, (14, (), [
 			(3, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , ], 1 , 1 , 4 , 0 , 64 , (3, 0, None, None) , 0 , )),
-	(( u'SetSegmentType' , u'Index' , u'SegmentType' , ), 15, (15, (), [ (3, 1, None, None) , 
+	(( u'SetSegmentType' , u'Index' , u'SegmentType' , ), 15, (15, (), [ (3, 1, None, None) ,
 			(3, 1, None, None) , ], 1 , 1 , 4 , 0 , 68 , (3, 0, None, None) , 0 , )),
 ]
 
@@ -9144,9 +9144,9 @@ ShapeRange_vtables_ = [
 	(( u'IncrementTop' , u'Increment' , ), 16, (16, (), [ (4, 1, None, None) , ], 1 , 1 , 4 , 0 , 60 , (3, 0, None, None) , 0 , )),
 	(( u'PickUp' , ), 17, (17, (), [ ], 1 , 1 , 4 , 0 , 64 , (3, 0, None, None) , 0 , )),
 	(( u'RerouteConnections' , ), 18, (18, (), [ ], 1 , 1 , 4 , 0 , 68 , (3, 0, None, None) , 0 , )),
-	(( u'ScaleHeight' , u'Factor' , u'RelativeToOriginalSize' , u'fScale' , ), 19, (19, (), [ 
+	(( u'ScaleHeight' , u'Factor' , u'RelativeToOriginalSize' , u'fScale' , ), 19, (19, (), [
 			(4, 1, None, None) , (3, 1, None, None) , (3, 49, '0', None) , ], 1 , 1 , 4 , 0 , 72 , (3, 0, None, None) , 0 , )),
-	(( u'ScaleWidth' , u'Factor' , u'RelativeToOriginalSize' , u'fScale' , ), 20, (20, (), [ 
+	(( u'ScaleWidth' , u'Factor' , u'RelativeToOriginalSize' , u'fScale' , ), 20, (20, (), [
 			(4, 1, None, None) , (3, 1, None, None) , (3, 49, '0', None) , ], 1 , 1 , 4 , 0 , 76 , (3, 0, None, None) , 0 , )),
 	(( u'SetShapesDefaultProperties' , ), 22, (22, (), [ ], 1 , 1 , 4 , 0 , 80 , (3, 0, None, None) , 0 , )),
 	(( u'Ungroup' , u'Ungroup' , ), 23, (23, (), [ (16393, 10, None, "IID('{9149347A-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 84 , (3, 0, None, None) , 0 , )),
@@ -9203,27 +9203,27 @@ ShapeRange_vtables_ = [
 	(( u'MediaType' , u'MediaType' , ), 2013, (2013, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 288 , (3, 0, None, None) , 0 , )),
 	(( u'HasTextFrame' , u'HasTextFrame' , ), 2014, (2014, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 292 , (3, 0, None, None) , 0 , )),
 	(( u'SoundFormat' , u'SoundFormat' , ), 2015, (2015, (), [ (16393, 10, None, "IID('{91493473-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 296 , (3, 0, None, None) , 64 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (12, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (12, 1, None, None) ,
 			(16393, 10, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 300 , (3, 0, None, None) , 0 , )),
 	(( u'_NewEnum' , u'_NewEnum' , ), -4, (-4, (), [ (16397, 10, None, None) , ], 1 , 2 , 4 , 0 , 304 , (3, 0, None, None) , 1 , )),
-	(( u'_Index' , u'Index' , u'_Index' , ), 8, (8, (), [ (3, 1, None, None) , 
+	(( u'_Index' , u'Index' , u'_Index' , ), 8, (8, (), [ (3, 1, None, None) ,
 			(16396, 10, None, None) , ], 1 , 1 , 4 , 0 , 308 , (3, 0, None, None) , 1 , )),
 	(( u'Count' , u'Count' , ), 9, (9, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 312 , (3, 0, None, None) , 0 , )),
 	(( u'Group' , u'Group' , ), 2016, (2016, (), [ (16393, 10, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 316 , (3, 0, None, None) , 0 , )),
 	(( u'Regroup' , u'Regroup' , ), 2017, (2017, (), [ (16393, 10, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 320 , (3, 0, None, None) , 0 , )),
-	(( u'Align' , u'AlignCmd' , u'RelativeTo' , ), 2018, (2018, (), [ (3, 1, None, None) , 
+	(( u'Align' , u'AlignCmd' , u'RelativeTo' , ), 2018, (2018, (), [ (3, 1, None, None) ,
 			(3, 1, None, None) , ], 1 , 1 , 4 , 0 , 324 , (3, 0, None, None) , 0 , )),
-	(( u'Distribute' , u'DistributeCmd' , u'RelativeTo' , ), 2019, (2019, (), [ (3, 1, None, None) , 
+	(( u'Distribute' , u'DistributeCmd' , u'RelativeTo' , ), 2019, (2019, (), [ (3, 1, None, None) ,
 			(3, 1, None, None) , ], 1 , 1 , 4 , 0 , 328 , (3, 0, None, None) , 0 , )),
-	(( u'GetPolygonalRepresentation' , u'maxPointsInBuffer' , u'pPoints' , u'numPointsInPolygon' , u'IsOpen' , 
+	(( u'GetPolygonalRepresentation' , u'maxPointsInBuffer' , u'pPoints' , u'numPointsInPolygon' , u'IsOpen' ,
 			), 2020, (2020, (), [ (19, 1, None, None) , (16388, 1, None, None) , (16403, 2, None, None) , (16387, 2, None, None) , ], 1 , 1 , 4 , 0 , 332 , (3, 0, None, None) , 1 , )),
 	(( u'Script' , u'Script' , ), 130, (130, (), [ (16393, 10, None, "IID('{000C0341-0000-0000-C000-000000000046}')") , ], 1 , 2 , 4 , 0 , 336 , (3, 0, None, None) , 0 , )),
 	(( u'AlternativeText' , u'AlternativeText' , ), 131, (131, (), [ (16392, 10, None, None) , ], 1 , 2 , 4 , 0 , 340 , (3, 0, None, None) , 0 , )),
 	(( u'AlternativeText' , u'AlternativeText' , ), 131, (131, (), [ (8, 1, None, None) , ], 1 , 4 , 4 , 0 , 344 , (3, 0, None, None) , 0 , )),
 	(( u'HasTable' , u'HasTable' , ), 2021, (2021, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 348 , (3, 0, None, None) , 0 , )),
 	(( u'Table' , u'Table' , ), 2022, (2022, (), [ (16393, 10, None, "IID('{914934C3-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 352 , (3, 0, None, None) , 0 , )),
-	(( u'Export' , u'PathName' , u'Filter' , u'ScaleWidth' , u'ScaleHeight' , 
-			u'ExportMode' , ), 2023, (2023, (), [ (8, 1, None, None) , (3, 1, None, None) , (3, 49, '0', None) , 
+	(( u'Export' , u'PathName' , u'Filter' , u'ScaleWidth' , u'ScaleHeight' ,
+			u'ExportMode' , ), 2023, (2023, (), [ (8, 1, None, None) , (3, 1, None, None) , (3, 49, '0', None) ,
 			(3, 49, '0', None) , (3, 49, '1', None) , ], 1 , 1 , 4 , 0 , 356 , (3, 0, None, None) , 64 , )),
 	(( u'HasDiagram' , u'pHasDiagram' , ), 132, (132, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 360 , (3, 0, None, None) , 0 , )),
 	(( u'Diagram' , u'Diagram' , ), 133, (133, (), [ (16393, 10, None, "IID('{914934DB-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 364 , (3, 0, None, None) , 0 , )),
@@ -9246,77 +9246,77 @@ Shapes_vtables_ = [
 	(( u'Creator' , u'plCreator' , ), 2002, (2002, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 32 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 1, (1, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
 	(( u'Count' , u'Count' , ), 2, (2, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (12, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (12, 1, None, None) ,
 			(16393, 10, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
 	(( u'_NewEnum' , u'_NewEnum' , ), -4, (-4, (), [ (16397, 10, None, None) , ], 1 , 2 , 4 , 0 , 48 , (3, 0, None, None) , 1024 , )),
-	(( u'AddCallout' , u'Type' , u'Left' , u'Top' , u'Width' , 
-			u'Height' , u'Callout' , ), 10, (10, (), [ (3, 1, None, None) , (4, 1, None, None) , 
+	(( u'AddCallout' , u'Type' , u'Left' , u'Top' , u'Width' ,
+			u'Height' , u'Callout' , ), 10, (10, (), [ (3, 1, None, None) , (4, 1, None, None) ,
 			(4, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , (16393, 10, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
-	(( u'AddConnector' , u'Type' , u'BeginX' , u'BeginY' , u'EndX' , 
-			u'EndY' , u'Connector' , ), 11, (11, (), [ (3, 1, None, None) , (4, 1, None, None) , 
+	(( u'AddConnector' , u'Type' , u'BeginX' , u'BeginY' , u'EndX' ,
+			u'EndY' , u'Connector' , ), 11, (11, (), [ (3, 1, None, None) , (4, 1, None, None) ,
 			(4, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , (16393, 10, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 56 , (3, 0, None, None) , 0 , )),
-	(( u'AddCurve' , u'SafeArrayOfPoints' , u'Curve' , ), 12, (12, (), [ (12, 1, None, None) , 
+	(( u'AddCurve' , u'SafeArrayOfPoints' , u'Curve' , ), 12, (12, (), [ (12, 1, None, None) ,
 			(16393, 10, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 60 , (3, 0, None, None) , 0 , )),
-	(( u'AddLabel' , u'Orientation' , u'Left' , u'Top' , u'Width' , 
-			u'Height' , u'Label' , ), 13, (13, (), [ (3, 1, None, None) , (4, 1, None, None) , 
+	(( u'AddLabel' , u'Orientation' , u'Left' , u'Top' , u'Width' ,
+			u'Height' , u'Label' , ), 13, (13, (), [ (3, 1, None, None) , (4, 1, None, None) ,
 			(4, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , (16393, 10, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 64 , (3, 0, None, None) , 0 , )),
-	(( u'AddLine' , u'BeginX' , u'BeginY' , u'EndX' , u'EndY' , 
-			u'Line' , ), 14, (14, (), [ (4, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , 
+	(( u'AddLine' , u'BeginX' , u'BeginY' , u'EndX' , u'EndY' ,
+			u'Line' , ), 14, (14, (), [ (4, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) ,
 			(4, 1, None, None) , (16393, 10, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 68 , (3, 0, None, None) , 0 , )),
-	(( u'AddPicture' , u'FileName' , u'LinkToFile' , u'SaveWithDocument' , u'Left' , 
-			u'Top' , u'Width' , u'Height' , u'Picture' , ), 15, (15, (), [ 
-			(8, 1, None, None) , (3, 1, None, None) , (3, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , 
+	(( u'AddPicture' , u'FileName' , u'LinkToFile' , u'SaveWithDocument' , u'Left' ,
+			u'Top' , u'Width' , u'Height' , u'Picture' , ), 15, (15, (), [
+			(8, 1, None, None) , (3, 1, None, None) , (3, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) ,
 			(4, 49, '-1.0', None) , (4, 49, '-1.0', None) , (16393, 10, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 72 , (3, 0, None, None) , 0 , )),
-	(( u'AddPolyline' , u'SafeArrayOfPoints' , u'Polyline' , ), 16, (16, (), [ (12, 1, None, None) , 
+	(( u'AddPolyline' , u'SafeArrayOfPoints' , u'Polyline' , ), 16, (16, (), [ (12, 1, None, None) ,
 			(16393, 10, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 76 , (3, 0, None, None) , 0 , )),
-	(( u'AddShape' , u'Type' , u'Left' , u'Top' , u'Width' , 
-			u'Height' , u'Shape' , ), 17, (17, (), [ (3, 1, None, None) , (4, 1, None, None) , 
+	(( u'AddShape' , u'Type' , u'Left' , u'Top' , u'Width' ,
+			u'Height' , u'Shape' , ), 17, (17, (), [ (3, 1, None, None) , (4, 1, None, None) ,
 			(4, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , (16393, 10, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 80 , (3, 0, None, None) , 0 , )),
-	(( u'AddTextEffect' , u'PresetTextEffect' , u'Text' , u'FontName' , u'FontSize' , 
-			u'FontBold' , u'FontItalic' , u'Left' , u'Top' , u'TextEffect' , 
-			), 18, (18, (), [ (3, 1, None, None) , (8, 1, None, None) , (8, 1, None, None) , (4, 1, None, None) , 
+	(( u'AddTextEffect' , u'PresetTextEffect' , u'Text' , u'FontName' , u'FontSize' ,
+			u'FontBold' , u'FontItalic' , u'Left' , u'Top' , u'TextEffect' ,
+			), 18, (18, (), [ (3, 1, None, None) , (8, 1, None, None) , (8, 1, None, None) , (4, 1, None, None) ,
 			(3, 1, None, None) , (3, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , (16393, 10, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 84 , (3, 0, None, None) , 0 , )),
-	(( u'AddTextbox' , u'Orientation' , u'Left' , u'Top' , u'Width' , 
-			u'Height' , u'Textbox' , ), 19, (19, (), [ (3, 1, None, None) , (4, 1, None, None) , 
+	(( u'AddTextbox' , u'Orientation' , u'Left' , u'Top' , u'Width' ,
+			u'Height' , u'Textbox' , ), 19, (19, (), [ (3, 1, None, None) , (4, 1, None, None) ,
 			(4, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , (16393, 10, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 88 , (3, 0, None, None) , 0 , )),
-	(( u'BuildFreeform' , u'EditingType' , u'X1' , u'Y1' , u'FreeformBuilder' , 
+	(( u'BuildFreeform' , u'EditingType' , u'X1' , u'Y1' , u'FreeformBuilder' ,
 			), 20, (20, (), [ (3, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , (16393, 10, None, "IID('{91493478-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 92 , (3, 0, None, None) , 0 , )),
 	(( u'SelectAll' , ), 22, (22, (), [ ], 1 , 1 , 4 , 0 , 96 , (3, 0, None, None) , 0 , )),
-	(( u'Range' , u'Index' , u'Range' , ), 2003, (2003, (), [ (12, 17, None, None) , 
+	(( u'Range' , u'Index' , u'Range' , ), 2003, (2003, (), [ (12, 17, None, None) ,
 			(16393, 10, None, "IID('{9149347A-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 1 , 100 , (3, 0, None, None) , 0 , )),
 	(( u'HasTitle' , u'HasTitle' , ), 2004, (2004, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 104 , (3, 0, None, None) , 0 , )),
 	(( u'AddTitle' , u'Title' , ), 2005, (2005, (), [ (16393, 10, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 108 , (3, 0, None, None) , 0 , )),
 	(( u'Title' , u'Title' , ), 2006, (2006, (), [ (16393, 10, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 112 , (3, 0, None, None) , 0 , )),
 	(( u'Placeholders' , u'Placeholders' , ), 2007, (2007, (), [ (16393, 10, None, "IID('{91493476-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 116 , (3, 0, None, None) , 0 , )),
-	(( u'AddOLEObject' , u'Left' , u'Top' , u'Width' , u'Height' , 
-			u'ClassName' , u'FileName' , u'DisplayAsIcon' , u'IconFileName' , u'IconIndex' , 
-			u'IconLabel' , u'Link' , u'OLEObject' , ), 2008, (2008, (), [ (4, 49, '0.0', None) , 
-			(4, 49, '0.0', None) , (4, 49, '-1.0', None) , (4, 49, '-1.0', None) , (8, 49, "u''", None) , (8, 49, "u''", None) , 
-			(3, 49, '0', None) , (8, 49, "u''", None) , (3, 49, '0', None) , (8, 49, "u''", None) , (3, 49, '0', None) , 
+	(( u'AddOLEObject' , u'Left' , u'Top' , u'Width' , u'Height' ,
+			u'ClassName' , u'FileName' , u'DisplayAsIcon' , u'IconFileName' , u'IconIndex' ,
+			u'IconLabel' , u'Link' , u'OLEObject' , ), 2008, (2008, (), [ (4, 49, '0.0', None) ,
+			(4, 49, '0.0', None) , (4, 49, '-1.0', None) , (4, 49, '-1.0', None) , (8, 49, "u''", None) , (8, 49, "u''", None) ,
+			(3, 49, '0', None) , (8, 49, "u''", None) , (3, 49, '0', None) , (8, 49, "u''", None) , (3, 49, '0', None) ,
 			(16393, 10, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 120 , (3, 32, None, None) , 0 , )),
-	(( u'AddComment' , u'Left' , u'Top' , u'Width' , u'Height' , 
-			u'Comment' , ), 2009, (2009, (), [ (4, 49, '1.25', None) , (4, 49, '1.25', None) , (4, 49, '145.25', None) , 
+	(( u'AddComment' , u'Left' , u'Top' , u'Width' , u'Height' ,
+			u'Comment' , ), 2009, (2009, (), [ (4, 49, '1.25', None) , (4, 49, '1.25', None) , (4, 49, '145.25', None) ,
 			(4, 49, '145.25', None) , (16393, 10, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 124 , (3, 0, None, None) , 0 , )),
-	(( u'AddPlaceholder' , u'Type' , u'Left' , u'Top' , u'Width' , 
-			u'Height' , u'Placeholder' , ), 2010, (2010, (), [ (3, 1, None, None) , (4, 49, '-1.0', None) , 
+	(( u'AddPlaceholder' , u'Type' , u'Left' , u'Top' , u'Width' ,
+			u'Height' , u'Placeholder' , ), 2010, (2010, (), [ (3, 1, None, None) , (4, 49, '-1.0', None) ,
 			(4, 49, '-1.0', None) , (4, 49, '-1.0', None) , (4, 49, '-1.0', None) , (16393, 10, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 128 , (3, 0, None, None) , 0 , )),
-	(( u'AddMediaObject' , u'FileName' , u'Left' , u'Top' , u'Width' , 
-			u'Height' , u'MediaObject' , ), 2011, (2011, (), [ (8, 1, None, None) , (4, 49, '0.0', None) , 
+	(( u'AddMediaObject' , u'FileName' , u'Left' , u'Top' , u'Width' ,
+			u'Height' , u'MediaObject' , ), 2011, (2011, (), [ (8, 1, None, None) , (4, 49, '0.0', None) ,
 			(4, 49, '0.0', None) , (4, 49, '-1.0', None) , (4, 49, '-1.0', None) , (16393, 10, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 132 , (3, 0, None, None) , 0 , )),
 	(( u'Paste' , u'Paste' , ), 2012, (2012, (), [ (16393, 10, None, "IID('{9149347A-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 136 , (3, 0, None, None) , 0 , )),
-	(( u'AddTable' , u'NumRows' , u'NumColumns' , u'Left' , u'Top' , 
-			u'Width' , u'Height' , u'Table' , ), 2013, (2013, (), [ (3, 1, None, None) , 
-			(3, 1, None, None) , (4, 49, '-1.0', None) , (4, 49, '-1.0', None) , (4, 49, '-1.0', None) , (4, 49, '-1.0', None) , 
+	(( u'AddTable' , u'NumRows' , u'NumColumns' , u'Left' , u'Top' ,
+			u'Width' , u'Height' , u'Table' , ), 2013, (2013, (), [ (3, 1, None, None) ,
+			(3, 1, None, None) , (4, 49, '-1.0', None) , (4, 49, '-1.0', None) , (4, 49, '-1.0', None) , (4, 49, '-1.0', None) ,
 			(16393, 10, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 140 , (3, 0, None, None) , 0 , )),
-	(( u'PasteSpecial' , u'DataType' , u'DisplayAsIcon' , u'IconFileName' , u'IconIndex' , 
-			u'IconLabel' , u'Link' , u'PasteSpecial' , ), 2014, (2014, (), [ (3, 49, '0', None) , 
-			(3, 49, '0', None) , (8, 49, "u''", None) , (3, 49, '0', None) , (8, 49, "u''", None) , (3, 49, '0', None) , 
+	(( u'PasteSpecial' , u'DataType' , u'DisplayAsIcon' , u'IconFileName' , u'IconIndex' ,
+			u'IconLabel' , u'Link' , u'PasteSpecial' , ), 2014, (2014, (), [ (3, 49, '0', None) ,
+			(3, 49, '0', None) , (8, 49, "u''", None) , (3, 49, '0', None) , (8, 49, "u''", None) , (3, 49, '0', None) ,
 			(16393, 10, None, "IID('{9149347A-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 144 , (3, 32, None, None) , 0 , )),
-	(( u'AddDiagram' , u'Type' , u'Left' , u'Top' , u'Width' , 
-			u'Height' , u'Diagram' , ), 23, (23, (), [ (3, 1, None, None) , (4, 1, None, None) , 
+	(( u'AddDiagram' , u'Type' , u'Left' , u'Top' , u'Width' ,
+			u'Height' , u'Diagram' , ), 23, (23, (), [ (3, 1, None, None) , (4, 1, None, None) ,
 			(4, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , (16393, 10, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 148 , (3, 0, None, None) , 0 , )),
-	(( u'AddCanvas' , u'Left' , u'Top' , u'Width' , u'Height' , 
-			u'Shape' , ), 25, (25, (), [ (4, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , 
+	(( u'AddCanvas' , u'Left' , u'Top' , u'Width' , u'Height' ,
+			u'Shape' , ), 25, (25, (), [ (4, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) ,
 			(4, 1, None, None) , (16393, 10, None, "IID('{91493479-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 152 , (3, 0, None, None) , 64 , )),
 ]
 
@@ -9355,12 +9355,12 @@ SlideRange_vtables_ = [
 	(( u'NotesPage' , u'NotesPage' , ), 2022, (2022, (), [ (16393, 10, None, "IID('{9149346B-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 132 , (3, 0, None, None) , 0 , )),
 	(( u'Master' , u'Master' , ), 2023, (2023, (), [ (16393, 10, None, "IID('{9149346C-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 136 , (3, 0, None, None) , 0 , )),
 	(( u'Hyperlinks' , u'Hyperlinks' , ), 2024, (2024, (), [ (16393, 10, None, "IID('{91493464-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 140 , (3, 0, None, None) , 0 , )),
-	(( u'Export' , u'FileName' , u'FilterName' , u'ScaleWidth' , u'ScaleHeight' , 
+	(( u'Export' , u'FileName' , u'FilterName' , u'ScaleWidth' , u'ScaleHeight' ,
 			), 2025, (2025, (), [ (8, 1, None, None) , (8, 1, None, None) , (3, 49, '0', None) , (3, 49, '0', None) , ], 1 , 1 , 4 , 0 , 144 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (12, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (12, 1, None, None) ,
 			(16397, 10, None, "IID('{91493445-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 148 , (3, 0, None, None) , 0 , )),
 	(( u'_NewEnum' , u'_NewEnum' , ), -4, (-4, (), [ (16397, 10, None, None) , ], 1 , 2 , 4 , 0 , 152 , (3, 0, None, None) , 1 , )),
-	(( u'_Index' , u'Index' , u'_Index' , ), 10, (10, (), [ (3, 1, None, None) , 
+	(( u'_Index' , u'Index' , u'_Index' , ), 10, (10, (), [ (3, 1, None, None) ,
 			(16396, 10, None, None) , ], 1 , 1 , 4 , 0 , 156 , (3, 0, None, None) , 1 , )),
 	(( u'Count' , u'Count' , ), 11, (11, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 160 , (3, 0, None, None) , 0 , )),
 	(( u'Scripts' , u'Scripts' , ), 2026, (2026, (), [ (16393, 10, None, "IID('{000C0340-0000-0000-C000-000000000046}')") , ], 1 , 2 , 4 , 0 , 164 , (3, 0, None, None) , 0 , )),
@@ -9442,20 +9442,20 @@ SlideShowView_vtables_ = [
 	(( u'PointerColor' , u'PointerColor' , ), 2012, (2012, (), [ (16393, 10, None, "IID('{91493452-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 88 , (3, 0, None, None) , 0 , )),
 	(( u'IsNamedShow' , u'IsNamedShow' , ), 2013, (2013, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 92 , (3, 0, None, None) , 0 , )),
 	(( u'SlideShowName' , u'SlideShowName' , ), 2014, (2014, (), [ (16392, 10, None, None) , ], 1 , 2 , 4 , 0 , 96 , (3, 0, None, None) , 0 , )),
-	(( u'DrawLine' , u'BeginX' , u'BeginY' , u'EndX' , u'EndY' , 
+	(( u'DrawLine' , u'BeginX' , u'BeginY' , u'EndX' , u'EndY' ,
 			), 2015, (2015, (), [ (4, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , (4, 1, None, None) , ], 1 , 1 , 4 , 0 , 100 , (3, 0, None, None) , 0 , )),
 	(( u'EraseDrawing' , ), 2016, (2016, (), [ ], 1 , 1 , 4 , 0 , 104 , (3, 0, None, None) , 0 , )),
 	(( u'First' , ), 2017, (2017, (), [ ], 1 , 1 , 4 , 0 , 108 , (3, 0, None, None) , 0 , )),
 	(( u'Last' , ), 2018, (2018, (), [ ], 1 , 1 , 4 , 0 , 112 , (3, 0, None, None) , 0 , )),
 	(( u'Next' , ), 2019, (2019, (), [ ], 1 , 1 , 4 , 0 , 116 , (3, 0, None, None) , 0 , )),
 	(( u'Previous' , ), 2020, (2020, (), [ ], 1 , 1 , 4 , 0 , 120 , (3, 0, None, None) , 0 , )),
-	(( u'GotoSlide' , u'Index' , u'ResetSlide' , ), 2021, (2021, (), [ (3, 1, None, None) , 
+	(( u'GotoSlide' , u'Index' , u'ResetSlide' , ), 2021, (2021, (), [ (3, 1, None, None) ,
 			(3, 49, '-1', None) , ], 1 , 1 , 4 , 0 , 124 , (3, 0, None, None) , 0 , )),
 	(( u'GotoNamedShow' , u'SlideShowName' , ), 2022, (2022, (), [ (8, 1, None, None) , ], 1 , 1 , 4 , 0 , 128 , (3, 0, None, None) , 0 , )),
 	(( u'EndNamedShow' , ), 2023, (2023, (), [ ], 1 , 1 , 4 , 0 , 132 , (3, 0, None, None) , 0 , )),
 	(( u'ResetSlideTime' , ), 2024, (2024, (), [ ], 1 , 1 , 4 , 0 , 136 , (3, 0, None, None) , 0 , )),
 	(( u'Exit' , ), 2025, (2025, (), [ ], 1 , 1 , 4 , 0 , 140 , (3, 0, None, None) , 0 , )),
-	(( u'InstallTracker' , u'pTracker' , u'Presenter' , ), 2026, (2026, (), [ (13, 1, None, "IID('{914934BE-5A91-11CF-8700-00AA0060263B}')") , 
+	(( u'InstallTracker' , u'pTracker' , u'Presenter' , ), 2026, (2026, (), [ (13, 1, None, "IID('{914934BE-5A91-11CF-8700-00AA0060263B}')") ,
 			(3, 1, None, None) , ], 1 , 1 , 4 , 0 , 144 , (3, 0, None, None) , 64 , )),
 	(( u'CurrentShowPosition' , u'CurrentShowPosition' , ), 2027, (2027, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 148 , (3, 0, None, None) , 0 , )),
 ]
@@ -9484,7 +9484,7 @@ SlideShowWindows_vtables_dispatch_ = 1
 SlideShowWindows_vtables_ = [
 	(( u'Application' , u'Application' , ), 2001, (2001, (), [ (16397, 10, None, "IID('{91493441-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 2002, (2002, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16393, 10, None, "IID('{91493453-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
 ]
 
@@ -9492,18 +9492,18 @@ Slides_vtables_dispatch_ = 1
 Slides_vtables_ = [
 	(( u'Application' , u'Application' , ), 2001, (2001, (), [ (16397, 10, None, "IID('{91493441-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 2002, (2002, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (12, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (12, 1, None, None) ,
 			(16397, 10, None, "IID('{91493445-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
-	(( u'FindBySlideID' , u'SlideID' , u'FindBySlideID' , ), 2003, (2003, (), [ (3, 1, None, None) , 
+	(( u'FindBySlideID' , u'SlideID' , u'FindBySlideID' , ), 2003, (2003, (), [ (3, 1, None, None) ,
 			(16397, 10, None, "IID('{91493445-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
-	(( u'Add' , u'Index' , u'Layout' , u'Add' , ), 2004, (2004, (), [ 
+	(( u'Add' , u'Index' , u'Layout' , u'Add' , ), 2004, (2004, (), [
 			(3, 1, None, None) , (3, 1, None, None) , (16397, 10, None, "IID('{91493445-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 56 , (3, 0, None, None) , 0 , )),
-	(( u'InsertFromFile' , u'FileName' , u'Index' , u'SlideStart' , u'SlideEnd' , 
-			u'FromFile' , ), 2005, (2005, (), [ (8, 1, None, None) , (3, 1, None, None) , (3, 49, '1', None) , 
+	(( u'InsertFromFile' , u'FileName' , u'Index' , u'SlideStart' , u'SlideEnd' ,
+			u'FromFile' , ), 2005, (2005, (), [ (8, 1, None, None) , (3, 1, None, None) , (3, 49, '1', None) ,
 			(3, 49, '-1', None) , (16387, 10, None, None) , ], 1 , 1 , 4 , 0 , 60 , (3, 0, None, None) , 0 , )),
-	(( u'Range' , u'Index' , u'Range' , ), 2006, (2006, (), [ (12, 17, None, None) , 
+	(( u'Range' , u'Index' , u'Range' , ), 2006, (2006, (), [ (12, 17, None, None) ,
 			(16393, 10, None, "IID('{9149346B-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 1 , 64 , (3, 0, None, None) , 0 , )),
-	(( u'Paste' , u'Index' , u'Paste' , ), 2007, (2007, (), [ (3, 49, '-1', None) , 
+	(( u'Paste' , u'Index' , u'Paste' , ), 2007, (2007, (), [ (3, 49, '-1', None) ,
 			(16393, 10, None, "IID('{9149346B-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 68 , (3, 0, None, None) , 0 , )),
 ]
 
@@ -9523,7 +9523,7 @@ SoundFormat_vtables_dispatch_ = 1
 SoundFormat_vtables_ = [
 	(( u'Play' , ), 2000, (2000, (), [ ], 1 , 1 , 4 , 0 , 28 , (3, 0, None, None) , 0 , )),
 	(( u'Import' , u'FileName' , ), 2001, (2001, (), [ (8, 1, None, None) , ], 1 , 1 , 4 , 0 , 32 , (3, 0, None, None) , 0 , )),
-	(( u'Export' , u'FileName' , u'Export' , ), 2002, (2002, (), [ (8, 1, None, None) , 
+	(( u'Export' , u'FileName' , u'Export' , ), 2002, (2002, (), [ (8, 1, None, None) ,
 			(16387, 10, None, None) , ], 1 , 1 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
 	(( u'Type' , u'Type' , ), 2003, (2003, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'SourceFullName' , u'SourceFullName' , ), 2004, (2004, (), [ (16392, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
@@ -9544,11 +9544,11 @@ TabStops_vtables_dispatch_ = 1
 TabStops_vtables_ = [
 	(( u'Application' , u'Application' , ), 2001, (2001, (), [ (16397, 10, None, "IID('{91493441-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 2002, (2002, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Index' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16393, 10, None, "IID('{91493494-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
 	(( u'DefaultSpacing' , u'DefaultSpacing' , ), 2003, (2003, (), [ (16388, 10, None, None) , ], 1 , 2 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
 	(( u'DefaultSpacing' , u'DefaultSpacing' , ), 2003, (2003, (), [ (4, 1, None, None) , ], 1 , 4 , 4 , 0 , 56 , (3, 0, None, None) , 0 , )),
-	(( u'Add' , u'Type' , u'Position' , u'Add' , ), 2004, (2004, (), [ 
+	(( u'Add' , u'Type' , u'Position' , u'Add' , ), 2004, (2004, (), [
 			(3, 1, None, None) , (4, 1, None, None) , (16393, 10, None, "IID('{91493494-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 60 , (3, 0, None, None) , 0 , )),
 ]
 
@@ -9558,7 +9558,7 @@ Table_vtables_ = [
 	(( u'Parent' , u'Parent' , ), 2002, (2002, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 32 , (3, 0, None, None) , 0 , )),
 	(( u'Columns' , u'Columns' , ), 2003, (2003, (), [ (16393, 10, None, "IID('{914934C4-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 36 , (3, 0, None, None) , 0 , )),
 	(( u'Rows' , u'Rows' , ), 2004, (2004, (), [ (16393, 10, None, "IID('{914934C6-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
-	(( u'Cell' , u'Row' , u'Column' , u'Cell' , ), 2005, (2005, (), [ 
+	(( u'Cell' , u'Row' , u'Column' , u'Cell' , ), 2005, (2005, (), [
 			(3, 1, None, None) , (3, 1, None, None) , (16393, 10, None, "IID('{914934C9-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
 	(( u'TableDirection' , u'TableDirection' , ), 2006, (2006, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
 	(( u'TableDirection' , u'TableDirection' , ), 2006, (2006, (), [ (3, 1, None, None) , ], 1 , 4 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
@@ -9569,18 +9569,18 @@ Tags_vtables_dispatch_ = 1
 Tags_vtables_ = [
 	(( u'Application' , u'Application' , ), 2001, (2001, (), [ (16397, 10, None, "IID('{91493441-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 2002, (2002, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Name' , u'Item' , ), 0, (0, (), [ (8, 1, None, None) , 
+	(( u'Item' , u'Name' , u'Item' , ), 0, (0, (), [ (8, 1, None, None) ,
 			(16392, 10, None, None) , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
-	(( u'Add' , u'Name' , u'Value' , ), 2003, (2003, (), [ (8, 1, None, None) , 
+	(( u'Add' , u'Name' , u'Value' , ), 2003, (2003, (), [ (8, 1, None, None) ,
 			(8, 1, None, None) , ], 1 , 1 , 4 , 0 , 52 , (3, 0, None, None) , 0 , )),
 	(( u'Delete' , u'Name' , ), 2004, (2004, (), [ (8, 1, None, None) , ], 1 , 1 , 4 , 0 , 56 , (3, 0, None, None) , 0 , )),
-	(( u'AddBinary' , u'Name' , u'FilePath' , ), 2005, (2005, (), [ (8, 1, None, None) , 
+	(( u'AddBinary' , u'Name' , u'FilePath' , ), 2005, (2005, (), [ (8, 1, None, None) ,
 			(8, 1, None, None) , ], 1 , 1 , 4 , 0 , 60 , (3, 0, None, None) , 64 , )),
-	(( u'BinaryValue' , u'Name' , u'BinaryValue' , ), 2006, (2006, (), [ (8, 1, None, None) , 
+	(( u'BinaryValue' , u'Name' , u'BinaryValue' , ), 2006, (2006, (), [ (8, 1, None, None) ,
 			(16387, 10, None, None) , ], 1 , 1 , 4 , 0 , 64 , (3, 0, None, None) , 64 , )),
-	(( u'Name' , u'Index' , u'Name' , ), 2007, (2007, (), [ (3, 1, None, None) , 
+	(( u'Name' , u'Index' , u'Name' , ), 2007, (2007, (), [ (3, 1, None, None) ,
 			(16392, 10, None, None) , ], 1 , 1 , 4 , 0 , 68 , (3, 0, None, None) , 0 , )),
-	(( u'Value' , u'Index' , u'Value' , ), 2008, (2008, (), [ (3, 1, None, None) , 
+	(( u'Value' , u'Index' , u'Value' , ), 2008, (2008, (), [ (3, 1, None, None) ,
 			(16392, 10, None, None) , ], 1 , 1 , 4 , 0 , 72 , (3, 0, None, None) , 0 , )),
 ]
 
@@ -9656,29 +9656,29 @@ TextRange_vtables_ = [
 	(( u'BoundTop' , u'BoundTop' , ), 2007, (2007, (), [ (16388, 10, None, None) , ], 1 , 2 , 4 , 0 , 64 , (3, 0, None, None) , 0 , )),
 	(( u'BoundWidth' , u'BoundWidth' , ), 2008, (2008, (), [ (16388, 10, None, None) , ], 1 , 2 , 4 , 0 , 68 , (3, 0, None, None) , 0 , )),
 	(( u'BoundHeight' , u'BoundHeight' , ), 2009, (2009, (), [ (16388, 10, None, None) , ], 1 , 2 , 4 , 0 , 72 , (3, 0, None, None) , 0 , )),
-	(( u'Paragraphs' , u'Start' , u'Length' , u'Paragraphs' , ), 2010, (2010, (), [ 
+	(( u'Paragraphs' , u'Start' , u'Length' , u'Paragraphs' , ), 2010, (2010, (), [
 			(3, 49, '-1', None) , (3, 49, '-1', None) , (16393, 10, None, "IID('{9149348F-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 76 , (3, 0, None, None) , 0 , )),
-	(( u'Sentences' , u'Start' , u'Length' , u'Sentences' , ), 2011, (2011, (), [ 
+	(( u'Sentences' , u'Start' , u'Length' , u'Sentences' , ), 2011, (2011, (), [
 			(3, 49, '-1', None) , (3, 49, '-1', None) , (16393, 10, None, "IID('{9149348F-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 80 , (3, 0, None, None) , 0 , )),
-	(( u'Words' , u'Start' , u'Length' , u'Words' , ), 2012, (2012, (), [ 
+	(( u'Words' , u'Start' , u'Length' , u'Words' , ), 2012, (2012, (), [
 			(3, 49, '-1', None) , (3, 49, '-1', None) , (16393, 10, None, "IID('{9149348F-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 84 , (3, 0, None, None) , 0 , )),
-	(( u'Characters' , u'Start' , u'Length' , u'Characters' , ), 2013, (2013, (), [ 
+	(( u'Characters' , u'Start' , u'Length' , u'Characters' , ), 2013, (2013, (), [
 			(3, 49, '-1', None) , (3, 49, '-1', None) , (16393, 10, None, "IID('{9149348F-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 88 , (3, 0, None, None) , 0 , )),
-	(( u'Lines' , u'Start' , u'Length' , u'Lines' , ), 2014, (2014, (), [ 
+	(( u'Lines' , u'Start' , u'Length' , u'Lines' , ), 2014, (2014, (), [
 			(3, 49, '-1', None) , (3, 49, '-1', None) , (16393, 10, None, "IID('{9149348F-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 92 , (3, 0, None, None) , 0 , )),
-	(( u'Runs' , u'Start' , u'Length' , u'Runs' , ), 2015, (2015, (), [ 
+	(( u'Runs' , u'Start' , u'Length' , u'Runs' , ), 2015, (2015, (), [
 			(3, 49, '-1', None) , (3, 49, '-1', None) , (16393, 10, None, "IID('{9149348F-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 96 , (3, 0, None, None) , 0 , )),
 	(( u'TrimText' , u'TrimText' , ), 2016, (2016, (), [ (16393, 10, None, "IID('{9149348F-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 100 , (3, 0, None, None) , 0 , )),
 	(( u'Text' , u'Text' , ), 0, (0, (), [ (16392, 10, None, None) , ], 1 , 2 , 4 , 0 , 104 , (3, 0, None, None) , 0 , )),
 	(( u'Text' , u'Text' , ), 0, (0, (), [ (8, 1, None, None) , ], 1 , 4 , 4 , 0 , 108 , (3, 0, None, None) , 0 , )),
-	(( u'InsertAfter' , u'NewText' , u'After' , ), 2017, (2017, (), [ (8, 49, "u''", None) , 
+	(( u'InsertAfter' , u'NewText' , u'After' , ), 2017, (2017, (), [ (8, 49, "u''", None) ,
 			(16393, 10, None, "IID('{9149348F-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 112 , (3, 32, None, None) , 0 , )),
-	(( u'InsertBefore' , u'NewText' , u'Before' , ), 2018, (2018, (), [ (8, 49, "u''", None) , 
+	(( u'InsertBefore' , u'NewText' , u'Before' , ), 2018, (2018, (), [ (8, 49, "u''", None) ,
 			(16393, 10, None, "IID('{9149348F-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 116 , (3, 32, None, None) , 0 , )),
-	(( u'InsertDateTime' , u'DateTimeFormat' , u'InsertAsField' , u'DateTime' , ), 2019, (2019, (), [ 
+	(( u'InsertDateTime' , u'DateTimeFormat' , u'InsertAsField' , u'DateTime' , ), 2019, (2019, (), [
 			(3, 1, None, None) , (3, 49, '0', None) , (16393, 10, None, "IID('{9149348F-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 120 , (3, 0, None, None) , 0 , )),
 	(( u'InsertSlideNumber' , u'SlideNumber' , ), 2020, (2020, (), [ (16393, 10, None, "IID('{9149348F-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 124 , (3, 0, None, None) , 0 , )),
-	(( u'InsertSymbol' , u'FontName' , u'CharNumber' , u'Unicode' , u'Symbol' , 
+	(( u'InsertSymbol' , u'FontName' , u'CharNumber' , u'Unicode' , u'Symbol' ,
 			), 2021, (2021, (), [ (8, 1, None, None) , (3, 1, None, None) , (3, 49, '0', None) , (16393, 10, None, "IID('{9149348F-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 128 , (3, 0, None, None) , 0 , )),
 	(( u'Font' , u'Font' , ), 2022, (2022, (), [ (16393, 10, None, "IID('{91493495-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 132 , (3, 0, None, None) , 0 , )),
 	(( u'ParagraphFormat' , u'ParagraphFormat' , ), 2023, (2023, (), [ (16393, 10, None, "IID('{91493496-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 136 , (3, 0, None, None) , 0 , )),
@@ -9692,23 +9692,23 @@ TextRange_vtables_ = [
 	(( u'ChangeCase' , u'Type' , ), 2030, (2030, (), [ (3, 1, None, None) , ], 1 , 1 , 4 , 0 , 168 , (3, 0, None, None) , 0 , )),
 	(( u'AddPeriods' , ), 2031, (2031, (), [ ], 1 , 1 , 4 , 0 , 172 , (3, 0, None, None) , 0 , )),
 	(( u'RemovePeriods' , ), 2032, (2032, (), [ ], 1 , 1 , 4 , 0 , 176 , (3, 0, None, None) , 0 , )),
-	(( u'Find' , u'FindWhat' , u'After' , u'MatchCase' , u'WholeWords' , 
-			u'Find' , ), 2033, (2033, (), [ (8, 1, None, None) , (3, 49, '0', None) , (3, 49, '0', None) , 
+	(( u'Find' , u'FindWhat' , u'After' , u'MatchCase' , u'WholeWords' ,
+			u'Find' , ), 2033, (2033, (), [ (8, 1, None, None) , (3, 49, '0', None) , (3, 49, '0', None) ,
 			(3, 49, '0', None) , (16393, 10, None, "IID('{9149348F-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 180 , (3, 0, None, None) , 0 , )),
-	(( u'Replace' , u'FindWhat' , u'ReplaceWhat' , u'After' , u'MatchCase' , 
-			u'WholeWords' , u'Replace' , ), 2034, (2034, (), [ (8, 1, None, None) , (8, 1, None, None) , 
+	(( u'Replace' , u'FindWhat' , u'ReplaceWhat' , u'After' , u'MatchCase' ,
+			u'WholeWords' , u'Replace' , ), 2034, (2034, (), [ (8, 1, None, None) , (8, 1, None, None) ,
 			(3, 49, '0', None) , (3, 49, '0', None) , (3, 49, '0', None) , (16393, 10, None, "IID('{9149348F-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 184 , (3, 0, None, None) , 0 , )),
-	(( u'RotatedBounds' , u'X1' , u'Y1' , u'X2' , u'Y2' , 
-			u'X3' , u'Y3' , u'x4' , u'y4' , ), 2035, (2035, (), [ 
-			(16388, 2, None, None) , (16388, 2, None, None) , (16388, 2, None, None) , (16388, 2, None, None) , (16388, 2, None, None) , 
+	(( u'RotatedBounds' , u'X1' , u'Y1' , u'X2' , u'Y2' ,
+			u'X3' , u'Y3' , u'x4' , u'y4' , ), 2035, (2035, (), [
+			(16388, 2, None, None) , (16388, 2, None, None) , (16388, 2, None, None) , (16388, 2, None, None) , (16388, 2, None, None) ,
 			(16388, 2, None, None) , (16388, 2, None, None) , (16388, 2, None, None) , ], 1 , 1 , 4 , 0 , 188 , (3, 0, None, None) , 0 , )),
 	(( u'LanguageID' , u'LanguageID' , ), 2036, (2036, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 192 , (3, 0, None, None) , 0 , )),
 	(( u'LanguageID' , u'LanguageID' , ), 2036, (2036, (), [ (3, 1, None, None) , ], 1 , 4 , 4 , 0 , 196 , (3, 0, None, None) , 0 , )),
 	(( u'RtlRun' , ), 2037, (2037, (), [ ], 1 , 1 , 4 , 0 , 200 , (3, 0, None, None) , 0 , )),
 	(( u'LtrRun' , ), 2038, (2038, (), [ ], 1 , 1 , 4 , 0 , 204 , (3, 0, None, None) , 0 , )),
-	(( u'PasteSpecial' , u'DataType' , u'DisplayAsIcon' , u'IconFileName' , u'IconIndex' , 
-			u'IconLabel' , u'Link' , u'PasteSpecial' , ), 2039, (2039, (), [ (3, 49, '0', None) , 
-			(3, 49, '0', None) , (8, 49, "u''", None) , (3, 49, '0', None) , (8, 49, "u''", None) , (3, 49, '0', None) , 
+	(( u'PasteSpecial' , u'DataType' , u'DisplayAsIcon' , u'IconFileName' , u'IconIndex' ,
+			u'IconLabel' , u'Link' , u'PasteSpecial' , ), 2039, (2039, (), [ (3, 49, '0', None) ,
+			(3, 49, '0', None) , (8, 49, "u''", None) , (3, 49, '0', None) , (8, 49, "u''", None) , (3, 49, '0', None) ,
 			(16393, 10, None, "IID('{9149348F-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 208 , (3, 32, None, None) , 0 , )),
 ]
 
@@ -9733,7 +9733,7 @@ TextStyleLevels_vtables_dispatch_ = 1
 TextStyleLevels_vtables_ = [
 	(( u'Application' , u'Application' , ), 2001, (2001, (), [ (16397, 10, None, "IID('{91493441-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 2002, (2002, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Level' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Level' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16393, 10, None, "IID('{9149349B-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
 ]
 
@@ -9741,7 +9741,7 @@ TextStyles_vtables_dispatch_ = 1
 TextStyles_vtables_ = [
 	(( u'Application' , u'Application' , ), 2001, (2001, (), [ (16397, 10, None, "IID('{91493441-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 40 , (3, 0, None, None) , 0 , )),
 	(( u'Parent' , u'Parent' , ), 2002, (2002, (), [ (16393, 10, None, None) , ], 1 , 2 , 4 , 0 , 44 , (3, 0, None, None) , 0 , )),
-	(( u'Item' , u'Type' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) , 
+	(( u'Item' , u'Type' , u'Item' , ), 0, (0, (), [ (3, 1, None, None) ,
 			(16393, 10, None, "IID('{91493499-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 48 , (3, 0, None, None) , 0 , )),
 ]
 
@@ -9835,12 +9835,12 @@ View_vtables_ = [
 	(( u'DisplaySlideMiniature' , u'DisplaySlideMiniature' , ), 2008, (2008, (), [ (3, 1, None, None) , ], 1 , 4 , 4 , 0 , 68 , (3, 0, None, None) , 0 , )),
 	(( u'ZoomToFit' , u'ZoomToFit' , ), 2009, (2009, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 72 , (3, 0, None, None) , 0 , )),
 	(( u'ZoomToFit' , u'ZoomToFit' , ), 2009, (2009, (), [ (3, 1, None, None) , ], 1 , 4 , 4 , 0 , 76 , (3, 0, None, None) , 0 , )),
-	(( u'PasteSpecial' , u'DataType' , u'DisplayAsIcon' , u'IconFileName' , u'IconIndex' , 
-			u'IconLabel' , u'Link' , ), 2010, (2010, (), [ (3, 49, '0', None) , (3, 49, '0', None) , 
+	(( u'PasteSpecial' , u'DataType' , u'DisplayAsIcon' , u'IconFileName' , u'IconIndex' ,
+			u'IconLabel' , u'Link' , ), 2010, (2010, (), [ (3, 49, '0', None) , (3, 49, '0', None) ,
 			(8, 49, "u''", None) , (3, 49, '0', None) , (8, 49, "u''", None) , (3, 49, '0', None) , ], 1 , 1 , 4 , 0 , 80 , (3, 32, None, None) , 0 , )),
 	(( u'PrintOptions' , u'PrintOptions' , ), 2011, (2011, (), [ (16393, 10, None, "IID('{9149345D-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 84 , (3, 0, None, None) , 0 , )),
-	(( u'PrintOut' , u'From' , u'To' , u'PrintToFile' , u'Copies' , 
-			u'Collate' , ), 2012, (2012, (), [ (3, 49, '-1', None) , (3, 49, '-1', None) , (8, 49, "u''", None) , 
+	(( u'PrintOut' , u'From' , u'To' , u'PrintToFile' , u'Copies' ,
+			u'Collate' , ), 2012, (2012, (), [ (3, 49, '-1', None) , (3, 49, '-1', None) , (8, 49, "u''", None) ,
 			(3, 49, '0', None) , (3, 49, '-99', None) , ], 1 , 1 , 4 , 0 , 88 , (3, 32, None, None) , 0 , )),
 ]
 
@@ -9897,12 +9897,12 @@ _Application_vtables_ = [
 	(( u'Creator' , u'Creator' , ), 2017, (2017, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 100 , (3, 0, None, None) , 0 , )),
 	(( u'AddIns' , u'AddIns' , ), 2018, (2018, (), [ (16393, 10, None, "IID('{91493460-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 104 , (3, 0, None, None) , 0 , )),
 	(( u'VBE' , u'VBE' , ), 2019, (2019, (), [ (16393, 10, None, "IID('{0002E166-0000-0000-C000-000000000046}')") , ], 1 , 2 , 4 , 0 , 108 , (3, 0, None, None) , 0 , )),
-	(( u'Help' , u'HelpFile' , u'ContextID' , ), 2020, (2020, (), [ (8, 49, "u'vbapp10.chm'", None) , 
+	(( u'Help' , u'HelpFile' , u'ContextID' , ), 2020, (2020, (), [ (8, 49, "u'vbapp10.chm'", None) ,
 			(3, 49, '0', None) , ], 1 , 1 , 4 , 0 , 112 , (3, 32, None, None) , 0 , )),
 	(( u'Quit' , ), 2021, (2021, (), [ ], 1 , 1 , 4 , 0 , 116 , (3, 0, None, None) , 0 , )),
-	(( u'Run' , u'MacroName' , u'safeArrayOfParams' , u'Run' , ), 2022, (2022, (), [ 
+	(( u'Run' , u'MacroName' , u'safeArrayOfParams' , u'Run' , ), 2022, (2022, (), [
 			(8, 1, None, None) , (24588, 1, None, None) , (16396, 10, None, None) , ], 1 , 1 , 4 , -1 , 120 , (3, 0, None, None) , 0 , )),
-	(( u'PPFileDialog' , u'Type' , u'PPFileDialog' , ), 2023, (2023, (), [ (3, 1, None, None) , 
+	(( u'PPFileDialog' , u'Type' , u'PPFileDialog' , ), 2023, (2023, (), [ (3, 1, None, None) ,
 			(16397, 10, None, None) , ], 1 , 1 , 4 , 0 , 124 , (3, 0, None, None) , 64 , )),
 	(( u'LaunchSpelling' , u'pWindow' , ), 2024, (2024, (), [ (9, 1, None, "IID('{91493457-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 128 , (3, 0, None, None) , 1 , )),
 	(( u'Left' , u'Left' , ), 2025, (2025, (), [ (16388, 10, None, None) , ], 1 , 2 , 4 , 0 , 132 , (3, 0, None, None) , 0 , )),
@@ -9931,11 +9931,11 @@ _Application_vtables_ = [
 	(( u'Marker' , u'Marker' , ), 2041, (2041, (), [ (16397, 10, None, None) , ], 1 , 2 , 4 , 0 , 224 , (3, 0, None, None) , 64 , )),
 	(( u'FeatureInstall' , u'FeatureInstall' , ), 2042, (2042, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 228 , (3, 0, None, None) , 0 , )),
 	(( u'FeatureInstall' , u'FeatureInstall' , ), 2042, (2042, (), [ (3, 1, None, None) , ], 1 , 4 , 4 , 0 , 232 , (3, 0, None, None) , 0 , )),
-	(( u'GetOptionFlag' , u'Option' , u'Persist' , u'GetOptionFlag' , ), 2043, (2043, (), [ 
+	(( u'GetOptionFlag' , u'Option' , u'Persist' , u'GetOptionFlag' , ), 2043, (2043, (), [
 			(3, 1, None, None) , (11, 49, 'False', None) , (16395, 10, None, None) , ], 1 , 1 , 4 , 0 , 236 , (3, 0, None, None) , 64 , )),
-	(( u'SetOptionFlag' , u'Option' , u'State' , u'Persist' , ), 2044, (2044, (), [ 
+	(( u'SetOptionFlag' , u'Option' , u'State' , u'Persist' , ), 2044, (2044, (), [
 			(3, 1, None, None) , (11, 1, None, None) , (11, 49, 'False', None) , ], 1 , 1 , 4 , 0 , 240 , (3, 0, None, None) , 64 , )),
-	(( u'FileDialog' , u'Type' , u'FileDialog' , ), 2045, (2045, (), [ (3, 1, None, None) , 
+	(( u'FileDialog' , u'Type' , u'FileDialog' , ), 2045, (2045, (), [ (3, 1, None, None) ,
 			(16393, 10, None, "IID('{000C0362-0000-0000-C000-000000000046}')") , ], 1 , 2 , 4 , 0 , 244 , (3, 0, None, None) , 0 , )),
 	(( u'DisplayGridLines' , u'DisplayGridLines' , ), 2046, (2046, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 248 , (3, 0, None, None) , 0 , )),
 	(( u'DisplayGridLines' , u'DisplayGridLines' , ), 2046, (2046, (), [ (3, 1, None, None) , ], 1 , 4 , 4 , 0 , 252 , (3, 0, None, None) , 0 , )),
@@ -9990,7 +9990,7 @@ _Master_vtables_ = [
 
 _PowerRex_vtables_dispatch_ = 1
 _PowerRex_vtables_ = [
-	(( u'OnAsfEncoderEvent' , u'erorCode' , u'bstrErrorDesc' , ), 2001, (2001, (), [ (12, 1, None, None) , 
+	(( u'OnAsfEncoderEvent' , u'erorCode' , u'bstrErrorDesc' , ), 2001, (2001, (), [ (12, 1, None, None) ,
 			(12, 1, None, None) , ], 1 , 1 , 4 , 0 , 28 , (3, 0, None, None) , 64 , )),
 ]
 
@@ -10027,22 +10027,22 @@ _Presentation_vtables_ = [
 	(( u'LayoutDirection' , u'LayoutDirection' , ), 2028, (2028, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 140 , (3, 0, None, None) , 0 , )),
 	(( u'LayoutDirection' , u'LayoutDirection' , ), 2028, (2028, (), [ (3, 1, None, None) , ], 1 , 4 , 4 , 0 , 144 , (3, 0, None, None) , 0 , )),
 	(( u'NewWindow' , u'NewWindow' , ), 2029, (2029, (), [ (16393, 10, None, "IID('{91493457-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 1 , 4 , 0 , 148 , (3, 0, None, None) , 0 , )),
-	(( u'FollowHyperlink' , u'Address' , u'SubAddress' , u'NewWindow' , u'AddHistory' , 
-			u'ExtraInfo' , u'Method' , u'HeaderInfo' , ), 2030, (2030, (), [ (8, 1, None, None) , 
-			(8, 49, "u''", None) , (11, 49, 'False', None) , (11, 49, 'True', None) , (8, 49, "u''", None) , (3, 49, '0', None) , 
+	(( u'FollowHyperlink' , u'Address' , u'SubAddress' , u'NewWindow' , u'AddHistory' ,
+			u'ExtraInfo' , u'Method' , u'HeaderInfo' , ), 2030, (2030, (), [ (8, 1, None, None) ,
+			(8, 49, "u''", None) , (11, 49, 'False', None) , (11, 49, 'True', None) , (8, 49, "u''", None) , (3, 49, '0', None) ,
 			(8, 49, "u''", None) , ], 1 , 1 , 4 , 0 , 152 , (3, 32, None, None) , 0 , )),
 	(( u'AddToFavorites' , ), 2031, (2031, (), [ ], 1 , 1 , 4 , 0 , 156 , (3, 0, None, None) , 0 , )),
 	(( u'Unused' , ), 2032, (2032, (), [ ], 1 , 1 , 4 , 0 , 160 , (3, 0, None, None) , 1 , )),
 	(( u'PrintOptions' , u'PrintOptions' , ), 2033, (2033, (), [ (16393, 10, None, "IID('{9149345D-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 164 , (3, 0, None, None) , 0 , )),
-	(( u'PrintOut' , u'From' , u'To' , u'PrintToFile' , u'Copies' , 
-			u'Collate' , ), 2034, (2034, (), [ (3, 49, '-1', None) , (3, 49, '-1', None) , (8, 49, "u''", None) , 
+	(( u'PrintOut' , u'From' , u'To' , u'PrintToFile' , u'Copies' ,
+			u'Collate' , ), 2034, (2034, (), [ (3, 49, '-1', None) , (3, 49, '-1', None) , (8, 49, "u''", None) ,
 			(3, 49, '0', None) , (3, 49, '-99', None) , ], 1 , 1 , 4 , 0 , 168 , (3, 32, None, None) , 0 , )),
 	(( u'Save' , ), 2035, (2035, (), [ ], 1 , 1 , 4 , 0 , 172 , (3, 0, None, None) , 0 , )),
-	(( u'SaveAs' , u'FileName' , u'FileFormat' , u'EmbedTrueTypeFonts' , ), 2036, (2036, (), [ 
+	(( u'SaveAs' , u'FileName' , u'FileFormat' , u'EmbedTrueTypeFonts' , ), 2036, (2036, (), [
 			(8, 1, None, None) , (3, 49, '1', None) , (3, 49, '-2', None) , ], 1 , 1 , 4 , 0 , 176 , (3, 0, None, None) , 0 , )),
-	(( u'SaveCopyAs' , u'FileName' , u'FileFormat' , u'EmbedTrueTypeFonts' , ), 2037, (2037, (), [ 
+	(( u'SaveCopyAs' , u'FileName' , u'FileFormat' , u'EmbedTrueTypeFonts' , ), 2037, (2037, (), [
 			(8, 1, None, None) , (3, 49, '11', None) , (3, 49, '-2', None) , ], 1 , 1 , 4 , 0 , 180 , (3, 0, None, None) , 0 , )),
-	(( u'Export' , u'Path' , u'FilterName' , u'ScaleWidth' , u'ScaleHeight' , 
+	(( u'Export' , u'Path' , u'FilterName' , u'ScaleWidth' , u'ScaleHeight' ,
 			), 2038, (2038, (), [ (8, 1, None, None) , (8, 1, None, None) , (3, 49, '0', None) , (3, 49, '0', None) , ], 1 , 1 , 4 , 0 , 184 , (3, 0, None, None) , 0 , )),
 	(( u'Close' , ), 2039, (2039, (), [ ], 1 , 1 , 4 , 0 , 188 , (3, 0, None, None) , 0 , )),
 	(( u'SetUndoText' , u'Text' , ), 2040, (2040, (), [ (8, 1, None, None) , ], 1 , 1 , 4 , 0 , 192 , (3, 0, None, None) , 64 , )),
@@ -10078,13 +10078,13 @@ _Presentation_vtables_ = [
 	(( u'GridDistance' , u'GridDistance' , ), 2062, (2062, (), [ (4, 1, None, None) , ], 1 , 4 , 4 , 0 , 312 , (3, 0, None, None) , 0 , )),
 	(( u'Designs' , u'Designs' , ), 2063, (2063, (), [ (16393, 10, None, "IID('{914934D6-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 316 , (3, 0, None, None) , 0 , )),
 	(( u'Merge' , u'Path' , ), 2064, (2064, (), [ (8, 1, None, None) , ], 1 , 1 , 4 , 0 , 320 , (3, 0, None, None) , 0 , )),
-	(( u'CheckIn' , u'SaveChanges' , u'Comments' , u'MakePublic' , ), 2065, (2065, (), [ 
+	(( u'CheckIn' , u'SaveChanges' , u'Comments' , u'MakePublic' , ), 2065, (2065, (), [
 			(11, 49, 'True', None) , (12, 17, None, None) , (12, 17, None, None) , ], 1 , 1 , 4 , 2 , 324 , (3, 0, None, None) , 0 , )),
 	(( u'CanCheckIn' , u'CanCheckIn' , ), 2066, (2066, (), [ (16395, 10, None, None) , ], 1 , 1 , 4 , 0 , 328 , (3, 0, None, None) , 0 , )),
 	(( u'Signatures' , u'Signatures' , ), 2067, (2067, (), [ (16393, 10, None, "IID('{000C0410-0000-0000-C000-000000000046}')") , ], 1 , 2 , 4 , 0 , 332 , (3, 0, None, None) , 0 , )),
 	(( u'RemovePersonalInformation' , u'RemovePersonalInformation' , ), 2068, (2068, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 336 , (3, 0, None, None) , 0 , )),
 	(( u'RemovePersonalInformation' , u'RemovePersonalInformation' , ), 2068, (2068, (), [ (3, 1, None, None) , ], 1 , 4 , 4 , 0 , 340 , (3, 0, None, None) , 0 , )),
-	(( u'SendForReview' , u'Recipients' , u'Subject' , u'ShowMessage' , u'IncludeAttachment' , 
+	(( u'SendForReview' , u'Recipients' , u'Subject' , u'ShowMessage' , u'IncludeAttachment' ,
 			), 2069, (2069, (), [ (8, 49, "u''", None) , (8, 49, "u''", None) , (11, 49, 'True', None) , (12, 17, None, None) , ], 1 , 1 , 4 , 1 , 344 , (3, 32, None, None) , 0 , )),
 	(( u'ReplyWithChanges' , u'ShowMessage' , ), 2070, (2070, (), [ (11, 49, 'True', None) , ], 1 , 1 , 4 , 0 , 348 , (3, 0, None, None) , 0 , )),
 	(( u'EndReview' , ), 2071, (2071, (), [ ], 1 , 1 , 4 , 0 , 352 , (3, 0, None, None) , 0 , )),
@@ -10095,7 +10095,7 @@ _Presentation_vtables_ = [
 	(( u'PasswordEncryptionAlgorithm' , u'PasswordEncryptionAlgorithm' , ), 2076, (2076, (), [ (16392, 10, None, None) , ], 1 , 2 , 4 , 0 , 372 , (3, 0, None, None) , 0 , )),
 	(( u'PasswordEncryptionKeyLength' , u'PasswordEncryptionKeyLength' , ), 2077, (2077, (), [ (16387, 10, None, None) , ], 1 , 2 , 4 , 0 , 376 , (3, 0, None, None) , 0 , )),
 	(( u'PasswordEncryptionFileProperties' , u'PasswordEncryptionFileProperties' , ), 2078, (2078, (), [ (16395, 10, None, None) , ], 1 , 2 , 4 , 0 , 380 , (3, 0, None, None) , 0 , )),
-	(( u'SetPasswordEncryptionOptions' , u'PasswordEncryptionProvider' , u'PasswordEncryptionAlgorithm' , u'PasswordEncryptionKeyLength' , u'PasswordEncryptionFileProperties' , 
+	(( u'SetPasswordEncryptionOptions' , u'PasswordEncryptionProvider' , u'PasswordEncryptionAlgorithm' , u'PasswordEncryptionKeyLength' , u'PasswordEncryptionFileProperties' ,
 			), 2079, (2079, (), [ (8, 1, None, None) , (8, 1, None, None) , (3, 1, None, None) , (11, 1, None, None) , ], 1 , 1 , 4 , 0 , 384 , (3, 0, None, None) , 0 , )),
 	(( u'Password' , u'Password' , ), 2080, (2080, (), [ (16392, 10, None, None) , ], 1 , 2 , 4 , 0 , 388 , (3, 0, None, None) , 0 , )),
 	(( u'Password' , u'Password' , ), 2080, (2080, (), [ (8, 1, None, None) , ], 1 , 4 , 4 , 0 , 392 , (3, 0, None, None) , 0 , )),
@@ -10104,7 +10104,7 @@ _Presentation_vtables_ = [
 	(( u'Permission' , u'Permission' , ), 2082, (2082, (), [ (16393, 10, None, "IID('{000C0376-0000-0000-C000-000000000046}')") , ], 1 , 2 , 4 , 0 , 404 , (3, 0, None, None) , 0 , )),
 	(( u'SharedWorkspace' , u'SharedWorkspace' , ), 2083, (2083, (), [ (16393, 10, None, "IID('{000C0385-0000-0000-C000-000000000046}')") , ], 1 , 2 , 4 , 0 , 408 , (3, 0, None, None) , 0 , )),
 	(( u'Sync' , u'Sync' , ), 2084, (2084, (), [ (16393, 10, None, "IID('{000C0386-0000-0000-C000-000000000046}')") , ], 1 , 2 , 4 , 0 , 412 , (3, 0, None, None) , 0 , )),
-	(( u'SendFaxOverInternet' , u'Recipients' , u'Subject' , u'ShowMessage' , ), 2085, (2085, (), [ 
+	(( u'SendFaxOverInternet' , u'Recipients' , u'Subject' , u'ShowMessage' , ), 2085, (2085, (), [
 			(8, 49, "u''", None) , (8, 49, "u''", None) , (11, 49, 'False', None) , ], 1 , 1 , 4 , 0 , 416 , (3, 32, None, None) , 0 , )),
 	(( u'DocumentLibraryVersions' , u'DocumentLibraryVersions' , ), 2086, (2086, (), [ (16393, 10, None, "IID('{000C0388-0000-0000-C000-000000000046}')") , ], 1 , 2 , 4 , 0 , 420 , (3, 0, None, None) , 0 , )),
 ]
@@ -10140,7 +10140,7 @@ _Slide_vtables_ = [
 	(( u'NotesPage' , u'NotesPage' , ), 2022, (2022, (), [ (16393, 10, None, "IID('{9149346B-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 132 , (3, 0, None, None) , 0 , )),
 	(( u'Master' , u'Master' , ), 2023, (2023, (), [ (16393, 10, None, "IID('{9149346C-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 136 , (3, 0, None, None) , 0 , )),
 	(( u'Hyperlinks' , u'Hyperlinks' , ), 2024, (2024, (), [ (16393, 10, None, "IID('{91493464-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 140 , (3, 0, None, None) , 0 , )),
-	(( u'Export' , u'FileName' , u'FilterName' , u'ScaleWidth' , u'ScaleHeight' , 
+	(( u'Export' , u'FileName' , u'FilterName' , u'ScaleWidth' , u'ScaleHeight' ,
 			), 2025, (2025, (), [ (8, 1, None, None) , (8, 1, None, None) , (3, 49, '0', None) , (3, 49, '0', None) , ], 1 , 1 , 4 , 0 , 144 , (3, 0, None, None) , 0 , )),
 	(( u'Scripts' , u'Scripts' , ), 2026, (2026, (), [ (16393, 10, None, "IID('{000C0340-0000-0000-C000-000000000046}')") , ], 1 , 2 , 4 , 0 , 148 , (3, 0, None, None) , 0 , )),
 	(( u'Comments' , u'Comments' , ), 2028, (2028, (), [ (16393, 10, None, "IID('{914934D4-5A91-11CF-8700-00AA0060263B}')") , ], 1 , 2 , 4 , 0 , 152 , (3, 0, None, None) , 0 , )),

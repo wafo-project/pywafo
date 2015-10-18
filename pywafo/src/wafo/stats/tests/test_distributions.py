@@ -15,7 +15,7 @@ from nose import SkipTest
 import numpy
 import numpy as np
 from numpy import typecodes, array
-from scipy.lib._version import NumpyVersion
+from scipy._lib._version import NumpyVersion
 from scipy import special
 import wafo.stats as stats
 from wafo.stats._distn_infrastructure import argsreduce
@@ -512,7 +512,7 @@ class TestGenpareto(TestCase):
         assert_allclose(rv.logpdf(1), 0)
 
     def test_x_inf(self):
-        # make sure x=inf is handled gracefully 
+        # make sure x=inf is handled gracefully
         rv = stats.genpareto(c=0.1)
         assert_allclose([rv.pdf(np.inf), rv.cdf(np.inf)], [0., 1.])
         assert_(np.isneginf(rv.logpdf(np.inf)))
