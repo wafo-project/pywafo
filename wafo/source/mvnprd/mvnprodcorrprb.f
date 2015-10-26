@@ -4,13 +4,13 @@ C Does not work: f2py -m mvnprdmod  -h mvnprdmod.pyf mvnprodcorrprb.f only: mvnp
 C gfortran -fPIC -c mvnprodcorrprb.f
 C f2py -m mvnprdmod  -c mvnprodcorrprb.o mvnprodcorrprb_interface.f --fcompiler=gnu95 --compiler=mingw32 -lmsvcr71
 C f2py -m mvnprdmod  -c mvnprodcorrprb.o mvnprodcorrprb_interface.f --build-dir tmp1 --fcompiler=gnu95 --compiler=mingw32 -lmsvcr71
-  
+
 
 * This is a MEX-file for MATLAB.
 * and contains a mex-interface to, mvnprodcorrprb a subroutine
 * for computing multivariate normal probabilities with product
 * correlation structure.
-* The file should compile without errors on (Fortran90) 
+* The file should compile without errors on (Fortran90)
 * standard Fortran compilers.
 *
 * The mex-interface and mvnprodcorrprb was written by
@@ -22,7 +22,7 @@ C f2py -m mvnprdmod  -c mvnprodcorrprb.o mvnprodcorrprb_interface.f --build-dir 
 *     Email: Per.Brodtkorb@ffi.no
 *
 *
-* MVNPRODCORRPRBMEX Computes multivariate normal probability 
+* MVNPRODCORRPRBMEX Computes multivariate normal probability
 *                with product correlation structure.
 *
 *  CALL [value,error,inform]=mvnprodcorrprbmex(rho,A,B,abseps,releps,useBreakPoints);
@@ -30,7 +30,7 @@ C f2py -m mvnprdmod  -c mvnprodcorrprb.o mvnprodcorrprb_interface.f --build-dir 
 *     RHO    REAL, array of coefficients defining the correlation
 *            coefficient by:
 *                correlation(I,J) =  RHO(I)*RHO(J) for J/=I
-*            where 
+*            where
 *                1 <= RHO(I) <= 1
 *     A		 REAL, array of lower integration limits.
 *     B		 REAL, array of upper integration limits.
@@ -41,13 +41,13 @@ C f2py -m mvnprdmod  -c mvnprodcorrprb.o mvnprodcorrprb_interface.f --build-dir 
 *     USEBREAKPOINTS = 1 If extra integration points should be used
 *                        around possible singularities
 *                      0 If no extra
-*  
+*
 *     ERROR  REAL estimated absolute error, with 99% confidence level.
 *     VALUE  REAL estimated value for the integral
 *     INFORM INTEGER, termination status parameter:
 *            if INFORM = 0, normal completion with ERROR < EPS;
-*            if INFORM = 1, completion with ERROR > EPS and MAXPTS 
-*                           function vaules used; increase MAXPTS to 
+*            if INFORM = 1, completion with ERROR > EPS and MAXPTS
+*                           function vaules used; increase MAXPTS to
 *                           decrease ERROR;
 *
 * MVNPRODCORRPRB calculates multivariate normal probability
@@ -82,19 +82,19 @@ C f2py -m mvnprdmod  -c mvnprodcorrprb.o mvnprodcorrprb_interface.f --build-dir 
 
       INTERFACE CALERF
       MODULE PROCEDURE CALERF
-      END INTERFACE 
+      END INTERFACE
 
       INTERFACE DERF
       MODULE PROCEDURE DERF
-      END INTERFACE 
+      END INTERFACE
 
       INTERFACE DERFC
       MODULE PROCEDURE DERFC
-      END INTERFACE 
+      END INTERFACE
 
       INTERFACE DERFCX
       MODULE PROCEDURE DERFCX
-      END INTERFACE 
+      END INTERFACE
       CONTAINS
 C--------------------------------------------------------------------
 C
@@ -263,7 +263,7 @@ C
 C  Latest modification: March 19, 1990
 C  Updated to F90 by pab 23.03.2003
 C  Revised pab Dec 2008
-C   updated parameter statements in CALERF so that it works when 
+C   updated parameter statements in CALERF so that it works when
 C   compiling with gfortran.
 C
 C------------------------------------------------------------------
@@ -292,7 +292,7 @@ C------------------------------------------------------------------
       DOUBLE PRECISION, PARAMETER :: XBIG   = 26.543D0
       DOUBLE PRECISION, PARAMETER :: XHUGE  = 6.71D7
       DOUBLE PRECISION, PARAMETER :: XMAX   = 2.53D307
-      DOUBLE PRECISION, PARAMETER :: XINF   = 1.79D308  
+      DOUBLE PRECISION, PARAMETER :: XINF   = 1.79D308
 !---------------------------------------------------------------
 !     Coefficents to the rational polynomials
 !--------------------------------------------------------------
@@ -314,32 +314,32 @@ C------------------------------------------------------------------
 C------------------------------------------------------------------
 C  Coefficients for approximation to  erfc  in second interval
 C------------------------------------------------------------------
-      DOUBLE PRECISION, DIMENSION(9) :: 
+      DOUBLE PRECISION, DIMENSION(9) ::
      &   C=(/5.64188496988670089D-1,8.88314979438837594D0,
      1       6.61191906371416295D01,2.98635138197400131D02,
      2       8.81952221241769090D02,1.71204761263407058D03,
      3       2.05107837782607147D03,1.23033935479799725D03,
      4       2.15311535474403846D-8/)
-	DOUBLE PRECISION, DIMENSION(8) :: 
-     &  D =(/1.57449261107098347D01,1.17693950891312499D02, 
+	DOUBLE PRECISION, DIMENSION(8) ::
+     &  D =(/1.57449261107098347D01,1.17693950891312499D02,
      1       5.37181101862009858D02,1.62138957456669019D03,
      2       3.29079923573345963D03,4.36261909014324716D03,
      3       3.43936767414372164D03,1.23033935480374942D03/)
 C------------------------------------------------------------------
 C  Coefficients for approximation to  erfc  in third interval
 C------------------------------------------------------------------
-	DOUBLE PRECISION, parameter, 
+	DOUBLE PRECISION, parameter,
      & DIMENSION(6) :: P =(/3.05326634961232344D-1,
      & 3.60344899949804439D-1,
      1       1.25781726111229246D-1,1.60837851487422766D-2,
      2       6.58749161529837803D-4,1.63153871373020978D-2/)
-	DOUBLE PRECISION, parameter, 
+	DOUBLE PRECISION, parameter,
      & DIMENSION(5) :: Q =(/2.56852019228982242D00,
      &	1.87295284992346047D00,
      1       5.27905102951428412D-1,6.05183413124413191D-2,
      2       2.33520497626869185D-3/)
 C------------------------------------------------------------------
-	
+
       X = ARG
       Y = ABS(X)
       IF (Y .LE. THRESH) THEN
@@ -378,7 +378,7 @@ C------------------------------------------------------------------
             DEL = (Y-YSQ)*(Y+YSQ)
             RESULT = EXP(-YSQ*YSQ) * EXP(-DEL) * RESULT
          END IF
-	   
+
 C------------------------------------------------------------------
 C     Evaluate  erfc  for |X| > 4.0
 C------------------------------------------------------------------
@@ -441,7 +441,7 @@ C------------------------------------------------------------------
       implicit none
       private
       public :: dqagpe,dqagp
-      
+
       INTERFACE dqagpe
       MODULE PROCEDURE dqagpe
       END INTERFACE
@@ -453,11 +453,11 @@ C------------------------------------------------------------------
       INTERFACE dqelg
       MODULE PROCEDURE dqelg
       END INTERFACE
-      
-      INTERFACE dqpsrt 
+
+      INTERFACE dqpsrt
       MODULE PROCEDURE dqpsrt
       END INTERFACE
-      
+
       INTERFACE dqk21
       MODULE PROCEDURE dqk21
       END INTERFACE
@@ -473,7 +473,7 @@ C------------------------------------------------------------------
       INTERFACE d1mach
       MODULE PROCEDURE d1mach
       END INTERFACE
-      
+
       contains
       subroutine dea3(E0,E1,E2,abserr,result)
 !***PURPOSE  Given a slowly convergent sequence, this routine attempts
@@ -481,7 +481,7 @@ C------------------------------------------------------------------
 !            sequence's limiting value, thus improving the rate of
 !            convergence. Routine is based on the epsilon algorithm
 !            of P. Wynn. An estimate of the absolute error is also
-!            given. 
+!            given.
       double precision, intent(in) :: E0,E1,E2
       double precision, intent(out) :: abserr, result
       !locals
@@ -749,9 +749,9 @@ c***end prologue  dqagpe
      *  nint,nintp1,npts2,nres,nrmax,numrl2
       logical :: extrap,noext
       external f
-!     
-!     
-      
+!
+!
+
 !
 !
 !            the dimension of rlist2 is determined by the value of
@@ -807,13 +807,13 @@ c***end prologue  dqagpe
 !
 c***first executable statement  dqagpe
       epmach = d1mach(4)
-      uflow  = d1mach(1) 
+      uflow  = d1mach(1)
       oflow  = d1mach(2)
 !
 !            test on validity of parameters
 !            -----------------------------
 !
-      hSplit  = 0.2D0 
+      hSplit  = 0.2D0
       ier     = 0
       neval   = 0
       last    = 0
@@ -827,7 +827,7 @@ c***first executable statement  dqagpe
       level(1) = 0
       npts2 = npts+2
       if((npts2.lt.2).or.(limit.le.npts).or.
-     &     ((epsabs.le.0.0d+00).and. 
+     &     ((epsabs.le.0.0d+00).and.
      &     (epsrel.lt.dmax1(0.5d+02*epmach,0.5d-28)))) then
          ier = 6
          go to 999
@@ -841,7 +841,7 @@ c***first executable statement  dqagpe
          if(any(points(1:npts)<=a).or.any(b<=points(1:npts))) then
             ier = 6
             go to 999
-         endif   
+         endif
       endif
 !
 !            if any break points are provided, sort them into an
@@ -851,7 +851,7 @@ c***first executable statement  dqagpe
       pts(npts+2) = b
       do i = 1,npts
         pts(i+1) = minval(points(i:npts))
-      enddo 
+      enddo
 !
 !            compute first integral and error approximations.
 !            ------------------------------------------------
@@ -1545,7 +1545,7 @@ c           because of symmetry only the positive abscissae and their
 c           corresponding weights are given.
 c
 c           xgk    - abscissae of the 15-point kronrod rule
-!                    xgk(4), xgk(8)  abscissae of the 3-point gauss rule                            
+!                    xgk(4), xgk(8)  abscissae of the 3-point gauss rule
 c                    xgk(2), xgk(4),xgk(6), xgk(8) ...  abscissae of the 7-point
 c                    kronrod rule
 c                    xgk(1), xgk(3), ...  abscissae which are optimally
@@ -1647,7 +1647,7 @@ c
         resk   = resk   + wgk(jtwm1) * fsum
         resabs = resabs + wgk(jtwm1) * (dabs(fval1) + dabs(fval2))
    15 continue
-      
+
       reskh = resk*0.5d+00
       resasc = wgk(8)*dabs(fc-reskh)
       do 20 j=1,7
@@ -1669,7 +1669,7 @@ c
       if(resabs.gt.uflow/(0.5d+02*epmach)) abserr = dmax1
      *  ((epmach*0.5d+02)*resabs,abserr)
       return
-      
+
       end subroutine dqk9
       subroutine dqkl9(f,a,b,result,abserr,resabs,resasc)
 !     use functionInterface
@@ -1738,7 +1738,7 @@ c           because of symmetry only the positive abscissae and their
 c           corresponding weights are given.
 c
 c           xgk    - abscissae of the 9-point Gauss-kronrod-lobatto rule
-!                    xgk(1), xgk(5)  abscissae of the 3-point gauss-lobatto rule                            
+!                    xgk(1), xgk(5)  abscissae of the 3-point gauss-lobatto rule
 c                    xgk(1), xgk(3),xgk(5)  abscissae of the 5-point
 c                    kronrod rule
 c                    xgk(2), xgk(4), ...  abscissae which are optimally
@@ -1834,7 +1834,7 @@ c
         resk   = resk   + wgk(jtwm1) * fsum
         resabs = resabs + wgk(jtwm1) * (dabs(fval1) + dabs(fval2))
    15 continue
-      
+
       reskh = resk*0.5d+00
       resasc = wgk(5)*dabs(fc-reskh)
       do 20 j=1,4
@@ -2174,7 +2174,7 @@ c
       end subroutine dqelg
       DOUBLE PRECISION FUNCTION D1MACH(I)
       implicit none
-C 
+C
 C  Double-precision machine constants.
 C
 C  D1MACH( 1) = B**(EMIN-1), the smallest positive magnitude.
@@ -2191,7 +2191,7 @@ C
 C  Reference:  Fox P.A., Hall A.D., Schryer N.L.,"Framework for a
 C              Portable Library", ACM Transactions on Mathematical
 C              Software, Vol. 4, no. 2, June 1978, PP. 177-188.
-C     
+C
       INTEGER , INTENT(IN) :: I
       DOUBLE PRECISION, SAVE :: DMACH(7)
       DOUBLE PRECISION :: B, EPS
@@ -2203,14 +2203,14 @@ C
       IF (DMACH(1) .EQ. 0.0D0) THEN
          T        = DIGITS(ONE)
          B        = DBLE(RADIX(ONE))    ! base number
-         EPS      = SPACING(ONE) 
+         EPS      = SPACING(ONE)
          EMIN     = MINEXPONENT(ONE)
          EMAX     = MAXEXPONENT(ONE)
          DMACH(1) = B**(EMIN-1)               !TINY(ONE)
          DMACH(2) = (B**(EMAX-1)) * (B-B*EPS) !HUGE(ONE)
-         DMACH(3) = EPS/B   ! EPS/B 
+         DMACH(3) = EPS/B   ! EPS/B
          DMACH(4) = EPS
-         DMACH(5) = LOG10(B)  
+         DMACH(5) = LOG10(B)
          DMACH(6) = B**(EMAX+5)  !infinity
          DMACH(7) = ZERO/ZERO  !nan
       ENDIF
@@ -2248,7 +2248,7 @@ C
       contains
       DOUBLE PRECISION FUNCTION D1MACH(I)
       implicit none
-C 
+C
 C  Double-precision machine constants.
 C
 C  D1MACH( 1) = B**(EMIN-1), the smallest positive magnitude.
@@ -2265,7 +2265,7 @@ C
 C  Reference:  Fox P.A., Hall A.D., Schryer N.L.,"Framework for a
 C              Portable Library", ACM Transactions on Mathematical
 C              Software, Vol. 4, no. 2, June 1978, PP. 177-188.
-C     
+C
       INTEGER , INTENT(IN) :: I
       DOUBLE PRECISION, SAVE :: DMACH(7)
       DOUBLE PRECISION :: B, EPS
@@ -2277,14 +2277,14 @@ C
       IF (DMACH(1) .EQ. 0.0D0) THEN
          T        = DIGITS(ONE)
          B        = DBLE(RADIX(ONE))    ! base number
-         EPS      = SPACING(ONE) 
+         EPS      = SPACING(ONE)
          EMIN     = MINEXPONENT(ONE)
          EMAX     = MAXEXPONENT(ONE)
          DMACH(1) = B**(EMIN-1)               !TINY(ONE)
          DMACH(2) = (B**(EMAX-1)) * (B-B*EPS) !HUGE(ONE)
-         DMACH(3) = EPS/B   ! EPS/B 
+         DMACH(3) = EPS/B   ! EPS/B
          DMACH(4) = EPS
-         DMACH(5) = LOG10(B)  
+         DMACH(5) = LOG10(B)
          DMACH(6) = B**(EMAX+5)  !infinity
          DMACH(7) = ZERO/ZERO  !nan
       ENDIF
@@ -2298,7 +2298,7 @@ C
 !            sequence's limiting value, thus improving the rate of
 !            convergence. Routine is based on the epsilon algorithm
 !            of P. Wynn. An estimate of the absolute error is also
-!            given. 
+!            given.
       double precision, intent(in) :: E0,E1,E2
       double precision, intent(out) :: abserr, result
       !locals
@@ -2707,10 +2707,10 @@ C
 !            call AdaptiveSimpson3(f,pts(k),pts(k+1),tol,kflg,error,valk)
             call  dqagp(f,pts(k),pts(k+1),0,pts,tol,0.0D0,limit,valk,
      *           error,neval,kflg)
-            
-         endif	
+
+         endif
          abserr = abserr + abs(error)
-         
+
          errorEstimate = abserr + (b - pts(k+1)) * LTol
          excess = epsi - errorEstimate
          if (excess < 0.0D0 ) then
@@ -2765,7 +2765,7 @@ C
               LTol = 0.1D0 * LTol
            endif
          elseif ( Lepsi < 5D0 * excess  ) then
-            LTol = (Lepsi + excess) / delta 
+            LTol = (Lepsi + excess) / delta
          endif
          val = val + valk
          if (kflg>0) iflg = IOR(iflg, kflg)
@@ -2808,7 +2808,7 @@ C
 
       hmax = 0.24D0
 c
-c     initialize everything, 
+c     initialize everything,
 c     particularly the first column vector in the stack.
 c
       val    = zero
@@ -2816,14 +2816,14 @@ c
       iflg   = 0
 
       delta  = b - a
-      
-      h      = half * delta  
+
+      h      = half * delta
       c      = half * ( a + b )
       k      = 1
       abar   = f(a)
       cbar   = f(c)
       bbar   = f(b)
-      
+
       S      = (abar + four * cbar + bbar) * h * onethird
       v(1,1) = a
       v(2,1) = h
@@ -2833,12 +2833,12 @@ c
       v(6,1) = S
 c
       do while ((1<=k) .and. (k <= stackLimit))
-c     
+c
 c     take the last column off the stack and process it.
 c
          h     = half * v(2,k)
          y     = v(1,k) + h
-         z     = v(1,k) + three * h 
+         z     = v(1,k) + three * h
          ybar  = f(y)
          zbar  = f(z)
          Star  = ( v(3,k) + four * ybar + v(4,k) ) * h * onethird
@@ -2846,36 +2846,36 @@ c
          SSStar     =  Star + SStar
          Sdiff      =  (SSStar - v(6,k))
          correction =  Sdiff * zpz66666 !=0.066666... = 1/15.0D0
-         localError = abs(Sdiff) * two 
+         localError = abs(Sdiff) * two
 !     acceptError is made conservative in order to avoid premature termination
 
-         acceptError      = (localError * delta  <= two* epsi * h 
-     &                      .or. localError < small)     
+         acceptError      = (localError * delta  <= two* epsi * h
+     &                      .or. localError < small)
          lastInStack      = ( stackLimit <= k)
          stepSizeOK       = ( h < hMax )
          stepSizeTooSmall = ( h < hMin)
-         if (lastInStack .or. (stepSizeOK.and.acceptError) 
+         if (lastInStack .or. (stepSizeOK.and.acceptError)
      &        .or. stepSizeTooSmall ) then
 !     Stop subdividing interval when
 !     1) accuracy is sufficient, or
 !     2) interval too narrow, or
 !     3) subdivided too often. (stack limit reached)
-            
+
 !     Add partial integral and take a new vector from the bottom of the stack.
 
-            abserr = abserr + localError 
+            abserr = abserr + localError
             val    = val + SSStar + correction
             k      = k - 1
 c
             if (.not.acceptError) then
                if (lastInStack)      iflg = IOR(iflg,1) ! stack limit reached
                if (stepSizeTooSmall) iflg = IOR(iflg,2) ! stepSize limit reached
-            endif	
-            if (k <= 0) then 
+            endif
+            if (k <= 0) then
                return
             endif
          else
-c     Subdivide the interval and create two new vectors in the stack, 
+c     Subdivide the interval and create two new vectors in the stack,
 c     one of which  overwrites the vector just processed.
             vbar   = v(5,k)
             v(2,k) = h
@@ -2898,8 +2898,8 @@ c
 ! by Per A. Brodtkorb 4 June 2003
 ! based on  psudo code in chapter 7, Kincaid and Cheney (1991).
 ! Added check on stepsize, i.e., hMin and hMax
-! Added an alternitive check on termination: this is more robust  
-! Reference:  
+! Added an alternitive check on termination: this is more robust
+! Reference:
 !     D.R. Kincaid &  E.W. Cheney (1991)
 !     "Numerical Analysis"
 !     Brooks/Cole Publ., 1991
@@ -2933,13 +2933,13 @@ c
       double precision, dimension(4) :: x, fx, Sn
       double precision, dimension(5) :: d4fx
       double precision, dimension(55) :: EPSTAB
-      double precision :: small 
+      double precision :: small
       double precision :: delta, h, h8, localError, correction
       double precision :: Sn1, Sn2, Sn4, Sn1e, Sn2e, Sn4e
       double precision :: Sn12, Sn24, Sn124, Sn12e, Sn24e
       double precision :: hmax, hmin, dhmin, val0
       double precision :: Lepsi,Ltol, excess, deltaK, errorEstimate
-      integer :: k, kp1, i, j,ix, numExtrap, IERR 
+      integer :: k, kp1, i, j,ix, numExtrap, IERR
       integer, parameter :: LIMEXP = 5
       logical :: acceptError, lastInStack
       logical :: stepSizeTooSmall, stepSizeOK
@@ -2957,17 +2957,17 @@ c
       hmin  = 1.0D-9
       dhmin = 1.0D-1
 c
-c     initialize everything, 
+c     initialize everything,
 c     particularly the first column vector in the stack.
 c
       val    = zero
       abserr = zero
       iflg   = 0
-	
+
       delta  = b - a
-      h      = half * delta  
+      h      = half * delta
       Ltol   = Lepsi / delta
-      
+
       x(1) = a
       x(3) = half * ( a + b )
       x(2) = half * ( a + x(3) )
@@ -2986,24 +2986,24 @@ c
       v(6   ,1) = x(1)
       v(7   ,1) = h
       v(8:10,1) = Sn(1:3);
-	
+
 
       do while ((1<=k) .and. (k <= stackLimit))
-!     
+!
 !     take the last column off the stack and process it.
 !
-         h   = half * v(7,k)  
+         h   = half * v(7,k)
          do i = 1,4
             x(i)  = v(6,k) + dble(2*i-1)*h
             fx(i) = f(x(i))
-            Sn(i) = ( v(i,k) + four * fx(i) + v(i+1,k) ) * h * onethird           
+            Sn(i) = ( v(i,k) + four * fx(i) + v(i+1,k) ) * h * onethird
          enddo
-         
+
          stepSizeOK       = ( h < hMax )
-         lastInStack      = ( stackLimit <= k)       
+         lastInStack      = ( stackLimit <= k)
          if (lastInStack .OR. stepSizeOK) then
-            Sn1 = v(8,k) 
-            Sn2 = ( v(9,k) + v(10,k) )   
+            Sn1 = v(8,k)
+            Sn2 = ( v(9,k) + v(10,k) )
             Sn4   = Sn(1) + Sn(2) + Sn(3) + Sn(4)
             if (numExtrap>0) then
                Sn12 = (Sn1 - Sn2)
@@ -3012,7 +3012,7 @@ c
                Sn1e = Sn2 -  Sn12 * zpz66666
                Sn2e = Sn4 -  Sn24 * zpz66666
                Sn12e = ( Sn1e - Sn2e )
-               
+
                Sn24e = (Sn2e - Sn4)
 !               Sn1e =  Sn2e -  Sn12e * zpz66666
 !               Sn12e = (Sn1e - Sn2e)
@@ -3023,12 +3023,12 @@ c
 !     Correction based on the assumption of slowly varying fourth derivative
                   correction = -Sn24 * zpz588 !
                else
-!     Correction based on assumption that the termination error 
+!     Correction based on assumption that the termination error
 !     is of the form: C*h^q
                   correction = -Sn24 * Sn24 / Sn124
                endif
                Sn4e = Sn4 + correction
-               
+
 !               NEWFLG = .TRUE.
 !               CALL DEA(NEWFLG,Sn1,LIMEXP,val0,localError,EPSTAB,IERR)
 !               CALL DEA(NEWFLG,Sn2,LIMEXP,val0,localError,EPSTAB,IERR)
@@ -3036,7 +3036,7 @@ c
 !               CALL DEA(NEWFLG,Sn4,LIMEXP,val0,localError,EPSTAB,IERR)
 !               CALL DEA(NEWFLG,Sn4e,LIMEXP,val0,localError,EPSTAB,IERR)
 !     localError is made conservative in order to avoid premature
-!     termination  
+!     termination
               CALL DEA3(Sn1e,Sn2e,Sn4e,localError,val0)
               !if (h>dhMin) then
               !localError = max(localError,abs(correction))
@@ -3052,7 +3052,7 @@ c
          else
             acceptError = .FALSE.
          endif
-         
+
          stepSizeTooSmall = ( h < hMin)
          if (lastInStack  .or.
      &        ( stepSizeOK .and. acceptError ) .or.
@@ -3061,17 +3061,17 @@ c
 !     1) accuracy is sufficient, or
 !     2) interval too narrow, or
 !     3) subdivided too often. (stack limit reached)
-            
+
 !     Add partial integral and take a new vector from the bottom of the stack.
-            
+
             abserr = abserr + max(localError, ten*small*val0)
-            val    = val + val0           
+            val    = val + val0
             k      = k - 1
             if (.not.acceptError) then
                if (lastInStack)      iflg = IOR(iflg,1) !stack limit reached
-               if (stepSizeTooSmall) iflg = IOR(iflg,2) !stepSize limit reached  
-            endif	
-            if (k <= 0) then 
+               if (stepSizeTooSmall) iflg = IOR(iflg,2) !stepSize limit reached
+            endif
+            if (k <= 0) then
                exit ! while loop
             endif
             deltaK        = (v(6,k+1)-a)
@@ -3084,16 +3084,16 @@ c
                   LTol = 0.1D0 * LTol
                endif
             elseif (.true..or. Lepsi < four * excess  ) then
-               LTol = (Lepsi + 0.9D0 * excess) / delta 
+               LTol = (Lepsi + 0.9D0 * excess) / delta
             endif
          else
-!     Subdivide the interval and create two new vectors in the stack, 
+!     Subdivide the interval and create two new vectors in the stack,
 !     one of which  overwrites the vector just processed.
 !
 !	 v(:,k)  = [fx1,fx2,fx3,fx4,fx5,x1,h,S,SL,SR]
 	    kp1 = k + 1;
 !	Process right interval
-	    v(1,kp1)    = v(3,k); !fx1R 
+	    v(1,kp1)    = v(3,k); !fx1R
 	    v(2,kp1)    = fx(3);  !fx2R
 	    v(3,kp1)    = v(4,k); !fx3R
 	    v(4,kp1)    = fx(4);  !fx4R
@@ -3102,7 +3102,7 @@ c
 	    v(7,kp1)    = h;
 	    v(8,kp1)    = v(10,k); ! S
 	    v(9:10,kp1) = Sn(3:4); ! SL, SR
-!	Process left interval		
+!	Process left interval
 	    v(5,k)    = v(3,k); ! fx5L
 	    v(4,k)    = fx(2);  ! fx4L
 	    v(3,k)    = v(2,k); ! fx3L
@@ -3115,7 +3115,7 @@ c
 	    k = kp1;
          endif
       enddo ! while
-      if (epsi<abserr) iflg = IOR(iflg,4) 
+      if (epsi<abserr) iflg = IOR(iflg,4)
       end subroutine AdaptiveSimpson2
 
       subroutine AdaptiveSimpson3(f,a,b,epsi, iflg,abserr, val)
@@ -3123,8 +3123,8 @@ c
 ! by Per A. Brodtkorb 4 June 2003
 ! based on  psudo code in chapter 7, Kincaid and Cheney (1991).
 ! Added check on stepsize, i.e., hMin and hMax
-! Added an alternitive check on termination: this is more robust  
-! Reference:  
+! Added an alternitive check on termination: this is more robust
+! Reference:
 !     D.R. Kincaid &  E.W. Cheney (1991)
 !     "Numerical Analysis"
 !     Brooks/Cole Publ., 1991
@@ -3159,7 +3159,7 @@ c
       double precision, parameter :: sixteen  = 16.0D0
       double precision, dimension(8) ::  fx, Sn
       double precision, dimension(55) :: EPSTAB
-      double precision :: small, x, a0 
+      double precision :: small, x, a0
       double precision :: delta, h, h8, localError, correction
       double precision :: Sn1, Sn2, Sn4, Sn8, Sn1e, Sn2e, Sn4e
       double precision :: Sn12, Sn24,Sn48,Sn124, Sn12e, Sn24e
@@ -3184,18 +3184,18 @@ c
       hmin  = 1.0D-9
       dhmin = 1.0D-1
 c
-c     initialize everything, 
+c     initialize everything,
 c     particularly the first column vector in the stack.
 c
       localError = one
       val    = zero
       abserr = zero
       iflg   = 0
-	
+
       delta  = b - a
-      h      = delta * zp125  
+      h      = delta * zp125
       Ltol   = Lepsi / delta
-      
+
 
       k    = 1
       do I = 1,Nrule-1
@@ -3215,28 +3215,28 @@ c
      &           h * onethird * dble(step)
          enddo
       enddo
-      	
+
       do while ((1<=k) .and. (k <= stackLimit))
-!     
+!
 !     take the last column off the stack and process it.
 !
-         h   = half * v(Nrule+2,k)  
+         h   = half * v(Nrule+2,k)
          a0  = v(Nrule + 1,k)
          Sn8 = zero
          do i = 1, Nrule - 1
             x  = a0 + dble(2*i-1)*h
             fx(i) = f(x)
-            Sn(i) = ( v(i,k) + four * fx(i) + v(i+1,k) ) * h * onethird           
+            Sn(i) = ( v(i,k) + four * fx(i) + v(i+1,k) ) * h * onethird
             Sn8   = Sn8 + Sn(i)
          enddo
          ix = Nrule + 3
-         
-         Sn1 = v(ix,k) 
-         Sn2 = v(ix+1,k) + v(ix+2,k) 
+
+         Sn1 = v(ix,k)
+         Sn2 = v(ix+1,k) + v(ix+2,k)
          Sn4 = v(ix+3,k) + v(ix+4,k) + v(ix+5,k) + v(ix+6,k)
- 
+
          stepSizeOK       = ( h < hMax )
-         lastInStack      = ( stackLimit <= k )       
+         lastInStack      = ( stackLimit <= k )
          if (lastInStack .OR. stepSizeOK) then
             if (numExtrap>0) then
                Sn12 = (Sn1 - Sn2)
@@ -3255,14 +3255,14 @@ c
 !     Correction based on the assumption of slowly varying fourth derivative
                   correction = -Sn48*zpz588 !
                else
-!     Correction based on assumption that the termination error 
+!     Correction based on assumption that the termination error
 !     is of the form: C*h^q
                   correction = -Sn24e * Sn24e / Sn124
                   !Sn4e = Sn4e + correction
                endif
                CALL DEA3(Sn1e,Sn2e,Sn4e,localError,val0)
 !     localError is made conservative in order to avoid premature
-!     termination  
+!     termination
 !               localError = max(localError,abs(correction)*three)
 !               localError = abs(correction)*three
             else
@@ -3278,7 +3278,7 @@ c
          else
             acceptError = .FALSE.
          endif
-         
+
          stepSizeTooSmall = ( h < hMin)
          if (lastInStack  .or.
      &        ( stepSizeOK .and. acceptError ) .or.
@@ -3287,17 +3287,17 @@ c
 !     1) accuracy is sufficient, or
 !     2) interval too narrow, or
 !     3) subdivided too often. (stack limit reached)
-            
+
 !     Add partial integral and take a new vector from the bottom of the stack.
-            
+
             abserr = abserr + max(localError, ten*small*val0)
-            val    = val + val0           
+            val    = val + val0
             k      = k - 1
             if (.not.acceptError) then
                if (lastInStack)      iflg = IOR(iflg,1) !stack limit reached
-               if (stepSizeTooSmall) iflg = IOR(iflg,2) !stepSize limit reached  
-            endif	
-            if (k <= 0) then 
+               if (stepSizeTooSmall) iflg = IOR(iflg,2) !stepSize limit reached
+            endif
+            if (k <= 0) then
                exit ! while loop
             endif
             deltaK        = (v(Nrule+1,k+1)-a)
@@ -3310,17 +3310,17 @@ c
                   LTol = 0.1D0 * LTol
                endif
             elseif (.TRUE..or. Lepsi < four * excess  ) then
-               LTol = (Lepsi + 0.9D0 * excess) / delta 
+               LTol = (Lepsi + 0.9D0 * excess) / delta
             endif
          else
-!     Subdivide the interval and create two new vectors in the stack, 
+!     Subdivide the interval and create two new vectors in the stack,
 !     one of which  overwrites the vector just processed.
 !
 !	 v(:,k)  = [fx1,fx2,..,fx8,fx9,x1,h,S,SL,SR,SL1,SL2 SR1,SR2]
 	    kp1 = k + 1;
 !	Process right interval
-            
-	    v(1,kp1)    = v(5,k); !fx1R 
+
+	    v(1,kp1)    = v(5,k); !fx1R
 	    v(2,kp1)    = fx(5);  !fx2R
 	    v(3,kp1)    = v(6,k); !fx3R
 	    v(4,kp1)    = fx(6);  !fx4R
@@ -3336,7 +3336,7 @@ c
             v(Nrule+4,kp1)    = v(Nrule+8,k); ! SL
             v(Nrule+5,kp1)    = v(Nrule+9,k); ! SR
 	    v(Nrule+6:Nrule+9,kp1) = Sn(5:8); ! SL1,SL2,SR1, SR2
-!	Process left interval		
+!	Process left interval
 	    v(9,k)    = v(5,k); ! fx9L
 	    v(8,k)    = fx(4);  ! fx8L
 	    v(7,k)    = v(4,k); ! fx7L
@@ -3355,7 +3355,7 @@ c
 	    k = kp1;
          endif
       enddo ! while
-      if (epsi<abserr) iflg = IOR(iflg,4) 
+      if (epsi<abserr) iflg = IOR(iflg,4)
       end subroutine AdaptiveSimpson3
       subroutine AdaptiveTrapzWithBreaks(f,a,b,N,brks,epsi,iflg
      $     ,abserr, val)
@@ -3387,10 +3387,10 @@ c
          excess = LTol - abs(error)
          errorEstimate = abserr + dble(N-k+1)*LTol
          if (epsi < errorEstimate ) then
-            tol = max(0.1D0*LTol,2.0D-16)	
+            tol = max(0.1D0*LTol,2.0D-16)
 !         elseif (  LTol < excess / 10.0D0  ) then
 !			tol = LTol + excess*0.5D0
-		else	
+		else
             tol = LTol
          endif
          val = val + valk
@@ -3403,8 +3403,8 @@ c
 ! by Per A. Brodtkorb 4 June 2003
 ! based on  psudo code in chapter 7, Kincaid and Cheney (1991).
 ! Added check on stepsize, i.e., hMin and hMax
-! Added an alternitive check on termination: this is more robust  
-! Reference:  
+! Added an alternitive check on termination: this is more robust
+! Reference:
 !     D.R. Kincaid &  E.W. Cheney (1991)
 !     "Numerical Analysis"
 !     Brooks/Cole Publ., 1991
@@ -3438,26 +3438,26 @@ c
 
       hmax = 0.24D0
 c
-c     initialize everything, 
+c     initialize everything,
 c     particularly the first column vector in the stack.
 c
       val    = zero
       abserr = zero
       iflg   = 0
-	
+
       delta  = b - a
-      h      = delta  
-      
+      h      = delta
+
       x(1) = a
       x(2) = half * ( a + b )
       x(3) = b
-	
+
 
       k      = 1
       do I = 1,3
          v(I,1) = f(x(I))
       enddo
-	
+
       Sn(1) = ( v(1,1) + v(3,1) ) * h * half
       h = h * half
       Sn(2) = ( v(1,1) + v(2,1) ) * h * half
@@ -3466,10 +3466,10 @@ c
       v(4   ,1) = x(1)
       v(5   ,1) = h
       v(6:8 ,1) = Sn(1:3);
-	
+
 
       do while ((1<=k) .and. (k <= stackLimit))
-!     
+!
 !     take the last column off the stack and process it.
 !
          h   = half * v(5,k)
@@ -3479,69 +3479,69 @@ c
          do i = 1,2
             x(i)      = v(4,k) + dble(2*i-1)*h
             fx(i)     = f(x(i))
-            Sn(2*i-1) = ( v(i  ,k) + fx(i) ) * h * half 
-            Sn(2*i  ) = ( v(i+1,k) + fx(i) ) * h * half 
+            Sn(2*i-1) = ( v(i  ,k) + fx(i) ) * h * half
+            Sn(2*i  ) = ( v(i+1,k) + fx(i) ) * h * half
             Sn4   = Sn4 + Sn(2*i-1) + Sn(2*i)
-         enddo	
-         
+         enddo
+
          Sn12  = (Sn1 - Sn2)
          Sn24  = (Sn2 - Sn4);
          Sn124 = (Sn12 - Sn24)
-!	 Correction based on assumption that the termination error 
+!	 Correction based on assumption that the termination error
 !	 is of the form: C*h^q
          if (Sn124==zero) then
             correction = zero !-Sn24 * Sn24 / sign(small,Sn124)
-            
-            if (Sn12 == zero) then 
+
+            if (Sn12 == zero) then
                !round off error?
             endif
-            
+
          else
             correction = -Sn24 * Sn24 / Sn124
          endif
          localError = max(abs(correction),abs(Sn24)*half)
-         
+
 !     acceptError is made conservative in order to avoid premature termination
 
-         acceptError      = (localError * delta <= two * epsi * h 
-     &                      .or. localError < small)     
+         acceptError      = (localError * delta <= two * epsi * h
+     &                      .or. localError < small)
          lastInStack      = ( stackLimit <= k)
          stepSizeOK       = ( h < hMax )
          stepSizeTooSmall = ( h < hMin)
-         if (lastInStack .or. (stepSizeOK.and.acceptError) 
+         if (lastInStack .or. (stepSizeOK.and.acceptError)
      &       .or. stepSizeTooSmall) then
 !     Stop subdividing interval when
 !     1) accuracy is sufficient, or
 !     2) interval too narrow, or
 !     3) subdivided too often. (stack limit reached)
-            
+
 !     Add partial integral and take a new vector from the bottom of the stack.
 
-            abserr = abserr + localError 
+            abserr = abserr + localError
             val    = val + Sn4 + correction
             k      = k - 1
             if (.not.acceptError) then
                if (lastInStack)      iflg = IOR(iflg,1) ! stack limit reached
                if (stepSizeTooSmall) iflg = IOR(iflg,2) ! stepSize limit reached
-            endif	
-            if (k <= 0) then 
+            endif
+            if (k <= 0) then
                return
             endif
          else
-!     Subdivide the interval and create two new vectors in the stack, 
+!     Subdivide the interval and create two new vectors in the stack,
 !     one of which  overwrites the vector just processed.
 !
 !	 v(:,k)  = [fx1,fx2,fx3,x1,h,S,SL,SR]
 	    kp1 = k + 1;
 !	Process right interval
-	    v(1,kp1)   = v(2,k); !fx1R 
+	    v(1,kp1)   = v(2,k); !fx1R
 	    v(2,kp1)   = fx(2); !fx2R
 	    v(3,kp1)   = v(3,k); !fx3R
 	    v(4,kp1)   = v(4,k) + two * h; ! x1R
 	    v(5,kp1)   = h;
 	    v(6,kp1)   = v(8,k); ! S
 	    v(7:8,kp1) = Sn(3:4); ! SL, SR
-!	Process left interval		
+!	Process left interval
 	    v(3,k)    = v(2,k); ! fx5L
 	    v(2,k)    = fx(1);  ! fx4L
 !           v(1,k)  unchanged     fx1L
@@ -3554,7 +3554,7 @@ c
       enddo ! while
       end subroutine AdaptiveTrapz1
       subroutine RombergWithBreaks(f,a,b,N,brks,epsi,iflg
-     $     ,abserr, val) 
+     $     ,abserr, val)
       implicit none
       double precision :: f
       integer,          intent(in) :: N
@@ -3575,7 +3575,7 @@ c
       do k = 2,N + 1
          pts(k) = minval(brks(k-1:N))  !add user supplied break points
       enddo
-      LTol    = epsi / delta 
+      LTol    = epsi / delta
       decidig = max(abs(NINT(log10(epsi)))+5,3)
       abserr  = 0.0d0
       val     = 0.0D0
@@ -3618,7 +3618,7 @@ c
       double precision, parameter :: half = 0.5D0
       double precision, parameter :: zero = 0.0D0
       double precision, parameter :: hmin = 1.0d-10
-      
+
       LIMEXP  = decdigs
       val     = zero
       errFlg  = 0
@@ -3637,14 +3637,14 @@ c
       stepSizeTooSmall = ( h < hMin)
       do i = 2, decdigs
          h = h * half
-         
+
          Un5 = zero
-         do  k = 1, ipower      
-            Un5 = Un5 + f(a + DBLE(2*k-1)*h)   
+         do  k = 1, ipower
+            Un5 = Un5 + f(a + DBLE(2*k-1)*h)
          enddo
 !     trapezoidal approximations
-         rom2(1) = half * rom1(1) + h * Un5  
-                  
+         rom2(1) = half * rom1(1) + h * Un5
+
 !     Richardson extrapolation
          do k = 1, i-1
             rom2(k+1) = ( fp(k)*rom2(k)-rom1(k) ) / ( fp(k) - one )
@@ -3676,7 +3676,7 @@ c
       endif
       end subroutine Romberg1
       end module Integration1DModule
- 
+
       module mvnProdCorrPrbMod
       implicit none
       private
@@ -3685,43 +3685,43 @@ c
       ! Inputs to integrand
       integer mNdim ! # of mRho/=0 and mRho/=+/-1 and -inf<a or b<inf
       double precision, allocatable, dimension(:) ::  mRho, mDen
-      double precision, allocatable, dimension(:) ::  mA,mB  
-      
-        
+      double precision, allocatable, dimension(:) ::  mA,mB
+
+
       INTERFACE mvnprodcorrprb
       MODULE PROCEDURE mvnprodcorrprb
-      END INTERFACE 
+      END INTERFACE
 
       INTERFACE FI
       MODULE PROCEDURE FI
-      END INTERFACE 
-      
+      END INTERFACE
+
       INTERFACE FI2
       MODULE PROCEDURE FI2
       END INTERFACE
-      
+
       INTERFACE FIINV
       MODULE PROCEDURE FIINV
-      END INTERFACE 
+      END INTERFACE
       INTERFACE GetBreakPoints
       MODULE PROCEDURE GetBreakPoints
-      END INTERFACE 
+      END INTERFACE
 
       INTERFACE NarrowLimits
       MODULE PROCEDURE NarrowLimits
-      END INTERFACE 
+      END INTERFACE
 
       INTERFACE GetTruncationError
       MODULE PROCEDURE GetTruncationError
-      END INTERFACE 
+      END INTERFACE
 
       INTERFACE integrand
       MODULE PROCEDURE integrand
-      END INTERFACE 
+      END INTERFACE
 
       INTERFACE integrand1
       MODULE PROCEDURE integrand1
-      END INTERFACE 
+      END INTERFACE
       contains
       SUBROUTINE SORTRE(rarray,indices)
       IMPLICIT NONE
@@ -3730,7 +3730,7 @@ c
 ! local variables
       double precision :: tmpR
       INTEGER  :: i,im,j,k,m,n, tmpI
-   
+
 ! diminishing increment sort as described by
 ! Donald E. Knuth (1973) "The art of computer programming,",
 ! Vol. 3, pp 84-  (sorting and searching)
@@ -3755,7 +3755,7 @@ c
       i=j
 500   continue
       im=i+m
-      if (rarray(i).gt.rarray(im)) goto 700          
+      if (rarray(i).gt.rarray(im)) goto 700
 600   continue
       j=j+1
       if (j.gt.k) goto 300
@@ -3773,11 +3773,11 @@ c
       if (i.lt.1) goto 600
       goto 500
 800   continue
-      RETURN   
+      RETURN
       END SUBROUTINE SORTRE
 
       subroutine mvnprodcorrprb(rho,a,b,abseps,releps,useBreakPoints,
-     &     useSimpson,abserr,errFlg,prb) 
+     &     useSimpson,abserr,errFlg,prb)
       use AdaptiveGaussKronrod
       use Integration1DModule
 !      use numerical_libraries
@@ -3802,14 +3802,14 @@ c
       small = MAX(spacing(one),1.0D-16)
       isSingular = .FALSE.
       n     = size(a,DIM=1)
-      
+
       LTol   = max(abseps,small)
       errFlg = 0
       prb    = ZERO
       abserr = small
-      if ( any(b(:)<=a(:)).or. 
+      if ( any(b(:)<=a(:)).or.
      &     any(b(:)<=-mINFINITY) .or.
-     &     any(mINFINITY<=a(:))) then  
+     &     any(mINFINITY<=a(:))) then
          goto 999  ! end program
       endif
       As      = - mInfinity
@@ -3831,7 +3831,7 @@ c
 !     See if we may narrow down the integration region: zlo, zup
       CALL NarrowLimits(zlo,zup,As,Bs,zCutOff,n,a,b,mRho,mDen)
       if (zup <= zlo) goto 999 ! end program
-      	
+
 !     Move only significant variables to mA,mB, and mRho
 !     (Note: If you scale them with mDen, the integrand must also be changed)
       mNdim = 0
@@ -3847,7 +3847,7 @@ c
                mB(mNdim)   =    b(k) / mDen(k)
                mRho(mNdim) = mRho(k) / mDen(k)
                mDen(mNdim) = mDen(k)
-            endif  
+            endif
          else  ! independent variables which are evaluated separately
             val0 = val0 * ( FI( b(k) ) - FI( a(k) ) )
          endif
@@ -3855,7 +3855,7 @@ c
       CALL GetTruncationError(zlo, zup, As, Bs, truncError)
 
       select case(mNdim)
-      case (0) 
+      case (0)
          if (isSingular) then
             prb    = ( FI( zup ) - FI( zlo ) ) * val0
             abserr = sqrt(small) + truncError
@@ -3880,7 +3880,7 @@ c
      &           breakPoints,Npts)
          endif
          LTol = LTol - truncError
-! 
+!
          if (useSimpson) then
             call AdaptiveSimpson(integrand,zlo,zup,Npts,breakPoints,LTol
      &           ,errFlg,abserr, val)
@@ -3896,7 +3896,7 @@ c
          prb    = zero
          abserr = small + truncError
       endif
-     
+
  999  continue
       if (allocated(mDen)) deallocate(mDen)
       if (allocated(mA))   deallocate(mA,mB,mRho)
@@ -3908,7 +3908,7 @@ c
       double precision, intent(in) :: zlo, zup, As, Bs
       double precision, intent(out) :: truncError
       double precision :: upError,loError
-!     Computes the upper bound for the truncation error 
+!     Computes the upper bound for the truncation error
       upError    = integrand1(zup) * abs( FI( Bs  ) - FI( zup ) )
       loError    = integrand1(zlo) * abs( FI( zlo ) - FI( As  ) )
       truncError = loError + upError
@@ -3937,7 +3937,7 @@ c
       Npts = 0
       if (.false.) then
          if (xup-xlo>stepSize) then
-            Nk = floor((xup-xlo)/stepSize) + 1 
+            Nk = floor((xup-xlo)/stepSize) + 1
             dx = (xup-xlo)/dble(Nk)
             do j=1, Nk -1
                Npts = Npts  + 1
@@ -3956,12 +3956,12 @@ c
       ! Sort the candidates
       call sortre(brkPts,indices)
       ! Make unique list of breakpoints
-      
+
       do k = 1,2*n
          brk =  brkPts(k)
          if (xlo < brk) then
             if ( xup <= brk )  exit ! terminate do loop
-            
+
 !     if (Npts>0) then
 !     xLow = max(xlo, breakPoints(Npts))
 !     else
@@ -3975,9 +3975,9 @@ c
 !     breakPoints(Npts) = brk + dx * dble( j )
 !     enddo
 !     endif
-            
+
             kU = indices(k)
-            
+
                                 !if ( xlo + distance < brk  .and. brk + distance < xup )
                                 !then
             if ( den(kU) < 0.2) then
@@ -4016,7 +4016,7 @@ c
                      breakPoints(Npts) = z2
                      brkPtsVal(Npts) = integrand(z2)
                      indices2(Npts) = kU
-                     kL = kU 
+                     kL = kU
                   endif
                else
                   val1 = 0.0d0
@@ -4045,13 +4045,13 @@ c
                      endif
                   if (val1 < z1) then
                      Npts = Npts + 1
-                     breakPoints(Npts) = z1 
+                     breakPoints(Npts) = z1
                      brkPtsVal(Npts) = brkPtsVal(Npts+Nprev)
                      indices2(Npts) = kU
                   endif
 !     Nprev = Nprev + 1
 !     breakPoints(Npts + Nprev) = brk
-                  
+
                   if ((val1< z2) .and. (z2 + distance < xup)) then
                      Npts = Npts + 1
                      breakPoints(Npts) = z2
@@ -4075,11 +4075,11 @@ c
 !     Locals
       double precision, parameter :: zero = 0.0D0, one = 1.0D0
       integer :: k
-      
-!     Uses the regression equation to limit the 
+
+!     Uses the regression equation to limit the
 !     integration limits zMin and zMax
-      
-      do k = 1,n	
+
+      do k = 1,n
          if (ZERO < rho(k)) then
             zMax = max(zMin, min(zMax,(b(k)+den(k)*zCutOff)/rho(k)))
             zMin = min(zMax, max(zMin,(a(k)-den(k)*zCutOff)/rho(k)))
@@ -4120,14 +4120,14 @@ c
 	do I = 1, mNdim
          zRho = z * mRho(I)
          ! Uncomment / mDen below if mRho, mA, mB is not scaled
-         xUp  = ( mB(I) - zRho )  !/ mDen(I) 
+         xUp  = ( mB(I) - zRho )  !/ mDen(I)
          xLo  = ( mA(I) - zRho )  !/ mDen(I)
          if (zero<xLo) then
-            val = val * ( FI( -xLo ) - FI( -xUp ) ) 
+            val = val * ( FI( -xLo ) - FI( -xUp ) )
          else
             val = val * ( FI( xUp ) - FI( xLo ) )
          endif
-      enddo	
+      enddo
       end function integrand1
       FUNCTION FIINV(P) RESULT (VAL)
       IMPLICIT NONE
@@ -4146,17 +4146,17 @@ c
       DOUBLE PRECISION, INTENT(in) :: P
       DOUBLE PRECISION :: VAL
 !local variables
-      DOUBLE PRECISION SPLIT1, SPLIT2, CONST1, CONST2, ONE, ZERO, HALF, 
-     &     A0, A1, A2, A3, A4, A5, A6, A7, B1, B2, B3, B4, B5, B6, B7, 
-     &     C0, C1, C2, C3, C4, C5, C6, C7, D1, D2, D3, D4, D5, D6, D7, 
-     &     E0, E1, E2, E3, E4, E5, E6, E7, F1, F2, F3, F4, F5, F6, F7, 
+      DOUBLE PRECISION SPLIT1, SPLIT2, CONST1, CONST2, ONE, ZERO, HALF,
+     &     A0, A1, A2, A3, A4, A5, A6, A7, B1, B2, B3, B4, B5, B6, B7,
+     &     C0, C1, C2, C3, C4, C5, C6, C7, D1, D2, D3, D4, D5, D6, D7,
+     &     E0, E1, E2, E3, E4, E5, E6, E7, F1, F2, F3, F4, F5, F6, F7,
      &     Q, R
       PARAMETER ( SPLIT1 = 0.425D0, SPLIT2 = 5.D0,
      &            CONST1 = 0.180625D0, CONST2 = 1.6D0,
      &				ONE = 1.D0, ZERO = 0.D0, HALF = 0.5D0 )
-*     
+*
 *     Coefficients for P close to 0.5
-*     
+*
       PARAMETER (
      *     A0 = 3.38713 28727 96366 6080D0,
      *     A1 = 1.33141 66789 17843 7745D+2,
@@ -4174,9 +4174,9 @@ c
      *     B6 = 2.87290 85735 72194 2674D+4,
      *     B7 = 5.22649 52788 52854 5610D+3 )
 *     HASH SUM AB    55.88319 28806 14901 4439
-*     
+*
 *     Coefficients for P not close to 0, 0.5 or 1.
-*     
+*
       PARAMETER (
      *     C0 = 1.42343 71107 49683 57734D0,
      *     C1 = 4.63033 78461 56545 29590D0,
@@ -4214,7 +4214,7 @@ c
      *     F6 = 1.42151 17583 16445 88870D-7,
      *     F7 = 2.04426 31033 89939 78564D-15 )
 *     HASH SUM EF    47.52583 31754 92896 71629
-*     
+*
       Q = ( P - HALF)
       IF ( ABS(Q) .LE. SPLIT1 ) THEN ! Central range.
          R = CONST1 - Q*Q
@@ -4229,7 +4229,7 @@ c
             IF ( R .LE. SPLIT2 ) THEN
                R = R - CONST2
                VAL = ( ( ( ((((C7*R + C6)*R + C5)*R + C4)*R + C3)
-     *                      *R + C2 )*R + C1 )*R + C0 ) 
+     *                      *R + C2 )*R + C1 )*R + C0 )
      *                /( ( ( ((((D7*R + D6)*R + D5)*R + D4)*R + D3)
      *                      *R + D2 )*R + D1 )*R + ONE )
             ELSE
@@ -4245,72 +4245,72 @@ c
          IF ( Q  <  ZERO ) VAL = - VAL
       END IF
       RETURN
-      END FUNCTION FIINV  
+      END FUNCTION FIINV
       FUNCTION FI2( Z ) RESULT (VALUE)
       IMPLICIT NONE
       DOUBLE PRECISION, INTENT(in) :: Z
       DOUBLE PRECISION :: VALUE
-*     
+*
 *     Normal distribution probabilities accurate to 1.e-15.
 *     relative error less than 1e-8;
 *     Z = no. of standard deviations from the mean.
-*     
+*
 *     Based upon algorithm 5666 for the error function, from:
 *     Hart, J.F. et al, 'Computer Approximations', Wiley 1968
-*     
+*
 *     Programmer: Alan Miller
-*     
+*
 *     Latest revision - 30 March 1986
-*     
-      DOUBLE PRECISION :: P0, P1, P2, P3, P4, P5, P6, 
+*
+      DOUBLE PRECISION :: P0, P1, P2, P3, P4, P5, P6,
      *     Q0, Q1, Q2, Q3, Q4, Q5, Q6, Q7,XMAX,
      *     P, EXPNTL, CUTOFF, ROOTPI, ZABS, Z2
       PARAMETER(
      *     P0 = 220.20 68679 12376 1D0,
-     *     P1 = 221.21 35961 69931 1D0, 
+     *     P1 = 221.21 35961 69931 1D0,
      *     P2 = 112.07 92914 97870 9D0,
      *     P3 = 33.912 86607 83830 0D0,
      *     P4 = 6.3739 62203 53165 0D0,
-     *     P5 = 0.70038 30644 43688 1D0, 
+     *     P5 = 0.70038 30644 43688 1D0,
      *     P6 = 0.035262 49659 98910 9D0 )
       PARAMETER(
      *     Q0 = 440.41 37358 24752 2D0,
-     *     Q1 = 793.82 65125 19948 4D0, 
+     *     Q1 = 793.82 65125 19948 4D0,
      *     Q2 = 637.33 36333 78831 1D0,
-     *     Q3 = 296.56 42487 79673 7D0, 
+     *     Q3 = 296.56 42487 79673 7D0,
      *     Q4 = 86.780 73220 29460 8D0,
-     *     Q5 = 16.064 17757 92069 5D0, 
+     *     Q5 = 16.064 17757 92069 5D0,
      *     Q6 = 1.7556 67163 18264 2D0,
      *     Q7 = 0.088388 34764 83184 4D0 )
       PARAMETER( ROOTPI = 2.5066 28274 63100 1D0 )
       PARAMETER( CUTOFF = 7.0710 67811 86547 5D0 )
       PARAMETER( XMAX   = 8.25D0 )
-*     
+*
       ZABS = ABS(Z)
-*     
+*
 *     |Z| > 37  (or XMAX)
-*     
+*
       IF ( Z .GT. XMAX .OR. ZABS .GT. 37) THEN
          P = 0.d0
       ELSE
-*     
+*
 *     |Z| <= 37
-*     
+*
          Z2 = ZABS * ZABS
          EXPNTL = EXP( -Z2 * 0.5D0 )
-*     
+*
 *     |Z| < CUTOFF = 10/SQRT(2)
-*     
+*
          IF ( ZABS  <  CUTOFF ) THEN
             P = EXPNTL*( (((((P6*ZABS + P5)*ZABS + P4)*ZABS + P3)*ZABS
      *           + P2)*ZABS + P1)*ZABS + P0)/(((((((Q7*ZABS + Q6)*ZABS
      *           + Q5)*ZABS + Q4)*ZABS + Q3)*ZABS + Q2)*ZABS + Q1)*ZABS
      *           + Q0 )
-*     
+*
 *     |Z| >= CUTOFF.
-*     
+*
          ELSE
-            P = EXPNTL/( ZABS + 1.d0/( ZABS + 2.d0/( ZABS + 3.d0/( ZABS 
+            P = EXPNTL/( ZABS + 1.d0/( ZABS + 2.d0/( ZABS + 3.d0/( ZABS
      *                        + 4.d0/( ZABS + 0.65D0 ) ) ) ) )/ROOTPI
          END IF
       END IF
@@ -4332,4 +4332,3 @@ c
       END FUNCTION FI
       end module mvnProdCorrPrbMod
 
-   
