@@ -2,8 +2,8 @@
 Wave Analysis for Fatigue and Oceanography
 ==========================================
 
-.. image:: https://badge.fury.io/py/pywafo.png
-    :target: https://pypi.python.org/pypi/pywafo/
+.. image:: https://badge.fury.io/py/wafo.png
+    :target: https://pypi.python.org/pypi/wafo/
 
 .. image:: https://travis-ci.org/wafo-project/pywafo.svg?branch=master
     :target: https://travis-ci.org/wafo-project/pywafo
