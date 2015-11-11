@@ -78,6 +78,15 @@ On the WAFO home page you will find:
 - List of publications related to WAFO.
 
 
+Unit tests
+==========
+To test if the toolbox is working paste the following in an interactive
+python session::
+
+   import wafo as wf
+   wf.test(coverage=True, doctests=True)
+
+
 Note
 ====
 
