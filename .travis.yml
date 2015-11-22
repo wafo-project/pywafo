@@ -1,7 +1,7 @@
 # Travis configuration file using the build matrix feature
 # Read more under http://docs.travis-ci.com/user/build-configuration/
 # THIS SCRIPT IS SUPPOSED TO BE AN EXAMPLE. MODIFY IT ACCORDING TO YOUR NEEDS!
-sudo: false
+#sudo: true
 language: python
 python:
   - 2.7
@@ -32,6 +32,7 @@ before_install:
   - conda config --add channels https://conda.anaconda.org/omnia
   - conda config --add channels https://conda.anaconda.org/pbrod
   - source activate condaenv
+  - sudo apt-get install gfortran g77
 # Install packages
 install:
   - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy pytest
