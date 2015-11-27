@@ -45,16 +45,16 @@ def setup_package_pyscaffold():
 #                         include_dirs=['wafo/source/rind2007'])
 #    extensions.append(mreg_ext)
 
-    mvn_ext = Extension('wafo.mvn',
-                        sources=['wafo/source/mvn/mvn.pyf',
-                                 'wafo/source/mvn/mvndst.f'])
-    extensions.append(mvn_ext)
+#    mvn_ext = Extension('wafo.mvn',
+#                        sources=['wafo/source/mvn/mvn.pyf',
+#                                 'wafo/source/mvn/mvndst.f'])
+#    extensions.append(mvn_ext)
 
 #    mvnprd_ext = Extension('wafo.mvnprdmod',
 #                           sources=['wafo/source/mvnprd/mvnprd.f',
 #                                    'wafo/source/mvnprd/mvnprodcorrprb.f',
 #                                    'wafo/source/mvnprd/mvnprd_interface.f'])
-#    extensions.append(mvnprd_ext)
+    extensions.append(mvnprd_ext)
 
 
     needs_sphinx = {'build_sphinx', 'upload_docs'}.intersection(sys.argv)
