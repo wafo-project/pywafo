@@ -54,7 +54,7 @@ def setup_package_pyscaffold():
 #                           sources=['wafo/source/mvnprd/mvnprd.f',
 #                                    'wafo/source/mvnprd/mvnprodcorrprb.f',
 #                                    'wafo/source/mvnprd/mvnprd_interface.f'])
-    extensions.append(mvnprd_ext)
+#    extensions.append(mvnprd_ext)
 
 
     needs_sphinx = {'build_sphinx', 'upload_docs'}.intersection(sys.argv)
