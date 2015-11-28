@@ -37,7 +37,7 @@ before_install:
 install:
   - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy pytest numdifftools
   - pip install coveralls
-  - python setup.py build
+#  - python setup.py build
   - python setup.py install
 #  - conda build conda_recipe
 #  - conda install wafo --use-local

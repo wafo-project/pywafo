@@ -2,7 +2,9 @@
 [run]
 branch = True
 source = wafo
-#omit = */xxxx.py
+omit = 
+   wafo/test/*
+   wafo/source/*
 
 [report]
 # Regexes for lines to exclude from consideration
