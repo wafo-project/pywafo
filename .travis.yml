@@ -37,6 +37,7 @@ before_install:
 install:
   - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy pytest numdifftools matplotlib nose
   - pip install coveralls
+  - pip install codecov
   - python setup.py build
   - python setup.py install
 #  - conda build conda_recipe
@@ -48,5 +49,6 @@ script:
   - coverage run --source=wafo setup.py test
 after_success:
   - coveralls
+  - codecov
 cache:
   - apt
