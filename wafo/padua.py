@@ -85,8 +85,11 @@ Contents.m              : Contents file for Matlab
 from __future__ import division
 import numpy as np
 from numpy.fft import fft
+from wafo.dctpack import dct
+# from scipy.fftpack.realtransforms import dct
 
-class TestFunctions(object):
+
+class _ExampleFunctions(object):
     '''
     Computes test function in the points (x, y)
 
@@ -159,7 +162,8 @@ class TestFunctions(object):
     def exp_fun1(x, y):
         ''' The value of the definite integral on the square [-1,1] x [-1,1],
         obtained using a Padua Points cubature formula of degree 2000,
-        is 2.1234596326670683e+001 with an estimated absolute error of 7.11e-015.
+        is 2.1234596326670683e+001 with an estimated absolute error of
+        7.11e-015.
         '''
         return np.exp((x - 0.5)**2 + (y - 0.5)**2)
 
@@ -167,7 +171,8 @@ class TestFunctions(object):
     def exp_fun100(x, y):
         '''The value of the definite integral on the square [-1,1] x [-1,1],
         obtained using a Padua Points cubature formula of degree 2000,
-        is 3.1415926535849605e-002 with an estimated absolute error of 3.47e-017.
+        is 3.1415926535849605e-002 with an estimated absolute error of
+        3.47e-017.
         '''
         return np.exp(-100 * ((x - 0.5)**2 + (y - 0.5)**2))
 
@@ -175,7 +180,8 @@ class TestFunctions(object):
     def cos30(x, y):
         ''' The value of the definite integral on the square [-1,1] x [-1,1],
         obtained using a Padua Points cubature formula of degree 500,
-        is 4.3386955120336568e-003 with an estimated absolute error of 2.95e-017.
+        is 4.3386955120336568e-003 with an estimated absolute error of
+        2.95e-017.
         '''
         return np.cos(30 * (x + y))
 
@@ -194,7 +200,8 @@ class TestFunctions(object):
         is up to machine precision is 5.524391382167263 (see ref. 6).
         2. The value of the definite integral on the square [-1,1] x [-1,1],
         obtained using a Padua Points cubature formula of degree 500,
-        is 5.5243913821672628e+000 with an estimated absolute error of 0.00e+000.
+        is 5.5243913821672628e+000 with an estimated absolute error of
+        0.00e+000.
         2D modification of an example by L.N.Trefethen (see ref. 7),
         f(x)=exp(x).
         '''
@@ -209,7 +216,8 @@ class TestFunctions(object):
         up to machine precision, is 0.597388947274307 (see ref. 6).
         The value of the definite integral on the square [-1,1] x [-1,1],
         obtained using a Padua Points cubature formula of degree 500,
-        is 5.9738894727430725e-001 with an estimated absolute error of 0.00e+000.
+        is 5.9738894727430725e-001 with an estimated absolute error of
+        0.00e+000.
 
         2D modification of an example by L.N.Trefethen (see ref. 7),
         f(x)=1/(1+16*x^2).
@@ -223,7 +231,8 @@ class TestFunctions(object):
         up to machine precision, is 2.508723139534059 (see ref. 6).
         The value of the definite integral on the square [-1,1] x [-1,1],
         obtained using a Padua Points cubature formula of degree 500,
-        is 2.5087231395340579e+000 with an estimated absolute error of 0.00e+000.
+        is 2.5087231395340579e+000 with an estimated absolute error of
+        0.00e+000.
 
         2D modification of an example by L.N.Trefethen (see ref. 7),
         f(x)=abs(x)^3.
@@ -237,7 +246,8 @@ class TestFunctions(object):
         up to machine precision, is 2.230985141404135 (see ref. 6).
         The value of the definite integral on the square [-1,1] x [-1,1],
         obtained using a Padua Points cubature formula of degree 500,
-        is 2.2309851414041333e+000 with an estimated absolute error of 2.66e-015.
+        is 2.2309851414041333e+000 with an estimated absolute error of
+        2.66e-015.
 
         2D modification of an example by L.N.Trefethen (see ref. 7),
         f(x)=exp(-x^2).
@@ -251,7 +261,8 @@ class TestFunctions(object):
         up to machine precision, is 0.853358758654305 (see ref. 6).
         The value of the definite integral on the square [-1,1] x [-1,1],
         obtained using a Padua Points cubature formula of degree 2000,
-        is 8.5335875865430544e-001 with an estimated absolute error of 3.11e-015.
+        is 8.5335875865430544e-001 with an estimated absolute error of
+        3.11e-015.
 
         2D modification of an example by L.N.Trefethen (see ref. 7),
         f(x)=exp(-1/x^2).
@@ -269,7 +280,7 @@ class TestFunctions(object):
                          s.exp_fun100, s.cos30, s.constant, s.exp_xy, s.runge,
                          s.abs_cubed, s.gauss, s.exp_inv]
         return test_function[id](x, y)
-testfunct = TestFunctions()
+example_functions = _ExampleFunctions()
 
 
 def _find_m(n):
@@ -348,7 +359,6 @@ def padua_fit(Pad, fun, *args):
 
     '''
 
-
     N = np.shape(Pad)[1]
     # recover the degree n from N = (n+1)(n+2)/2
     n = int(round(-3 + np.sqrt(1 + 8 * N)) / 2)
@@ -375,52 +385,50 @@ def padua_fit(Pad, fun, *args):
 
     return C0f, error_estimate(C0f)
 
+
 def paduavals2coefs(f):
-    useFFTwhenNisMoreThan=100
+    useFFTwhenNisMoreThan = 100
     m = len(f)
-    n = int(round(-1.5 + np.sqrt(.25+2*m)))
+    n = int(round(-1.5 + np.sqrt(.25 + 2 * m)))
     x = padua_points(n)
     idx = _find_m(n)
-    w = 0*x[0] + 1./(n*(n+1))
+    w = 0 * x[0] + 1. / (n * (n + 1))
     idx1 = np.all(np.abs(x) == 1, axis=0)
-    w[idx1] = .5*w[idx1]
+    w[idx1] = .5 * w[idx1]
     idx2 = np.all(np.abs(x) != 1, axis=0)
-    w[idx2] = 2*w[idx2]
+    w[idx2] = 2 * w[idx2]
 
-    G = np.zeros(idx.max()+1)
-    G[idx] = 4*w*f
+    G = np.zeros(idx.max() + 1)
+    G[idx] = 4 * w * f
 
-    if ( n < useFFTwhenNisMoreThan ):
-        t1 = np.r_[0:n+1].reshape(-1, 1)
-        Tn1 = np.cos(t1*t1.T*np.pi/n)
-        t2 = np.r_[0:n+2].reshape(-1, 1)
-        Tn2 = np.cos(t2*t2.T*np.pi/(n+1));
-        C = np.dot(Tn2, np.dot(G,Tn1))
+    if (n < useFFTwhenNisMoreThan):
+        t1 = np.r_[0:n + 1].reshape(-1, 1)
+        Tn1 = np.cos(t1 * t1.T * np.pi / n)
+        t2 = np.r_[0:n + 2].reshape(-1, 1)
+        Tn2 = np.cos(t2 * t2.T * np.pi / (n + 1))
+        C = np.dot(Tn2, np.dot(G, Tn1))
     else:
 
         # dct = @(c) chebtech2.coeffs2vals(c);
-        C = np.rot90(dct(dct(G.T).T), axis=1)
+        C = np.rot90(dct(dct(G.T).T)) #, axis=1)
 
-    C[0] = .5*C[0]
-    C[:,1] = .5*C[:, 1]
-    C[0,-1] = .5*C[0, -1]
+    C[0] = .5 * C[0]
+    C[:, 1] = .5 * C[:, 1]
+    C[0, -1] = .5 * C[0, -1]
     del C[-1]
 
     # Take upper-left triangular part:
     return np.fliplr(np.triu(np.fliplr(C)))
-    #C = triu(C(:,end:-1:1));
-    #C = C(:,end:-1:1);
+    # C = triu(C(:,end:-1:1));
+    # C = C(:,end:-1:1);
 
 
 def padua_fit2(Pad, fun, *args):
     N = np.shape(Pad)[1]
     # recover the degree n from N = (n+1)(n+2)/2
-    n = int(round(-3 + np.sqrt(1 + 8 * N)) / 2)
+    _n = int(round(-3 + np.sqrt(1 + 8 * N)) / 2)
     C0f = fun(Pad[0], Pad[1], *args)
     return paduavals2coefs(C0f)
-
-
-
 
 
 def _compute_moments(n):
@@ -449,7 +457,8 @@ def padua_val(X, Y, coefficients, domain=(-1, 1, -1, 1), use_meshgrid=False):
     Evaluate polynomial in padua form at X, Y.
 
      Evaluate the interpolation polynomial defined through its coefficient
-     matrix coefficients at the target points X(:,1),X(:,2) or at the meshgrid(X1,X2)
+     matrix coefficients at the target points X(:,1),X(:,2) or at the
+     meshgrid(X1,X2)
 
     Parameters
     ----------
@@ -469,7 +478,7 @@ def padua_val(X, Y, coefficients, domain=(-1, 1, -1, 1), use_meshgrid=False):
     '''
     X, Y = np.atleast_1d(X, Y)
     original_shape = X.shape
-    min, max = np.minimum, np.maximum
+    min, max = np.minimum, np.maximum  # @ReservedAssignment
     a, b, c, d = domain
     n = np.shape(coefficients)[1]
 
@@ -481,6 +490,12 @@ def padua_val(X, Y, coefficients, domain=(-1, 1, -1, 1), use_meshgrid=False):
     TX1[1:n + 1] = TX1[1:n + 1] * np.sqrt(2)
     TX2[1:n + 1] = TX2[1:n + 1] * np.sqrt(2)
     if use_meshgrid:
-        return np.dot(TX1.T, np.dot(coefficients, TX2)).T  # eval on meshgrid points
-    val = np.sum(np.dot(TX1.T, coefficients) * TX2.T, axis=1)  # scattered points
+        # eval on meshgrid points
+        return np.dot(TX1.T, np.dot(coefficients, TX2)).T
+    val = np.sum(
+        np.dot(
+            TX1.T,
+            coefficients) *
+        TX2.T,
+        axis=1)  # scattered points
     return val.reshape(original_shape)
