@@ -18,11 +18,10 @@ import warnings
 from time import strftime, gmtime
 from plotbackend import plotbackend
 from collections import OrderedDict
-
-
 try:
     import c_library as clib  # @UnresolvedImport
-except:
+except ImportError:
+    warnings.warn('c_library not found. Check its compilation.')
     clib = None
 floatinfo = finfo(float)
 _TINY = np.finfo(float).tiny

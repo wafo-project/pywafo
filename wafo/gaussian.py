@@ -4,12 +4,26 @@ from numpy import (r_, minimum, maximum, atleast_1d, atleast_2d, mod, ones,
 from numpy import triu
 from scipy.special import ndtr as cdfnorm, ndtri as invnorm
 from scipy.special import erfc
-from wafo import mvn
-import numpy as np
-import wafo.mvnprdmod as mvnprdmod
-import wafo.rindmod as rindmod
 import warnings
+import numpy as np
 from wafo.misc import common_shape
+
+try:
+    import mvn  # @UnresolvedImport
+except ImportError:
+    warnings.warn('mvn not found. Check its compilation.')
+    mvn = None
+try:
+    import mvnprodmod  # @UnresolvedImport
+except ImportError:
+    warnings.warn('mvnprodmod not found. Check its compilation.')
+    mvnprodmod = None
+try:
+    import rindmod  # @UnresolvedImport
+except ImportError:
+    warnings.warn('rindmod not found. Check its compilation.')
+    rindmod = None
+
 
 __all__ = ['Rind', 'rindmod', 'mvnprdmod', 'mvn', 'cdflomax', 'prbnormtndpc',
            'prbnormndpc', 'prbnormnd', 'cdfnorm2d', 'prbnorm2d', 'cdfnorm',
