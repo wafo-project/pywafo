@@ -2040,7 +2040,7 @@ class SpecData1D(PlotData):
                 # end %ENDIF
                 # waitTxt = sprintf('%s Ready: %d of %d',datestr(now),Ntd,Ntime)
                 # fwaitbar(Ntd/Ntime,h11,waitTxt)
-              
+
             # end %do
             # close(h11)
             err = sqrt(err)
@@ -2102,7 +2102,7 @@ class SpecData1D(PlotData):
                             else:
                                 #  5,  gives level u separated Max2min and wave period from
                                 #  the crossing of level u to the min (M,m,Tdm).
-                                  
+
                                 IJ = 0
                                 for i in range(1, Nx1):  # = 2:Nx1
                                     J = IJ + Nx1
@@ -2282,9 +2282,9 @@ class SpecData1D(PlotData):
             # Cov(Xd,Xc)
             BIG[tn - 1, N] = R2[ts]  # %cov(X''(t1),X(ts))
             BIG[tn, N] = R2[tn - ts]  # %cov(X''(tn),X(ts))
-           
+
             # ADD a level u crossing  at ts
-           
+
             # Cov(Xt,Xd)
             # for
             i = np.arange(tn - 2)  # 1:tn-2
@@ -2326,17 +2326,17 @@ class SpecData1D(PlotData):
             # N = tn+4
             shft = 0
         # end %if
-                  
+
         if (tn > 2):
             # for i=1:tn-2
             # cov(Xt)
             #    for j=i:tn-2
             #      BIG(i,j) = -R2(j-i+1)              % cov(X'(ti+1),X'(tj+1))
             #   end %do
-           
+
             # % cov(Xt) =   % cov(X'(ti+1),X'(tj+1))
             BIG[:tn - 2, :tn - 2] = toeplitz(-R2[:tn - 2])
-        
+
             # cov(Xt,Xc)
             BIG[:tn - 2, tn + shft] = -R2[1:tn - 1]  # cov(X'(ti+1),X'(t1))
             # cov(X'(ti+1),X'(tn))
@@ -2344,7 +2344,7 @@ class SpecData1D(PlotData):
             BIG[:tn - 2, tn + shft + 2] = R1[1:tn - 1]  # cov(X'(ti+1),X(t1))
             # cov(X'(ti+1),X(tn))
             BIG[:tn - 2, tn + shft + 3] = -R1[tn - 2:0:-1]
-          
+
             # Cov(Xt,Xd)
             BIG[:tn - 2, tn - 2] = R3[1:tn - 1]     # cov(X'(ti+1),X''(t1))
             BIG[:tn - 2, tn - 1] = -R3[tn - 2:0:-1]  # cov(X'(ti+1),X''(tn))
@@ -2354,7 +2354,7 @@ class SpecData1D(PlotData):
         BIG[tn - 2, tn - 2] = R4[0]
         BIG[tn - 2, tn - 1] = R4[tn - 1]  # cov(X''(t1),X''(tn))
         BIG[tn - 1, tn - 1] = R4[0]
-        
+
         # cov(Xc)
         BIG[tn + shft + 2, tn + shft + 2] = R0[0]        # cov(X(t1),X(t1))
         # cov(X(t1),X(tn))
@@ -2929,8 +2929,8 @@ class SpecData1D(PlotData):
         # 1'st order + 2'nd order component.
         x2[:, 1::] = x[:, 1::] + x2o[0:ns, :].real
         if output == 'timeseries':
-            xx2 = mat2timeseries(x2[:, 1::], x2[:, 0].ravel())
-            xx = mat2timeseries(x[:, 1::], x[:, 0].ravel())
+            xx2 = mat2timeseries(x2)
+            xx = mat2timeseries(x)
             return xx2, xx
         return x2, x
 

@@ -3,6 +3,7 @@ import wafo.transform.models as wtm
 import wafo.objects as wo
 from wafo.spectrum import SpecData1D
 import numpy as np
+from numpy.testing import assert_array_almost_equal
 import unittest
 
 
@@ -93,10 +94,10 @@ def test_sim_nl():
 
     funs = [np.mean, np.std, st.skew, st.kurtosis]
     for fun, trueval in zip(funs, truth1):
-        res = fun(x2[:, 1::], axis=0)
+        res = fun(x2.data, axis=0)
         m = res.mean()
         sa = res.std()
-        #trueval, m, sa
+        # trueval, m, sa
         assert(np.abs(m - trueval) < 2 * sa)
 
 
@@ -107,9 +108,9 @@ def test_stats_nl():
     S = Sj.tospecdata()
     me, va, sk, ku = S.stats_nl(moments='mvsk')
     assert(me == 0.0)
-    assert(va == 3.0608203389019537)
-    assert(sk == 0.18673120577479801)
-    assert(ku == 3.0619885212624176)
+    assert_array_almost_equal(va, 3.0608203389019537)
+    assert_array_almost_equal(sk, 0.18673120577479801)
+    assert_array_almost_equal(ku, 3.0619885212624176)
 
 
 def test_testgaussian():
@@ -127,7 +128,7 @@ def test_testgaussian():
     ys = wo.mat2timeseries(S.sim(ns=2 ** 13))
     g0, _gemp = ys.trdata()
     t0 = g0.dist2gauss()
-    t1 = S0.testgaussian(ns=2 ** 13, t0=t0, cases=50)
+    t1 = S0.testgaussian(ns=2 ** 13, test0=t0, cases=50)
     assert(sum(t1 > t0) < 5)
 
 
@@ -138,9 +139,9 @@ def test_moment():
     true_vals = [1.5614600345079888, 0.95567089481941048]
     true_txt = ['m0', 'm0tt']
     for tv, v in zip(true_vals, vals):
-        assert(tv == v)
+        assert_array_almost_equal(tv, v)
     for tv, v in zip(true_txt, txt):
-        assert(tv == v)
+        assert(tv==v)
 
 
 def test_nyquist_freq():
@@ -163,7 +164,7 @@ def test_normalize():
     vals, _txt = S.moment(2)
     true_vals = [1.5614600345079888, 0.95567089481941048]
     for tv, v in zip(true_vals, vals):
-        assert(tv == v)
+        assert_array_almost_equal(tv, v)
 
     Sn = S.copy()
     Sn.normalize()
