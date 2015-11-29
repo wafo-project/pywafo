@@ -8,6 +8,7 @@ from numpy import pi, inf  # @UnusedImport
 from numpy.testing import assert_array_almost_equal
 from wafo.gaussian import (Rind, prbnormtndpc, prbnormndpc, prbnormnd,
                            cdfnorm2d, prbnorm2d)
+from numpy.ma.testutils import assert_array_almost_equal
 
 
 def test_rind():
@@ -79,47 +80,44 @@ def test_rind():
 
 
 def test_prbnormtndpc():
-    '''
-    >>> rho2 = np.random.rand(2)
-    >>> a2   = np.zeros(2)
-    >>> b2   = np.repeat(np.inf,2)
-    >>> [val2,err2, ift2] = prbnormtndpc(rho2,a2,b2)
-    >>> g2 = lambda x : 0.25+np.arcsin(x[0]*x[1])/(2*pi)
-    >>> E2 = g2(rho2)  #% exact value
-    >>> np.abs(E2-val2)<err2
-    True
 
-    >>> rho3 = np.random.rand(3)
-    >>> a3   = np.zeros(3)
-    >>> b3   = np.repeat(inf,3)
-    >>> [val3,err3, ift3] = prbnormtndpc(rho3,a3,b3)
-    >>> g3 = lambda x : 0.5-sum(np.sort(np.arccos([x[0]*x[1],x[0]*x[2],x[1]*x[2]])))/(4*pi)
-    >>> E3 = g3(rho3)   #  Exact value
-    >>> np.abs(E3-val3)<err3
-    True
-    '''
+    rho2 = np.random.rand(2)
+    a2 = np.zeros(2)
+    b2 = np.repeat(np.inf, 2)
+    [val2, err2, ift2] = prbnormtndpc(rho2, a2, b2)
+    g2 = lambda x: 0.25 + np.arcsin(x[0] * x[1]) / (2 * pi)
+    E2 = g2(rho2)  # % exact value
+    assert(np.abs(E2 - val2) < err2)
+
+    rho3 = np.random.rand(3)
+    a3 = np.zeros(3)
+    b3 = np.repeat(inf, 3)
+    [val3, err3, ift3] = prbnormtndpc(rho3, a3, b3)
+    g3 = lambda x: 0.5 - \
+        sum(np.sort(
+            np.arccos([x[0] * x[1], x[0] * x[2], x[1] * x[2]]))) / (4 * pi)
+    E3 = g3(rho3)  # Exact value
+    assert(np.abs(E3 - val3) < err3)
 
 
 def test_prbnormndpc():
-    '''
-    >>> rho2 = np.random.rand(2)
-    >>> a2   = np.zeros(2);
-    >>> b2   = np.repeat(np.inf,2)
-    >>> [val2,err2, ift2] = prbnormndpc(rho2,a2,b2)
-    >>> g2 = lambda x : 0.25+np.arcsin(x[0]*x[1])/(2*pi)
-    >>> E2 = g2(rho2)  #% exact value
-    >>> np.abs(E2-val2)<err2
-    True
 
-    >>> rho3 = np.random.rand(3)
-    >>> a3   = np.zeros(3)
-    >>> b3   = np.repeat(inf,3)
-    >>> [val3,err3, ift3] = prbnormndpc(rho3,a3,b3)
-    >>> g3 = lambda x : 0.5-sum(np.sort(np.arccos([x[0]*x[1],x[0]*x[2],x[1]*x[2]])))/(4*pi)
-    >>> E3 = g3(rho3)   #  Exact value
-    >>> np.abs(E3-val3)<err2
-    True
-    '''
+    rho2 = np.random.rand(2)
+    a2 = np.zeros(2)
+    b2 = np.repeat(np.inf, 2)
+    [val2, err2, ift2] = prbnormndpc(rho2, a2, b2)
+    g2 = lambda x: 0.25 + np.arcsin(x[0] * x[1]) / (2 * pi)
+    E2 = g2(rho2)  # % exact value
+    assert(np.abs(E2 - val2) < err2)
+
+    rho3 = np.random.rand(3)
+    a3 = np.zeros(3)
+    b3 = np.repeat(inf, 3)
+    [val3, err3, ift3] = prbnormndpc(rho3, a3, b3)
+    g3 = lambda x: 0.5 - sum(np.sort(np.arccos([x[0] * x[1], x[0] * x[2],
+                                                x[1] * x[2]]))) / (4 * pi)
+    E3 = g3(rho3)  # Exact value
+    assert(np.abs(E3 - val3) < err3)
 
 
 def test_prbnormnd():
@@ -141,25 +139,22 @@ def test_prbnormnd():
 
 
 def test_cdfnorm2d():
-    '''
-    >>> x = np.linspace(-3,3,3)
-    >>> [b1,b2] = np.meshgrid(x,x)
-    >>> r  = 0.3
-    >>> cdfnorm2d(b1,b2,r)
-    array([[  2.38515157e-05,   1.14504149e-03,   1.34987703e-03],
-           [  1.14504149e-03,   2.98493342e-01,   4.99795143e-01],
-           [  1.34987703e-03,   4.99795143e-01,   9.97324055e-01]])
-    '''
+    x = np.linspace(-3, 3, 3)
+    [b1, b2] = np.meshgrid(x, x)
+    r = 0.3
+    truth = [[2.38515157e-05, 1.14504149e-03, 1.34987703e-03],
+             [1.14504149e-03, 2.98493342e-01, 4.99795143e-01],
+             [1.34987703e-03, 4.99795143e-01, 9.97324055e-01]]
+    assert_array_almost_equal(cdfnorm2d(b1, b2, r), truth)
 
 
 def test_prbnorm2d():
-    '''
-    >>> a = [-1, -2]
-    >>> b = [1, 1]
-    >>> r = 0.3
-    >>> prbnorm2d(a,b,r)
-    array([ 0.56659121])
-    '''
+
+    a = [-1, -2]
+    b = [1, 1]
+    r = 0.3
+    assert_array_almost_equal(prbnorm2d(a,b,r), [ 0.56659121])
+
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
