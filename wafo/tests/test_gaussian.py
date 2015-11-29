@@ -67,7 +67,7 @@ def test_rind():
     assert_array_almost_equal(err3, 0.00013838)
     assert_array_almost_equal(terr3, 1.00000000e-10)
 
-    E4, err4, terr4 = rind2(Sc2,m2,Blo2,Bup2,indI2,nt=0)
+    E4, err4, terr4 = rind2(Sc2, m2, Blo2, Bup2, indI2, nt=0)
     assert_array_almost_equal(E4, 0.24127499)
     assert_array_almost_equal(err4, 0.00013838)
     assert_array_almost_equal(terr4, 1.00000000e-10)
@@ -123,21 +123,21 @@ def test_prbnormndpc():
 
 
 def test_prbnormnd():
-    '''
-    >>> import numpy as np
-    >>> Et = 0.001946 # #  exact prob.
-    >>> n = 5
-    >>> Blo =-np.inf; Bup=-1.2
-    >>> m = np.zeros(n); rho = 0.3;
-    >>> Sc =(np.ones((n,n))-np.eye(n))*rho+np.eye(n)
-    >>> A = np.repeat(Blo,n)
-    >>> B = np.repeat(Bup,n)-m
-    >>> [val,err,inform] = prbnormnd(Sc,A,B)
-    >>> np.abs(val-Et)< err
-    True
-    >>> 'val = %2.5f' % val
-    'val = 0.00195'
-    '''
+
+    Et = 0.001946  # exact prob.
+    n = 5
+    Blo = -np.inf
+    Bup = -1.2
+    m = np.zeros(n)
+    rho = 0.3
+    Sc = (np.ones((n, n)) - np.eye(n)) * rho + np.eye(n)
+    A = np.repeat(Blo, n)
+    B = np.repeat(Bup, n) - m
+    [val, err, _inform] = prbnormnd(Sc, A, B)
+    assert(np.abs(val - Et) < err)
+
+    t = 'val = %2.5f' % val
+    assert(t == 'val = 0.00195')
 
 
 def test_cdfnorm2d():
