@@ -14,10 +14,10 @@ except ImportError:
     warnings.warn('mvn not found. Check its compilation.')
     mvn = None
 try:
-    import mvnprodmod  # @UnresolvedImport
+    import mvnprdmod  # @UnresolvedImport
 except ImportError:
-    warnings.warn('mvnprodmod not found. Check its compilation.')
-    mvnprodmod = None
+    warnings.warn('mvnprdmod not found. Check its compilation.')
+    mvnprdmod = None
 try:
     import rindmod  # @UnresolvedImport
 except ImportError:
