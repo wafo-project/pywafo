@@ -10,8 +10,8 @@ Author:  Per A. Brodtkorb 2008
 from __future__ import division, absolute_import
 import warnings
 
-from ..plotbackend import plotbackend
-from ..misc import ecross, findcross
+from wafo.plotbackend import plotbackend
+from wafo.misc import ecross, findcross
 
 
 import numdifftools  # @UnresolvedImport
@@ -1151,6 +1151,9 @@ def test1():
 
 # Better CI for phat.par[i=0]
     Lp1 = Profile(phat, i=0)  # @UnusedVariable
+    Lp1.plot()
+    import matplotlib.pyplot as plt
+    plt.show()
 #    Lp2 = Profile(phat, i=2)
 #    SF = 1./990
 #    x = phat.isf(SF)

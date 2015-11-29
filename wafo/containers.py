@@ -1,5 +1,5 @@
 import warnings
-from graphutil import cltext  # @UnresolvedImport
+from wafo.graphutil import cltext  # @UnresolvedImport
 
 from plotbackend import plotbackend
 from time import gmtime, strftime

@@ -3,12 +3,13 @@
 """
 import warnings
 verbose = False
+
 if False:
     try:
         from scitools import easyviz as plotbackend  # @UnresolvedImport
         if verbose:
             print('wafo: plotbackend is set to scitools.easyviz')
-    except:
+    except ImportError:
         warnings.warn('wafo: Unable to load scitools.easyviz as plotbackend')
         plotbackend = None
 else:
@@ -17,6 +18,6 @@ else:
         plotbackend.interactive(True)
         if verbose:
             print('wafo: plotbackend is set to matplotlib.pyplot')
-    except:
+    except ImportError:
         warnings.warn('wafo: Unable to load matplotlib.pyplot as plotbackend')
         plotbackend = None

@@ -244,8 +244,8 @@ def _parse_data(*args, **kwds):
         return xx, yy, data
     return x, y, data
 
-pcolor = plotbackend.pcolor
-pcolormesh = plotbackend.pcolormesh
+pcolor = getattr(plotbackend, 'pcolor', None)
+pcolormesh = getattr(plotbackend, 'pcolormesh', None)
 
 
 def _find_mid_points(x):
