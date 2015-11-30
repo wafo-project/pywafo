@@ -8,9 +8,9 @@
       double precision HNC,EPS
       double precision PRB, BOUND
       double precision, parameter :: infinity = 37.0d0
-Cf2py	integer, intent(hide), depend(rho) :: N = len(rho) 
-Cf2py	depend(N)  a 
-Cf2py	depend(N)  b 
+Cf2py integer, intent(hide), depend(rho) :: N = len(rho) 
+Cf2py depend(N)  a 
+Cf2py depend(N)  b 
 Cf2py integer, optional :: NDF = 0
 Cf2py double precision, optional :: abseps = 0.001
 Cf2py double precision, optional :: HNC = 0.24
@@ -25,7 +25,7 @@ CCf2py intent(in) INF
 CCf2py intent(in) A,B,rho
 
 
-	
+
 * Set INFIN  INTEGER, array of integration limits flags:
 *            if INFIN(I) < 0, Ith limits are (-infinity, infinity);
 *            if INFIN(I) = 0, Ith limits are [LOWER(I), infinity);
@@ -56,7 +56,7 @@ C              D(Ndim) = D(K)
       CALL MVSTUD(NDF,B,A,RHO,ABSEPS,Ndim,INFIN,D,IERC,HNC,
      & PRB,BOUND,IFAULT)
 
-C	CALL MVNPRD(A, B, BPD, EPS, N, INF, IERC, HINC, PROB, BOUND,
+C CALL MVNPRD(A, B, BPD, EPS, N, INF, IERC, HINC, PROB, BOUND,
 C     *  IFAULT)
       return
       end subroutine prbnormtndpc
@@ -72,16 +72,16 @@ C     *  IFAULT)
       logical,         intent(in) :: useSimpson
       double precision,intent(out) :: abserr,prb
       integer, intent(out) :: IFT
-	
-Cf2py	integer, intent(hide), depend(rho) :: N = len(rho) 
-Cf2py	depend(N)  a 
-Cf2py	depend(N)  b 
+
+Cf2py integer, intent(hide), depend(rho) :: N = len(rho) 
+Cf2py depend(N)  a 
+Cf2py depend(N)  b 
 Cf2py double precision, optional :: abseps = 0.001
 Cf2py double precision, optional :: releps = 0.001
 Cf2py logical, optional :: useBreakPoints =1
 Cf2py logical, optional :: useSimpson = 1 
-	
+
       CALL mvnprodcorrprb(rho,a,b,abseps,releps,useBreakPoints,
      &  useSimpson,abserr,IFT,prb) 
-	
+
       end subroutine prbnormndpc
