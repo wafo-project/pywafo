@@ -33,9 +33,9 @@ def setup_package_pyscaffold():
     extensions.append(mvn_ext)
 
     mvnprd_ext = Extension('wafo.mvnprdmod',
-                           sources=['wafo/source/mvnprd/mvnprd.f',
-                                    'wafo/source/mvnprd/mvnprodcorrprb.f',
-                                    'wafo/source/mvnprd/mvnprd_interface.f'])
+                           extra_objects=['wafo/source/mvnprd/mvnprd.f',
+                                    'wafo/source/mvnprd/mvnprodcorrprb.f'],
+                           sources=['wafo/source/mvnprd/mvnprd_interface.f'])
     extensions.append(mvnprd_ext)
 
     mreg_ext = Extension('wafo.cov2mod',
