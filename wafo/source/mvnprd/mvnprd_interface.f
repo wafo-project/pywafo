@@ -54,7 +54,7 @@ C              D(Ndim) = D(K)
            endif
       ENDDO
       CALL MVSTUD(NDF,B,A,RHO,ABSEPS,Ndim,INFIN,D,IERC,HNC,
-     &	PRB,BOUND,IFAULT)
+     & PRB,BOUND,IFAULT)
 
 C	CALL MVNPRD(A, B, BPD, EPS, N, INF, IERC, HINC, PROB, BOUND,
 C     *  IFAULT)
