@@ -6,13 +6,13 @@ C      module mvnprdmod
 C      contains
       subroutine prbnormndpc(prb,abserr,IFT,rho,a,b,N,abseps,releps,
      &  useBreakPoints, useSimpson)
-	use mvnProdCorrPrbMod, ONLY : mvnprodcorrprb
-	integer :: N
+      use mvnProdCorrPrbMod, ONLY : mvnprodcorrprb
+      integer :: N
       double precision,dimension(N),intent(in) :: rho,a,b
       double precision,intent(in) :: abseps
-	double precision,intent(in) :: releps
+      double precision,intent(in) :: releps
       logical,         intent(in) :: useBreakPoints
-	logical,         intent(in) :: useSimpson
+      logical,         intent(in) :: useSimpson
       double precision,intent(out) :: abserr,prb
       integer, intent(out) :: IFT
 
