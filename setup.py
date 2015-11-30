@@ -27,24 +27,6 @@ def setup_package_pyscaffold():
                                    'wafo/source/c_library/c_functions.c'])
     extensions.append(c_lib_ext)
 
-    rind_ext = Extension('wafo.rindmod',
-                         extra_objects=['wafo/source/rind2007/intmodule.f',
-                                  'wafo/source/rind2007/jacobmod.f',
-                                  'wafo/source/rind2007/swapmod.f',
-                                  'wafo/source/rind2007/fimod.f',
-                                  'wafo/source/rind2007/rindmod.f',
-                                  'wafo/source/rind2007/rind71mod.f'],
-                          sources=['wafo/source/rind2007/rind_interface.f'])
-    extensions.append(rind_ext)
-
-    mreg_ext = Extension('wafo.cov2mod',
-                         sources=['wafo/source/mreg/dsvdc.f',
-                                  'wafo/source/mreg/mregmodule.f',
-                                  'wafo/source/mreg/intfcmod.f',
-                                  'wafo/source/mreg/cov2mmpdfreg_intfc.f'],
-                         include_dirs=['wafo/source/rind2007'])
-    extensions.append(mreg_ext)
-
     mvn_ext = Extension('wafo.mvn',
                         sources=['wafo/source/mvn/mvn.pyf',
                                  'wafo/source/mvn/mvndst.f'])
@@ -56,7 +38,24 @@ def setup_package_pyscaffold():
                                     'wafo/source/mvnprd/mvnprd_interface.f'])
     extensions.append(mvnprd_ext)
 
+    mreg_ext = Extension('wafo.cov2mod',
+                         extra_objects=['wafo/source/mreg/dsvdc.f',
+                                  'wafo/source/mreg/mregmodule.f',
+                                  'wafo/source/mreg/intfcmod.f'],
+                          sources=['wafo/source/mreg/cov2mmpdfreg_intfc.f'])
+    extensions.append(mreg_ext)
 
+    rind_ext = Extension('wafo.rindmod',
+                         extra_objects=['wafo/source/rind2007/intmodule.f',
+                                  'wafo/source/rind2007/jacobmod.f',
+                                  'wafo/source/rind2007/swapmod.f',
+                                  'wafo/source/rind2007/fimod.f',
+                                  'wafo/source/rind2007/rindmod.f',
+                                  'wafo/source/rind2007/rind71mod.f'],
+                          sources=['wafo/source/rind2007/rind_interface.f'])
+    extensions.append(rind_ext)
+
+    
     needs_sphinx = {'build_sphinx', 'upload_docs'}.intersection(sys.argv)
     sphinx = ['sphinx'] if needs_sphinx else []
     setup(setup_requires=['six', 'pyscaffold>=2.4rc1,<2.5a0'] + sphinx,
