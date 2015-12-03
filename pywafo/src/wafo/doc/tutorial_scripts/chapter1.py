@@ -1,64 +1,79 @@
-from scipy import *
-from pylab import *
+import sys
+import scipy as sp
+import matplotlib.pyplot as plt
 
+import matplotlib.gridspec as gridspec
+from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.backends.backend_qt4 import NavigationToolbar2QT as NavigationToolbar
+import matplotlib.pyplot as plt
+from matplotlib import rcParams
+try:
+    from win32api import LoadResource
+except ImportError:
+    pass
+
+import numpy as np
 # pyreport -o chapter1.html chapter1.py
 
-#! CHAPTER1 demonstrates some applications of WAFO
-#!================================================
-#!
-#! CHAPTER1 gives an overview through examples some of the capabilities of
-#! WAFO. WAFO is a toolbox of Matlab routines for statistical analysis and
-#! simulation of random waves and loads.
-#!
-#! The commands are edited for fast computation.
+# CHAPTER1 demonstrates some applications of WAFO
+# ================================================
+#
+# CHAPTER1 gives an overview through examples some of the capabilities of
+# WAFO. WAFO is a toolbox of Matlab routines for statistical analysis and
+# simulation of random waves and loads.
+#
+# The commands are edited for fast computation.
 
 
-#! Section 1.4 Some applications of WAFO
-#!---------------------------------------
-#! Section 1.4.1 Simulation from spectrum, estimation of spectrum 
-#!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#! Simulation of the sea surface from spectrum
-#! The following code generates 200 seconds of data sampled with 10Hz from
-#! the Torsethaugen spectrum
+# Section 1.4 Some applications of WAFO
+# ---------------------------------------
+# Section 1.4.1 Simulation from spectrum, estimation of spectrum
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Simulation of the sea surface from spectrum
+# The following code generates 200 seconds of data sampled with 10Hz from
+# the Torsethaugen spectrum
+
 import wafo.spectrum.models as wsm
-S = wsm.Torsethaugen(Hm0=6, Tp=8);
+S = wsm.Torsethaugen(Hm0=6, Tp=8)
 S1 = S.tospecdata()
-S1.plot()
-show()
 
+S1.plot()
+plt.show()
 
 ##
 import wafo.objects as wo
 xs = S1.sim(ns=2000, dt=0.1)
 ts = wo.mat2timeseries(xs)
-ts.plot_wave('-')
-show()
 
+ts.plot_wave('-', nsub=1)
+plt.ioff()
+plt.show()
 
-#! Estimation of spectrum 
-#!~~~~~~~~~~~~~~~~~~~~~~~
-#! A common situation is that one wants to estimate the spectrum for wave
-#! measurements. The following code simulate 20 minutes signal sampled at 4Hz
-#! and compare the spectral estimate with the original Torsethaugen spectum.
-clf()
-Fs = 4;  
-xs = S1.sim(ns=fix(20 * 60 * Fs), dt=1. / Fs) 
+# Estimation of spectrum
+# ~~~~~~~~~~~~~~~~~~~~~~~
+# A common situation is that one wants to estimate the spectrum for wave
+# measurements. The following code simulate 20 minutes signal sampled at 4Hz
+# and compare the spectral estimate with the original Torsethaugen spectum.
+plt.clf()
+Fs = 4
+xs = S1.sim(ns=sp.fix(20 * 60 * Fs), dt=1. / Fs)
 ts = wo.mat2timeseries(xs) 
 Sest = ts.tospecdata(L=400)
 S1.plot()
 Sest.plot('--')
-axis([0, 3, 0, 5]) # This may depend on the simulation
-show()
+plt.axis([0, 3, 0, 5]) # This may depend on the simulation
+plt.show()
 
-#! Section 1.4.2 Probability distributions of wave characteristics.
-#!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#! Probability distribution of wave trough period:
-#! WAFO gives the possibility of computing the exact probability
-#! distributions for a number of characteristics given a spectral density.
-#! In the following example we study the trough period extracted from the
-#! time series and compared with the theoretical density computed with exact
-#! spectrum, S1, and the estimated spectrum, Sest.
-clf()
+
+# Section 1.4.2 Probability distributions of wave characteristics.
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#  Probability distribution of wave trough period:
+#  WAFO gives the possibility of computing the exact probability
+#  distributions for a number of characteristics given a spectral density.
+#  In the following example we study the trough period extracted from the
+#  time series and compared with the theoretical density computed with exact
+#  spectrum, S1, and the estimated spectrum, Sest.
+plt.clf()
 import wafo.misc as wm
 dtyex = S1.to_t_pdf(pdef='Tt', paramt=(0, 10, 51), nit=3)
 dtyest = Sest.to_t_pdf(pdef='Tt', paramt=(0, 10, 51), nit=3)
@@ -69,8 +84,10 @@ wm.plot_histgrm(T, bins=bins, normed=True)
 
 dtyex.plot()
 dtyest.plot('-.')
-axis([0, 10, 0, 0.35])
-show()
+plt.axis([0, 10, 0, 0.35])
+plt.show()
+plt.ioff()
+sys.exit("bla")
 
 #! Section 1.4.3 Directional spectra
 #!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
