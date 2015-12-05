@@ -13,55 +13,71 @@ from __future__ import division, absolute_import, print_function
 # numpy.distutils will figure out if setuptools is available when imported
 # this allows us to combine setuptools use_pyscaffold=True and f2py extensions
 import setuptools
-from numpy.distutils.core import setup, Extension
+from numpy.distutils.core import setup
+from numpy.distutils.misc_util import Configuration
 
 import sys
 
 
 def setup_package_pyscaffold():
 
-    extensions = []
+    config = Configuration('wafo')
 
-    c_lib_ext = Extension('wafo.c_library',
-                          sources=['wafo/source/c_library/c_library.pyf',
-                                   'wafo/source/c_library/c_functions.c'])
-    extensions.append(c_lib_ext)
-
-    mvn_ext = Extension('wafo.mvn',
-                        sources=['wafo/source/mvn/mvn.pyf',
+    # -------------------------------------------------------------------------
+    # c_library
+    config.add_extension('c_library',
+                         sources=['wafo/source/c_library/c_library.pyf',
+                                  'wafo/source/c_library/c_functions.c'])
+    # -------------------------------------------------------------------------
+    # mvn
+    config.add_extension('mvn',
+                         sources=['wafo/source/mvn/mvn.pyf',
                                  'wafo/source/mvn/mvndst.f'])
-    extensions.append(mvn_ext)
 
-    mvnprd_ext = Extension('wafo.mvnprdmod',
-                           sources=['wafo/source/mvnprd/mvnprd.f',
-                                    'wafo/source/mvnprd/mvnprodcorrprb.f',
-                                    'wafo/source/mvnprd/mvnprd_interface.f'])
-    extensions.append(mvnprd_ext)
+    # -------------------------------------------------------------------------
+    # mvnprdmod
+    lib_mvnprdmod_src = ['wafo/source/mvnprd/mvnprd.f',
+                         'wafo/source/mvnprd/mvnprodcorrprb.f']
+    config.add_library('lib_mvnprdmod', sources=lib_mvnprdmod_src)
+    config.add_extension('mvnprdmod',
+                         sources=['wafo/source/mreg/cov2mmpdfreg_intfc.f'],
+                         libraries=['lib_mvnprdmod'],
+                         depends=(lib_mvnprdmod_src))
 
-    mreg_ext = Extension('wafo.cov2mod',
-                         extra_objects=['wafo/source/mreg/dsvdc.f',
-                                  'wafo/source/mreg/mregmodule.f',
-                                  'wafo/source/mreg/intfcmod.f'],
-                          sources=['wafo/source/mreg/cov2mmpdfreg_intfc.f'])
-    extensions.append(mreg_ext)
+    # -------------------------------------------------------------------------
+    # cov2mod
+    lib_cov2mod_src = ['wafo/source/mreg/dsvdc.f',
+                       'wafo/source/mreg/mregmodule.f',
+                       'wafo/source/mreg/intfcmod.f']
+    config.add_library('lib_cov2mod', sources=lib_cov2mod_src)
+    config.add_extension('cov2mod',
+                         sources=['wafo/source/mreg/cov2mmpdfreg_intfc.f'],
+                         libraries=['lib_cov2mod'],
+                         include_dirs=['wafo/source/mreg/'],
+                         depends=(lib_cov2mod_src))
 
-    rind_ext = Extension('wafo.rindmod',
-                         extra_objects=['wafo/source/rind2007/intmodule.f',
-                                  'wafo/source/rind2007/jacobmod.f',
-                                  'wafo/source/rind2007/swapmod.f',
-                                  'wafo/source/rind2007/fimod.f',
-                                  'wafo/source/rind2007/rindmod.f',
-                                  'wafo/source/rind2007/rind71mod.f'],
-                          sources=['wafo/source/rind2007/rind_interface.f'])
-    extensions.append(rind_ext)
+    # -------------------------------------------------------------------------
+    # rindmod
+    lib_rindmod_src = ['wafo/source/rind2007/intmodule.f',
+                       'wafo/source/rind2007/jacobmod.f',
+                       'wafo/source/rind2007/swapmod.f',
+                       'wafo/source/rind2007/fimod.f',
+                       'wafo/source/rind2007/rindmod.f',
+                       'wafo/source/rind2007/rind71mod.f']
+    config.add_library('lib_rindmod', sources=lib_rindmod_src)
+    config.add_extension('rindmod',
+                         sources=['wafo/source/rind2007/rind_interface.f'],
+                         libraries=['lib_rindmod'],
+                         include_dirs=['wafo/source/mreg/'],
+                         depends=(lib_rindmod_src))
 
-    
     needs_sphinx = {'build_sphinx', 'upload_docs'}.intersection(sys.argv)
     sphinx = ['sphinx'] if needs_sphinx else []
     setup(setup_requires=['six', 'pyscaffold>=2.4rc1,<2.5a0'] + sphinx,
           tests_require=['pytest_cov', 'pytest'],
           use_pyscaffold=True,
-          ext_modules=extensions)
+          **config.todict())
+
 
 if __name__ == "__main__":
     setup_package_pyscaffold()
