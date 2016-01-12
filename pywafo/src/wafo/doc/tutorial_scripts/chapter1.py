@@ -36,6 +36,7 @@ import wafo.spectrum.models as wsm
 S = wsm.Torsethaugen(Hm0=6, Tp=8)
 S1 = S.tospecdata()
 
+log.info("Plot Torsethaugen spectrum")
 S1.plot()
 plt.show()
 
@@ -45,6 +46,7 @@ import wafo.objects as wo
 xs = S1.sim(ns=2000, dt=0.1)
 ts = wo.mat2timeseries(xs)
 
+log.info("Plot Torsethaugen time series")
 ts.plot_wave('-', nsub=1)
 plt.ioff()
 plt.show()
@@ -59,6 +61,7 @@ Fs = 4
 xs = S1.sim(ns=sp.fix(20 * 60 * Fs), dt=1. / Fs)
 ts = wo.mat2timeseries(xs)
 Sest = ts.tospecdata(L=400)
+log.info("Plot Torsethaugen spectrum estimatte from 20 min simulated time data")
 S1.plot()
 Sest.plot('--')
 plt.axis([0, 3, 0, 5])  # This may depend on the simulation
@@ -73,6 +76,8 @@ plt.show()
 #  time series and compared with the theoretical density computed with exact
 #  spectrum, S1, and the estimated spectrum, Sest.
 try:
+
+    log.info("Trying to load the pdf")
     plt.clf()
     import wafo.misc as wm
 
@@ -101,6 +106,7 @@ Nt = 101;  # number of angles
 th0 = pi / 2;  # primary direction of waves
 Sp = 15;  # spreading parameter
 
+log.info("Plot directional spectrum")
 D1 = wsm.Spreading(type='cos', theta0=th0, method=None)  # frequency independent
 D12 = wsm.Spreading(type='cos', theta0=0, method='mitsuyasu')  # frequency dependent
 
@@ -186,6 +192,7 @@ plt.show()
 plt.clf()
 import wafo.data as wd
 
+log.info("Plot yura87 water level")
 xn = wd.yura87()
 # xn = load('yura87.dat');
 plt.subplot(211)
@@ -194,6 +201,7 @@ plt.title('Water level')
 plt.ylabel('(m)')
 
 # ! Formation of 5 min maxima
+log.info("Plot reshaped water level")
 yura = xn[:85500, 1]
 yura = reshape(yura, (285, 300)).T
 maxyura = yura.max(axis=0)
@@ -208,6 +216,7 @@ plt.show()
 plt.clf()
 import wafo.stats as ws
 
+log.info("Plot fit summary of max yura")
 phat = ws.genextreme.fit2(maxyura, method='ml')
 phat.plotfitsummary()
 plt.show()
