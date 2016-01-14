@@ -1,17 +1,8 @@
-import scipy as sp
-from numpy import pi, reshape
-import matplotlib.pyplot as plt
-import logging
-
-try:
-    from win32api import LoadResource
-except ImportError:
-    pass
-
-log = logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.DEBUG)
+# load all the initialisation needed for all tutorials
+from tutor_init import *
 log = logging.getLogger(__name__)
+log.setLevel(logging.DEBUG)
 
-# pyreport -o chapter1.html chapter1.py
 
 # CHAPTER1 demonstrates some applications of WAFO
 # ================================================
@@ -33,39 +24,36 @@ log = logging.getLogger(__name__)
 
 import wafo.spectrum.models as wsm
 
+# switch interactive on in order to prevent blocking of the script after a plot
+plt.ion()
+
 S = wsm.Torsethaugen(Hm0=6, Tp=8)
 S1 = S.tospecdata()
-
-log.info("Plot Torsethaugen spectrum")
 S1.plot()
-plt.show()
+set_windows_title("Torsethaugen Spectral Density", log)
 
 ##
 import wafo.objects as wo
 
 xs = S1.sim(ns=2000, dt=0.1)
 ts = wo.mat2timeseries(xs)
-
-log.info("Plot Torsethaugen time series")
 ts.plot_wave('-', nsub=1)
-plt.ioff()
-plt.show()
+set_windows_title("Torsethaugen time series", log)
 
 # Estimation of spectrum
 # ~~~~~~~~~~~~~~~~~~~~~~~
 # A common situation is that one wants to estimate the spectrum for wave
 # measurements. The following code simulate 20 minutes signal sampled at 4Hz
 # and compare the spectral estimate with the original Torsethaugen spectum.
-plt.clf()
+plt.figure()
 Fs = 4
 xs = S1.sim(ns=sp.fix(20 * 60 * Fs), dt=1. / Fs)
 ts = wo.mat2timeseries(xs)
 Sest = ts.tospecdata(L=400)
-log.info("Plot Torsethaugen spectrum estimatte from 20 min simulated time data")
 S1.plot()
 Sest.plot('--')
 plt.axis([0, 3, 0, 5])  # This may depend on the simulation
-plt.show()
+set_windows_title("Torsethaugen Spectral Density: real vs 20 min estimate", log)
 
 # Section 1.4.2 Probability distributions of wave characteristics.
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -76,14 +64,14 @@ plt.show()
 #  time series and compared with the theoretical density computed with exact
 #  spectrum, S1, and the estimated spectrum, Sest.
 try:
-
+    # this part contains a bug in to_t_pdf, so it will fail. Needs an bug fix later
     log.info("Trying to load the pdf")
-    plt.clf()
     import wafo.misc as wm
 
     dtyex = S1.to_t_pdf(pdef='Tt', paramt=(0, 10, 51), nit=3)
     dtyest = Sest.to_t_pdf(pdef='Tt', paramt=(0, 10, 51), nit=3)
 
+    plt.figure()
     T, index = ts.wave_periods(vh=0, pdef='d2u')
     bins = wm.good_bins(T, num_bins=25, odd=True)
     wm.plot_histgrm(T, bins=bins, normed=True)
@@ -91,22 +79,20 @@ try:
     dtyex.plot()
     dtyest.plot('-.')
     plt.axis([0, 10, 0, 0.35])
-    plt.show()
-    plt.ioff()
+    set_windows_title("Trough PDF", log)
 except TypeError:
     log.warning("Could not load Rind so skip this section")
 
-# ! Section 1.4.3 Directional spectra
-# !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# ! Here are a few lines of code, which produce directional spectra
-# ! with frequency independent and frequency dependent spreading.
-plt.clf()
+#  Section 1.4.3 Directional spectra
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#  Here are a few lines of code, which produce directional spectra
+#  with frequency independent and frequency dependent spreading.
+plt.figure()
 plotflag = 1
-Nt = 101;  # number of angles
-th0 = pi / 2;  # primary direction of waves
-Sp = 15;  # spreading parameter
+Nt = 101        # number of angles
+th0 = pi / 2    # primary direction of waves
+Sp = 15         # spreading parameter
 
-log.info("Plot directional spectrum")
 D1 = wsm.Spreading(type='cos', theta0=th0, method=None)  # frequency independent
 D12 = wsm.Spreading(type='cos', theta0=0, method='mitsuyasu')  # frequency dependent
 
@@ -114,15 +100,15 @@ SD1 = D1.tospecdata2d(S1)
 SD12 = D12.tospecdata2d(S1)
 SD1.plot()
 SD12.plot()  # linestyle='dashdot')
-plt.show()
+set_windows_title("Directional spectrum with the={} and 0".format(th0), log)
 
-# ! 3D Simulation of the sea surface
-# !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# ! The simulations show that frequency dependent spreading leads to
-# ! much more irregular surface so the orientation of waves is less
-# ! transparent compared to the frequency independent case.
+#  3D Simulation of the sea surface
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#  The simulations show that frequency dependent spreading leads to
+#  much more irregular surface so the orientation of waves is less
+#  transparent compared to the frequency independent case.
 #
-# ! Frequency independent spreading
+#  Frequency independent spreading
 # plotflag = 1; iseed = 1;
 #
 # Nx = 2 ^ 8;Ny = Nx;Nt = 1;dx = 0.5; dy = dx; dt = 0.25; fftdim = 2;
@@ -140,12 +126,12 @@ plt.show()
 # axis('fill')
 # disp('Block = 7'), pause(pstate)
 #
-# ! Estimation of directional spectrum
-# !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# !  The figure is not shown in the Tutorial
+#  Estimation of directional spectrum
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#   The figure is not shown in the Tutorial
 #
 # Nx = 3; Ny = 2; Nt = 2 ^ 12; dx = 10; dy = 10;dt = 0.5;
-# F = seasim(SD12, Nx, Ny, Nt, dx, dy, dt, 1, 0);  
+# F = seasim(SD12, Nx, Ny, Nt, dx, dy, dt, 1, 0);
 # Z = permute(F.Z, [3 1 2]);
 # [X, Y] = meshgrid(F.x, F.y);
 # N = Nx * Ny;
@@ -160,19 +146,19 @@ plt.show()
 # plotspec(SD12, '--'), hold off
 # disp('Block = 8'), pause(pstate)
 
-# ! Section 1.4.4 Fatigue, Load cycles and Markov models.
-# ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# ! Switching Markow chain of turningpoints
-# ! In fatigue applications the exact sample path is not important, but
-# ! only the tops and bottoms of the load, called the sequence of turning
-# ! points (TP). From the turning points one can extract load cycles, from
-# ! which damage calculations and fatigue life predictions can be
-# ! performed.
-# !
-# ! The commands below computes the intensity of rainflowcycles for
-# ! the Gaussian model with spectrum S1 using the Markov approximation.
-# ! The rainflow cycles found in the simulated load signal are shown in the
-# ! figure.
+#  Section 1.4.4 Fatigue, Load cycles and Markov models.
+#  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#  Switching Markow chain of turningpoints
+#  In fatigue applications the exact sample path is not important, but
+#  only the tops and bottoms of the load, called the sequence of turning
+#  points (TP). From the turning points one can extract load cycles, from
+#  which damage calculations and fatigue life predictions can be
+#  performed.
+#
+#  The commands below computes the intensity of rainflowcycles for
+#  the Gaussian model with spectrum S1 using the Markov approximation.
+#  The rainflow cycles found in the simulated load signal are shown in the
+#  figure.
 
 # clf()
 # paramu = [-6 6 61];
@@ -186,13 +172,12 @@ plt.show()
 # hold off
 # disp('Block = 9'), pause(pstate)
 
-# ! Section 1.4.5 Extreme value statistics
-# !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#  Section 1.4.5 Extreme value statistics
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Plot of yura87 data
-plt.clf()
 import wafo.data as wd
 
-log.info("Plot yura87 water level")
+plt.figure()
 xn = wd.yura87()
 # xn = load('yura87.dat');
 plt.subplot(211)
@@ -200,8 +185,7 @@ plt.plot(xn[::30, 0] / 3600, xn[::30, 1], '.')
 plt.title('Water level')
 plt.ylabel('(m)')
 
-# ! Formation of 5 min maxima
-log.info("Plot reshaped water level")
+#  Formation of 5 min maxima
 yura = xn[:85500, 1]
 yura = reshape(yura, (285, 300)).T
 maxyura = yura.max(axis=0)
@@ -210,14 +194,20 @@ plt.plot(xn[299:85500:300, 0] / 3600, maxyura, '.')
 plt.xlabel('Time (h)')
 plt.ylabel('(m)')
 plt.title('Maximum 5 min water level')
-plt.show()
 
-# ! Estimation of GEV for yuramax
-plt.clf()
+set_windows_title("Yura87 water levels", log)
+
+#  Estimation of GEV for yuramax
 import wafo.stats as ws
 
-log.info("Plot fit summary of max yura")
+plt.figure()
 phat = ws.genextreme.fit2(maxyura, method='ml')
 phat.plotfitsummary()
+
+set_windows_title("Yura87 water levels summary", log)
+
+# end plot with show to show all the figure created. Switch interactive off such that the last
+# plot statement will block the script (otherwise all the windows are closed)
+plt.ioff()
 plt.show()
 # disp('Block = 11, Last block')
