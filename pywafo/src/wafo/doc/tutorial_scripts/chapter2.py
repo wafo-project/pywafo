@@ -299,13 +299,13 @@ set_windows_title("Spreading function", log)
 #-------------------------------------------------------
 
 plt.figure()
-fp = 1.1;dw = 0.01
+fp = 1.1
+dw = 0.01
 H0 = S1.characteristic('Hm0')[0]
 St = wsm.Torsethaugen(Hm0=H0,Tp=2*pi/fp).tospecdata(np.arange(0,5+dw/2,dw))
 S1.plot()
 St.plot('-.')
 plt.axis([0, 6, 0, 0.4])
-plt.ioff()
 set_windows_title("Torsethaugen Spectral Density", log)
 
 
@@ -316,8 +316,6 @@ va, sk, ku = St.stats_nl(moments='vsk' )
 #sa = sqrt(va)
 gh = wtm.TrHermite(mean=me, sigma=sa, skew=sk, kurt=ku, ysigma=sa)
 
-plt.figure()
-
 ysim_t = St.sim(ns=240, dt=0.5)
 xsim_t = ysim_t.copy()
 xsim_t[:,1] = gh.gauss2dat(ysim_t[:,1])
@@ -325,7 +323,7 @@ xsim_t[:,1] = gh.gauss2dat(ysim_t[:,1])
 ts_y = wo.mat2timeseries(ysim_t)
 ts_x = wo.mat2timeseries(xsim_t)
 # note that nsub can not be large than 1
-ts_y.plot_wave(sym1='r.', ts=ts_x, sym2='b', sigma=sa, nsub=2, nfig=1)
+ts_y.plot_wave(sym1='r.', ts=ts_x, sym2='b', sigma=sa, nsub=None, nfig=1)
 
 plt.ioff()
 set_windows_title("Time series TrHermite spectrum", log)
