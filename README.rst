@@ -97,9 +97,24 @@ On the WAFO home page you will find:
 - The WAFO Tutorial
 - List of publications related to WAFO.
 
+Installation
+============
+
+WAFO contains some Fortran and C extensions that require a properly configured
+compiler and NumPy/f2py.
+
+Create a binary wheel package and place it in the dist folder as follows::
+
+    python setup.py bdist_wheel -d dist
+
+And install the wheel package with::
+    
+    pip install dist/wafo-X.Y.Z+abcd123-os_platform.whl
+
 
 Unit tests
 ==========
+
 To test if the toolbox is working paste the following in an interactive
 python session::
 
