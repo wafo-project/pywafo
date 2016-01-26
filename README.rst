@@ -108,7 +108,7 @@ Create a binary wheel package and place it in the dist folder as follows::
     python setup.py bdist_wheel -d dist
 
 And install the wheel package with::
-    
+
     pip install dist/wafo-X.Y.Z+abcd123-os_platform.whl
 
 
