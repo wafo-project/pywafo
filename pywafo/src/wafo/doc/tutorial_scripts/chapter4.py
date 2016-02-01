@@ -37,13 +37,25 @@ printing=0
 import wafo.data as wd
 import wafo.objects as wo
 
-xx_sea = wd.sea()  
+xx_sea = wd.sea()
+log.info("loaded sea time series {}".format(xx_sea.shape))
 ts = wo.mat2timeseries(xx_sea)
 tp = ts.turning_points()
 mM = tp.cycle_pairs(kind='min2max')
 lc = mM.level_crossings(intensity=True)
 T_sea = ts.args[-1]-ts.args[0]
 
+ts1 = wo.mat2timeseries(xx_sea[:1000,:])
+tp1 = ts1.turning_points()
+tp2 = ts1.turning_points(wavetype='Mw')
+tc1 = ts1.trough_crest()
+ts1.plot('b-')
+tp1.plot('ro')
+tp2.plot('yv')
+tc1.plot('gx')
+set_windows_title("Sea time series", log)
+
+plt.figure()
 plt.subplot(1,2,1)
 lc.plot()
 plt.subplot(1,2,2)
@@ -51,8 +63,7 @@ lc.setplotter(plotmethod='step')
 lc.plot()
 set_windows_title('Crossing intensity')
  
- 
-m_sea = ts.data.mean() 
+m_sea = ts.data.mean()
 f0_sea = np.interp(m_sea, lc.args,lc.data)
 extr_sea = len(tp.data)/(2*T_sea)
 alfa_sea = f0_sea/extr_sea
