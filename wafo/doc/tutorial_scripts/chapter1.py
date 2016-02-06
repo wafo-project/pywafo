@@ -80,7 +80,7 @@ try:
     dtyest.plot('-.')
     plt.axis([0, 10, 0, 0.35])
     set_windows_title("Trough PDF", log)
-except TypeError:
+except (TypeError, AttributeError):
     log.warning("Could not load Rind so skip this section")
 
 #  Section 1.4.3 Directional spectra
