@@ -178,14 +178,17 @@ set_windows_title("Transformation compared", log)
 #
 # As we see from the figure below: none of the simulated values of test1 is
 # above 1.00. Thus the data significantly departs from a Gaussian distribution.
-plt.figure()
-test0 = glc.dist2gauss()
 # the following test takes time
 N = len(xx)
-test1 = S1.testgaussian(ns=N, cases=50, test0=test0)
-is_gaussian = sum(test1 > test0) > 5
-log.info("is gaussian: {}".format(is_gaussian))
-set_windows_title("Gaussian test", log)
+test0 = glc.dist2gauss()
+try:
+    test1 = S1.testgaussian(ns=N, cases=50, test0=test0)
+except ValueError:
+    log.warning("Could not create the test gausian. Skipping this example")
+else:
+    is_gaussian = sum(test1 > test0) > 5
+    log.info("is gaussian: {}".format(is_gaussian))
+    set_windows_title("Gaussian test", log)
 
 # Normalplot of data xx
 #------------------------

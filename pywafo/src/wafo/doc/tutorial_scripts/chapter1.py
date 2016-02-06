@@ -37,7 +37,7 @@ import wafo.objects as wo
 
 xs = S1.sim(ns=2000, dt=0.1)
 ts = wo.mat2timeseries(xs)
-ts.plot_wave('-', nsub=None,nfig=1)
+ts.plot_wave('-', nsub=None, nfig=1)
 set_windows_title("Torsethaugen time series", log)
 
 # Estimation of spectrum
