@@ -1,61 +1,42 @@
-# Compiled source #
-###################
-*.com
-*.class
-*.dll
-*.exe
-*.o
-*.so
-
-# Packages #
-############
-# it's better to unpack these files and commit the raw source
-# git has its own built in compression methods
-*.7z
-*.dmg
-*.gz
-*.iso
-*.jar
-*.rar
-*.tar
-*.zip
-
-# Logs and databases #
-######################
-*.log
-*.sql
-*.sqlite
-
-# OS generated files #
-######################
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# Python stuff
-*.pyc
-__pycache__
-
-# swap file
+# Temporary and binary files
 *~
-.swp
+*.py[cod]
+*.so
+*.cfg
+!setup.cfg
+*.orig
+*.log
+*.pot
+__pycache__/*
+.cache/*
+.*.swp
+*.mod
 
-*.ppm
-
-*.png
-!images/*.png
-*.bak
-*.mp4
-*.mp3
-*.mpg
-
+# Project files
+.ropeproject
+.project
+.pydevproject
+.settings
 .idea
-*.pfd
 
-*.nsi
+# Package files
+*.egg
+*.eggs/
+.installed.cfg
+*.egg-info
 
-__pycache__
+# Unittest and coverage
+htmlcov/*
+.coverage
+.tox
+junit.xml
+coverage.xml
+
+# Build and docs folder/files
+build/*
+dist/*
+sdist/*
+docs/_rst/*
+docs/_build/*
+cover/*
+MANIFEST
