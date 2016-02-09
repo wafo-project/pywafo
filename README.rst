@@ -2,24 +2,7 @@
 Wave Analysis for Fatigue and Oceanography
 ==========================================
 
-.. image:: https://badge.fury.io/py/wafo.png
-    :target: https://pypi.python.org/pypi/wafo/
-
-.. image:: https://travis-ci.org/wafo-project/pywafo.svg?branch=master
-    :target: https://travis-ci.org/wafo-project/pywafo
-
-.. image:: https://readthedocs.org/projects/pip/badge/?version=latest
-    :target: http://pywafo.readthedocs.org/en/latest/
-
-.. image:: https://landscape.io/github/wafo-project/pywafo/master/landscape.svg?style=flat
-   :target: https://landscape.io/github/wafo-project/pywafo/master
-   :alt: Code Health
-
-.. image:: https://coveralls.io/repos/wafo-project/pywafo/badge.svg?branch=master
-   :target: https://coveralls.io/github/wafo-project/pywafo?branch=master
-
-.. image:: https://img.shields.io/pypi/pyversions/pywafo.svg
-   :target: https://github.com/wafo-project/pywafo
+|pkg_img| |tests_img| |docs_img| |health_img| |coverage_img| |versions_img| |depsy_img|
 
 
 Description
@@ -128,3 +111,26 @@ Note
 This project has been set up using PyScaffold 2.4.2. For details and usage
 information on PyScaffold see http://pyscaffold.readthedocs.org/.
 
+
+.. |pkg_img| image:: https://badge.fury.io/py/wafo.png
+    :target: https://pypi.python.org/pypi/wafo/
+
+.. |tests_img| image:: https://travis-ci.org/wafo-project/pywafo.svg?branch=master
+    :target: https://travis-ci.org/wafo-project/pywafo
+
+.. |docs_img| image:: https://readthedocs.org/projects/pip/badge/?version=latest
+    :target: http://pywafo.readthedocs.org/en/latest/
+
+.. |health_img| image:: https://landscape.io/github/wafo-project/pywafo/master/landscape.svg?style=flat
+   :target: https://landscape.io/github/wafo-project/pywafo/master
+   :alt: Code Health
+
+.. |coverage_img| image:: https://coveralls.io/repos/wafo-project/pywafo/badge.svg?branch=master
+   :target: https://coveralls.io/github/wafo-project/pywafo?branch=master
+
+.. |versions_img| image:: https://img.shields.io/pypi/pyversions/pywafo.svg
+   :target: https://github.com/wafo-project/pywafo
+
+
+.. |depsy_img| image:: http://depsy.org/api/package/pypi/wafo/badge.svg
+   :target: http://depsy.org/package/python/wafo
