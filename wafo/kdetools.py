@@ -229,7 +229,7 @@ class KDEgauss(object):
         if output == 'value':
             return f
         else:
-            titlestr = 'Kernel density estimate (%s)' % self.kernel.name
+            titlestr = 'Kernel density estimate ({0!s})'.format(self.kernel.name)
             kwds2 = dict(title=titlestr)
             kwds2['plot_kwds'] = dict(plotflag=1)
             kwds2.update(**kwds)
@@ -439,7 +439,7 @@ class _KDE(object):
         if output == 'value':
             return f
         else:
-            titlestr = 'Kernel density estimate (%s)' % self.kernel.name
+            titlestr = 'Kernel density estimate ({0!s})'.format(self.kernel.name)
             kwds2 = dict(title=titlestr)
 
             kwds2['plot_kwds'] = kwds.pop('plot_kwds', dict(plotflag=1))
@@ -933,7 +933,7 @@ class KDE(_KDE):
             warnings.warn(
                 'Numerical inaccuracy due to too low discretization. ' +
                 'Increase the discretization of the evaluation grid ' +
-                '(inc=%d)!' % inc)
+                '(inc={0:d})!'.format(inc))
             norm_fact = norm_fact0
 
         kw = kw / norm_fact
@@ -2337,12 +2337,10 @@ class Kernel(object):
             h[dim] = hvec[idx] * (STEconstant / STEconstant2) ** (1 / 5)
             if idx == 0:
                 warnings.warn(
-                    'Optimum is probably lower than hs=%g for dim=%d' %
-                    (h[dim] * s, dim))
+                    'Optimum is probably lower than hs={0:g} for dim={1:d}'.format(h[dim] * s, dim))
             elif idx == maxit - 1:
                 warnings.warn(
-                    'Optimum is probably higher than hs=%g for dim=%d' %
-                    (h[dim] * s, dim))
+                    'Optimum is probably higher than hs={0:g} for dim={1:d}'.format(h[dim] * s, dim))
 
         hvec = hvec * (STEconstant / STEconstant2) ** (1 / 5)
         if fulloutput:
@@ -3215,7 +3213,7 @@ def kde_demo1():
     for ix, h in enumerate(hVec):
         plt.figure(ix)
         kde = KDE(data, hs=h, kernel=kernel)
-        f2 = kde(x, output='plot', title='h_s = %2.2f' % h, ylab='Density')
+        f2 = kde(x, output='plot', title='h_s = {0:2.2f}'.format(h), ylab='Density')
         f2.plot('k-')
 
         plt.plot(x, st.norm.pdf(x, 0, 1), 'k:')
@@ -3241,7 +3239,7 @@ def kde_demo2():
     x = np.linspace(1.5e-2, 5, 55)
 
     kde = KDE(data)
-    f = kde(output='plot', title='Ordinary KDE (hs=%g)' % kde.hs)
+    f = kde(output='plot', title='Ordinary KDE (hs={0:g})'.format(kde.hs))
     plt.figure(0)
     f.plot()
 
@@ -3250,8 +3248,8 @@ def kde_demo2():
     # plotnorm((data).^(L2)) % gives a straight line => L2 = 0.5 reasonable
 
     tkde = TKDE(data, L2=0.5)
-    ft = tkde(x, output='plot', title='Transformation KDE (hs=%g)' %
-              tkde.tkde.hs)
+    ft = tkde(x, output='plot', title='Transformation KDE (hs={0:g})'.format(
+              tkde.tkde.hs))
     plt.figure(1)
     ft.plot()
 
@@ -3313,9 +3311,9 @@ def kde_demo4(N=50):
     f1 = kde1(output='plot', label='Ordinary KDE', plotflag=1)
 
     plt.figure(0)
-    f.plot('r', label='hns=%g' % kde.hs)
+    f.plot('r', label='hns={0:g}'.format(kde.hs))
     # plt.figure(2)
-    f1.plot('b', label='hisj=%g' % kde1.hs)
+    f1.plot('b', label='hisj={0:g}'.format(kde1.hs))
     x = np.linspace(-4, 4)
     for loc in [-5, 5]:
         plt.plot(x + loc, st.norm.pdf(x, 0, scale=1) / 2, 'k:',
@@ -3335,12 +3333,12 @@ def kde_demo5(N=500):
     data = np.hstack((st.norm.rvs(loc=5, scale=1, size=(2, N,)),
                       st.norm.rvs(loc=-5, scale=1, size=(2, N,))))
     kde = KDE(data, kernel=Kernel('gauss', 'hns'))
-    f = kde(output='plot', title='Ordinary KDE (hns=%g %g)' %
-            tuple(kde.hs.tolist()), plotflag=1)
+    f = kde(output='plot', title='Ordinary KDE (hns={0:g} {1:g})'.format(*
+            tuple(kde.hs.tolist())), plotflag=1)
 
     kde1 = KDE(data, kernel=Kernel('gauss', 'hisj'))
-    f1 = kde1(output='plot', title='Ordinary KDE (hisj=%g %g)' %
-              tuple(kde1.hs.tolist()), plotflag=1)
+    f1 = kde1(output='plot', title='Ordinary KDE (hisj={0:g} {1:g})'.format(*
+              tuple(kde1.hs.tolist())), plotflag=1)
 
     plt.figure(0)
     plt.clf()
@@ -3493,8 +3491,7 @@ def kreg_demo3(x, y, fun1, hs=None, fun='hisj', plotlog=False):
     err = (fiii - fit).std()
     f = kreg(
         xiii, output='plotobj',
-        title='%s err=%1.3f,eerr=%1.3f, n=%d, hs=%1.3f, hs1=%1.3f, hs2=%1.3f' %
-        (fun, err, eerr, n, hs, hs1, hs2), plotflag=1)
+        title='{0!s} err={1:1.3f},eerr={2:1.3f}, n={3:d}, hs={4:1.3f}, hs1={5:1.3f}, hs2={6:1.3f}'.format(fun, err, eerr, n, hs, hs1, hs2), plotflag=1)
 
     # yi[yi==0] = 1.0/(c[c!=0].min()+4)
     # yi[yi==1] = 1-1.0/(c[c!=0].min()+4)
@@ -3591,17 +3588,17 @@ def kreg_demo3(x, y, fun1, hs=None, fun='hisj', plotlog=False):
 
     # aic = averr + ((yiii-pup).clip(min=0)-(yiii-plo).clip(max=0)).sum()
 
-    fg.plot(label='KReg grid aic=%2.3f' % (aic))
-    f.plot(label='KReg averr=%2.3f ' % (averr))
-    labtxt = '%d CI' % (int(100 * (1 - alpha)))
+    fg.plot(label='KReg grid aic={0:2.3f}'.format((aic)))
+    f.plot(label='KReg averr={0:2.3f} '.format((averr)))
+    labtxt = '{0:d} CI'.format((int(100 * (1 - alpha))))
     plt.fill_between(xiii, pup, plo, alpha=0.20,
                      color='r', linestyle='--', label=labtxt)
     plt.fill_between(xiii, pup2, plo2, alpha=0.20, color='b',
-                     linestyle=':', label='%d CI2' % (int(100 * (1 - alpha))))
+                     linestyle=':', label='{0:d} CI2'.format((int(100 * (1 - alpha)))))
     plt.plot(xiii, fun1(xiii), 'r', label='True model')
     plt.scatter(xi, yi, label='data')
-    print('maxp = %g' % (np.nanmax(f.data)))
-    print('hs = %g' % (kreg.tkde.tkde.hs))
+    print('maxp = {0:g}'.format((np.nanmax(f.data))))
+    print('hs = {0:g}'.format((kreg.tkde.tkde.hs)))
     plt.legend()
     h = plt.gca()
     if plotlog:
@@ -3672,7 +3669,7 @@ def kreg_demo4(x, y, hs, hopt, alpha=0.05):
         np.abs((yiii - pup).clip(min=0) - (yiii - plo).clip(max=0)).sum()
 
     f.aicc = aicc
-    f.labels.title = 'perr=%1.3f,aicc=%1.3f, n=%d, hs=%1.3f' % (
+    f.labels.title = 'perr={0:1.3f},aicc={1:1.3f}, n={2:d}, hs={3:1.3f}'.format(
         f.prediction_error_avg, aicc, n, hs)
 
     return f
@@ -3751,7 +3748,7 @@ def check_regression_bin():
         figk = plt.figure(k)
         ax = figk.gca()
         k += 1
-        fbest.labels.title = 'N = %d' % n
+        fbest.labels.title = 'N = {0:d}'.format(n)
         fbest.plot(axis=ax)
         ax.plot(x, fun1(x), 'r')
         ax.legend(frameon=False, markerscale=4)
@@ -3781,7 +3778,7 @@ def check_bkregression():
 #        axsize = ax.axis()
 #        ax.vlines(fbest.hs,axsize[2]+1,axsize[3])
 #        ax.set(yscale='log')
-        fbest.labels.title = 'N = %d' % n
+        fbest.labels.title = 'N = {0:d}'.format(n)
         fbest.plot(axis=ax)
         ax.plot(x, fun1(x), 'r')
         ax.legend(frameon=False, markerscale=4)
@@ -3915,7 +3912,7 @@ def smoothed_bin_prb(x, y, hs, hopt, alpha=0.05, color='r', label='',
 
     f.aicc = aicc
     f.fun = kreg
-    f.labels.title = 'perr=%1.3f,aicc=%1.3f, n=%d, hs=%1.3f' % (
+    f.labels.title = 'perr={0:1.3f},aicc={1:1.3f}, n={2:d}, hs={3:1.3f}'.format(
         f.prediction_error_avg, aicc, n, hs)
 
     return f
@@ -4000,10 +3997,10 @@ def kde_gauss_demo(n=50):
     plt.show()
     print(fmax / f2.data.max())
     format_ = ''.join(('%g, ') * d)
-    format_ = 'hs0=%s hs1=%s hs2=%s' % (format_, format_, format_)
+    format_ = 'hs0={0!s} hs1={1!s} hs2={2!s}'.format(format_, format_, format_)
     print(format_ % tuple(kde0.hs.tolist() +
                           kde1.tkde.hs.tolist() + kde2.hs.tolist()))
-    print('inc0 = %d, inc1 = %d, inc2 = %d' % (kde0.inc, kde1.inc, kde2.inc))
+    print('inc0 = {0:d}, inc1 = {1:d}, inc2 = {2:d}'.format(kde0.inc, kde1.inc, kde2.inc))
 
 
 def test_kde():
@@ -4030,7 +4027,7 @@ def test_kde():
 
 def test_docstrings():
     import doctest
-    print('Testing docstrings in %s' % __file__)
+    print('Testing docstrings in {0!s}'.format(__file__))
     doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
 
 

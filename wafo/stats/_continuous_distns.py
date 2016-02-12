@@ -2148,7 +2148,7 @@ def _digammainv(y):
     value, info, ier, mesg = optimize.fsolve(func, x0, xtol=1e-11,
                                              full_output=True)
     if ier != 1:
-        raise RuntimeError("_digammainv: fsolve failed, y = %r" % y)
+        raise RuntimeError("_digammainv: fsolve failed, y = {0!r}".format(y))
 
     return value[0]
 

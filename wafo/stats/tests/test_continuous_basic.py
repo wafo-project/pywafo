@@ -245,8 +245,7 @@ def check_sample_mean(sm, v, n, popmean):
     prob = stats.betai(0.5*df, 0.5, df/(df+t*t))
 
     # return t,prob
-    npt.assert_(prob > 0.01, 'mean fail, t,prob = %f, %f, m, sm=%f,%f' %
-                (t, prob, popmean, sm))
+    npt.assert_(prob > 0.01, 'mean fail, t,prob = {0:f}, {1:f}, m, sm={2:f},{3:f}'.format(t, prob, popmean, sm))
 
 
 def check_sample_var(sv, n, popvar):
@@ -255,8 +254,7 @@ def check_sample_var(sv, n, popvar):
     df = n-1
     chi2 = (n-1)*popvar/float(popvar)
     pval = stats.distributions.chi2.sf(chi2, df) * 2
-    npt.assert_(pval > 0.01, 'var fail, t, pval = %f, %f, v, sv=%f, %f' %
-                (chi2, pval, popvar, sv))
+    npt.assert_(pval > 0.01, 'var fail, t, pval = {0:f}, {1:f}, v, sv={2:f}, {3:f}'.format(chi2, pval, popvar, sv))
 
 
 def check_cdf_ppf(distfn, arg, msg):
