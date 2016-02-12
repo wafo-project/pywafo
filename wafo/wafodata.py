@@ -209,7 +209,7 @@ class AxisLabels:
         return self.__str__()
 
     def __str__(self):
-        return '%s\n%s\n%s\n%s\n' % (self.title, self.xlab, self.ylab,
+        return '{0!s}\n{1!s}\n{2!s}\n{3!s}\n'.format(self.title, self.xlab, self.ylab,
                                      self.zlab)
 
     def copy(self):

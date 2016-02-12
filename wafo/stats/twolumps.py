@@ -295,8 +295,8 @@ class QuickFit(object):
         nparms = max(len(x.parms) for x in distros)
         tcolours = []
         for dd in distros:
-            patch = pl.plot(xx, [dd.pdf(p) for p in xx], label='%10.2f%% %s' % (100.0*dd.rss/dd.dss, dd.name))
-            row = ['', dd.name, '%10.2f%%' % (100.0*dd.rss/dd.dss,)] + ['%0.2f' % x for x in dd.parms]
+            patch = pl.plot(xx, [dd.pdf(p) for p in xx], label='{0:10.2f}% {1!s}'.format(100.0*dd.rss/dd.dss, dd.name))
+            row = ['', dd.name, '{0:10.2f}%'.format(100.0*dd.rss/dd.dss)] + ['{0:0.2f}'.format(x) for x in dd.parms]
             while len(row) < 3 + nparms:
                 row.append('')
             table.append(row)
@@ -305,7 +305,7 @@ class QuickFit(object):
         # add a historgram with the data
         pl.hist(data, bins=bins, normed=True)
         tab = pl.table(cellText=table, cellColours=tcolours,
-                       colLabels=['', 'Distribution', 'Res. SS/Data SS'] + ['P%d' % (x + 1,) for x in range(nparms)],
+                       colLabels=['', 'Distribution', 'Res. SS/Data SS'] + ['P{0:d}'.format(x + 1) for x in range(nparms)],
                        bbox=(0.0, 1.0, 1.0, 0.3))
                  #loc='top'))
         #pl.legend(loc=0)
@@ -323,7 +323,7 @@ class QuickFit(object):
         xx = numpy.linspace(0, 1, n + 2)[1:-1]
         for dd in distros:
 
-            pl.plot(xx, dd.residuals(data), label='%10.2f%% %s' % (100.0*dd.rss/dd.dss, dd.name))
+            pl.plot(xx, dd.residuals(data), label='{0:10.2f}% {1!s}'.format(100.0*dd.rss/dd.dss, dd.name))
         pl.grid(True)
 
     def plot(self, data, topn):

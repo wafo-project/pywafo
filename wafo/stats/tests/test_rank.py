@@ -134,7 +134,7 @@ class TestRankData(TestCase):
             r = rankdata(data)
             expected_rank = 0.5 * (n + 1)
             assert_array_equal(r, expected_rank * data,
-                               "test failed with n=%d" % n)
+                               "test failed with n={0:d}".format(n))
 
 
 _cases = (

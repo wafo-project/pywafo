@@ -63,7 +63,7 @@ def check_cont_fit(distname,arg):
         except:
             pass
         if xfail:
-            msg = "Fitting %s doesn't work reliably yet" % distname
+            msg = "Fitting {0!s} doesn't work reliably yet".format(distname)
             msg += " [Set environment variable SCIPY_XFAIL=1 to run this test nevertheless.]"
             #dec.knownfailureif(True, msg)(lambda: None)()
             options['floc']=0.
@@ -101,10 +101,10 @@ def check_cont_fit(distname,arg):
             if np.all(np.abs(diff) <= diffthreshold):
                 break
     else:
-        txt = 'parameter: %s\n' % str(truearg)
-        txt += 'estimated: %s\n' % str(est)
-        txt += 'diff     : %s\n' % str(diff)
-        raise AssertionError('fit not very good in %s\n' % distfn.name + txt)
+        txt = 'parameter: {0!s}\n'.format(str(truearg))
+        txt += 'estimated: {0!s}\n'.format(str(est))
+        txt += 'diff     : {0!s}\n'.format(str(diff))
+        raise AssertionError('fit not very good in {0!s}\n'.format(distfn.name) + txt)
 
 
 if __name__ == "__main__":

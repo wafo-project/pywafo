@@ -53,7 +53,7 @@ def _process_parameters(dim, mean, cov):
         cov.shape = (1, 1)
 
     if mean.ndim != 1 or mean.shape[0] != dim:
-        raise ValueError("Array 'mean' must be a vector of length %d." % dim)
+        raise ValueError("Array 'mean' must be a vector of length {0:d}.".format(dim))
     if cov.ndim == 0:
         cov = cov * np.eye(dim)
     elif cov.ndim == 1:
@@ -574,7 +574,7 @@ def _dirichlet_check_parameters(alpha):
         raise ValueError("All parameters must be greater than 0")
     elif alpha.ndim != 1:
         raise ValueError("Parameter vector 'a' must be one dimensional, " +
-                         "but a.shape = %s." % str(alpha.shape))
+                         "but a.shape = {0!s}.".format(str(alpha.shape)))
     return alpha
 
 
@@ -584,8 +584,8 @@ def _dirichlet_check_input(alpha, x):
     if x.shape[0] + 1 != alpha.shape[0] and x.shape[0] != alpha.shape[0]:
         raise ValueError("Vector 'x' must have one entry less then the" +
                          " parameter vector 'a', but alpha.shape = " +
-                         "%s and " % alpha.shape +
-                         "x.shape = %s." % x.shape)
+                         "{0!s} and ".format(alpha.shape) +
+                         "x.shape = {0!s}.".format(x.shape))
 
     if x.shape[0] != alpha.shape[0]:
         xk = np.array([1 - np.sum(x, 0)])
@@ -605,7 +605,7 @@ def _dirichlet_check_input(alpha, x):
 
     if (np.abs(np.sum(x, 0) - 1.0) > 10e-10).any():
         raise ValueError("The input vector 'x' must lie within the normal " +
-                         "simplex. but sum(x)=%f." % np.sum(x, 0))
+                         "simplex. but sum(x)={0:f}.".format(np.sum(x, 0)))
 
     return x
 

@@ -1214,8 +1214,8 @@ def kurtosistest(a, axis=0):
             " were given." % int(n))
     if n < 20:
         warnings.warn(
-            "kurtosistest only valid for n>=20 ... continuing anyway, n=%i" %
-            int(n))
+            "kurtosistest only valid for n>=20 ... continuing anyway, n={0:d}".format(
+            int(n)))
     b2 = kurtosis(a, axis, fisher=False)
     E = 3.0*(n-1) / (n+1)
     varb2 = 24.0*n*(n-2)*(n-3) / ((n+1)*(n+1.)*(n+3)*(n+5))
@@ -1687,8 +1687,7 @@ def histogram(a, numbins=10, defaultlimits=None, weights=None, printextras=False
     extrapoints = len([v for v in a
                        if defaultlimits[0] > v or v > defaultlimits[1]])
     if extrapoints > 0 and printextras:
-        warnings.warn("Points outside given histogram range = %s"
-                      % extrapoints)
+        warnings.warn("Points outside given histogram range = {0!s}".format(extrapoints))
     return (hist, defaultlimits[0], binsize, extrapoints)
 
 
@@ -3019,7 +3018,7 @@ def linregress(x, y=None):
             x, y = x.T
         else:
             msg = "If only `x` is given as input, it has to be of shape (2, N) \
-            or (N, 2), provided shape was %s" % str(x.shape)
+            or (N, 2), provided shape was {0!s}".format(str(x.shape))
             raise ValueError(msg)
     else:
         x = asarray(x)
@@ -3137,7 +3136,7 @@ def theilslopes(y, x=None, alpha=0.95):
     else:
         x = np.asarray(x, dtype=float).flatten()
         if len(x) != len(y):
-            raise ValueError("Incompatible lengths ! (%s<>%s)" % (len(y),len(x)))
+            raise ValueError("Incompatible lengths ! ({0!s}<>{1!s})".format(len(y), len(x)))
 
     # Compute sorted slopes only when deltax > 0
     deltax = x[:, np.newaxis] - x

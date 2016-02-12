@@ -219,7 +219,7 @@ class gaussian_kde(object):
                 points = reshape(points, (self.d, 1))
                 m = 1
             else:
-                msg = "points have dimension %s, dataset has dimension %s" % (d,
+                msg = "points have dimension {0!s}, dataset has dimension {1!s}".format(d,
                     self.d)
                 raise ValueError(msg)
 
@@ -274,9 +274,9 @@ class gaussian_kde(object):
         cov = atleast_2d(cov)
 
         if mean.shape != (self.d,):
-            raise ValueError("mean does not have dimension %s" % self.d)
+            raise ValueError("mean does not have dimension {0!s}".format(self.d))
         if cov.shape != (self.d, self.d):
-            raise ValueError("covariance does not have dimension %s" % self.d)
+            raise ValueError("covariance does not have dimension {0!s}".format(self.d))
 
         # make mean a column vector
         mean = mean[:, newaxis]
@@ -352,8 +352,8 @@ class gaussian_kde(object):
         value, inform = mvn.mvnun(low_bounds, high_bounds, self.dataset,
                                   self.covariance, **extra_kwds)
         if inform:
-            msg = ('An integral in mvn.mvnun requires more points than %s' %
-                   (self.d * 1000))
+            msg = ('An integral in mvn.mvnun requires more points than {0!s}'.format(
+                   (self.d * 1000)))
             warnings.warn(msg)
 
         return value

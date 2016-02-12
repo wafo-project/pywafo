@@ -267,7 +267,7 @@ def binned_statistic_dd(sample, values, statistic='mean',
     """
     if type(statistic) == str:
         if statistic not in ['mean', 'median', 'count', 'sum', 'std']:
-            raise ValueError('unrecognized statistic "%s"' % statistic)
+            raise ValueError('unrecognized statistic "{0!s}"'.format(statistic))
     elif callable(statistic):
         pass
     else:

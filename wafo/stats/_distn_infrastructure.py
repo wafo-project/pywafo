@@ -843,7 +843,7 @@ class rv_generic(object):
         tempdict['vals'] = vals
 
         if self.shapes:
-            tempdict['set_vals_stmt'] = '>>> %s = %s' % (self.shapes, vals)
+            tempdict['set_vals_stmt'] = '>>> {0!s} = {1!s}'.format(self.shapes, vals)
         else:
             tempdict['set_vals_stmt'] = ''
 
@@ -1611,7 +1611,7 @@ class rv_continuous(rv_generic):
             extradoc = ''
         if extradoc.startswith('\n\n'):
             extradoc = extradoc[2:]
-        self.__doc__ = ''.join(['%s continuous random variable.' % longname,
+        self.__doc__ = ''.join(['{0!s} continuous random variable.'.format(longname),
                                 '\n\n%(before_notes)s\n', docheaders['notes'],
                                 extradoc, '\n%(example)s'])
         self._construct_doc(docdict)
@@ -2040,8 +2040,8 @@ class rv_continuous(rv_generic):
         return self._link(x, logSF, theta, i)
 
     def _link(self, x, logSF, theta, i):
-        msg = ('Link function not implemented for the %s distribution' %
-               self.name)
+        msg = ('Link function not implemented for the {0!s} distribution'.format(
+               self.name))
         raise NotImplementedError(msg)
 
 
@@ -2303,7 +2303,7 @@ class rv_continuous(rv_generic):
         Nargs = len(args)
         fixedn = []
         index = list(range(Nargs))
-        names = ['f%d' % n for n in range(Nargs - 2)] + ['floc', 'fscale']
+        names = ['f{0:d}'.format(n) for n in range(Nargs - 2)] + ['floc', 'fscale']
         x0 = []
         for n, key in zip(index, names):
             if key in kwds:
@@ -2419,7 +2419,7 @@ class rv_continuous(rv_generic):
             try:
                 optimizer = getattr(optimize, optimizer)
             except AttributeError:
-                raise ValueError("%s is not a valid optimizer" % optimizer)
+                raise ValueError("{0!s} is not a valid optimizer".format(optimizer))
         vals = optimizer(func, x0, args=(ravel(data),), disp=0)
         if restore is not None:
             vals = restore(args, vals)
@@ -3099,7 +3099,7 @@ class rv_discrete(rv_generic):
             extradoc = ''
         if extradoc.startswith('\n\n'):
             extradoc = extradoc[2:]
-        self.__doc__ = ''.join(['%s discrete random variable.' % longname,
+        self.__doc__ = ''.join(['{0!s} discrete random variable.'.format(longname),
                                 '\n\n%(before_notes)s\n', docheaders['notes'],
                                 extradoc, '\n%(example)s'])
         self._construct_doc(docdict_discrete)

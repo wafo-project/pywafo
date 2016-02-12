@@ -80,7 +80,7 @@ def bayes_mvs(data, alpha=0.90):
     """
     res = mvsdist(data)
     if alpha >= 1 or alpha <= 0:
-        raise ValueError("0 < alpha < 1 is required, but alpha=%s was given." % alpha)
+        raise ValueError("0 < alpha < 1 is required, but alpha={0!s} was given.".format(alpha))
     return tuple((x.mean(), x.interval(alpha)) for x in res)
 
 
@@ -286,7 +286,7 @@ def _parse_dist_kw(dist, enforce_subclass=True):
         try:
             dist = getattr(distributions, dist)
         except AttributeError:
-            raise ValueError("%s is not a valid distribution name" % dist)
+            raise ValueError("{0!s} is not a valid distribution name".format(dist))
     elif enforce_subclass:
         msg = ("`dist` should be a stats.distributions instance or a string "
               "with the name of such a distribution.")
@@ -447,7 +447,7 @@ def probplot(x, sparams=(), dist='norm', fit=True, plot=None):
         ymax = amax(x)
         posx = xmin + 0.70 * (xmax - xmin)
         posy = ymin + 0.01 * (ymax - ymin)
-        plot.text(posx, posy, "$R^2=%1.4f$" % r)
+        plot.text(posx, posy, "$R^2={0:1.4f}$".format(r))
 
     if fit:
         return (osm, osr), (slope, intercept, r)
@@ -495,7 +495,7 @@ def ppcc_plot(x,a,b,dist='tukeylambda', plot=None, N=80):
         k += 1
     if plot is not None:
         plot.plot(svals, ppcc, 'x')
-        plot.title('(%s) PPCC Plot' % dist)
+        plot.title('({0!s}) PPCC Plot'.format(dist))
         plot.xlabel('Prob Plot Corr. Coef.')
         plot.ylabel('Shape Values')
     return svals, ppcc
@@ -834,7 +834,7 @@ def boxcox_normmax(x, brack=(-2.0, 2.0), method='pearsonr'):
                'mle': _mle,
                'all': _all}
     if method not in methods.keys():
-        raise ValueError("Method %s not recognized." % method)
+        raise ValueError("Method {0!s} not recognized.".format(method))
 
     optimfunc = methods[method]
     return optimfunc(x, brack)
@@ -2176,11 +2176,11 @@ def median_test(*args, **kwds):
     # a zero in the table of expected frequencies.
     rowsums = table.sum(axis=1)
     if rowsums[0] == 0:
-        raise ValueError("All values are below the grand median (%r)." %
-                         grand_median)
+        raise ValueError("All values are below the grand median ({0!r}).".format(
+                         grand_median))
     if rowsums[1] == 0:
-        raise ValueError("All values are above the grand median (%r)." %
-                         grand_median)
+        raise ValueError("All values are above the grand median ({0!r}).".format(
+                         grand_median))
     if ties == "ignore":
         # We already checked that each sample has at least one value, but it
         # is possible that all those values equal the grand median.  If `ties`

@@ -161,7 +161,7 @@ class Waitbar(Thread):
                             int(self.position % self.max_val), 0)
                 percentage = int(round(100.0 * self.position / self.max_val))
                 SendMessage(self.dialog, WM_SETTEXT, 0,
-                            self.title + ' (%d%%)' % percentage)
+                            self.title + ' ({0:d}%)'.format(percentage))
     #            SendMessage(self.progbar, PBM_STEPIT, 0, 0)
                 self.do_update = False
             sleep(0.1)
