@@ -11,20 +11,19 @@ from __future__ import division, absolute_import
 import warnings
 
 from wafo.plotbackend import plotbackend
-from wafo.misc import ecross, findcross
-
-
-import numdifftools  # @UnresolvedImport
+from wafo.misc import ecross, findcross, argsreduce
+from wafo.stats._util import check_random_state
+from wafo.stats._constants import _EPS, _XMAX
+from wafo.stats._distn_infrastructure import rv_frozen
+from scipy._lib.six import string_types
+import numdifftools as nd  # @UnresolvedImport
 from scipy import special
 from scipy.linalg import pinv2
 from scipy import optimize
 
-import numpy
 import numpy as np
-from numpy import alltrue, arange, ravel, sum, zeros, log, sqrt, exp
-from numpy import (
-    atleast_1d, any, asarray, nan, pi,  # reshape, #repeat, product, ndarray,
-    isfinite)
+from numpy import (alltrue, arange, ravel, zeros, log, sqrt, exp,
+                   atleast_1d, any, asarray, nan, pi, isfinite)
 from numpy import flatnonzero as nonzero
 
 
@@ -46,97 +45,6 @@ def chi2sf(x, df):
 
 def norm_ppf(q):
     return special.ndtri(q)
-
-
-# Frozen RV class
-class rv_frozen(object):
-
-    ''' Frozen continous or discrete 1D Random Variable object (RV)
-
-    Methods
-    -------
-    rvs(size=1)
-        Random variates.
-    pdf(x)
-        Probability density function.
-    cdf(x)
-        Cumulative density function.
-    sf(x)
-        Survival function (1-cdf --- sometimes more accurate).
-    ppf(q)
-        Percent point function (inverse of cdf --- percentiles).
-    isf(q)
-        Inverse survival function (inverse of sf).
-    stats(moments='mv')
-        Mean('m'), variance('v'), skew('s'), and/or kurtosis('k').
-    entropy()
-        (Differential) entropy of the RV.
-    '''
-
-    def __init__(self, dist, *args, **kwds):
-        self.dist = dist
-        args, loc, scale = dist._parse_args(*args, **kwds)
-        if len(args) == dist.numargs - 2:  #
-            # if isinstance(dist, rv_continuous):
-            self.par = args + (loc, scale)
-        else:  # rv_discrete
-            self.par = args + (loc,)
-
-    def pdf(self, x):
-        ''' Probability density function at x of the given RV.'''
-        return self.dist.pdf(x, *self.par)
-
-    def cdf(self, x):
-        '''Cumulative distribution function at x of the given RV.'''
-        return self.dist.cdf(x, *self.par)
-
-    def ppf(self, q):
-        '''Percent point function (inverse of cdf) at q of the given RV.'''
-        return self.dist.ppf(q, *self.par)
-
-    def isf(self, q):
-        '''Inverse survival function at q of the given RV.'''
-        return self.dist.isf(q, *self.par)
-
-    def rvs(self, size=None):
-        '''Random variates of given type.'''
-        kwds = dict(size=size)
-        return self.dist.rvs(*self.par, **kwds)
-
-    def sf(self, x):
-        '''Survival function (1-cdf) at x of the given RV.'''
-        return self.dist.sf(x, *self.par)
-
-    def stats(self, moments='mv'):
-        ''' Some statistics of the given RV'''
-        kwds = dict(moments=moments)
-        return self.dist.stats(*self.par, **kwds)
-
-    def median(self):
-        return self.dist.median(*self.par)
-
-    def mean(self):
-        return self.dist.mean(*self.par)
-
-    def var(self):
-        return self.dist.var(*self.par)
-
-    def std(self):
-        return self.dist.std(*self.par)
-
-    def moment(self, n):
-        par1 = self.par[:self.dist.numargs]
-        return self.dist.moment(n, *par1)
-
-    def entropy(self):
-        return self.dist.entropy(*self.par)
-
-    def pmf(self, k):
-        '''Probability mass function at k of the given RV'''
-        return self.dist.pmf(k, *self.par)
-
-    def interval(self, alpha):
-        return self.dist.interval(alpha, *self.par)
 
 
 # internal class to profile parameters of a given distribution
@@ -230,7 +138,7 @@ class Profile(object):
     def __init__(self, fit_dist, **kwds):
 
         try:
-            i0 = (1 - numpy.isfinite(fit_dist.par_fix)).argmax()
+            i0 = (1 - np.isfinite(fit_dist.par_fix)).argmax()
         except:
             i0 = 0
         self.fit_dist = fit_dist
@@ -259,7 +167,7 @@ class Profile(object):
         if fit_dist.par_fix is None:
             isnotfixed = np.ones(fit_dist.par.shape, dtype=bool)
         else:
-            isnotfixed = 1 - numpy.isfinite(fit_dist.par_fix)
+            isnotfixed = 1 - np.isfinite(fit_dist.par_fix)
 
         self.i_notfixed = nonzero(isnotfixed)
 
@@ -341,7 +249,7 @@ class Profile(object):
     def _set_profile(self, phatfree0, p_opt):
         pvec = self._get_pvec(phatfree0, p_opt)
 
-        self.data = numpy.ones_like(pvec) * nan
+        self.data = np.ones_like(pvec) * nan
         k1 = (pvec >= p_opt).argmax()
 
         for size, step in ((-1, -1), (pvec.size, 1)):
@@ -358,14 +266,14 @@ class Profile(object):
 
     def _prettify_profile(self):
         pvec = self.args
-        ix = nonzero(numpy.isfinite(pvec))
+        ix = nonzero(np.isfinite(pvec))
         self.data = self.data[ix]
         self.args = pvec[ix]
-        cond = self.data == -numpy.inf
+        cond = self.data == -np.inf
         if any(cond):
             ind, = cond.nonzero()
             self.data.put(ind, floatinfo.min / 2.0)
-            ind1 = numpy.where(ind == 0, ind, ind - 1)
+            ind1 = np.where(ind == 0, ind, ind - 1)
             cl = self.alpha_cross_level - self.alpha_Lrange / 2.0
             t0 = ecross(self.args, self.data, ind1, cl)
             self.data.put(ind, cl)
@@ -379,29 +287,29 @@ class Profile(object):
             phatv = self._par
 
             if self.profile_x:
-                gradfun = numdifftools.Gradient(self._myinvfun)
+                gradfun = nd.Gradient(self._myinvfun)
             else:
-                gradfun = numdifftools.Gradient(self._myprbfun)
+                gradfun = nd.Gradient(self._myprbfun)
             drl = gradfun(phatv[self.i_notfixed])
 
             pcov = self.fit_dist.par_cov[i_notfixed, :][:, i_notfixed]
-            pvar = sum(numpy.dot(drl, pcov) * drl)
+            pvar = np.sum(np.dot(drl, pcov) * drl)
         return pvar
 
     def _get_pvec(self, phatfree0, p_opt):
         ''' return proper interval for the variable to profile
         '''
 
-        linspace = numpy.linspace
+        linspace = np.linspace
         if self.pmin is None or self.pmax is None:
 
             pvar = self._get_variance()
 
-            if pvar <= 1e-5 or numpy.isnan(pvar):
+            if pvar <= 1e-5 or np.isnan(pvar):
                 pvar = max(abs(p_opt) * 0.5, 0.5)
 
             p_crit = (-norm_ppf(self.alpha / 2.0) *
-                      sqrt(numpy.ravel(pvar)) * 1.5)
+                      sqrt(np.ravel(pvar)) * 1.5)
             if self.pmin is None:
                 self.pmin = self._search_pmin(phatfree0,
                                               p_opt - 5.0 * p_crit, p_opt)
@@ -412,13 +320,13 @@ class Profile(object):
                                               p_opt + 5.0 * p_crit, p_opt)
             p_crit_up = (self.pmax - p_opt) / 5
 
-            N4 = numpy.floor(self.N / 4.0)
+            N4 = np.floor(self.N / 4.0)
 
             pvec1 = linspace(self.pmin, p_opt - p_crit_low, N4 + 1)
             pvec2 = linspace(
                 p_opt - p_crit_low, p_opt + p_crit_up, self.N - 2 * N4)
             pvec3 = linspace(p_opt + p_crit_up, self.pmax, N4 + 1)
-            pvec = numpy.unique(numpy.hstack((pvec1, p_opt, pvec2, pvec3)))
+            pvec = np.unique(np.hstack((pvec1, p_opt, pvec2, pvec3)))
 
         else:
             pvec = linspace(self.pmin, self.pmax, self.N)
@@ -701,12 +609,12 @@ class FitDistribution(rv_frozen):
         m_variables = ['method', 'alpha', 'par_fix', 'search', 'copydata']
         m_defaults = ['ml', 0.05, None, True, True]
         for (name, val) in zip(m_variables, m_defaults):
-            setattr(self, name, kwds.get(name, val))
+            setattr(self, name, kwds.pop(name, val))
 
         if self.method.lower()[:].startswith('mps'):
-            self._fitfun = dist.nlogps
+            self._fitfun = self._nlogps
         else:
-            self._fitfun = dist.nnlf
+            self._fitfun = self._nnlf
 
         self.data = ravel(data)
         if self.copydata:
@@ -714,6 +622,7 @@ class FitDistribution(rv_frozen):
         self.data.sort()
 
         par, fixedn = self._fit(*args, **kwds)
+        # super(FitDistribution, self).__init__(dist, *par)
         self.par = arr(par)
         somefixed = len(fixedn) > 0
         if somefixed:
@@ -729,13 +638,13 @@ class FitDistribution(rv_frozen):
         self._compute_cov()
 
         # Set confidence interval for parameters
-        pvar = numpy.diag(self.par_cov)
+        pvar = np.diag(self.par_cov)
         zcrit = -norm_ppf(self.alpha / 2.0)
         self.par_lower = self.par - zcrit * sqrt(pvar)
         self.par_upper = self.par + zcrit * sqrt(pvar)
 
-        self.LLmax = -dist.nnlf(self.par, self.data)
-        self.LPSmax = -dist.nlogps(self.par, self.data)
+        self.LLmax = -self._nnlf(self.par, self.data)
+        self.LPSmax = -self._nlogps(self.par, self.data)
         self.pvalue = self._pvalue(self.par, self.data, unknown_numpar=numpar)
 
     def __repr__(self):
@@ -747,17 +656,30 @@ class FitDistribution(rv_frozen):
         return ''.join(t)
 
     def _reduce_func(self, args, kwds):
+        # First of all, convert fshapes params to fnum: eg for stats.beta,
+        # shapes='a, b'. To fix `a`, can specify either `f1` or `fa`.
+        # Convert the latter into the former.
+        if self.shapes:
+            shapes = self.shapes.replace(',', ' ').split()
+            for j, s in enumerate(shapes):
+                val = kwds.pop('f' + s, None) or kwds.pop('fix_' + s, None)
+                if val is not None:
+                    key = 'f%d' % j
+                    if key in kwds:
+                        raise ValueError("Duplicate entry for %s." % key)
+                    else:
+                        kwds[key] = val
         args = list(args)
         Nargs = len(args)
         fixedn = []
-        index = range(Nargs)
         names = ['f%d' % n for n in range(Nargs - 2)] + ['floc', 'fscale']
-        x0 = args[:]
-        for n, key in zip(index[::-1], names[::-1]):
+        x0 = []
+        for n, key in enumerate(names):
             if key in kwds:
                 fixedn.append(n)
-                args[n] = kwds[key]
-                del x0[n]
+                args[n] = kwds.pop(key)
+            else:
+                x0.append(args[n])
 
         fitfun = self._fitfun
 
@@ -765,7 +687,7 @@ class FitDistribution(rv_frozen):
             func = fitfun
             restore = None
         else:
-            if len(fixedn) == len(index):
+            if len(fixedn) == Nargs:
                 raise ValueError("All parameters fixed. " +
                                  "There is nothing to optimize.")
 
@@ -786,6 +708,134 @@ class FitDistribution(rv_frozen):
 
         return x0, func, restore, args, fixedn
 
+    @staticmethod
+    def _hessian(nnlf, theta, data, eps=None):
+        ''' approximate hessian of nnlf where theta are the parameters
+        (including loc and scale)
+        '''
+        if eps is None:
+            eps = (_EPS) ** 0.4
+        num_par = len(theta)
+        # pab 07.01.2001: Always choose the stepsize h so that
+        # it is an exactly representable number.
+        # This is important when calculating numerical derivatives and is
+        #  accomplished by the following.
+        delta = (eps + 2.0) - 2.0
+        delta2 = delta ** 2.0
+        # Approximate 1/(nE( (d L(x|theta)/dtheta)^2)) with
+        #              1/(d^2 L(theta|x)/dtheta^2)
+        # using central differences
+
+        LL = nnlf(theta, data)
+        H = zeros((num_par, num_par))   # Hessian matrix
+        theta = tuple(theta)
+        for ix in xrange(num_par):
+            sparam = list(theta)
+            sparam[ix] = theta[ix] + delta
+            fp = nnlf(sparam, data)
+
+            sparam[ix] = theta[ix] - delta
+            fm = nnlf(sparam, data)
+
+            H[ix, ix] = (fp - 2 * LL + fm) / delta2
+            for iy in range(ix + 1, num_par):
+                sparam[ix] = theta[ix] + delta
+                sparam[iy] = theta[iy] + delta
+                fpp = nnlf(sparam, data)
+
+                sparam[iy] = theta[iy] - delta
+                fpm = nnlf(sparam, data)
+
+                sparam[ix] = theta[ix] - delta
+                fmm = nnlf(sparam, data)
+
+                sparam[iy] = theta[iy] + delta
+                fmp = nnlf(sparam, data)
+
+                H[ix, iy] = ((fpp + fmm) - (fmp + fpm)) / (4. * delta2)
+                H[iy, ix] = H[ix, iy]
+                sparam[iy] = theta[iy]
+        return -H
+
+    def _nnlf(self, theta, x):
+        return self.dist._penalized_nnlf(theta, x)
+
+    def _nlogps(self, theta, x):
+        """ Moran's negative log Product Spacings statistic
+
+            where theta are the parameters (including loc and scale)
+
+            Note the data in x must be sorted
+
+        References
+        -----------
+
+        R. C. H. Cheng; N. A. K. Amin (1983)
+        "Estimating Parameters in Continuous Univariate Distributions with a
+        Shifted Origin.",
+        Journal of the Royal Statistical Society. Series B (Methodological),
+        Vol. 45, No. 3. (1983), pp. 394-403.
+
+        R. C. H. Cheng; M. A. Stephens (1989)
+        "A Goodness-Of-Fit Test Using Moran's Statistic with Estimated
+        Parameters", Biometrika, 76, 2, pp 385-392
+
+        Wong, T.S.T. and Li, W.K. (2006)
+        "A note on the estimation of extreme value distributions using maximum
+        product of spacings.",
+        IMS Lecture Notes Monograph Series 2006, Vol. 52, pp. 272-283
+        """
+        n = 2 if self._rv_continous else 1
+        try:
+            loc = theta[-n]
+            scale = theta[-1]
+            args = tuple(theta[:-n])
+        except IndexError:
+            raise ValueError("Not enough input arguments.")
+        if not self._rv_continous:
+            scale = 1
+        if not self._argcheck(*args) or scale <= 0:
+            return np.inf
+        dist = self.dist
+        x = asarray((x - loc) / scale)
+        cond0 = (x <= dist.a) | (dist.b <= x)
+        Nbad = np.sum(cond0)
+        if Nbad > 0:
+            x = argsreduce(~cond0, x)[0]
+
+        lowertail = True
+        if lowertail:
+            prb = np.hstack((0.0, dist.cdf(x, *args), 1.0))
+            dprb = np.diff(prb)
+        else:
+            prb = np.hstack((1.0, dist.sf(x, *args), 0.0))
+            dprb = -np.diff(prb)
+
+        logD = log(dprb)
+        dx = np.diff(x, axis=0)
+        tie = (dx == 0)
+        if any(tie):
+            # TODO : implement this method for treating ties in data:
+            # Assume measuring error is delta. Then compute
+            # yL = F(xi-delta,theta)
+            # yU = F(xi+delta,theta)
+            # and replace
+            # logDj = log((yU-yL)/(r-1)) for j = i+1,i+2,...i+r-1
+
+            # The following is OK when only minimization of T is wanted
+            i_tie, = np.nonzero(tie)
+            tiedata = x[i_tie]
+            logD[i_tie + 1] = log(dist._pdf(tiedata, *args)) - log(scale)
+
+        finiteD = np.isfinite(logD)
+        nonfiniteD = 1 - finiteD
+        Nbad += np.sum(nonfiniteD, axis=0)
+        if Nbad > 0:
+            T = -np.sum(logD[finiteD], axis=0) + 100.0 * log(_XMAX) * Nbad
+        else:
+            T = -np.sum(logD, axis=0)
+        return T
+
     def _fit(self, *args, **kwds):
 
         dist = self.dist
@@ -799,15 +849,14 @@ class FitDistribution(rv_frozen):
             # get distribution specific starting locations
             start = dist._fitstart(data)
             args += start[Narg:-2]
-        loc = kwds.get('loc', start[-2])
-        scale = kwds.get('scale', start[-1])
+        loc = kwds.pop('loc', start[-2])
+        scale = kwds.pop('scale', start[-1])
         args += (loc, scale)
         x0, func, restore, args, fixedn = self._reduce_func(args, kwds)
         if self.search:
-            optimizer = kwds.get('optimizer', optimize.fmin)
+            optimizer = kwds.pop('optimizer', optimize.fmin)
             # convert string to function in scipy.optimize
-            if (not callable(optimizer) and
-                    isinstance(optimizer, (str, unicode))):
+            if not callable(optimizer) and isinstance(optimizer, string_types):
                 if not optimizer.startswith('fmin_'):
                     optimizer = "fmin_" + optimizer
                 if optimizer == 'fmin_':
@@ -816,7 +865,9 @@ class FitDistribution(rv_frozen):
                     optimizer = getattr(optimize, optimizer)
                 except AttributeError:
                     raise ValueError("%s is not a valid optimizer" % optimizer)
-
+            # by now kwds must be empty, since everybody took what they needed
+            if kwds:
+                raise TypeError("Unknown arguments: %s." % kwds)
             vals = optimizer(func, x0, args=(ravel(data),), disp=0)
             vals = tuple(vals)
         else:
@@ -829,8 +880,7 @@ class FitDistribution(rv_frozen):
         '''Compute covariance
         '''
         somefixed = (self.par_fix is not None) and any(isfinite(self.par_fix))
-        # H1 = numpy.asmatrix(self.dist.hessian_nnlf(self.par, self.data))
-        H = numpy.asmatrix(self.dist.hessian_nlogps(self.par, self.data))
+        H = np.asmatrix(self._hessian(self._fitfun, self.par, self.data))
         self.H = H
         try:
             if somefixed:
@@ -1034,7 +1084,7 @@ class FitDistribution(rv_frozen):
         # yy[0,0] = 0.0 # pdf
         yy[:, 0] = 0.0  # histogram
         yy.shape = (-1,)
-        yy = numpy.hstack((yy, 0.0))
+        yy = np.hstack((yy, 0.0))
         return xx, yy
 
     def _get_empirical_pdf(self):
@@ -1110,7 +1160,7 @@ class FitDistribution(rv_frozen):
 
             Note: the data in x must be sorted
         '''
-        dx = numpy.diff(x, axis=0)
+        dx = np.diff(x, axis=0)
         tie = (dx == 0)
         if any(tie):
             warnings.warn(
