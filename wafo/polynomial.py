@@ -17,14 +17,14 @@
 # Licence:     LGPL
 # -------------------------------------------------------------------------
 # !/usr/bin/env python
-import warnings
+import warnings  # @UnusedImport
 from numpy.polynomial import polyutils as pu
 from plotbackend import plotbackend as plt
 import numpy as np
-from numpy import (zeros, ones, zeros_like, array, asarray, newaxis, arange,
-                   logical_or, any, pi, cos, round, diff, all, exp, atleast_1d,
-                   where, extract, linalg, sign, concatenate, floor, isreal,
-                   conj, remainder, linspace, sum, meshgrid, hstack)
+from numpy import (zeros, asarray, newaxis, arange,
+                   logical_or, any, pi, cos, round, diff, all, exp,
+                   where, extract, linalg, sign, concatenate, floor,
+                   linspace, sum, meshgrid)
 
 from scipy.fftpack import dct, idct as _idct
 from numpy.lib.polynomial import *  # @UnusedWildImport
@@ -110,9 +110,9 @@ def polyint(p, m=1, k=None):
         raise ValueError("Order of integral must be positive (see polyder)")
     if k is None:
         k = zeros(m, float)
-    k = atleast_1d(k)
+    k = np.atleast_1d(k)
     if len(k) == 1 and m > 1:
-        k = k[0] * ones(m, float)
+        k = k[0] * np.ones(m, float)
     if len(k) < m:
         raise ValueError(
             "k must be a scalar or a rank-1 array of length 1 or >m.")
@@ -127,7 +127,7 @@ def polyint(p, m=1, k=None):
         if p.ndim > 1:
             ix = ix[..., newaxis]
             pieces = p.shape[-1]
-            k0 = k[0] * ones((1, pieces), dtype=int)
+            k0 = k[0] * np.ones((1, pieces), dtype=int)
         else:
             k0 = [k[0]]
         y = np.concatenate((p.__truediv__(ix), k0), axis=0)
@@ -260,8 +260,8 @@ def polydeg(x, y):
     #  developed in a series of orthogonal polynomials.
     ys = np.ones((N,)) * y.mean()
     # correction for small sample sizes
-    AIC = 2 + N * \
-        (np.log(2 * pi * ((ys - y) ** 2).sum() / N) + 1) + 4 / (N - 2)
+    logsum2 = (np.log(2 * pi * ((ys - y) ** 2).sum() / N) + 1)
+    AIC = 2 + N * logsum2 + 4 / (N - 2)
 
     n = 1
     nit = 0
@@ -495,7 +495,7 @@ def polyreloc(p, x, y=0.0):
     """
 
     truepoly = isinstance(p, poly1d)
-    r = atleast_1d(p).copy()
+    r = np.atleast_1d(p).copy()
     n = r.shape[0]
 
     # Relocate polynomial using Horner's algorithm
@@ -548,7 +548,7 @@ def polyrescl(p, x, y=1.0):
     """
 
     truepoly = isinstance(p, poly1d)
-    r = atleast_1d(p)
+    r = np.atleast_1d(p)
     n = r.shape[0]
 
     xscale = (float(x) ** arange(1 - n, 1))
@@ -591,7 +591,7 @@ def polytrim(p):
     if truepoly:
         return p
     else:
-        r = atleast_1d(p).copy()
+        r = np.atleast_1d(p).copy()
         # Remove leading zeros
         is_not_lead_zeros = logical_or.accumulate(r != 0, axis=0)
         if r.ndim == 1:
@@ -630,7 +630,7 @@ def poly2hstr(p, variable='x'):
     """
     var = variable
 
-    coefs = polytrim(atleast_1d(p))
+    coefs = polytrim(np.atleast_1d(p))
     order = len(coefs) - 1  # Order of polynomial.
     s = ''    # Initialize output string.
     ix = 1
@@ -719,7 +719,7 @@ def poly2str(p, variable='x'):
     var = variable
 
     # Remove leading zeros
-    coeffs = polytrim(atleast_1d(p))
+    coeffs = polytrim(np.atleast_1d(p))
 
     N = len(coeffs) - 1
 
@@ -1094,7 +1094,7 @@ def chebpoly(n, x=None, kind=1):
     """
     if x is None:  # Calculate coefficients.
         if n == 0:
-            p = ones(1)
+            p = np.ones(1)
         else:
             p = round(pow(2, n - 2 + kind) * poly(chebroot(n, kind=kind)))
             p[1::2] = 0
@@ -1102,7 +1102,7 @@ def chebpoly(n, x=None, kind=1):
     else:  # Evaluate polynomial in chebychev form
         ck = zeros(n + 1)
         ck[0] = 1.
-        return _chebval(atleast_1d(x), ck, kind=kind)
+        return _chebval(np.atleast_1d(x), ck, kind=kind)
 
 
 def chebfit(fun, n=10, a=-1, b=1, trace=False):
@@ -1188,7 +1188,8 @@ def chebfit_dct(f, n=(10, ), domain=None):
     Fit Chebyshev series to N-dimensional function
     so that f(x1, x2,..., xn) can be approximated by:
 
-    .. math:: f(x_1, x_2,...,x_n) = \\sum_{i,j,...k} c_i T_i(x_1)*...*c_k T_k(x_n) ,
+    .. math:: f(x_1, x_2,...,x_n) =
+                    \\sum_{i,j,...k} c_i T_i(x_1)*...*c_k T_k(x_n) ,
 
     where Tk is the k'th Chebyshev polynomial of the first kind.
 
@@ -1251,10 +1252,10 @@ def chebfit_dct(f, n=(10, ), domain=None):
 
     if hasattr(f, '__call__'):
         if domain is None:
-            domain = (-1,1) * len(n)
+            domain = (-1, 1) * len(n)
         domain = np.atleast_2d(domain).reshape((-1, 2))
         xi = [map_to_interval(chebroot(ni), d[0], d[1])
-                for ni, d in zip(n, domain)]
+              for ni, d in zip(n, domain)]
         Xi = np.meshgrid(*xi)
         ck = f(*Xi)
     else:
@@ -1263,7 +1264,7 @@ def chebfit_dct(f, n=(10, ), domain=None):
 
     ndim = len(n)
     for i in range(ndim):
-        ck = dct(ck[...,::-1])
+        ck = dct(ck[..., ::-1])
         ck[..., 0] = ck[..., 0] / 2.
         if i < ndim-1:
             ck = np.rollaxis(ck, axis=-1)
@@ -1591,8 +1592,8 @@ class Cheb1d(object):
 
     def __eq__(self, other):
         other = Cheb1d(other)
-        return (all(self.coeffs == other.coeffs) and (self.a == other.a)
-                and (self.b == other.b) and (self.kind == other.kind))
+        return (all(self.coeffs == other.coeffs) and (self.a == other.a) and
+                (self.b == other.b) and (self.kind == other.kind))
 
     def __ne__(self, other):
         return any(self.coeffs != other.coeffs) or (self.a != other.a) or (
@@ -1830,8 +1831,8 @@ def padefitlsq(fun, m, k, a=-1, b=1, trace=False, x=None, end_points=True):
     if trace:
         plt.plot(x, fs, '+')
 
-    wt = ones((npt))
-    ee = ones((npt))
+    wt = np.ones((npt))
+    ee = np.ones((npt))
     mad = 0
 
     u = zeros((npt, ncof))
@@ -1989,37 +1990,40 @@ def chebvandernd(deg, *xi):
     -------
     vander : ndarray
         The shape of the returned matrix is ``x1.shape + (order,)``, where
-        :math:`order = (deg[0]+1)*(deg([1]+1)*...*(deg[n-1]+1)`.  The dtype will
-        be the same as the converted `x1`, `x2`, ... `xn`.
+        :math:`order = (deg[0]+1)*(deg([1]+1)*...*(deg[n-1]+1)`.  The dtype
+        will be the same as the converted `x1`, `x2`, ... `xn`.
 
     See Also
     --------
     chebvander, chebvalnd, chebfitnd
     """
     ideg = [int(d) for d in deg]
-    is_valid = np.array([id == d and id >= 0 for id, d in zip(ideg, deg)])
+    is_valid = np.array([di == d and di >= 0 for di, d in zip(ideg, deg)])
     if np.any(is_valid != 1):
         raise ValueError("degrees must be non-negative integers")
     ndim = len(xi)
-    if len(ideg)!=ndim:
-        raise ValueError('length of deg must be the same as number of dimensions')
+    if len(ideg) != ndim:
+        msg = 'length of deg must be the same as number of dimensions'
+        raise ValueError(msg)
 
     xi = np.array(xi, copy=0) + 0.0
     chebvander = np.polynomial.chebyshev.chebvander
     shape0 = xi[0].shape
     s0 = (1,) * ndim
     vxi = [chebvander(x, d).reshape(shape0 + s0[:i] + (-1,) + s0[i + 1::])
-            for i, (d, x) in enumerate(zip(ideg, xi))]
+           for i, (d, x) in enumerate(zip(ideg, xi))]
 
     v = reduce(np.multiply, vxi)
 
     return v.reshape(v.shape[:-ndim] + (-1,))
 
+
 def chebfitnd(xi, f, deg, rcond=None, full=False, w=None):
     """
     Least squares fit of Chebyshev series to N-dimensional data.
     Return the coefficients of a Chebyshev series of degree `deg` that is the
-    least squares fit to the data values `f` given at points `x1`, `x2`,..., `xn`
+    least squares fit to the data values `f` given at points
+    `x1`, `x2`,..., `xn`
 
     The fitted polynomial(s) are in the form
     .. math::  p(x,y) = c_00 + c_11 * T_1(x)*T_1(y) + ..c_ij * T_i(x)*T_j(y).
@@ -2033,7 +2037,8 @@ def chebfitnd(xi, f, deg, rcond=None, full=False, w=None):
     f : array_like
         function values at the sample points ``(x1[i], x2[i], ..., xn[i])``.
     deg : list
-        Degrees of the fitting series in the x1, x2, ..., xn directions, respectively.
+        Degrees of the fitting series in the x1, x2, ..., xn directions,
+        respectively.
     rcond : float, optional
         Relative condition number of the fit. Singular values smaller than
         this relative to the largest singular value will be ignored. The
@@ -2103,7 +2108,7 @@ def chebfitnd(xi, f, deg, rcond=None, full=False, w=None):
     Examples
     --------
     """
-    xi_ = np.array(xi, copy=0) + 0.0
+    # xi = np.array(xi, copy=0) + 0.0
     z = np.array(f)
     degrees = np.asarray(deg, dtype=int)
     orders = degrees + 1
@@ -2112,7 +2117,7 @@ def chebfitnd(xi, f, deg, rcond=None, full=False, w=None):
     ndims = np.array([x.ndim for x in xi])
     ndim = len(ndims)
     sizes = np.array([x.size for x in xi])
-    if np.any(ndims!=ndim) or z.ndim!=ndim:
+    if np.any(ndims != ndim) or z.ndim != ndim:
         raise TypeError("expected %dD array for x1, x2,...,xn and f" % ndim)
     if np.any(sizes == 0):
         raise TypeError("expected non-empty vector for xi")
@@ -2148,13 +2153,15 @@ def chebfitnd(xi, f, deg, rcond=None, full=False, w=None):
     else:
         return c
 
+
 def chebvalnd(c, *xi):
     """
     Evaluate a N-D Chebyshev series at points (x1, x2, ..., xn).
 
     This function returns the values:
 
-    .. math:: p(x1,x2,...,xn) = \\sum_{i,j,...,k} c_{i,j,...,k} * T_i(x1) * T_j(x2)*...* T_k(xn)
+    .. math:: p(x1,x2,...,xn) =
+            \\sum_{i,j,...,k} c_{i,j,...,k} * T_i(x1) * T_j(x2)*...* T_k(xn)
 
     The parameters `x1`, `x2`, ...., `xn` are converted to arrays only if
     they are tuples or a lists, otherwise they are treated as a scalars and
@@ -2171,14 +2178,14 @@ def chebvalnd(c, *xi):
     c : array_like
         Array of coefficients ordered so that the coefficient of the term of
         multi-degree i,j,...,k is contained in ``c[i,j,...,k]``. If `c` has
-        dimension greater than N the remaining indices enumerate multiple sets of
-        coefficients.
+        dimension greater than N the remaining indices enumerate multiple sets
+        of coefficients.
     x1, x2,..., xn : array_like, compatible object
         The N dimensional series is evaluated at the points
         `(x1, x2,...,xn)`, where `x1`, `x2`,..., `xn` must have the same shape.
-        If any of `x1`, `x2`, ..., `xn` is a list or tuple, it is first converted
-        to an ndarray, otherwise it is left unchanged and if it isn't an
-        ndarray it is  treated as a scalar.
+        If any of `x1`, `x2`, ..., `xn` is a list or tuple, it is first
+        converted to an ndarray, otherwise it is left unchanged and if it isn't
+        an ndarray it is  treated as a scalar.
 
     Returns
     -------
@@ -2194,11 +2201,12 @@ def chebvalnd(c, *xi):
         xi = np.array(xi, copy=0)
     except:
         raise ValueError('x, y, z are incompatible')
-    chebval =  np.polynomial.chebyshev.chebval
+    chebval = np.polynomial.chebyshev.chebval
     c = chebval(xi[0], c)
     for x in xi[1:]:
         c = chebval(x, c, tensor=False)
     return c
+
 
 def chebgridnd(c, *xi):
     """
@@ -2212,8 +2220,8 @@ def chebgridnd(c, *xi):
     `a` from `x1`, `b` from `x2`, and so on. The resulting points form
     a grid with `x1` in the first dimension, `x2` in the second, and so on.
 
-    The parameters `x1`, `x2`, ... and `xn` are converted to arrays only if they
-    are tuples or a lists, otherwise they are treated as a scalars. In
+    The parameters `x1`, `x2`, ... and `xn` are converted to arrays only if
+    they are tuples or a lists, otherwise they are treated as a scalars. In
     either case, either `x1`, `x2`,... and `xn` or their elements must support
     multiplication and addition both with themselves and with the elements
     of `c`.
@@ -2247,26 +2255,25 @@ def chebgridnd(c, *xi):
     --------
     chebval, chebvalnd, chebfitnd
     """
-    chebval =  np.polynomial.chebyshev.chebval
+    chebval = np.polynomial.chebyshev.chebval
     for x in xi:
         c = chebval(x, c)
     return c
 
-def test_chebfit1d():
-    n = 63
-    x = chebroot(n=64, kind=1)
 
+def test_chebfit1d():
     def f(x):
         return np.exp(-x**2)
 
-    z = f(x)
+    # x = chebroot(n=64, kind=1)
+    # z = f(x)
 
     c = chebfit(f, n=64)[::-1]
 
     xi = np.linspace(-1, 1, 151)
     zi = np.polynomial.chebyshev.chebval(xi, c)
 
-    #plt.plot(xi, zi,'.', xi, f(xi))
+    # plt.plot(xi, zi,'.', xi, f(xi))
     plt.semilogy(xi, np.abs(zi-f(xi)))
     plt.show('hold')
 
@@ -2276,28 +2283,30 @@ def test_chebfit2d():
     xorder, yorder = n-1, n-1
     x = chebroot(n=n, kind=1)
     xgrid, ygrid = meshgrid(x, x)
+
     def f(x, y):
         return np.exp(-x**2-6*y**2)
     zgrid = f(xgrid, ygrid)
 
-    #v2d = np.polynomial.chebyshev.chebvander2d(xgrid, ygrid, [xorder,yorder]).reshape((-1, (xorder+1)*(yorder+1)))
-    #coeff, residuals, rank, s = np.linalg.lstsq(v2d, zgrid.ravel())
-    #doeff = coeff.reshape(xorder+1,yorder+1)
-    dcoeff2 = chebfitnd((xgrid, ygrid), zgrid, [xorder,yorder])
-    dcoeff = chebfit_dct(f, n=(xorder+1,yorder+1))
+    # v2d = np.polynomial.chebyshev.chebvander2d(xgrid, ygrid,
+    #                   [xorder,yorder]).reshape((-1, (xorder+1)*(yorder+1)))
+    # coeff, residuals, rank, s = np.linalg.lstsq(v2d, zgrid.ravel())
+    # doeff = coeff.reshape(xorder+1,yorder+1)
+    _dcoeff2 = chebfitnd((xgrid, ygrid), zgrid, [xorder, yorder])
+    dcoeff = chebfit_dct(f, n=(xorder+1, yorder+1))
 
     xi = np.linspace(-1, 1, 151)
-    Xi,Yi = np.meshgrid(xi, xi)
+    Xi, Yi = np.meshgrid(xi, xi)
     Zi = f(Xi, Yi)
     zzi = chebvalnd(dcoeff, Xi, Yi)
-    devi = Zi - zzi
+    _devi = Zi - zzi
     # plot residuals
-    #zz = np.polynomial.chebyshev.chebval2d(xgrid, ygrid, dcoeff)
+    # zz = np.polynomial.chebyshev.chebval2d(xgrid, ygrid, dcoeff)
     zz = chebvalnd(dcoeff, xgrid, ygrid)
     dev = zgrid - zz
-    #plt.spy(np.abs(dcoeff)>1e-13)
+    # plt.spy(np.abs(dcoeff)>1e-13)
     plt.contourf(xgrid, ygrid, np.abs(dev))
-    #plt.contourf(Xi, Yi, np.abs(devi))
+    # plt.contourf(Xi, Yi, np.abs(devi))
     plt.colorbar()
     # plt.semilogy(np.abs(devi.ravel()))
     plt.show('hold')

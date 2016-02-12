@@ -6,12 +6,13 @@ import collections
 import sys
 import fractions
 import numpy as np
-from numpy import (abs, amax, any, logical_and, arange, linspace, atleast_1d,
-                   array, asarray, broadcast_arrays, ceil, floor, frexp, hypot,
-                   sqrt, arctan2, sin, cos, exp, log, log1p, mod, diff, finfo,
-                   inf, pi, interp, isnan, isscalar, zeros, ones, linalg,
-                   r_, sign, unique, hstack, vstack, nonzero, where, extract,
-                   meshgrid)
+from numpy import (
+    meshgrid,
+    abs, amax, any, logical_and, arange, linspace, atleast_1d,
+    asarray, ceil, floor, frexp, hypot,
+    sqrt, arctan2, sin, cos, exp, log, log1p, mod, diff,
+    finfo, inf, pi, interp, isnan, isscalar, zeros, ones, linalg,
+    r_, sign, unique, hstack, vstack, nonzero, where, extract)
 from scipy.special import gammaln
 from scipy.integrate import trapz, simps
 import warnings
@@ -22,6 +23,8 @@ try:
 except:
     clib = None
 floatinfo = finfo(float)
+_TINY = np.finfo(float).tiny
+_EPS = np.finfo(float).eps
 
 
 __all__ = ['now', 'spaceline', 'narg_smallest', 'args_flat', 'is_numlike',
@@ -29,9 +32,10 @@ __all__ = ['now', 'spaceline', 'narg_smallest', 'args_flat', 'is_numlike',
            'parse_kwargs', 'detrendma', 'ecross', 'findcross', 'findextrema',
            'findpeaks', 'findrfc', 'rfcfilter', 'findtp', 'findtc',
            'findoutliers', 'common_shape', 'argsreduce', 'stirlerr',
-           'betaloge', 'gravity', 'nextpow2', 'discretize', 'pol2cart',
-           'cart2pol', 'meshgrid', 'ndgrid', 'trangood', 'tranproc',
+           'betaloge', 'gravity', 'nextpow2', 'discretize', 'polar2cart',
+           'cart2polar', 'meshgrid', 'ndgrid', 'trangood', 'tranproc',
            'plot_histgrm', 'num2pistr', 'test_docstrings', 'lazywhere',
+           'piecewise', 
            'valarray']
 
 
@@ -209,23 +213,24 @@ def rotation_matrix(heading, pitch, roll):
     '''
 
     Examples
+    >>> import numpy as np
     >>> rotation_matrix(heading=0, pitch=0, roll=0)
     array([[ 1.,  0.,  0.],
            [ 0.,  1.,  0.],
            [ 0.,  0.,  1.]])
 
     >>> np.all(np.abs(rotation_matrix(heading=180, pitch=0, roll=0)-
-    ... array([[ -1.000000e+00,  -1.224647e-16,   0.000000e+00],
+    ... np.array([[ -1.000000e+00,  -1.224647e-16,   0.000000e+00],
     ...       [  1.224647e-16,  -1.000000e+00,   0.000000e+00],
     ...       [ -0.000000e+00,   0.000000e+00,   1.000000e+00]]))<1e-7)
     True
     >>> np.all(np.abs(rotation_matrix(heading=0, pitch=180, roll=0)-
-    ... array([[ -1.000000e+00,   0.000000e+00,   1.224647e-16],
+    ... np.array([[ -1.000000e+00,   0.000000e+00,   1.224647e-16],
     ...       [ -0.000000e+00,   1.000000e+00,   0.000000e+00],
     ...       [ -1.224647e-16,  -0.000000e+00,  -1.000000e+00]]))<1e-7)
     True
     >>> np.all(np.abs(rotation_matrix(heading=0, pitch=0, roll=180)-
-    ... array([[  1.000000e+00,   0.000000e+00,   0.000000e+00],
+    ... np.array([[  1.000000e+00,   0.000000e+00,   0.000000e+00],
     ...       [  0.000000e+00,  -1.000000e+00,  -1.224647e-16],
     ...       [ -0.000000e+00,   1.224647e-16,  -1.000000e+00]]))<1e-7)
     True
@@ -235,7 +240,7 @@ def rotation_matrix(heading, pitch, roll):
         deg2rad = np.pi / 180
         H = heading * deg2rad
         P = pitch * deg2rad
-        R = roll * deg2rad       # Convert to radians
+        R = roll * deg2rad  # Convert to radians
 
         data.put(0, cos(H) * cos(P))
         data.put(1, cos(H) * sin(P) * sin(R) - sin(H) * cos(R))
@@ -327,13 +332,12 @@ def spaceline(start_point, stop_point, num=10):
            [ 2.5 ,  0.  ,  0.  ],
            [ 2.75,  0.  ,  0.  ],
            [ 3.  ,  0.  ,  0.  ]])
-
     '''
     num = int(num)
     e1, e2 = np.atleast_1d(start_point, stop_point)
     e2m1 = e2 - e1
     length = np.sqrt((e2m1 ** 2).sum())
-    # length = sqrt((E2[0]-E1(1))^2 + (E2(2)-E1(2))^2 + (E2(3)-E1(3))^2);
+    # length = sqrt((E2[0]-E1(1))^2 + (E2(2)-E1(2))^2 + (E2(3)-E1(3))^2)
     C = e2m1 / length
     delta = length / float(num - 1)
     return np.array([e1 + n * delta * C for n in range(num)])
@@ -400,37 +404,14 @@ def args_flat(*args):
                 'POS array must be of shape N x 3!')
         return pos, None
     elif nargin == 3:
-        x, y, z = broadcast_arrays(*args[:3])
+        x, y, z = np.broadcast_arrays(*args[:3])
         c_shape = x.shape
         return np.vstack((x.ravel(), y.ravel(), z.ravel())).T, c_shape
     else:
         raise ValueError('Number of arguments must be 1 or 3!')
 
 
-def _check_and_adjust_shape(shape, nsub=None):
-    s = np.atleast_1d(shape)
-    ndim = len(s)
-    if ndim < 1:
-        raise ValueError('Shape vector must have at least 1 element.')
-    ndim = len(s)
-    if nsub is None:
-        nsub = ndim
-    if ndim <= nsub:  # add trailing singleton dimensions
-        s = np.hstack([s, np.ones(nsub - ndim, dtype=int)])
-    else:  # Adjust for linear indexing on last element
-        s = np.hstack([s[:nsub - 1], np.prod(s[nsub - 1:])])
-    return s
-
-
-def _sub2index_factor(shape, order='C'):
-    ''' Return multiplier needed for calculating linear index
-        from multiple subscripts.
-    '''
-    step = 1 if order == 'F' else -1  # C order
-    return np.hstack([1, np.cumprod(shape[::step][:-1])])[::step]
-
-
-def index2sub(shape, index, nsub=None, order='C'):
+def index2sub(shape, index, order='C'):
     '''
     Returns Multiple subscripts from linear index.
 
@@ -440,8 +421,6 @@ def index2sub(shape, index, nsub=None, order='C'):
         shape of array
     index :
         linear index into array
-    nsub : int optional
-        Number of subscripts returned. default nsub=len(shape)
     order : {'C','F'}, optional
         The order of the linear index.
         'C' means C (row-major) order.
@@ -468,18 +447,7 @@ def index2sub(shape, index, nsub=None, order='C'):
     --------
     sub2index
     '''
-    ndx = np.atleast_1d(index)
-    s = _check_and_adjust_shape(shape, nsub)
-    k = _sub2index_factor(s, order)
-    n = len(s)
-    step = -1 if order == 'F' else 1  # C order
-    subscripts = [0, ] * n
-    for i in range(n)[::step]:
-        vi = np.remainder(ndx, k[i])
-        subscript = np.array((ndx - vi) / k[i], dtype=int)
-        subscripts[i] = subscript
-        ndx = vi
-    return tuple(subscripts)
+    return np.unravel_index(index, shape, order=order)
 
 
 def sub2index(shape, *subscripts, **kwds):
@@ -518,21 +486,7 @@ def sub2index(shape, *subscripts, **kwds):
     --------
     index2sub
     '''
-    nsub = len(subscripts)
-    s = _check_and_adjust_shape(shape, nsub)
-    k = _sub2index_factor(s, **kwds)
-
-    ndx = 0
-    s0 = np.shape(subscripts[0])
-    for i, subscript in enumerate(subscripts):
-        np.testing.assert_equal(s0, np.shape(subscript),
-                                'The subscripts vectors must all ' +
-                                'be of the same shape.')
-        if (np.any(subscript < 0)) or (np.any(s[i] <= subscript)):
-            raise IndexError('Out of range subscript.')
-
-        ndx = ndx + k[i] * subscript
-    return ndx
+    return np.ravel_multi_index(subscripts, shape, **kwds)
 
 
 def is_numlike(obj):
@@ -683,12 +637,14 @@ def detrendma(x, L):
 
     Examples
     --------
+    >>> import utilities.numpy_utils as wm
     >>> import pylab as plt
     >>> exp = plt.exp; cos = plt.cos; randn = plt.randn
     >>> x = plt.linspace(0,1,200)
     >>> y = exp(x)+cos(5*2*pi*x)+1e-1*randn(x.size)
-    >>> y0 = detrendma(y,20); tr = y-y0
+    >>> y0 = wm.detrendma(y,20); tr = y-y0
     >>> h = plt.plot(x, y, x, y0, 'r', x, exp(x), 'k', x, tr, 'm')
+
     >>> plt.close('all')
 
     See also
@@ -744,7 +700,7 @@ def ecross(t, f, ind, v=0):
     Example
     -------
     >>> from matplotlib import pylab as plt
-    >>> import utilities.numpy_utils as wm
+    >>> import wafo.misc as wm
     >>> ones = np.ones
     >>> t = np.linspace(0,7*np.pi,250)
     >>> x = np.sin(t)
@@ -752,8 +708,8 @@ def ecross(t, f, ind, v=0):
     >>> ind
     array([  9,  25,  80,  97, 151, 168, 223, 239])
     >>> t0 = wm.ecross(t,x,ind,0.75)
-    >>> np.abs(t0 - np.array([  0.84910514, 2.2933879, 7.13205663, 8.57630119,
-    ...        13.41484739,  14.85909194,  19.69776067,  21.14204343]))<1e-7
+    >>> np.abs(t0 - np.array([0.84910514, 2.2933879 , 7.13205663, 8.57630119,
+    ...        13.41484739, 14.85909194, 19.69776067, 21.14204343]))<1e-7
     array([ True,  True,  True,  True,  True,  True,  True,  True], dtype=bool)
 
     >>> a = plt.plot(t, x, '.', t[ind], x[ind], 'r.', t, ones(t.shape)*0.75,
@@ -767,8 +723,8 @@ def ecross(t, f, ind, v=0):
     # Tested on: Python 2.5
     # revised pab Feb2004
     # By pab 18.06.2001
-    return t[ind] + (v - f[ind]) * (t[ind + 1] - t[ind]) / \
-        (f[ind + 1] - f[ind])
+    return (t[ind] + (v - f[ind]) * (t[ind + 1] - t[ind]) /
+            (f[ind + 1] - f[ind]))
 
 
 def _findcross(xn):
@@ -804,6 +760,13 @@ def _findcross(xn):
     # indices to local level crossings ( without turningpoints)
     ind, = (xn[:n - 1] * xn[1:] < 0).nonzero()
     return ind
+
+
+def xor(a, b):
+    """
+    Return True only when inputs differ.
+    """
+    return a ^ b
 
 
 def findcross(x, v=0.0, kind=None):
@@ -872,20 +835,19 @@ def findcross(x, v=0.0, kind=None):
             t_0 = int(xn[ind[0] + 1] < 0)
             ind = ind[t_0::2]
         elif kind in ('dw', 'uw', 'tw', 'cw'):
-            # make sure that the first is a level v down-crossing
-            #  if kind=='dw' or kind=='tw'
-            # or that the first is a level v up-crossing
-            #  if kind=='uw' or kind=='cw'
-            xor = lambda a, b: a ^ b
+            # make sure the first is a level v down-crossing
+            #   if wdef=='dw' or wdef=='tw'
+            # or make sure the first is a level v up-crossing
+            #    if wdef=='uw' or wdef=='cw'
+
             first_is_down_crossing = int(xn[ind[0]] > xn[ind[0] + 1])
             if xor(first_is_down_crossing, kind in ('dw', 'tw')):
                 ind = ind[1::]
 
-            n_c = ind.size  # number of level v crossings
             # make sure the number of troughs and crests are according to the
             # wavedef, i.e., make sure length(ind) is odd if dw or uw
             # and even if tw or cw
-            is_odd = mod(n_c, 2)
+            is_odd = mod(ind.size, 2)
             if xor(is_odd, kind in ('dw', 'uw')):
                 ind = ind[:-1]
         else:
@@ -1041,7 +1003,7 @@ def findrfc_astm(tp):
     return sig_rfc
 
 
-def findrfc(tp, hmin=0.0, method='clib'):
+def findrfc(tp, h=0.0, method='clib'):
     '''
     Return indices to rainflow cycles of a sequence of TP.
 
@@ -1064,10 +1026,10 @@ def findrfc(tp, hmin=0.0, method='clib'):
 
     Example:
     --------
-    >>> import pylab as plt
+    >>> import matplotlib.pyplot as plt
     >>> import utilities.numpy_utils as wm
-    >>> t = plt.linspace(0,7*np.pi,250)
-    >>> x = plt.sin(t)+0.1*np.sin(50*t)
+    >>> t = np.linspace(0,7*np.pi,250)
+    >>> x = np.sin(t)+0.1*np.sin(50*t)
     >>> ind = wm.findextrema(x)
     >>> ti, tp = t[ind], x[ind]
 
@@ -1127,7 +1089,7 @@ def findrfc(tp, hmin=0.0, method='clib'):
                         Tmi = Tstart + 2 * j
                     j -= 1
             if (xminus >= xplus):
-                if (y[2 * i + 1] - xminus >= hmin):
+                if (y[2 * i + 1] - xminus >= h):
                     ind[ix] = Tmi
                     ix += 1
                     ind[ix] = (Tstart + 2 * i + 1)
@@ -1143,7 +1105,7 @@ def findrfc(tp, hmin=0.0, method='clib'):
                         Tpl = (Tstart + 2 * j + 2)
                     j += 1
                 else:
-                    if ((y[2 * i + 1] - xminus) >= hmin):
+                    if ((y[2 * i + 1] - xminus) >= h):
                         ind[ix] = Tmi
                         ix += 1
                         ind[ix] = (Tstart + 2 * i + 1)
@@ -1154,12 +1116,12 @@ def findrfc(tp, hmin=0.0, method='clib'):
                 # goto L180
                 # L170:
                 if (xplus <= xminus):
-                    if ((y[2 * i + 1] - xminus) >= hmin):
+                    if ((y[2 * i + 1] - xminus) >= h):
                         ind[ix] = Tmi
                         ix += 1
                         ind[ix] = (Tstart + 2 * i + 1)
                         ix += 1
-                elif ((y[2 * i + 1] - xplus) >= hmin):
+                elif ((y[2 * i + 1] - xplus) >= h):
                     ind[ix] = (Tstart + 2 * i + 1)
                     ix += 1
                     ind[ix] = Tpl
@@ -1169,7 +1131,7 @@ def findrfc(tp, hmin=0.0, method='clib'):
             # iy=i
         #  /* for i */
     else:
-        ind, ix = clib.findrfc(y, hmin)
+        ind, ix = clib.findrfc(y, h)
     return np.sort(ind[:ix])
 
 
@@ -1271,13 +1233,8 @@ def mctp2rfc(fmM, fMm=None):
                         fx = NN * (A / (1 - B * A) * e)
                     else:
                         rh = np.eye(A.shape[0]) - np.dot(B, A)
-                        fx = np.dot(
-                            NN,
-                            np.dot(
-                                A,
-                                linalg.solve(
-                                    rh,
-                                    e)))  # least squares
+                        # least squares
+                        fx = np.dot(NN, np.dot(A, linalg.solve(rh, e)))
                     # end
                 # end
                 f_rfc[N - 1 - k, k - i] = fx + DRFC
@@ -1339,19 +1296,29 @@ def rfcfilter(x, h, method=0):
     Examples:
     ---------
     # 1. Filtered signal y is the turning points of x.
-    >>> import utilities.data
+    >>> import utilities.data as data
     >>> import utilities.numpy_utils as wm
-    >>> x = utilities.data.sea()
+    >>> x = data.sea()
     >>> y = wm.rfcfilter(x[:,1], h=0, method=1)
     >>> np.all(np.abs(y[0:5]-np.array([-1.2004945 , 0.83950546, -0.09049454,
     ...        -0.02049454, -0.09049454]))<1e-7)
     True
+    >>> y.shape
+    (2172,)
 
     # 2. This removes all rainflow cycles with range less than 0.5.
     >>> y1 = wm.rfcfilter(x[:,1], h=0.5)
+    >>> y1.shape
+    (863,)
     >>> np.all(np.abs(y1[0:5]-np.array([-1.2004945 , 0.83950546, -0.43049454,
-    ...    0.34950546, -0.51049454]))<1e-7)
+    ...        0.34950546, -0.51049454]))<1e-7)
     True
+    >>> ind = wm.findtp(x[:,1], h=0.5)
+    >>> y2 = x[ind,1]
+    >>> y2[0:5]
+    array([-1.2004945 ,  0.83950546, -0.43049454,  0.34950546, -0.51049454])
+    >>> y2[-5::]
+    array([ 0.83950546, -0.64049454,  0.65950546, -1.0004945 ,  0.91950546])
 
     See also
     --------
@@ -1364,21 +1331,27 @@ def rfcfilter(x, h, method=0):
     j = 0
     t0 = 0
     y0 = y[t0]
-
     z0 = 0
+
+    def aleb(a, b):
+        return a <= b
+
+    def altb(a, b):
+        return a < b
+
     if method == 0:
-        cmpfun1 = lambda a, b: a <= b
-        cmpfun2 = lambda a, b: a < b
+        cmpfun1 = aleb
+        cmpfun2 = altb
     else:
-        cmpfun1 = lambda a, b: a < b
-        cmpfun2 = lambda a, b: a <= b
+        cmpfun1 = altb
+        cmpfun2 = aleb
 
     # The rainflow filter
     for tim1, yi in enumerate(y[1::]):
         fpi = y0 + h
         fmi = y0 - h
         ti = tim1 + 1
-        #yi = y[ti]
+        # yi = y[ti]
 
         if z0 == 0:
             if cmpfun1(yi, fmi):
@@ -1390,7 +1363,7 @@ def rfcfilter(x, h, method=0):
             t1, y1 = (t0, y0) if z1 == 0 else (ti, yi)
         else:
             if (((z0 == +1) & cmpfun1(yi, fmi)) |
-                ((z0 == -1) & cmpfun2(yi, fpi))):
+                    ((z0 == -1) & cmpfun2(yi, fpi))):
                 z1 = -1
             elif (((z0 == +1) & cmpfun2(fmi, yi)) |
                   ((z0 == -1) & cmpfun1(fpi, yi))):
@@ -1417,7 +1390,7 @@ def rfcfilter(x, h, method=0):
         t0, y0, z0 = t1, y1, z1
     # end
 
-    #% Update y if last y0 is greater than (or equal) threshold
+    # Update y if last y0 is greater than (or equal) threshold
     if cmpfun1(h, abs(y0 - y[t[j]])):
         j += 1
         t[j] = t0
@@ -1456,19 +1429,20 @@ def findtp(x, h=0.0, kind=None):
     >>> import pylab as plt
     >>> import utilities.numpy_utils as wm
     >>> t = np.linspace(0,30,500).reshape((-1,1))
-    >>> x = np.hstack((t, np.cos(t)))
-    >>> x1 = x[0:200,:]
+    >>> x = np.hstack((t, np.cos(t) + 0.3 * np.sin(5*t)))
+    >>> x1 = x[0:100,:]
     >>> itp = wm.findtp(x1[:,1],0,'Mw')
     >>> itph = wm.findtp(x1[:,1],0.3,'Mw')
     >>> tp = x1[itp,:]
     >>> tph = x1[itph,:]
-    >>> a = plt.plot(x1[:,0],x1[:,1],tp[:,0],tp[:,1],'ro',
-    ...            tph[:,1],tph[:,1],'k.')
+    >>> a = plt.plot(x1[:,0],x1[:,1],
+    ...             tp[:,0],tp[:,1],'ro',
+    ...             tph[:,0],tph[:,1],'k.')
     >>> plt.close('all')
     >>> itp
-    array([105, 157, 199])
+    array([ 5, 18, 24, 38, 46, 57, 70, 76, 91, 98, 99])
     >>> itph
-    array([105])
+    array([91])
 
     See also
     ---------
@@ -1487,9 +1461,9 @@ def findtp(x, h=0.0, kind=None):
         return None
 
     # In order to get the exact up-crossing intensity from rfc by
-    # mm2lc(tp2mm(rfc))  we have to add the indices
-    # to the last value (and also the first if the
-    # sequence of turning points does not start with a minimum).
+    # mm2lc(tp2mm(rfc))  we have to add the indices to the last value
+    # (and also the first if the sequence of turning points does not start
+    # with a minimum).
 
     if kind == 'astm':
         # the Nieslony approach always put the first loading point as the first
@@ -1510,7 +1484,6 @@ def findtp(x, h=0.0, kind=None):
         ind = ind[ind1]
 
     if kind in ('mw', 'Mw'):
-        xor = lambda a, b: a ^ b
         # make sure that the first is a Max if wdef == 'Mw'
         # or make sure that the first is a min if wdef == 'mw'
         first_is_max = (x[ind[0]] > x[ind[1]])
@@ -1582,11 +1555,8 @@ def findtc(x_in, v=None, kind=None):
         return zeros(0, dtype=np.int), zeros(0, dtype=np.int)
 
     # determine the number of trough2crest (or crest2trough) cycles
-    isodd = mod(n_c, 2)
-    if isodd:
-        n_tc = int((n_c - 1) / 2)
-    else:
-        n_tc = int((n_c - 2) / 2)
+    is_even = mod(n_c + 1, 2)
+    n_tc = int((n_c - 1 - is_even) / 2)
 
     # allocate variables before the loop increases the speed
     ind = zeros(n_c - 1, dtype=np.int)
@@ -1604,16 +1574,16 @@ def findtc(x_in, v=None, kind=None):
             # trough
             ind[n_c - 2] = x[v_ind[n_c - 2] + 1:v_ind[n_c - 1]].argmin()
 
-    else:  # %%%% the first is a up-crossing
+    else:  # the first is a up-crossing
         for i in xrange(n_tc):
-            # trough
+            # crest
             j = 2 * i
             ind[j] = x[v_ind[j] + 1:v_ind[j + 1] + 1].argmax()
-            # crest
+            # trough
             ind[j + 1] = x[v_ind[j + 1] + 1:v_ind[j + 2] + 1].argmin()
 
         if (2 * n_tc + 1 < n_c) and (kind in (None, 'cw')):
-            # trough
+            # crest
             ind[n_c - 2] = x[v_ind[n_c - 2] + 1:v_ind[n_c - 1]].argmax()
 
     return v_ind[:n_c - 1] + ind + 1, v_ind
@@ -1786,9 +1756,8 @@ def findoutliers(x, zcrit=0.0, dcrit=None, ddcrit=None, verbose=False):
             if zcrit == 0.:
                 print('Found %d consecutive equal values' % indz.size)
             else:
-                print(
-                    'Found %d consecutive values less than %g apart.' %
-                    (indz.size, zcrit))
+                print('Found %d consecutive values less than %g apart.' %
+                      (indz.size, zcrit))
     indg = ones(xn.size, dtype=bool)
 
     if ind.size > 1:
@@ -1937,7 +1906,7 @@ def stirlerr(n):
     Example
     -------
     >>> import utilities.numpy_utils as wm
-    >>> np.abs(wm.stirlerr(2)-array([ 0.0413407]))<1e-7
+    >>> np.abs(wm.stirlerr(2)- 0.0413407)<1e-7
     array([ True], dtype=bool)
 
     See also
@@ -1949,11 +1918,10 @@ def stirlerr(n):
     -----------
     Catherine Loader (2000).
     Fast and Accurate Computation of Binomial Probabilities
-    <http://www.herine.net/stat/software/dbinom.html>
-    <http://www.citeseer.ist.psu.edu/312695.html>
+    <http://lists.gnu.org/archive/html/octave-maintainers/2011-09/pdfK0uKOST642.pdf>
     '''
 
-    S0 = 0.083333333333333333333   # /* 1/12 */
+    S0 = 0.083333333333333333333  # /* 1/12 */
     S1 = 0.00277777777777777777778  # /* 1/360 */
     S2 = 0.00079365079365079365079365  # /* 1/1260 */
     S3 = 0.000595238095238095238095238  # /* 1/1680 */
@@ -2016,9 +1984,9 @@ def binomln(z, w):
     # log(n!) = stirlerr(n)  + log( sqrt(2*pi*n)*(n/exp(1))**n )
     # y = gammaln(z+1)-gammaln(w+1)-gammaln(z-w+1)
     zpw = z - w
-    return (stirlerr(z + 1) - stirlerr(w + 1) - 0.5 * log(2 * pi)
-            - (w + 0.5) * log1p(w) + (z + 0.5) * log1p(z) - stirlerr(zpw + 1)
-            - (zpw + 0.5) * log1p(zpw) + 1)
+    return (stirlerr(z + 1) - stirlerr(w + 1) - 0.5 * log(2 * pi) -
+            (w + 0.5) * log1p(w) + (z + 0.5) * log1p(z) - stirlerr(zpw + 1) -
+            (zpw + 0.5) * log1p(zpw) + 1)
 
 
 def betaloge(z, w):
@@ -2052,8 +2020,9 @@ def betaloge(z, w):
     '''
     # y = gammaln(z)+gammaln(w)-gammaln(z+w)
     zpw = z + w
-    return (stirlerr(z) + stirlerr(w) + 0.5 * log(2 * pi) + (w - 0.5) * log(w)
-            + (z - 0.5) * log(z) - stirlerr(zpw) - (zpw - 0.5) * log(zpw))
+    return (stirlerr(z) + stirlerr(w) + 0.5 * log(2 * pi) +
+            (w - 0.5) * log(w) + (z - 0.5) * log(z) - stirlerr(zpw) -
+            (zpw - 0.5) * log(zpw))
 
     # stirlings approximation:
     #  (-(zpw-0.5).*log(zpw) +(w-0.5).*log(w)+(z-0.5).*log(z) +0.5*log(2*pi))
@@ -2085,7 +2054,7 @@ def gravity(phi=45):
     >>> import utilities.numpy_utils as wm
     >>> import numpy as np
     >>> phi = np.linspace(0,45,5)
-    >>> np.abs(wm.gravity(phi)-array([ 9.78049   ,  9.78245014,  9.78803583,
+    >>> np.abs(wm.gravity(phi)-np.array([ 9.78049   ,  9.78245014,  9.78803583,
     ...            9.79640552,  9.80629387]))<1.e-7
     array([ True,  True,  True,  True,  True], dtype=bool)
 
@@ -2104,8 +2073,81 @@ def gravity(phi=45):
     '''
 
     phir = phi * pi / 180.  # change from degrees to radians
-    return 9.78049 * \
-        (1. + 0.0052884 * sin(phir) ** 2. - 0.0000059 * sin(2 * phir) ** 2.)
+    return 9.78049 * (1. + 0.0052884 * sin(phir) ** 2. -
+                      0.0000059 * sin(2 * phir) ** 2.)
+
+
+def dea3(v0, v1, v2):
+    '''
+    Extrapolate a slowly convergent sequence
+
+    Parameters
+    ----------
+    v0, v1, v2 : array-like
+        3 values of a convergent sequence to extrapolate
+
+    Returns
+    -------
+    result : array-like
+        extrapolated value
+    abserr : array-like
+        absolute error estimate
+
+    Description
+    -----------
+    DEA3 attempts to extrapolate nonlinearly to a better estimate
+    of the sequence's limiting value, thus improving the rate of
+    convergence. The routine is based on the epsilon algorithm of
+    P. Wynn, see [1]_.
+
+     Example
+     -------
+     # integrate sin(x) from 0 to pi/2
+
+     >>> import numpy as np
+     >>> import numdifftools as nd
+     >>> Ei= np.zeros(3)
+     >>> linfun = lambda k : np.linspace(0,np.pi/2.,2.**(k+5)+1)
+     >>> for k in np.arange(3):
+     ...    x = linfun(k)
+     ...    Ei[k] = np.trapz(np.sin(x),x)
+     >>> [En, err] = nd.dea3(Ei[0], Ei[1], Ei[2])
+     >>> truErr = Ei-1.
+     >>> (truErr, err, En)
+     (array([ -2.00805680e-04,  -5.01999079e-05,  -1.25498825e-05]),
+     array([ 0.00020081]), array([ 1.]))
+
+     See also
+     --------
+     dea
+
+     Reference
+     ---------
+     .. [1] C. Brezinski (1977)
+            "Acceleration de la convergence en analyse numerique",
+            "Lecture Notes in Math.", vol. 584,
+            Springer-Verlag, New York, 1977.
+    '''
+    E0, E1, E2 = np.atleast_1d(v0, v1, v2)
+    abs = np.abs  # @ReservedAssignment
+    max = np.maximum  # @ReservedAssignment
+    delta2, delta1 = E2 - E1, E1 - E0
+    err2, err1 = abs(delta2), abs(delta1)
+    tol2, tol1 = max(abs(E2), abs(E1)) * _EPS, max(abs(E1), abs(E0)) * _EPS
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")  # ignore division by zero and overflow
+        ss = 1.0 / delta2 - 1.0 / delta1
+        smallE2 = (abs(ss * E1) <= 1.0e-3).ravel()
+
+    result = 1.0 * E2
+    abserr = err1 + err2 + abs(E2) * _EPS * 10.0
+    converged = (err1 <= tol1) & (err2 <= tol2).ravel() | smallE2
+    k4, = (1 - converged).nonzero()
+    if k4.size > 0:
+        result[k4] = E1[k4] + 1.0 / ss[k4]
+        abserr[k4] = err1[k4] + err2[k4] + abs(result[k4] - E2[k4])
+    return result, abserr
 
 
 def nextpow2(x):
@@ -2176,8 +2218,6 @@ def _discretize_linear(fun, a, b, tol=0.005, n=5):
     '''
     Automatic discretization of function, linear gridding
     '''
-    tiny = floatinfo.tiny
-
     x = linspace(a, b, n)
     y = fun(x)
 
@@ -2192,7 +2232,7 @@ def _discretize_linear(fun, a, b, tol=0.005, n=5):
         x = linspace(a, b, n)
         y = fun(x)
         y00 = interp(x, x0, y0)
-        err = 0.5 * amax(abs((y00 - y) / (abs(y00 + y) + tiny)))
+        err = 0.5 * amax(abs((y00 - y) / (abs(y00 + y) + _TINY)))
     return x, y
 
 
@@ -2200,7 +2240,6 @@ def _discretize_adaptive(fun, a, b, tol=0.005, n=5):
     '''
     Automatic discretization of function, adaptive gridding.
     '''
-    tiny = floatinfo.tiny
     n += (mod(n, 2) == 0)  # make sure n is odd
     x = linspace(a, b, n)
     fx = fun(x)
@@ -2222,7 +2261,7 @@ def _discretize_adaptive(fun, a, b, tol=0.005, n=5):
             fy = fun(y)
 
             fy0 = interp(y, x, fx)
-            erri = 0.5 * (abs((fy0 - fy) / (abs(fy0 + fy) + tiny)))
+            erri = 0.5 * (abs((fy0 - fy) / (abs(fy0 + fy) + _TINY)))
 
             err = erri.max()
 
@@ -2281,7 +2320,6 @@ def cart2polar(x, y, z=None):
         return t, r
     else:
         return t, r, z
-
 cart2pol = cart2polar
 
 
@@ -2358,8 +2396,7 @@ def trangood(x, f, min_n=None, min_x=None, max_x=None, max_n=inf):
     xn = xo[-1]
     x0 = xo[0]
     L = float(xn - x0)
-    eps = floatinfo.eps
-    if ((nf < min_n) or (max_n < nf) or any(abs(ddx) > 10 * eps * (L))):
+    if ((nf < min_n) or (max_n < nf) or any(abs(ddx) > 10 * _EPS * (L))):
         # pab 07.01.2001: Always choose the stepsize df so that
         # it is an exactly representable number.
         # This is important when calculating numerical derivatives and is
@@ -2439,8 +2476,6 @@ def tranproc(x, f, x0, *xi):
     --------
     trangood.
     """
-
-    eps = floatinfo.eps
     xo, fo, x0 = atleast_1d(x, f, x0)
     xi = atleast_1d(*xi)
     if not isinstance(xi, list):
@@ -2464,10 +2499,11 @@ def tranproc(x, f, x0, *xi):
     if N > 0:
         y = [y0]
         hn = xo[1] - xo[0]
-        if hn ** N < sqrt(eps):
-            warnings.warn('Numerical problems may occur for the derivatives' +
-                          ' in tranproc. The sampling of the transformation' +
-                          ' may be too small.')
+        if hn ** N < sqrt(_EPS):
+            msg = ('Numerical problems may occur for the derivatives in ' +
+                   'tranproc.\n' +
+                   'The sampling of the transformation may be too small.')
+            warnings.warn(msg)
 
         # Transform X with the derivatives of  f.
         fxder = zeros((N, x0.size))
@@ -2504,8 +2540,8 @@ def tranproc(x, f, x0, *xi):
                           fxder[1] * (3. * xi[1] ** 2. + 4. * xi[0] * xi[1]))
                     y.append(y4)
                     if N > 4:
-                        warnings.warn('Transformation of derivatives of' +
-                                      ' order>4 not supported.')
+                        warnings.warn('Transformation of derivatives of ' +
+                                      'order>4 not supported.')
     return y  # y0,y1,y2,y3,y4
 
 
@@ -2517,10 +2553,11 @@ def good_bins(data=None, range=None, num_bins=None,  # @ReservedAssignment
     ----------
     data : array-like
         the data
-    range : (float, float), (default data.min(), data.max())
-        minimum and maximum range of bins
-    num_bins : scalar integer, (default depending on num_data=len(data))
+    range : (float, float)
+        minimum and maximum range of bins (default data.min(), data.max())
+    num_bins : scalar integer
         approximate number of bins wanted
+        (default depending on num_data=len(data))
     odd : bool
         placement of bins (0 or 1) (default 0)
     loose : bool
@@ -2621,14 +2658,14 @@ def plot_histgrm(data, bins=None, range=None,  # @ReservedAssignment
     if bins is None:
         bins = np.ceil(4 * np.sqrt(np.sqrt(len(x))))
 
-    # , new=True) @ReservedAssignment
-    y, limits = np.histogram(data, bins=bins, normed=normed, weights=weights)
+    bin_, limits = np.histogram(
+        data, bins=bins, normed=normed, weights=weights)
     limits.shape = (-1, 1)
     xx = limits.repeat(3, axis=1)
     xx.shape = (-1,)
     xx = xx[1:-1]
-    y.shape = (-1, 1)
-    yy = y.repeat(3, axis=1)
+    bin_.shape = (-1, 1)
+    yy = bin_.repeat(3, axis=1)
     # yy[0,0] = 0.0 # pdf
     yy[:, 0] = 0.0  # histogram
     yy.shape = (-1,)
@@ -2719,8 +2756,10 @@ def fourier(data, t=None, T=None, m=None, n=None, method='trapz'):
     >>> t = np.linspace(0,4*T)
     >>> x = np.sin(t)
     >>> a, b = wm.fourier(x, t, T=T, m=5)
-    >>> (np.round(a.ravel()), np.round(b.ravel()))
-    (array([ 0.,  0.,  0.,  0.,  0.]), array([ 0.,  4.,  0.,  0.,  0.]))
+    >>> np.abs(a.ravel())<1e-12
+    array([ True,  True,  True,  True,  True], dtype=bool)
+    >>> np.abs(b.ravel()-np.array([ 0.,  4.,  0.,  0.,  0.]))<1e-12
+    array([ True,  True,  True,  True,  True], dtype=bool)
 
     See also
     --------
@@ -2778,93 +2817,9 @@ def fourier(data, t=None, T=None, m=None, n=None, method='trapz'):
     return a, b
 
 
-def _test_find_cross():
-    t = findcross([0, 0, 1, -1, 1], 0)  # @UnusedVariable
 
 
-def _test_common_shape():
 
-    A = ones((4, 1))
-    B = 2
-    C = ones((1, 5)) * 5
-    common_shape(A, B, C)
-
-    common_shape(A, B, C, shape=(3, 4, 1))
-
-    A = ones((4, 1))
-    B = 2
-    C = ones((1, 5)) * 5
-    common_shape(A, B, C, shape=(4, 5))
-
-
-def _test_meshgrid():
-    x = array([-1, -0.5, 1, 4, 5], float)
-    y = array([0, -2, -5], float)
-    xv, yv = meshgrid(x, y, sparse=False)
-    print(xv)
-    print(yv)
-    xv, yv = meshgrid(x, y, sparse=True)  # make sparse output arrays
-    print(xv)
-    print(yv)
-    print(meshgrid(0, 1, 5, sparse=True))  # just a 3D point
-    print(meshgrid([0, 1, 5], sparse=True))  # just a 3D point
-    xv, yv = meshgrid(y, y)
-    yv[0, 0] = 10
-    print(xv)
-    print(yv)
-# >>> xv
-#    array([[ 0. ,  0.5,  1. ]])
-# >>> yv
-# array([[ 0.],
-# [ 1.]])
-# array([[-1. , -0.5,  1. ,  4. ,  5. ],
-#           [-1. , -0.5,  1. ,  4. ,  5. ],
-# [-1. , -0.5,  1. ,  4. ,  5. ]])
-##
-# array([[ 0.,  0.,  0.,  0.,  0.],
-#           [-2., -2., -2., -2., -2.],
-# [-5., -5., -5., -5., -5.]])
-
-
-def _test_tranproc():
-    #    import utilitiestransform.models as wtm
-    tr = lambda x: x  # wtm.TrHermite()
-    x = linspace(-5, 5, 501)
-    g = tr(x)
-    _gder = tranproc(x, g, x, ones(g.size))
-    pass
-    # >>> gder(:,1) = g(:,1)
-    # >>> plot(g(:,1),[g(:,2),gder(:,2)])
-    # >>> plot(g(:,1),pdfnorm(g(:,2)).*gder(:,2),g(:,1),pdfnorm(g(:,1)))
-    # >>> legend('Transformed model','Gaussian model')
-
-
-def _test_detrend():
-    import pylab as plt
-    cos = np.cos
-    randn = np.random.randn
-    x = linspace(0, 1, 200)
-    y = exp(x) + cos(5 * 2 * pi * x) + 1e-1 * randn(x.size)
-    y0 = detrendma(y, 20)
-    tr = y - y0
-    plt.plot(x, y, x, y0, 'r', x, exp(x), 'k', x, tr, 'm')
-
-
-def _test_extrema():
-    import pylab as plt
-    from pylab import plot
-    t = plt.linspace(0, 7 * pi, 250)
-    x = plt.sin(t) + 0.1 * sin(50 * t)
-    ind = findextrema(x)
-    ti, tp = t[ind], x[ind]
-    plot(t, x, '.', ti, tp, 'r.')
-    _ind1 = findrfc(tp, 0.3)
-
-
-def _test_discretize():
-    import pylab as plt
-    x, y = discretize(cos, 0, pi)
-    plt.plot(x, y)
     plt.show()
     plt.close('all')
 
@@ -2915,14 +2870,14 @@ def profile_main1():
     import pstats
     prof = cProfile.Profile()
     prof = prof.runctx("real_main()", globals(), locals())
-    print "<pre>"
+    print("<pre>")
     stats = pstats.Stats(prof)
     stats.sort_stats("time")  # Or cumulative
     stats.print_stats(80)  # 80 = how many to print
     # The rest is optional.
     # stats.print_callees()
     # stats.print_callers()
-    print "</pre>"
+    print("</pre>")
 
 
 main = profile_main1

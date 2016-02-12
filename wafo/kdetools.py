@@ -1841,8 +1841,8 @@ class Kernel(object):
             return self.hns(data)
         name = self.name[:4].lower()
         if name == 'epan':        # Epanechnikov kernel
-            a = (8.0 * (d + 4.0) * (2 * sqrt(pi))
-                 ** d / sphere_volume(d)) ** (1. / (4.0 + d))
+            a = (8.0 * (d + 4.0) * (2 * sqrt(pi)) ** d /
+                 sphere_volume(d)) ** (1. / (4.0 + d))
         elif name == 'biwe':  # Bi-weight kernel
             a = 2.7779
             if d > 2:
@@ -3318,8 +3318,8 @@ def kde_demo4(N=50):
     f1.plot('b', label='hisj=%g' % kde1.hs)
     x = np.linspace(-4, 4)
     for loc in [-5, 5]:
-        plt.plot(x + loc, st.norm.pdf(x, 0, scale=1)
-                 / 2, 'k:', label='True density')
+        plt.plot(x + loc, st.norm.pdf(x, 0, scale=1) / 2, 'k:',
+                 label='True density')
     plt.legend()
 
 

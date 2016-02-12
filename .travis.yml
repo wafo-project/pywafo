@@ -32,6 +32,7 @@ before_install:
   - conda config --add channels https://conda.anaconda.org/omnia
   - conda config --add channels https://conda.anaconda.org/pbrod
   - source activate condaenv
+  - sudo apt-get update
   - sudo apt-get install gfortran
 # Install packages
 install:

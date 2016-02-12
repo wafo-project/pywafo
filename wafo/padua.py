@@ -274,7 +274,7 @@ class _ExampleFunctions(object):
         arg_z = 1. / arg_z
         return np.exp(-arg_z)
 
-    def __call__(self, x, y, id=0):
+    def __call__(self, x, y, id=0):  # @ReservedAssignment
         s = self
         test_function = [s.franke, s.half_sphere, s.poly_degree20, s.exp_fun1,
                          s.exp_fun100, s.cos30, s.constant, s.exp_xy, s.runge,
@@ -410,7 +410,7 @@ def paduavals2coefs(f):
     else:
 
         # dct = @(c) chebtech2.coeffs2vals(c);
-        C = np.rot90(dct(dct(G.T).T)) #, axis=1)
+        C = np.rot90(dct(dct(G.T).T))  # , axis=1)
 
     C[0] = .5 * C[0]
     C[:, 1] = .5 * C[:, 1]

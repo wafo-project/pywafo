@@ -6,9 +6,9 @@ from numpy.testing import (
 #     )
 
 import unittest as local_unittest
+import numpy as np
 from wafo.numpy_utils import (rotation_matrix, rotate_2d, spaceline,
                               args_flat, sub2index, index2sub, piecewise)
-import numpy as np
 
 
 class TestPiecewise(TestCase):

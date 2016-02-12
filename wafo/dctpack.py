@@ -432,7 +432,9 @@ def test_docstrings():
 
 def test_commands():
     import commands
-    commands.getstatusoutput('preprocess -DFORMAT=html -DDEVICE=screen tutorial.do.txt > tmp_preprocess__tutorial.do.txt')
+    commands.getstatusoutput('preprocess -DFORMAT=html -DDEVICE=screen ' +
+                             'tutorial.do.txt > ' +
+                             'tmp_preprocess__tutorial.do.txt')
 
 
 if __name__ == '__main__':

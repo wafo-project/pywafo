@@ -2,6 +2,7 @@
 Misc
 '''
 from __future__ import division
+import collections
 import sys
 import fractions
 import numpy as np
@@ -9,7 +10,7 @@ from numpy import (
     meshgrid,
     abs, amax, any, logical_and, arange, linspace, atleast_1d,
     asarray, ceil, floor, frexp, hypot,
-    sqrt, arctan2, sin, cos, exp, log, log1p, mod, diff, empty_like,
+    sqrt, arctan2, sin, cos, exp, log, log1p, mod, diff,
     finfo, inf, pi, interp, isnan, isscalar, zeros, ones, linalg,
     r_, sign, unique, hstack, vstack, nonzero, where, extract)
 from scipy.special import gammaln, gamma, psi
@@ -27,14 +28,187 @@ floatinfo = finfo(float)
 _TINY = np.finfo(float).tiny
 _EPS = np.finfo(float).eps
 
-__all__ = [
-    'is_numlike', 'JITImport', 'DotDict', 'Bunch', 'printf', 'sub_dict_select',
-    'parse_kwargs', 'detrendma', 'ecross', 'findcross',
-    'findextrema', 'findpeaks', 'findrfc', 'rfcfilter', 'findtp', 'findtc',
-    'findoutliers', 'common_shape', 'argsreduce',
-    'stirlerr', 'getshipchar', 'betaloge', 'gravity', 'nextpow2',
-    'discretize', 'polar2cart', 'cart2polar', 'meshgrid', 'ndgrid',
-    'trangood', 'tranproc', 'plot_histgrm', 'num2pistr', 'test_docstrings']
+__all__ = ['now', 'spaceline', 'narg_smallest', 'args_flat', 'is_numlike',
+           'JITImport', 'DotDict', 'Bunch', 'printf', 'sub_dict_select',
+           'parse_kwargs', 'detrendma', 'ecross', 'findcross', 'findextrema',
+           'findpeaks', 'findrfc', 'rfcfilter', 'findtp', 'findtc',
+           'findoutliers', 'common_shape', 'argsreduce', 'stirlerr',
+           'getshipchar',
+           'betaloge', 'gravity', 'nextpow2', 'discretize', 'polar2cart',
+           'cart2polar', 'meshgrid', 'ndgrid', 'trangood', 'tranproc',
+           'plot_histgrm', 'num2pistr', 'test_docstrings', 'lazywhere',
+           'piecewise',
+           'valarray']
+
+
+def valarray(shape, value=np.NaN, typecode=None):
+    """Return an array of all value.
+    """
+    if typecode is None:
+        typecode = bool
+    out = ones(shape, dtype=typecode) * value
+
+    if not isinstance(out, np.ndarray):
+        out = asarray(out)
+    return out
+
+
+def piecewise(xi, condlist, funclist, fill_value=0.0, args=(), **kw):
+    """
+    Evaluate a piecewise-defined function.
+
+    Given a set of conditions and corresponding functions, evaluate each
+    function on the input data wherever its condition is true.
+
+    Parameters
+    ----------
+    xi : tuple
+        input arguments to the functions in funclist, i.e., (x0, x1,...., xn)
+    condlist : list of bool arrays
+        Each boolean array corresponds to a function in `funclist`.  Wherever
+        `condlist[i]` is True, `funclist[i](x0,x1,...,xn)` is used as the
+        output value. Each boolean array in `condlist` selects a piece of `xi`,
+        and should therefore be of the same shape as `xi`.
+
+        The length of `condlist` must correspond to that of `funclist`.
+        If one extra function is given, i.e. if
+        ``len(funclist) - len(condlist) == 1``, then that extra function
+        is the default value, used wherever all conditions are false.
+    funclist : list of callables, f(*(xi + args), **kw), or scalars
+        Each function is evaluated over `x` wherever its corresponding
+        condition is True.  It should take an array as input and give an array
+        or a scalar value as output.  If, instead of a callable,
+        a scalar is provided then a constant function (``lambda x: scalar``) is
+        assumed.
+    fill_value : scalar
+        fill value for out of range values. Default 0.
+    args : tuple, optional
+        Any further arguments given here passed to the functions
+        upon execution, i.e., if called ``piecewise(..., ..., args=(1, 'a'))``,
+        then each function is called as ``f(x0, x1,..., xn, 1, 'a')``.
+    kw : dict, optional
+        Keyword arguments used in calling `piecewise` are passed to the
+        functions upon execution, i.e., if called
+        ``piecewise(..., ..., lambda=1)``, then each function is called as
+        ``f(x0, x1,..., xn, lambda=1)``.
+
+    Returns
+    -------
+    out : ndarray
+        The output is the same shape and type as x and is found by
+        calling the functions in `funclist` on the appropriate portions of `x`,
+        as defined by the boolean arrays in `condlist`.  Portions not covered
+        by any condition have undefined values.
+
+
+    See Also
+    --------
+    choose, select, where
+
+    Notes
+    -----
+    This is similar to choose or select, except that functions are
+    evaluated on elements of `xi` that satisfy the corresponding condition from
+    `condlist`.
+
+    The result is::
+
+          |--
+          |funclist[0](x0[condlist[0]],x1[condlist[0]],...,xn[condlist[0]])
+    out = |funclist[1](x0[condlist[1]],x1[condlist[1]],...,xn[condlist[1]])
+          |...
+          |funclist[n2](x0[condlist[n2]],x1[condlist[n2]],...,xn[condlist[n2]])
+          |--
+
+    Examples
+    --------
+    Define the sigma function, which is -1 for ``x < 0`` and +1 for ``x >= 0``.
+
+    >>> x = np.linspace(-2.5, 2.5, 6)
+    >>> piecewise(x, [x < 0, x >= 0], [-1, 1])
+    array([-1., -1., -1.,  1.,  1.,  1.])
+
+    Define the absolute value, which is ``-x`` for ``x <0`` and ``x`` for
+    ``x >= 0``.
+
+    >>> piecewise((x,), [x < 0, x >= 0], [lambda x: -x, lambda x: x])
+    array([ 2.5,  1.5,  0.5,  0.5,  1.5,  2.5])
+
+    Define the absolute value, which is ``-x*y`` for ``x*y <0`` and ``x*y`` for
+    ``x*y >= 0``
+    >>> X, Y = np.meshgrid(x, x)
+    >>> piecewise((X, Y), [X * Y < 0, ],
+    ...           [lambda x, y: -x * y, lambda x, y: x * y])
+    array([[ 6.25,  3.75,  1.25,  1.25,  3.75,  6.25],
+           [ 3.75,  2.25,  0.75,  0.75,  2.25,  3.75],
+           [ 1.25,  0.75,  0.25,  0.25,  0.75,  1.25],
+           [ 1.25,  0.75,  0.25,  0.25,  0.75,  1.25],
+           [ 3.75,  2.25,  0.75,  0.75,  2.25,  3.75],
+           [ 6.25,  3.75,  1.25,  1.25,  3.75,  6.25]])
+    """
+    def otherwise_condition(condlist):
+        return ~np.logical_or.reduce(condlist, axis=0)
+
+    def check_shapes(condlist, funclist):
+        nc, nf = len(condlist), len(funclist)
+        if nc not in [nf-1, nf]:
+            raise ValueError("function list and condition list" +
+                             " must be the same length")
+
+    check_shapes(condlist, funclist)
+    if not isinstance(xi, tuple):
+        xi = (xi,)
+
+    condlist = np.broadcast_arrays(*condlist)
+    if len(condlist) == len(funclist)-1:
+        condlist.append(otherwise_condition(condlist))
+
+    arrays = np.broadcast_arrays(*xi)
+    dtype = np.result_type(*arrays)
+
+    out = valarray(arrays[0].shape, fill_value, dtype)
+    for cond, func in zip(condlist, funclist):
+        if isinstance(func, collections.Callable):
+            temp = tuple(np.extract(cond, arr) for arr in arrays) + args
+            np.place(out, cond, func(*temp, **kw))
+        else:  # func is a scalar value
+            np.place(out, cond, func)
+    return out
+
+
+def lazywhere(cond, arrays, f, fillvalue=None, f2=None):
+    """
+    np.where(cond, x, fillvalue) always evaluates x even where cond is False.
+    This one only evaluates f(arr1[cond], arr2[cond], ...).
+    For example,
+    >>> a, b = np.array([1, 2, 3, 4]), np.array([5, 6, 7, 8])
+    >>> def f(a, b):
+    ...     return a*b
+    >>> lazywhere(a > 2, (a, b), f, np.nan)
+    array([ nan,  nan,  21.,  32.])
+
+    Notice it assumes that all `arrays` are of the same shape, or can be
+    broadcasted together.
+
+    """
+    if fillvalue is None:
+        if f2 is None:
+            raise ValueError("One of (fillvalue, f2) must be given.")
+        else:
+            fillvalue = np.nan
+    else:
+        if f2 is not None:
+            raise ValueError("Only one of (fillvalue, f2) can be given.")
+
+    arrays = np.broadcast_arrays(*arrays)
+    temp = tuple(np.extract(cond, arr) for arr in arrays)
+    out = valarray(np.shape(arrays[0]), value=fillvalue)
+    np.place(out, cond, f(*temp))
+    if f2 is not None:
+        temp = tuple(np.extract(~cond, arr) for arr in arrays)
+        np.place(out, ~cond, f2(*temp))
+
+    return out
 
 
 def rotation_matrix(heading, pitch, roll):
@@ -269,7 +443,7 @@ def index2sub(shape, index, order='C'):
     >>> a.ravel(order)[i]
     23
     >>> index2sub(shape, i, order=order)
-    (array([1]), array([2]), array([3]))
+    (1, 2, 3)
 
     See also
     --------
@@ -308,7 +482,7 @@ def sub2index(shape, *subscripts, **kwds):
     >>> a.ravel(order)[i]
     23
     >>> index2sub(shape, i, order=order)
-    (array([1]), array([2]), array([3]))
+    (1, 2, 3)
 
     See also
     --------
@@ -417,7 +591,8 @@ def sub_dict_select(somedict, somekeys):
 
 
 def parse_kwargs(options, **kwargs):
-    ''' Update options dict from keyword arguments if it exists in options
+    '''
+    Update options dict from keyword arguments if the keyword exists in options
 
     Example
     >>> opt = dict(arg1=2, arg2=3)
@@ -434,15 +609,6 @@ def parse_kwargs(options, **kwargs):
     if len(newopts) > 0:
         options.update(newopts)
     return options
-
-
-def testfun(*args, **kwargs):
-    opts = dict(opt1=1, opt2=2)
-    if (len(args) == 1 and len(kwargs) == 0 and type(args[0]) is str and
-            args[0].startswith('default')):
-        return opts
-    opts = parse_kwargs(opts, **kwargs)
-    return opts
 
 
 def detrendma(x, L):
@@ -484,7 +650,7 @@ def detrendma(x, L):
     if L != round(L):
         raise ValueError('L must be an integer')
 
-    x1 = atleast_1d(x)
+    x1 = np.atleast_1d(x)
     if x1.shape[0] == 1:
         x1 = x1.ravel()
 
@@ -493,10 +659,10 @@ def detrendma(x, L):
         return x1 - x1.mean(axis=0)
 
     mn = x1[0:2 * L + 1].mean(axis=0)
-    y = empty_like(x1)
+    y = np.empty_like(x1)
     y[0:L] = x1[0:L] - mn
 
-    ix = r_[L:(n - L)]
+    ix = np.r_[L:(n - L)]
     trend = ((x1[ix + L] - x1[ix - L]) / (2 * L + 1)).cumsum(axis=0) + mn
     y[ix] = x1[ix] - trend
     y[n - L::] = x1[n - L::] - trend[-1]
@@ -589,6 +755,13 @@ def _findcross(xn):
     return ind
 
 
+def xor(a, b):
+    """
+    Return True only when inputs differ.
+    """
+    return a ^ b
+
+
 def findcross(x, v=0.0, kind=None):
     '''
     Return indices to level v up and/or downcrossings of a vector
@@ -627,10 +800,12 @@ def findcross(x, v=0.0, kind=None):
     >>> ind = wm.findcross(x,v) # all crossings
     >>> ind
     array([  9,  25,  80,  97, 151, 168, 223, 239])
+
     >>> t0 = plt.plot(t,x,'.',t[ind],x[ind],'r.', t, ones(t.shape)*v)
     >>> ind2 = wm.findcross(x,v,'u')
     >>> ind2
     array([  9,  80, 151, 223])
+
     >>> t0 = plt.plot(t[ind2],x[ind2],'o')
     >>> plt.close('all')
 
@@ -653,22 +828,19 @@ def findcross(x, v=0.0, kind=None):
             t_0 = int(xn[ind[0] + 1] < 0)
             ind = ind[t_0::2]
         elif kind in ('dw', 'uw', 'tw', 'cw'):
-            # make sure the first is a level v down-crossing if wdef=='dw'
-            # or make sure the first is a level v up-crossing if wdef=='uw'
-            # make sure the first is a level v down-crossing if wdef=='tw'
-            # or make sure the first is a level v up-crossing if
-            # wdef=='cw'
-            def xor(a, b):
-                return a ^ b
+            # make sure the first is a level v down-crossing
+            #   if wdef=='dw' or wdef=='tw'
+            # or make sure the first is a level v up-crossing
+            #    if wdef=='uw' or wdef=='cw'
+
             first_is_down_crossing = int(xn[ind[0]] > xn[ind[0] + 1])
             if xor(first_is_down_crossing, kind in ('dw', 'tw')):
                 ind = ind[1::]
 
-            n_c = ind.size  # number of level v crossings
             # make sure the number of troughs and crests are according to the
             # wavedef, i.e., make sure length(ind) is odd if dw or uw
             # and even if tw or cw
-            is_odd = mod(n_c, 2)
+            is_odd = mod(ind.size, 2)
             if xor(is_odd, kind in ('dw', 'uw')):
                 ind = ind[:-1]
         else:
@@ -696,6 +868,7 @@ def findextrema(x):
     >>> t = np.linspace(0,7*np.pi,250)
     >>> x = np.sin(t)
     >>> ind = wm.findextrema(x)
+
     >>> a = plt.plot(t,x,'.',t[ind],x[ind],'r.')
     >>> plt.close('all')
 
@@ -852,6 +1025,7 @@ def findrfc(tp, h=0.0, method='clib'):
     >>> x = np.sin(t)+0.1*np.sin(50*t)
     >>> ind = wm.findextrema(x)
     >>> ti, tp = t[ind], x[ind]
+
     >>> a = plt.plot(t,x,'.',ti,tp,'r.')
     >>> ind1 = wm.findrfc(tp,0.3); ind1
     array([  0,   9,  32,  53,  74,  95, 116, 137])
@@ -957,15 +1131,14 @@ def findrfc(tp, h=0.0, method='clib'):
 
 def mctp2rfc(fmM, fMm=None):
     '''
-    Return Rainflow matrix given a Markov matrix of a Markov chain
-        of turning points
+    Return Rainflow matrix given a Markov chain of turning points
 
     computes f_rfc = f_mM + F_mct(f_mM).
 
     Parameters
     ----------
     fmM =  the min2max Markov matrix,
-    fMm  = the max2min Markov matrix,
+    fMm = the max2min Markov matrix,
 
     Returns
     -------
@@ -1020,8 +1193,7 @@ def mctp2rfc(fmM, fMm=None):
             SRA = RAA.sum()
 
             DRFC = SA - SRA
-            # ?? check
-            NT = min(mA[0] - sum(RAA[:, 0]), MA[0] - sum(RAA[0, :]))
+            NT = min(mA[0] - sum(RAA[:, 0]), MA[0] - sum(RAA[0, :]))  # check!
             NT = max(NT, 0)  # ??check
 
             if NT > 1e-6 * max(MA[0], mA[0]):
@@ -1118,11 +1290,11 @@ def rfcfilter(x, h, method=0):
     Examples:
     ---------
     # 1. Filtered signal y is the turning points of x.
-    >>> import wafo.data
+    >>> import wafo.data as data
     >>> import wafo.misc as wm
-    >>> x = wafo.data.sea()
+    >>> x = data.sea()
     >>> y = wm.rfcfilter(x[:,1], h=0, method=1)
-    >>> np.all(np.abs(y[0:5]-np.array([-1.2004945 ,  0.83950546, -0.09049454,
+    >>> np.all(np.abs(y[0:5]-np.array([-1.2004945 , 0.83950546, -0.09049454,
     ...        -0.02049454, -0.09049454]))<1e-7)
     True
     >>> y.shape
@@ -1132,7 +1304,7 @@ def rfcfilter(x, h, method=0):
     >>> y1 = wm.rfcfilter(x[:,1], h=0.5)
     >>> y1.shape
     (863,)
-    >>> np.all(np.abs(y1[0:5]-np.array([-1.2004945 ,  0.83950546, -0.43049454,
+    >>> np.all(np.abs(y1[0:5]-np.array([-1.2004945 , 0.83950546, -0.43049454,
     ...        0.34950546, -0.51049454]))<1e-7)
     True
     >>> ind = wm.findtp(x[:,1], h=0.5)
@@ -1306,8 +1478,6 @@ def findtp(x, h=0.0, kind=None):
         ind = ind[ind1]
 
     if kind in ('mw', 'Mw'):
-        def xor(a, b):
-            return a ^ b
         # make sure that the first is a Max if wdef == 'Mw'
         # or make sure that the first is a min if wdef == 'mw'
         first_is_max = (x[ind[0]] > x[ind[1]])
@@ -1351,7 +1521,6 @@ def findtc(x_in, v=None, kind=None):
 
     Example:
     --------
-    >>> import wafo.data
     >>> import pylab as plt
     >>> import wafo.misc as wm
     >>> t = np.linspace(0,30,500).reshape((-1,1))
@@ -1454,7 +1623,6 @@ def findoutliers(x, zcrit=0.0, dcrit=None, ddcrit=None, verbose=False):
     Examples
     --------
     >>> import numpy as np
-    >>> import wafo
     >>> import wafo.misc as wm
     >>> t = np.linspace(0,30,500).reshape((-1,1))
     >>> xx = np.hstack((t, np.cos(t)))
@@ -1958,8 +2126,9 @@ def betaloge(z, w):
     '''
     # y = gammaln(z)+gammaln(w)-gammaln(z+w)
     zpw = z + w
-    return (stirlerr(z) + stirlerr(w) + 0.5 * log(2 * pi) + (w - 0.5) * log(w)
-            + (z - 0.5) * log(z) - stirlerr(zpw) - (zpw - 0.5) * log(zpw))
+    return (stirlerr(z) + stirlerr(w) + 0.5 * log(2 * pi) +
+            (w - 0.5) * log(w) + (z - 0.5) * log(z) - stirlerr(zpw) -
+            (zpw - 0.5) * log(zpw))
 
     # stirlings approximation:
     #  (-(zpw-0.5).*log(zpw) +(w-0.5).*log(w)+(z-0.5).*log(z) +0.5*log(2*pi))
@@ -1994,7 +2163,6 @@ def gravity(phi=45):
     >>> np.abs(wm.gravity(phi)-np.array([ 9.78049   ,  9.78245014,  9.78803583,
     ...            9.79640552,  9.80629387]))<1.e-7
     array([ True,  True,  True,  True,  True], dtype=bool)
-
 
     See also
     --------
@@ -2086,6 +2254,672 @@ def dea3(v0, v1, v2):
         result[k4] = E1[k4] + 1.0 / ss[k4]
         abserr[k4] = err1[k4] + err2[k4] + abs(result[k4] - E2[k4])
     return result, abserr
+
+
+def nextpow2(x):
+    '''
+    Return next higher power of 2
+
+    Example
+    -------
+    >>> import wafo.misc as wm
+    >>> wm.nextpow2(10)
+    4
+    >>> wm.nextpow2(np.arange(5))
+    3
+    '''
+    t = isscalar(x) or len(x)
+    if (t > 1):
+        f, n = frexp(t)
+    else:
+        f, n = frexp(abs(x))
+
+    if (f == 0.5):
+        n = n - 1
+    return n
+
+
+def discretize(fun, a, b, tol=0.005, n=5, method='linear'):
+    '''
+    Automatic discretization of function
+
+    Parameters
+    ----------
+    fun : callable
+        function to discretize
+    a,b : real scalars
+        evaluation limits
+    tol : real, scalar
+        absoute error tolerance
+    n : scalar integer
+        number of values
+    method : string
+        defining method of gridding, options are 'linear' and 'adaptive'
+
+    Returns
+    -------
+    x : discretized values
+    y : fun(x)
+
+    Example
+    -------
+    >>> import wafo.misc as wm
+    >>> import numpy as np
+    >>> import pylab as plt
+    >>> x,y = wm.discretize(np.cos, 0, np.pi)
+    >>> xa,ya = wm.discretize(np.cos, 0, np.pi, method='adaptive')
+    >>> t = plt.plot(x, y, xa, ya, 'r.')
+
+    plt.show()
+    >>> plt.close('all')
+
+    '''
+    if method.startswith('a'):
+        return _discretize_adaptive(fun, a, b, tol, n)
+    else:
+        return _discretize_linear(fun, a, b, tol, n)
+
+
+def _discretize_linear(fun, a, b, tol=0.005, n=5):
+    '''
+    Automatic discretization of function, linear gridding
+    '''
+    x = linspace(a, b, n)
+    y = fun(x)
+
+    err0 = inf
+    err = 10000
+    nmax = 2 ** 20
+    while (err != err0 and err > tol and n < nmax):
+        err0 = err
+        x0 = x
+        y0 = y
+        n = 2 * (n - 1) + 1
+        x = linspace(a, b, n)
+        y = fun(x)
+        y00 = interp(x, x0, y0)
+        err = 0.5 * amax(abs((y00 - y) / (abs(y00 + y) + _TINY)))
+    return x, y
+
+
+def _discretize_adaptive(fun, a, b, tol=0.005, n=5):
+    '''
+    Automatic discretization of function, adaptive gridding.
+    '''
+    n += (mod(n, 2) == 0)  # make sure n is odd
+    x = linspace(a, b, n)
+    fx = fun(x)
+
+    n2 = (n - 1) / 2
+    erri = hstack((zeros((n2, 1)), ones((n2, 1)))).ravel()
+    err = erri.max()
+    err0 = inf
+    # while (err != err0 and err > tol and n < nmax):
+    for j in range(50):
+        if err != err0 and np.any(erri > tol):
+            err0 = err
+            # find top errors
+
+            I, = where(erri > tol)
+            # double the sample rate in intervals with the most error
+            y = (vstack(((x[I] + x[I - 1]) / 2,
+                         (x[I + 1] + x[I]) / 2)).T).ravel()
+            fy = fun(y)
+
+            fy0 = interp(y, x, fx)
+            erri = 0.5 * (abs((fy0 - fy) / (abs(fy0 + fy) + _TINY)))
+
+            err = erri.max()
+
+            x = hstack((x, y))
+
+            I = x.argsort()
+            x = x[I]
+            erri = hstack((zeros(len(fx)), erri))[I]
+            fx = hstack((fx, fy))[I]
+
+        else:
+            break
+    else:
+        warnings.warn('Recursion level limit reached j=%d' % j)
+
+    return x, fx
+
+
+def polar2cart(theta, rho, z=None):
+    '''
+    Transform polar coordinates into 2D cartesian coordinates.
+
+    Returns
+    -------
+    x, y : array-like
+        Cartesian coordinates, x = rho*cos(theta), y = rho*sin(theta)
+
+    See also
+    --------
+    cart2polar
+    '''
+    x, y = rho * cos(theta), rho * sin(theta)
+    if z is None:
+        return x, y
+    else:
+        return x, y, z
+pol2cart = polar2cart
+
+
+def cart2polar(x, y, z=None):
+    ''' Transform 2D cartesian coordinates into polar coordinates.
+
+    Returns
+    -------
+    theta : array-like
+        radial angle, arctan2(y,x)
+    rho : array-like
+        radial distance, sqrt(x**2+y**2)
+
+    See also
+    --------
+    polar2cart
+    '''
+    t, r = arctan2(y, x), hypot(x, y)
+    if z is None:
+        return t, r
+    else:
+        return t, r, z
+cart2pol = cart2polar
+
+
+def ndgrid(*args, **kwargs):
+    """
+    Same as calling meshgrid with indexing='ij' (see meshgrid for
+    documentation).
+    """
+    kwargs['indexing'] = 'ij'
+    return meshgrid(*args, ** kwargs)
+
+
+def trangood(x, f, min_n=None, min_x=None, max_x=None, max_n=inf):
+    """
+    Make sure transformation is efficient.
+
+    Parameters
+    ------------
+    x, f : array_like
+        input transform function, (x,f(x)).
+    min_n : scalar, int
+        minimum number of points in the good transform.
+               (Default  x.shape[0])
+    min_x : scalar, real
+        minimum x value to transform. (Default  min(x))
+    max_x : scalar, real
+        maximum x value to transform. (Default  max(x))
+    max_n : scalar, int
+        maximum number of points in the good transform
+              (default inf)
+    Returns
+    -------
+    x, f : array_like
+        the good transform function.
+
+    TRANGOOD interpolates f linearly  and optionally
+    extrapolate it linearly outside the range of x
+    with X uniformly spaced.
+
+    See also
+    ---------
+    tranproc,
+    numpy.interp
+    """
+    xo, fo = atleast_1d(x, f)
+    # n = xo.size
+    if (xo.ndim != 1):
+        raise ValueError('x must be a vector.')
+    if (fo.ndim != 1):
+        raise ValueError('f  must be a vector.')
+
+    i = xo.argsort()
+    xo = xo[i]
+    fo = fo[i]
+    del i
+    dx = diff(xo)
+    if (any(dx <= 0)):
+        raise ValueError('Duplicate x-values not allowed.')
+
+    nf = fo.shape[0]
+
+    if max_x is None:
+        max_x = xo[-1]
+    if min_x is None:
+        min_x = xo[0]
+    if min_n is None:
+        min_n = nf
+    if (min_n < 2):
+        min_n = 2
+    if (max_n < 2):
+        max_n = 2
+
+    ddx = diff(dx)
+    xn = xo[-1]
+    x0 = xo[0]
+    L = float(xn - x0)
+    if ((nf < min_n) or (max_n < nf) or any(abs(ddx) > 10 * _EPS * (L))):
+        # pab 07.01.2001: Always choose the stepsize df so that
+        # it is an exactly representable number.
+        # This is important when calculating numerical derivatives and is
+        # accomplished by the following.
+        dx = L / (min(min_n, max_n) - 1)
+        dx = (dx + 2.) - 2.
+        xi = arange(x0, xn + dx / 2., dx)
+        # New call pab 11.11.2000: This is much quicker
+        fo = interp(xi, xo, fo)
+        xo = xi
+
+# x is now uniformly spaced
+    dx = xo[1] - xo[0]
+
+    # Extrapolate linearly outside the range of ff
+    if (min_x < xo[0]):
+        x1 = dx * arange(floor((min_x - xo[0]) / dx), -2)
+        f2 = fo[0] + x1 * (fo[1] - fo[0]) / (xo[1] - xo[0])
+        fo = hstack((f2, fo))
+        xo = hstack((x1 + xo[0], xo))
+
+    if (max_x > xo[-1]):
+        x1 = dx * arange(1, ceil((max_x - xo[-1]) / dx) + 1)
+        f2 = f[-1] + x1 * (f[-1] - f[-2]) / (xo[-1] - xo[-2])
+        fo = hstack((fo, f2))
+        xo = hstack((xo, x1 + xo[-1]))
+
+    return xo, fo
+
+
+def tranproc(x, f, x0, *xi):
+    """
+    Transforms process X and up to four derivatives
+          using the transformation f.
+
+    Parameters
+    ----------
+    x,f : array-like
+        [x,f(x)], transform function, y = f(x).
+    x0, x1,...,xn : vectors
+        where xi is the i'th time derivative of x0. 0<=N<=4.
+
+    Returns
+    -------
+    y0, y1,...,yn : vectors
+        where yi is the i'th time derivative of y0 = f(x0).
+
+    By the basic rules of derivation:
+    Y1 = f'(X0)*X1
+    Y2 = f''(X0)*X1^2 + f'(X0)*X2
+    Y3 = f'''(X0)*X1^3 + f'(X0)*X3 + 3*f''(X0)*X1*X2
+    Y4 = f''''(X0)*X1^4 + f'(X0)*X4 + 6*f'''(X0)*X1^2*X2
+      + f''(X0)*(3*X2^2 + 4*X1*X3)
+
+    The derivation of f is performed numerically with a central difference
+    method with linear extrapolation towards the beginning and end of f,
+    respectively.
+
+    Example
+    --------
+    Derivative of g and the transformed Gaussian model.
+    >>> import pylab as plt
+    >>> import wafo.misc as wm
+    >>> import wafo.transform.models as wtm
+    >>> tr = wtm.TrHermite()
+    >>> x = linspace(-5,5,501)
+    >>> g = tr(x)
+    >>> gder = wm.tranproc(x, g, x, ones(g.shape[0]))
+    >>> h = plt.plot(x, g, x, gder[1])
+
+    plt.plot(x,pdfnorm(g)*gder[1],x,pdfnorm(x))
+    plt.legend('Transformed model','Gaussian model')
+
+    >>> plt.close('all')
+
+    See also
+    --------
+    trangood.
+    """
+    xo, fo, x0 = atleast_1d(x, f, x0)
+    xi = atleast_1d(*xi)
+    if not isinstance(xi, list):
+        xi = [xi, ]
+    N = len(xi)  # N = number of derivatives
+    nmax = ceil((xo.ptp()) * 10 ** (7. / max(N, 1)))
+    xo, fo = trangood(xo, fo, min_x=min(x0), max_x=max(x0), max_n=nmax)
+
+    n = f.shape[0]
+    # y  = x0.copy()
+    xu = (n - 1) * (x0 - xo[0]) / (xo[-1] - xo[0])
+
+    fi = asarray(floor(xu), dtype=int)
+    fi = where(fi == n - 1, fi - 1, fi)
+
+    xu = xu - fi
+    y0 = fo[fi] + (fo[fi + 1] - fo[fi]) * xu
+
+    y = y0
+
+    if N > 0:
+        y = [y0]
+        hn = xo[1] - xo[0]
+        if hn ** N < sqrt(_EPS):
+            msg = ('Numerical problems may occur for the derivatives in ' +
+                   'tranproc.\n' +
+                   'The sampling of the transformation may be too small.')
+            warnings.warn(msg)
+
+        # Transform X with the derivatives of  f.
+        fxder = zeros((N, x0.size))
+        fder = vstack((xo, fo))
+        for k in range(N):  # Derivation of f(x) using a difference method.
+            n = fder.shape[-1]
+            fder = vstack([(fder[0, 0:n - 1] + fder[0, 1:n]) / 2,
+                           diff(fder[1, :]) / hn])
+            fxder[k] = tranproc(fder[0], fder[1], x0)
+
+        # Calculate the transforms of the derivatives of X.
+        # First time derivative of y: y1 = f'(x)*x1
+
+        y1 = fxder[0] * xi[0]
+        y.append(y1)
+        if N > 1:
+
+            # Second time derivative of y:
+            # y2 = f''(x)*x1.^2+f'(x)*x2
+            y2 = fxder[1] * xi[0] ** 2. + fxder[0] * xi[1]
+            y.append(y2)
+            if N > 2:
+                # Third time derivative of y:
+                # y3 = f'''(x)*x1.^3+f'(x)*x3 +3*f''(x)*x1*x2
+                y3 = fxder[2] * xi[0] ** 3 + fxder[0] * xi[2] + \
+                    3 * fxder[1] * xi[0] * xi[1]
+                y.append(y3)
+                if N > 3:
+                    # Fourth time derivative of y:
+                    # y4 = f''''(x)*x1.^4+f'(x)*x4
+                    #    +6*f'''(x)*x1^2*x2+f''(x)*(3*x2^2+4x1*x3)
+                    y4 = (fxder[3] * xi[0] ** 4. + fxder[0] * xi[3] +
+                          6. * fxder[2] * xi[0] ** 2. * xi[1] +
+                          fxder[1] * (3. * xi[1] ** 2. + 4. * xi[0] * xi[1]))
+                    y.append(y4)
+                    if N > 4:
+                        warnings.warn('Transformation of derivatives of ' +
+                                      'order>4 not supported.')
+    return y  # y0,y1,y2,y3,y4
+
+
+def good_bins(data=None, range=None, num_bins=None,  # @ReservedAssignment
+              num_data=None, odd=False, loose=True):
+    ''' Return good bins for histogram
+
+    Parameters
+    ----------
+    data : array-like
+        the data
+    range : (float, float)
+        minimum and maximum range of bins (default data.min(), data.max())
+    num_bins : scalar integer
+        approximate number of bins wanted
+        (default depending on num_data=len(data))
+    odd : bool
+        placement of bins (0 or 1) (default 0)
+    loose : bool
+        if True add extra space to min and max
+        if False the bins are made tight to the min and max
+
+    Example
+    -------
+    >>> import wafo.misc as wm
+    >>> wm.good_bins(range=(0,5), num_bins=6)
+    array([-1.,  0.,  1.,  2.,  3.,  4.,  5.,  6.])
+    >>> wm.good_bins(range=(0,5), num_bins=6, loose=False)
+    array([ 0.,  1.,  2.,  3.,  4.,  5.])
+    >>> wm.good_bins(range=(0,5), num_bins=6, odd=True)
+    array([-1.5, -0.5,  0.5,  1.5,  2.5,  3.5,  4.5,  5.5,  6.5])
+    >>> wm.good_bins(range=(0,5), num_bins=6, odd=True, loose=False)
+    array([-0.5,  0.5,  1.5,  2.5,  3.5,  4.5,  5.5])
+    '''
+
+    if data is not None:
+        x = np.atleast_1d(data)
+        num_data = len(x)
+
+    mn, mx = range if range else (x.min(), x.max())
+
+    if num_bins is None:
+        num_bins = np.ceil(4 * np.sqrt(np.sqrt(num_data)))
+
+    d = float(mx - mn) / num_bins * 2
+    e = np.floor(np.log(d) / np.log(10))
+    m = np.floor(d / 10 ** e)
+    if m > 5:
+        m = 5
+    elif m > 2:
+        m = 2
+
+    d = m * 10 ** e
+    mn = (np.floor(mn / d) - loose) * d - odd * d / 2
+    mx = (np.ceil(mx / d) + loose) * d + odd * d / 2
+    limits = np.arange(mn, mx + d / 2, d)
+    return limits
+
+
+def plot_histgrm(data, bins=None, range=None,  # @ReservedAssignment
+                 normed=False, weights=None, lintype='b-'):
+    '''
+    Plot histogram
+
+    Parameters
+    -----------
+    data : array-like
+        the data
+    bins : int or sequence of scalars, optional
+        If an int, it defines the number of equal-width
+        bins in the given range (4 * sqrt(sqrt(len(data)), by default).
+        If a sequence, it defines the bin edges, including the
+        rightmost edge, allowing for non-uniform bin widths.
+    range : (float, float), optional
+        The lower and upper range of the bins.  If not provided, range
+        is simply ``(data.min(), data.max())``.  Values outside the range are
+        ignored.
+    normed : bool, optional
+        If False, the result will contain the number of samples in each bin.
+        If True, the result is the value of the probability *density* function
+        at the bin, normalized such that the *integral* over the range is 1.
+    weights : array_like, optional
+        An array of weights, of the same shape as `data`.  Each value in `data`
+        only contributes its associated weight towards the bin count
+        (instead of 1).  If `normed` is True, the weights are normalized,
+        so that the integral of the density over the range remains 1
+    lintype : specify color and lintype, see PLOT for possibilities.
+
+    Returns
+    -------
+    h : list
+        of plot-objects
+
+    Example
+    -------
+    >>> import pylab as plt
+    >>> import wafo.misc as wm
+    >>> import wafo.stats as ws
+    >>> R = ws.weibull_min.rvs(2,loc=0,scale=2, size=100)
+
+    >>> h0 = wm.plot_histgrm(R, 20, normed=True)
+    >>> x = np.linspace(-3,16,200)
+    >>> h1 = plt.plot(x,ws.weibull_min.pdf(x,2,0,2),'r')
+    >>> plt.close('all')
+
+    See also
+    --------
+    wafo.misc.good_bins
+    numpy.histogram
+    '''
+
+    x = np.atleast_1d(data)
+    if bins is None:
+        bins = np.ceil(4 * np.sqrt(np.sqrt(len(x))))
+
+    bin_, limits = np.histogram(
+        data, bins=bins, normed=normed, weights=weights)
+    limits.shape = (-1, 1)
+    xx = limits.repeat(3, axis=1)
+    xx.shape = (-1,)
+    xx = xx[1:-1]
+    bin_.shape = (-1, 1)
+    yy = bin_.repeat(3, axis=1)
+    # yy[0,0] = 0.0 # pdf
+    yy[:, 0] = 0.0  # histogram
+    yy.shape = (-1,)
+    yy = np.hstack((yy, 0.0))
+    return plotbackend.plot(xx, yy, lintype, limits, limits * 0)
+
+
+def num2pistr(x, n=3):
+    '''
+    Convert a scalar to a text string in fractions of pi
+        if the numerator is less than 10 and not equal 0
+               and if the denominator is less than 10.
+
+    Parameters
+    ----------
+    x   = a scalar
+    n   = maximum digits of precision. (default 3)
+    Returns
+    -------
+    xtxt = a text string in fractions of pi
+
+    Example
+    >>> import wafo.misc as wm
+    >>> wm.num2pistr(np.pi*3/4)=='3\\pi/4'
+    True
+    '''
+
+    frac = fractions.Fraction.from_float(x / pi).limit_denominator(10000000)
+    num = frac.numerator
+    den = frac.denominator
+    if (den < 10) and (num < 10) and (num != 0):
+        dtxt = '' if abs(den) == 1 else '/%d' % den
+        if abs(num) == 1:  # % numerator
+            ntxt = '-' if num == -1 else ''
+        else:
+            ntxt = '%d' % num
+        xtxt = ntxt + r'\pi' + dtxt
+    else:
+        format = '%0.' + '%dg' % n  # @ReservedAssignment
+        xtxt = format % x
+    return xtxt
+
+
+def fourier(data, t=None, T=None, m=None, n=None, method='trapz'):
+    '''
+    Returns Fourier coefficients.
+
+    Parameters
+    ----------
+    data : array-like
+        vector or matrix of row vectors with data points shape p x n.
+    t : array-like
+        vector with n values indexed from 1 to N.
+    T : real scalar, (default T = t[-1]-t[0])
+        primitive period of signal, i.e., smallest period.
+    m : scalar integer
+        defines no of harmonics desired (default M = N)
+    n : scalar integer
+        no of data points (default len(t))
+    method : string
+        integration method used
+
+    Returns
+    -------
+    a,b  = Fourier coefficients size m x p
+
+    FOURIER finds the coefficients for a Fourier series representation
+    of the signal x(t) (given in digital form).  It is assumed the signal
+    is periodic over T.  N is the number of data points, and M-1 is the
+    number of coefficients.
+
+    The signal can be estimated by using M-1 harmonics by:
+                        M-1
+     x[i] = 0.5*a[0] + sum (a[n]*c[n,i] + b[n]*s[n,i])
+                       n=1
+    where
+       c[n,i] = cos(2*pi*(n-1)*t[i]/T)
+       s[n,i] = sin(2*pi*(n-1)*t[i]/T)
+
+    Note that a[0] is the "dc value".
+    Remaining values are a[1], a[2], ... , a[M-1].
+
+    Example
+    -------
+    >>> import wafo.misc as wm
+    >>> import numpy as np
+    >>> T = 2*np.pi
+    >>> t = np.linspace(0,4*T)
+    >>> x = np.sin(t)
+    >>> a, b = wm.fourier(x, t, T=T, m=5)
+    >>> np.abs(a.ravel())<1e-12
+    array([ True,  True,  True,  True,  True], dtype=bool)
+    >>> np.abs(b.ravel()-np.array([ 0.,  4.,  0.,  0.,  0.]))<1e-12
+    array([ True,  True,  True,  True,  True], dtype=bool)
+
+    See also
+    --------
+    fft
+    '''
+    x = np.atleast_2d(data)
+    p, n = x.shape
+    if t is None:
+        t = np.arange(n)
+    else:
+        t = np.atleast_1d(t)
+
+    n = len(t) if n is None else n
+    m = n if n is None else m
+    T = t[-1] - t[0] if T is None else T
+
+    if method.startswith('trapz'):
+        intfun = trapz
+    elif method.startswith('simp'):
+        intfun = simps
+
+    # Define the vectors for computing the Fourier coefficients
+    t.shape = (1, -1)
+    a = zeros((m, p))
+    b = zeros((m, p))
+    a[0] = intfun(x, t, axis=-1)
+
+    # Compute M-1 more coefficients
+    tmp = 2 * pi * t / T
+    # tmp =  2*pi*(0:N-1).'/(N-1);
+    for i in range(1, m):
+        a[i] = intfun(x * cos(i * tmp), t, axis=-1)
+        b[i] = intfun(x * sin(i * tmp), t, axis=-1)
+
+    a = a / pi
+    b = b / pi
+
+    # Alternative:  faster for large M, but gives different results than above.
+#    nper = diff(t([1 end]))/T; %No of periods given
+#    if nper == round(nper):
+#        N1 = n/nper
+#    else:
+#        N1 = n
+#
+#
+#
+# Fourier coefficients by fft
+#    Fcof1 = 2*ifft(x(1:N1,:),[],1);
+#    Pcor = [1; exp(sqrt(-1)*(1:M-1).'*t(1))] # correction term to get
+#                                             # the correct integration limits
+#    Fcof = Fcof1(1:M,:).*Pcor(:,ones(1,P));
+#    a = real(Fcof(1:M,:));
+#    b = imag(Fcof(1:M,:));
+
+    return a, b
 
 
 def hyp2f1_taylor(a, b, c, z, tol=1e-13, itermax=500):
@@ -2612,672 +3446,8 @@ def hygfz(A, B, C, Z):
 #       return
 
 
-def nextpow2(x):
-    '''
-    Return next higher power of 2
-
-    Example
-    -------
-    >>> import wafo.misc as wm
-    >>> wm.nextpow2(10)
-    4
-    >>> wm.nextpow2(np.arange(5))
-    3
-    '''
-    t = isscalar(x) or len(x)
-    if (t > 1):
-        f, n = frexp(t)
-    else:
-        f, n = frexp(abs(x))
-
-    if (f == 0.5):
-        n = n - 1
-    return n
-
-
-def discretize(fun, a, b, tol=0.005, n=5, method='linear'):
-    '''
-    Automatic discretization of function
-
-    Parameters
-    ----------
-    fun : callable
-        function to discretize
-    a,b : real scalars
-        evaluation limits
-    tol : real, scalar
-        absoute error tolerance
-    n : scalar integer
-        number of values
-    method : string
-        defining method of gridding, options are 'linear' and 'adaptive'
-
-    Returns
-    -------
-    x : discretized values
-    y : fun(x)
-
-    Example
-    -------
-    >>> import wafo.misc as wm
-    >>> import numpy as np
-    >>> import pylab as plt
-    >>> x,y = wm.discretize(np.cos, 0, np.pi)
-    >>> xa,ya = wm.discretize(np.cos, 0, np.pi, method='adaptive')
-    >>> t = plt.plot(x, y, xa, ya, 'r.')
-
-    plt.show()
-    >>> plt.close('all')
-
-    '''
-    if method.startswith('a'):
-        return _discretize_adaptive(fun, a, b, tol, n)
-    else:
-        return _discretize_linear(fun, a, b, tol, n)
-
-
-def _discretize_linear(fun, a, b, tol=0.005, n=5):
-    '''
-    Automatic discretization of function, linear gridding
-    '''
-    x = linspace(a, b, n)
-    y = fun(x)
-
-    err0 = inf
-    err = 10000
-    nmax = 2 ** 20
-    while (err != err0 and err > tol and n < nmax):
-        err0 = err
-        x0 = x
-        y0 = y
-        n = 2 * (n - 1) + 1
-        x = linspace(a, b, n)
-        y = fun(x)
-        y00 = interp(x, x0, y0)
-        err = 0.5 * amax(abs((y00 - y) / (abs(y00 + y) + _TINY)))
-    return x, y
-
-
-def _discretize_adaptive(fun, a, b, tol=0.005, n=5):
-    '''
-    Automatic discretization of function, adaptive gridding.
-    '''
-    n += (mod(n, 2) == 0)  # make sure n is odd
-    x = linspace(a, b, n)
-    fx = fun(x)
-
-    n2 = (n - 1) / 2
-    erri = hstack((zeros((n2, 1)), ones((n2, 1)))).ravel()
-    err = erri.max()
-    err0 = inf
-    # while (err != err0 and err > tol and n < nmax):
-    for j in range(50):
-        if err != err0 and np.any(erri > tol):
-            err0 = err
-            # find top errors
-
-            I, = where(erri > tol)
-            # double the sample rate in intervals with the most error
-            y = (vstack(((x[I] + x[I - 1]) / 2,
-                         (x[I + 1] + x[I]) / 2)).T).ravel()
-            fy = fun(y)
-
-            fy0 = interp(y, x, fx)
-            erri = 0.5 * (abs((fy0 - fy) / (abs(fy0 + fy) + _TINY)))
-
-            err = erri.max()
-
-            x = hstack((x, y))
-
-            I = x.argsort()
-            x = x[I]
-            erri = hstack((zeros(len(fx)), erri))[I]
-            fx = hstack((fx, fy))[I]
-
-        else:
-            break
-    else:
-        warnings.warn('Recursion level limit reached j=%d' % j)
-
-    return x, fx
-
-
-def polar2cart(theta, rho, z=None):
-    '''
-    Transform polar coordinates into 2D cartesian coordinates.
-
-    Returns
-    -------
-    x, y : array-like
-        Cartesian coordinates, x = rho*cos(theta), y = rho*sin(theta)
-
-    See also
-    --------
-    cart2polar
-    '''
-    x, y = rho * cos(theta), rho * sin(theta)
-    if z is None:
-        return x, y
-    else:
-        return x, y, z
-pol2cart = polar2cart
-
-
-def cart2polar(x, y, z=None):
-    ''' Transform 2D cartesian coordinates into polar coordinates.
-
-    Returns
-    -------
-    theta : array-like
-        radial angle, arctan2(y,x)
-    rho : array-like
-        radial distance, sqrt(x**2+y**2)
-
-    See also
-    --------
-    polar2cart
-    '''
-    t, r = arctan2(y, x), hypot(x, y)
-    if z is None:
-        return t, r
-    else:
-        return t, r, z
-cart2pol = cart2polar
-
-
-def ndgrid(*args, **kwargs):
-    """
-    Same as calling meshgrid with indexing='ij' (see meshgrid for
-    documentation).
-    """
-    kwargs['indexing'] = 'ij'
-    return meshgrid(*args, ** kwargs)
-
-
-def trangood(x, f, min_n=None, min_x=None, max_x=None, max_n=inf):
-    """
-    Make sure transformation is efficient.
-
-    Parameters
-    ------------
-    x, f : array_like
-        input transform function, (x,f(x)).
-    min_n : scalar, int
-        minimum number of points in the good transform.
-               (Default  x.shape[0])
-    min_x : scalar, real
-        minimum x value to transform. (Default  min(x))
-    max_x : scalar, real
-        maximum x value to transform. (Default  max(x))
-    max_n : scalar, int
-        maximum number of points in the good transform
-              (default inf)
-    Returns
-    -------
-    x, f : array_like
-        the good transform function.
-
-    TRANGOOD interpolates f linearly  and optionally
-    extrapolate it linearly outside the range of x
-    with X uniformly spaced.
-
-    See also
-    ---------
-    tranproc,
-    numpy.interp
-    """
-    xo, fo = atleast_1d(x, f)
-    # n = xo.size
-    if (xo.ndim != 1):
-        raise ValueError('x must be a vector.')
-    if (fo.ndim != 1):
-        raise ValueError('f  must be a vector.')
-
-    i = xo.argsort()
-    xo = xo[i]
-    fo = fo[i]
-    del i
-    dx = diff(xo)
-    if (any(dx <= 0)):
-        raise ValueError('Duplicate x-values not allowed.')
-
-    nf = fo.shape[0]
-
-    if max_x is None:
-        max_x = xo[-1]
-    if min_x is None:
-        min_x = xo[0]
-    if min_n is None:
-        min_n = nf
-    if (min_n < 2):
-        min_n = 2
-    if (max_n < 2):
-        max_n = 2
-
-    ddx = diff(dx)
-    xn = xo[-1]
-    x0 = xo[0]
-    L = float(xn - x0)
-    if ((nf < min_n) or (max_n < nf) or any(abs(ddx) > 10 * _EPS * (L))):
-        # pab 07.01.2001: Always choose the stepsize df so that
-        #  it is an exactly representable number.
-        #  This is important when calculating numerical derivatives and is
-        #  accomplished by the following.
-        dx = L / (min(min_n, max_n) - 1)
-        dx = (dx + 2.) - 2.
-        xi = arange(x0, xn + dx / 2., dx)
-        # New call pab 11.11.2000: This is much quicker
-        fo = interp(xi, xo, fo)
-        xo = xi
-
-# x is now uniformly spaced
-    dx = xo[1] - xo[0]
-
-    # Extrapolate linearly outside the range of ff
-    if (min_x < xo[0]):
-        x1 = dx * arange(floor((min_x - xo[0]) / dx), -2)
-        f2 = fo[0] + x1 * (fo[1] - fo[0]) / (xo[1] - xo[0])
-        fo = hstack((f2, fo))
-        xo = hstack((x1 + xo[0], xo))
-
-    if (max_x > xo[-1]):
-        x1 = dx * arange(1, ceil((max_x - xo[-1]) / dx) + 1)
-        f2 = f[-1] + x1 * (f[-1] - f[-2]) / (xo[-1] - xo[-2])
-        fo = hstack((fo, f2))
-        xo = hstack((xo, x1 + xo[-1]))
-
-    return xo, fo
-
-
-def tranproc(x, f, x0, *xi):
-    """
-    Transforms process X and up to four derivatives
-          using the transformation f.
-
-    Parameters
-    ----------
-    x,f : array-like
-        [x,f(x)], transform function, y = f(x).
-    x0, x1,...,xn : vectors
-        where xi is the i'th time derivative of x0. 0<=N<=4.
-
-    Returns
-    -------
-    y0, y1,...,yn : vectors
-        where yi is the i'th time derivative of y0 = f(x0).
-
-    By the basic rules of derivation:
-    Y1 = f'(X0)*X1
-    Y2 = f''(X0)*X1^2 + f'(X0)*X2
-    Y3 = f'''(X0)*X1^3 + f'(X0)*X3 + 3*f''(X0)*X1*X2
-    Y4 = f''''(X0)*X1^4 + f'(X0)*X4 + 6*f'''(X0)*X1^2*X2
-      + f''(X0)*(3*X2^2 + 4*X1*X3)
-
-    The derivation of f is performed numerically with a central difference
-    method with linear extrapolation towards the beginning and end of f,
-    respectively.
-
-    Example
-    --------
-    Derivative of g and the transformed Gaussian model.
-    >>> import pylab as plt
-    >>> import wafo.misc as wm
-    >>> import wafo.transform.models as wtm
-    >>> tr = wtm.TrHermite()
-    >>> x = linspace(-5,5,501)
-    >>> g = tr(x)
-    >>> gder = wm.tranproc(x, g, x, ones(g.shape[0]))
-    >>> h = plt.plot(x, g, x, gder[1])
-
-    plt.plot(x,pdfnorm(g)*gder[1],x,pdfnorm(x))
-    plt.legend('Transformed model','Gaussian model')
-
-    >>> plt.close('all')
-
-    See also
-    --------
-    trangood.
-    """
-    xo, fo, x0 = atleast_1d(x, f, x0)
-    xi = atleast_1d(*xi)
-    if not isinstance(xi, list):
-        xi = [xi, ]
-    N = len(xi)  # N = number of derivatives
-    nmax = ceil((xo.ptp()) * 10 ** (7. / max(N, 1)))
-    xo, fo = trangood(xo, fo, min_x=min(x0), max_x=max(x0), max_n=nmax)
-
-    n = f.shape[0]
-    # y  = x0.copy()
-    xu = (n - 1) * (x0 - xo[0]) / (xo[-1] - xo[0])
-
-    fi = asarray(floor(xu), dtype=int)
-    fi = where(fi == n - 1, fi - 1, fi)
-
-    xu = xu - fi
-    y0 = fo[fi] + (fo[fi + 1] - fo[fi]) * xu
-
-    y = y0
-
-    if N > 0:
-        y = [y0]
-        hn = xo[1] - xo[0]
-        if hn ** N < sqrt(_EPS):
-            msg = ('Numerical problems may occur for the derivatives in ' +
-                   'tranproc.\n' +
-                   'The sampling of the transformation may be too small.')
-            warnings.warn(msg)
-
-        # Transform X with the derivatives of  f.
-        fxder = zeros((N, x0.size))
-        fder = vstack((xo, fo))
-        for k in range(N):  # Derivation of f(x) using a difference method.
-            n = fder.shape[-1]
-            fder = vstack([(fder[0, 0:n - 1] + fder[0, 1:n]) / 2,
-                           diff(fder[1, :]) / hn])
-            fxder[k] = tranproc(fder[0], fder[1], x0)
-
-        # Calculate the transforms of the derivatives of X.
-        # First time derivative of y: y1 = f'(x)*x1
-
-        y1 = fxder[0] * xi[0]
-        y.append(y1)
-        if N > 1:
-
-            # Second time derivative of y:
-            # y2 = f''(x)*x1.^2+f'(x)*x2
-            y2 = fxder[1] * xi[0] ** 2. + fxder[0] * xi[1]
-            y.append(y2)
-            if N > 2:
-                # Third time derivative of y:
-                # y3 = f'''(x)*x1.^3+f'(x)*x3 +3*f''(x)*x1*x2
-                y3 = fxder[2] * xi[0] ** 3 + fxder[0] * xi[2] + \
-                    3 * fxder[1] * xi[0] * xi[1]
-                y.append(y3)
-                if N > 3:
-                    # Fourth time derivative of y:
-                    # y4 = f''''(x)*x1.^4+f'(x)*x4
-                    #    +6*f'''(x)*x1^2*x2+f''(x)*(3*x2^2+4x1*x3)
-                    y4 = (fxder[3] * xi[0] ** 4. + fxder[0] * xi[3] +
-                          6. * fxder[2] * xi[0] ** 2. * xi[1] +
-                          fxder[1] * (3. * xi[1] ** 2. + 4. * xi[0] * xi[1]))
-                    y.append(y4)
-                    if N > 4:
-                        warnings.warn('Transformation of derivatives of ' +
-                                      'order>4 not supported.')
-    return y  # y0,y1,y2,y3,y4
-
-
-def good_bins(data=None, range=None, num_bins=None,  # @ReservedAssignment
-              num_data=None, odd=False, loose=True):
-    ''' Return good bins for histogram
-
-    Parameters
-    ----------
-    data : array-like
-        the data
-    range : (float, float)
-        minimum and maximum range of bins (default data.min(), data.max())
-    num_bins : scalar integer
-        approximate number of bins wanted
-        (default depending on num_data=len(data))
-    odd : bool
-        placement of bins (0 or 1) (default 0)
-    loose : bool
-        if True add extra space to min and max
-        if False the bins are made tight to the min and max
-
-    Example
-    -------
-    >>> import wafo.misc as wm
-    >>> wm.good_bins(range=(0,5), num_bins=6)
-    array([-1.,  0.,  1.,  2.,  3.,  4.,  5.,  6.])
-    >>> wm.good_bins(range=(0,5), num_bins=6, loose=False)
-    array([ 0.,  1.,  2.,  3.,  4.,  5.])
-    >>> wm.good_bins(range=(0,5), num_bins=6, odd=True)
-    array([-1.5, -0.5,  0.5,  1.5,  2.5,  3.5,  4.5,  5.5,  6.5])
-    >>> wm.good_bins(range=(0,5), num_bins=6, odd=True, loose=False)
-    array([-0.5,  0.5,  1.5,  2.5,  3.5,  4.5,  5.5])
-    '''
-
-    if data is not None:
-        x = np.atleast_1d(data)
-        num_data = len(x)
-
-    mn, mx = range if range else (x.min(), x.max())
-
-    if num_bins is None:
-        num_bins = np.ceil(4 * np.sqrt(np.sqrt(num_data)))
-
-    d = float(mx - mn) / num_bins * 2
-    e = np.floor(np.log(d) / np.log(10))
-    m = np.floor(d / 10 ** e)
-    if m > 5:
-        m = 5
-    elif m > 2:
-        m = 2
-
-    d = m * 10 ** e
-    mn = (np.floor(mn / d) - loose) * d - odd * d / 2
-    mx = (np.ceil(mx / d) + loose) * d + odd * d / 2
-    limits = np.arange(mn, mx + d / 2, d)
-    return limits
-
-
-def plot_histgrm(data, bins=None, range=None,  # @ReservedAssignment
-                 normed=False, weights=None, lintype='b-'):
-    '''
-    Plot histogram
-
-    Parameters
-    -----------
-    data : array-like
-        the data
-    bins : int or sequence of scalars, optional
-        If an int, it defines the number of equal-width
-        bins in the given range (4 * sqrt(sqrt(len(data)), by default).
-        If a sequence, it defines the bin edges, including the
-        rightmost edge, allowing for non-uniform bin widths.
-    range : (float, float), optional
-        The lower and upper range of the bins.  If not provided, range
-        is simply ``(data.min(), data.max())``.  Values outside the range are
-        ignored.
-    normed : bool, optional
-        If False, the result will contain the number of samples in each bin.
-        If True, the result is the value of the probability *density* function
-        at the bin, normalized such that the *integral* over the range is 1.
-    weights : array_like, optional
-        An array of weights, of the same shape as `data`.  Each value in `data`
-        only contributes its associated weight towards the bin count
-        (instead of 1).  If `normed` is True, the weights are normalized,
-        so that the integral of the density over the range remains 1
-    lintype : specify color and lintype, see PLOT for possibilities.
-
-    Returns
-    -------
-    h : list
-        of plot-objects
-
-    Example
-    -------
-    >>> import pylab as plt
-    >>> import wafo.misc as wm
-    >>> import wafo.stats as ws
-    >>> R = ws.weibull_min.rvs(2,loc=0,scale=2, size=100)
-    >>> h0 = wm.plot_histgrm(R, 20, normed=True)
-    >>> x = np.linspace(-3,16,200)
-    >>> h1 = plt.plot(x,ws.weibull_min.pdf(x,2,0,2),'r')
-    >>> plt.close('all')
-
-
-    See also
-    --------
-    wafo.misc.good_bins
-    numpy.histogram
-    '''
-
-    x = np.atleast_1d(data)
-    if bins is None:
-        bins = np.ceil(4 * np.sqrt(np.sqrt(len(x))))
-
-    bin_, limits = np.histogram(
-        data, bins=bins, normed=normed, weights=weights)
-    limits.shape = (-1, 1)
-    xx = limits.repeat(3, axis=1)
-    xx.shape = (-1,)
-    xx = xx[1:-1]
-    bin_.shape = (-1, 1)
-    yy = bin_.repeat(3, axis=1)
-    # yy[0,0] = 0.0 # pdf
-    yy[:, 0] = 0.0  # histogram
-    yy.shape = (-1,)
-    yy = np.hstack((yy, 0.0))
-    return plotbackend.plot(xx, yy, lintype, limits, limits * 0)
-
-
-def num2pistr(x, n=3):
-    '''
-    Convert a scalar to a text string in fractions of pi
-        if the numerator is less than 10 and not equal 0
-               and if the denominator is less than 10.
-
-    Parameters
-    ----------
-    x   = a scalar
-    n   = maximum digits of precision. (default 3)
-    Returns
-    -------
-    xtxt = a text string in fractions of pi
-
-    Example
-    >>> import wafo.misc as wm
-    >>> t = wm.num2pistr(np.pi*3/4)
-    >>> t=='3\\pi/4'
-    True
-    '''
-
-    frac = fractions.Fraction.from_float(x / pi).limit_denominator(10000000)
-    num = frac.numerator
-    den = frac.denominator
-    if (den < 10) and (num < 10) and (num != 0):
-        dtxt = '' if abs(den) == 1 else '/%d' % den
-        if abs(num) == 1:  # % numerator
-            ntxt = '-' if num == -1 else ''
-        else:
-            ntxt = '%d' % num
-        xtxt = ntxt + r'\pi' + dtxt
-    else:
-        format = '%0.' + '%dg' % n  # @ReservedAssignment
-        xtxt = format % x
-    return xtxt
-
-
-def fourier(data, t=None, T=None, m=None, n=None, method='trapz'):
-    '''
-    Returns Fourier coefficients.
-
-    Parameters
-    ----------
-    data : array-like
-        vector or matrix of row vectors with data points shape p x n.
-    t : array-like
-        vector with n values indexed from 1 to N.
-    T : real scalar
-        primitive period of signal, i.e., smallest period.
-        (default T = t[-1]-t[0]
-    m : scalar integer
-        defines no of harmonics desired (default M = N)
-    n : scalar integer
-        no of data points (default len(t))
-    method : string
-        integration method used
-
-    Returns
-    -------
-    a,b  = Fourier coefficients size m x p
-
-    FOURIER finds the coefficients for a Fourier series representation
-    of the signal x(t) (given in digital form).  It is assumed the signal
-    is periodic over T.  N is the number of data points, and M-1 is the
-    number of coefficients.
-
-    The signal can be estimated by using M-1 harmonics by:
-                        M-1
-     x[i] = 0.5*a[0] + sum (a[n]*c[n,i] + b[n]*s[n,i])
-                       n=1
-    where
-       c[n,i] = cos(2*pi*(n-1)*t[i]/T)
-       s[n,i] = sin(2*pi*(n-1)*t[i]/T)
-
-    Note that a[0] is the "dc value".
-    Remaining values are a[1], a[2], ... , a[M-1].
-
-    Example
-    -------
-    >>> import wafo.misc as wm
-    >>> import numpy as np
-    >>> T = 2*np.pi
-    >>> t = np.linspace(0,4*T)
-    >>> x = np.sin(t)
-    >>> a, b = wm.fourier(x, t, T=T, m=5)
-    >>> np.abs(a.ravel())<1e-12
-    array([ True,  True,  True,  True,  True], dtype=bool)
-    >>> np.abs(b.ravel()-np.array([ 0.,  4.,  0.,  0.,  0.]))<1e-12
-    array([ True,  True,  True,  True,  True], dtype=bool)
-
-    See also
-    --------
-    fft
-    '''
-    x = np.atleast_2d(data)
-    p, n = x.shape
-    if t is None:
-        t = np.arange(n)
-    else:
-        t = np.atleast_1d(t)
-
-    n = len(t) if n is None else n
-    m = n if n is None else m
-    T = t[-1] - t[0] if T is None else T
-
-    if method.startswith('trapz'):
-        intfun = trapz
-    elif method.startswith('simp'):
-        intfun = simps
-
-    # Define the vectors for computing the Fourier coefficients
-    t.shape = (1, -1)
-    a = zeros((m, p))
-    b = zeros((m, p))
-    a[0] = intfun(x, t, axis=-1)
-
-    # Compute M-1 more coefficients
-    tmp = 2 * pi * t / T
-    # tmp =  2*pi*(0:N-1).'/(N-1);
-    for i in range(1, m):
-        a[i] = intfun(x * cos(i * tmp), t, axis=-1)
-        b[i] = intfun(x * sin(i * tmp), t, axis=-1)
-
-    a = a / pi
-    b = b / pi
-
-    # Alternative:  faster for large M, but gives different results than above.
-#    nper = diff(t([1 end]))/T; %No of periods given
-#    if nper == round(nper):
-#        N1 = n/nper
-#    else:
-#        N1 = n
-#
-#
-#
-# Fourier coefficients by fft
-#    Fcof1 = 2*ifft(x(1:N1,:),[],1);
-#    Pcor = [1; exp(sqrt(-1)*(1:M-1).'*t(1))]; % correction term to get
-#                                              % the correct integration limits
-#    Fcof = Fcof1(1:M,:).*Pcor(:,ones(1,P));
-#    a = real(Fcof(1:M,:));
-#    b = imag(Fcof(1:M,:));
-
-    return a, b
+def _test_find_cross():
+    t = findcross([0, 0, 1, -1, 1], 0)  # @UnusedVariable
 
 
 def real_main0():
