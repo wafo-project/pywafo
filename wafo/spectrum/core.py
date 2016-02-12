@@ -744,8 +744,8 @@ class SpecData1D(PlotData):
             lagtype = 't'
             if ftype in 'f':
                 checkdt = checkdt * 2 * pi
-        msg1 = 'Step dt = %g in computation of the density is too small.' % dt
-        msg2 = 'Step dt = %g is small, and may cause numerical inaccuracies.' % dt
+        msg1 = 'Step dt = {0:g} in computation of the density is too small.'.format(dt)
+        msg2 = 'Step dt = {0:g} is small, and may cause numerical inaccuracies.'.format(dt)
 
         if (checkdt < 2. ** -16 / dt):
             print(msg1)
@@ -1112,8 +1112,7 @@ class SpecData1D(PlotData):
                 # figtile
             # end
 
-            print('Iteration : %d, Hw12 : %g  Hw12/maxS : %g' %
-                  (ix, maxHw12, (maxHw12 / maxS)))
+            print('Iteration : {0:d}, Hw12 : {1:g}  Hw12/maxS : {2:g}'.format(ix, maxHw12, (maxHw12 / maxS)))
             if (maxHw12 < maxS * tolerance) and (Hw1[-1] < Hw2[-1]):
                 break
             # end
@@ -1200,7 +1199,7 @@ class SpecData1D(PlotData):
         # transform reference level into Gaussian level
         u = g.dat2gauss(utc)
         if verbose:
-            print('The level u for Gaussian process = %g' % u)
+            print('The level u for Gaussian process = {0:g}'.format(u))
 
         unused_t0, tn, Nt = paramt
         t = linspace(0, tn / A, Nt)  # normalized times
@@ -1396,7 +1395,7 @@ class SpecData1D(PlotData):
         else:
             xtxt = 'period [s]'
 
-        Htxt = '%s_{v =%2.5g}' % (Htxt, u)
+        Htxt = '{0!s}_{{v ={1:2.5g}}}'.format(Htxt, u)
         pdf = PlotData(f / A, t * A, title=Htxt, xlab=xtxt)
         pdf.err = err / A
         pdf.u = u
@@ -1607,7 +1606,7 @@ class SpecData1D(PlotData):
         # transform reference level into Gaussian level
         u = g.dat2gauss(utc)
         if verbose:
-            print('The level u for Gaussian process = %g' % u)
+            print('The level u for Gaussian process = {0:g}'.format(u))
 
         t0, tn, Nt = paramt
         t = linspace(0, tn / A, Nt)  # normalized times
@@ -1664,17 +1663,14 @@ class SpecData1D(PlotData):
         tmp = 'L' if in_space else 'T'
         if Nx > 2:
             titledict = {
-                '-2': 'Joint density of (Ac,At) in %s' % ptxt,
-                '-1': 'Joint density of (M,m_{rfc}) in %s' % ptxt,
-                '0': 'Joint density of (M,m) in %s' % ptxt,
-                '1': 'Joint density of (M,m,%sMm) in %s' % (tmp, ptxt),
-                '2': 'Joint density of (M,m)_{v=%2.5g} in %s' % (utc, ptxt),
-                '3': 'Joint density of (M,m,%sMm)_{v=%2.5g} in %s' %
-                (tmp, utc, ptxt),
-                '4': 'Joint density of (M,m,%sMd)_{v=%2.5g} in %s' %
-                (tmp, utc, ptxt),
-                '5': 'Joint density of (M,m,%sdm)_{v=%2.5g} in %s' %
-                (tmp, utc, ptxt)}
+                '-2': 'Joint density of (Ac,At) in {0!s}'.format(ptxt),
+                '-1': 'Joint density of (M,m_{{rfc}}) in {0!s}'.format(ptxt),
+                '0': 'Joint density of (M,m) in {0!s}'.format(ptxt),
+                '1': 'Joint density of (M,m,{0!s}Mm) in {1!s}'.format(tmp, ptxt),
+                '2': 'Joint density of (M,m)_{{v={0:2.5g}}} in {1!s}'.format(utc, ptxt),
+                '3': 'Joint density of (M,m,{0!s}Mm)_{{v={1:2.5g}}} in {2!s}'.format(tmp, utc, ptxt),
+                '4': 'Joint density of (M,m,{0!s}Md)_{{v={1:2.5g}}} in {2!s}'.format(tmp, utc, ptxt),
+                '5': 'Joint density of (M,m,{0!s}dm)_{{v={1:2.5g}}} in {2!s}'.format(tmp, utc, ptxt)}
             title = titledict[defnr]
             labx = 'Max [m]'
             laby = 'min [m]'
@@ -1682,16 +1678,16 @@ class SpecData1D(PlotData):
         else:
             note = note + 'Density is not scaled to unity'
             if defnr in (-2, -1, 0, 1):
-                title = 'Density of (%sMm, M = %2.5g, m = %2.5g)' % (
+                title = 'Density of ({0!s}Mm, M = {1:2.5g}, m = {2:2.5g})'.format(
                     tmp, h[1], h[0])
             elif defnr in (2, 3):
-                title = 'Density of (%sMm, M = %2.5g, m = %2.5g)_{v=%2.5g}' % (
+                title = 'Density of ({0!s}Mm, M = {1:2.5g}, m = {2:2.5g})_{{v={3:2.5g}}}'.format(
                     tmp, h[1], -h[1], utc)
             elif defnr == 4:
-                title = 'Density of (%sMd, %sMm, M = %2.5g, m = %2.5g)_{v=%2.5g}' % (
+                title = 'Density of ({0!s}Md, {1!s}Mm, M = {2:2.5g}, m = {3:2.5g})_{{v={4:2.5g}}}'.format(
                     tmp, tmp, h[1], -h[1], utc)
             elif defnr == 5:
-                title = 'Density of (%sdm, %sMm, M = %2.5g, m = %2.5g)_{v=%2.5g}' % (
+                title = 'Density of ({0!s}dm, {1!s}Mm, M = {2:2.5g}, m = {3:2.5g})_{{v={4:2.5g}}}'.format(
                     tmp, tmp, h[1], -h[1], utc)
 
         f = PlotData()
@@ -2892,8 +2888,7 @@ class SpecData1D(PlotData):
         f_limit_up = df * nmax
         f_limit_lo = df * nmin
         if verbose:
-            print('2nd order frequency Limits = %g,%g' %
-                  (f_limit_lo, f_limit_up))
+            print('2nd order frequency Limits = {0:g},{1:g}'.format(f_limit_lo, f_limit_up))
 
 # if nargout>3,
 # #compute the sum and frequency effects separately
@@ -3193,7 +3188,7 @@ class SpecData1D(PlotData):
                 g, _tmp = ts.trdata(method, **opt)
                 test1.append(g.dist2gauss())
             if verbose:
-                print('finished %d of %d ' % (ix + 1, rep))
+                print('finished {0:d} of {1:d} '.format(ix + 1, rep))
 
         if rep > 1:
             xs = acf.sim(ns=ns, cases=np.remainder(cases, rep))
@@ -3277,7 +3272,7 @@ class SpecData1D(PlotData):
             vari = 'x'
         S1 = abs(S) ** (j + 1.)
         m = [simps(S1, x=f)]
-        mtxt = 'm%d' % j
+        mtxt = 'm{0:d}'.format(j)
         mtext = [mtxt]
         step = mod(even, 2) + 1
         df = f ** step

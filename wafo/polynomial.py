@@ -643,8 +643,8 @@ def poly2hstr(p, variable='x'):
         else:
             # Append exponent if necessary.
             if ix > 1:
-                exponstr = '%.0f' % ix
-                s = '%s**%s' % (s, exponstr)
+                exponstr = '{0:.0f}'.format(ix)
+                s = '{0!s}**{1!s}'.format(s, exponstr)
                 ix = 1
             # Is it the first term?
             isfirst = s == ''
@@ -664,24 +664,24 @@ def poly2hstr(p, variable='x'):
                     s = '-'  # % Unary minus.
             else:
                 if coef < 0:
-                    s = '%s - ' % s  # % Binary minus (subtraction).
+                    s = '{0!s} - '.format(s)  # % Binary minus (subtraction).
                 else:
-                    s = '%s + ' % s  # % Binary plus (addition).
+                    s = '{0!s} + '.format(s)  # % Binary plus (addition).
 
             # Append the coefficient if it is different from one or when it is
             # the constant term.
             if needcoef:
-                coefstr = '%.20g' % abs(coef)
-                s = '%s%s' % (s, coefstr)
+                coefstr = '{0:.20g}'.format(abs(coef))
+                s = '{0!s}{1!s}'.format(s, coefstr)
 
             # Append variable if necessary.
             if needvar:
                 # Append a multiplication sign if necessary.
                 if needcoef:
                     if 1 - isfirst:
-                        s = '(%s)' % s
-                    s = '%s*' % s
-                s = '%s%s' % (s, var)
+                        s = '({0!s})'.format(s)
+                    s = '{0!s}*'.format(s)
+                s = '{0!s}{1!s}'.format(s, var)
 
     # Now treat the special case where the polynomial is zero.
     if s == '':
@@ -724,13 +724,13 @@ def poly2str(p, variable='x'):
     N = len(coeffs) - 1
 
     for k in range(len(coeffs)):
-        coefstr = '%.4g' % abs(coeffs[k])
+        coefstr = '{0:.4g}'.format(abs(coeffs[k]))
         if coefstr[-4:] == '0000':
             coefstr = coefstr[:-5]
         power = (N - k)
         if power == 0:
             if coefstr != '0':
-                newstr = '%s' % (coefstr,)
+                newstr = '{0!s}'.format(coefstr)
             else:
                 if k == 0:
                     newstr = '0'
@@ -742,23 +742,23 @@ def poly2str(p, variable='x'):
             elif coefstr == 'b' or coefstr == '1':
                 newstr = var
             else:
-                newstr = '%s*%s' % (coefstr, var)
+                newstr = '{0!s}*{1!s}'.format(coefstr, var)
         else:
             if coefstr == '0':
                 newstr = ''
             elif coefstr == 'b' or coefstr == '1':
-                newstr = '%s**%d' % (var, power,)
+                newstr = '{0!s}**{1:d}'.format(var, power)
             else:
-                newstr = '%s*%s**%d' % (coefstr, var, power)
+                newstr = '{0!s}*{1!s}**{2:d}'.format(coefstr, var, power)
 
         if k > 0:
             if newstr != '':
                 if coeffs[k] < 0:
-                    thestr = "%s - %s" % (thestr, newstr)
+                    thestr = "{0!s} - {1!s}".format(thestr, newstr)
                 else:
-                    thestr = "%s + %s" % (thestr, newstr)
+                    thestr = "{0!s} + {1!s}".format(thestr, newstr)
         elif (k == 0) and (newstr != '') and (coeffs[k] < 0):
-            thestr = "-%s" % (newstr,)
+            thestr = "-{0!s}".format(newstr)
         else:
             thestr = newstr
     return thestr
@@ -1553,7 +1553,7 @@ class Cheb1d(object):
     def __repr__(self):
         vals = repr(self.coeffs)
         vals = vals[6:-1]
-        return "Cheb1d(%s)" % vals
+        return "Cheb1d({0!s})".format(vals)
 
     def __len__(self):
         return self.order
@@ -1618,8 +1618,7 @@ class Cheb1d(object):
                 return self.__dict__[key]
             except KeyError:
                 raise AttributeError(
-                    "'%s' has no attribute '%s'" %
-                    (self.__class__, key))
+                    "'{0!s}' has no attribute '{1!s}'".format(self.__class__, key))
 
     def __getitem__(self, val):
         if val > self.order:
@@ -1826,7 +1825,7 @@ def padefitlsq(fun, m, k, a=-1, b=1, trace=False, x=None, end_points=True):
         if n < npt:
             warnings.warn(
                 'Check the result! ' +
-                'Number of function values should be at least: %d' % npt)
+                'Number of function values should be at least: {0:d}'.format(npt))
 
     if trace:
         plt.plot(x, fs, '+')
@@ -1869,7 +1868,7 @@ def padefitlsq(fun, m, k, a=-1, b=1, trace=False, x=None, end_points=True):
             c2 = cof[ncof:m:-1].tolist() + [1, ]
 
         if trace:
-            print('Iteration=%d,  max error=%g' % (ix, devmax))
+            print('Iteration={0:d},  max error={1:g}'.format(ix, devmax))
             plt.plot(x, fs, x, ee + fs)
     return poly1d(c1), poly1d(c2)
 
@@ -1948,7 +1947,7 @@ def test_polydeg():
 
 def test_docstrings():
     import doctest
-    print('Testing docstrings in %s' % __file__)
+    print('Testing docstrings in {0!s}'.format(__file__))
     doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
 
 
@@ -2118,7 +2117,7 @@ def chebfitnd(xi, f, deg, rcond=None, full=False, w=None):
     ndim = len(ndims)
     sizes = np.array([x.size for x in xi])
     if np.any(ndims != ndim) or z.ndim != ndim:
-        raise TypeError("expected %dD array for x1, x2,...,xn and f" % ndim)
+        raise TypeError("expected {0:d}D array for x1, x2,...,xn and f".format(ndim))
     if np.any(sizes == 0):
         raise TypeError("expected non-empty vector for xi")
 

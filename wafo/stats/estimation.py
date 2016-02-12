@@ -153,7 +153,7 @@ class Profile(object):
             ['i', 'N', 'alpha', 'pmin', 'pmax', 'x', 'logSF', 'link'],
             [i0, 100, 0.05, None, None, None, None, None])
 
-        self.title = '%g%s CI' % (100 * (1.0 - self.alpha), '%')
+        self.title = '{0:g}{1!s} CI'.format(100 * (1.0 - self.alpha), '%')
         if fit_dist.method.startswith('ml'):
             self.ylabel = self.ylabel + 'likelihood'
             Lmax = fit_dist.LLmax
@@ -199,7 +199,7 @@ class Profile(object):
             self.link = self.fit_dist.dist.link
         if self.profile_par:
             self._local_link = self._par_link
-            self.xlabel = 'phat(%d)' % self.i_fixed
+            self.xlabel = 'phat({0:d})'.format(self.i_fixed)
             p_opt = self._par[self.i_fixed]
         elif self.profile_x:
             self.logSF = fit_dist.logsf(self.x)
@@ -409,8 +409,8 @@ class Profile(object):
         '''
         if alpha < self.alpha:
             warnings.warn(
-                'Might not be able to return CI with alpha less than %g' %
-                self.alpha)
+                'Might not be able to return CI with alpha less than {0:g}'.format(
+                self.alpha))
         cross_level = self.Lmax - 0.5 * chi2isf(alpha, 1)
         ind = findcross(self.data, cross_level)
         N = len(ind)
@@ -650,9 +650,9 @@ class FitDistribution(rv_frozen):
     def __repr__(self):
         params = ['alpha', 'method', 'LLmax', 'LPSmax', 'pvalue',
                   'par', 'par_lower', 'par_upper', 'par_fix', 'par_cov']
-        t = ['%s:\n' % self.__class__.__name__]
+        t = ['{0!s}:\n'.format(self.__class__.__name__)]
         for par in params:
-            t.append('%s = %s\n' % (par, str(getattr(self, par))))
+            t.append('{0!s} = {1!s}\n'.format(par, str(getattr(self, par))))
         return ''.join(t)
 
     def _reduce_func(self, args, kwds):
@@ -664,15 +664,15 @@ class FitDistribution(rv_frozen):
             for j, s in enumerate(shapes):
                 val = kwds.pop('f' + s, None) or kwds.pop('fix_' + s, None)
                 if val is not None:
-                    key = 'f%d' % j
+                    key = 'f{0:d}'.format(j)
                     if key in kwds:
-                        raise ValueError("Duplicate entry for %s." % key)
+                        raise ValueError("Duplicate entry for {0!s}.".format(key))
                     else:
                         kwds[key] = val
         args = list(args)
         Nargs = len(args)
         fixedn = []
-        names = ['f%d' % n for n in range(Nargs - 2)] + ['floc', 'fscale']
+        names = ['f{0:d}'.format(n) for n in range(Nargs - 2)] + ['floc', 'fscale']
         x0 = []
         for n, key in enumerate(names):
             if key in kwds:
@@ -864,10 +864,10 @@ class FitDistribution(rv_frozen):
                 try:
                     optimizer = getattr(optimize, optimizer)
                 except AttributeError:
-                    raise ValueError("%s is not a valid optimizer" % optimizer)
+                    raise ValueError("{0!s} is not a valid optimizer".format(optimizer))
             # by now kwds must be empty, since everybody took what they needed
             if kwds:
-                raise TypeError("Unknown arguments: %s." % kwds)
+                raise TypeError("Unknown arguments: {0!s}.".format(kwds))
             vals = optimizer(func, x0, args=(ravel(data),), disp=0)
             vals = tuple(vals)
         else:
@@ -1018,9 +1018,9 @@ class FitDistribution(rv_frozen):
                 format1 = ', '.join(['%g'] * numfix)
                 phatistr = format0 % tuple(self.i_fixed)
                 phatvstr = format1 % tuple(self.par[self.i_fixed])
-                fixstr = 'Fixed: phat[%s] = %s ' % (phatistr, phatvstr)
+                fixstr = 'Fixed: phat[{0!s}] = {1!s} '.format(phatistr, phatvstr)
 
-        infostr = 'Fit method: %s, Fit p-value: %2.2f %s' % (
+        infostr = 'Fit method: {0!s}, Fit p-value: {1:2.2f} {2!s}'.format(
             self.method, self.pvalue, fixstr)
         try:
             plotbackend.figtext(0.05, 0.01, infostr)
@@ -1041,7 +1041,7 @@ class FitDistribution(rv_frozen):
             self.data, SF, symb2, self.data, self.sf(self.data), symb1)
         # plotbackend.plot(self.data,SF,'b.',self.data,self.sf(self.data),'r-')
         plotbackend.xlabel('x')
-        plotbackend.ylabel('F(x) (%s)' % self.dist.name)
+        plotbackend.ylabel('F(x) ({0!s})'.format(self.dist.name))
         plotbackend.title('Empirical SF plot')
 
     def plotecdf(self, symb1='r-', symb2='b.'):
@@ -1057,7 +1057,7 @@ class FitDistribution(rv_frozen):
         plotbackend.plot(self.data, F, symb2,
                          self.data, self.cdf(self.data), symb1)
         plotbackend.xlabel('x')
-        plotbackend.ylabel('F(x) (%s)' % self.dist.name)
+        plotbackend.ylabel('F(x) ({0!s})'.format(self.dist.name))
         plotbackend.title('Empirical CDF plot')
 
     def _get_grid(self, odd=False):
@@ -1109,7 +1109,7 @@ class FitDistribution(rv_frozen):
         ax[3] = min(ymax * 1.3, ax[3])
         plotbackend.axis(ax)
         plotbackend.xlabel('x')
-        plotbackend.ylabel('f(x) (%s)' % self.dist.name)
+        plotbackend.ylabel('f(x) ({0!s})'.format(self.dist.name))
         plotbackend.title('Density plot')
 
     def plotresq(self, symb1='r-', symb2='b.'):
@@ -1126,7 +1126,7 @@ class FitDistribution(rv_frozen):
         y1 = self.data[[0, -1]]
         plotbackend.plot(self.data, y, symb2, y1, y1, symb1)
         plotbackend.xlabel('Empirical')
-        plotbackend.ylabel('Model (%s)' % self.dist.name)
+        plotbackend.ylabel('Model ({0!s})'.format(self.dist.name))
         plotbackend.title('Residual Quantile Plot')
         plotbackend.axis('tight')
         plotbackend.axis('equal')
@@ -1147,7 +1147,7 @@ class FitDistribution(rv_frozen):
         plotbackend.plot(ecdf, mcdf, symb2,
                          p1, p1, symb1)
         plotbackend.xlabel('Empirical')
-        plotbackend.ylabel('Model (%s)' % self.dist.name)
+        plotbackend.ylabel('Model ({0!s})'.format(self.dist.name))
         plotbackend.title('Residual Probability Plot')
         plotbackend.axis('equal')
         plotbackend.axis([0, 1, 0, 1])

@@ -144,7 +144,7 @@ def _fig2wnd(figs):
     global _FIG_FORMATS
     for fig in figs:
         for format_ in _FIG_FORMATS:
-            winTitle = format_ + ' %d' % fig
+            winTitle = format_ + ' {0:d}'.format(fig)
             hwnd = FindWindow(None, winTitle)
             if not hwnd == 0:
                 wnd_handles.append(hwnd)
@@ -185,7 +185,7 @@ def _show_figure(figs, cmdshow):
     global _FIG_FORMATS
     for fig in figs:
         for format_ in _FIG_FORMATS:
-            winTitle = format_ + ' %d' % fig
+            winTitle = format_ + ' {0:d}'.format(fig)
             hwnd = FindWindow(None, winTitle)
             if not hwnd == 0:
                 #ShowWindow(hwnd,cmdshow)
@@ -527,7 +527,7 @@ def stack(*figs):
         maxfigs = numpy.fix(screenpos[3] / 20)
 
         if (numfigs > maxfigs):            # figure limit check
-            print(' More than %d requested ' % maxfigs)
+            print(' More than {0:d} requested '.format(maxfigs))
             return
         BringWindowToTop = win32gui.BringWindowToTop
         MoveWindow = win32gui.MoveWindow
