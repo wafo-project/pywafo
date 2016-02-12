@@ -25,7 +25,7 @@ def test_rind():
 
     assert(np.abs(E0 - Et) < err0 + terr0)
 
-    t = 'E0 = %2.6f' % E0
+    t = 'E0 = {0:2.6f}'.format(E0)
     assert(t == 'E0 = 0.001946')
 
     A = np.repeat(Blo, n)
@@ -33,7 +33,7 @@ def test_rind():
     E1, _err1, _terr1 = rind(np.triu(Sc), m, A, B)  # same as E0
     assert(np.abs(E1 - Et) < err0 + terr0)
 
-    t = 'E1 = %2.5f' % E1
+    t = 'E1 = {0:2.5f}'.format(E1)
     assert(t == 'E1 = 0.00195')
 
     # Compute expectation E( abs(X1*X2*...*X5) )
@@ -142,7 +142,7 @@ def test_prbnormnd():
     [val, err, _inform] = prbnormnd(Sc, A, B)
     assert(np.abs(val - Et) < err)
 
-    t = 'val = %2.5f' % val
+    t = 'val = {0:2.5f}'.format(val)
     assert(t == 'val = 0.00195')
 
 

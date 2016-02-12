@@ -46,7 +46,7 @@ dists = ['uniform','norm','lognorm','expon','beta',
 
 def _assert_hasattr(a, b, msg=None):
     if msg is None:
-        msg = '%s does not have attribute %s' % (a, b)
+        msg = '{0!s} does not have attribute {1!s}'.format(a, b)
     assert_(hasattr(a, b), msg=msg)
 
 
@@ -968,7 +968,7 @@ class TestFitMethod(object):
     def test_fit(self):
         def check(func, dist, args, alpha):
             if dist in self.skip:
-                raise SkipTest("%s fit known to fail" % dist)
+                raise SkipTest("{0!s} fit known to fail".format(dist))
             distfunc = getattr(stats, dist)
             with np.errstate(all='ignore'):
                 res = distfunc.rvs(*args, **{'size':200})
@@ -993,7 +993,7 @@ class TestFitMethod(object):
             # Not sure why 'ncf', and 'beta' are failing
             # frechet has different len(args) than distfunc.numargs
             if dist in self.skip + ['frechet']:
-                raise SkipTest("%s fit known to fail" % dist)
+                raise SkipTest("{0!s} fit known to fail".format(dist))
             distfunc = getattr(stats, dist)
             with np.errstate(all='ignore'):
                 res = distfunc.rvs(*args, **{'size':200})

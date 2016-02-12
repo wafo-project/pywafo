@@ -665,7 +665,7 @@ def theilslopes(y, x=None, alpha=0.95):
     else:
         x = ma.asarray(x).flatten()
         if len(x) != len(y):
-            raise ValueError("Incompatible lengths ! (%s<>%s)" % (len(y),len(x)))
+            raise ValueError("Incompatible lengths ! ({0!s}<>{1!s})".format(len(y), len(x)))
 
     m = ma.mask_or(ma.getmask(x), ma.getmask(y))
     y._mask = x._mask = m
@@ -1015,10 +1015,10 @@ def trimr(a, limits=None, inclusive=(True, True), axis=None):
     errmsg = "The proportion to cut from the %s should be between 0. and 1."
     if lolim is not None:
         if lolim > 1. or lolim < 0:
-            raise ValueError(errmsg % 'beginning' + "(got %s)" % lolim)
+            raise ValueError(errmsg % 'beginning' + "(got {0!s})".format(lolim))
     if uplim is not None:
         if uplim > 1. or uplim < 0:
-            raise ValueError(errmsg % 'end' + "(got %s)" % uplim)
+            raise ValueError(errmsg % 'end' + "(got {0!s})".format(uplim))
 
     (loinc, upinc) = inclusive
 
@@ -1165,9 +1165,9 @@ def trimmed_mean(a, limits=(0.1,0.1), inclusive=(1,1), relative=True,
                  axis=None):
     """Returns the trimmed mean of the data along the given axis.
 
-    %s
+    {0!s}
 
-    """ % trimdoc
+    """.format(trimdoc)
     if (not isinstance(limits,tuple)) and isinstance(limits,float):
         limits = (limits, limits)
     if relative:
@@ -1180,13 +1180,13 @@ def trimmed_var(a, limits=(0.1,0.1), inclusive=(1,1), relative=True,
                 axis=None, ddof=0):
     """Returns the trimmed variance of the data along the given axis.
 
-    %s
-    ddof : {0,integer}, optional
+    {0!s}
+    ddof : {{0,integer}}, optional
         Means Delta Degrees of Freedom. The denominator used during computations
         is (n-ddof). DDOF=0 corresponds to a biased estimate, DDOF=1 to an un-
         biased estimate of the variance.
 
-    """ % trimdoc
+    """.format(trimdoc)
     if (not isinstance(limits,tuple)) and isinstance(limits,float):
         limits = (limits, limits)
     if relative:
@@ -1201,13 +1201,13 @@ def trimmed_std(a, limits=(0.1,0.1), inclusive=(1,1), relative=True,
                 axis=None, ddof=0):
     """Returns the trimmed standard deviation of the data along the given axis.
 
-    %s
-    ddof : {0,integer}, optional
+    {0!s}
+    ddof : {{0,integer}}, optional
         Means Delta Degrees of Freedom. The denominator used during computations
         is (n-ddof). DDOF=0 corresponds to a biased estimate, DDOF=1 to an un-
         biased estimate of the variance.
 
-    """ % trimdoc
+    """.format(trimdoc)
     if (not isinstance(limits,tuple)) and isinstance(limits,float):
         limits = (limits, limits)
     if relative:
@@ -1279,17 +1279,17 @@ def trimmed_stde(a, limits=(0.1,0.1), inclusive=(1,1), axis=None):
     errmsg = "The proportion to cut from the %s should be between 0. and 1."
     if lolim is not None:
         if lolim > 1. or lolim < 0:
-            raise ValueError(errmsg % 'beginning' + "(got %s)" % lolim)
+            raise ValueError(errmsg % 'beginning' + "(got {0!s})".format(lolim))
     if uplim is not None:
         if uplim > 1. or uplim < 0:
-            raise ValueError(errmsg % 'end' + "(got %s)" % uplim)
+            raise ValueError(errmsg % 'end' + "(got {0!s})".format(uplim))
 
     (loinc, upinc) = inclusive
     if (axis is None):
         return _trimmed_stde_1D(a.ravel(),lolim,uplim,loinc,upinc)
     else:
         if a.ndim > 2:
-            raise ValueError("Array 'a' must be at most two dimensional, but got a.ndim = %d" % a.ndim)
+            raise ValueError("Array 'a' must be at most two dimensional, but got a.ndim = {0:d}".format(a.ndim))
         return ma.apply_along_axis(_trimmed_stde_1D, axis, a,
                                    lolim,uplim,loinc,upinc)
 
@@ -1404,10 +1404,10 @@ def winsorize(a, limits=None, inclusive=(True, True), inplace=False,
     errmsg = "The proportion to cut from the %s should be between 0. and 1."
     if lolim is not None:
         if lolim > 1. or lolim < 0:
-            raise ValueError(errmsg % 'beginning' + "(got %s)" % lolim)
+            raise ValueError(errmsg % 'beginning' + "(got {0!s})".format(lolim))
     if uplim is not None:
         if uplim > 1. or uplim < 0:
-            raise ValueError(errmsg % 'end' + "(got %s)" % uplim)
+            raise ValueError(errmsg % 'end' + "(got {0!s})".format(uplim))
 
     (loinc, upinc) = inclusive
 
@@ -1609,8 +1609,8 @@ def kurtosistest(a, axis=0):
             " were given." % np.min(n))
     if np.min(n) < 20:
         warnings.warn(
-            "kurtosistest only valid for n>=20 ... continuing anyway, n=%i" %
-            np.min(n))
+            "kurtosistest only valid for n>=20 ... continuing anyway, n={0:d}".format(
+            np.min(n)))
 
     b2 = kurtosis(a, axis, fisher=False)
     E = 3.0*(n-1) / (n+1)
@@ -2007,7 +2007,7 @@ def friedmanchisquare(*args):
     data = argstoarray(*args).astype(float)
     k = len(data)
     if k < 3:
-        raise ValueError("Less than 3 groups (%i): " % k +
+        raise ValueError("Less than 3 groups ({0:d}): ".format(k) +
                          "the Friedman test is NOT appropriate.")
 
     ranked = ma.masked_values(rankdata(data, axis=0), 0)

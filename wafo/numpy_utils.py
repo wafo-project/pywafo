@@ -824,7 +824,7 @@ def findcross(x, v=0.0, kind=None):
     xn = np.int8(sign(atleast_1d(x).ravel() - v))  # @UndefinedVariable
     ind = _findcross(xn)
     if ind.size == 0:
-        warnings.warn('No level v = %0.5g crossings found in x' % v)
+        warnings.warn('No level v = {0:0.5g} crossings found in x'.format(v))
         return ind
 
     if kind not in ('du', 'all', None):
@@ -1369,7 +1369,7 @@ def rfcfilter(x, h, method=0):
                   ((z0 == -1) & cmpfun1(fpi, yi))):
                 z1 = +1
             else:
-                warnings.warn('Something wrong, i=%d' % tim1)
+                warnings.warn('Something wrong, i={0:d}'.format(tim1))
 
             # Update y1
             if z1 != z0:
@@ -1672,18 +1672,18 @@ def findoutliers(x, zcrit=0.0, dcrit=None, ddcrit=None, verbose=False):
     if findNaN and indmiss.any():
         ind, = nonzero(indmiss)
         if verbose:
-            print('Found %d missing points' % ind.size)
+            print('Found {0:d} missing points'.format(ind.size))
         xn[indmiss] = 0.  # %set NaN's to zero
 
     if dcrit is None:
         dcrit = 1.5 * xn.std()
         if verbose:
-            print('dcrit is set to %g' % dcrit)
+            print('dcrit is set to {0:g}'.format(dcrit))
 
     if ddcrit is None:
         ddcrit = 1.5 * xn.std()
         if verbose:
-            print('ddcrit is set to %g' % ddcrit)
+            print('ddcrit is set to {0:g}'.format(ddcrit))
 
     dxn = diff(xn)
     ddxn = diff(dxn)
@@ -1695,7 +1695,7 @@ def findoutliers(x, zcrit=0.0, dcrit=None, ddcrit=None, verbose=False):
             tmp = tmp + 1
             ind = hstack((ind, tmp))
         if verbose:
-            print('Found %d spurious spikes' % tmp.size)
+            print('Found {0:d} spurious spikes'.format(tmp.size))
 
     if findDspikes:  # ,% finding spurious double (two point) spikes
         tmp, = nonzero((dxn[:-2] > dcrit) * (dxn[2::] < -dcrit) |
@@ -1704,18 +1704,18 @@ def findoutliers(x, zcrit=0.0, dcrit=None, ddcrit=None, verbose=False):
             tmp = tmp + 1
             ind = hstack((ind, tmp, tmp + 1))  # %removing both points
         if verbose:
-            print('Found %d spurious two point (double) spikes' % tmp.size)
+            print('Found {0:d} spurious two point (double) spikes'.format(tmp.size))
 
     if findjumpsDx:  # ,% finding spurious jumps  in Dx
         tmp, = nonzero(dxn > dcrit)
         if verbose:
-            print('Found %d spurious positive jumps of Dx' % tmp.size)
+            print('Found {0:d} spurious positive jumps of Dx'.format(tmp.size))
         if tmp.size > 0:
             ind = hstack((ind, tmp + 1))  # removing the point after the jump
 
         tmp, = nonzero(dxn < -dcrit)
         if verbose:
-            print('Found %d spurious negative jumps of Dx' % tmp.size)
+            print('Found {0:d} spurious negative jumps of Dx'.format(tmp.size))
         if tmp.size > 0:
             ind = hstack((ind, tmp))  # removing the point before the jump
 
@@ -1726,7 +1726,7 @@ def findoutliers(x, zcrit=0.0, dcrit=None, ddcrit=None, verbose=False):
             ind = hstack((ind, tmp))  # removing the jump
 
         if verbose:
-            print('Found %d spurious positive jumps of D^2x' % tmp.size)
+            print('Found {0:d} spurious positive jumps of D^2x'.format(tmp.size))
 
         tmp, = nonzero(ddxn < -ddcrit)
         if tmp.size > 0:
@@ -1734,7 +1734,7 @@ def findoutliers(x, zcrit=0.0, dcrit=None, ddcrit=None, verbose=False):
             ind = hstack((ind, tmp))  # removing the jump
 
         if verbose:
-            print('Found %d spurious negative jumps of D^2x' % tmp.size)
+            print('Found {0:d} spurious negative jumps of D^2x'.format(tmp.size))
 
     if zcrit >= 0.0:
         # finding consecutive values less than zcrit apart.
@@ -1754,10 +1754,9 @@ def findoutliers(x, zcrit=0.0, dcrit=None, ddcrit=None, verbose=False):
 
         if verbose:
             if zcrit == 0.:
-                print('Found %d consecutive equal values' % indz.size)
+                print('Found {0:d} consecutive equal values'.format(indz.size))
             else:
-                print('Found %d consecutive values less than %g apart.' %
-                      (indz.size, zcrit))
+                print('Found {0:d} consecutive values less than {1:g} apart.'.format(indz.size, zcrit))
     indg = ones(xn.size, dtype=bool)
 
     if ind.size > 1:
@@ -1766,7 +1765,7 @@ def findoutliers(x, zcrit=0.0, dcrit=None, ddcrit=None, verbose=False):
     indg, = nonzero(indg)
 
     if verbose:
-        print('Found the total of %d spurious points' % ind.size)
+        print('Found the total of {0:d} spurious points'.format(ind.size))
 
     return ind, indg
 
@@ -2275,7 +2274,7 @@ def _discretize_adaptive(fun, a, b, tol=0.005, n=5):
         else:
             break
     else:
-        warnings.warn('Recursion level limit reached j=%d' % j)
+        warnings.warn('Recursion level limit reached j={0:d}'.format(j))
 
     return x, fx
 
@@ -2697,14 +2696,14 @@ def num2pistr(x, n=3):
     num = frac.numerator
     den = frac.denominator
     if (den < 10) and (num < 10) and (num != 0):
-        dtxt = '' if abs(den) == 1 else '/%d' % den
+        dtxt = '' if abs(den) == 1 else '/{0:d}'.format(den)
         if abs(num) == 1:  # % numerator
             ntxt = '-' if num == -1 else ''
         else:
-            ntxt = '%d' % num
+            ntxt = '{0:d}'.format(num)
         xtxt = ntxt + r'\pi' + dtxt
     else:
-        format = '%0.' + '%dg' % n  # @ReservedAssignment
+        format = '%0.' + '{0:d}g'.format(n)  # @ReservedAssignment
         xtxt = format % x
     return xtxt
 
@@ -2886,7 +2885,7 @@ main = profile_main1
 def test_docstrings():
     # np.set_printoptions(precision=6)
     import doctest
-    print('Testing docstrings in %s' % __file__)
+    print('Testing docstrings in {0!s}'.format(__file__))
     doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
 
 if __name__ == "__main__":

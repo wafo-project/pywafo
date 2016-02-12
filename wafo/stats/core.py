@@ -136,10 +136,10 @@ def edfcnd(x, c=None, method=2):
     try:
         F = edf(z[c <= z], method=method)
     except:
-        ValueError('No data points above c=%d' % int(c))
+        ValueError('No data points above c={0:d}'.format(int(c)))
 
     if - inf < c:
-        F.labels.ylab = 'F(x| X>=%g)' % c
+        F.labels.ylab = 'F(x| X>={0:g})'.format(c)
 
     return F
 
@@ -236,7 +236,7 @@ def reslife(data, u=None, umin=None, umax=None, nu=None, nmin=3, alpha=0.05,
 
     #options.CI = [mrll,mrlu];
     #options.numdata = num;
-    titleTxt = 'Mean residual life with %d%s CI' % (100 * p, '%')
+    titleTxt = 'Mean residual life with {0:d}{1!s} CI'.format(100 * p, '%')
     res = PlotData(mrl, u, xlab='Threshold',
                    ylab='Mean Excess', title=titleTxt)
     res.workspace = dict(
@@ -390,7 +390,7 @@ def dispersion_idx(
     else:
         b_u = ok_u = None
 
-    CItxt = '%d%s CI' % (100 * p, '%')
+    CItxt = '{0:d}{1!s} CI'.format(100 * p, '%')
     titleTxt = 'Dispersion Index plot'
 
     res = PlotData(di, u, title=titleTxt,
@@ -828,11 +828,11 @@ class RegLogit(object):
             iy = np.flatnonzero(s <= tol)
             if len(ix):
                 X = X[:, ix]
-                txt = [' %d,' % i for i in iy]
+                txt = [' {0:d},'.format(i) for i in iy]
                 #txt[-1] = ' %d' % iy[-1]
                 warnings.warn(
-                    'Covariate matrix is singular. Removing column(s):%s' %
-                    txt)
+                    'Covariate matrix is singular. Removing column(s):{0!s}'.format(
+                    txt))
         mx = X.shape[0]
         if (mx != my):
             raise ValueError(
@@ -919,7 +919,7 @@ class RegLogit(object):
                     tb = tbold - \
                         np.linalg.lstsq(d2l - epsilon * np.eye(d2l.shape), dl)
                     [dev, dl, d2l] = self.loglike(tb, y, X, z, z1)
-                    print('epsilon %g' % epsilon)
+                    print('epsilon {0:g}'.format(epsilon))
                     # end %while
                     # end else
             #[dl, d2l] = logistic_regression_derivatives (X, z, z1, g, g1, p);
@@ -1073,9 +1073,8 @@ class RegLogit(object):
                   '      Pr(>Chi2)')
         # end
 
-        print('Small    %d       %12.4f       %12.4f    %12.4f' %
-              (dfs, devs, localstat, localpvalue))
-        print('Full     %d       %12.4f' % (dfL, devL))
+        print('Small    {0:d}       {1:12.4f}       {2:12.4f}    {3:12.4f}'.format(dfs, devs, localstat, localpvalue))
+        print('Full     {0:d}       {1:12.4f}'.format(dfL, devL))
         print(' ')
 
         return localpvalue
@@ -1097,12 +1096,11 @@ class RegLogit(object):
                   '        Pr(>Chi2)')
         # end
 
-        print('Null     %d       %12.4f       %12.4f    %12.4f' %
-              (self.df_null, self.deviance_null, localstat, localpvalue))
-        print('Full     %d       %12.4f' % (self.df, self.deviance))
+        print('Null     {0:d}       {1:12.4f}       {2:12.4f}    {3:12.4f}'.format(self.df_null, self.deviance_null, localstat, localpvalue))
+        print('Full     {0:d}       {1:12.4f}'.format(self.df, self.deviance))
         print(' ')
 
-        print(' R2 =  %2.4f,     R2adj = %2.4f' % (self.R2, self.R2adj))
+        print(' R2 =  {0:2.4f},     R2adj = {1:2.4f}'.format(self.R2, self.R2adj))
         print(' ')
         return localpvalue
 
@@ -1110,15 +1108,13 @@ class RegLogit(object):
         txtlink = self.link
 
         print('Call:')
-        print('reglogit(formula = %s(Pr(grp(y)<=i)) ~ theta_i+beta*x, family = %s)' %
-            (txtlink, self.family))
+        print('reglogit(formula = {0!s}(Pr(grp(y)<=i)) ~ theta_i+beta*x, family = {1!s})'.format(txtlink, self.family))
         print(' ')
         print('Deviance Residuals:')
         m, q1, me, q3, M = np.percentile(
             self.residualD, q=[0, 25, 50, 75, 100])
         print('    Min       1Q         Median       3Q        Max  ')
-        print('%2.4f     %2.4f     %2.4f     %2.4f     %2.4f' %
-              (m, q1, me, q3, M))
+        print('{0:2.4f}     {1:2.4f}     {2:2.4f}     {3:2.4f}     {4:2.4f}'.format(m, q1, me, q3, M))
         print(' ')
         print(' Coefficients:')
         if False:  # %options.estdispersn
@@ -1132,24 +1128,19 @@ class RegLogit(object):
                       self.params_pvalue)
         for i in range(self.numk):
             print(
-                'theta_%d         %2.4f        %2.4f        %2.4f        %2.4f' %
-                (i, e[i], s[i], z[i], p[i]))
+                'theta_{0:d}         {1:2.4f}        {2:2.4f}        {3:2.4f}        {4:2.4f}'.format(i, e[i], s[i], z[i], p[i]))
 
         for i in range(self.numk, self.numvar):
             print(
-                ' beta_%d         %2.4f        %2.4f        %2.4f        %2.4f\n' %
-                (i - self.numk, e[i], s[i], z[i], p[i]))
+                ' beta_{0:d}         {1:2.4f}        {2:2.4f}        {3:2.4f}        {4:2.4f}\n'.format(i - self.numk, e[i], s[i], z[i], p[i]))
 
         print(' ')
-        print('(Dispersion parameter for %s family taken to be %2.2f)' %
-              (self.family, self.dispersionfit))
+        print('(Dispersion parameter for {0!s} family taken to be {1:2.2f})'.format(self.family, self.dispersionfit))
         print(' ')
         if True:  # %options.constant
-            print('    Null deviance: %2.4f  on %d  degrees of freedom' %
-                  (self.deviance_null, self.df_null))
+            print('    Null deviance: {0:2.4f}  on {1:d}  degrees of freedom'.format(self.deviance_null, self.df_null))
         # end
-        print('Residual deviance: %2.4f  on %d  degrees of freedom' %
-              (self.deviance, self.df))
+        print('Residual deviance: {0:2.4f}  on {1:d}  degrees of freedom'.format(self.deviance, self.df))
 
         self.anode()
 
@@ -1379,7 +1370,7 @@ def test_sklearn():
         svrf = svr_rbf.fit(X, y)
         y_rbf = svrf.predict(X)
         score.append(svrf.score(X, y))
-        pl.plot(X, y_rbf, label='RBF model c=%g' % c)
+        pl.plot(X, y_rbf, label='RBF model c={0:g}'.format(c))
     pl.xlabel('data')
     pl.ylabel('target')
     pl.title('Support Vector Regression')
