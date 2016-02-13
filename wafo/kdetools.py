@@ -26,7 +26,7 @@ from wafo.plotbackend import plotbackend as plt
 try:
     from wafo import fig
 except ImportError:
-    print 'fig import only supported on Windows'
+    warnings.warn('fig import only supported on Windows')
 
 
 def _invnorm(q):

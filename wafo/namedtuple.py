@@ -126,7 +126,7 @@ if __name__ == '__main__':
                                                            self.hypot)
 
     for p in Point(3, 4), Point(14, 5), Point(9. / 7, 6):
-        print p
+        print(p)
 
     class Point(namedtuple('Point', 'x y')):
         '''Point class with optimized _make() and _replace()
@@ -137,8 +137,8 @@ if __name__ == '__main__':
         def _replace(self, _map=map, **kwds):
             return self._make(_map(kwds.get, ('x', 'y'), self))
 
-    print Point(11, 22)._replace(x=100)
+    print(Point(11, 22)._replace(x=100))
 
     import doctest
     TestResults = namedtuple('TestResults', 'failed attempted')
-    print TestResults(*doctest.testmod())
+    print(TestResults(*doctest.testmod()))

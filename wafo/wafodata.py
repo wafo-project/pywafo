@@ -491,7 +491,7 @@ def plot2d(axis, wdata, plotflag, *args, **kwds):
                     'Only the first 12 levels will be listed in table.')
 
             clvals = PL[:ncl] if isPL else clvec[:ncl]
-            # print contour level text
+            # print(contour level text)
             unused_axcl = cltext(clvals, percent=isPL)
         elif any(plotflag == [7, 9]):
             axis.clabel(h)

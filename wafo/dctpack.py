@@ -334,19 +334,19 @@ def shiftdim(x, n=None):
 def test_shiftdim():
     a = np.arange(6).reshape((1, 1, 3, 1, 2))
 
-    print a.shape
-    print a.ndim
+    print(a.shape)
+    print(a.ndim)
 
-    print range(a.ndim)
+    print(range(a.ndim))
     # move items 2 places to the left so that x0 <- x2, x1 <- x3, etc
-    print np.roll(range(a.ndim), -2)
-    print a.transpose(np.roll(range(a.ndim), -2))  # transposition of the axes
+    print(np.roll(range(a.ndim), -2))
+    print(a.transpose(np.roll(range(a.ndim), -2)))  # transposition of the axes
     # with a matrix 2x2, A.transpose((1,0)) would be the transpose of A
     b = shiftdim(a)
-    print b.shape
+    print(b.shape)
 
     c = shiftdim(b, -2)
-    print c.shape
+    print(c.shape)
 
     print(c == a)
 

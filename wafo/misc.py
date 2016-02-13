@@ -597,7 +597,7 @@ def parse_kwargs(options, **kwargs):
     Example
     >>> opt = dict(arg1=2, arg2=3)
     >>> opt = parse_kwargs(opt,arg2=100)
-    >>> print opt
+    >>> print(opt)
     {'arg1': 2, 'arg2': 100}
     >>> opt2 = dict(arg2=101)
     >>> opt = parse_kwargs(opt,**opt2)

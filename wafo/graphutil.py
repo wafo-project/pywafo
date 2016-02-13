@@ -39,7 +39,10 @@ def delete_text_object(gidtxt, figure=None, axis=None, verbose=False):
         figure = plotbackend.gcf()
     if axis is None:
         axis = figure.gca()
-    lmatchfun = lambda x: _matchfun(x, gidtxt)
+
+    def lmatchfun(x):
+        return _matchfun(x, gidtxt)
+
     objs = axis.findobj(lmatchfun)
     for obj in objs:
         try:

@@ -1415,7 +1415,7 @@ def main():
     x = np.linspace(0, np.pi / 2)
     _q0 = np.trapz(humps(x), x)
     [q, err] = romberg(humps, 0, np.pi / 2, 1e-4)
-    print q, err
+    print(q, err)
 
 
 def test_docstrings():
