@@ -10,17 +10,17 @@ import numpy as np
 from .misc import common_shape
 
 try:
-    import mvn  # @UnresolvedImport
+    from . import mvn  # @UnresolvedImport
 except ImportError:
     warnings.warn('mvn not found. Check its compilation.')
     mvn = None
 try:
-    import mvnprdmod  # @UnresolvedImport
+    from . import mvnprdmod  # @UnresolvedImport
 except ImportError:
     warnings.warn('mvnprdmod not found. Check its compilation.')
     mvnprdmod = None
 try:
-    import rindmod  # @UnresolvedImport
+    from . import rindmod  # @UnresolvedImport
 except ImportError:
     warnings.warn('rindmod not found. Check its compilation.')
     rindmod = None
