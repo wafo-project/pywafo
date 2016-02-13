@@ -17,7 +17,7 @@ from scipy.special import gammaln, gamma, psi
 from scipy.integrate import trapz, simps
 import warnings
 from time import strftime, gmtime
-from plotbackend import plotbackend
+from .plotbackend import plotbackend
 from collections import OrderedDict
 try:
     import c_library as clib  # @UnresolvedImport

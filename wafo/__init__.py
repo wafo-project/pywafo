@@ -1,6 +1,7 @@
 from __future__ import division, print_function, absolute_import
 
 from .info import __doc__
+
 from . import misc
 from . import data
 from . import demos
@@ -24,4 +25,4 @@ except ImportError:
     __version__ = 'nobuilt'
 
 from numpy.testing import Tester
-test = Tester().test 
+test = Tester().test
