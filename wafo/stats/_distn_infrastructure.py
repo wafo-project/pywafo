@@ -561,7 +561,7 @@ def fit2(self, data, *args, **kwds):
     `data` is sorted using this function, so if `copydata`==False the data
     in your namespace will be sorted as well.
     '''
-    return FitDistribution(self, data, *args, **kwds)
+    return FitDistribution(self, data, args, **kwds)
 
 
 rv_generic.freeze = freeze
