@@ -6,13 +6,13 @@ TrOchi
 TrLinear
 '''
 # !/usr/bin/env python
-from __future__ import division
+from __future__ import division, absolute_import
 from scipy.optimize import brentq  # @UnresolvedImport
 from numpy import (sqrt, atleast_1d, abs, imag, sign, where, cos, arccos, ceil,
                    expm1, log1p, pi)
 import numpy as np
 import warnings
-from core import TrCommon, TrData
+from .core import TrCommon, TrData
 __all__ = ['TrHermite', 'TrLinear', 'TrOchi']
 
 _example = '''
@@ -453,10 +453,11 @@ class TrOchi(TrCommon2):
         # g1='[x(2)-2.*x(1).^2.*x(2).^2-P1,
         #      2.*x(1).*x(2).^2.*(3-8.*x(1).^2.*x(2))-P2  ]'
         # Or solve the following 1D non-linear equation for sig2^2:
-        g2 = lambda x: -sqrt(abs(x - 1) * 2) * \
-            (3. * x - 4 * abs(x - 1)) + abs(skew)
+        def g2(x):
+            return (-sqrt(abs(x - 1) * 2) * (3. * x - 4 * abs(x - 1)) +
+                    abs(skew))
 
-        a1 = 1.  # % Start interval where sig2^2 is located.
+        a1 = 1.  # Start interval where sig2^2 is located.
         a2 = 2.
 
         sig22 = brentq(g2, a1, a2)  # % smallest solution for sig22

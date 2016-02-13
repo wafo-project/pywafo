@@ -340,7 +340,7 @@ from .core import *
 from .distributions import *
 from . import estimation
 
-#remove vonmises_cython from __all__, I don't know why it is included
+# remove vonmises_cython from __all__, I don't know why it is included
 __all__ = [s for s in dir() if not (s.startswith('_') or s.endswith('cython'))]
 
 from numpy.testing import Tester
