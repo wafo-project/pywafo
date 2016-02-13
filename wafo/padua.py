@@ -423,6 +423,7 @@ def paduavals2coefs(f):
     # C = C(:,end:-1:1);
 
 
+# TODO: padua_fit2 does not work correctly yet.
 def padua_fit2(Pad, fun, *args):
     N = np.shape(Pad)[1]
     # recover the degree n from N = (n+1)(n+2)/2
@@ -489,13 +490,8 @@ def padua_val(X, Y, coefficients, domain=(-1, 1, -1, 1), use_meshgrid=False):
     TX2 = np.cos(tn * np.arccos(X2))
     TX1[1:n + 1] = TX1[1:n + 1] * np.sqrt(2)
     TX2[1:n + 1] = TX2[1:n + 1] * np.sqrt(2)
-    if use_meshgrid:
-        # eval on meshgrid points
+    if use_meshgrid:  # eval on meshgrid points
         return np.dot(TX1.T, np.dot(coefficients, TX2)).T
-    val = np.sum(
-        np.dot(
-            TX1.T,
-            coefficients) *
-        TX2.T,
-        axis=1)  # scattered points
+    # scattered points
+    val = np.sum(np.dot(TX1.T, coefficients) * TX2.T, axis=1)
     return val.reshape(original_shape)

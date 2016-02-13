@@ -395,7 +395,7 @@ def test_nextpow2():
 
 
 def test_discretize():
-    x, y = discretize(np.cos, 0, np.pi, tol=0.05)
+    x, y = discretize(np.cos, 0, np.pi, tol=0.01)
     assert_array_almost_equal(
         x,
         np.array(

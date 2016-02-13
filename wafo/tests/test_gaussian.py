@@ -25,8 +25,9 @@ def test_rind():
 
     assert(np.abs(E0 - Et) < err0 + terr0)
 
-    t = 'E0 = %2.6f' % E0
-    assert(t == 'E0 = 0.001946')
+    t = 'E0 = %2.5f' % E0
+    t_true = 'E0 = %2.5f' % Et
+    assert(t == t_true)
 
     A = np.repeat(Blo, n)
     B = np.repeat(Bup, n)  # Integration limits
