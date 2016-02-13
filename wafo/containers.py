@@ -1,7 +1,7 @@
+from __future__ import absolute_import
 import warnings
-from wafo.graphutil import cltext  # @UnresolvedImport
-
-from plotbackend import plotbackend
+from .graphutil import cltext
+from .plotbackend import plotbackend
 from time import gmtime, strftime
 import numpy as np
 from scipy.integrate.quadrature import cumtrapz  # @UnresolvedImport

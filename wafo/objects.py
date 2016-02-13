@@ -1923,7 +1923,7 @@ class TimeSeries(PlotData):
         cmvmax = 100 # if number of consecutive missing values (cmv) are longer they
                      # are not used in estimation of g, due to the fact that the
                      # conditional expectation approaches zero as the length to
-                     # the closest known points increases, see below in the for loop 
+                     # the closest known points increases, see below in the for loop
         dT = self.sampling_period()
 
         Lm = np.minimum([n, 200, int(200/dT)])  # Lagmax 200 seconds
@@ -2029,22 +2029,22 @@ class TimeSeries(PlotData):
 #            # used for isope article
 #            # indr =[1:27000 30000:39000];
 #            # Too many consecutive missing values will influence the estimation of
-#            # g. By default do not use consecutive missing values if there are more 
-#            # than cmvmax. 
+#            # g. By default do not use consecutive missing values if there are more
+#            # than cmvmax.
 #
 #            [g test cmax irr g2]  = dat2tr(xn(indr,:),def,opt);
 #           if plotflag==2,
 #             pause(ptime)
 #           end
-# 
+#
 #           #tobs=sqrt((param(2)-param(1))/(param(3)-1)*sum((g_old(:,2)-g(:,2)).^2))
 #           # new call
 #           tobs=sqrt((param(2)-param(1))/(param(3)-1)....
 #             *sum((g(:,2)-interp1(g_old(:,1)-bias, g_old(:,2),g(:,1),'spline')).^2));
 #
-#           if ix>1 
+#           if ix>1
 #             if tol>tobs2 && tol>tobs,
-#               break, #estimation of g converged break out of for loop    
+#               break, #estimation of g converged break out of for loop
 #             end
 #           end
 #
@@ -2052,16 +2052,16 @@ class TimeSeries(PlotData):
 #
 #           xnt=dat2gaus(xn,g);
 #           if ~isempty(indNaN),    xnt(indNaN,2)=NaN;  end
-#           rwin=findrwin(xnt,Lm,L);    
+#           rwin=findrwin(xnt,Lm,L);
 #           disp(['Simulation nr: ', int2str(ix), ' of ' num2str(Nsim),'   e(g-g_old)=', num2str(tobs), ',  e(g-u)=', num2str(test)])
 #           [samp ,mu1o, mu1oStd]  = cov2csdat(xnt(:,2),rwin,1,method,inds);
-#           
+#
 #           if expect,
 #             xnt(inds,2) =mu1o;
 #           else
 #             xnt(inds,2) =samp;
 #           end
-#           
+#
 #           xn=gaus2dat(xnt,g);
 #           if ix<Nsim
 #             bias=mean(xn(:,2));
@@ -2074,8 +2074,8 @@ class TimeSeries(PlotData):
 #             pause(ptime)
 #           end
 #         end # for loop
-#         
-#         if 1, #test>test0(end-5) 
+#
+#         if 1, #test>test0(end-5)
 #           xnt=dat2gaus(xn,g);
 #           [samp ,mu1o, mu1oStd]  = cov2csdat(xnt(:,2),rwin,1,method,inds);
 #           xnt(inds,2) =samp;
@@ -2085,7 +2085,7 @@ class TimeSeries(PlotData):
 #           g(:,1)=g(:,1)-bias;
 #           g2(:,1)=g2(:,1)-bias;
 #           gn=trangood(g);
-#          
+#
 #           #mu1o=mu1o-tranproc(bias,gn);
 #           muUStd=tranproc(mu1o+2*mu1oStd,fliplr(gn));#
 #           muLStd=tranproc(mu1o-2*mu1oStd,fliplr(gn));#
@@ -2093,7 +2093,7 @@ class TimeSeries(PlotData):
 #           muLStd=mu1o-2*mu1oStd;
 #           muUStd=mu1o+2*mu1oStd;
 #         end
-#         
+#
 #         if  plotflag==2 && length(xn)<10000,
 #           waveplot(xn,[xn(inds,1) muLStd ;xn(inds,1) muUStd ], 6,round(n/3000),[])
 #           legend('reconstructed','2 stdev')
@@ -2341,7 +2341,7 @@ def main():
     d2.children = [d1]
 
     d2.plot()
-    print 'Done'
+    print('Done')
 
 
 def test_docstrings():

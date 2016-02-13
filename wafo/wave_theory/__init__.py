@@ -1,2 +1,3 @@
-from core import *
-import dispersion_relation
+from __future__ import absolute_import
+from .core import *
+from . import dispersion_relation
