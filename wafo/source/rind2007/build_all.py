@@ -24,8 +24,8 @@ def compile_all():
         os.system(compile1_format % file_)
     file_objects = format1 % tuple(files)
 
-    os.system(f2py_call + ' -m rindmod  -c %s rind_interface.f ' %
-              file_objects)
+    os.system(f2py_call + ' -m rindmod  -c {0!s} rind_interface.f '.format(
+              file_objects))
 
 if __name__ == '__main__':
     compile_all()
