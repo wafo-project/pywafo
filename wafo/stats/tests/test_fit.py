@@ -76,7 +76,7 @@ def check_cont_fit(distname,arg):
     truearg = np.hstack([arg,[0.0,1.0]])
     diffthreshold = np.max(np.vstack([truearg*thresh_percent,
                                       np.ones(distfn.numargs+2)*thresh_min]),0)
-
+    opt = options.copy()
     for fit_size in fit_sizes:
         # Note that if a fit succeeds, the other fit_sizes are skipped
         np.random.seed(1234)
@@ -85,7 +85,7 @@ def check_cont_fit(distname,arg):
             rvs = distfn.rvs(size=fit_size, *arg)
             # phat = distfn.fit2(rvs)
 
-            phat = distfn.fit2(rvs, **options)
+            phat = distfn.fit2(rvs, **opt)
 
             est = phat.par
             #est = distfn.fit(rvs)  # start with default values

@@ -12,7 +12,6 @@ import warnings
 
 from wafo.plotbackend import plotbackend
 from wafo.misc import ecross, findcross, argsreduce
-from wafo.stats._util import check_random_state
 from wafo.stats._constants import _EPS, _XMAX
 from wafo.stats._distn_infrastructure import rv_frozen
 from scipy._lib.six import string_types
@@ -600,7 +599,7 @@ class FitDistribution(rv_frozen):
 #    par_upper - upper (1-alpha)% confidence bound for the parameters
 #
 #        '''
-        self.__doc__ = rv_frozen.__doc__ + extradoc
+        self.__doc__ = str(rv_frozen.__doc__) + extradoc
         self.dist = dist
         numargs = dist.numargs
 
