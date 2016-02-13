@@ -40,7 +40,7 @@ def setup_package_pyscaffold():
                          'wafo/source/mvnprd/mvnprodcorrprb.f']
     config.add_library('_mvnprdmod', sources=lib_mvnprdmod_src)
     config.add_extension('mvnprdmod',
-                         sources=['wafo/source/mreg/cov2mmpdfreg_intfc.f'],
+                         sources=['wafo/source/mvnprd/mvnprd_interface.f'],
                          libraries=['_mvnprdmod'],
                          depends=(lib_mvnprdmod_src))
 
