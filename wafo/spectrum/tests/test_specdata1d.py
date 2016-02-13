@@ -128,7 +128,7 @@ def test_testgaussian():
     ys = wo.mat2timeseries(S.sim(ns=2 ** 13))
     g0, _gemp = ys.trdata()
     t0 = g0.dist2gauss()
-    t1 = S0.testgaussian(ns=2 ** 13, test0=t0, cases=50, plotflag=0)
+    t1 = S0.testgaussian(ns=2 ** 13, test0=None, cases=50)
     assert(sum(t1 > t0) < 5)
 
 

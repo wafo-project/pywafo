@@ -140,8 +140,8 @@ def qtf(w, h=inf, g=9.81):
     # Wave group velocity
     c_g = 0.5 * g * (tanh(k_w * h) + k_w * h * (1.0 - tanh(k_w * h) ** 2)) / w
     h_dii = (0.5 * (0.5 * g * (k_w / w) ** 2. - 0.5 * w ** 2 / g +
-                    g * k_w / (w * c_g))
-             / (1. - g * h / c_g ** 2.) - 0.5 * k_w / sinh(2 * k_w * h))  # OK
+                    g * k_w / (w * c_g)) /
+             (1. - g * h / c_g ** 2.) - 0.5 * k_w / sinh(2 * k_w * h))  # OK
     h_d.flat[0::num_w + 1] = h_dii
 
     # k    = find(w_1==w_2)
@@ -198,8 +198,10 @@ def plotspec(specdata, linetype='b-', flag=1):
 #
 #      S = demospec('dir'); S2 = mkdspec(jonswap,spreading);
 #      plotspec(S,2), hold on
-#      plotspec(S,3,'g')  # Same as previous fig. due to frequency independent spreading
-#      plotspec(S2,2,'r') # Not the same as previous figs. due to frequency dependent spreading
+#      # Same as previous fig. due to frequency independent spreading
+#      plotspec(S,3,'g')
+#      # Not the same as previous figs. due to frequency dependent spreading
+#      plotspec(S2,2,'r')
 #      plotspec(S2,3,'m')
 #      % transform from angular frequency and radians to frequency and degrees
 #      Sf = ttspec(S,'f','d'); clf
@@ -311,19 +313,20 @@ def plotspec(specdata, linetype='b-', flag=1):
 #            plotbackend.subplot(2, 1, 2)
 #
 # if (flag == 2) or (flag == 3) : # Plot in logaritmic scale
-#            ind = np.flatnonzero(data > 0)
+#     ind = np.flatnonzero(data > 0)
 #
-#            plotbackend.plot(np.vstack([Fp, Fp]),
-#                            np.vstack((min(10 * log10(data.take(ind) / maxS)).repeat(len(Fp)),
-#                            10 * log10(data.take(indm) / maxS))), ':',label=txt)
+#     plotbackend.plot(np.vstack([Fp, Fp]),
+#                      np.vstack((min(10 * log10(data.take(ind) /
+#                                      maxS)).repeat(len(Fp)),
+#                      10 * log10(data.take(indm) / maxS))), ':',label=txt)
 # hold on
 # if isfield(S,'CI'),
 # plot(freq(ind),10*log10(S.S(ind)*S.CI(1)/maxS), 'r:' )
 # plot(freq(ind),10*log10(S.S(ind)*S.CI(2)/maxS), 'r:' )
 # end
-#            plotbackend.plot(freq[ind], 10 * log10(data[ind] / maxS), linetype)
+#        plotbackend.plot(freq[ind], 10 * log10(data[ind] / maxS), linetype)
 #
-#            a = plotbackend.axis()
+#        a = plotbackend.axis()
 #
 #            a1 = Fn
 #            if (Fp > 0):
@@ -1910,12 +1913,13 @@ class SpecData1D(PlotData):
         # opt0 =  {SCIS,XcScale,ABSEPS,RELEPS,COVEPS,MAXPTS,MINPTS,seed,NIT1}
 
         if (Nx > 1):
-           # (M,m) or (M,m)v distribution wanted
-           if ((def_nr == 0 or def_nr == 2)):
-               asize = [Nx1, Nx1]
-           else:
-               # (M,m,TMm), (M,m,TMm)v  (M,m,TMd)v or (M,M,Tdm)v distributions wanted
-               asize = [Nx1, Nx1, Ntime]
+            # (M,m) or (M,m)v distribution wanted
+            if ((def_nr == 0 or def_nr == 2)):
+                asize = [Nx1, Nx1]
+            else:
+                # (M,m,TMm), (M,m,TMm)v  (M,m,TMd)v or (M,M,Tdm)v
+                # distributions wanted
+                asize = [Nx1, Nx1, Ntime]
         elif (def_nr > 3):
             # Conditional distribution for (TMd,TMm)v or (Tdm,TMm)v given (M,m)
             # wanted
@@ -1937,7 +1941,7 @@ class SpecData1D(PlotData):
         a_up = zeros(1, NI - 1)
         a_lo = zeros(1, NI - 1)
 
-        # INFIN =  INTEGER, array of integration limits flags:  size 1 x Nb   (in)
+        # INFIN =  INTEGER, array of integration limits flags: size 1 x Nb (in)
         #            if INFIN(I) < 0, Ith limits are (-infinity, infinity)
         #            if INFIN(I) = 0, Ith limits are (-infinity, Hup(I)]
         #            if INFIN(I) = 1, Ith limits are [Hlo(I), infinity)
@@ -1957,15 +1961,15 @@ class SpecData1D(PlotData):
                 xc[3, IJ:J] = hg[:I].T
                 IJ = J
         else:
-           # Level u separated Max2min
-           xc[Nc, :] = u
-           # Hg(1) = Hg(Nx1+1)= u => start do loop at I=2 since by definition
-           # we must have:  minimum<u-level<Maximum
-           for i in range(1, Nx1):
-              J = IJ + Nx1
-              xc[2, IJ:J] = hg[i]  # Max > u
-              xc[3, IJ:J] = hg[Nx1 + 2: 2 * Nx1].T  # Min < u
-              IJ = J
+            # Level u separated Max2min
+            xc[Nc, :] = u
+            # Hg(1) = Hg(Nx1+1)= u => start do loop at I=2 since by definition
+            # we must have:  minimum<u-level<Maximum
+            for i in range(1, Nx1):
+                J = IJ + Nx1
+                xc[2, IJ:J] = hg[i]  # Max > u
+                xc[3, IJ:J] = hg[Nx1 + 2: 2 * Nx1].T  # Min < u
+                IJ = J
         if (def_nr <= 3):
             # h11 = fwaitbar(0,[],sprintf('Please wait ...(start at:
             # %s)',datestr(now)))
@@ -3541,8 +3545,8 @@ class SpecData1D(PlotData):
         m, unused_mtxt = self.moment(nr=4, even=False)
 
         fact_dict = dict(alpha=0, eps2=1, eps4=3, qp=3, Qp=3)
-        fun = lambda fact: fact_dict.get(fact, fact)
-        fact = atleast_1d(map(fun, list(factors)))
+        fact = atleast_1d(map(lambda fact: fact_dict.get(fact, fact),
+                              list(factors)))
 
         # fact = atleast_1d(fact)
         alpha = m[2] / sqrt(m[0] * m[4])
@@ -3755,10 +3759,10 @@ class SpecData1D(PlotData):
         R = r_[4 * mij[0] / m[0],
                mij[0] / m[1] ** 2. - 2. * m[0] * mij[1] /
                m[1] ** 3. + m[0] ** 2. * mij[2] / m[1] ** 4.,
-               0.25 * (mij[0] / (m[0] * m[2]) - 2. * mij[2] / m[2]
-                       ** 2 + m[0] * mij[4] / m[2] ** 3),
-               0.25 * (mij[4] / (m[2] * m[4]) - 2 * mij[6] / m[4]
-                       ** 2 + m[2] * mij[8] / m[4] ** 3),
+               0.25 * (mij[0] / (m[0] * m[2]) - 2. * mij[2] / m[2] ** 2 +
+                       m[0] * mij[4] / m[2] ** 3),
+               0.25 * (mij[4] / (m[2] * m[4]) - 2 * mij[6] / m[4] ** 2 +
+                       m[2] * mij[8] / m[4] ** 3),
                m_11 / m[0] ** 2 + (m[5] / m[0] ** 2) ** 2 *
                mij[0] - 2 * m[5] / m[0] ** 3 * m_10,
                nan, (8 * pi / g) ** 2 *
@@ -3775,8 +3779,8 @@ class SpecData1D(PlotData):
                eps2 ** 2 / m[1] ** 4,
                (m[2] ** 2 * mij[0] / (4 * m[0] ** 2) + mij[4] + m[2] ** 2 *
                 mij[8] / (4 * m[4] ** 2) - m[2] * mij[2] / m[0] + m[2] ** 2 *
-                mij[4] / (2 * m[0] * m[4]) - m[2] * mij[6] / m[4]) * m[2] ** 2
-               / (m[0] * m[4] * eps4) ** 2,
+                mij[4] / (2 * m[0] * m[4]) - m[2] * mij[6] / m[4]) *
+               m[2] ** 2 / (m[0] * m[4] * eps4) ** 2,
                nan]
 
         # and covariances by a taylor expansion technique:

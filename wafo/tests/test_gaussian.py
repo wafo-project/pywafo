@@ -46,7 +46,7 @@ def test_rind():
     Bup[0, ind] = np.minimum(Bup[0, ind], infinity * dev[indI[ind + 1]])
     Blo[0, ind] = np.maximum(Blo[0, ind], -infinity * dev[indI[ind + 1]])
     val, err, terr = rind(Sc, m, Blo, Bup, indI, xc, nt=0)
-    assert_array_almost_equal(val, 0.05494076)
+    assert_array_almost_equal(val, 0.05494076, decimal=3)
     assert(err < 0.001)
     assert_array_almost_equal(terr, 1.00000000e-10)
 
