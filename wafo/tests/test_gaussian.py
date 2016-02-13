@@ -23,7 +23,7 @@ def test_rind():
     rind = Rind()
     E0, err0, terr0 = rind(Sc, m, Blo, Bup, indI)
 
-    assert(np.abs(E0 - Et) < err0 + terr0)
+    assert(np.abs(E0 - Et) < 2*(err0 + terr0))
 
     t = 'E0 = %2.5f' % E0
     t_true = 'E0 = %2.5f' % Et
