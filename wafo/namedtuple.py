@@ -38,55 +38,55 @@ def namedtuple(typename, field_names, verbose=False):
         if not min(c.isalnum() or c == '_' for c in name):
             raise ValueError(
                 'Type names and field names can only contain alphanumeric ' +
-                'characters and underscores: %r' % name)
+                'characters and underscores: {0!r}'.format(name))
         if _iskeyword(name):
             raise ValueError(
-                'Type names and field names cannot be a keyword: %r' % name)
+                'Type names and field names cannot be a keyword: {0!r}'.format(name))
         if name[0].isdigit():
             raise ValueError('Type names and field names cannot start ' +
-                             'with a number: %r' % name)
+                             'with a number: {0!r}'.format(name))
     seen_names = set()
     for name in field_names:
         if name.startswith('_'):
             raise ValueError(
-                'Field names cannot start with an underscore: %r' % name)
+                'Field names cannot start with an underscore: {0!r}'.format(name))
         if name in seen_names:
-            raise ValueError('Encountered duplicate field name: %r' % name)
+            raise ValueError('Encountered duplicate field name: {0!r}'.format(name))
         seen_names.add(name)
 
     # Create and fill-in the class template
     numfields = len(field_names)
     # tuple repr without parens or quotes
     argtxt = repr(field_names).replace("'", "")[1:-1]
-    reprtxt = ', '.join('%s=%%r' % name for name in field_names)
-    dicttxt = ', '.join('%r: t[%d]' % (name, pos)
+    reprtxt = ', '.join('{0!s}=%r'.format(name) for name in field_names)
+    dicttxt = ', '.join('{0!r}: t[{1:d}]'.format(name, pos)
                         for pos, name in enumerate(field_names))
-    template = '''class %(typename)s(tuple):
-        '%(typename)s(%(argtxt)s)' \n
+    template = '''class {typename!s}(tuple):
+        '{typename!s}({argtxt!s})' \n
         __slots__ = () \n
-        _fields = %(field_names)r \n
-        def __new__(cls, %(argtxt)s):
-            return tuple.__new__(cls, (%(argtxt)s)) \n
+        _fields = {field_names!r} \n
+        def __new__(cls, {argtxt!s}):
+            return tuple.__new__(cls, ({argtxt!s})) \n
         @classmethod
         def _make(cls, iterable, new=tuple.__new__, len=len):
-            'Make a new %(typename)s object from a sequence or iterable'
+            'Make a new {typename!s} object from a sequence or iterable'
             result = new(cls, iterable)
-            if len(result) != %(numfields)d:
-                raise TypeError('Expected %(numfields)d arguments, got %%d' %% len(result))
+            if len(result) != {numfields:d}:
+                raise TypeError('Expected {numfields:d} arguments, got %d' % len(result))
             return result \n
         def __repr__(self):
-            return '%(typename)s(%(reprtxt)s)' %% self \n
+            return '{typename!s}({reprtxt!s})' % self \n
         def _asdict(t):
             'Return a new dict which maps field names to their values'
-            return {%(dicttxt)s} \n
+            return {{{dicttxt!s}}} \n
         def _replace(self, **kwds):
-            'Return a new %(typename)s object replacing specified fields with new values'
-            result = self._make(map(kwds.pop, %(field_names)r, self))
+            'Return a new {typename!s} object replacing specified fields with new values'
+            result = self._make(map(kwds.pop, {field_names!r}, self))
             if kwds:
-                raise ValueError('Got unexpected field names: %%r' %% kwds.keys())
-            return result \n\n''' % locals()
+                raise ValueError('Got unexpected field names: %r' % kwds.keys())
+            return result \n\n'''.format(**locals())
     for i, name in enumerate(field_names):
-        template += '        %s = property(itemgetter(%d))\n' % (name, i)
+        template += '        {0!s} = property(itemgetter({1:d}))\n'.format(name, i)
     if verbose:
         print template
 
@@ -122,7 +122,7 @@ if __name__ == '__main__':
             return (self.x ** 2 + self.y ** 2) ** 0.5
 
         def __str__(self):
-            return 'Point: x=%6.3f y=%6.3f hypot=%6.3f' % (self.x, self.y,
+            return 'Point: x={0:6.3f} y={1:6.3f} hypot={2:6.3f}'.format(self.x, self.y,
                                                            self.hypot)
 
     for p in Point(3, 4), Point(14, 5), Point(9. / 7, 6):

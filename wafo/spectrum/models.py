@@ -558,9 +558,9 @@ class Jonswap(ModelSpectrum):
         outsideJonswapRange = Tp > 5 * sqrt(Hm0) or Tp < 3.6 * sqrt(Hm0)
         if outsideJonswapRange:
             txt0 = '''
-            Hm0=%g,Tp=%g is outside the JONSWAP range.
+            Hm0={0:g},Tp={1:g} is outside the JONSWAP range.
             The validity of the spectral density is questionable.
-            ''' % (Hm0, Tp)
+            '''.format(Hm0, Tp)
             warnings.warn(txt0)
 
         if gam < 1 or 7 < gam:
@@ -1026,12 +1026,12 @@ class Torsethaugen(ModelSpectrum):
             if (3.6 * sqrt(Hm0) <= Tp & Tp <= 5 * sqrt(Hm0)):
                 print('     Jonswap range')
 
-            print('Hm0 = %g' % Hm0)
-            print('Ns, Ms = %g, %g  Nw, Mw = %g, %g' % (Ns, Ms, Nw, Mw))
-            print('gammas = %g gammaw = ' % (gammas, gammaw))
-            print('Rps = %g Rpw = %g' % (Rps, Rpw))
-            print('Hps = %g Hpw = %g' % (Hps, Hpw))
-            print('Tps = %g Tpw = %g' % (Tps, Tpw))
+            print('Hm0 = {0:g}'.format(Hm0))
+            print('Ns, Ms = {0:g}, {1:g}  Nw, Mw = {2:g}, {3:g}'.format(Ns, Ms, Nw, Mw))
+            print('gammas = {0:g} gammaw = '.format(gammas, gammaw))
+            print('Rps = {0:g} Rpw = {1:g}'.format(Rps, Rpw))
+            print('Hps = {0:g} Hpw = {1:g}'.format(Hps, Hpw))
+            print('Tps = {0:g} Tpw = {1:g}'.format(Tps, Tpw))
 
         # G0s=Ms/((Ns/Ms)**(-(Ns-1)/Ms)*gamma((Ns-1)/Ms )) #normalizing factor
         # Wind part
@@ -2097,7 +2097,7 @@ def _test_spreading():
 
 def test_docstrings():
     import doctest
-    print('Testing docstrings in %s' % __file__)
+    print('Testing docstrings in {0!s}'.format(__file__))
     doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
 
 

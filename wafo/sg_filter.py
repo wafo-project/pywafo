@@ -554,15 +554,15 @@ def smoothn(data, s=None, weight=None, robust=False, z0=None, tolz=1e-3,
     # Warning messages
     if isauto:
         if abs(np.log10(s) - np.log10(sMinBnd)) < errp:
-            warnings.warn('''s = %g: the lower bound for s has been reached.
-            Put s as an input variable if required.''' % s)
+            warnings.warn('''s = {0:g}: the lower bound for s has been reached.
+            Put s as an input variable if required.'''.format(s))
         elif abs(np.log10(s) - np.log10(sMaxBnd)) < errp:
-            warnings.warn('''s = %g: the Upper bound for s has been reached.
-            Put s as an input variable if required.''' % s)
+            warnings.warn('''s = {0:g}: the Upper bound for s has been reached.
+            Put s as an input variable if required.'''.format(s))
 
     if not exitflag:
-        warnings.warn('''Maximum number of iterations (%d) has been exceeded.
-        Increase MaxIter option or decrease TolZ value.''' % (maxiter))
+        warnings.warn('''Maximum number of iterations ({0:d}) has been exceeded.
+        Increase MaxIter option or decrease TolZ value.'''.format((maxiter)))
     if fulloutput:
         return z, s
     else:
@@ -1394,7 +1394,7 @@ def test_tide_filter():
     plt.plot(t, y, 'r.-', linewidth=2, label='raw data')
     # plt.plot(t, y2, 'b.-', linewidth=2, label='lowess @ %g Hz' % freq_filt)
     # plt.plot(t, y2, 'b.-', linewidth=2, label='filter @ %g Hz' % freq_filt)
-    plt.plot(t, y3, 'g.-', linewidth=2, label='filtfilt @ %g Hz' % freq_filt)
+    plt.plot(t, y3, 'g.-', linewidth=2, label='filtfilt @ {0:g} Hz'.format(freq_filt))
     plt.plot(t, y4, 'k.-', linewidth=2, label='kalman')
     # plt.plot(t, y5, 'k.', linewidth=2, label='kalman2')
     plt.plot(t, tide, 'y-', linewidth=2, label='True tide')
@@ -1434,7 +1434,7 @@ def test_hodrick_cardioid():
 
 def test_docstrings():
     import doctest
-    print('Testing docstrings in %s' % __file__)
+    print('Testing docstrings in {0!s}'.format(__file__))
     doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
 
 if __name__ == '__main__':

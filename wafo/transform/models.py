@@ -214,14 +214,14 @@ class TrHermite(TrCommon2):
                 self._x_limit = sa * p(r) + ma
             txt1 = '''
                 The polynomial is not a strictly increasing function.
-                The derivative of g(x) is infinite at x = %g''' % self._x_limit
+                The derivative of g(x) is infinite at x = {0:g}'''.format(self._x_limit)
             warnings.warn(txt1)
         return
 
     def check_forward(self, x):
         if not (self._x_limit is None):
             x00 = self._x_limit
-            txt2 = 'for the given interval x = [%g, %g]' % (x[0], x[-1])
+            txt2 = 'for the given interval x = [{0:g}, {1:g}]'.format(x[0], x[-1])
 
             if any(np.logical_and(x[0] <= x00, x00 <= x[-1])):
                 cdef = 1
@@ -229,10 +229,10 @@ class TrHermite(TrCommon2):
                 cdef = sum(np.logical_xor(x00 <= x[0], x00 <= x[-1]))
 
             if np.mod(cdef, 2):
-                errtxt = 'Unable to invert the polynomial \n %s' % txt2
+                errtxt = 'Unable to invert the polynomial \n {0!s}'.format(txt2)
                 raise ValueError(errtxt)
             np.disp(
-                'However, successfully inverted the polynomial\n %s' % txt2)
+                'However, successfully inverted the polynomial\n {0!s}'.format(txt2))
 
     def _dat2gauss(self, x, *xi):
         if len(xi) > 0:

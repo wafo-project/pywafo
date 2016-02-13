@@ -1258,7 +1258,7 @@ def test_pp():
 
 def test_docstrings():
     import doctest
-    print('Testing docstrings in %s' % __file__)
+    print('Testing docstrings in {0!s}'.format(__file__))
     doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
 
 
