@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from numpy import (r_, minimum, maximum, atleast_1d, atleast_2d, mod, ones,
                    floor, random, eye, nonzero, where, repeat, sqrt, exp, inf,
                    diag, zeros, sin, arcsin, nan)
@@ -6,7 +7,7 @@ from scipy.special import ndtr as cdfnorm, ndtri as invnorm
 from scipy.special import erfc
 import warnings
 import numpy as np
-from wafo.misc import common_shape
+from .misc import common_shape
 
 try:
     import mvn  # @UnresolvedImport

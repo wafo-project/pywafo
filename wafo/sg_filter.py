@@ -1,4 +1,4 @@
-from __future__ import division
+from __future__ import absolute_import, division
 import numpy as np
 # from math import pow
 # from numpy import zeros,dot
@@ -6,13 +6,14 @@ from numpy import (pi, abs, size, convolve, linalg, concatenate, sqrt)
 from scipy.sparse import spdiags
 from scipy.sparse.linalg import spsolve, expm
 from scipy.signal import medfilt
-from wafo.dctpack import dctn, idctn
+from .dctpack import dctn, idctn
+from .plotbackend import plotbackend as plt
 import scipy.optimize as optimize
 from scipy.signal import _savitzky_golay
 from scipy.ndimage import convolve1d
 from scipy.ndimage.morphology import distance_transform_edt
 import warnings
-from wafo.plotbackend import plotbackend as plt
+
 
 __all__ = ['SavitzkyGolay', 'Kalman', 'HodrickPrescott', 'smoothn']
 

@@ -1,14 +1,14 @@
-from __future__ import division
+from __future__ import absolute_import, division
 import warnings
 import numpy as np
 from numpy import pi, sqrt, ones, zeros  # @UnresolvedImport
 from scipy import integrate as intg
 import scipy.special.orthogonal as ort
 from scipy import special as sp
-from wafo.plotbackend import plotbackend as plt
+from .plotbackend import plotbackend as plt
 from scipy.integrate import simps, trapz
-from wafo.demos import humps
-#from pychebfun import Chebfun
+from .demos import humps
+# from pychebfun import Chebfun
 
 _EPS = np.finfo(float).eps
 _POINTS_AND_WEIGHTS = {}

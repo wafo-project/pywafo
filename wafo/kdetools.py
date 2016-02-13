@@ -9,7 +9,7 @@
 # Licence:     LGPL
 # -------------------------------------------------------------------------
 #!/usr/bin/env python  # @IgnorePep8
-from __future__ import division
+from __future__ import absolute_import, division
 import copy
 import numpy as np
 import scipy
@@ -19,12 +19,12 @@ from scipy import interpolate, linalg, optimize, sparse, special, stats
 from scipy.special import gamma
 from numpy import pi, sqrt, atleast_2d, exp, newaxis  # @UnresolvedImport
 
-from wafo.misc import meshgrid, nextpow2, tranproc  # , trangood
-from wafo.containers import PlotData
-from wafo.dctpack import dct, dctn, idctn
-from wafo.plotbackend import plotbackend as plt
+from .misc import meshgrid, nextpow2, tranproc  # , trangood
+from .containers import PlotData
+from .dctpack import dct, dctn, idctn
+from .plotbackend import plotbackend as plt
 try:
-    from wafo import fig
+    from . import fig
 except ImportError:
     warnings.warn('fig import only supported on Windows')
 

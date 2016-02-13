@@ -30,11 +30,12 @@ Created on 15. des. 2009
 # MSO = win32com.client.gencache.EnsureModule(typelib_mso.clsid,
 #                        typelib_mso.lcid,
 #                              int(typelib_mso.major), int(typelib_mso.minor))
+from __future__ import absolute_import
 import os
 import warnings
 import win32com.client
-import MSO
-import MSPPT
+from . import MSO
+from . import MSPPT
 from PIL import Image  # @UnresolvedImport
 
 g = globals()

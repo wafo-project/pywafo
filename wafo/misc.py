@@ -1,7 +1,7 @@
 '''
 Misc
 '''
-from __future__ import division
+from __future__ import absolute_import, division
 import collections
 import sys
 import fractions
@@ -20,7 +20,7 @@ from time import strftime, gmtime
 from .plotbackend import plotbackend
 from collections import OrderedDict
 try:
-    import c_library as clib  # @UnresolvedImport
+    from . import c_library as clib  # @UnresolvedImport
 except ImportError:
     warnings.warn('c_library not found. Check its compilation.')
     clib = None

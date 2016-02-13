@@ -12,14 +12,15 @@
 # !/usr/bin/env python
 
 
-from __future__ import division
-from wafo.transform.core import TrData
-from wafo.transform.estimation import TransformEstimator
-from wafo.stats import distributions
-from wafo.misc import (nextpow2, findtp, findrfc, findtc, findcross,
+from __future__ import absolute_import, division
+from .transform.core import TrData
+from .transform.estimation import TransformEstimator
+from .stats import distributions
+from .misc import (nextpow2, findtp, findrfc, findtc, findcross,
                        ecross, JITImport, DotDict, gravity, findrfc_astm)
-from wafo.interpolate import stineman_interp
-from wafo.containers import PlotData
+from .interpolate import stineman_interp
+from .containers import PlotData
+from .plotbackend import plotbackend
 from scipy.integrate import trapz
 from scipy.signal import welch, lfilter
 from scipy.signal.windows import get_window  # @UnusedImport
@@ -35,12 +36,11 @@ from numpy import (inf, pi, zeros, ones, sqrt, where, log, exp, cos, sin,
                    cumsum, ravel, isnan, ceil, diff, array)
 from numpy.fft import fft  # @UnusedImport
 from numpy.random import randn
-import matplotlib
 from matplotlib.mlab import psd, detrend_mean
-from plotbackend import plotbackend
+
 
 floatinfo = finfo(float)
-matplotlib.interactive(True)
+
 _wafocov = JITImport('wafo.covariance')
 _wafocov_estimation = JITImport('wafo.covariance.estimation')
 _wafospec = JITImport('wafo.spectrum')

@@ -392,7 +392,7 @@ def test_dctn():
     print('xn = idctn(yn)')
     print(xn)
     print(' ')
-    print xn-a
+    print(xn-a)
 
 
 def test_dct2():

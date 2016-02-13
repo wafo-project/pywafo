@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from __future__ import division
+from __future__ import absolute_import, division
 import numpy as np
 import scipy.signal
 # import scipy.sparse.linalg  # @UnusedImport
@@ -7,7 +7,7 @@ import scipy.sparse as sparse
 from numpy import ones, zeros, prod, sin, diff, pi, inf, vstack, linspace
 from scipy.interpolate import PiecewisePolynomial, interp1d
 
-import polynomial as pl
+from . import polynomial as pl
 
 
 __all__ = [

@@ -17,9 +17,10 @@
 # Licence:     LGPL
 # -------------------------------------------------------------------------
 # !/usr/bin/env python
+from __future__ import absolute_import
 import warnings  # @UnusedImport
 from numpy.polynomial import polyutils as pu
-from plotbackend import plotbackend as plt
+from .plotbackend import plotbackend as plt
 import numpy as np
 from numpy import (zeros, asarray, newaxis, arange,
                    logical_or, any, pi, cos, round, diff, all, exp,

@@ -5,10 +5,10 @@ Created on 20. jan. 2011
 
 license BSD
 '''
-from __future__ import division
+from __future__ import absolute_import, division
 import warnings
 import numpy as np
-from wafo.plotbackend import plotbackend
+from .plotbackend import plotbackend
 from matplotlib import mlab
 __all__ = ['cltext', 'tallibing', 'test_docstrings']
 
