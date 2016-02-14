@@ -1,4 +1,4 @@
-
+from six import iteritems
 from numpy.testing import (run_module_suite, assert_equal, assert_almost_equal,
                            assert_array_equal, assert_array_almost_equal,
                            TestCase, assert_,  assert_raises,)
@@ -372,7 +372,7 @@ def test_getshipchar():
                    service_speed=10,
                    service_speedSTD=0)
 
-    for name, val in true_sc.iteritems():
+    for name, val in iteritems(true_sc):
         assert_almost_equal(val, sc[name])
 
 

@@ -31,6 +31,7 @@ Created on 15. des. 2009
 #                        typelib_mso.lcid,
 #                              int(typelib_mso.major), int(typelib_mso.minor))
 from __future__ import absolute_import
+from six import iteritems  # @UnresolvedImport
 import os
 import warnings
 import win32com.client
@@ -172,7 +173,7 @@ class Powerpoint(object):
     def _add_text_from_dict(self, page, id, txt_dict,  # @ReservedAssignment
                             level, maxlevel=None):
         if maxlevel is None or level <= maxlevel:
-            for name, subdict in txt_dict.iteritems():
+            for name, subdict in iteritems(txt_dict):
                 tr = page.Shapes(id).TextFrame.TextRange.InsertAfter(name)
                 unused_temp = page.Shapes(
                     id).TextFrame.TextRange.InsertAfter('\r')
