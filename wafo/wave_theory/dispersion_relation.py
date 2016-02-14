@@ -191,7 +191,7 @@ def w2k(w, theta=0.0, h=inf, g=9.81, count_limit=100):
 
     if count == count_limit:
         warnings.warn('W2K did not converge. The maximum error in the ' +
-                      'last step was: %13.8f' % max(hn[ix]))
+                      'last step was: {0:13.8f}'.format(max(hn[ix])))
 
     k.shape = oshape
 
@@ -202,7 +202,7 @@ def w2k(w, theta=0.0, h=inf, g=9.81, count_limit=100):
 
 def test_docstrings():
     import doctest
-    print('Testing docstrings in %s' % __file__)
+    print('Testing docstrings in {0!s}'.format(__file__))
     doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
 
 

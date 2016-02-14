@@ -63,7 +63,7 @@ def check_cont_fit(distname,arg):
         except:
             pass
         if xfail:
-            msg = "Fitting %s doesn't work reliably yet" % distname
+            msg = "Fitting {0!s} doesn't work reliably yet".format(distname)
             msg += " [Set environment variable SCIPY_XFAIL=1 to run this test nevertheless.]"
             #dec.knownfailureif(True, msg)(lambda: None)()
             options['floc']=0.
@@ -101,17 +101,17 @@ def check_cont_fit(distname,arg):
             if np.all(np.abs(diff) <= diffthreshold):
                 break
     else:
-        txt = 'parameter: %s\n' % str(truearg)
-        txt += 'estimated: %s\n' % str(est)
-        txt += 'diff     : %s\n' % str(diff)
-        raise AssertionError('fit not very good in %s\n' % distfn.name + txt)
+        txt = 'parameter: {0!s}\n'.format(str(truearg))
+        txt += 'estimated: {0!s}\n'.format(str(est))
+        txt += 'diff     : {0!s}\n'.format(str(diff))
+        raise AssertionError('fit not very good in {0!s}\n'.format(distfn.name) + txt)
 
 
 def _check_loc_scale_mle_fit(name, data, desired, atol=None):
     d = getattr(stats, name)
     actual = d.fit(data)[-2:]
     assert_allclose(actual, desired, atol=atol,
-                    err_msg='poor mle fit of (loc, scale) in %s' % name)
+                    err_msg='poor mle fit of (loc, scale) in {0!s}'.format(name))
 
 
 def test_non_default_loc_scale_mle_fit():
