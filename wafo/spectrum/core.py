@@ -3545,7 +3545,8 @@ class SpecData1D(PlotData):
         m, unused_mtxt = self.moment(nr=4, even=False)
 
         fact_dict = dict(alpha=0, eps2=1, eps4=3, qp=3, Qp=3)
-        fact = atleast_1d(fact_dict.get(fact, fact) for fact in list(factors))
+        fact = array([fact_dict.get(idx, idx)
+                      for idx in list(factors)], dtype=int)
 
         # fact = atleast_1d(fact)
         alpha = m[2] / sqrt(m[0] * m[4])
