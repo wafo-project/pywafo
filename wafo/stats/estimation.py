@@ -147,10 +147,10 @@ class Profile(object):
         self.xlabel = ''
         self.ylabel = 'Profile log'
         (self.i_fixed, self.N, self.alpha, self.pmin, self.pmax, self.x,
-         self.logSF, self.link) = map(
-            kwds.get,
+         self.logSF, self.link) = [kwds.get(name, val)
+                                   for name, val in zip(
             ['i', 'N', 'alpha', 'pmin', 'pmax', 'x', 'logSF', 'link'],
-            [i0, 100, 0.05, None, None, None, None, None])
+            [i0, 100, 0.05, None, None, None, None, None])]
 
         self.title = '%g%s CI' % (100 * (1.0 - self.alpha), '%')
         if fit_dist.method.startswith('ml'):

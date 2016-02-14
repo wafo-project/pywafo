@@ -1055,7 +1055,7 @@ class SpecData1D(PlotData):
         maxS = max(S.data)
         # Fs = 2*freq(end)+eps  # sampling frequency
 
-        for ix in xrange(max_sim):
+        for ix in range(max_sim):
             x2, x1 = self.sim_nl(ns=np, cases=cases, dt=None, iseed=iseed,
                                  method=method, fnlimit=fn_limit,
                                  output='timeseries')
@@ -1371,7 +1371,7 @@ class SpecData1D(PlotData):
         rind = Rind(**opts)
         # h11 = fwaitbar(0,[],sprintf('Please wait ...(start at: %s)',
         #        datestr(now)))
-        for pt in xrange(Nstart, Ntime):
+        for pt in range(Nstart, Ntime):
             Nt = pt - Nd + 1
             Ntd = Nt + Nd
             Ntdc = Ntd + Nc
@@ -3545,8 +3545,7 @@ class SpecData1D(PlotData):
         m, unused_mtxt = self.moment(nr=4, even=False)
 
         fact_dict = dict(alpha=0, eps2=1, eps4=3, qp=3, Qp=3)
-        fact = atleast_1d(map(lambda fact: fact_dict.get(fact, fact),
-                              list(factors)))
+        fact = atleast_1d(fact_dict.get(fact, fact) for fact in list(factors))
 
         # fact = atleast_1d(fact)
         alpha = m[2] / sqrt(m[0] * m[4])

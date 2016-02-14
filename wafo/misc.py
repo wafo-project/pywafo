@@ -1802,7 +1802,7 @@ def common_shape(*args, ** kwds):
     --------
     broadcast, broadcast_arrays
     '''
-    args = map(asarray, args)
+    args = [asarray(x) for x in args]
     shapes = [x.shape for x in args]
     shape = kwds.get('shape')
     if shape is not None:
@@ -1947,7 +1947,7 @@ def stirlerr(n):
 
 
 def getshipchar(value=None, property="max_deadweight",  # @ReservedAssignment
-                ** kwds):  # @IgnorePep8
+                **kwds):  # @IgnorePep8
     '''
     Return ship characteristics from value of one ship-property
 
@@ -2026,23 +2026,23 @@ def getshipchar(value=None, property="max_deadweight",  # @ReservedAssignment
     max_deadweight = prop2max_dw.get(prop, lambda x: x)(value)
     propertySTD = prop + 'STD'
 
-    length = round(3.45 * max_deadweight ** 0.40)
+    length = np.round(3.45 * max_deadweight ** 0.40)
     length_err = length ** 0.13
 
-    beam = round(1.78 * max_deadweight ** 0.27 * 10) / 10
+    beam = np.round(1.78 * max_deadweight ** 0.27 * 10) / 10
     beam_err = beam * 0.10
 
-    draught = round(0.80 * max_deadweight ** 0.24 * 10) / 10
+    draught = np.round(0.80 * max_deadweight ** 0.24 * 10) / 10
     draught_err = draught * 0.22
 
     # S    = round(2/3*(L)**0.525)
-    speed = round(1.14 * max_deadweight ** 0.21 * 10) / 10
+    speed = np.round(1.14 * max_deadweight ** 0.21 * 10) / 10
     speed_err = speed * 0.10
 
     p_diam = 0.12 * length ** (3.0 / 4.0)
     p_diam_err = 0.12 * length_err ** (3.0 / 4.0)
 
-    max_deadweight = round(max_deadweight)
+    max_deadweight = np.round(max_deadweight)
     max_deadweightSTD = 0.1 * max_deadweight
 
     shipchar = OrderedDict(beam=beam, beamSTD=beam_err,
