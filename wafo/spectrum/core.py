@@ -1,4 +1,4 @@
-from __future__ import division
+from __future__ import absolute_import, division
 from wafo.misc import meshgrid, gravity, cart2polar, polar2cart
 from wafo.objects import TimeSeries, mat2timeseries
 import warnings
@@ -15,35 +15,35 @@ from scipy.integrate import simps, trapz
 from scipy.special import erf
 from scipy.linalg import toeplitz
 import scipy.interpolate as interpolate
-from wafo.interpolate import stineman_interp
+from ..interpolate import stineman_interp
 
-from wafo.wave_theory.dispersion_relation import w2k  # , k2w
-from wafo.containers import PlotData, now
+from ..wave_theory.dispersion_relation import w2k  # , k2w
+from ..containers import PlotData, now
 # , tranproc
-from wafo.misc import sub_dict_select, nextpow2, discretize, JITImport
+from ..misc import sub_dict_select, nextpow2, discretize, JITImport
 # from wafo.graphutil import cltext
-from wafo.kdetools import qlevels
+from ..kdetools import qlevels
 from scipy.interpolate.interpolate import interp1d
 
 try:
-    from wafo.gaussian import Rind
+    from ..gaussian import Rind
 except ImportError:
     Rind = None
 try:
-    from wafo import c_library
+    from .. import c_library
 except ImportError:
     warnings.warn('Compile the c_library.pyd again!')
     c_library = None
 try:
-    from wafo import cov2mod
+    from .. import cov2mod
 except ImportError:
     warnings.warn('Compile the cov2mod.pyd again!')
     cov2mod = None
 
 
 # from wafo.transform import TrData
-from wafo.transform.models import TrLinear
-from wafo.plotbackend import plotbackend
+from ..transform.models import TrLinear
+from ..plotbackend import plotbackend
 
 
 # Trick to avoid error due to circular import
