@@ -47,7 +47,7 @@ def test_rind():
     Blo[0, ind] = np.maximum(Blo[0, ind], -infinity * dev[indI[ind + 1]])
     val, err, terr = rind(Sc, m, Blo, Bup, indI, xc, nt=0)
     assert_array_almost_equal(val, 0.05494076, decimal=3)
-    assert(err < 0.001)
+    assert(err < 0.0013)
     assert_array_almost_equal(terr, 1.00000000e-10)
 
     # Compute expectation E( X1^{+}*X2^{+} ) with random

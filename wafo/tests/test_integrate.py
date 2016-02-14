@@ -25,7 +25,7 @@ class Gaussq(unittest.TestCase):
 
     def test_gauss_legendre(self):
         val, _err = gaussq(exp, 0, 1)
-        self.assertAlmostEqual(val, exp(1)-exp(0))
+        assert_array_almost_equal(val, exp(1)-exp(0))
 
         a, b, y = [0, 0], [1, 1], np.array([1., 2.])
         val, _err = gaussq(lambda x, y: x * y, a, b, args=(y, ))
