@@ -250,7 +250,7 @@ if __name__ == '__main__':
     ErrorDlg('This is an example of an error message')
     wb = Waitbar('Waitbar example')
 #    wb2 = Waitbar2('Waitbar example')
-    for i in xrange(20):
+    for i in range(20):
         print(wb.update(i * 5))
 #        wb2.update(i)
         sleep(0.1)

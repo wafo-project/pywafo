@@ -1,11 +1,11 @@
-''' 
-Module FIG 
-------------  
-Module for manipulating windows/figures created using 
-pylab or enthought.mayavi.mlab on the windows platform. 
+'''
+Module FIG
+------------
+Module for manipulating windows/figures created using
+pylab or enthought.mayavi.mlab on the windows platform.
 
-Figure manipulation involves 
-maximization, minimization, hiding, closing, stacking or tiling. 
+Figure manipulation involves
+maximization, minimization, hiding, closing, stacking or tiling.
 
 This module assumes that the figures are uniquely numbered in the following way:
 Figure 1
@@ -21,7 +21,7 @@ Example
 -------
 >>> import pylab as p
 >>> import wafo.fig as fig
->>> for ix in range(6): 
+>>> for ix in range(6):
 ...     f = p.figure(ix)
 >>> fig.stack('all')
 >>> fig.stack(1,2)
@@ -538,7 +538,7 @@ def stack(*figs):
 #% Location (1,1) is at bottom left corner
 #
         #print('Screensz = ',screenpos)
-        for iy in xrange(numfigs):
+        for iy in range(numfigs):
             pos = list(GetWindowRect(wnds[iy]))
             pos[3] -= pos[1]
             pos[2] -= pos[0]
@@ -621,7 +621,7 @@ def tile(*figs, **kwds):
 #% 3 - Window horizontal size
 #% 4 - Window vertical size
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        
+
         hspc = 10            # Horisontal space.
         topspc = 20;            # Space above top figure.
         medspc = 10;            # Space between figures.
@@ -639,10 +639,10 @@ def tile(*figs, **kwds):
 #% Put the figures where they belong.
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         idx = 0
-        for unused_ix in xrange(nlayers):
-            for row in xrange(nv):
-                for col in xrange(nh):
-                    if  (row) * nh + col < nfigspertile :      
+        for unused_ix in range(nlayers):
+            for row in range(nv):
+                for col in range(nh):
+                    if  (row) * nh + col < nfigspertile :
                         if idx < nfigs:
                             figlft = int(screenpos[0] + (col + 1) * hspc + col * figwid)
                             figtop = int(screenpos[1] + topspc + row * (fighgt + medspc))
@@ -653,6 +653,7 @@ def tile(*figs, **kwds):
                             BringWindowToTop(fighnd)
                             #figure(figs[idx]);                              # Raise figure.
                         idx += 1
+
 
 def cycle(*figs, **kwds):
     ''' Cycle through figure windows.

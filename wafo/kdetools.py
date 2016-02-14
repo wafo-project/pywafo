@@ -3172,10 +3172,10 @@ def gridcount(data, X, y=1):
         # fact1 = fact1(ones(n,1),:);
         bt0 = [0, 0]
         X1 = X.ravel()
-        for ir in xrange(2 ** (d - 1)):
+        for ir in range(2 ** (d - 1)):
             bt0[0] = np.reshape(bitget(ir, np.arange(d)), (d, -1))
             bt0[1] = 1 - bt0[0]
-            for ix in xrange(2):
+            for ix in range(2):
                 one = np.mod(ix, 2)
                 two = np.mod(ix + 1, 2)
                 # Convert to linear index

@@ -255,7 +255,7 @@ def romberg(fun, a, b, releps=1e-3, abseps=1e-3):
     # [res,abserr,epstab,newflg] = dea(newflg,Ih4,abserr,epstab)
     two = 1
     one = 0
-    for i in xrange(1, tableLimit):
+    for i in range(1, tableLimit):
         h *= 0.5
         Un5 = np.sum(fun(a + np.arange(1, 2 * ipower, 2) * h)) * h
 
@@ -265,7 +265,7 @@ def romberg(fun, a, b, releps=1e-3, abseps=1e-3):
 
         fp[i] = 4 * fp[i - 1]
         #   Richardson extrapolation
-        for k in xrange(i):
+        for k in range(i):
             rom[two, k + 1] = rom[two, k] + \
                 (rom[two, k] - rom[one, k]) / (fp[k] - 1)
 
@@ -354,12 +354,12 @@ def h_roots(n, method='newton'):
         L = zeros((3, len(z)))
         k0 = 0
         kp1 = 1
-        for _its in xrange(max_iter):
+        for _its in range(max_iter):
             # Newtons method carried out simultaneously on the roots.
             L[k0, :] = 0
             L[kp1, :] = PIM4
 
-            for j in xrange(1, n + 1):
+            for j in range(1, n + 1):
                 # Loop up the recurrence relation to get the Hermite
                 # polynomials evaluated at z.
                 km1 = k0
@@ -454,13 +454,13 @@ def j_roots(n, alpha, beta, method='newton'):
         L = zeros((3, len(z)))
         k0 = 0
         kp1 = 1
-        for _its in xrange(max_iter):
+        for _its in range(max_iter):
             # Newton's method carried out simultaneously on the roots.
             tmp = 2 + alfbet
             L[k0, :] = 1
             L[kp1, :] = (alpha - beta + tmp * z) / 2
 
-            for j in xrange(2, n + 1):
+            for j in range(2, n + 1):
                 # Loop up the recurrence relation to get the Jacobi
                 # polynomials evaluated at z.
                 km1 = k0
@@ -565,12 +565,12 @@ def la_roots(n, alpha=0, method='newton'):
         k0 = 0
         kp1 = 1
         k = slice(len(z))
-        for _its in xrange(max_iter):
+        for _its in range(max_iter):
             # Newton's method carried out simultaneously on the roots.
             L[k0, k] = 0.
             L[kp1, k] = 1.
 
-            for jj in xrange(1, n + 1):
+            for jj in range(1, n + 1):
                 # Loop up the recurrence relation to get the Laguerre
                 # polynomials evaluated at z.
                 km1 = k0
@@ -683,11 +683,11 @@ def p_roots(n, method='newton', a=-1, b=1):
             k = slice(m)
             k0 = 0
             kp1 = 1
-            for _ix in xrange(max_iter):
+            for _ix in range(max_iter):
                 L[k0, k] = 1
                 L[kp1, k] = xo[k]
 
-                for jj in xrange(2, n + 1):
+                for jj in range(2, n + 1):
                     km1 = k0
                     k0 = kp1
                     kp1 = np.mod(k0 + 1, 3)
@@ -712,10 +712,10 @@ def p_roots(n, method='newton', a=-1, b=1):
 
             e1 = n * (n + 1)
 
-            for _j in xrange(2):
+            for _j in range(2):
                 pkm1 = 1
                 pk = xo
-                for k in xrange(2, n + 1):
+                for k in range(2, n + 1):
                     t1 = xo * pk
                     pkp1 = t1 - pkm1 - (t1 - pkm1) / k + t1
                     pkm1 = pk
@@ -1008,7 +1008,7 @@ class _Gaussq(object):
     def _initialize(self, wfun, a, b, args):
         args = np.broadcast_arrays(*np.atleast_1d(a, b, *args))
         a_shape = args[0].shape
-        args = map(lambda x: np.reshape(x, (-1, 1)), args)
+        args = [np.reshape(x, (-1, 1)) for x in args]
         A, B = args[:2]
         args = args[2:]
         if wfun in [2, 3]:
@@ -1036,7 +1036,7 @@ class _Gaussq(object):
         k = np.arange(nk)
         opts = (nk, dtype)
         val, val_old, abserr = zeros(*opts), ones(*opts), zeros(*opts)
-        for i in xrange(max_iter):
+        for i in range(max_iter):
             xn, w = self._points_and_weights(gn, wfun, alpha, beta)
             x = (xn + shift) * jacob[k, :] + A[k, :]
 
@@ -1181,7 +1181,7 @@ def quadgr(fun, a, b, abseps=1e-5, max_iter=17):
     Q0[0] = hh * np.sum(wq * fun(x), axis=0)
 
     # Successive bisection of intervals
-    for k in xrange(1, max_iter):
+    for k in range(1, max_iter):
 
         # Interval bisection
         hh = hh / 2
@@ -1312,7 +1312,7 @@ def qdemo(f, a, b, kmax=9, plot_error=False):
     # try various approximations
     methods = [trapz, simps, boole, ]
 
-    for k in xrange(kmax):
+    for k in range(kmax):
         n = 2 ** (k + 1) + 1
         neval[k] = n
         x = np.linspace(a, b, n)
@@ -1365,7 +1365,7 @@ def qdemo(f, a, b, kmax=9, plot_error=False):
             data.append(vals_dic[name])
             data.append(err_dic[name])
         data = np.vstack(tuple(data)).T
-        for k in xrange(kmax):
+        for k in range(kmax):
             tmp = data[k].tolist()
             print(''.join(fi % t for fi, t in zip(formats, tmp)))
         if plot_error:

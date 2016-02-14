@@ -322,7 +322,7 @@ class PPform(object):
         dx = xx - self.breaks.take(indxs)
 
         v = pp[0, indxs]
-        for i in xrange(1, self.order):
+        for i in range(1, self.order):
             v = dx * v + pp[i, indxs]
         values = v
 
@@ -409,7 +409,7 @@ class PPform(object):
 
             vv = xs * cof[0, index]
             k = self.order
-            for i in xrange(1, k):
+            for i in range(1, k):
                 vv = xs * (vv + cof[i, index])
 
             cof[-1] = np.hstack((0, vv)).cumsum()
@@ -419,7 +419,7 @@ class PPform(object):
 #     def fromspline(self, xk, cvals, order, fill=0.0):
 #         N = len(xk) - 1
 #         sivals = np.empty((order + 1, N), dtype=float)
-#         for m in xrange(order, -1, -1):
+#         for m in range(order, -1, -1):
 #             fact = spec.gamma(m + 1)
 #             res = _fitpack._bspleval(xk[:-1], xk, cvals, order, m)
 #             res /= fact

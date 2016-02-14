@@ -253,7 +253,7 @@ class Profile(object):
 
         for size, step in ((-1, -1), (pvec.size, 1)):
             phatfree = phatfree0.copy()
-            for ix in xrange(k1, size, step):
+            for ix in range(k1, size, step):
                 Lmax, phatfree = self._profile_optimum(phatfree, pvec[ix])
                 self.data[ix] = Lmax
                 if self.data[ix] < self.alpha_cross_level:
@@ -728,7 +728,7 @@ class FitDistribution(rv_frozen):
         LL = nnlf(theta, data)
         H = zeros((num_par, num_par))   # Hessian matrix
         theta = tuple(theta)
-        for ix in xrange(num_par):
+        for ix in range(num_par):
             sparam = list(theta)
             sparam[ix] = theta[ix] + delta
             fp = nnlf(sparam, data)

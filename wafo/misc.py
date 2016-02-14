@@ -1069,7 +1069,7 @@ def findrfc(tp, h=0.0, method='clib'):
     if clib is None or method not in ('clib'):
         ind = zeros(n, dtype=np.int)
         NC = np.int(NC)
-        for i in xrange(NC):
+        for i in range(NC):
             Tmi = Tstart + 2 * i
             Tpl = Tstart + 2 * i + 2
             xminus = y[2 * i]
@@ -1557,7 +1557,7 @@ def findtc(x_in, v=None, kind=None):
 
     first_is_down_crossing = (x[v_ind[0]] > x[v_ind[0] + 1])
     if first_is_down_crossing:
-        for i in xrange(n_tc):
+        for i in range(n_tc):
             # trough
             j = 2 * i
             ind[j] = x[v_ind[j] + 1:v_ind[j + 1] + 1].argmin()
@@ -1569,7 +1569,7 @@ def findtc(x_in, v=None, kind=None):
             ind[n_c - 2] = x[v_ind[n_c - 2] + 1:v_ind[n_c - 1]].argmin()
 
     else:  # the first is a up-crossing
-        for i in xrange(n_tc):
+        for i in range(n_tc):
             # crest
             j = 2 * i
             ind[j] = x[v_ind[j] + 1:v_ind[j + 1] + 1].argmax()

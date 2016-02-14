@@ -104,7 +104,7 @@ class TransformEstimator(object):
         x = tr.args
         mean = tr.mean
         sigma = tr.sigma
-        for ix in xrange(5):
+        for ix in range(5):
             dy = np.diff(tr.data)
             if (dy <= 0).any():
                 dy[dy > 0] = eps

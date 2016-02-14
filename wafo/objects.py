@@ -318,7 +318,7 @@ class LevelCrossings(PlotData):
         ff = [f[0], ]
         tt = [t[0], ]
 
-        for i in xrange(1, n):
+        for i in range(1, n):
             if f[i] > ff[-1]:
                 ff.append(f[i])
                 tt.append(t[i])
@@ -741,7 +741,7 @@ class CyclePairs(PlotData):
         n = extremes.shape[1]
         extr = zeros((4, n))
         extr[:, 0] = extremes[:, 0]
-        for i in xrange(1, n):
+        for i in range(1, n):
             if extremes[0, i] == extr[0, ii]:
                 extr[1:4, ii] = extr[1:4, ii] + extremes[1:4, i]
             else:
@@ -1563,7 +1563,7 @@ class TimeSeries(PlotData):
         >>> import wafo.objects as wo
         >>> x = wd.sea()
         >>> ts = wo.mat2timeseries(x)
-        >>> for i in xrange(-3,4):
+        >>> for i in range(-3,4):
         ...     S, H = ts.wave_height_steepness(method=i)
         ...     print(S[:2],H[:2])
         (array([ 0.01186982,  0.04852534]), array([ 0.69,  0.86]))
@@ -2207,10 +2207,10 @@ class TimeSeries(PlotData):
         plot = plotbackend.plot
         subplot = plotbackend.subplot
         figs = []
-        for unused_iz in xrange(nfig):
+        for unused_iz in range(nfig):
             figs.append(plotbackend.figure())
             plotbackend.title('Surface elevation from mean water level (MWL).')
-            for ix in xrange(nsub):
+            for ix in range(nsub):
                 if nsub > 1:
                     subplot(nsub, 1, ix)
                 h_scale = array([tn[ind[0]], tn[ind[-1]]])

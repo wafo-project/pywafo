@@ -961,7 +961,7 @@ def cheb2poly(ck, a=-1, b=1):
     y2 = 2. * y
 
     # Clenshaw recurence
-    for ix in xrange(n - 1):
+    for ix in range(n - 1):
         tmp = b_Nmi
         b_Nmi = polymul(y2, b_Nmi)  # polynomial multiplication
         nb = len(b_Nmip1)
@@ -1327,7 +1327,7 @@ def _chebval(x, ck, kind=1):
     b_Nmip1 = b_Nmi.copy()    # b_(N-i+1)
     x2 = 2 * x
     # Clenshaw reccurence
-    for ix in xrange(n - 1):
+    for ix in range(n - 1):
         tmp = b_Nmi
         b_Nmi = x2 * b_Nmi - b_Nmip1 + ck[ix]
         b_Nmip1 = tmp
@@ -1444,7 +1444,7 @@ def chebder(ck, a=-1, b=1):
     cder = zeros(n, dtype=asarray(ck).dtype)
     cder[0] = 2 * n * ck[0]
     cder[1] = 2 * (n - 1) * ck[1]
-    for j in xrange(2, n):
+    for j in range(2, n):
         cder[j] = cder[j - 2] + 2 * (n - j) * ck[j]
 
     return cder * 2. / (b - a)  # Normalize to the interval b-a.
@@ -1837,17 +1837,17 @@ def padefitlsq(fun, m, k, a=-1, b=1, trace=False, x=None, end_points=True):
     mad = 0
 
     u = zeros((npt, ncof))
-    for ix in xrange(MAXIT):
+    for ix in range(MAXIT):
         # Set up design matrix for least squares fit.
         pow1 = wt
         bb = pow1 * (fs + abs(mad) * sign(ee))
 
-        for jx in xrange(m + 1):
+        for jx in range(m + 1):
             u[:, jx] = pow1
             pow1 = pow1 * x
 
         pow1 = -bb
-        for jx in xrange(m + 1, ncof):
+        for jx in range(m + 1, ncof):
             pow1 = pow1 * x
             u[:, jx] = pow1
 
