@@ -32,40 +32,33 @@ class Gaussq(unittest.TestCase):
         assert_array_almost_equal(val, 0.5*y)
 
     def test_gauss_hermite(self):
-        f = lambda x: x
-        val, _err = gaussq(f, -Inf, Inf, wfun=2)
-        self.assertAlmostEqual(val, 0)
+        val, _err = gaussq(lambda x: x, -Inf, Inf, wfun=2)
+        assert_array_almost_equal(val, 0)
 
     def test_gauss_laguerre(self):
-        f = lambda x: x
-        val, _err = gaussq(f, 0, Inf, wfun=3, alpha=1)
-        self.assertAlmostEqual(val, 2)
+        val, _err = gaussq(lambda x: x, 0, Inf, wfun=3, alpha=1)
+        assert_array_almost_equal(val, 2)
 
     def test_gauss_jacobi(self):
-        f = lambda x: x
-        val, _err = gaussq(f, -1, 1, wfun=4, alpha=-0.5, beta=-0.5)
-        self.assertAlmostEqual(val, 0)
+        val, _err = gaussq(lambda x: x, -1, 1, wfun=4, alpha=-0.5, beta=-0.5)
+        assert_array_almost_equal(val, 0)
 
     def test_gauss_wfun5_6(self):
-        f = lambda x: x
         for i in [5, 6]:
-            val, _err = gaussq(f, -1, 1, wfun=i)
-            self.assertAlmostEqual(val, 0)
+            val, _err = gaussq(lambda x: x, -1, 1, wfun=i)
+            assert_array_almost_equal(val, 0)
 
     def test_gauss_wfun7(self):
-        f = lambda x: x
-        val, _err = gaussq(f, 0, 1, wfun=7)
-        self.assertAlmostEqual(val, 1.17809725)
+        val, _err = gaussq(lambda x: x, 0, 1, wfun=7)
+        assert_array_almost_equal(val, 1.17809725)
 
     def test_gauss_wfun8(self):
-        f = lambda x: x
-        val, _err = gaussq(f, 0, 1, wfun=8)
-        self.assertAlmostEqual(val, 1.33333333)
+        val, _err = gaussq(lambda x: x, 0, 1, wfun=8)
+        assert_array_almost_equal(val, 1.33333333)
 
     def test_gauss_wfun9(self):
-        f = lambda x: x
-        val, _err = gaussq(f, 0, 1, wfun=9)
-        self.assertAlmostEqual(val, 0.26666667)
+        val, _err = gaussq(lambda x: x, 0, 1, wfun=9)
+        assert_array_almost_equal(val, 0.26666667)
 
 if __name__ == "__main__":
     # import sys;sys.argv = ['', 'Test.testName']
