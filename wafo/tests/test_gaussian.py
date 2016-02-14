@@ -26,7 +26,7 @@ def test_rind():
     assert(np.abs(E0 - Et) < 2*(err0 + terr0))
 
     t = '%2.4f' % E0
-    t_true = '%2.5f' % Et
+    t_true = '%2.4f' % Et
     assert(t == t_true)
 
     A = np.repeat(Blo, n)
