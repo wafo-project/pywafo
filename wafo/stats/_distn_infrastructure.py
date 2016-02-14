@@ -1,9 +1,11 @@
-from scipy.stats._distn_infrastructure import *
-from scipy.stats._distn_infrastructure import (_skew, _kurtosis,  # @UnresolvedImport
-    _lazywhere,  _ncx2_log_pdf, _ncx2_pdf, _ncx2_cdf)
-from wafo.stats.estimation import FitDistribution
-from wafo.stats._constants import _EPS, _XMAX
-import numpy as np
+from __future__ import absolute_import
+from scipy.stats._distn_infrastructure import *  # @UnusedWildImport
+from scipy.stats._distn_infrastructure import (_skew,  # @UnusedImport
+    _kurtosis, _lazywhere, _ncx2_log_pdf,  # @IgnorePep8 @UnusedImport
+    _ncx2_pdf,  _ncx2_cdf)  # @UnusedImport @IgnorePep8
+from .estimation import FitDistribution
+from ._constants import _XMAX
+
 
 _doc_default_example = """\
 Examples
@@ -326,10 +328,11 @@ def nlogps(self, theta, x):
     return T
 
 
-def _reduce_func(self, args, kwds):
+def _reduce_func(self, args, options):
     # First of all, convert fshapes params to fnum: eg for stats.beta,
     # shapes='a, b'. To fix `a`, can specify either `f1` or `fa`.
     # Convert the latter into the former.
+    kwds = options.copy()
     if self.shapes:
         shapes = self.shapes.replace(',', ' ').split()
         for j, s in enumerate(shapes):
@@ -384,9 +387,9 @@ def _reduce_func(self, args, kwds):
     return x0, func, restore, args
 
 
-def fit(self, data, *args, **kwds):
+def fit(self, data, *args, **kwargs):
     """
-    Return ML or MPS estimate for shape, location, and scale parameters from data.
+    Return ML/MPS estimate for shape, location, and scale parameters from data.
 
     ML and MPS stands for Maximum Likelihood and Maximum Product Spacing,
     respectively.  Starting estimates for
@@ -476,6 +479,7 @@ def fit(self, data, *args, **kwds):
     if Narg > self.numargs:
         raise TypeError("Too many input arguments.")
 
+    kwds = kwargs.copy()
     start = [None]*2
     if (Narg < self.numargs) or not ('loc' in kwds and
                                      'scale' in kwds):
@@ -573,4 +577,3 @@ rv_continuous.nlogps = nlogps
 rv_continuous._reduce_func = _reduce_func
 rv_continuous.fit = fit
 rv_continuous.fit2 = fit2
-

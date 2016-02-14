@@ -355,8 +355,8 @@ class Rind(object):
         dev = sqrt(diag(BIG))  # std
         ind = nonzero(indI[1:] > -1)[0]
         infin = repeat(2, len(indI) - 1)
-        infin[ind] = (2 - (Bup[0, ind] > infinity * dev[indI[ind + 1]])
-                      - 2 * (Blo[0, ind] < -infinity * dev[indI[ind + 1]]))
+        infin[ind] = (2 - (Bup[0, ind] > infinity * dev[indI[ind + 1]]) -
+                      2 * (Blo[0, ind] < -infinity * dev[indI[ind + 1]]))
 
         Bup[0, ind] = minimum(Bup[0, ind], infinity * dev[indI[ind + 1]])
         Blo[0, ind] = maximum(Blo[0, ind], -infinity * dev[indI[ind + 1]])
@@ -992,10 +992,10 @@ def prbnorm2d(a, b, r):
     infin = np.repeat(2, 2) - (upper > infinity) - 2 * (lower < -infinity)
 
     if np.all(infin == 2):
-        return (bvd(lower[0], lower[1], correl)
-                - bvd(upper[0], lower[1], correl)
-                - bvd(lower[0], upper[1], correl)
-                + bvd(upper[0], upper[1], correl))
+        return (bvd(lower[0], lower[1], correl) -
+                bvd(upper[0], lower[1], correl) -
+                bvd(lower[0], upper[1], correl) +
+                bvd(upper[0], upper[1], correl))
     elif (infin[0] == 2 and infin[1] == 1):
         return (bvd(lower[0], lower[1], correl) -
                 bvd(upper[0], lower[1], correl))

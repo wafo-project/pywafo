@@ -7,4 +7,4 @@ Spectrum package in WAFO Toolbox.
 from __future__ import absolute_import
 from .core import *
 from . import models
-from wafo.wave_theory import dispersion_relation
+from ..wave_theory import dispersion_relation

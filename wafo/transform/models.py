@@ -478,8 +478,8 @@ class TrOchi(TrCommon2):
         '''
         Returns ga, gb, sigma2, mean2
         '''
-        if (self._phat is None or self.sigma != self._phat[0]
-                or self.mean != self._phat[1]):
+        if (self._phat is None or self.sigma != self._phat[0] or
+                self.mean != self._phat[1]):
             self._par_from_stats()
         # sigma1 = self._phat[0]
         # mean1 = self._phat[1]

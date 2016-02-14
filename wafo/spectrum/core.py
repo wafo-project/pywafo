@@ -1,6 +1,4 @@
 from __future__ import absolute_import, division
-from wafo.misc import meshgrid, gravity, cart2polar, polar2cart
-from wafo.objects import TimeSeries, mat2timeseries
 import warnings
 import os
 import numpy as np
@@ -15,15 +13,18 @@ from scipy.integrate import simps, trapz
 from scipy.special import erf
 from scipy.linalg import toeplitz
 import scipy.interpolate as interpolate
+from scipy.interpolate.interpolate import interp1d, interp2d
+from ..misc import meshgrid, gravity, cart2polar, polar2cart
+from ..objects import TimeSeries, mat2timeseries
 from ..interpolate import stineman_interp
-
 from ..wave_theory.dispersion_relation import w2k  # , k2w
 from ..containers import PlotData, now
-# , tranproc
 from ..misc import sub_dict_select, nextpow2, discretize, JITImport
-# from wafo.graphutil import cltext
 from ..kdetools import qlevels
-from scipy.interpolate.interpolate import interp1d
+
+# from wafo.transform import TrData
+from ..transform.models import TrLinear
+from ..plotbackend import plotbackend
 
 try:
     from ..gaussian import Rind
@@ -40,18 +41,14 @@ except ImportError:
     warnings.warn('Compile the cov2mod.pyd again!')
     cov2mod = None
 
-
-# from wafo.transform import TrData
-from ..transform.models import TrLinear
-from ..plotbackend import plotbackend
-
-
 # Trick to avoid error due to circular import
-
 _WAFOCOV = JITImport('wafo.covariance')
 
 
 __all__ = ['SpecData1D', 'SpecData2D', 'plotspec']
+
+
+_EPS = np.finfo(float).eps
 
 
 def _set_seed(iseed):
@@ -157,477 +154,369 @@ def qtf(w, h=inf, g=9.81):
 
 
 def plotspec(specdata, linetype='b-', flag=1):
+    '''
+    PLOTSPEC Plot a spectral density
+
+    Parameters
+    ----------
+    S : SpecData1D or SpecData2D object
+        defining spectral density.
+    linetype : string
+        defining color and linetype, see plot for possibilities
+    flag : scalar integer
+        defining the type of plot
+        1D:
+            1 plots the density, S, (default)
+            2 plot 10log10(S)
+            3 plots both the above plots
+        2D:
+        Directional spectra: S(w,theta), S(f,theta)
+            1 polar plot S (default)
+            2 plots spectral density and the directional
+                    spreading, int S(w,theta) dw or int S(f,theta) df
+            3 plots spectral density and the directional
+                   spreading, int S(w,theta)/S(w) dw or int S(f,theta)/S(f) df
+            4 mesh of S
+            5 mesh of S in polar coordinates
+            6 contour plot of S
+            7 filled contour plot of S
+        Wavenumber spectra: S(k1,k2)
+            1 contour plot of S (default)
+            2 filled contour plot of S
+
+    Example
+    -------
+    >>> import numpy as np
+    >>> import wafo.spectrum as ws
+    >>> Sj = ws.models.Jonswap(Hm0=3, Tp=7)
+    >>> S = Sj.tospecdata()
+    >>> ws.plotspec(S,flag=1)
+
+      S = demospec('dir'); S2 = mkdspec(jonswap,spreading);
+      plotspec(S,2), hold on
+      # Same as previous fig. due to frequency independent spreading
+      plotspec(S,3,'g')
+      # Not the same as previous figs. due to frequency dependent spreading
+      plotspec(S2,2,'r')
+      plotspec(S2,3,'m')
+      # transform from angular frequency and radians to frequency and degrees
+      Sf = ttspec(S,'f','d'); clf
+      plotspec(Sf,2),
+
+    See also
+    dat2spec, createspec, simpson
+    '''
     pass
-#    '''
-#    PLOTSPEC Plot a spectral density
+#     # label the contour levels
+#     txtFlag = 0
+#     LegendOn = 1
 #
-#    Parameters
-#    ----------
-#    S : SpecData1D or SpecData2D object
-#        defining spectral density.
-#    linetype : string
-#        defining color and linetype, see plot for possibilities
-#    flag : scalar integer
-#        defining the type of plot
-#        1D:
-#            1 plots the density, S, (default)
-#            2 plot 10log10(S)
-#            3 plots both the above plots
-#        2D:
-#        Directional spectra: S(w,theta), S(f,theta)
-#            1 polar plot S (default)
-#            2 plots spectral density and the directional
-#                    spreading, int S(w,theta) dw or int S(f,theta) df
-#            3 plots spectral density and the directional
-#                   spreading, int S(w,theta)/S(w) dw or int S(f,theta)/S(f) df
-#            4 mesh of S
-#            5 mesh of S in polar coordinates
-#            6 contour plot of S
-#            7 filled contour plot of S
-#        Wavenumber spectra: S(k1,k2)
-#            1 contour plot of S (default)
-#            2 filled contour plot of S
+#     ftype = specdata.freqtype  # options are 'f' and 'w' and 'k'
+#     data = specdata.data
+#     if data.ndim == 2:
+#         freq = specdata.args[1]
+#         theta = specdata.args[0]
+#     else:
+#         freq = specdata.args
+#     if isinstance(specdata.args, (list, tuple)):
 #
-#    Example
-#    -------
-#    >>> import numpy as np
-#    >>> import wafo.spectrum as ws
-#    >>> Sj = ws.models.Jonswap(Hm0=3, Tp=7)
-#    >>> S = Sj.tospecdata()
-#    >>> ws.plotspec(S,flag=1)
+#     if ftype == 'w':
+#         xlbl_txt = 'Frequency [rad/s]'
+#         ylbl1_txt = 'S(w) [m^2 s / rad]'
+#         ylbl3_txt = 'Directional Spectrum'
+#         zlbl_txt = 'S(w,\theta) [m^2 s / rad^2]'
+#         funit = ' [rad/s]'
+#     Sunit     = ' [m^2 s / rad]'
+#     elif ftype == 'f':
+#         xlbl_txt = 'Frequency [Hz]'
+#         ylbl1_txt = 'S(f) [m^2 s]'
+#         ylbl3_txt = 'Directional Spectrum'
+#         zlbl_txt = 'S(f,\theta) [m^2 s / rad]'
+#         funit = ' [Hz]'
+#     Sunit     = ' [m^2 s ]'
+#     elif ftype == 'k':
+#         xlbl_txt = 'Wave number [rad/m]'
+#         ylbl1_txt = 'S(k) [m^3/ rad]'
+#         funit = ' [rad/m]'
+#     Sunit     = ' [m^3 / rad]'
+#         ylbl4_txt = 'Wave Number Spectrum'
 #
-#      S = demospec('dir'); S2 = mkdspec(jonswap,spreading);
-#      plotspec(S,2), hold on
-#      # Same as previous fig. due to frequency independent spreading
-#      plotspec(S,3,'g')
-#      # Not the same as previous figs. due to frequency dependent spreading
-#      plotspec(S2,2,'r')
-#      plotspec(S2,3,'m')
-#      % transform from angular frequency and radians to frequency and degrees
-#      Sf = ttspec(S,'f','d'); clf
-#      plotspec(Sf,2),
-#
-#     See also  dat2spec, createspec, simpson
-#    '''
-#
-# label the contour levels
-#    txtFlag = 0
-#    LegendOn = 1
+#     else:
+#         raise ValueError('Frequency type unknown')
 #
 #
-# ftype = specdata.freqtype #options are 'f' and 'w' and 'k'
-#    data = specdata.data
-#    if data.ndim == 2:
-#        freq = specdata.args[1]
-#        theta = specdata.args[0]
-#    else:
-#        freq = specdata.args
-# if isinstance(specdata.args, (list, tuple)):
+#     if hasattr(specdata, 'norm') and specdata.norm :
+#         Sunit=[]
+#         funit = []
+#         ylbl1_txt = 'Normalized Spectral density'
+#         ylbl3_txt = 'Normalized Directional Spectrum'
+#         ylbl4_txt = 'Normalized Wave Number Spectrum'
+#         if ftype == 'k':
+#             xlbl_txt = 'Normalized Wave number'
+#         else:
+#             xlbl_txt = 'Normalized Frequency'
 #
-#    if ftype == 'w':
-#        xlbl_txt = 'Frequency [rad/s]'
-#        ylbl1_txt = 'S(w) [m^2 s / rad]'
-#        ylbl3_txt = 'Directional Spectrum'
-#        zlbl_txt = 'S(w,\theta) [m^2 s / rad^2]'
-#        funit = ' [rad/s]'
-# Sunit     = ' [m^2 s / rad]'
-#    elif ftype == 'f':
-#        xlbl_txt = 'Frequency [Hz]'
-#        ylbl1_txt = 'S(f) [m^2 s]'
-#        ylbl3_txt = 'Directional Spectrum'
-#        zlbl_txt = 'S(f,\theta) [m^2 s / rad]'
-#        funit = ' [Hz]'
-# Sunit     = ' [m^2 s ]'
-#    elif ftype == 'k':
-#        xlbl_txt = 'Wave number [rad/m]'
-#        ylbl1_txt = 'S(k) [m^3/ rad]'
-#        funit = ' [rad/m]'
-# Sunit     = ' [m^3 / rad]'
-#        ylbl4_txt = 'Wave Number Spectrum'
+#     ylbl2_txt = 'Power spectrum (dB)'
 #
-#    else:
-#        raise ValueError('Frequency type unknown')
+#     phi = specdata.phi
 #
+#     spectype = specdata.type.lower()
+#     stype = spectype[-3::]
+#     if stype in ('enc', 'req', 'k1d') : #1D plot
+#     Fn = freq[-1] # Nyquist frequency
+#     indm = findpeaks(data, n=4)
+#     maxS = data.max()
+#     if isfield(S,'CI') && ~isempty(S.CI):
+#         maxS  = maxS*S.CI(2)
+#         txtCI = [num2str(100*S.p), '% CI']
+#         #end
 #
-#    if hasattr(specdata, 'norm') and specdata.norm :
-# Sunit=[]
-#        funit = []
-#        ylbl1_txt = 'Normalized Spectral density'
-#        ylbl3_txt = 'Normalized Directional Spectrum'
-#        ylbl4_txt = 'Normalized Wave Number Spectrum'
-#        if ftype == 'k':
-#            xlbl_txt = 'Normalized Wave number'
-#        else:
-#            xlbl_txt = 'Normalized Frequency'
+#     Fp = freq[indm]# %peak frequency/wave number
 #
-#    ylbl2_txt = 'Power spectrum (dB)'
+#     if len(indm) == 1:
+#         txt = [('fp = %0.2g' % Fp) + funit]
+#     else:
+#         txt = []
+#         for i, fp in enumerate(Fp.tolist()):
+#             txt.append(('fp%d = %0.2g' % (i, fp)) + funit)
 #
-#    phi = specdata.phi
+#     txt = ''.join(txt)
+#     if (flag == 3):
+#         plotbackend.subplot(2, 1, 1)
+#     if (flag == 1) or (flag == 3):#  Plot in normal scale
+#         plotbackend.plot(np.vstack([Fp, Fp]),
+#             np.vstack([zeros(len(indm)), data.take(indm)]),
+#             ':', label=txt)
+#         plotbackend.plot(freq, data, linetype)
+#         specdata.labels.labelfig()
+#     if isfield(S,'CI'):
+#         plot(freq,S.S*S.CI(1), 'r:' )
+#         plot(freq,S.S*S.CI(2), 'r:' )
 #
-#    spectype = specdata.type.lower()
-#    stype = spectype[-3::]
-# if stype in ('enc', 'req', 'k1d') : #1D plot
-# Fn = freq[-1] # Nyquist frequency
-#        indm = findpeaks(data, n=4)
-#        maxS = data.max()
-# if isfield(S,'CI') && ~isempty(S.CI),
-# maxS  = maxS*S.CI(2)
-# txtCI = [num2str(100*S.p), '% CI']
-# end
+#         a = plotbackend.axis()
 #
-# Fp = freq[indm]# %peak frequency/wave number
+#         a1 = Fn
+#         if (Fp > 0):
+#             a1 = max(min(Fn, 10 * max(Fp)), a[1])
 #
-#        if len(indm) == 1:
-#            txt = [('fp = %0.2g' % Fp) + funit]
-#        else:
-#            txt = []
-#            for i, fp in enumerate(Fp.tolist()):
-#                txt.append(('fp%d = %0.2g' % (i, fp)) + funit)
-#
-#        txt = ''.join(txt)
-#        if (flag == 3):
-#            plotbackend.subplot(2, 1, 1)
-# if (flag == 1) or (flag == 3):#  Plot in normal scale
-#            plotbackend.plot(np.vstack([Fp, Fp]),
-#                np.vstack([zeros(len(indm)), data.take(indm)]),
-#                ':', label=txt)
-#            plotbackend.plot(freq, data, linetype)
-#            specdata.labels.labelfig()
-# if isfield(S,'CI'),
-# plot(freq,S.S*S.CI(1), 'r:' )
-# plot(freq,S.S*S.CI(2), 'r:' )
-#
-#            a = plotbackend.axis()
-#
-#            a1 = Fn
-#            if (Fp > 0):
-#                a1 = max(min(Fn, 10 * max(Fp)), a[1])
-#
-#            plotbackend.axis([0, a1 , 0, max(1.01 * maxS, a[3])])
-# plotbackend.title('Spectral density')
-# plotbackend.xlabel(xlbl_txt)
-# plotbackend.ylabel(ylbl1_txt)
+#         plotbackend.axis([0, a1 , 0, max(1.01 * maxS, a[3])])
+#     plotbackend.title('Spectral density')
+#     plotbackend.xlabel(xlbl_txt)
+#     plotbackend.ylabel(ylbl1_txt)
 #
 #
-#        if (flag == 3):
-#            plotbackend.subplot(2, 1, 2)
+#     if (flag == 3):
+#         plotbackend.subplot(2, 1, 2)
 #
-# if (flag == 2) or (flag == 3) : # Plot in logaritmic scale
-#     ind = np.flatnonzero(data > 0)
+#     if (flag == 2) or (flag == 3) : # Plot in logaritmic scale
+#         ind = np.flatnonzero(data > 0)
 #
-#     plotbackend.plot(np.vstack([Fp, Fp]),
-#                      np.vstack((min(10 * log10(data.take(ind) /
-#                                      maxS)).repeat(len(Fp)),
-#                      10 * log10(data.take(indm) / maxS))), ':',label=txt)
-# hold on
-# if isfield(S,'CI'),
-# plot(freq(ind),10*log10(S.S(ind)*S.CI(1)/maxS), 'r:' )
-# plot(freq(ind),10*log10(S.S(ind)*S.CI(2)/maxS), 'r:' )
-# end
-#        plotbackend.plot(freq[ind], 10 * log10(data[ind] / maxS), linetype)
+#         plotbackend.plot(np.vstack([Fp, Fp]),
+#                       np.vstack((min(10 * log10(data.take(ind) /
+#                                       maxS)).repeat(len(Fp)),
+#                       10 * log10(data.take(indm) / maxS))), ':',label=txt)
+#     hold on
+#     if isfield(S,'CI'):
+#         plot(freq(ind),10*log10(S.S(ind)*S.CI(1)/maxS), 'r:' )
+#         plot(freq(ind),10*log10(S.S(ind)*S.CI(2)/maxS), 'r:' )
 #
-#        a = plotbackend.axis()
+#     plotbackend.plot(freq[ind], 10 * log10(data[ind] / maxS), linetype)
 #
-#            a1 = Fn
-#            if (Fp > 0):
-#                a1 = max(min(Fn, 10 * max(Fp)), a[1])
+#     a = plotbackend.axis()
 #
-#            plotbackend.axis([0, a1 , -20, max(1.01 * 10 * log10(1), a[3])])
+#     a1 = Fn
+#     if (Fp > 0):
+#         a1 = max(min(Fn, 10 * max(Fp)), a[1])
 #
-#            specdata.labels.labelfig()
-# plotbackend.title('Spectral density')
-# plotbackend.xlabel(xlbl_txt)
-#            plotbackend.ylabel(ylbl2_txt)
+#     plotbackend.axis([0, a1 , -20, max(1.01 * 10 * log10(1), a[3])])
 #
-#        if LegendOn:
-#            plotbackend.legend()
-#            if isfield(S,'CI'),
-#                legend(txt{:},txtCI,1)
-#            else
-#                legend(txt{:},1)
-#                end
-#        end
-#      case {'k2d'}
-#        if plotflag==1,
-#          [c, h] = contour(freq,S.k2,S.S,'b')
-#          z_level = clevels(c)
+#     specdata.labels.labelfig()
+#     plotbackend.title('Spectral density')
+#     plotbackend.xlabel(xlbl_txt)
+#     plotbackend.ylabel(ylbl2_txt)
+#
+#         if LegendOn:
+#             plotbackend.legend()
+#             if isfield(S,'CI'),
+#                 legend(txt{:},txtCI,1)
+#             else
+#                 legend(txt{:},1)
+#                 end
+#         end
+#       case {'k2d'}
+#         if plotflag==1,
+#           [c, h] = contour(freq,S.k2,S.S,'b')
+#           z_level = clevels(c)
 #
 #
-#          if txtFlag==1
-#            textstart_x=0.05; textstart_y=0.94
-#            cltext1(z_level,textstart_x,textstart_y)
-#          else
-#            cltext(z_level,0)
-#          end
-#        else
-#          [c,h] = contourf(freq,S.k2,S.S)
-#          %clabel(c,h), colorbar(c,h)
-#          fcolorbar(c) % alternative
-#        end
-#        rotate(h,[0 0 1],-phi*180/pi)
+#           if txtFlag==1
+#             textstart_x=0.05; textstart_y=0.94
+#             cltext1(z_level,textstart_x,textstart_y)
+#           else
+#             cltext(z_level,0)
+#           end
+#         else
+#           [c,h] = contourf(freq,S.k2,S.S)
+#           %clabel(c,h), colorbar(c,h)
+#           fcolorbar(c) % alternative
+#         end
+#         rotate(h,[0 0 1],-phi*180/pi)
 #
 #
 #
-#        xlabel(xlbl_txt)
-#        ylabel(xlbl_txt)
-#        title(ylbl4_txt)
-#        %return
-#        km=max([-freq(1) freq(end) S.k2(1) -S.k2(end)])
-#        axis([-km km -km km])
-#        hold on
-#        plot([0 0],[ -km km],':')
-#        plot([-km km],[0 0],':')
-#        axis('square')
+#         xlabel(xlbl_txt)
+#         ylabel(xlbl_txt)
+#         title(ylbl4_txt)
+#         # return
+#         km=max([-freq(1) freq(end) S.k2(1) -S.k2(end)])
+#         axis([-km km -km km])
+#         hold on
+#         plot([0 0],[ -km km],':')
+#         plot([-km km],[0 0],':')
+#         axis('square')
 #
 #
-#        %cltext(z_level)
-#        %axis('square')
-#        if ~ih, hold off,end
-#      case {'dir'}
-#        thmin = S.theta(1)-phi;thmax=S.theta(end)-phi
-#        if plotflag==1 % polar plot
-#          if 0, % alternative but then z_level must be chosen beforehand
-#            h = polar([0 2*pi],[0 freq(end)])
-#            delete(h);hold on
-#            [X,Y]=meshgrid(S.theta,freq)
-#            [X,Y]=polar2cart(X,Y)
-#            contour(X,Y,S.S',lintype)
-#          else
-#            if (abs(thmax-thmin)<3*pi), % angle given in radians
-#              theta = S.theta
-#            else
-#              theta = S.theta*pi/180 % convert to radians
-#              phi  = phi*pi/180
-#            end
-#            c = contours(theta,freq,S.S')%,Nlevel) % calculate levels
-#            if isempty(c)
-#              c = contours(theta,freq,S.S)%,Nlevel); % calculate levels
-#            end
-#            [z_level c] = clevels(c); % find contour levels
-#            h = polar(c(1,:),c(2,:),lintype);
-#            rotate(h,[0 0 1],-phi*180/pi)
-#          end
-#          title(ylbl3_txt)
-#          % label the contour levels
+#         # cltext(z_level)
+#         # axis('square')
+#         if ~ih, hold off,end
+#       case {'dir'}
+#         thmin = S.theta(1)-phi;thmax=S.theta(end)-phi
+#         if plotflag==1 % polar plot
+#           if 0, % alternative but then z_level must be chosen beforehand
+#             h = polar([0 2*pi],[0 freq(end)])
+#             delete(h);hold on
+#             [X,Y]=meshgrid(S.theta,freq)
+#             [X,Y]=polar2cart(X,Y)
+#             contour(X,Y,S.S',lintype)
+#           else
+#             if (abs(thmax-thmin)<3*pi), % angle given in radians
+#               theta = S.theta
+#             else
+#               theta = S.theta*pi/180 % convert to radians
+#               phi  = phi*pi/180
+#             end
+#             c = contours(theta,freq,S.S')%,Nlevel) % calculate levels
+#             if isempty(c)
+#               c = contours(theta,freq,S.S)%,Nlevel); % calculate levels
+#             end
+#             [z_level c] = clevels(c); % find contour levels
+#             h = polar(c(1,:),c(2,:),lintype);
+#             rotate(h,[0 0 1],-phi*180/pi)
+#           end
+#           title(ylbl3_txt)
+#           % label the contour levels
 #
-#          if txtFlag==1
-#            textstart_x = -0.1; textstart_y=1.00;
-#            cltext1(z_level,textstart_x,textstart_y);
-#          else
-#            cltext(z_level,0)
-#          end
+#           if txtFlag==1
+#             textstart_x = -0.1; textstart_y=1.00;
+#             cltext1(z_level,textstart_x,textstart_y);
+#           else
+#             cltext(z_level,0)
+#           end
 #
-#        elseif (plotflag==2) || (plotflag==3),
-#          %ih = ishold;
+#         elseif (plotflag==2) || (plotflag==3),
+#           %ih = ishold;
 #
-#          subplot(211)
+#           subplot(211)
 #
-#          if ih, hold on, end
+#           if ih, hold on, end
 #
-#          Sf = spec2spec(S,'freq'); % frequency spectrum
-#          plotspec(Sf,1,lintype)
+#           Sf = spec2spec(S,'freq'); % frequency spectrum
+#           plotspec(Sf,1,lintype)
 #
-#          subplot(212)
+#           subplot(212)
 #
-#          Dtf        = S.S;
-#          [Nt,Nf]    = size(S.S);
-#          Sf         = Sf.S(:).';
-#          ind        = find(Sf);
+#           Dtf        = S.S;
+#           [Nt,Nf]    = size(S.S);
+#           Sf         = Sf.S(:).';
+#           ind        = find(Sf);
 #
-#          if plotflag==3, %Directional distribution  D(theta,freq))
-#            Dtf(:,ind) = Dtf(:,ind)./Sf(ones(Nt,1),ind);
-#          end
-#          Dtheta  = simpson(freq,Dtf,2); %Directional spreading, D(theta)
-#          Dtheta  = Dtheta/simpson(S.theta,Dtheta); % make sure int D(theta)dtheta = 1
-#          [y,ind] = max(Dtheta);
-#          Wdir    = S.theta(ind)-phi; % main wave direction
-#          txtwdir = ['\theta_p=' num2pistr(Wdir,3)]; % convert to text string
+#           if plotflag==3, %Directional distribution  D(theta,freq))
+#             Dtf(:,ind) = Dtf(:,ind)./Sf(ones(Nt,1),ind);
+#           end
+#           Dtheta  = simpson(freq,Dtf,2); %Directional spreading, D(theta)
+#           Dtheta  = Dtheta/simpson(S.theta,Dtheta); % make sure int D(theta)dtheta = 1
+#           [y,ind] = max(Dtheta);
+#           Wdir    = S.theta(ind)-phi; % main wave direction
+#           txtwdir = ['\theta_p=' num2pistr(Wdir,3)]; % convert to text string
 #
-#          plot([1 1]*S.theta(ind)-phi,[0 Dtheta(ind)],':'), hold on
-#          if LegendOn
-#            lh=legend(txtwdir,0);
-#          end
-#          plot(S.theta-phi,Dtheta,lintype)
+#           plot([1 1]*S.theta(ind)-phi,[0 Dtheta(ind)],':'), hold on
+#           if LegendOn
+#             lh=legend(txtwdir,0);
+#           end
+#           plot(S.theta-phi,Dtheta,lintype)
 #
-#          fixthetalabels(thmin,thmax,'x',2)  % fix xticklabel and xlabel for theta
-#          ylabel('D(\theta)')
-#          title('Spreading function')
-#          if ~ih, hold off, end
-#          %legend(lh) % refresh current legend
-#        elseif plotflag==4 % mesh
-#          mesh(freq,S.theta-phi,S.S)
-#          xlabel(xlbl_txt);
-#          fixthetalabels(thmin,thmax,'y',3) % fix yticklabel and ylabel for theta
-#          zlabel(zlbl_txt)
-#          title(ylbl3_txt)
-#        elseif plotflag==5 % mesh
-#          %h=polar([0 2*pi],[0 freq(end)]);
-#          %delete(h);hold on
-#          [X,Y]=meshgrid(S.theta-phi,freq);
-#          [X,Y]=polar2cart(X,Y);
-#          mesh(X,Y,S.S')
-#          % display the unit circle beneath the surface
-#          hold on, mesh(X,Y,zeros(size(S.S'))),hold off
-#          zlabel(zlbl_txt)
-#          title(ylbl3_txt)
-#          set(gca,'xticklabel','','yticklabel','')
-#          lighting phong
-#          %lighting gouraud
-#          %light
-#        elseif (plotflag==6) || (plotflag==7),
-#          theta = S.theta-phi;
-#          [c, h] = contour(freq,theta,S.S); %,Nlevel); % calculate levels
-#          fixthetalabels(thmin,thmax,'y',2) % fix yticklabel and ylabel for theta
-#          if plotflag==7,
-#            hold on
-#            [c,h] =    contourf(freq,theta,S.S); %,Nlevel); % calculate levels
-#            %hold on
-#          end
+#           fixthetalabels(thmin,thmax,'x',2)  % fix xticklabel and xlabel for theta
+#           ylabel('D(\theta)')
+#           title('Spreading function')
+#           if ~ih, hold off, end
+#           %legend(lh) % refresh current legend
+#         elseif plotflag==4 % mesh
+#           mesh(freq,S.theta-phi,S.S)
+#           xlabel(xlbl_txt);
+#           fixthetalabels(thmin,thmax,'y',3) % fix yticklabel and ylabel for theta
+#           zlabel(zlbl_txt)
+#           title(ylbl3_txt)
+#         elseif plotflag==5 % mesh
+#           %h=polar([0 2*pi],[0 freq(end)]);
+#           %delete(h);hold on
+#           [X,Y]=meshgrid(S.theta-phi,freq);
+#           [X,Y]=polar2cart(X,Y);
+#           mesh(X,Y,S.S')
+#           % display the unit circle beneath the surface
+#           hold on, mesh(X,Y,zeros(size(S.S'))),hold off
+#           zlabel(zlbl_txt)
+#           title(ylbl3_txt)
+#           set(gca,'xticklabel','','yticklabel','')
+#           lighting phong
+#           %lighting gouraud
+#           %light
+#         elseif (plotflag==6) || (plotflag==7),
+#           theta = S.theta-phi;
+#           [c, h] = contour(freq,theta,S.S); %,Nlevel); % calculate levels
+#           fixthetalabels(thmin,thmax,'y',2) % fix yticklabel and ylabel for theta
+#           if plotflag==7,
+#             hold on
+#             [c,h] =    contourf(freq,theta,S.S); %,Nlevel); % calculate levels
+#             %hold on
+#           end
 #
-#          title(ylbl3_txt)
-#          xlabel(xlbl_txt);
-#          if 0,
-#            [z_level] = clevels(c); % find contour levels
-#            % label the contour levels
-#            if txtFlag==1
-#              textstart_x = 0.06; textstart_y=0.94;
-#              cltext1(z_level,textstart_x,textstart_y) % a local variant of cltext
-#            else
-#              cltext(z_level)
-#            end
-#          else
-#            colormap('jet')
+#           title(ylbl3_txt)
+#           xlabel(xlbl_txt);
+#           if 0,
+#             [z_level] = clevels(c); % find contour levels
+#             % label the contour levels
+#             if txtFlag==1
+#               textstart_x = 0.06; textstart_y=0.94;
+#               cltext1(z_level,textstart_x,textstart_y) % a local variant of cltext
+#             else
+#               cltext(z_level)
+#             end
+#           else
+#             colormap('jet')
 #
-#            if plotflag==7,
-#              fcolorbar(c)
-#            else
-#              %clabel(c,h),
-#              hcb = colorbar;
-#            end
-#            grid on
-#          end
-#        else
-#          error('Unknown plot option')
-#        end
-#      otherwise, error('unknown spectral type')
-#    end
+#             if plotflag==7,
+#               fcolorbar(c)
+#             else
+#               %clabel(c,h),
+#               hcb = colorbar;
+#             end
+#             grid on
+#           end
+#         else
+#           error('Unknown plot option')
+#         end
+#       otherwise, error('unknown spectral type')
+#     end
 #
-#    if ~ih, hold off, end
+#     if ~ih, hold off, end
 #
-#    %  The following two commands install point-and-click editing of
-#    %   all the text objects (title, xlabel, ylabel) of the current figure:
+#     #  The following two commands install point-and-click editing of
+#     #   all the text objects (title, xlabel, ylabel) of the current figure:
 #
-#    %set(findall(gcf,'type','text'),'buttondownfcn','edtext')
-#    %set(gcf,'windowbuttondownfcn','edtext(''hide'')')
+#     #set(findall(gcf,'type','text'),'buttondownfcn','edtext')
+#     #set(gcf,'windowbuttondownfcn','edtext(''hide'')')
 #
-#    return
-#
-
-
-#
-#    function fixthetalabels(thmin,thmax,xy,dim)
-#    %FIXTHETALABELS pretty prints the ticklabels and x or y labels for theta
-#    %
-#    % CALL fixthetalabels(thmin,thmax,xy,dim)
-#    %
-#    %  thmin, thmax = minimum and maximum value for theta (wave direction)
-#    %  xy           = 'x' if theta is plotted on the x-axis
-#    %                 'y' if theta is plotted on the y-axis
-#    %  dim          = specifies the dimension of the plot (ie number of axes shown 2 or 3)
-#    %  If abs(thmax-thmin)<3*pi it is assumed that theta is given in radians
-#    %  otherwise degrees
-#
-#    ind = [('x' == xy)  ('y' == xy) ];
-#    yx = 'yx';
-#    yx = yx(ind);
-#    if nargin<4||isempty(dim),
-#      dim=2;
-#    end
-#    %drawnow
-#    %pause
-#
-#    if abs(thmax-thmin)<3*pi, %Radians given. Want xticks given as fractions  of pi
-#      %Trick to update the axis
-#      if xy=='x'
-#        if dim<3,
-#          axis([thmin,thmax 0 inf ])
-#        else
-#          axis([thmin,thmax 0 inf 0 inf])
-#        end
-#      else
-#        if dim<3,
-#          axis([0 inf thmin,thmax ])
-#        else
-#          axis([0 inf thmin,thmax 0 inf])
-#        end
-#      end
-#
-#      set(gca,[xy 'tick'],pi*(thmin/pi:0.25:thmax/pi));
-#      set(gca,[xy 'ticklabel'],[]);
-#      x    = get(gca,[xy 'tick']);
-#      y    = get(gca,[yx 'tick']);
-#      y1 = y(1);
-#      dy = y(2)-y1;
-#      yN = y(end)+dy;
-#      ylim = [y1 yN];
-#      dy1 = diff(ylim)/40;
-#      %ylim=get(gca,[yx 'lim'])%,ylim=ylim(2);
-#
-#      if xy=='x'
-#        for j=1:length(x)
-#          xtxt = num2pistr(x(j));
-#          figtext(x(j),y1-dy1,xtxt,'data','data','center','top');
-#        end
-#       % ax = [thmin thmax 0 inf];
-#        ax = [thmin thmax ylim];
-#        if dim<3,
-#          figtext(mean(x),y1-7*dy1,'Wave directions (rad)','data','data','center','top')
-#        else
-#          ax = [ax  0 inf];
-#          xlabel('Wave directions (rad)')
-#        end
-#      else
-#        %ax = [0 inf thmin thmax];
-#        ax = [ylim thmin thmax];
-#
-#        if dim<3,
-#          for j=1:length(x)
-#            xtxt = num2pistr(x(j));
-#            figtext(y1-dy1/2,x(j),xtxt,'data','data','right');
-#          end
-#          set(gca,'DefaultTextRotation',90)
-#          %ylabel('Wave directions (rad)')
-#          figtext(y1-3*dy1,mean(x),'Wave directions (rad)','data','data','center','bottom')
-#          set(gca,'DefaultTextRotation',0)
-#        else
-#          for j=1:length(x)
-#            xtxt = num2pistr(x(j));
-#            figtext(y1-3*dy1,x(j),xtxt,'data','data','right');
-#          end
-#          ax = [ax 0 inf];
-#          ylabel('Wave directions (rad)')
-#        end
-#      end
-#      %xtxt = num2pistr(x(j));
-#      %for j=2:length(x)
-#      %  xtxt = strvcat(xtxt,num2pistr(x(j)));
-#      %end
-#      %set(gca,[xy 'ticklabel'],xtxt)
-#    else % Degrees given
-#      set(gca,[xy 'tick'],thmin:45:thmax)
-#      if xy=='x'
-#        ax=[thmin thmax 0 inf];
-#        if dim>=3,      ax=[ax 0 inf];    end
-#        xlabel('Wave directions (deg)')
-#      else
-#        ax=[0 inf thmin thmax ];
-#        if dim>=3,      ax=[ax 0 inf];    end
-#        ylabel('Wave directions (deg)')
-#      end
-#    end
-#    axis(ax)
-#    return
-#
+#     return
 
 
 class SpecData1D(PlotData):
@@ -684,6 +573,43 @@ class SpecData1D(PlotData):
 
         self.setlabels()
 
+    def _get_default_dt_and_rate(self, dt):
+        dt_old = self.sampling_period()
+        if dt is None:
+            return dt_old, 1
+        rate = max(round(dt_old * 1. / dt), 1.)
+        return dt, rate
+
+    def _check_dt(self, dt):
+        freq = self.args
+        checkdt = 1.2 * min(diff(freq)) / 2. / pi
+        if self.freqtype in 'f':
+                checkdt *= 2 * pi
+        if (checkdt < 2. ** -16 / dt):
+            print('Step dt = %g in computation of the density is ' +
+                  'too small.' % dt)
+            print('The computed covariance (by FFT(2^K)) may differ from the')
+            print('theoretical. Solution:')
+            raise ValueError('use larger dt or sparser grid for spectrum.')
+
+    def _check_cov_matrix(self, acfmat, nt, dt):
+        eps0 = 0.0001
+        if nt + 1 >= 5:
+            cc2 = acfmat[0, 0] - acfmat[4, 0] * (acfmat[4, 0] / acfmat[0, 0])
+            if (cc2 < eps0):
+                warnings.warn('Step dt = %g in computation of the density ' +
+                              'is too small.' % dt)
+        cc1 = acfmat[0, 0] - acfmat[1, 0] * (acfmat[1, 0] / acfmat[0, 0])
+        if (cc1 < eps0):
+            warnings.warn('Step dt = %g is small, and may cause numerical ' +
+                          'inaccuracies.' % dt)
+
+    @property
+    def lagtype(self):
+        if self.freqtype in 'k':  # options are 'f' and 'w' and 'k'
+            return 'x'
+        return 't'
+
     def tocov_matrix(self, nr=0, nt=None, dt=None):
         '''
         Computes covariance function and its derivatives, alternative version
@@ -725,59 +651,30 @@ class SpecData1D(PlotData):
         objects
         '''
 
-        ftype = self.freqtype  # %options are 'f' and 'w' and 'k'
+
+        dt, rate = self._get_default_dt_and_rate(dt)
+        self._check_dt(dt)
+
         freq = self.args
         n_f = len(freq)
-        dt_old = self.sampling_period()
-        if dt is None:
-            dt = dt_old
-            rate = 1
-        else:
-            rate = max(round(dt_old * 1. / dt), 1.)
-
         if nt is None:
             nt = rate * (n_f - 1)
         else:  # %check if Nt is ok
             nt = minimum(nt, rate * (n_f - 1))
 
-        checkdt = 1.2 * min(diff(freq)) / 2. / pi
-        if ftype in 'k':
-            lagtype = 'x'
-        else:
-            lagtype = 't'
-            if ftype in 'f':
-                checkdt = checkdt * 2 * pi
-        msg1 = 'Step dt = %g in computation of the density is too small.' % dt
-        msg2 = 'Step dt = %g is small, and may cause numerical inaccuracies.' % dt
-
-        if (checkdt < 2. ** -16 / dt):
-            print(msg1)
-            print('The computed covariance (by FFT(2^K)) may differ from the')
-            print('theoretical. Solution:')
-            raise ValueError('use larger dt or sparser grid for spectrum.')
-
-        # Calculating covariances
-        #~~~~~~~~~~~~~~~~~~~~~~~~
         spec = self.copy()
         spec.resample(dt)
 
         acf = spec.tocovdata(nr, nt, rate=1)
         acfmat = zeros((nt + 1, nr + 1), dtype=float)
         acfmat[:, 0] = acf.data[0:nt + 1]
-        fieldname = 'R' + lagtype * nr
+        fieldname = 'R' + self.lagtype * nr
         for i in range(1, nr + 1):
             fname = fieldname[:i + 1]
             r_i = getattr(acf, fname)
             acfmat[:, i] = r_i[0:nt + 1]
 
-        eps0 = 0.0001
-        if nt + 1 >= 5:
-            cc2 = acfmat[0, 0] - acfmat[4, 0] * (acfmat[4, 0] / acfmat[0, 0])
-            if (cc2 < eps0):
-                warnings.warn(msg1)
-        cc1 = acfmat[0, 0] - acfmat[1, 0] * (acfmat[1, 0] / acfmat[0, 0])
-        if (cc1 < eps0):
-            warnings.warn(msg2)
+        self._check_cov_matrix(acfmat, nt, dt)
         return acfmat
 
     def tocovdata(self, nr=0, nt=None, rate=None):
@@ -1657,8 +1554,8 @@ class SpecData1D(PlotData):
         # ftmp = cov2mmtpdfexe(R,dt,u,defnr,Nstart,hg,options)
         # err = repmat(nan,size(ftmp))
         # else
-        [ftmp, err, terr, options] = self._cov2mmtpdf(
-            R, dt, u, defnr, Nstart, hg, options)
+        ftmp, err, terr, options = self._cov2mmtpdf(R, dt, u, defnr, Nstart,
+                                                    hg, options)
 
         # end
         note = ''
@@ -1850,8 +1747,8 @@ class SpecData1D(PlotData):
          (indI(3)=Nt+1);  for i\in (indI(3)+1,indI(4)], Y(i)>0 (deriv. X''(tn))
          (indI(4)=Nt+2);  for i\in (indI(4)+1,indI(5)], Y(i)<0 (deriv. X'(ts))
         '''
-        R0, R1, R2, R3, R4, R5 = R[:, :5].T
-
+        R0, R1, R2, R3, R4 = R[:, :5].T
+        covinput = self._covinput_mmt_pdf
         Ntime = len(R0)
         Nx0 = max(1, len(hg))
         Nx1 = Nx0
@@ -1876,14 +1773,15 @@ class SpecData1D(PlotData):
         if def_nr <= 1:  # just plain Mm
             Nx = Nx1 * (Nx1 - 1) / 2
             IJ = (Nx1 + isOdd) / 2
-            if (hg[0] + hg[Nx1 - 1] == 0 and (hg[IJ - 1] == 0 or hg[IJ - 1] + hg[IJ] == 0)):
+            if (hg[0] + hg[Nx1 - 1] == 0 and (hg[IJ - 1] == 0 or
+                                              hg[IJ - 1] + hg[IJ] == 0)):
                 symmetry = 0
                 print(' Integration region symmetric')
                 # May save Nx1-isOdd integrations in each time step
                 # This is not implemented yet.
                 # Nx = Nx1*(Nx1-1)/2-Nx1+isOdd
-
-            # CC = normalizing constant = 1/ expected number of zero-up-crossings of X'
+            # normalizing constant:
+            # CC = 1/ expected number of zero-up-crossings of X'
             # CC = 2*pi*sqrt(-R2[0]/R4[0])
             #  XcScale = log(CC)
             XcScale = log(2 * pi * sqrt(-R2[0] / R4[0]))
@@ -1902,16 +1800,15 @@ class SpecData1D(PlotData):
                 Nc = 5
                 NI = 5
                 Nd = 3
-            # CC= normalizing constant= 1/ expected number of u-up-crossings of X
+            # CC = 1/ expected number of u-up-crossings of X
             # CC = 2*pi*sqrt(-R0(1)/R2(1))*exp(0.5D0*u*u/R0(1))
             XcScale = log(2 * pi * sqrt(-R0[0] / R2[0])) + 0.5 * u * u / R0[0]
 
         options['xcscale'] = XcScale
-        opt0 = struct2cell(options)
-        # opt0 = opt0(1:10)
-        # seed = []
-        # opt0 =  {SCIS,XcScale,ABSEPS,RELEPS,COVEPS,MAXPTS,MINPTS,seed,NIT1}
-
+#         opt0 = [options[n] for n in ('SCIS', 'XcScale', 'ABSEPS', 'RELEPS',
+#                                      'COVEPS', 'MAXPTS', 'MINPTS', 'seed',
+#                                      'NIT1')]
+        rind = Rind(**options)
         if (Nx > 1):
             # (M,m) or (M,m)v distribution wanted
             if ((def_nr == 0 or def_nr == 2)):
@@ -1982,10 +1879,10 @@ class SpecData1D(PlotData):
                 indI[2] = Nt + 1
                 indI[3] = Ntd
                 # positive wave period
-                BIG[:Ntdc, :Ntdc] = covinput(
-                    BIG[:Ntdc, :Ntdc], R0, R1, R2, R3, R4, Ntd, 0)
+                # self._covinput_mmt_pdf(BIG, R, tn, ts, tnold)
+                BIG[:Ntdc, :Ntdc] = covinput(BIG[:Ntdc, :Ntdc], R, Ntd, 0)
                 [fxind, err0, terr0] = rind(BIG[:Ntdc, :Ntdc], ex[:Ntdc],
-                                            a_lo, a_up, indI, xc, Nt, *opt0)
+                                            a_lo, a_up, indI, xc, Nt)
                 # fxind  = CC*rind(BIG(1:Ntdc,1:Ntdc),ex(1:Ntdc),xc,Nt,NIT1,
                 # speed1,indI,a_lo,a_up)
                 if (Nx < 2):
@@ -2001,12 +1898,9 @@ class SpecData1D(PlotData):
                     if def_nr in [-2, -1, 0]:
                         for i in range(1, Nx1):
                             J = IJ + i
-                            pdf[:i, i, 0] = pdf[:i, i, 0] + \
-                                fxind[IJ:J].T * dt  # *CC
-                            err[:i, i, 0] = err[:i, i, 0] + \
-                                (err0[IJ + 1:J].T * dt) ** 2
-                            terr[:i, i, 0] = terr[
-                                :i, i, 0] + (terr0[IJ:J].T * dt)
+                            pdf[:i, i, 0] += fxind[IJ:J].T * dt  # *CC
+                            err[:i, i, 0] += (err0[IJ + 1:J].T * dt) ** 2
+                            terr[:i, i, 0] += (terr0[IJ:J].T * dt)
                             IJ = J
                     elif def_nr == 1:  # joint density of (M,m,TMm)
                         for i in range(1, Nx1):
@@ -2020,24 +1914,18 @@ class SpecData1D(PlotData):
                     elif def_nr == 2:
                         for i in range(1, Nx1):
                             J = IJ + Nx1
-                            pdf[1:Nx1, i, 0] = pdf[1:Nx1, i, 0] + \
-                                fxind[IJ:J].T * dt  # %*CC
-                            err[1:Nx1, i, 0] = err[1:Nx1, i, 0] + \
-                                (err0[IJ:J].T * dt) ** 2
-                            terr[1:Nx1, i, 0] = terr[
-                                1:Nx1, i, 0] + (terr0[IJ:J].T * dt)
+                            pdf[1:Nx1, i, 0] += fxind[IJ:J].T * dt  # %*CC
+                            err[1:Nx1, i, 0] += (err0[IJ:J].T * dt) ** 2
+                            terr[1:Nx1, i, 0] += (terr0[IJ:J].T * dt)
                             IJ = J
                         # end %do
                     elif def_nr == 3:
                         # joint density of level v separated (M,m,TMm)v
                         for i in range(1, Nx1):
                             J = IJ + Nx1
-                            pdf[1:Nx1, i, Ntd] = pdf[
-                                1:Nx1, i, Ntd] + fxind[IJ:J].T  # %*CC
-                            err[1:Nx1, i, Ntd] = err[
-                                1:Nx1, i, Ntd] + (err0[IJ:J].T) ** 2
-                            terr[1:Nx1, i, Ntd] = terr[
-                                1:Nx1, i, Ntd] + (terr0[IJ:J].T)
+                            pdf[1:Nx1, i, Ntd] += fxind[IJ:J].T  # %*CC
+                            err[1:Nx1, i, Ntd] += (err0[IJ:J].T) ** 2
+                            terr[1:Nx1, i, Ntd] += (terr0[IJ:J].T)
                             IJ = J
                         # end %do
                     # end % SELECT
@@ -2067,10 +1955,9 @@ class SpecData1D(PlotData):
                     for ts in range(1, tn - 1):  # = 2:tn-1:
                         # positive wave period
                         BIG[:Ntdc, :Ntdc] = covinput(BIG[:Ntdc, :Ntdc],
-                                                     R0, R1, R2, R3, R4,
-                                                     tn, ts, tnold)
-                        [fxind, err0, terr0] = rind(BIG[:Ntdc, :Ntdc], ex[:Ntdc],
-                                                    a_lo, a_up, indI, xc, Nt, *opt0)
+                                                     R, tn, ts, tnold)
+                        fxind, err0, terr0 = rind(BIG[:Ntdc, :Ntdc], ex[:Ntdc],
+                                                  a_lo, a_up, indI, xc, Nt)
 
                         # tnold = tn
                         if def_nr in [3, 4]:
@@ -2087,12 +1974,9 @@ class SpecData1D(PlotData):
                                 IJ = 0
                                 for i in range(1, Nx1):
                                     J = IJ + Nx1
-                                    pdf[1:Nx1, i, ts] = pdf[
-                                        1:Nx1, i, ts] + fxind[IJ:J].T * dt
-                                    err[1:Nx1, i, ts] = err[
-                                        1:Nx1, i, ts] + (err0[IJ:J].T * dt) ** 2
-                                    terr[1:Nx1, i, ts] = terr[
-                                        1:Nx1, i, ts] + (terr0[IJ:J].T * dt)
+                                    pdf[1:Nx1, i, ts] += fxind[IJ:J].T * dt
+                                    err[1:Nx1, i, ts] += (err0[IJ:J].T * dt) ** 2
+                                    terr[1:Nx1, i, ts] += (terr0[IJ:J].T * dt)
                                     IJ = J
                                 # end %do
                             # end
@@ -2111,12 +1995,9 @@ class SpecData1D(PlotData):
                                 for i in range(1, Nx1):  # = 2:Nx1
                                     J = IJ + Nx1
                                     # %*CC
-                                    pdf[1:Nx1, i, tn - ts] = pdf[1:Nx1,
-                                                                 i, tn - ts] + fxind[IJ:J].T * dt
-                                    err[1:Nx1, i, tn - ts] = err[1:Nx1, i,
-                                                                 tn - ts] + (err0[IJ:J].T * dt) ** 2
-                                    terr[
-                                        1:Nx1, i, tn - ts] = terr[1:Nx1, i, tn - ts] + (terr0[IJ:J].T * dt)
+                                    pdf[1:Nx1, i, tn - ts] += fxind[IJ:J].T * dt
+                                    err[1:Nx1, i, tn - ts] += (err0[IJ:J].T * dt) ** 2
+                                    terr[1:Nx1, i, tn - ts] += (terr0[IJ:J].T * dt)
                                     IJ = J
                                 # end %do
                             # end
@@ -2129,10 +2010,9 @@ class SpecData1D(PlotData):
                         #  linear.
                         #  positive wave period
                         BIG[:Ntdc, :Ntdc] = covinput(BIG[:Ntdc, :Ntdc],
-                                                     R0, R1, R2, R3, R4,
-                                                     tn, ts, tnold)
-                        [fxind, err0, terr0] = rind(BIG[:Ntdc, :Ntdc], ex[:Ntdc],
-                                                    a_lo, a_up, indI, xc, Nt, *opt0)
+                                                     R, tn, ts, tnold)
+                        fxind, err0, terr0 = rind(BIG[:Ntdc, :Ntdc], ex[:Ntdc],
+                                                    a_lo, a_up, indI, xc, Nt)
 
                         #[fxind,err0] = rind(BIG(1:Ntdc,1:Ntdc),ex,a_lo,a_up,indI, xc,Nt,opt0{:})
                         # tnold = tn
@@ -2144,9 +2024,9 @@ class SpecData1D(PlotData):
                             err[0, ts, tn] = err0[0] ** 2
                             err[0, ts, tn] = terr0(1)
                             if (ts < tn - ts):  # %THEN
-                                 pdf[0, tn - ts, tn] = fxind[0]  # *CC
-                                 err[0, tn - ts, tn] = err0[0] ** 2
-                                 terr[0, tn - ts, tn] = terr0[0]
+                                pdf[0, tn - ts, tn] = fxind[0]  # *CC
+                                err[0, tn - ts, tn] = err0[0] ** 2
+                                terr[0, tn - ts, tn] = terr0[0]
                             # end
                             # GOTO 350
                         else:
@@ -2156,43 +2036,32 @@ class SpecData1D(PlotData):
                                 #  Max to the crossing of level u (M,m,TMd).
                                 for i in range(1, Nx1):
                                     J = IJ + Nx1
-                                    pdf[1:Nx1, i, ts] = pdf[
-                                        1:Nx1, i, ts] + fxind[IJ:J] * dt  # %*CC
-                                    err[1:Nx1, i, ts] = err[
-                                        1:Nx1, i, ts] + (err0[IJ:J] * dt) ** 2
-                                    terr[1:Nx1, i, ts] = terr[
-                                        1:Nx1, i, ts] + (terr0[IJ:J] * dt)
+                                    pdf[1:Nx1, i, ts] += fxind[IJ:J] * dt  # %*CC
+                                    err[1:Nx1, i, ts] += (err0[IJ:J] * dt) ** 2
+                                    terr[1:Nx1, i, ts] += (terr0[IJ:J] * dt)
                                     if (ts < tn - ts):
                                         #  exploiting the symmetry
                                         # %*CC
-                                        pdf[i, 1:Nx1, tn - ts] = pdf[i,
-                                                                     1:Nx1, tn - ts] + fxind[IJ:J] * dt
-                                        err[i, 1:Nx1, tn - ts] = err[i, 1:Nx1,
-                                                                     tn - ts] + (err0[IJ:J] * dt) ** 2
-                                        terr[
-                                            i, 1:Nx1, tn - ts] = terr[i, 1:Nx1, tn - ts] + (terr0[IJ:J] * dt)
+                                        pdf[i, 1:Nx1, tn - ts] += fxind[IJ:J] * dt
+                                        err[i, 1:Nx1, tn - ts] += (err0[IJ:J] * dt) ** 2
+                                        terr[i, 1:Nx1, tn - ts] += (terr0[IJ:J] * dt)
                                     # end
                                     IJ = J
-                               # end %do
+                                # end %do
                             elif def_nr == 5:
                                 #  5,   gives level u separated Max2min and wave period
                                 #  from the crossing of level u to min (M,m,Tdm).
                                 for i in range(1, Nx1):  # = 2:Nx1,
                                     J = IJ + Nx1
-                                    pdf[1:Nx1, i, tn - ts] = pdf[1:Nx1,
-                                                                 i, tn - ts] + fxind[IJ:J] * dt
-                                    err[1:Nx1, i, tn - ts] = err[1:Nx1, i,
-                                                                 tn - ts] + (err0[IJ:J] * dt) ** 2
+                                    pdf[1:Nx1, i, tn - ts] += fxind[IJ:J] * dt
+                                    err[1:Nx1, i, tn - ts] += (err0[IJ:J] * dt) ** 2
                                     terr[
-                                        1:Nx1, i, tn - ts] = terr[1:Nx1, i, tn - ts] + (terr0[IJ:J] * dt)
+                                        1:Nx1, i, tn - ts] += (terr0[IJ:J] * dt)
                                     if (ts < tn - ts + 1):
                                         # exploiting the symmetry
-                                        pdf[i, 1:Nx1, ts] = pdf[
-                                            i, 1:Nx1, ts] + fxind[IJ:J] * dt
-                                        err[i, 1:Nx1, ts] = err[
-                                            i, 1:Nx1, ts] + (err0[IJ:J] * dt) ** 2
-                                        terr[i, 1:Nx1, ts] = terr[
-                                            i, 1:Nx1, ts] + (terr0[IJ:J] * dt)
+                                        pdf[i, 1:Nx1, ts] += fxind[IJ:J] * dt
+                                        err[i, 1:Nx1, ts] += (err0[IJ:J] * dt) ** 2
+                                        terr[i, 1:Nx1, ts] += (terr0[IJ:J] * dt)
                                     # end %ENDIF
                                     IJ = J
                                 # end %do
@@ -2263,7 +2132,7 @@ class SpecData1D(PlotData):
                        Cov(X''(t),X(s))   =  r''(s-t)   = r''(|s-t|)
         Cov(X''(t),X''(s)) =  r''''(s-t) = r''''(|s-t|)
         """
-        R0, R1, R2, R3, R4 = R.T
+        R0, R1, R2, R3, R4 = R[:, :5].T
         if (ts > 1):
             shft = 1
             N = tn + 5 + shft
@@ -4006,17 +3875,17 @@ class SpecData2D(PlotData):
                         # ftype = self.freqtype
                         freq = self.args[1]
                         theta = linspace(-pi, pi, ntOld)
-                        [F, T] = meshgrid(freq, theta)
+                        # [F, T] = meshgrid(freq, theta)
 
                         dtheta = self.theta[1] - self.theta[0]
                         self.theta[nt] = self.theta[nt - 1] + dtheta
                         self.data[nt, :] = self.data[0, :]
-                        self.data = interp2(freq,
-                                            np.vstack([self.theta[0] - dtheta,
-                                                       self.theta]),
-                                            np.vstack([self.data[nt, :],
-                                                       self.data]), F, T,
-                                            method)
+                        self.data = interp2d(freq,
+                                             np.vstack([self.theta[0] - dtheta,
+                                                        self.theta]),
+                                             np.vstack([self.data[nt, :],
+                                                        self.data]),
+                                             kind=method)(freq, theta)
                         self.args[0] = theta
 
         elif stype == 'k2d':
@@ -4274,33 +4143,16 @@ class SpecData2D(PlotData):
         self.labels.zlab = labels[2]
 
 
-def _test_specdata():
-    import wafo.spectrum.models as sm
-    Sj = sm.Jonswap()
-    S = Sj.tospecdata()
-    me, va, sk, ku = S.stats_nl(moments='mvsk')
-
-
 def main():
     import matplotlib
     matplotlib.interactive(True)
     from wafo.spectrum import models as sm
 
-    w = linspace(0, 3, 100)
     Sj = sm.Jonswap()
     S = Sj.tospecdata()
 
-    f = S.to_t_pdf(pdef='Tc', paramt=(0, 10, 51), speed=7)
-    f.err
-    f.plot()
-    f.show()
-    # pdfplot(f)
-    # hold on,
-    # plot(f.x{:}, f.f+f.err,'r',f.x{:}, f.f-f.err)  estimated error bounds
-    # hold off
-    # S = SpecData1D(Sj(w),w)
     R = S.tocovdata(nr=1)
-    S1 = S.copy()
+
     Si = R.tospecdata()
     ns = 5000
     dt = .2
