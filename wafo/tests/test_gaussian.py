@@ -25,17 +25,17 @@ def test_rind():
 
     assert(np.abs(E0 - Et) < 2*(err0 + terr0))
 
-    t = 'E0 = %2.5f' % E0
-    t_true = 'E0 = %2.5f' % Et
+    t = '%2.4f' % E0
+    t_true = '%2.5f' % Et
     assert(t == t_true)
 
     A = np.repeat(Blo, n)
     B = np.repeat(Bup, n)  # Integration limits
-    E1, _err1, _terr1 = rind(np.triu(Sc), m, A, B)  # same as E0
-    assert(np.abs(E1 - Et) < err0 + terr0)
+    E1, err1, terr1 = rind(np.triu(Sc), m, A, B)  # same as E0
+    assert(np.abs(E1 - Et) < 2*(err1 + terr1))
 
-    t = 'E1 = %2.5f' % E1
-    assert(t == 'E1 = 0.00195')
+    t = '%2.4f' % E1
+    assert(t == t_true)
 
     # Compute expectation E( abs(X1*X2*...*X5) )
     xc = np.zeros((0, 1))
