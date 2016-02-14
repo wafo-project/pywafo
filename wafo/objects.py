@@ -1234,7 +1234,7 @@ class TimeSeries(PlotData):
         elif method == 'cov':
             pass
         else:
-            raise ValueError('Unknown method (%s)' % method)
+            raise ValueError('Unknown method ({0!s})'.format(method))
 
         Be, v = self._get_bandwidth_and_dof(window, n, L, dt)
         spec.Bw = Be
@@ -1249,7 +1249,7 @@ class TimeSeries(PlotData):
         spec.tr = tr
         spec.L = L
         spec.norm = False
-        spec.note = 'method=%s' % method
+        spec.note = 'method={0!s}'.format(method)
         return spec
 
     def trdata(self, method='nonlinear', **options):
@@ -1758,10 +1758,10 @@ class TimeSeries(PlotData):
         if vh is None:
             if pdef[0] in ('m', 'M'):
                 vh = 0
-                print('   The minimum rfc height, h,  is set to: %g' % vh)
+                print('   The minimum rfc height, h,  is set to: {0:g}'.format(vh))
             else:
                 vh = x.mean()
-                print('   The level l is set to: %g' % vh)
+                print('   The level l is set to: {0:g}'.format(vh))
 
         if index is None:
             if pdef in ('m2m', 'm2M', 'M2m', 'M2M'):
@@ -2293,10 +2293,10 @@ class TimeSeries(PlotData):
                 plotbackend.plot(xi, [0, 0])
 
                 if Nwp[ix] == 1:
-                    plotbackend.ylabel('Wave %d' % wave_idx[ix])
+                    plotbackend.ylabel('Wave {0:d}'.format(wave_idx[ix]))
                 else:
                     plotbackend.ylabel(
-                        'Wave %d - %d' % (wave_idx[ix],
+                        'Wave {0:d} - {1:d}'.format(wave_idx[ix],
                                           wave_idx[ix] + Nwp[ix] - 1))
             plotbackend.xlabel('Time [sec]')
             # wafostamp
@@ -2346,7 +2346,7 @@ def main():
 
 def test_docstrings():
     import doctest
-    print('Testing docstrings in %s' % __file__)
+    print('Testing docstrings in {0!s}'.format(__file__))
     doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
 
 if __name__ == '__main__':

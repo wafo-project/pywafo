@@ -602,8 +602,7 @@ def prbnormndpc(rho, a, b, abserr=1e-4, relerr=1e-4, usesimpson=True,
     val, err, ier = mvnprdmod.prbnormndpc(rho, a, b, abserr, relerr, usebreakpoints, usesimpson)  # @UndefinedVariable @IgnorePep8
 
     if ier > 0:
-        warnings.warn('Abnormal termination ier = %d\n\n%s' %
-                      (ier, _ERRORMESSAGE[ier]))
+        warnings.warn('Abnormal termination ier = {0:d}\n\n{1!s}'.format(ier, _ERRORMESSAGE[ier]))
     return val, err, ier
 
 _ERRORMESSAGE = {}
