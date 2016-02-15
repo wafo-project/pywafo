@@ -1208,7 +1208,6 @@ class TimeSeries(PlotData):
             yy = tr.dat2gauss(yy)
         yy = detrend(yy) if hasattr(detrend, '__call__') else yy
         n = len(yy)
-        L = min(L, n - 1)
 
         estimate_L = L is None
         if method == 'cov' or estimate_L:
@@ -1219,6 +1218,7 @@ class TimeSeries(PlotData):
                 # add a nugget effect to ensure that round off errors
                 # do not result in negative spectral estimates
                 spec = R.tospecdata(rate=rate, nugget=nugget)
+        L = min(L, n - 1)
         if method == 'psd':
             nfft = 2 ** nextpow2(L)
             pad_to = rate * nfft  # Interpolate the spectrum with rate
