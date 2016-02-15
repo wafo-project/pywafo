@@ -3,6 +3,7 @@ Created on 17. juli 2010
 
 @author: pab
 '''
+import unittest
 import numpy as np
 from numpy import pi, inf
 from numpy.testing import assert_array_almost_equal
@@ -165,5 +166,5 @@ def test_prbnorm2d():
     assert_array_almost_equal(prbnorm2d(a, b, r), 0.56659121)
 
 if __name__ == '__main__':
-    import doctest
-    doctest.testmod()
+    # import sys;sys.argv = ['', 'Test.testName']
+    unittest.main()
