@@ -132,7 +132,7 @@ information on PyScaffold see http://pyscaffold.readthedocs.org/.
 .. |coverage_img| image:: https://coveralls.io/repos/wafo-project/pywafo/badge.svg?branch=master
    :target: https://coveralls.io/github/wafo-project/pywafo?branch=master
 
-.. |versions_img| image:: https://img.shields.io/pypi/pyversions/pywafo.svg
+.. |versions_img| image:: https://img.shields.io/pypi/pyversions/wafo.svg
    :target: https://github.com/wafo-project/pywafo
 
 
