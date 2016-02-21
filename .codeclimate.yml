@@ -1,0 +1,20 @@
+
+engines:
+  duplication:
+    enabled: true
+      - mass = 50
+    config:
+      languages:
+         python:
+           mass_threshold: 40
+  fixme:
+    enabled: true
+  radon:
+    enabled: true
+ratings:
+  paths:
+  - "**.py"
+exclude_paths: 
+- wafo/tests/
+- wafo/MSPPT.py
+- wafo/MSO.py
