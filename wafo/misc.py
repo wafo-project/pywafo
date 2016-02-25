@@ -1039,94 +1039,93 @@ def findrfc(tp, h=0.0, method='clib'):
     rfcfilter,
     findtp.
     '''
-    # TODO: merge rfcfilter and findrfc
-    y1 = atleast_1d(tp).ravel()
+    y = atleast_1d(tp).ravel()
 
-    n = len(y1)
-    ind = zeros(0, dtype=np.int)
-    ix = 0
-    if y1[0] > y1[1]:
-        # first is a max, ignore it
-        y = y1[1::]
-        NC = floor((n - 1) / 2) - 1
-        Tstart = 1
-    else:
-        y = y1
-        NC = floor(n / 2) - 1
-        Tstart = 0
+    t_start = int(y[0] > y[1])  # first is a max, ignore it
+    y = y[t_start::]
+    n = len(y)
+    NC = np.floor(n / 2) - 1
 
     if (NC < 1):
-        return ind  # No RFC cycles*/
+        return zeros(0, dtype=np.int)  # No RFC cycles*/
 
-    if (y[0] > y[1]) and (y[1] > y[2]):
+    if (y[0] > y[1] and y[1] > y[2] or
+            y[0] < y[1] and y[1] < y[2]):
         warnings.warn('This is not a sequence of turningpoints, exit')
-        return ind
-
-    if (y[0] < y[1]) and (y[1] < y[2]):
-        warnings.warn('This is not a sequence of turningpoints, exit')
-        return ind
+        return zeros(0, dtype=np.int)
 
     if clib is None or method not in ('clib'):
-        ind = zeros(n, dtype=np.int)
-        NC = np.int(NC)
-        for i in range(NC):
-            Tmi = Tstart + 2 * i
-            Tpl = Tstart + 2 * i + 2
-            xminus = y[2 * i]
-            xplus = y[2 * i + 2]
-
-            if(i != 0):
-                j = i - 1
-                while ((j >= 0) and (y[2 * j + 1] <= y[2 * i + 1])):
-                    if (y[2 * j] < xminus):
-                        xminus = y[2 * j]
-                        Tmi = Tstart + 2 * j
-                    j -= 1
-            if (xminus >= xplus):
-                if (y[2 * i + 1] - xminus >= h):
-                    ind[ix] = Tmi
-                    ix += 1
-                    ind[ix] = (Tstart + 2 * i + 1)
-                    ix += 1
-                # goto L180 continue
-            else:
-                j = i + 1
-                while (j < NC):
-                    if (y[2 * j + 1] >= y[2 * i + 1]):
-                        break  # goto L170
-                    if((y[2 * j + 2] <= xplus)):
-                        xplus = y[2 * j + 2]
-                        Tpl = (Tstart + 2 * j + 2)
-                    j += 1
-                else:
-                    if ((y[2 * i + 1] - xminus) >= h):
-                        ind[ix] = Tmi
-                        ix += 1
-                        ind[ix] = (Tstart + 2 * i + 1)
-                        ix += 1
-                    # iy = i
-                    continue
-
-                # goto L180
-                # L170:
-                if (xplus <= xminus):
-                    if ((y[2 * i + 1] - xminus) >= h):
-                        ind[ix] = Tmi
-                        ix += 1
-                        ind[ix] = (Tstart + 2 * i + 1)
-                        ix += 1
-                elif ((y[2 * i + 1] - xplus) >= h):
-                    ind[ix] = (Tstart + 2 * i + 1)
-                    ix += 1
-                    ind[ix] = Tpl
-                    ix += 1
-
-            # L180:
-            # iy=i
-        #  /* for i */
+        ind, ix = _findrfc(y, h)
     else:
         ind, ix = clib.findrfc(y, h)
-    return np.sort(ind[:ix])
+    return np.sort(ind[:ix]) + t_start
+
+
+def _findrfc(y, h):
+    # TODO: merge rfcfilter and _findrfc
+    t_start = 0
+
+    n = len(y)
+    NC = np.floor(n / 2) - 1
+    ind = zeros(n, dtype=np.int)
+    NC = np.int(NC)
+    ix = 0
+    for i in range(NC):
+        Tmi = t_start + 2 * i
+        Tpl = t_start + 2 * i + 2
+        xminus = y[2 * i]
+        xplus = y[2 * i + 2]
+
+        if(i != 0):
+            j = i - 1
+            while ((j >= 0) and (y[2 * j + 1] <= y[2 * i + 1])):
+                if (y[2 * j] < xminus):
+                    xminus = y[2 * j]
+                    Tmi = t_start + 2 * j
+                j -= 1
+        if (xminus >= xplus):
+            if (y[2 * i + 1] - xminus >= h):
+                ind[ix] = Tmi
+                ix += 1
+                ind[ix] = (t_start + 2 * i + 1)
+                ix += 1
+            # goto L180 continue
+        else:
+            j = i + 1
+            while (j < NC):
+                if (y[2 * j + 1] >= y[2 * i + 1]):
+                    break  # goto L170
+                if((y[2 * j + 2] <= xplus)):
+                    xplus = y[2 * j + 2]
+                    Tpl = (t_start + 2 * j + 2)
+                j += 1
+            else:
+                if ((y[2 * i + 1] - xminus) >= h):
+                    ind[ix] = Tmi
+                    ix += 1
+                    ind[ix] = (t_start + 2 * i + 1)
+                    ix += 1
+                # iy = i
+                continue
+
+            # goto L180
+            # L170:
+            if (xplus <= xminus):
+                if ((y[2 * i + 1] - xminus) >= h):
+                    ind[ix] = Tmi
+                    ix += 1
+                    ind[ix] = (t_start + 2 * i + 1)
+                    ix += 1
+            elif ((y[2 * i + 1] - xplus) >= h):
+                ind[ix] = (t_start + 2 * i + 1)
+                ix += 1
+                ind[ix] = Tpl
+                ix += 1
+
+        # L180:
+        # iy=i
+    #  /* for i */
+    return ind, ix
 
 
 def mctp2rfc(fmM, fMm=None):
