@@ -1,3 +1,4 @@
+#@PydevCodeAnalysisIgnore
 """
 ==========================================
 Statistical functions (:mod:`scipy.stats`)

@@ -11,9 +11,9 @@ from numpy import (
     abs, amax, any, logical_and, arange, linspace, atleast_1d,
     asarray, ceil, floor, frexp, hypot,
     sqrt, arctan2, sin, cos, exp, log, log1p, mod, diff,
-    finfo, inf, pi, interp, isnan, isscalar, zeros, ones, linalg,
+    finfo, inf, pi, interp, isscalar, zeros, ones, linalg,
     r_, sign, unique, hstack, vstack, nonzero, where, extract)
-from scipy.special import gammaln, gamma, psi
+from scipy.special import gammaln
 from scipy.integrate import trapz, simps
 import warnings
 from time import strftime, gmtime
@@ -927,11 +927,11 @@ def findpeaks(data, n=2, min_h=None, min_p=0.0):
     # Returning only those with rainflowcycle heights greater than h_min
     indP = []  # indices to peaks
     ind = []
-    for iy in range(nrows):  # % find all peaks
+    for iy in range(nrows):  # find all peaks
         TuP = findtp(S[iy], min_h)
         if len(TuP):
-            ind = TuP[1::2]  # ; % extract indices to maxima only
-        else:  # % did not find any , try maximum
+            ind = TuP[1::2]  # extract indices to maxima only
+        else:  # did not find any , try maximum
             ind = np.atleast_1d(S[iy].argmax())
 
         if ndim > 1:
@@ -1168,10 +1168,20 @@ def mctp2rfc(fmM, fMm=None):
            [ True,  True,  True,  True,  True],
            [ True,  True,  True,  True,  True]], dtype=bool)
     '''
+    def _get_PMm(AA1, MA, nA):
+        PMm = AA1.copy()
+        for j in range(nA):
+            norm = MA[j]
+            if norm != 0:
+                PMm[j, :] = PMm[j, :] / norm
+                # end
+            # end
+        PMm = np.fliplr(PMm)
+        return PMm
 
     if fMm is None:
         fmM = np.atleast_1d(fmM)
-        fMm = fmM.copy()
+        fMm = fmM
     else:
         fmM, fMm = np.atleast_1d(fmM, fMm)
     f_mM, f_Mm = fmM.copy(), fMm.copy()
@@ -1211,14 +1221,7 @@ def mctp2rfc(fmM, fMm=None):
                 fx = 0.0
                 if (max(abs(e)) > 1e-6 and
                         max(abs(NN)) > 1e-6 * max(MA[0], mA[0])):
-                    PMm = AA1.copy()
-                    for j in range(nA):
-                        norm = MA[j]
-                        if norm != 0:
-                            PMm[j, :] = PMm[j, :] / norm
-                            # end
-                        # end
-                    PMm = np.fliplr(PMm)
+                    PMm = _get_PMm(AA1, MA, nA)
 
                     A = PMm
                     B = PmM
@@ -1646,29 +1649,56 @@ def findoutliers(x, zcrit=0.0, dcrit=None, ddcrit=None, verbose=False):
     waveplot, reconstruct
     """
 
-    # finding outliers
-    findjumpsDx = True  # find jumps in Dx
-    # two point spikes and Spikes dcrit above/under the
-    # previous and the following point are spurios.
-    findSpikes = False  # find spikes
-    findDspikes = False  # find double (two point) spikes
-    findjumpsD2x = True  # find jumps in D^2x
-    findNaN = True  # % find missing values
+    def _find_nans(xn):
+        i_missing = np.flatnonzero(np.isnan(xn))
+        if verbose:
+            print('Found %d missing points' % i_missing.size)
+        return i_missing
+
+    def _find_spurious_jumps(dxn, dcrit, name='Dx'):
+        i_p = np.flatnonzero(dxn > dcrit)
+        if i_p.size > 0:
+            i_p += 1  # the point after the jump
+        if verbose:
+            print('Found {0:d} spurious positive jumps of {1}'.format(i_p.size,
+                                                                      name))
+
+        i_n = np.flatnonzero(dxn < -dcrit)  # the point before the jump
+        if verbose:
+            print('Found {0:d} spurious negative jumps of {1}'.format(i_n.size,
+                                                                      name))
+        if i_n.size > 0:
+            return hstack((i_p, i_n))
+        return i_p
+
+    def _find_consecutive_equal_values(dxn, zcrit):
+
+        mask_small = (abs(dxn) <= zcrit)
+        i_small = np.flatnonzero(mask_small)
+        if verbose:
+            if zcrit == 0.:
+                print('Found %d consecutive equal values' % i_small.size)
+            else:
+                print('Found %d consecutive values less than %g apart.' %
+                      (i_small.size, zcrit))
+        if i_small.size > 0:
+            i_small += 1
+            # finding the beginning and end of consecutive equal values
+            i_step = np.flatnonzero((diff(mask_small))) + 1
+            # indices to consecutive equal points
+            # removing the point before + all equal points + the point after
+
+            return hstack((i_step - 1, i_small, i_step, i_step + 1))
+        return i_small
 
     xn = asarray(x).flatten()
 
     if xn.size < 2:
         raise ValueError('The vector must have more than 2 elements!')
 
-    ind = zeros(0, dtype=int)
-    # indg=[]
-    indmiss = isnan(xn)
-    if findNaN and indmiss.any():
-        ind, = nonzero(indmiss)
-        if verbose:
-            print('Found %d missing points' % ind.size)
-        xn[indmiss] = 0.  # %set NaN's to zero
-
+    i_missing = _find_nans(xn)
+    if np.any(i_missing):
+        xn[i_missing] = 0.  # set NaN's to zero
     if dcrit is None:
         dcrit = 1.5 * xn.std()
         if verbose:
@@ -1682,78 +1712,11 @@ def findoutliers(x, zcrit=0.0, dcrit=None, ddcrit=None, verbose=False):
     dxn = diff(xn)
     ddxn = diff(dxn)
 
-    if findSpikes:  # finding spurious spikes
-        tmp, = nonzero((dxn[:-1] > dcrit) * (dxn[1::] < -dcrit) |
-                       (dxn[:-1] < -dcrit) * (dxn[1::] > dcrit))
-        if tmp.size > 0:
-            tmp = tmp + 1
-            ind = hstack((ind, tmp))
-        if verbose:
-            print('Found %d spurious spikes' % tmp.size)
+    ind = np.hstack((_find_spurious_jumps(dxn, dcrit, name='Dx'),
+                     _find_spurious_jumps(ddxn, ddcrit, name='D^2x'),
+                     _find_consecutive_equal_values(dxn, zcrit)))
 
-    if findDspikes:  # ,% finding spurious double (two point) spikes
-        tmp, = nonzero((dxn[:-2] > dcrit) * (dxn[2::] < -dcrit) |
-                       (dxn[:-2] < -dcrit) * (dxn[2::] > dcrit))
-        if tmp.size > 0:
-            tmp = tmp + 1
-            ind = hstack((ind, tmp, tmp + 1))  # %removing both points
-        if verbose:
-            print('Found %d spurious two point (double) spikes' % tmp.size)
-
-    if findjumpsDx:  # ,% finding spurious jumps  in Dx
-        tmp, = nonzero(dxn > dcrit)
-        if verbose:
-            print('Found %d spurious positive jumps of Dx' % tmp.size)
-        if tmp.size > 0:
-            ind = hstack((ind, tmp + 1))  # removing the point after the jump
-
-        tmp, = nonzero(dxn < -dcrit)
-        if verbose:
-            print('Found %d spurious negative jumps of Dx' % tmp.size)
-        if tmp.size > 0:
-            ind = hstack((ind, tmp))  # removing the point before the jump
-
-    if findjumpsD2x:  # ,% finding spurious jumps in D^2x
-        tmp, = nonzero(ddxn > ddcrit)
-        if tmp.size > 0:
-            tmp = tmp + 1
-            ind = hstack((ind, tmp))  # removing the jump
-
-        if verbose:
-            print('Found %d spurious positive jumps of D^2x' % tmp.size)
-
-        tmp, = nonzero(ddxn < -ddcrit)
-        if tmp.size > 0:
-            tmp = tmp + 1
-            ind = hstack((ind, tmp))  # removing the jump
-
-        if verbose:
-            print('Found %d spurious negative jumps of D^2x' % tmp.size)
-
-    if zcrit >= 0.0:
-        # finding consecutive values less than zcrit apart.
-        indzeros = (abs(dxn) <= zcrit)
-        indz, = nonzero(indzeros)
-        if indz.size > 0:
-            indz = indz + 1
-            # finding the beginning and end of consecutive equal values
-            indtr, = nonzero((diff(indzeros)))
-            indtr = indtr + 1
-            # indices to consecutive equal points
-            # removing the point before + all equal points + the point after
-            if True:
-                ind = hstack((ind, indtr - 1, indz, indtr, indtr + 1))
-            else:  # % removing all points + the point after
-                ind = hstack((ind, indz, indtr, indtr + 1))
-
-        if verbose:
-            if zcrit == 0.:
-                print('Found %d consecutive equal values' % indz.size)
-            else:
-                print('Found %d consecutive values less than %g apart.' %
-                      (indz.size, zcrit))
     indg = ones(xn.size, dtype=bool)
-
     if ind.size > 1:
         ind = unique(ind)
         indg[ind] = 0
@@ -2471,15 +2434,14 @@ def trangood(x, f, min_n=None, min_x=None, max_x=None, max_n=inf):
     numpy.interp
     """
     xo, fo = atleast_1d(x, f)
-    # n = xo.size
+
     if (xo.ndim != 1):
         raise ValueError('x must be a vector.')
     if (fo.ndim != 1):
         raise ValueError('f  must be a vector.')
 
     i = xo.argsort()
-    xo = xo[i]
-    fo = fo[i]
+    xo, fo = xo[i], fo[i]
     del i
     dx = diff(xo)
     if (any(dx <= 0)):
@@ -2514,7 +2476,7 @@ def trangood(x, f, min_n=None, min_x=None, max_x=None, max_n=inf):
         fo = interp(xi, xo, fo)
         xo = xi
 
-# x is now uniformly spaced
+    # x is now uniformly spaced
     dx = xo[1] - xo[0]
 
     # Extrapolate linearly outside the range of ff
@@ -2582,6 +2544,51 @@ def tranproc(x, f, x0, *xi):
     --------
     trangood.
     """
+    def _default_step(xo, N):
+        hn = xo[1] - xo[0]
+        if hn ** N < sqrt(_EPS):
+            msg = ('Numerical problems may occur for the derivatives in ' +
+                   'tranproc.\n' +
+                   'The sampling of the transformation may be too small.')
+            warnings.warn(msg)
+        return hn
+
+    def _diff(xo, fo, x0, N):
+        hn = _default_step(xo, N)
+        # Transform X with the derivatives of  f.
+        fder = vstack((xo, fo))
+        fxder = zeros((N, x0.size))
+        for k in range(N):  # Derivation of f(x) using a difference method.
+            n = fder.shape[-1]
+            fder = vstack([(fder[0, 0:n - 1] + fder[0, 1:n]) / 2,
+                           diff(fder[1, :]) / hn])
+            fxder[k] = tranproc(fder[0], fder[1], x0)
+        return fxder
+
+    def _der_1(fxder, xi):
+        """First time derivative of y: y1 = f'(x)*x1"""
+        return fxder[0] * xi[0]
+
+    def _der_2(fxder, xi):
+        """Second time derivative of y: y2 = f''(x)*x1.^2+f'(x)*x2"""
+        return fxder[1] * xi[0] ** 2. + fxder[0] * xi[1]
+
+    def _der_3(fxder, xi):
+        """Third time derivative of y:
+        y3 = f'''(x)*x1.^3+f'(x)*x3 +3*f''(x)*x1*x2
+        """
+        return (fxder[2] * xi[0] ** 3 + fxder[0] * xi[2] +
+                3 * fxder[1] * xi[0] * xi[1])
+
+    def _der_4(fxder, xi):
+        """Fourth time derivative of y:
+            y4 = f''''(x)*x1.^4+f'(x)*x4 +
+                 6*f'''(x)*x1^2*x2+f''(x)*(3*x2^2+4x1*x3)
+        """
+        return (fxder[3] * xi[0] ** 4. + fxder[0] * xi[3] +
+                6. * fxder[2] * xi[0] ** 2. * xi[1] +
+                fxder[1] * (3. * xi[1] ** 2. + 4. * xi[0] * xi[1]))
+
     xo, fo, x0 = atleast_1d(x, f, x0)
     xi = atleast_1d(*xi)
     if not isinstance(xi, list):
@@ -2591,7 +2598,6 @@ def tranproc(x, f, x0, *xi):
     xo, fo = trangood(xo, fo, min_x=min(x0), max_x=max(x0), max_n=nmax)
 
     n = f.shape[0]
-    # y  = x0.copy()
     xu = (n - 1) * (x0 - xo[0]) / (xo[-1] - xo[0])
 
     fi = asarray(floor(xu), dtype=int)
@@ -2601,54 +2607,19 @@ def tranproc(x, f, x0, *xi):
     y0 = fo[fi] + (fo[fi + 1] - fo[fi]) * xu
 
     y = y0
-
+    if N > 4:
+        warnings.warn('Transformation of derivatives of order>4 is ' +
+                      'not supported.')
+        N = 4
     if N > 0:
         y = [y0]
-        hn = xo[1] - xo[0]
-        if hn ** N < sqrt(_EPS):
-            msg = ('Numerical problems may occur for the derivatives in ' +
-                   'tranproc.\n' +
-                   'The sampling of the transformation may be too small.')
-            warnings.warn(msg)
-
-        # Transform X with the derivatives of  f.
-        fxder = zeros((N, x0.size))
-        fder = vstack((xo, fo))
-        for k in range(N):  # Derivation of f(x) using a difference method.
-            n = fder.shape[-1]
-            fder = vstack([(fder[0, 0:n - 1] + fder[0, 1:n]) / 2,
-                           diff(fder[1, :]) / hn])
-            fxder[k] = tranproc(fder[0], fder[1], x0)
-
+        fxder = _diff(xo, fo, x0, N)
         # Calculate the transforms of the derivatives of X.
-        # First time derivative of y: y1 = f'(x)*x1
+        dfuns = [_der_1, _der_2, _der_3, _der_4]
+        for dfun in dfuns[:N]:
+            y.append(dfun(fxder, xi))
 
-        y1 = fxder[0] * xi[0]
-        y.append(y1)
-        if N > 1:
-
-            # Second time derivative of y:
-            # y2 = f''(x)*x1.^2+f'(x)*x2
-            y2 = fxder[1] * xi[0] ** 2. + fxder[0] * xi[1]
-            y.append(y2)
-            if N > 2:
-                # Third time derivative of y:
-                # y3 = f'''(x)*x1.^3+f'(x)*x3 +3*f''(x)*x1*x2
-                y3 = fxder[2] * xi[0] ** 3 + fxder[0] * xi[2] + \
-                    3 * fxder[1] * xi[0] * xi[1]
-                y.append(y3)
-                if N > 3:
-                    # Fourth time derivative of y:
-                    # y4 = f''''(x)*x1.^4+f'(x)*x4
-                    #    +6*f'''(x)*x1^2*x2+f''(x)*(3*x2^2+4x1*x3)
-                    y4 = (fxder[3] * xi[0] ** 4. + fxder[0] * xi[3] +
-                          6. * fxder[2] * xi[0] ** 2. * xi[1] +
-                          fxder[1] * (3. * xi[1] ** 2. + 4. * xi[0] * xi[1]))
-                    y.append(y4)
-                    if N > 4:
-                        warnings.warn('Transformation of derivatives of ' +
-                                      'order>4 not supported.')
-    return y  # y0,y1,y2,y3,y4
+    return y
 
 
 def good_bins(data=None, range=None, num_bins=None,  # @ReservedAssignment
@@ -2682,25 +2653,28 @@ def good_bins(data=None, range=None, num_bins=None,  # @ReservedAssignment
     >>> wm.good_bins(range=(0,5), num_bins=6, odd=True, loose=False)
     array([-0.5,  0.5,  1.5,  2.5,  3.5,  4.5,  5.5])
     '''
+    def _default_range(range_, x):
+        return range_ if range_ else (x.min(), x.max())
+
+    def _default_bins(num_bins, x):
+        if num_bins is None:
+            num_bins = np.ceil(4 * np.sqrt(np.sqrt(len(x))))
+        return num_bins
+
+    def _default_step(mn, mx, num_bins):
+        d = float(mx - mn) / num_bins * 2
+        e = np.floor(np.log(d) / np.log(10))
+        m = np.clip(np.floor(d / 10 ** e), a_min=0, a_max=5)
+        if 2 < m < 5:
+            m = 2
+        return m * 10 ** e
 
     if data is not None:
         x = np.atleast_1d(data)
-        num_data = len(x)
 
-    mn, mx = range if range else (x.min(), x.max())
-
-    if num_bins is None:
-        num_bins = np.ceil(4 * np.sqrt(np.sqrt(num_data)))
-
-    d = float(mx - mn) / num_bins * 2
-    e = np.floor(np.log(d) / np.log(10))
-    m = np.floor(d / 10 ** e)
-    if m > 5:
-        m = 5
-    elif m > 2:
-        m = 2
-
-    d = m * 10 ** e
+    mn, mx = _default_range(range, x)
+    num_bins = _default_bins(num_bins, x)
+    d = _default_step(mn, mx, num_bins)
     mn = (np.floor(mn / d) - loose) * d - odd * d / 2
     mx = (np.ceil(mx / d) + loose) * d + odd * d / 2
     limits = np.arange(mn, mx + d / 2, d)
@@ -2778,7 +2752,7 @@ def plot_histgrm(data, bins=None, range=None,  # @ReservedAssignment
     return plotbackend.plot(xx, yy, lintype, limits, limits * 0)
 
 
-def num2pistr(x, n=3):
+def num2pistr(x, n=3, numerator_max=10, denominator_max=10):
     '''
     Convert a scalar to a text string in fractions of pi
         if the numerator is less than 10 and not equal 0
@@ -2788,30 +2762,30 @@ def num2pistr(x, n=3):
     ----------
     x   = a scalar
     n   = maximum digits of precision. (default 3)
+
     Returns
     -------
     xtxt = a text string in fractions of pi
 
     Example
+    -------
     >>> import wafo.misc as wm
     >>> wm.num2pistr(np.pi*3/4)=='3\\pi/4'
     True
     '''
+    def _denominator_text(den):
+        return '' if abs(den) == 1 else '/%d' % den
 
-    frac = fractions.Fraction.from_float(x / pi).limit_denominator(10000000)
-    num = frac.numerator
-    den = frac.denominator
-    if (den < 10) and (num < 10) and (num != 0):
-        dtxt = '' if abs(den) == 1 else '/%d' % den
-        if abs(num) == 1:  # % numerator
-            ntxt = '-' if num == -1 else ''
-        else:
-            ntxt = '%d' % num
-        xtxt = ntxt + r'\pi' + dtxt
-    else:
-        format = '%0.' + '%dg' % n  # @ReservedAssignment
-        xtxt = format % x
-    return xtxt
+    def _numerator_text(num):
+        if abs(num) == 1:
+            return '-' if num == -1 else ''
+        return '%d' % num
+    frac = fractions.Fraction.from_float(x / pi).limit_denominator(int(1e+13))
+    num, den = frac.numerator, frac.denominator
+    if (den < denominator_max) and (num < numerator_max) and (num != 0):
+        return _numerator_text(num) + r'\pi' + _denominator_text(den)
+    fmt = '%0.' + '%dg' % n
+    return fmt % x
 
 
 def fourier(data, t=None, T=None, m=None, n=None, method='trapz'):
@@ -2922,534 +2896,6 @@ def fourier(data, t=None, T=None, m=None, n=None, method='trapz'):
     return a, b
 
 
-def hyp2f1_taylor(a, b, c, z, tol=1e-13, itermax=500):
-    a, b, c, z = np.broadcast_arrays(*np.atleast_1d(a, b, c, z))
-    shape = a.shape
-    ak, bk, ck, zk = [d.ravel() for d in (a, b, c, z)]
-    ajm1 = np.ones(ak.shape)
-    bjm2 = 0.5 * np.ones(ak.shape)
-    bjm1 = np.ones(ak.shape)
-    hout = np.zeros(ak.shape)
-    k0 = np.arange(len(ak))
-    for j in range(0, itermax):
-        aj = ajm1 * (ak + j) * (bk + j) / (ck + j) * zk / (j + 1)
-        bj = bjm1 + aj
-        h, err = dea3(bjm2, bjm1, bj)
-        k = np.flatnonzero(err > tol * np.abs(h))
-        hout[k0] = h
-        if len(k) == 0:
-            break
-        k0 = k0[k]
-        ak, bk, ck, zk = ak[k], bk[k], ck[k], zk[k]
-        ajm1 = aj[k]
-        bjm2 = bjm1[k]
-        bjm1 = bj[k]
-    else:
-        warnings.warn(('Reached %d limit! \n' +
-                      '#%d values did not converge! Max error=%g') %
-                      (j, len(k), np.max(err)))
-    return hout.reshape(shape)
-
-
-def hyp2f1(a, b, c, z, rho=0.5):
-    e1 = gammaln(a)
-    e2 = gammaln(b)
-    e3 = gammaln(c)
-    e4 = gammaln(b - a)
-    e5 = gammaln(a - b)
-
-    e6 = gammaln(c - a)
-    e7 = gammaln(c - b)
-    e8 = gammaln(c - a - b)
-    e9 = gammaln(a + b - c)
-    _cmab = c - a - b
-    # ~(np.round(cmab) == cmab & cmab <= 0)
-    if abs(z) <= rho:
-        h = hyp2f1_taylor(a, b, c, z, 1e-15)
-    elif abs(1 - z) <= rho:  # % Require that |arg(1-z)|<pi
-        h = exp(e3 + e8 - e6 - e7) * \
-            hyp2f1_taylor(a, b, a + b - c, 1 - z, 1e-15) \
-            + (1 - z) ** (c - a - b) * exp(e3 + e9 - e1 - e2) \
-            * hyp2f1_taylor(c - a, c - b, c - a - b + 1, 1 - z, 1e-15)
-    elif abs(z / (z - 1)) <= rho:
-        h = (1 - z) ** (-a) \
-            * hyp2f1_taylor(a, c - b, c, (z / (z - 1)), 1e-15)
-    elif abs(1 / z) <= rho:  # % Require that |arg(z)|<pi and |arg(1-z)|<pi
-        h = (-z + 0j) ** (-a) * exp(e3 + e4 - e2 - e6) \
-            * hyp2f1_taylor(a, a - c + 1, a - b + 1, 1. / z, 1e-15) \
-            + (-z + 0j) ** (-b) * exp(e3 + e5 - e1 - e7) \
-            * hyp2f1_taylor(b - c + 1, b, b - a + 1, (1. / z), 1e-15)
-    elif abs(1. / (1 - z)) <= rho:  # % Require that |arg(1-z)|<pi
-        h = (1 - z) ** (-a) * exp(e3 + e4 - e2 - e6) \
-            * hyp2f1_taylor(a, c - b, a - b + 1, (1. / (1 - z)), 1e-15)\
-            + (1 - z) ** (-b) * exp(e3 + e5 - e1 - e7) \
-            * hyp2f1_taylor(b, c - a, b - a + 1, (1. / (1 - z)), 1e-15)
-    elif abs(1 - 1 / z) < rho:  # % Require that |arg(z)|<pi and |arg(1-z)|<pi
-        h = z ** (-a) * exp(e3 + e8 - e6 - e7) \
-            * hyp2f1_taylor(a, a - c + 1, a + b - c + 1, (1 - 1 / z), 1e-15) \
-            + z ** (a - c) * (1 - z) ** (c - a - b) * exp(e3 + e9 - e1 - e2) \
-            * hyp2f1_taylor(c - a, 1 - a, c - a - b + 1, (1 - 1 / z), 1e-15)
-    else:
-        warnings.warn('Another method is needed')
-    return h
-
-
-def hyp2f1_wrong(a, b, c, z, tol=1e-13, itermax=500):
-    ajm1 = 0
-    bjm1 = 1
-    cjm1 = 1
-    xjm1 = np.ones(np.shape(c + a * b * z))
-    xjm2 = 2 * np.ones(xjm1.shape)
-
-    for j in range(1, itermax):
-        aj = (ajm1 + bjm1) * j * (c + j - 1)
-        bj = bjm1 * (a + j - 1) * (b + j - 1) * z
-        cj = cjm1 * j * (c + j - 1)
-        if np.any((aj == np.inf) | (bj == np.inf) | (cj == np.inf)):
-            break
-        xj = (aj + bj) / cj
-        h, err = dea3(xjm2, xjm1, xj)
-        if np.all(err <= tol * np.abs(h)) and j > 10:
-            break
-        xjm2 = xjm1
-        xjm1 = xj
-    else:
-        warnings.warn('Reached %d limit' % j)
-    return h
-
-
-def hygfz(A, B, C, Z):
-    ''' Return hypergeometric function for a complex argument, F(a,b,c,z)
-
-    Parameters
-    ----------
-     a, b, c:
-         parameters where c <> 0,-1,-2,...
-    z :--- Complex argument
-    '''
-    X = np.real(Z)
-    Y = np.imag(Z)
-    EPS = 1.0e-15
-    L0 = C == np.round(C) and C < 0.0e0
-    L1 = abs(1.0 - X) < EPS and Y == 0.0 and C - A - B <= 0.0
-    L2 = abs(Z + 1.0) < EPS and abs(C - A + B - 1.0) < EPS
-    L3 = A == np.round(A) and A < 0.0
-    L4 = B == np.round(B) and B < 0.0
-    L5 = C - A == np.round(C - A) and C - A <= 0.0
-    L6 = C - B == np.round(C - B) and C - B <= 0.0
-    AA = A
-    BB = B
-    A0 = abs(Z)
-    if (A0 > 0.95):
-        EPS = 1.0e-8
-    PI = 3.141592653589793
-    EL = .5772156649015329
-    if (L0 or L1):
-        # 'The hypergeometric series is divergent'
-        return np.inf
-
-    NM = 0
-    if (A0 == 0.0 or A == 0.0 or B == 0.0):
-        ZHF = 1.0
-    elif (Z == 1.0 and C - A - B > 0.0):
-        GC = gamma(C)
-        GCAB = gamma(C - A - B)
-        GCA = gamma(C - A)
-        GCB = gamma(C - B)
-        ZHF = GC * GCAB / (GCA * GCB)
-    elif L2:
-        G0 = sqrt(PI) * 2.0 ** (-A)
-        G1 = gamma(C)
-        G2 = gamma(1.0 + A / 2.0 - B)
-        G3 = gamma(0.5 + 0.5 * A)
-        ZHF = G0 * G1 / (G2 * G3)
-    elif L3 or L4:
-        if (L3):
-            NM = int(np.round(abs(A)))
-        if (L4):
-            NM = int(np.round(abs(B)))
-        ZHF = 1.0
-        ZR = 1.0
-        for K in range(NM):
-            ZR = ZR * (A + K) * (B + K) / ((K + 1.) * (C + K)) * Z
-            ZHF = ZHF + ZR
-    elif L5 or L6:
-        if (L5):
-            NM = np.round(abs(C - A))
-        if (L6):
-            NM = np.round(abs(C - B))
-        ZHF = 1.0 + 0j
-        ZR = 1.0 + 0j
-        for K in range(NM):
-            ZR *= (C - A + K) * (C - B + K) / ((K + 1.) * (C + K)) * Z
-            ZHF = ZHF + ZR
-        ZHF = (1.0 - Z) ** (C - A - B) * ZHF
-    elif (A0 <= 1.0):
-        if (X < 0.0):
-            Z1 = Z / (Z - 1.0)
-            if (C > A and B < A and B > 0.0):
-                A = BB
-                B = AA
-
-            ZC0 = 1.0 / ((1.0 - Z) ** A)
-            ZHF = 1.0 + 0j
-            ZR0 = 1.0 + 0j
-            ZW = 0
-            for K in range(500):
-                ZR0 *= (A + K) * (C - B + K) / ((K + 1.0) * (C + K)) * Z1
-                ZHF += ZR0
-                if (abs(ZHF - ZW) < abs(ZHF) * EPS):
-                    break
-                ZW = ZHF
-            ZHF = ZC0 * ZHF
-        elif (A0 >= 0.90):
-            ZW = 0.0
-            GM = 0.0
-            MCAB = np.round(C - A - B)
-            if (abs(C - A - B - MCAB) < EPS):
-                M = int(np.round(C - A - B))
-                GA = gamma(A)
-                GB = gamma(B)
-                GC = gamma(C)
-                GAM = gamma(A + M)
-                GBM = gamma(B + M)
-                PA = psi(A)
-                PB = psi(B)
-                if (M != 0):
-                    GM = 1.0
-                for j in range(1, abs(M)):
-                    GM *= j
-                RM = 1.0
-                for j in range(1, abs(M) + 1):  # DO 35 J=1,abs(M)
-                    RM *= j
-                ZF0 = 1.0
-                ZR0 = 1.0
-                ZR1 = 1.0
-                SP0 = 0.0
-                SP = 0.0
-                if (M >= 0):
-                    ZC0 = GM * GC / (GAM * GBM)
-                    ZC1 = -GC * (Z - 1.0) ** M / (GA * GB * RM)
-                    for K in range(1, M):
-                        ZR0 = ZR0 * \
-                            (A + K - 1.) * (B + K - 1.) / \
-                            (K * (K - M)) * (1. - Z)
-                        ZF0 = ZF0 + ZR0
-                    for K in range(M):
-                        SP0 = SP0 + 1.0 / \
-                            (A + K) + 1.0 / (B + K) - 1. / (K + 1.)
-                    ZF1 = PA + PB + SP0 + 2.0 * EL + np.log(1.0 - Z)
-                    for K in range(1, 501):
-                        SP = SP + \
-                            (1.0 - A) / (K * (A + K - 1.0)) + (
-                                1.0 - B) / (K * (B + K - 1.0))
-                        SM = 0.0
-                        for J in range(1, M):
-                            SM += (1.0 - A) / (
-                                (J + K) * (A + J + K - 1.0)) + \
-                                1.0 / (B + J + K - 1.0)
-
-                        ZP = PA + PB + 2.0 * EL + SP + SM + np.log(1.0 - Z)
-                        ZR1 = ZR1 * \
-                            (A + M + K - 1.0) * (B + M + K - 1.0) / (
-                                K * (M + K)) * (1.0 - Z)
-                        ZF1 = ZF1 + ZR1 * ZP
-                        if (abs(ZF1 - ZW) < abs(ZF1) * EPS):
-                            break
-                        ZW = ZF1
-                    ZHF = ZF0 * ZC0 + ZF1 * ZC1
-                elif (M < 0):
-                    M = -M
-                    ZC0 = GM * GC / (GA * GB * (1.0 - Z) ** M)
-                    ZC1 = -(-1) ** M * GC / (GAM * GBM * RM)
-                    for K in range(1, M):
-                        ZR0 = ZR0 * \
-                            (A - M + K - 1.0) * (B - M + K - 1.0) / (
-                                K * (K - M)) * (1.0 - Z)
-                        ZF0 = ZF0 + ZR0
-                    for K in range(1, M + 1):
-                        SP0 = SP0 + 1.0 / K
-                    ZF1 = PA + PB - SP0 + 2.0 * EL + np.log(1.0 - Z)
-                    for K in range(1, 501):
-                        SP = SP + \
-                            (1.0 - A) / (K * (A + K - 1.0)) + (
-                                1.0 - B) / (K * (B + K - 1.0))
-                        SM = 0.0
-                        for J in range(1, M + 1):
-                            SM = SM + 1.0 / (J + K)
-                        ZP = PA + PB + 2.0 * EL + SP - SM + np.log(1.0 - Z)
-                        ZR1 = ZR1 * \
-                            (A + K - 1.) * (B + K - 1.) / \
-                            (K * (M + K)) * (1. - Z)
-                        ZF1 = ZF1 + ZR1 * ZP
-                        if (abs(ZF1 - ZW) < abs(ZF1) * EPS):
-                            break
-                        ZW = ZF1
-                    ZHF = ZF0 * ZC0 + ZF1 * ZC1
-            else:
-                GA = gamma(A)
-                GB = gamma(B)
-                GC = gamma(C)
-                GCA = gamma(C - A)
-                GCB = gamma(C - B)
-                GCAB = gamma(C - A - B)
-                GABC = gamma(A + B - C)
-                ZC0 = GC * GCAB / (GCA * GCB)
-                ZC1 = GC * GABC / (GA * GB) * (1.0 - Z) ** (C - A - B)
-                ZHF = 0 + 0j
-                ZR0 = ZC0
-                ZR1 = ZC1
-                for K in range(1, 501):
-                    ZR0 = ZR0 * \
-                        (A + K - 1.) * (B + K - 1.) / \
-                        (K * (A + B - C + K)) * (1. - Z)
-                    ZR1 = ZR1 * \
-                        (C - A + K - 1.0) * (C - B + K - 1.0) / (
-                            K * (C - A - B + K)) * (1.0 - Z)
-                    ZHF = ZHF + ZR0 + ZR1
-                    if (abs(ZHF - ZW) < abs(ZHF) * EPS):
-                        break
-                    ZW = ZHF
-                ZHF = ZHF + ZC0 + ZC1
-        else:
-            ZW = 0.0
-            Z00 = 1.0  # + 0j
-            if (C - A < A and C - B < B):
-                Z00 = (1.0 - Z) ** (C - A - B)
-                A = C - A
-                B = C - B
-            ZHF = 1.0
-            ZR = 1.0
-            for K in range(1, 501):
-                ZR = ZR * \
-                    (A + K - 1.0) * (B + K - 1.0) / (K * (C + K - 1.0)) * Z
-                ZHF = ZHF + ZR
-                if (abs(ZHF - ZW) <= abs(ZHF) * EPS):
-                    break
-                ZW = ZHF
-            ZHF = Z00 * ZHF
-    elif (A0 > 1.0):
-        MAB = np.round(A - B)
-        if (abs(A - B - MAB) < EPS and A0 <= 1.1):
-            B = B + EPS
-        if (abs(A - B - MAB) > EPS):
-            GA = gamma(A)
-            GB = gamma(B)
-            GC = gamma(C)
-            GAB = gamma(A - B)
-            GBA = gamma(B - A)
-            GCA = gamma(C - A)
-            GCB = gamma(C - B)
-            ZC0 = GC * GBA / (GCA * GB * (-Z) ** A)
-            ZC1 = GC * GAB / (GCB * GA * (-Z) ** B)
-            ZR0 = ZC0
-            ZR1 = ZC1
-            ZHF = 0.0 + 0j
-            for K in range(1, 501):
-                ZR0 = ZR0 * (A + K - 1.0) * (A - C + K) / ((A - B + K) * K * Z)
-                ZR1 = ZR1 * (B + K - 1.0) * (B - C + K) / ((B - A + K) * K * Z)
-                ZHF = ZHF + ZR0 + ZR1
-                if (abs((ZHF - ZW) / ZHF) <= EPS):
-                    break
-                ZW = ZHF
-            ZHF = ZHF + ZC0 + ZC1
-        else:
-            if (A - B < 0.0):
-                A = BB
-                B = AA
-            CA = C - A
-            CB = C - B
-            NCA = np.round(CA)
-            NCB = np.round(CB)
-            if (abs(CA - NCA) < EPS or abs(CB - NCB) < EPS):
-                C = C + EPS
-            GA = gamma(A)
-            GC = gamma(C)
-            GCB = gamma(C - B)
-            PA = psi(A)
-            PCA = psi(C - A)
-            PAC = psi(A - C)
-            MAB = np.round(A - B + EPS)
-            ZC0 = GC / (GA * (-Z) ** B)
-            GM = gamma(A - B)
-            ZF0 = GM / GCB * ZC0
-            ZR = ZC0
-            for K in range(1, MAB):
-                ZR = ZR * (B + K - 1.0) / (K * Z)
-                T0 = A - B - K
-                G0 = gamma(T0)
-                GCBK = gamma(C - B - K)
-                ZF0 = ZF0 + ZR * G0 / GCBK
-            if (MAB == 0):
-                ZF0 = 0.0 + 0j
-            ZC1 = GC / (GA * GCB * (-Z) ** A)
-            SP = -2.0 * EL - PA - PCA
-            for J in range(1, MAB + 1):
-                SP = SP + 1.0 / J
-            ZP0 = SP + np.log(-Z)
-            SQ = 1.0
-            for J in range(1, MAB + 1):
-                SQ = SQ * (B + J - 1.0) * (B - C + J) / J
-            ZF1 = (SQ * ZP0) * ZC1
-            ZR = ZC1
-            RK1 = 1.0
-            SJ1 = 0.0
-            W0 = 0.0
-            for K in range(1, 10001):
-                ZR = ZR / Z
-                RK1 = RK1 * (B + K - 1.0) * (B - C + K) / (K * K)
-                RK2 = RK1
-                for J in range(K + 1, K + MAB + 1):
-                    RK2 = RK2 * (B + J - 1.0) * (B - C + J) / J
-                SJ1 = SJ1 + \
-                    (A - 1.0) / (K * (A + K - 1.0)) + \
-                    (A - C - 1.0) / (K * (A - C + K - 1.0))
-                SJ2 = SJ1
-                for J in range(K + 1, K + MAB + 1):
-                    SJ2 = SJ2 + 1.0 / J
-                ZP = -2.0 * EL - PA - PAC + SJ2 - 1.0 / \
-                    (K + A - C) - PI / np.tan(PI * (K + A - C)) + np.log(-Z)
-                ZF1 = ZF1 + RK2 * ZR * ZP
-                WS = abs(ZF1)
-                if (abs((WS - W0) / WS) < EPS):
-                    break
-                W0 = WS
-            ZHF = ZF0 + ZF1
-    A = AA
-    B = BB
-    if (K > 150):
-        warnings.warn('Warning! You should check the accuracy')
-    return ZHF
-
-# def hypgf(a, b, c, x, abseps=0, releps=1e-13, kmax=10000):
-#     '''HYPGF  Hypergeometric function F(a,b,c,x)
-#
-#     CALL:   [y ,abserr] = hypgf(a,b,c,x,abseps,releps)
-#
-#     y = F(a,b,c,x)
-#     abserr = absolute error estimate
-#     a,b,c,x = input parameters
-#     abseps  = requested absolute error
-#     releps  = requested relative error
-#
-#     HYPGF calculates one solution to Gauss's hypergeometric differential
-#     equation:
-#
-#     x*(1-x)Y''(x)+[c-(a+b+1)*x]*Y'(x)-a*b*Y(x) = 0
-#     where
-#     F(a,b,c,x) = Y1(x) = 1 + a*b*x/c + a*(a+1)*b*(b+1)*x^2/(c*(c+1))+....
-#
-#
-#     Many elementary functions are special cases of F(a,b,c,x):
-#     1/(1-x) = F(1,1,1,x) = F(1,b,b,x) = F(a,1,a,x)
-#     (1+x)^n = F(-n,b,b,-x)
-#     atan(x) = x*F(.5,1,1.5,-x^2)
-#     asin(x) = x*F(.5,.5,1.5,x^2)
-#     log(x)  = x*F(1,1,2,-x)
-#     log(1+x)-log(1-x) = 2*x*F(.5,1,1.5,x^2)
-#
-#     NOTE: only real x, abs(x) < 1 and c~=0,-1,-2,... are allowed.
-#
-#     Examples:
-#     x = linspace(-.99,.99)';
-#     [Sn1,err1] = hypgf(1,1,1,x)
-#     plot(x,abs(Sn1-1./(1-x)),'b',x,err1,'r'),set(gca,'yscale','log')
-#     [Sn2,err2] = hypgf(.5,.5,1.5,x.^2);
-#     plot(x,abs(x.*Sn2-asin(x)),'b',x,abs(x.*err2),'r')
-#     set(gca,'yscale','log')
-#
-#
-#     Reference:
-#     ---------
-#     Kreyszig, Erwin (1988)
-#     Advanced engineering mathematics
-#     John Wiley & Sons, sixth edition, pp 204.
-#     '''
-#     csize = common_shape(x, a, b, c)
-#     kmin = 2
-#     fsum = np.zeros(csize)
-#     delta = np.zeros(csize)
-#     err = np.zeros(csize)
-#
-#     ok = ~((np.round(c) == c & c <= 0) | np.abs(x) > 1)
-#     if np.any(~ok):
-#         warnings.warn('HYPGF', 'Illegal input: c = 0,-1,-2,... or abs(x)>1')
-#         fsum[~ok] = np.NaN
-#         err[~ok] = np.NaN
-#
-#     k0=find(ok & abs(x)==1);
-#     if any(k0)
-#         cmab = c(k0)-a(k0)-b(k0);
-#         fsum(k0) = exp(gammaln(c(k0))+gammaln(cmab)-...
-#                gammaln(c(k0)-a(k0))-gammaln(c(k0)-b(k0)));
-#         err(k0) = eps;
-#         k00 = find(real(cmab)<=0);
-#         if any(k00)
-#           err(k0(k00)) = nan;
-#           fsum(k0(k00)) = nan;
-#         end
-#     end
-#     k=find(ok & abs(x)<1);
-#       if any(k),
-#         delta(k) = ones(size(k));
-#         fsum(k)  = delta(k);
-#
-#         k1 = k;
-#         E = cell(1,3);
-#         E{3} = fsum(k);
-#         converge = 'n';
-#         for  ix=0:Kmax-1,
-#           delta(k1) = delta(k1).*((a(k1)+ix)./(ix+1)).*((b(k1)+ix)./(c(k1)+ ix)).*x(k1); @IgnorePep8
-#           fsum(k1) = fsum(k1)+delta(k1);
-#
-#           E(1:2) = E(2:3);
-#           E{3}   = fsum(k1);
-#
-#           if ix>Kmin
-#         if useDEA,
-#           [Sn, err(k1)] = dea3(E{:});
-#           k00 = find((abs(err(k1))) <= max(absEps,abs(relEps.*fsum(k1))));
-#           if any(k00)
-#             fsum(k1(k00)) = Sn(k00);
-#           end
-#           if (ix==Kmax-1)
-#             fsum(k1) = Sn;
-#           end
-#           k0 = (find((abs(err(k1))) > max(absEps,abs(relEps.*fsum(k1)))));
-#            if any(k0),% compute more terms
-# %nk=length(k0);%# of values we have to compute again
-#              E{2} = E{2}(k0);
-#              E{3} = E{3}(k0);
-#            else
-#              converge='y';
-#              break;
-#            end
-#         else
-#           err(k1) = 10*abs(delta(k1));
-#            k0 = (find((abs(err(k1))) > max(absEps,abs(relEps.* ...
-#                                 fsum(k1)))));
-#            if any(k0),% compute more terms
-# %nk=length(k0);%# of values we have to compute again
-#            else
-#              converge='y';
-#              break;
-#            end
-#         end
-#         k1 = k1(k0);
-#           end
-#         end
-#         if ~strncmpi(converge,'y',1)
-# disp(sprintf('#%d values did not converge',length(k1)))
-#         end
-#       end
-#       %ix
-#       return
-
-
-def _test_find_cross():
-    t = findcross([0, 0, 1, -1, 1], 0)  # @UnusedVariable
-
-
 def real_main0():
     x = np.arange(10000)
     y = np.arange(100).reshape(-1, 1)
@@ -3489,32 +2935,5 @@ def test_docstrings():
     doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
 
 
-def test_hyp2f1():
-    #     1/(1-x) = F(1,1,1,x) = F(1,b,b,x) = F(a,1,a,x)
-    #     (1+x)^n = F(-n,b,b,-x)
-    #     atan(x) = x*F(.5,1,1.5,-x^2)
-    #     asin(x) = x*F(.5,.5,1.5,x^2)
-    #     log(x)  = x*F(1,1,2,-x)
-    #     log(1+x)-log(1-x) = 2*x*F(.5,1,1.5,x^2)
-    x = linspace(0., .7, 20)
-    y = hyp2f1_taylor(-1, -4, 1, .9)
-    _y2 = hygfz(-1, -4, 1, .9)
-    _y3 = hygfz(5, -300, 10, 0.5)
-    _y4 = hyp2f1_taylor(5, -300, 10, 0.5)
-    # y = hyp2f1(0.1, 0.2, 0.3, 0.5)
-    # y = hyp2f1(1, 1.5, 3, -4 +3j)
-    # y = hyp2f1(5, 7.5, 2.5, 5)
-    #     fun = lambda x : 1./(1-x)
-    #     x = .99
-    #     y = hyp2f1(1,1,1,x)
-    #     print(y-fun(x))
-    #
-    plt = plotbackend
-    plt.interactive(False)
-    plt.semilogy(x, np.abs(y - 1. / (1 - x)) + 1e-20, 'r')
-    plt.show()
-
-
 if __name__ == "__main__":
     test_docstrings()
-    # test_hyp2f1()

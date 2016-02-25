@@ -17,7 +17,7 @@ from .transform.core import TrData
 from .transform.estimation import TransformEstimator
 from .stats import distributions
 from .misc import (nextpow2, findtp, findrfc, findtc, findcross,
-                       ecross, JITImport, DotDict, gravity, findrfc_astm)
+                   ecross, JITImport, DotDict, gravity, findrfc_astm)
 from .interpolate import stineman_interp
 from .containers import PlotData
 from .plotbackend import plotbackend
@@ -1657,6 +1657,58 @@ class TimeSeries(PlotData):
 
         return S, H
 
+    @staticmethod
+    def _default_index(x, vh, wdef, pdef):
+        if pdef in ('m2m', 'm2M', 'M2m', 'M2M'):
+            index = findtp(x, vh, wdef)
+        elif pdef in ('u2u', 'u2d', 'd2u', 'd2d'):
+            index = findcross(x, vh, wdef)
+        elif pdef in ('t2t', 't2c', 'c2t', 'c2c'):
+            index = findtc(x, vh, wdef)[0]
+        elif pdef in ('d2t', 't2u', 'u2c', 'c2d', 'all'):
+            index, v_ind = findtc(x, vh, wdef)
+            # sorting crossings and tp in sequence
+            index = sort(r_[index, v_ind])
+        else:
+            raise ValueError('Unknown pdef option!')
+        return index
+
+    def _get_start_index(self, pdef, down_crossing_or_max):
+        if down_crossing_or_max:
+            if pdef in ('d2t', 'M2m', 'c2t', 'd2u', 'M2M', 'c2c', 'd2d', 'all'):
+                start = 1
+            elif pdef in ('t2u', 'm2M', 't2c', 'u2d', 'm2m', 't2t', 'u2u'):
+                start = 2
+            elif pdef in ('u2c'):
+                start = 3
+            elif pdef in ('c2d'):
+                start = 4
+            else:
+                raise ValueError('Unknown pdef option!')
+            # else first is up-crossing or min
+        elif pdef in ('all', 'u2c', 'm2M', 't2c', 'u2d', 'm2m', 't2t', 'u2u'):
+            start = 0
+        elif pdef in ('c2d', 'M2m', 'c2t', 'd2u', 'M2M', 'c2c', 'd2d'):
+            start = 1
+        elif pdef in ('d2t'):
+            start = 2
+        elif pdef in ('t2u'):
+            start = 3
+        else:
+            raise ValueError('Unknown pdef option!')
+        return start
+
+
+    def _get_step(self, pdef):
+    # determine the steps between wanted periods
+        if pdef in ('d2t', 't2u', 'u2c', 'c2d'):
+            step = 4
+        elif pdef in ('all'):
+            step = 1 # % secret option!
+        else:
+            step = 2
+        return step
+
     def wave_periods(self, vh=None, pdef='d2d', wdef=None, index=None, rate=1):
         """
         Return sequence of wave periods/lengths from data.
@@ -1764,50 +1816,11 @@ class TimeSeries(PlotData):
                 print('   The level l is set to: %g' % vh)
 
         if index is None:
-            if pdef in ('m2m', 'm2M', 'M2m', 'M2M'):
-                index = findtp(x, vh, wdef)
-            elif pdef in ('u2u', 'u2d', 'd2u', 'd2d'):
-                index = findcross(x, vh, wdef)
-            elif pdef in ('t2t', 't2c', 'c2t', 'c2c'):
-                index = findtc(x, vh, wdef)[0]
-            elif pdef in ('d2t', 't2u', 'u2c', 'c2d', 'all'):
-                index, v_ind = findtc(x, vh, wdef)
-                # sorting crossings and tp in sequence
-                index = sort(r_[index, v_ind])
-            else:
-                raise ValueError('Unknown pdef option!')
+            index = self._default_index(x, vh, wdef, pdef)
 
-        if (x[index[0]] > x[index[1]]):  # % if first is down-crossing or max
-            if pdef in ('d2t', 'M2m', 'c2t', 'd2u', 'M2M', 'c2c', 'd2d',
-                        'all'):
-                start = 1
-            elif pdef in ('t2u', 'm2M', 't2c', 'u2d', 'm2m', 't2t', 'u2u'):
-                start = 2
-            elif pdef in ('u2c'):
-                start = 3
-            elif pdef in ('c2d'):
-                start = 4
-            else:
-                raise ValueError('Unknown pdef option!')
-            # else first is up-crossing or min
-        elif pdef in ('all', 'u2c', 'm2M', 't2c', 'u2d', 'm2m', 't2t', 'u2u'):
-            start = 0
-        elif pdef in ('c2d', 'M2m', 'c2t', 'd2u', 'M2M', 'c2c', 'd2d'):
-            start = 1
-        elif pdef in ('d2t'):
-            start = 2
-        elif pdef in ('t2u'):
-            start = 3
-        else:
-            raise ValueError('Unknown pdef option!')
-
-        # determine the steps between wanted periods
-        if pdef in ('d2t', 't2u', 'u2c', 'c2d'):
-            step = 4
-        elif pdef in ('all'):
-            step = 1  # % secret option!
-        else:
-            step = 2
+        down_crossing_or_max = (x[index[0]] > x[index[1]])
+        start = self._get_start_index(pdef, down_crossing_or_max)
+        step = self._get_step(pdef)
 
         # determine the distance between min2min, t2t etc..
         if pdef in ('m2m', 't2t', 'u2u', 'M2M', 'c2c', 'd2d'):

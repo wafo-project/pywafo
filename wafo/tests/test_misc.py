@@ -9,7 +9,7 @@ from wafo.data import sea
 from wafo.misc import (JITImport, Bunch, detrendma, DotDict, findcross, ecross,
                        findextrema, findrfc, rfcfilter, findtp, findtc,
                        findoutliers, common_shape, argsreduce, stirlerr,
-                       getshipchar, betaloge, hygfz,
+                       getshipchar, betaloge,
                        gravity, nextpow2, discretize, polar2cart,
                        cart2polar, tranproc,
                        rotation_matrix, rotate_2d, spaceline,
@@ -294,18 +294,6 @@ def test_findoutliers():
                               np.array([6,   7,   8, 9509, 9510, 9511]))
     assert_array_almost_equal(indg[np.r_[0, 1, 2, -3, -2, -1]],
                               np.array([0,   1,   2, 9521, 9522, 9523]))
-
-
-def test_hygfz():
-    # y = hyp2f1_taylor(-1, -4, 1, .9)
-    assert_equal(4.6, hygfz(-1, -4, 1, .9))
-    assert_almost_equal(1.0464328112173522, hygfz(0.1, 0.2, 0.3, 0.5))
-    assert_almost_equal(1.2027034401166194, hygfz(0.1, 0.2, 0.3, 0.95))
-    # assert_equal(1.661006238211309e-07, hygfz(5, -300, 10, 0.5))
-    # assert_equal(0.118311386286, hygfz(0.5, -99.0, 1.5, 0.5625))
-    # assert_equal(0.0965606007742, hygfz(0.5, -149.0, 1.5, 0.5625))
-    # assert_equal(0.49234384000963544 + 0.60513406166123973j,
-    #             hygfz(1, 1, 4, 3 + 4j))
 
 
 def test_common_shape():
