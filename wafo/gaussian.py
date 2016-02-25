@@ -7,7 +7,6 @@ from scipy.special import ndtr as cdfnorm, ndtri as invnorm
 from scipy.special import erfc
 import warnings
 import numpy as np
-from .misc import common_shape
 
 try:
     from . import mvn  # @UnresolvedImport
@@ -836,10 +835,9 @@ def cdfnorm2d(b1, b2, r):
     #     pullman, wa 99164-3113
     #     email : alangenz@wsu.edu
 
-    cshape = common_shape(b1, b2, r, shape=[1, ])
-    one = ones(cshape)
-
-    h, k, r = (-b1 * one).ravel(), (-b2 * one).ravel(), (r * one).ravel()
+    b1, b2, r = np.broadcast_arrays(b1, b2, r)
+    cshape = b1.shape
+    h, k, r = -b1.ravel(), -b2.ravel(), r.ravel()
 
     bvn = where(abs(r) > 1, nan, 0.0)
 
