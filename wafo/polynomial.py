@@ -724,7 +724,7 @@ def poly2str(p, variable='x'):
 
     N = len(coeffs) - 1
 
-    for k in range(len(coeffs)):
+    for k in range(N+1):
         coefstr = '%.4g' % abs(coeffs[k])
         if coefstr[-4:] == '0000':
             coefstr = coefstr[:-5]
@@ -733,21 +733,18 @@ def poly2str(p, variable='x'):
             if coefstr != '0':
                 newstr = '%s' % (coefstr,)
             else:
-                if k == 0:
-                    newstr = '0'
-                else:
-                    newstr = ''
+                newstr = '0' if k == 0 else ''
         elif power == 1:
             if coefstr == '0':
                 newstr = ''
-            elif coefstr == 'b' or coefstr == '1':
+            elif coefstr in ['b', '1']:
                 newstr = var
             else:
                 newstr = '%s*%s' % (coefstr, var)
         else:
             if coefstr == '0':
                 newstr = ''
-            elif coefstr == 'b' or coefstr == '1':
+            elif coefstr in ['b', '1']:
                 newstr = '%s**%d' % (var, power,)
             else:
                 newstr = '%s*%s**%d' % (coefstr, var, power)

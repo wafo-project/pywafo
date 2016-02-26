@@ -1811,7 +1811,7 @@ class SpecData1D(PlotData):
         rind = Rind(**options)
         if (Nx > 1):
             # (M,m) or (M,m)v distribution wanted
-            if ((def_nr == 0 or def_nr == 2)):
+            if def_nr in [0, 2]:
                 asize = [Nx1, Nx1]
             else:
                 # (M,m,TMm), (M,m,TMm)v  (M,m,TMd)v or (M,M,Tdm)v

@@ -8,6 +8,8 @@ from scipy import special as sp
 from .plotbackend import plotbackend as plt
 from scipy.integrate import simps, trapz
 from .demos import humps
+from .misc import dea3
+from .dctpack import dct
 # from pychebfun import Chebfun
 
 _EPS = np.finfo(float).eps
@@ -16,79 +18,6 @@ _POINTS_AND_WEIGHTS = {}
 __all__ = ['dea3', 'clencurt', 'romberg',
            'h_roots', 'j_roots', 'la_roots', 'p_roots', 'qrule',
            'gaussq', 'richardson', 'quadgr', 'qdemo']
-
-
-def dea3(v0, v1, v2):
-    '''
-    Extrapolate a slowly convergent sequence
-
-    Parameters
-    ----------
-    v0,v1,v2 : array-like
-        3 values of a convergent sequence to extrapolate
-
-    Returns
-    -------
-    result : array-like
-        extrapolated value
-    abserr : array-like
-        absolute error estimate
-
-    Description
-    -----------
-    DEA3 attempts to extrapolate nonlinearly to a better estimate
-    of the sequence's limiting value, thus improving the rate of
-    convergence. The routine is based on the epsilon algorithm of
-    P. Wynn, see [1]_.
-
-     Example
-     -------
-     # integrate sin(x) from 0 to pi/2
-
-     >>> import numpy as np
-     >>> Ei= np.zeros(3)
-     >>> linfun = lambda k : np.linspace(0, np.pi/2., 2.**(k+5)+1)
-     >>> for k in np.arange(3):
-     ...     x = linfun(k)
-     ...     Ei[k] = np.trapz(np.sin(x),x)
-     >>> En, err = dea3(Ei[0],Ei[1],Ei[2])
-     >>> En, err
-     (array([ 1.]), array([ 0.0002008]))
-     >>> TrueErr = Ei-1.
-     >>> TrueErr
-     array([ -2.0080568e-04,  -5.0199908e-05,  -1.2549882e-05])
-
-     See also
-     --------
-     dea
-
-     Reference
-     ---------
-     .. [1] C. Brezinski (1977)
-            "Acceleration de la convergence en analyse numerique",
-            "Lecture Notes in Math.", vol. 584,
-            Springer-Verlag, New York, 1977.
-    '''
-    E0, E1, E2 = np.atleast_1d(v0, v1, v2)
-    abs = np.abs  # @ReservedAssignment
-    max = np.maximum  # @ReservedAssignment
-    delta2, delta1 = E2 - E1, E1 - E0
-    err2, err1 = abs(delta2), abs(delta1)
-    tol2, tol1 = max(abs(E2), abs(E1)) * _EPS, max(abs(E1), abs(E0)) * _EPS
-
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")  # ignore division by zero and overflow
-        ss = 1.0 / delta2 - 1.0 / delta1
-        smalle2 = (abs(ss * E1) <= 1.0e-3).ravel()
-
-    result = 1.0 * E2
-    abserr = err1 + err2 + abs(E2) * _EPS * 10.0
-    converged = (err1 <= tol1) & (err2 <= tol2).ravel() | smalle2
-    k4, = (1 - converged).nonzero()
-    if k4.size > 0:
-        result[k4] = E1[k4] + 1.0 / ss[k4]
-        abserr[k4] = err1[k4] + err2[k4] + abs(result[k4] - E2[k4])
-    return result, abserr
 
 
 def clencurt(fun, a, b, n0=5, trace=False, args=()):
@@ -183,13 +112,11 @@ def clencurt(fun, a, b, n0=5, trace=False, args=()):
     fft = np.fft.fft
     tmp = np.real(fft(f[:n, :], axis=0))
     c = 2 / n * (tmp[0:n / 2 + 1, :] + np.cos(np.pi * s2) * f[n, :])
-# % old call
-# %  c = 2/n * cos(s2*s'*pi/n) * f
     c[0, :] = c[0, :] / 2
     c[n / 2, :] = c[n / 2, :] / 2
 
 # % alternative call
-# % c = dct(f)
+    # c2 = dct(f)
 
     c = c[0:n / 2 + 1, :] / ((s2 - 1) * (s2 + 1))
     Q = (af - bf) * np.sum(c, axis=0)

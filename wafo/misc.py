@@ -17,6 +17,7 @@ from scipy.special import gammaln
 from scipy.integrate import trapz, simps
 import warnings
 from time import strftime, gmtime
+from numdifftools.extrapolation import dea3
 from .plotbackend import plotbackend
 from collections import OrderedDict
 try:
@@ -33,7 +34,7 @@ __all__ = ['now', 'spaceline', 'narg_smallest', 'args_flat', 'is_numlike',
            'parse_kwargs', 'detrendma', 'ecross', 'findcross', 'findextrema',
            'findpeaks', 'findrfc', 'rfcfilter', 'findtp', 'findtc',
            'findoutliers', 'common_shape', 'argsreduce', 'stirlerr',
-           'getshipchar',
+           'getshipchar', 'dea3',
            'betaloge', 'gravity', 'nextpow2', 'discretize', 'polar2cart',
            'cart2polar', 'meshgrid', 'ndgrid', 'trangood', 'tranproc',
            'plot_histgrm', 'num2pistr', 'test_docstrings', 'lazywhere',
@@ -2105,79 +2106,6 @@ def gravity(phi=45):
     phir = phi * pi / 180.  # change from degrees to radians
     return 9.78049 * (1. + 0.0052884 * sin(phir) ** 2. -
                       0.0000059 * sin(2 * phir) ** 2.)
-
-
-def dea3(v0, v1, v2):
-    '''
-    Extrapolate a slowly convergent sequence
-
-    Parameters
-    ----------
-    v0, v1, v2 : array-like
-        3 values of a convergent sequence to extrapolate
-
-    Returns
-    -------
-    result : array-like
-        extrapolated value
-    abserr : array-like
-        absolute error estimate
-
-    Description
-    -----------
-    DEA3 attempts to extrapolate nonlinearly to a better estimate
-    of the sequence's limiting value, thus improving the rate of
-    convergence. The routine is based on the epsilon algorithm of
-    P. Wynn, see [1]_.
-
-     Example
-     -------
-     # integrate sin(x) from 0 to pi/2
-
-     >>> import numpy as np
-     >>> import numdifftools as nd
-     >>> Ei= np.zeros(3)
-     >>> linfun = lambda k : np.linspace(0,np.pi/2.,2.**(k+5)+1)
-     >>> for k in np.arange(3):
-     ...    x = linfun(k)
-     ...    Ei[k] = np.trapz(np.sin(x),x)
-     >>> [En, err] = nd.dea3(Ei[0], Ei[1], Ei[2])
-     >>> truErr = Ei-1.
-     >>> (truErr, err, En)
-     (array([ -2.00805680e-04,  -5.01999079e-05,  -1.25498825e-05]),
-     array([ 0.00020081]), array([ 1.]))
-
-     See also
-     --------
-     dea
-
-     Reference
-     ---------
-     .. [1] C. Brezinski (1977)
-            "Acceleration de la convergence en analyse numerique",
-            "Lecture Notes in Math.", vol. 584,
-            Springer-Verlag, New York, 1977.
-    '''
-    E0, E1, E2 = np.atleast_1d(v0, v1, v2)
-    abs = np.abs  # @ReservedAssignment
-    max = np.maximum  # @ReservedAssignment
-    delta2, delta1 = E2 - E1, E1 - E0
-    err2, err1 = abs(delta2), abs(delta1)
-    tol2, tol1 = max(abs(E2), abs(E1)) * _EPS, max(abs(E1), abs(E0)) * _EPS
-
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")  # ignore division by zero and overflow
-        ss = 1.0 / delta2 - 1.0 / delta1
-        smallE2 = (abs(ss * E1) <= 1.0e-3).ravel()
-
-    result = 1.0 * E2
-    abserr = err1 + err2 + abs(E2) * _EPS * 10.0
-    converged = (err1 <= tol1) & (err2 <= tol2).ravel() | smallE2
-    k4, = (1 - converged).nonzero()
-    if k4.size > 0:
-        result[k4] = E1[k4] + 1.0 / ss[k4]
-        abserr[k4] = err1[k4] + err2[k4] + abs(result[k4] - E2[k4])
-    return result, abserr
 
 
 def nextpow2(x):

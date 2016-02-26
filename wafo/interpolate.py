@@ -1102,10 +1102,10 @@ def test_smoothing_spline():
     dy1 = pp1(x1)
     y01 = pp0(x1)
     # dy = y-y1
-    import matplotlib.pyplot as plb
+    import matplotlib.pyplot as plt
 
-    plb.plot(x, y, x1, y1, '.', x1, dy1, 'ro', x1, y01, 'r-')
-    plb.show('hold')
+    plt.plot(x, y, x1, y1, '.', x1, dy1, 'ro', x1, y01, 'r-')
+    plt.show('hold')
     pass
     # tck = interpolate.splrep(x, y, s=len(x))
 
@@ -1250,10 +1250,10 @@ def test_pp():
     pp(1)
     pp(1.5)
     dpp = pp.derivative()
-    import pylab as plb
-    x = plb.linspace(-1, 3)
-    plb.plot(x, pp(x), x, dpp(x), '.')
-    plb.show()
+    import matplotlib.pyplot as plt
+    x = np.linspace(-1, 3)
+    plt.plot(x, pp(x), x, dpp(x), '.')
+    plt.show()
 
 
 def test_docstrings():
