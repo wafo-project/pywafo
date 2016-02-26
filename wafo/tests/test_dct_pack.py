@@ -10,6 +10,14 @@ import wafo.dctpack as wd
 
 
 class Test(unittest.TestCase):
+    def test_shiftdim(self):
+        a = np.arange(6).reshape((1, 1, 3, 1, 2))
+        b = wd.shiftdim(a)
+        c = wd.shiftdim(b, -2)
+        assert_array_almost_equal(b.shape, (3, 1, 2))
+        assert_array_almost_equal(c.shape, a.shape)
+        assert_array_almost_equal(c, a)
+
     def test_dct3(self):
         a = np.array([[[0.51699637,  0.42946223,  0.89843545],
                        [0.27853391,  0.8931508,  0.34319118],

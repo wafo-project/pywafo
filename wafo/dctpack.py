@@ -351,51 +351,7 @@ def test_shiftdim():
     print(c == a)
 
 
-def test_dct3():
-    a = np.array([[[0.51699637,  0.42946223,  0.89843545],
-                   [0.27853391,  0.8931508,  0.34319118],
-                   [0.51984431,  0.09217771,  0.78764716]],
-                  [[0.25019845,  0.92622331,  0.06111409],
-                   [0.81363641,  0.06093368,  0.13123373],
-                   [0.47268657,  0.39635091,  0.77978269]],
-                  [[0.86098829,  0.07901332,  0.82169182],
-                   [0.12560088,  0.78210188,  0.69805434],
-                   [0.33544628,  0.81540172,  0.9393219]]])
-
-    d = dct(dct(dct(a).transpose(0, 2, 1)).transpose(2, 1, 0)
-            ).transpose(2, 1, 0).transpose(0, 2, 1)
-    d0 = dctn(a)
-    e = idct(idct(idct(d).transpose(0, 2, 1)).transpose(2, 1, 0)
-             ).transpose(2, 1, 0).transpose(0, 2, 1)
-    print(d)
-    print(d0)
-    print(np.allclose(d, d0))
-    print(np.allclose(a, e))
-
-
-def test_dctn():
-    a = np.arange(12).reshape((3, -1))
-    print('a = ', a)
-    print(' ')
-    y = dct(a, n=10)
-    x = idct(y)
-    print('y = dct(a)')
-    print(y)
-    print('x = idct(y)')
-    print(x)
-    print(' ')
-
-    yn = dctn(a)  # , shape=(10,), axes=(1,))
-    xn = idctn(yn)  # , axes=(1,))
-    print('yn = dctn(a)')
-    print(yn)
-    print('xn = idctn(yn)')
-    print(xn)
-    print(' ')
-    print(xn-a)
-
-
-def test_dct2():
+def example_dct2():
     import scipy.ndimage as sn
     import matplotlib.pyplot as plt
     name = os.path.join(path, 'autumn.gif')
@@ -430,18 +386,5 @@ def test_docstrings():
     doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
 
 
-def test_commands():
-    import commands
-    commands.getstatusoutput('preprocess -DFORMAT=html -DDEVICE=screen ' +
-                             'tutorial.do.txt > ' +
-                             'tmp_preprocess__tutorial.do.txt')
-
-
 if __name__ == '__main__':
-    # print(test_commands())
-    # test_dct2()
     test_docstrings()
-    # test_dctn()
-    # test_shiftdim()
-    # test_dct3()
-    # test()
