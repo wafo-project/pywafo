@@ -438,8 +438,8 @@ def smoothn(data, s=None, weight=None, robust=False, z0=None, tolz=1e-3,
     W = W * IsFinite
     if (W < 0).any():
         raise ValueError('Weights must all be >=0')
-    else:
-        W = W / W.max()
+
+    W = W / W.max()
 
     isweighted = (W < 1).any()  # Weighted or missing data?
     isauto = s is None  # Automatic smoothing?
@@ -1217,70 +1217,81 @@ class HampelFilter(object):
         self.adaptive = adaptive
         self.fulloutput = fulloutput
 
+    def _check(self, dx):
+        if not np.isscalar(dx):
+            raise ValueError('DX must be a scalar.')
+        if dx < 0:
+            raise ValueError('DX must be larger than zero.')
+
+    @staticmethod
+    def localwindow(X, Y, DX, i):
+        mask = (X[i] - DX <= X) & (X <= X[i] + DX)
+        Y0 = np.median(Y[mask])
+        # Calculate Local Scale of Natural Variation
+        S0 = 1.4826 * np.median(np.abs(Y[mask] - Y0))
+        return Y0, S0
+
+    @staticmethod
+    def smgauss(X, V, DX):
+        Xj = X
+        Xk = np.atleast_2d(X).T
+        Wjk = np.exp(-((Xj - Xk) / (2 * DX)) ** 2)
+        G = np.dot(Wjk, V) / np.sum(Wjk, axis=0)
+        return G
+
+    def _adaptive(self, Y, X, dx):
+        localwindow = self.localwindow
+        Y0, S0, ADX = self._init(Y, dx)
+        Y0Tmp = np.nan * np.zeros(Y.shape)
+        S0Tmp = np.nan * np.zeros(Y.shape)
+        DXTmp = np.arange(1, len(S0) + 1) * dx
+        # Integer variation of Window Half Size
+        # Calculate Initial Guess of Optimal Parameters Y0, S0, ADX
+        for i in range(len(Y)):
+            j = 0
+            S0Rel = np.inf
+            while S0Rel > self.adaptive:
+                Y0Tmp[j], S0Tmp[j] = localwindow(X, Y, DXTmp[j], i)
+                if j > 0:
+                    S0Rel = abs((S0Tmp[j - 1] - S0Tmp[j]) /
+                                (S0Tmp[j - 1] + S0Tmp[j]) / 2)
+                j += 1
+
+            Y0[i] = Y0Tmp[j - 2]
+            S0[i] = S0Tmp[j - 2]
+            ADX[i] = DXTmp[j - 2] / dx
+
+    # Gaussian smoothing of relevant parameters
+        DX = 2 * np.median(np.diff(X))
+        ADX = self.smgauss(X, ADX, DX)
+        S0 = self.smgauss(X, S0, DX)
+        Y0 = self.smgauss(X, Y0, DX)
+        return Y0, S0, ADX
+
+    def _init(self, Y, dx):
+        S0 = np.nan * np.zeros(Y.shape)
+        Y0 = np.nan * np.zeros(Y.shape)
+        ADX = dx * np.ones(Y.shape)
+        return Y0, S0, ADX
+
     def __call__(self, y, x=None):
         Y = np.atleast_1d(y).ravel()
         if x is None:
             x = range(len(Y))
         X = np.atleast_1d(x).ravel()
 
-        dx = self.dx
-        if dx is None:
-            dx = 3 * np.median(np.diff(X))
-        if not np.isscalar(dx):
-            raise ValueError('DX must be a scalar.')
-        elif dx < 0:
-            raise ValueError('DX must be larger than zero.')
-
-        YY = Y
-        S0 = np.nan * np.zeros(YY.shape)
-        Y0 = np.nan * np.zeros(YY.shape)
-        ADX = dx * np.ones(Y.shape)
-
-        def localwindow(X, Y, DX, i):
-            mask = (X[i] - DX <= X) & (X <= X[i] + DX)
-            Y0 = np.median(Y[mask])
-            # Calculate Local Scale of Natural Variation
-            S0 = 1.4826 * np.median(np.abs(Y[mask] - Y0))
-            return Y0, S0
-
-        def smgauss(X, V, DX):
-            Xj = X
-            Xk = np.atleast_2d(X).T
-            Wjk = np.exp(-((Xj - Xk) / (2 * DX)) ** 2)
-            G = np.dot(Wjk, V) / np.sum(Wjk, axis=0)
-            return G
+        dx = 3 * np.median(np.diff(X)) if self.dx is None else self.dx
+        self._check(dx)
 
         if len(X) > 1:
             if self.adaptive is None:
+                localwindow = self.localwindow
+                Y0, S0, ADX = self._init(Y, dx)
                 for i in range(len(Y)):
                     Y0[i], S0[i] = localwindow(X, Y, dx, i)
             else:  # 'adaptive'
-
-                Y0Tmp = np.nan * np.zeros(YY.shape)
-                S0Tmp = np.nan * np.zeros(YY.shape)
-                DXTmp = np.arange(1, len(S0) + 1) * dx
-                # Integer variation of Window Half Size
-
-                # Calculate Initial Guess of Optimal Parameters Y0, S0, ADX
-                for i in range(len(Y)):
-                    j = 0
-                    S0Rel = np.inf
-                    while S0Rel > self.adaptive:
-                        Y0Tmp[j], S0Tmp[j] = localwindow(X, Y, DXTmp[j], i)
-                        if j > 0:
-                            S0Rel = abs((S0Tmp[j - 1] - S0Tmp[j]) /
-                                        (S0Tmp[j - 1] + S0Tmp[j]) / 2)
-                        j += 1
-                    Y0[i] = Y0Tmp[j - 2]
-                    S0[i] = S0Tmp[j - 2]
-                    ADX[i] = DXTmp[j - 2] / dx
-
-                # Gaussian smoothing of relevant parameters
-                DX = 2 * np.median(np.diff(X))
-                ADX = smgauss(X, ADX, DX)
-                S0 = smgauss(X, S0, DX)
-                Y0 = smgauss(X, Y0, DX)
-
+                Y0, S0, ADX = self._adaptive(Y, X, dx)
+        YY = Y.copy()
         T = self.t
         # Prepare Output
         self.UB = Y0 + T * S0
