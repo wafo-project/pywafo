@@ -8,6 +8,7 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal
 import wafo.dctpack as wd
 
+
 class Test(unittest.TestCase):
     def test_dct3(self):
         a = np.array([[[0.51699637,  0.42946223,  0.89843545],
@@ -42,7 +43,6 @@ class Test(unittest.TestCase):
         assert_array_almost_equal(xn, a)
 
 
-
 if __name__ == "__main__":
-    #import sys;sys.argv = ['', 'Test.testName']
+    # import sys;sys.argv = ['', 'Test.testName']
     unittest.main()
