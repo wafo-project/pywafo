@@ -680,6 +680,10 @@ class SmoothNd(object):
         return _Filter(y, self.z0, self.weightstr, self.weight, self.s,
                        self.robust, self.maxiter, self.tolz)
 
+    @property
+    def num_steps(self):
+        return 3 if self.robust else 1
+
     def __call__(self, data):
 
         y = np.atleast_1d(data)
@@ -689,14 +693,11 @@ class SmoothNd(object):
         _filter = self._init_filter(y)
         z = _filter.z0
         s = _filter.s
-        num_steps = 3 if self.robust else 1
         converged = False
-        for i in range(num_steps):
+        for _i in range(self.num_steps):
             z, s, converged = _filter(z, s)
 
-            if converged and num_steps <= i+1:
-                break
-        else:
+        if not converged:
             msg = '''Maximum number of iterations (%d) has been exceeded.
             Increase MaxIter option or decrease TolZ value.''' % (self.maxiter)
             warnings.warn(msg)
