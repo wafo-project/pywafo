@@ -43,7 +43,7 @@ def delete_text_object(gidtxt, figure=None, axis=None, verbose=False):
     def lmatchfun(x):
         return _matchfun(x, gidtxt)
 
-    for handle in [axis, figure]:
+    def _delete_gid_objects(handle, gidtxt, verbose):
         objs = handle.findobj(lmatchfun)
         name = handle.__name__
         msg = "Tried to delete a non-existing {0} from {1}".format(gidtxt,
@@ -54,6 +54,9 @@ def delete_text_object(gidtxt, figure=None, axis=None, verbose=False):
             except:
                 if verbose:
                     warnings.warn(msg)
+
+    for handle in [axis, figure]:
+        _delete_gid_objects(handle, gidtxt, verbose)
 
 
 def cltext(levels, percent=False, n=4, xs=0.036, ys=0.94, zs=0, figure=None,
