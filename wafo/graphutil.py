@@ -43,22 +43,17 @@ def delete_text_object(gidtxt, figure=None, axis=None, verbose=False):
     def lmatchfun(x):
         return _matchfun(x, gidtxt)
 
-    objs = axis.findobj(lmatchfun)
-    for obj in objs:
-        try:
-            axis.texts.remove(obj)
-        except:
-            if verbose:
-                warnings.warn(
-                    'Tried to delete a non-existing %s from axis' % gidtxt)
-    objs = figure.findobj(lmatchfun)
-    for obj in objs:
-        try:
-            figure.texts.remove(obj)
-        except:
-            if verbose:
-                warnings.warn(
-                    'Tried to delete a non-existing %s from figure' % gidtxt)
+    for handle in [axis, figure]:
+        objs = handle.findobj(lmatchfun)
+        name = handle.__name__
+        msg = "Tried to delete a non-existing {0} from {1}".format(gidtxt,
+                                                                   name)
+        for obj in objs:
+            try:
+                handle.texts.remove(obj)
+            except:
+                if verbose:
+                    warnings.warn(msg)
 
 
 def cltext(levels, percent=False, n=4, xs=0.036, ys=0.94, zs=0, figure=None,

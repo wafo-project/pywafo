@@ -464,7 +464,8 @@ class _Filter(object):
         # Search the smoothing parameter s that minimizes the GCV score
         s = 10.0 ** p
         Gamma = self.gamma(s)
-        if aow > 0.9:  # aow = 1 means that all of the data are equally weighted
+        if aow > 0.9:
+            # aow = 1 means that all of the data are equally weighted
             # very much faster: does not require any inverse DCT
             residual = DCTy.ravel() * (Gamma.ravel() - 1)
         else:
