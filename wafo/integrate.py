@@ -1003,163 +1003,170 @@ def richardson(Q, k):
     return R
 
 
-def quadgr(fun, a, b, abseps=1e-5, max_iter=17):
-    '''
-    Gauss-Legendre quadrature with Richardson extrapolation.
+class _Quadgr(object):
 
-    [Q,ERR] = QUADGR(FUN,A,B,TOL) approximates the integral of a function
-    FUN from A to B with an absolute error tolerance TOL. FUN is a function
-    handle and must accept vector arguments. TOL is 1e-6 by default. Q is
-    the integral approximation and ERR is an estimate of the absolute error.
+    def __call__(self, fun, a, b, abseps=1e-5, max_iter=17):
+        '''
+        Gauss-Legendre quadrature with Richardson extrapolation.
 
-    QUADGR uses a 12-point Gauss-Legendre quadrature. The error estimate is
-    based on successive interval bisection. Richardson extrapolation
-    accelerates the convergence for some integrals, especially integrals
-    with endpoint singularities.
+        [Q,ERR] = QUADGR(FUN,A,B,TOL) approximates the integral of a function
+        FUN from A to B with an absolute error tolerance TOL. FUN is a function
+        handle and must accept vector arguments. TOL is 1e-6 by default. Q is
+        the integral approximation and ERR is an estimate of the absolute
+        error.
 
-    Examples
-    --------
-    >>> import numpy as np
-    >>> Q, err = quadgr(np.log,0,1)
-    >>> quadgr(np.exp,0,9999*1j*np.pi)
-    (-2.0000000000122662, 2.1933237448479304e-09)
+        QUADGR uses a 12-point Gauss-Legendre quadrature. The error estimate is
+        based on successive interval bisection. Richardson extrapolation
+        accelerates the convergence for some integrals, especially integrals
+        with endpoint singularities.
 
-    >>> quadgr(lambda x: np.sqrt(4-x**2),0,2,1e-12)
-    (3.1415926535897811, 1.5809575870662229e-13)
+        Examples
+        --------
+        >>> import numpy as np
+        >>> Q, err = quadgr(np.log,0,1)
+        >>> quadgr(np.exp,0,9999*1j*np.pi)
+        (-2.0000000000122662, 2.1933237448479304e-09)
 
-    >>> quadgr(lambda x: x**-0.75,0,1)
-    (4.0000000000000266, 5.6843418860808015e-14)
+        >>> quadgr(lambda x: np.sqrt(4-x**2),0,2,1e-12)
+        (3.1415926535897811, 1.5809575870662229e-13)
 
-    >>> quadgr(lambda x: 1./np.sqrt(1-x**2),-1,1)
-    (3.141596056985029, 6.2146261559092864e-06)
+        >>> quadgr(lambda x: x**-0.75,0,1)
+        (4.0000000000000266, 5.6843418860808015e-14)
 
-    >>> quadgr(lambda x: np.exp(-x**2),-np.inf,np.inf,1e-9) #% sqrt(pi)
-    (1.7724538509055152, 1.9722334876348668e-11)
+        >>> quadgr(lambda x: 1./np.sqrt(1-x**2),-1,1)
+        (3.141596056985029, 6.2146261559092864e-06)
 
-    >>> quadgr(lambda x: np.cos(x)*np.exp(-x),0,np.inf,1e-9)
-    (0.50000000000000044, 7.3296813063450372e-11)
+        >>> quadgr(lambda x: np.exp(-x**2),-np.inf,np.inf,1e-9) #% sqrt(pi)
+        (1.7724538509055152, 1.9722334876348668e-11)
 
-    See also
-    --------
-    QUAD,
-    QUADGK
-    '''
-    # Author: jonas.lundgren@saabgroup.com, 2009. license BSD
-    # Order limits (required if infinite limits)
-    a = np.asarray(a)
-    b = np.asarray(b)
-    if a == b:
-        Q = b - a
-        err = b - a
-        return Q, err
-    elif np.real(a) > np.real(b):
-        reverse = True
-        a, b = b, a
-    else:
-        reverse = False
+        >>> quadgr(lambda x: np.cos(x)*np.exp(-x),0,np.inf,1e-9)
+        (0.50000000000000044, 7.3296813063450372e-11)
 
-    # Infinite limits
-    if np.isinf(a) | np.isinf(b):
-        # Check real limits
-        if ~ np.isreal(a) | ~np.isreal(b) | np.isnan(a) | np.isnan(b):
-            raise ValueError('Infinite intervals must be real.')
+        See also
+        --------
+        QUAD,
+        QUADGK
+        '''
+        # Author: jonas.lundgren@saabgroup.com, 2009. license BSD
+        # Order limits (required if infinite limits)
+        a = np.asarray(a)
+        b = np.asarray(b)
+        if a == b:
+            Q = b - a
+            err = b - a
+            return Q, err
+        elif np.real(a) > np.real(b):
+            reverse = True
+            a, b = b, a
+        else:
+            reverse = False
 
-        # Change of variable
-        if np.isfinite(a) & np.isinf(b):
-            # a to inf
-            [Q, err] = quadgr(lambda t: fun(a + t / (1 - t)) / (1 - t) ** 2,
-                              0, 1, abseps)
-        elif np.isinf(a) & np.isfinite(b):
-            # -inf to b
-            [Q, err] = quadgr(lambda t: fun(b + t / (1 + t)) / (1 + t) ** 2,
-                              -1, 0, abseps)
-        else:  # -inf to inf
-            [Q1, err1] = quadgr(lambda t: fun(t / (1 - t)) / (1 - t) ** 2,
-                                0, 1, abseps / 2)
-            [Q2, err2] = quadgr(lambda t: fun(t / (1 + t)) / (1 + t) ** 2,
-                                -1, 0, abseps / 2)
-            Q = Q1 + Q2
-            err = err1 + err2
+        # Infinite limits
+        if np.isinf(a) | np.isinf(b):
+            # Check real limits
+            if ~ np.isreal(a) | ~np.isreal(b) | np.isnan(a) | np.isnan(b):
+                raise ValueError('Infinite intervals must be real.')
 
+            # Change of variable
+            if np.isfinite(a) & np.isinf(b):
+                # a to inf
+                [Q, err] = quadgr(lambda t: fun(a + t / (1 - t)) / (1 - t) ** 2,
+                                  0, 1, abseps)
+            elif np.isinf(a) & np.isfinite(b):
+                # -inf to b
+                [Q, err] = quadgr(lambda t: fun(b + t / (1 + t)) / (1 + t) ** 2,
+                                  -1, 0, abseps)
+            else:  # -inf to inf
+                [Q1, err1] = quadgr(lambda t: fun(t / (1 - t)) / (1 - t) ** 2,
+                                    0, 1, abseps / 2)
+                [Q2, err2] = quadgr(lambda t: fun(t / (1 + t)) / (1 + t) ** 2,
+                                    -1, 0, abseps / 2)
+                Q = Q1 + Q2
+                err = err1 + err2
+
+            # Reverse direction
+            if reverse:
+                Q = -Q
+            return Q, err
+
+        # Gauss-Legendre quadrature (12-point)
+        xq = np.asarray(
+            [0.12523340851146894, 0.36783149899818018, 0.58731795428661748,
+             0.76990267419430469, 0.9041172563704748, 0.98156063424671924])
+        wq = np.asarray(
+            [0.24914704581340288, 0.23349253653835478, 0.20316742672306584,
+             0.16007832854334636, 0.10693932599531818, 0.047175336386511842])
+        xq = np.hstack((xq, -xq))
+        wq = np.hstack((wq, wq))
+        nq = len(xq)
+        dtype = np.result_type(fun(a), fun(b))
+
+        # Initiate vectors
+        Q0 = zeros(max_iter, dtype=dtype)  # Quadrature
+        Q1 = zeros(max_iter, dtype=dtype)  # First Richardson extrapolation
+        Q2 = zeros(max_iter, dtype=dtype)  # Second Richardson extrapolation
+
+        # One interval
+        hh = (b - a) / 2             # Half interval length
+        x = (a + b) / 2 + hh * xq      # Nodes
+        # Quadrature
+        Q0[0] = hh * np.sum(wq * fun(x), axis=0)
+
+        # Successive bisection of intervals
+        for k in range(1, max_iter):
+
+            # Interval bisection
+            hh = hh / 2
+            x = np.hstack([x + a, x + b]) / 2
+            # Quadrature
+            Q0[k] = hh * np.sum(wq * np.sum(np.reshape(fun(x), (-1, nq)),
+                                            axis=0),
+                                axis=0)
+
+            # Richardson extrapolation
+            if k >= 5:
+                Q1[k] = richardson(Q0, k)
+                Q2[k] = richardson(Q1, k)
+            elif k >= 3:
+                Q1[k] = richardson(Q0, k)
+
+            # Estimate absolute error
+            if k >= 6:
+                Qv = np.hstack((Q0[k], Q1[k], Q2[k]))
+                Qw = np.hstack((Q0[k - 1], Q1[k - 1], Q2[k - 1]))
+            elif k >= 4:
+                Qv = np.hstack((Q0[k], Q1[k]))
+                Qw = np.hstack((Q0[k - 1], Q1[k - 1]))
+            else:
+                Qv = np.atleast_1d(Q0[k])
+                Qw = Q0[k - 1]
+
+            errors = np.atleast_1d(abs(Qv - Qw))
+            j = errors.argmin()
+            err = errors[j]
+            Q = Qv[j]
+            if k >= 2:  # and not iscomplex:
+                _val, err1 = dea3(Q0[k - 2], Q0[k - 1], Q0[k])
+
+            # Convergence
+            if (err < abseps) | ~np.isfinite(Q):
+                break
+        else:
+            warnings.warn('Max number of iterations reached without ' +
+                          'convergence.')
+
+        if ~ np.isfinite(Q):
+            warnings.warn('Integral approximation is Infinite or NaN.')
+
+        # The error estimate should not be zero
+        err = err + 2 * np.finfo(Q).eps
         # Reverse direction
         if reverse:
             Q = -Q
+
         return Q, err
 
-    # Gauss-Legendre quadrature (12-point)
-    xq = np.asarray(
-        [0.12523340851146894, 0.36783149899818018, 0.58731795428661748,
-         0.76990267419430469, 0.9041172563704748, 0.98156063424671924])
-    wq = np.asarray(
-        [0.24914704581340288, 0.23349253653835478, 0.20316742672306584,
-         0.16007832854334636, 0.10693932599531818, 0.047175336386511842])
-    xq = np.hstack((xq, -xq))
-    wq = np.hstack((wq, wq))
-    nq = len(xq)
-    dtype = np.result_type(fun(a), fun(b))
-
-    # Initiate vectors
-    Q0 = zeros(max_iter, dtype=dtype)  # Quadrature
-    Q1 = zeros(max_iter, dtype=dtype)  # First Richardson extrapolation
-    Q2 = zeros(max_iter, dtype=dtype)  # Second Richardson extrapolation
-
-    # One interval
-    hh = (b - a) / 2             # Half interval length
-    x = (a + b) / 2 + hh * xq      # Nodes
-    # Quadrature
-    Q0[0] = hh * np.sum(wq * fun(x), axis=0)
-
-    # Successive bisection of intervals
-    for k in range(1, max_iter):
-
-        # Interval bisection
-        hh = hh / 2
-        x = np.hstack([x + a, x + b]) / 2
-        # Quadrature
-        Q0[k] = hh * np.sum(wq * np.sum(np.reshape(fun(x), (-1, nq)), axis=0),
-                            axis=0)
-
-        # Richardson extrapolation
-        if k >= 5:
-            Q1[k] = richardson(Q0, k)
-            Q2[k] = richardson(Q1, k)
-        elif k >= 3:
-            Q1[k] = richardson(Q0, k)
-
-        # Estimate absolute error
-        if k >= 6:
-            Qv = np.hstack((Q0[k], Q1[k], Q2[k]))
-            Qw = np.hstack((Q0[k - 1], Q1[k - 1], Q2[k - 1]))
-        elif k >= 4:
-            Qv = np.hstack((Q0[k], Q1[k]))
-            Qw = np.hstack((Q0[k - 1], Q1[k - 1]))
-        else:
-            Qv = np.atleast_1d(Q0[k])
-            Qw = Q0[k - 1]
-
-        errors = np.atleast_1d(abs(Qv - Qw))
-        j = errors.argmin()
-        err = errors[j]
-        Q = Qv[j]
-        if k >= 2:  # and not iscomplex:
-            _val, err1 = dea3(Q0[k - 2], Q0[k - 1], Q0[k])
-
-        # Convergence
-        if (err < abseps) | ~np.isfinite(Q):
-            break
-    else:
-        warnings.warn('Max number of iterations reached without convergence.')
-
-    if ~ np.isfinite(Q):
-        warnings.warn('Integral approximation is Infinite or NaN.')
-
-    # The error estimate should not be zero
-    err = err + 2 * np.finfo(Q).eps
-    # Reverse direction
-    if reverse:
-        Q = -Q
-
-    return Q, err
+quadgr = _Quadgr()
 
 
 def boole(y, x):
