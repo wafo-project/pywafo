@@ -1,2 +1,0 @@
-numpy>=1.4
-numdifftools>=0.2
