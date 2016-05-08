@@ -31,6 +31,8 @@ log.setLevel(logging.DEBUG)
 
 printing=0
 
+def s_n_curve(S, beta, K):
+    return np.power(S, -beta)/K1
 
 # Section 4.3.1 Crossing intensity
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -38,6 +40,20 @@ import wafo.data as wd
 import wafo.objects as wo
 
 xx_sea = wd.sea()
+
+Tlength = xx_sea[-1, 0] - xx_sea[0, 0]
+beta = 3
+K1 = 6.5e-31
+Np = 200
+Tp = Tlength/Np
+A = 100e6
+log.info("setting sin wave with Tp={} and T={}".format(Tp, Tlength))
+Nc = s_n_curve(A, beta, K1)
+damage =  float(Np)/float(Nc)
+log.info("budget at S={} N={}: damage = {} ".format(A, Nc, damage))
+#xx_sea[:, 1] = A * np.cos(2 * np.pi * xx_sea[:, 0]/Tp)
+xx_sea[:, 1] *= 500e6
+
 log.info("loaded sea time series {}".format(xx_sea.shape))
 ts = wo.mat2timeseries(xx_sea)
 tp = ts.turning_points()
@@ -73,7 +89,7 @@ log.info("alfa = {} ".format(alfa_sea) )
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Min-max and rainflow cycle plots
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-mM_rfc = tp.cycle_pairs(h=0.3)
+mM_rfc = tp.cycle_pairs(h=100e6)
 
 plt.figure()
 plt.subplot(122),
@@ -90,6 +106,12 @@ set_windows_title(title)
 import wafo.misc as wm
 ampmM_sea = mM.amplitudes()
 ampRFC_sea = mM_rfc.amplitudes()
+plt.figure()
+title="s_n_curvve"
+set_windows_title(title)
+S = np.linspace(1e6,1000e6)
+plt.loglog(S, s_n_curve(S, beta, K1))
+print("damage : {}".format(mM_rfc.damage([beta], K1)))
 plt.figure()
 plt.subplot(121)
 wm.plot_histgrm(ampmM_sea,25)
