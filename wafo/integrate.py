@@ -1070,17 +1070,17 @@ class _Quadgr(object):
             # Change of variable
             if np.isfinite(a) & np.isinf(b):
                 # a to inf
-                [Q, err] = quadgr(lambda t: fun(a + t / (1 - t)) / (1 - t) ** 2,
-                                  0, 1, abseps)
+                Q, err = quadgr(lambda t: fun(a + t / (1 - t)) / (1 - t) ** 2,
+                                0, 1, abseps)
             elif np.isinf(a) & np.isfinite(b):
                 # -inf to b
-                [Q, err] = quadgr(lambda t: fun(b + t / (1 + t)) / (1 + t) ** 2,
-                                  -1, 0, abseps)
+                Q, err = quadgr(lambda t: fun(b + t / (1 + t)) / (1 + t) ** 2,
+                                -1, 0, abseps)
             else:  # -inf to inf
-                [Q1, err1] = quadgr(lambda t: fun(t / (1 - t)) / (1 - t) ** 2,
-                                    0, 1, abseps / 2)
-                [Q2, err2] = quadgr(lambda t: fun(t / (1 + t)) / (1 + t) ** 2,
-                                    -1, 0, abseps / 2)
+                Q1, err1 = quadgr(lambda t: fun(t / (1 - t)) / (1 - t) ** 2,
+                                  0, 1, abseps / 2)
+                Q2, err2 = quadgr(lambda t: fun(t / (1 + t)) / (1 + t) ** 2,
+                                  -1, 0, abseps / 2)
                 Q = Q1 + Q2
                 err = err1 + err2
 
