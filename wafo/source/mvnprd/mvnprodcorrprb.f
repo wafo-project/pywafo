@@ -304,11 +304,11 @@ C      DOUBLE PRECISION, DIMENSION(6) :: P
 C------------------------------------------------------------------
 C  Coefficients for approximation to  erf  in first interval
 C------------------------------------------------------------------
-	DOUBLE PRECISION, PARAMETER, DIMENSION(5) ::
+      DOUBLE PRECISION, PARAMETER, DIMENSION(5) ::
      & A = (/ 3.16112374387056560D00,
      &     1.13864154151050156D02,3.77485237685302021D02,
      &     3.20937758913846947D03, 1.85777706184603153D-1/)
-	DOUBLE PRECISION, PARAMETER, DIMENSION(4) ::
+      DOUBLE PRECISION, PARAMETER, DIMENSION(4) ::
      & B = (/2.36012909523441209D01,2.44024637934444173D02,
      &       1.28261652607737228D03,2.84423683343917062D03/)
 C------------------------------------------------------------------
@@ -320,7 +320,7 @@ C------------------------------------------------------------------
      2       8.81952221241769090D02,1.71204761263407058D03,
      3       2.05107837782607147D03,1.23033935479799725D03,
      4       2.15311535474403846D-8/)
-	DOUBLE PRECISION, DIMENSION(8) ::
+      DOUBLE PRECISION, DIMENSION(8) ::
      &  D =(/1.57449261107098347D01,1.17693950891312499D02,
      1       5.37181101862009858D02,1.62138957456669019D03,
      2       3.29079923573345963D03,4.36261909014324716D03,
@@ -328,14 +328,14 @@ C------------------------------------------------------------------
 C------------------------------------------------------------------
 C  Coefficients for approximation to  erfc  in third interval
 C------------------------------------------------------------------
-	DOUBLE PRECISION, parameter,
+      DOUBLE PRECISION, parameter,
      & DIMENSION(6) :: P =(/3.05326634961232344D-1,
      & 3.60344899949804439D-1,
      1       1.25781726111229246D-1,1.60837851487422766D-2,
      2       6.58749161529837803D-4,1.63153871373020978D-2/)
-	DOUBLE PRECISION, parameter,
+      DOUBLE PRECISION, parameter,
      & DIMENSION(5) :: Q =(/2.56852019228982242D00,
-     &	1.87295284992346047D00,
+     & 1.87295284992346047D00,
      1       5.27905102951428412D-1,6.05183413124413191D-2,
      2       2.33520497626869185D-3/)
 C------------------------------------------------------------------
@@ -3090,29 +3090,29 @@ c
 !     Subdivide the interval and create two new vectors in the stack,
 !     one of which  overwrites the vector just processed.
 !
-!	 v(:,k)  = [fx1,fx2,fx3,fx4,fx5,x1,h,S,SL,SR]
-	    kp1 = k + 1;
-!	Process right interval
-	    v(1,kp1)    = v(3,k); !fx1R
-	    v(2,kp1)    = fx(3);  !fx2R
-	    v(3,kp1)    = v(4,k); !fx3R
-	    v(4,kp1)    = fx(4);  !fx4R
-	    v(5,kp1)    = v(5,k); !fx5R
-	    v(6,kp1)    = v(6,k) + four * h; ! x1R
-	    v(7,kp1)    = h;
-	    v(8,kp1)    = v(10,k); ! S
-	    v(9:10,kp1) = Sn(3:4); ! SL, SR
-!	Process left interval
-	    v(5,k)    = v(3,k); ! fx5L
-	    v(4,k)    = fx(2);  ! fx4L
-	    v(3,k)    = v(2,k); ! fx3L
-	    v(2,k)    = fx(1);  ! fx2L
-!		 v(1,k)  unchanged     fx1L
-!		 v(6,k)  unchanged      x1L
-	    v(7,k)    = h;
-	    v(8,k)    = v(9,k); ! S
-	    v(9:10,k) = Sn(1:2); ! SL, SR
-	    k = kp1;
+!       v(:,k)  = [fx1,fx2,fx3,fx4,fx5,x1,h,S,SL,SR]
+        kp1 = k + 1;
+!    Process right interval
+        v(1,kp1)    = v(3,k); !fx1R
+        v(2,kp1)    = fx(3);  !fx2R
+        v(3,kp1)    = v(4,k); !fx3R
+        v(4,kp1)    = fx(4);  !fx4R
+        v(5,kp1)    = v(5,k); !fx5R
+        v(6,kp1)    = v(6,k) + four * h; ! x1R
+        v(7,kp1)    = h;
+        v(8,kp1)    = v(10,k); ! S
+        v(9:10,kp1) = Sn(3:4); ! SL, SR
+!    Process left interval
+        v(5,k)    = v(3,k); ! fx5L
+        v(4,k)    = fx(2);  ! fx4L
+        v(3,k)    = v(2,k); ! fx3L
+        v(2,k)    = fx(1);  ! fx2L
+!        v(1,k)  unchanged     fx1L
+!        v(6,k)  unchanged      x1L
+        v(7,k)    = h;
+        v(8,k)    = v(9,k); ! S
+        v(9:10,k) = Sn(1:2); ! SL, SR
+        k = kp1;
          endif
       enddo ! while
       if (epsi<abserr) iflg = IOR(iflg,4)
@@ -3317,42 +3317,42 @@ c
 !     one of which  overwrites the vector just processed.
 !
 !	 v(:,k)  = [fx1,fx2,..,fx8,fx9,x1,h,S,SL,SR,SL1,SL2 SR1,SR2]
-	    kp1 = k + 1;
+        kp1 = k + 1;
 !	Process right interval
 
-	    v(1,kp1)    = v(5,k); !fx1R
-	    v(2,kp1)    = fx(5);  !fx2R
-	    v(3,kp1)    = v(6,k); !fx3R
-	    v(4,kp1)    = fx(6);  !fx4R
-	    v(5,kp1)    = v(7,k); !fx5R
+        v(1,kp1)    = v(5,k); !fx1R
+        v(2,kp1)    = fx(5);  !fx2R
+        v(3,kp1)    = v(6,k); !fx3R
+        v(4,kp1)    = fx(6);  !fx4R
+        v(5,kp1)    = v(7,k); !fx5R
             v(6,kp1)    = fx(7);  !fx6R
-	    v(7,kp1)    = v(8,k); !fx7R
+        v(7,kp1)    = v(8,k); !fx7R
             v(8,kp1)    = fx(8);  !fx8R
-	    v(9,kp1)    = v(9,k); !fx9R
+        v(9,kp1)    = v(9,k); !fx9R
 
-	    v(Nrule+1,kp1)    = v(Nrule+1,k) + eight * h ! x1R
-	    v(Nrule+2,kp1)    = h;
-	    v(Nrule+3,kp1)    = v(Nrule+5,k); ! S
+        v(Nrule+1,kp1)    = v(Nrule+1,k) + eight * h ! x1R
+        v(Nrule+2,kp1)    = h;
+        v(Nrule+3,kp1)    = v(Nrule+5,k); ! S
             v(Nrule+4,kp1)    = v(Nrule+8,k); ! SL
             v(Nrule+5,kp1)    = v(Nrule+9,k); ! SR
-	    v(Nrule+6:Nrule+9,kp1) = Sn(5:8); ! SL1,SL2,SR1, SR2
+        v(Nrule+6:Nrule+9,kp1) = Sn(5:8); ! SL1,SL2,SR1, SR2
 !	Process left interval
-	    v(9,k)    = v(5,k); ! fx9L
-	    v(8,k)    = fx(4);  ! fx8L
-	    v(7,k)    = v(4,k); ! fx7L
-	    v(6,k)    = fx(3);  ! fx6L
-	    v(5,k)    = v(3,k); ! fx5L
-	    v(4,k)    = fx(2);  ! fx4L
+        v(9,k)    = v(5,k); ! fx9L
+        v(8,k)    = fx(4);  ! fx8L
+        v(7,k)    = v(4,k); ! fx7L
+        v(6,k)    = fx(3);  ! fx6L
+        v(5,k)    = v(3,k); ! fx5L
+        v(4,k)    = fx(2);  ! fx4L
             v(3,k)    = v(2,k); ! fx3L
-	    v(2,k)    = fx(1);  ! fx2L
+        v(2,k)    = fx(1);  ! fx2L
 !	    v(1,k)    = v(1,k); ! fx1L
 !           v(Nrule+1,k)  unchanged      x1L
-	    v(Nrule+2,k)    = h;
-	    v(Nrule+3,k)    = v(Nrule + 4,k); ! S
+        v(Nrule+2,k)    = h;
+        v(Nrule+3,k)    = v(Nrule + 4,k); ! S
             v(Nrule+4,k)    = v(Nrule+6,k); ! SL
             v(Nrule+5,k)    = v(Nrule+7,k); ! SR
             v(Nrule+6:Nrule+9,k) = Sn(1:4); ! SL1,SL2,SR1, SR2
-	    k = kp1;
+        k = kp1;
          endif
       enddo ! while
       if (epsi<abserr) iflg = IOR(iflg,4)
@@ -3390,7 +3390,7 @@ c
             tol = max(0.1D0*LTol,2.0D-16)
 !         elseif (  LTol < excess / 10.0D0  ) then
 !			tol = LTol + excess*0.5D0
-		else
+        else
             tol = LTol
          endif
          val = val + valk
@@ -3532,24 +3532,24 @@ c
 !     one of which  overwrites the vector just processed.
 !
 !	 v(:,k)  = [fx1,fx2,fx3,x1,h,S,SL,SR]
-	    kp1 = k + 1;
+        kp1 = k + 1;
 !	Process right interval
-	    v(1,kp1)   = v(2,k); !fx1R
-	    v(2,kp1)   = fx(2); !fx2R
-	    v(3,kp1)   = v(3,k); !fx3R
-	    v(4,kp1)   = v(4,k) + two * h; ! x1R
-	    v(5,kp1)   = h;
-	    v(6,kp1)   = v(8,k); ! S
-	    v(7:8,kp1) = Sn(3:4); ! SL, SR
+        v(1,kp1)   = v(2,k); !fx1R
+        v(2,kp1)   = fx(2); !fx2R
+        v(3,kp1)   = v(3,k); !fx3R
+        v(4,kp1)   = v(4,k) + two * h; ! x1R
+        v(5,kp1)   = h;
+        v(6,kp1)   = v(8,k); ! S
+        v(7:8,kp1) = Sn(3:4); ! SL, SR
 !	Process left interval
-	    v(3,k)    = v(2,k); ! fx5L
-	    v(2,k)    = fx(1);  ! fx4L
+        v(3,k)    = v(2,k); ! fx5L
+        v(2,k)    = fx(1);  ! fx4L
 !           v(1,k)  unchanged     fx1L
 !           v(4,k)  unchanged      x1L
-	    v(5,k)    = h;
-	    v(6,k)    = v(7,k); ! S
-	    v(7:8,k)  = Sn(1:2); ! SL, SR
-	    k = kp1;
+        v(5,k)    = h;
+        v(6,k)    = v(7,k); ! S
+        v(7:8,k)  = Sn(1:2); ! SL, SR
+        k = kp1;
          endif
       enddo ! while
       end subroutine AdaptiveTrapz1
@@ -3595,7 +3595,7 @@ c
          val = val + valk
          if (kflg>0) iflg = ior(iflg,kflg)
       end do
-	  if (epsi<abserr)  iflg = IOR(iflg, 3)
+      if (epsi<abserr)  iflg = IOR(iflg, 3)
       end subroutine RombergWithBreaks
       subroutine Romberg1(f,a,b,decdigs,abseps,errFlg,abserr,VAL)
       implicit none
@@ -4116,8 +4116,8 @@ c
       double precision             :: xUp,xLo,zRho
       double precision, parameter  :: one = 1.0D0, zero = 0.0D0
       integer :: I
-	val = one
-	do I = 1, mNdim
+      val = one
+      do I = 1, mNdim
          zRho = z * mRho(I)
          ! Uncomment / mDen below if mRho, mA, mB is not scaled
          xUp  = ( mB(I) - zRho )  !/ mDen(I)
@@ -4153,7 +4153,7 @@ c
      &     Q, R
       PARAMETER ( SPLIT1 = 0.425D0, SPLIT2 = 5.D0,
      &            CONST1 = 0.180625D0, CONST2 = 1.6D0,
-     &				ONE = 1.D0, ZERO = 0.D0, HALF = 0.5D0 )
+     & ONE = 1.D0, ZERO = 0.D0, HALF = 0.5D0 )
 *
 *     Coefficients for P close to 0.5
 *

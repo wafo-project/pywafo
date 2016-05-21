@@ -1,12 +1,12 @@
-C 
+C
 C f2py -m mvnprd -h mvnprd.pyf mvnprd.f  only: mvnprd
 C  edit mvnprd.pyf with input and output and then
 C f2py mvnprd.pyf mvnprd.f -c --fcompiler=gnu95 --compiler=mingw32 -lmsvcr71
 C
-C f2py --fcompiler=gnu95 --compiler=mingw32 -lmsvcr71 -m mvnprd  -c mvnprd.f 
+C f2py --fcompiler=gnu95 --compiler=mingw32 -lmsvcr71 -m mvnprd  -c mvnprd.f
 
 C Altarnative: compile mvnprd and link to it through mvnprd_interface.f
-C 
+C
 C gfortran -fPIC -c mvnprd.f
 C f2py -m mvnprdmod  -c mvnprd.o mvnprd_interface.f --fcompiler=gnu95 --compiler=mingw32 -lmsvcr71
 C
@@ -18,7 +18,7 @@ C f2py -m mvnprdmod  -c mvnprd.obj mvnprd_interface.f --fcompiler=compaqv --comp
 !     ,MVNPRD and MVSTUD subroutines for computing multivariate normal
 !     or student T probabilities with product correlation structure. The
 !     file should compile without errors on (Fortran77) standard Fortran
-!     compilers. 
+!     compilers.
 *
 * The mex-interface was written by
 *     Per Andreas Brodtkorb
@@ -45,7 +45,7 @@ C     Tel.: (905) 525-9140 (Ext. 27104)
 *     RHO    REAL, array of coefficients defining the correlation
 *            coefficient by:
 *                correlation(I,J) =  RHO(I)*RHO(J) for J/=I
-*            where 
+*            where
 *                1 < RHO(I) < 1
 *     A		 REAL, array of lower integration limits.
 *     B		 REAL, array of upper integration limits.
@@ -66,13 +66,13 @@ C     Tel.: (905) 525-9140 (Ext. 27104)
 *     INFORM INTEGER, termination status parameter:
 *            0, if normal completion with ERROR < EPS;
 *            1, if N > 100 or N < 1.
-*            2, IF  any abs(rho)>=1      
+*            2, IF  any abs(rho)>=1
 *            4, if  ANY(B(I)<=A(i))
 *            5, if number of terms computed exceeds maximum number of
 *                  evaluation points
 *            6, if fault accurs in normal subroutines
 *            7, if subintervals are too narrow or too many
-*            8, if bounds exceeds abseps            
+*            8, if bounds exceeds abseps
 *
 *
 * MVNPRDMEX calculates multivariate normal or student T probability
@@ -836,7 +836,7 @@ C
       DOUBLE PRECISION :: HNC,PROB,BND
       INTEGER :: NN, MAXDF,I,IERC,NDF,N,IFLT
       PARAMETER (NN=100, MAXDF = 150)
-	integer :: INF(*)
+      integer :: INF(*)
       DOUBLE PRECISION :: A(*),B(*),BPD(*),D(*),F(3),
      &     AA(NN),BB(NN)
       DOUBLE PRECISION :: ERB2, ERRB, AX,BX,XX
@@ -855,7 +855,7 @@ C
       ENDIF
       BND   = ZERO
       IFLT  =  0
-      
+
       ERB2  = ERRB
 C
 C        CHECK IF D.F. EXCEED MAXDF; IF YES, THEN PROB
@@ -1086,7 +1086,7 @@ C
       RETURN
       END
 
-C * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
+C * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 C Charles Dunnett
 C Dept. of Mathematics and Statistics
 C McMaster University

@@ -145,8 +145,8 @@ C  Covariance matrices COV1=r'(T-T), COV2=r''(T-T) and COV3=r'''(T-T)
 C  Dimension of  COV1, COV2  should be atleast  N*N.
 C
       USE SIZEMOD
-!	IMPLICIT NONE
-C	INTEGER, PARAMETER:: NMAX = 101, RDIM = 10201
+!     IMPLICIT NONE
+C     INTEGER, PARAMETER:: NMAX = 101, RDIM = 10201
       REAL*8, PARAMETER:: ZERO = 0.0d0
       REAL*8, intent(inout) :: XL0,XL2,XL4
       REAL*8, DIMENSION(N,5), intent(in) :: COV
