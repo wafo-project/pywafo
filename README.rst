@@ -12,7 +12,7 @@ Description
 WAFO is a toolbox Python routines for statistical analysis and simulation of
 random waves and random loads. WAFO is freely redistributable software, see WAFO
 icence, cf. the GNU General Public License (GPL) and contain tools for:
-        
+
 Fatigue Analysis
 ----------------
 
@@ -47,7 +47,7 @@ Classes
 
 * SpecData:
     Computation of spectral moments and covariance functions, linear and
-    non-linear time series simulation. Ex: common spectra implemented, 
+    non-linear time series simulation. Ex: common spectra implemented,
     directional spectra, bandwidth measures, exact distributions for wave
     characteristics.
 
@@ -125,9 +125,9 @@ information on PyScaffold see http://pyscaffold.readthedocs.org/.
 .. |docs_img| image:: https://readthedocs.org/projects/pip/badge/?version=latest
     :target: http://pywafo.readthedocs.org/en/latest/
 
-.. |health_img| image:: https://landscape.io/github/wafo-project/pywafo/master/landscape.svg?style=flat
-   :target: https://landscape.io/github/wafo-project/pywafo/master
-   :alt: Code Health
+.. |health_img| image:: https://codeclimate.com/github/wafo-project/pywafo/badges/gpa.svg
+   :target: https://codeclimate.com/github/wafo-project/pywafo
+   :alt: Code Climate
 
 .. |coverage_img| image:: https://coveralls.io/repos/wafo-project/pywafo/badge.svg?branch=master
    :target: https://coveralls.io/github/wafo-project/pywafo?branch=master
