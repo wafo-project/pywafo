@@ -249,8 +249,8 @@ def link(self, x, logSF, theta, i):
 
 
 def _link(self, x, logSF, theta, i):
-    msg = ('Link function not implemented for the %s distribution' %
-           self.name)
+    msg = ('Link function not implemented for the {0!s} distribution'.format(
+           self.name))
     raise NotImplementedError(msg)
 
 
@@ -338,16 +338,16 @@ def _reduce_func(self, args, options):
         for j, s in enumerate(shapes):
             val = kwds.pop('f' + s, None) or kwds.pop('fix_' + s, None)
             if val is not None:
-                key = 'f%d' % j
+                key = 'f{0:d}'.format(j)
                 if key in kwds:
-                    raise ValueError("Duplicate entry for %s." % key)
+                    raise ValueError("Duplicate entry for {0!s}.".format(key))
                 else:
                     kwds[key] = val
 
     args = list(args)
     Nargs = len(args)
     fixedn = []
-    names = ['f%d' % n for n in range(Nargs - 2)] + ['floc', 'fscale']
+    names = ['f{0:d}'.format(n) for n in range(Nargs - 2)] + ['floc', 'fscale']
     x0 = []
     for n, key in enumerate(names):
         if key in kwds:
@@ -501,11 +501,11 @@ def fit(self, data, *args, **kwargs):
         try:
             optimizer = getattr(optimize, optimizer)
         except AttributeError:
-            raise ValueError("%s is not a valid optimizer" % optimizer)
+            raise ValueError("{0!s} is not a valid optimizer".format(optimizer))
 
     # by now kwds must be empty, since everybody took what they needed
     if kwds:
-        raise TypeError("Unknown arguments: %s." % kwds)
+        raise TypeError("Unknown arguments: {0!s}.".format(kwds))
 
     vals = optimizer(func, x0, args=(ravel(data),), disp=0)
     if restore is not None:

@@ -818,7 +818,7 @@ def findcross(x, v=0.0, kind=None):
     xn = np.int8(sign(atleast_1d(x).ravel() - v))  # @UndefinedVariable
     ind = _findcross(xn)
     if ind.size == 0:
-        warnings.warn('No level v = %0.5g crossings found in x' % v)
+        warnings.warn('No level v = {0:0.5g} crossings found in x'.format(v))
         return ind
 
     if kind not in ('du', 'all', None):
@@ -1366,7 +1366,7 @@ def rfcfilter(x, h, method=0):
                   ((z0 == -1) & cmpfun1(fpi, yi))):
                 z1 = +1
             else:
-                warnings.warn('Something wrong, i=%d' % tim1)
+                warnings.warn('Something wrong, i={0:d}'.format(tim1))
 
             # Update y1
             if z1 != z0:
@@ -1652,7 +1652,7 @@ def findoutliers(x, zcrit=0.0, dcrit=None, ddcrit=None, verbose=False):
     def _find_nans(xn):
         i_missing = np.flatnonzero(np.isnan(xn))
         if verbose:
-            print('Found %d missing points' % i_missing.size)
+            print('Found {0:d} missing points'.format(i_missing.size))
         return i_missing
 
     def _find_spurious_jumps(dxn, dcrit, name='Dx'):
@@ -1677,10 +1677,9 @@ def findoutliers(x, zcrit=0.0, dcrit=None, ddcrit=None, verbose=False):
         i_small = np.flatnonzero(mask_small)
         if verbose:
             if zcrit == 0.:
-                print('Found %d consecutive equal values' % i_small.size)
+                print('Found {0:d} consecutive equal values'.format(i_small.size))
             else:
-                print('Found %d consecutive values less than %g apart.' %
-                      (i_small.size, zcrit))
+                print('Found {0:d} consecutive values less than {1:g} apart.'.format(i_small.size, zcrit))
         if i_small.size > 0:
             i_small += 1
             # finding the beginning and end of consecutive equal values
@@ -1702,12 +1701,12 @@ def findoutliers(x, zcrit=0.0, dcrit=None, ddcrit=None, verbose=False):
     if dcrit is None:
         dcrit = 1.5 * xn.std()
         if verbose:
-            print('dcrit is set to %g' % dcrit)
+            print('dcrit is set to {0:g}'.format(dcrit))
 
     if ddcrit is None:
         ddcrit = 1.5 * xn.std()
         if verbose:
-            print('ddcrit is set to %g' % ddcrit)
+            print('ddcrit is set to {0:g}'.format(ddcrit))
 
     dxn = diff(xn)
     ddxn = diff(dxn)
@@ -1723,7 +1722,7 @@ def findoutliers(x, zcrit=0.0, dcrit=None, ddcrit=None, verbose=False):
     indg, = nonzero(indg)
 
     if verbose:
-        print('Found the total of %d spurious points' % ind.size)
+        print('Found the total of {0:d} spurious points'.format(ind.size))
 
     return ind, indg
 
@@ -2233,7 +2232,7 @@ def _discretize_adaptive(fun, a, b, tol=0.005, n=5):
         else:
             break
     else:
-        warnings.warn('Recursion level limit reached j=%d' % j)
+        warnings.warn('Recursion level limit reached j={0:d}'.format(j))
 
     return x, fx
 
@@ -2663,17 +2662,17 @@ def num2pistr(x, n=3, numerator_max=10, denominator_max=10):
     True
     '''
     def _denominator_text(den):
-        return '' if abs(den) == 1 else '/%d' % den
+        return '' if abs(den) == 1 else '/{0:d}'.format(den)
 
     def _numerator_text(num):
         if abs(num) == 1:
             return '-' if num == -1 else ''
-        return '%d' % num
+        return '{0:d}'.format(num)
     frac = fractions.Fraction.from_float(x / pi).limit_denominator(int(1e+13))
     num, den = frac.numerator, frac.denominator
     if (den < denominator_max) and (num < numerator_max) and (num != 0):
         return _numerator_text(num) + r'\pi' + _denominator_text(den)
-    fmt = '%0.' + '%dg' % n
+    fmt = '%0.' + '{0:d}g'.format(n)
     return fmt % x
 
 
@@ -2812,7 +2811,7 @@ main = profile_main1
 def test_docstrings():
     # np.set_printoptions(precision=6)
     import doctest
-    print('Testing docstrings in %s' % __file__)
+    print('Testing docstrings in {0!s}'.format(__file__))
     doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
 
 

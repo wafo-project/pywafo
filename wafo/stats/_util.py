@@ -102,8 +102,7 @@ class DeprecatedImport(object):
         return dir(self._mod)
 
     def __getattr__(self, name):
-        warnings.warn("Module %s is deprecated, use %s instead"
-                      % (self._old_name, self._new_name),
+        warnings.warn("Module {0!s} is deprecated, use {1!s} instead".format(self._old_name, self._new_name),
                       DeprecationWarning)
         return getattr(self._mod, name)
 
