@@ -582,7 +582,7 @@ def wave_pressure(z, Hm0, h=10000, g=9.81, rho=1028):
 
 def test_docstrings():
     import doctest
-    print('Testing docstrings in %s' % __file__)
+    print('Testing docstrings in {0!s}'.format(__file__))
     doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
 
 

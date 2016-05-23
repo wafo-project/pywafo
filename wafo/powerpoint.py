@@ -291,7 +291,7 @@ def rename_ppt():
                 ppt.set_footer()
                 ppt.save(os.path.join(root, ppt.footer))
             except:
-                warnings.warn('Unable to load %s' % filename)
+                warnings.warn('Unable to load {0!s}'.format(filename))
 
 
 def load_file_into_ppt():
@@ -303,7 +303,7 @@ def load_file_into_ppt():
             try:
                 unused_ppt = Powerpoint(os.path.join(root, filename))
             except:
-                warnings.warn('Unable to load %s' % filename)
+                warnings.warn('Unable to load {0!s}'.format(filename))
 if __name__ == '__main__':
     # make_ppt()
     # test_powerpoint()

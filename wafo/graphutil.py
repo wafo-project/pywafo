@@ -136,7 +136,7 @@ def cltext(levels, percent=False, n=4, xs=0.036, ys=0.94, zs=0, figure=None,
     else:
         titletxt = 'Level curves at:'
 
-    format_ = '%0.' + ('%d' % n) + 'g\n'
+    format_ = '%0.' + ('{0:d}'.format(n)) + 'g\n'
 
     cltxt = ''.join([format_ % level for level in clevels.tolist()])
 
@@ -261,7 +261,7 @@ def _find_mid_points(x):
 
 def test_docstrings():
     import doctest
-    print('Testing docstrings in %s' % __file__)
+    print('Testing docstrings in {0!s}'.format(__file__))
     doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
 
 if __name__ == '__main__':

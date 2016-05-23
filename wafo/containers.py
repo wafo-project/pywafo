@@ -268,7 +268,7 @@ class AxisLabels:
         return self.__str__()
 
     def __str__(self):
-        return '%s\n%s\n%s\n%s\n' % (
+        return '{0!s}\n{1!s}\n{2!s}\n{3!s}\n'.format(
             self.title, self.xlab, self.ylab, self.zlab)
 
     def copy(self):
@@ -603,7 +603,7 @@ def test_plotdata():
 
 def test_docstrings():
     import doctest
-    print('Testing docstrings in %s' % __file__)
+    print('Testing docstrings in {0!s}'.format(__file__))
     doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
 
 

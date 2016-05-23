@@ -886,7 +886,7 @@ class _Gaussq(object):
 
     def _points_and_weights(self, gn, wfun, alpha, beta):
         global _POINTS_AND_WEIGHTS
-        name = 'wfun%d_%d_%g_%g' % (wfun, gn, alpha, beta)
+        name = 'wfun{0:d}_{1:d}_{2:g}_{3:g}'.format(wfun, gn, alpha, beta)
         x_and_w = _POINTS_AND_WEIGHTS.setdefault(name, [])
         if len(x_and_w) == 0:
             x_and_w.extend(qrule(gn, wfun, alpha, beta))
@@ -926,7 +926,7 @@ class _Gaussq(object):
             if (nk == np.prod(a_shape)):
                 tmptxt = 'All integrals did not converge'
             else:
-                tmptxt = '%d integrals did not converge' % (nk, )
+                tmptxt = '{0:d} integrals did not converge'.format(nk )
             tmptxt = tmptxt + '--singularities likely!'
         else:
             tmptxt = 'Integral did not converge--singularity likely!'
@@ -1240,7 +1240,7 @@ def qdemo(f, a, b, kmax=9, plot_error=False):
      513, 19.0855369233, 0.0000000001, 19.0855915273, 0.0000546041
     '''
     true_val, _tol = intg.quad(f, a, b)
-    print('true value = %12.8f' % (true_val,))
+    print('true value = {0:12.8f}'.format(true_val))
     neval = zeros(kmax, dtype=int)
     vals_dic = {}
     err_dic = {}
@@ -1290,7 +1290,7 @@ def qdemo(f, a, b, kmax=9, plot_error=False):
     formats[-1] = formats[-1].split(',')[0]
     formats_h = ['%4s, ', ] + ['%20s, ', ] * num_cols
     formats_h[-1] = formats_h[-1].split(',')[0]
-    headers = ['evals'] + ['%12s %12s' % ('approx', 'error')] * num_cols
+    headers = ['evals'] + ['{0:12!s} {1:12!s}'.format('approx', 'error')] * num_cols
     while len(names) > 0:
         print(''.join(fi % t for fi, t in zip(formats_h,
                                               ['ftn'] + names[:num_cols])))

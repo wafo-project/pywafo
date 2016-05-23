@@ -54,7 +54,7 @@ m_sea = ts.data.mean()
 f0_sea = interp(m_sea, lc.args,lc.data)
 extr_sea = len(tp.data)/(2*T_sea)
 alfa_sea = f0_sea/extr_sea
-print('alfa = %g ' % alfa_sea )
+print('alfa = {0:g} '.format(alfa_sea) )
 
 #! Section 4.3.2 Extraction of rainflow cycles
 #!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -454,11 +454,11 @@ class _Filter(object):
     def check_smooth_parameter(self, s):
         if self.auto_smooth:
             if abs(np.log10(s) - np.log10(self.s_min)) < self.errp:
-                warnings.warn('''s = %g: the lower bound for s has been reached.
-            Put s as an input variable if required.''' % s)
+                warnings.warn('''s = {0:g}: the lower bound for s has been reached.
+            Put s as an input variable if required.'''.format(s))
             elif abs(np.log10(s) - np.log10(self.s_max)) < self.errp:
-                warnings.warn('''s = %g: the Upper bound for s has been reached.
-            Put s as an input variable if required.''' % s)
+                warnings.warn('''s = {0:g}: the Upper bound for s has been reached.
+            Put s as an input variable if required.'''.format(s))
 
     def gcv(self, p, aow, DCTy, y, Wtot):
         # Search the smoothing parameter s that minimizes the GCV score
@@ -699,8 +699,8 @@ class SmoothNd(object):
             z, s, converged = _filter(z, s)
 
         if not converged:
-            msg = '''Maximum number of iterations (%d) has been exceeded.
-            Increase MaxIter option or decrease TolZ value.''' % (self.maxiter)
+            msg = '''Maximum number of iterations ({0:d}) has been exceeded.
+            Increase MaxIter option or decrease TolZ value.'''.format((self.maxiter))
             warnings.warn(msg)
 
         _filter.check_smooth_parameter(s)
@@ -1511,7 +1511,7 @@ def test_tide_filter():
     plt.plot(t, y, 'r.-', linewidth=2, label='raw data')
     # plt.plot(t, y2, 'b.-', linewidth=2, label='lowess @ %g Hz' % freq_filt)
     # plt.plot(t, y2, 'b.-', linewidth=2, label='filter @ %g Hz' % freq_filt)
-    plt.plot(t, y3, 'g.-', linewidth=2, label='filtfilt @ %g Hz' % freq_filt)
+    plt.plot(t, y3, 'g.-', linewidth=2, label='filtfilt @ {0:g} Hz'.format(freq_filt))
     plt.plot(t, y4, 'k.-', linewidth=2, label='kalman')
     # plt.plot(t, y5, 'k.', linewidth=2, label='kalman2')
     plt.plot(t, tide, 'y-', linewidth=2, label='True tide')
@@ -1551,7 +1551,7 @@ def test_hodrick_cardioid():
 
 def test_docstrings():
     import doctest
-    print('Testing docstrings in %s' % __file__)
+    print('Testing docstrings in {0!s}'.format(__file__))
     doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
 
 if __name__ == '__main__':

@@ -39,14 +39,14 @@ class TestSpectrumHs7(unittest.TestCase):
 
     def test_to_t_pdf(self):
         f = self.S.to_t_pdf(pdef='Tc', paramt=(0, 10, 51), speed=7, seed=100)
-        vals = ['%2.3f' % val for val in f.data[:10]]
+        vals = ['{0:2.3f}'.format(val) for val in f.data[:10]]
         truevals = ['0.000', '0.014', '0.027', '0.040',
                     '0.050', '0.059', '0.067', '0.073', '0.077', '0.082']
         for t, v in zip(truevals, vals):
             assert(t == v)
 
         # estimated error bounds
-        vals = ['%2.4f' % val for val in f.err[:10]]
+        vals = ['{0:2.4f}'.format(val) for val in f.err[:10]]
         truevals = ['0.0000', '0.0003', '0.0003', '0.0004',
                     '0.0006', '0.0008', '0.0016', '0.0019', '0.0020', '0.0021']
         for t, v in zip(truevals, vals):

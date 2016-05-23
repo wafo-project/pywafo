@@ -13,7 +13,7 @@ def compile_all():
     compile1_format = 'gfortran -fPIC -c %s.f'
     for file_ in files:
         os.system(compile1_format % file_)
-    file_objects = ['%s.o' % file_ for file_ in files]
+    file_objects = ['{0!s}.o'.format(file_) for file_ in files]
     return file_objects
 
 

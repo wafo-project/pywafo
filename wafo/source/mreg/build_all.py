@@ -22,8 +22,8 @@ def compile_all():
         os.system(compile1_format % file_)
     file_objects = format1 % tuple(files)
 
-    os.system(f2py_call + ' -m cov2mod  -c %s cov2mmpdfreg_intfc.f' %
-              file_objects)
+    os.system(f2py_call + ' -m cov2mod  -c {0!s} cov2mmpdfreg_intfc.f'.format(
+              file_objects))
 
 
 if __name__ == '__main__':
