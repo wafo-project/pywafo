@@ -569,20 +569,24 @@ class Jonswap(ModelSpectrum):
         return Gf * _gengamspec(wn, self.N, self.M)
 
     def _parametric_ag(self):
-        self.method = 'parametric'  # Original normalization
-        # NOTE: that  Hm0**2/16 generally is not equal to intS(w)dw
-        # with this definition of Ag if sa or sb are changed from the
-        # default values
+        """
+        Original normalization
+
+        NOTE: that  Hm0**2/16 generally is not equal to intS(w)dw
+              with this definition of Ag if sa or sb are changed from the
+              default values
+        """
+        self.method = 'parametric'
+
         N = self.N
         M = self.M
         gammai = self.gamma
-        parametersOK = (3 <= N and N <= 50 or 2 <= M and M <= 9.5 and
-                        1 <= gammai and gammai <= 20)
+        parameters_ok = (3 <= N <= 50 or 2 <= M <= 9.5 and 1 <= gammai <= 20)
         f1NM = 4.1 * (N - 2 * M ** 0.28 + 5.3) ** (-1.45 * M ** 0.1 + 0.96)
         f2NM = ((2.2 * M ** (-3.3) + 0.57) * N ** (-0.58 * M ** 0.37 + 0.53) -
                 1.04 * M ** (-1.9) + 0.94)
         self.Ag = (1 + f1NM * log(gammai) ** f2NM) / gammai
-        if not parametersOK:
+        if not parameters_ok:
             raise ValueError('Not knowing the normalization because N, ' +
                              'M or peakedness parameter is out of bounds!')
         # elseif N == 5 && M == 4,
