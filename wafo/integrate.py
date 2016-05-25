@@ -5,8 +5,9 @@ from numpy import pi, sqrt, ones, zeros  # @UnresolvedImport
 from scipy import integrate as intg
 import scipy.special.orthogonal as ort
 from scipy import special as sp
-from .plotbackend import plotbackend as plt
+
 from scipy.integrate import simps, trapz
+from .plotbackend import plotbackend as plt
 from .demos import humps
 from .misc import dea3
 from .dctpack import dct
@@ -48,9 +49,9 @@ def clencurt(fun, a, b, n0=5, trace=False, args=()):
     Example
     -------
     >>> import numpy as np
-    >>> val,err = clencurt(np.exp,0,2)
-    >>> abs(val-np.expm1(2))< err, err<1e-10
-    (array([ True], dtype=bool), array([ True], dtype=bool))
+    >>> val, err = clencurt(np.exp, 0, 2)
+    >>> np.allclose(val, np.expm1(2)), err[0] < 1e-10
+    (True, True)
 
 
     See also
@@ -103,24 +104,20 @@ def clencurt(fun, a, b, n0=5, trace=False, args=()):
     f[0, :] = f[0, :] / 2
     f[n, :] = f[n, :] / 2
 
-# % x = cos(pi*0:n/n)
-# % f = f(x)
-# %
-# %               N+1
-# %  c(k) = (2/N) sum  f''(n)*cos(pi*(2*k-2)*(n-1)/N), 1 <= k <= N/2+1.
-# %               n=1
+    # x = cos(pi*0:n/n)
+    # f = f(x)
+    #
+    #               N+1
+    #  c(k) = (2/N) sum  f''(n)*cos(pi*(2*k-2)*(n-1)/N), 1 <= k <= N/2+1.
+    #               n=1
     fft = np.fft.fft
     tmp = np.real(fft(f[:n, :], axis=0))
     c = 2 / n * (tmp[0:n / 2 + 1, :] + np.cos(np.pi * s2) * f[n, :])
     c[0, :] = c[0, :] / 2
     c[n / 2, :] = c[n / 2, :] / 2
 
-# % alternative call
-    # c2 = dct(f)
-
     c = c[0:n / 2 + 1, :] / ((s2 - 1) * (s2 + 1))
     Q = (af - bf) * np.sum(c, axis=0)
-    # Q = (a-b).*sum( c(1:n/2+1,:)./repmat((s2-1).*(s2+1),1,Na))
 
     abserr = (bf - af) * np.abs(c[n / 2, :])
 
@@ -238,9 +235,9 @@ def h_roots(n, method='newton'):
     Example
     -------
     >>> import numpy as np
-    >>> [x,w] = h_roots(10)
-    >>> np.sum(x*w)
-    -5.2516042729766621e-19
+    >>> x, w = h_roots(10)
+    >>> np.allclose(np.sum(x*w), -5.2516042729766621e-19)
+    True
 
     See also
     --------
@@ -451,7 +448,7 @@ def la_roots(n, alpha=0, method='newton'):
     >>> import numpy as np
     >>> [x,w] = h_roots(10)
     >>> np.sum(x*w)
-    -5.2516042729766621e-19
+    1.3352627380516791e-17
 
     See also
     --------
@@ -555,9 +552,9 @@ def p_roots(n, method='newton', a=-1, b=1):
     -------
     Integral of exp(x) from a = 0 to b = 3 is: exp(3)-exp(0)=
     >>> import numpy as np
-    >>> [x,w] = p_roots(11,a=0,b=3)
-    >>> np.sum(np.exp(x)*w)
-    19.085536923187668
+    >>> x, w = p_roots(11, a=0, b=3)
+    >>> np.allclose(np.sum(np.exp(x)*w), 19.085536923187668)
+    True
 
     See also
     --------
@@ -723,15 +720,22 @@ def qrule(n, wfun=1, alpha=0, beta=0):
 
     Examples:
     ---------
+    >>> import numpy as np
+
+    # integral of x^2 from a = -1 to b = 1
     >>> [bp,wf] = qrule(10)
-    >>> sum(bp**2*wf)  # integral of x^2 from a = -1 to b = 1
-    0.66666666666666641
+    >>> np.allclose(sum(bp**2*wf), 0.66666666666666641)
+    True
+
+    # integral of exp(-x.^2)*x.^2 from a = -inf to b = inf
     >>> [bp,wf] = qrule(10,2)
-    >>> sum(bp**2*wf)  # integral of exp(-x.^2)*x.^2 from a = -inf to b = inf
-    0.88622692545275772
+    >>> np.allclose(sum(bp**2*wf), 0.88622692545275772)
+    True
+
+    # integral of (x+1)*(1-x)^2 from  a = -1 to b = 1
     >>> [bp,wf] = qrule(10,4,1,2)
-    >>> (bp*wf).sum()     # integral of (x+1)*(1-x)^2 from  a = -1 to b = 1
-    0.26666666666666755
+    >>> np.allclose((bp*wf).sum(), 0.26666666666666755)
+    True
 
     See also
     --------
@@ -841,23 +845,24 @@ class _Gaussq(object):
     ---------
     integration of x**2        from 0 to 2 and from 1 to 4
 
-    >>> from scitools import numpyutils as npt
-    >>> A = [0, 1]; B = [2,4]
-    >>> fun = npt.wrap2callable('x**2')
-    >>> [val1,err1] = gaussq(fun,A,B)
-    >>> val1
-    array([  2.6666667,  21.       ])
-    >>> err1
-    array([  1.7763568e-15,   1.0658141e-14])
+    >>> import numpy as np
+    >>> A = [0, 1]
+    >>> B = [2, 4]
+    >>> fun = lambda x: x**2
+    >>> val1, err1 = gaussq(fun,A,B)
+    >>> np.allclose(val1, [  2.6666667,  21.       ])
+    True
+    >>> np.allclose(err1, [  1.7763568e-15,   1.0658141e-14])
+    True
 
     Integration of x^2*exp(-x) from zero to infinity:
-    >>> fun2 = npt.wrap2callable('1')
-    >>> val2, err2 = gaussq(fun2, 0, npt.inf, wfun=3, alpha=2)
-    >>> val3, err3 = gaussq(lambda x: x**2,0, npt.inf, wfun=3, alpha=0)
-    >>> val2, err2
-    (array([ 2.]), array([  6.6613381e-15]))
-    >>> val3, err3
-    (array([ 2.]), array([  1.7763568e-15]))
+    >>> fun2 = lambda x : np.ones(np.shape(x))
+    >>> val2, err2 = gaussq(fun2, 0, np.inf, wfun=3, alpha=2)
+    >>> val3, err3 = gaussq(lambda x: x**2,0, np.inf, wfun=3, alpha=0)
+    >>> np.allclose(val2, 2),  err2[0] < 1e-14
+    (True, True)
+    >>> np.allclose(val3, 2), err3[0] < 1e-14
+    (True, True)
 
     Integrate humps from 0 to 2 and from 1 to 4
     >>> val4, err4 = gaussq(humps,A,B)
@@ -1024,23 +1029,29 @@ class _Quadgr(object):
         --------
         >>> import numpy as np
         >>> Q, err = quadgr(np.log,0,1)
-        >>> quadgr(np.exp,0,9999*1j*np.pi)
-        (-2.0000000000122662, 2.1933237448479304e-09)
+        >>> q, err = quadgr(np.exp,0,9999*1j*np.pi)
+        >>> np.allclose(q, -2.0000000000122662), err < 1.0e-08
+        (True, True)
 
-        >>> quadgr(lambda x: np.sqrt(4-x**2),0,2,1e-12)
-        (3.1415926535897811, 1.5809575870662229e-13)
+        >>> q, err = quadgr(lambda x: np.sqrt(4-x**2), 0, 2, abseps=1e-12)
+        >>> np.allclose(q, 3.1415926535897811), err < 1.0e-12
+        (True, True)
 
-        >>> quadgr(lambda x: x**-0.75,0,1)
-        (4.0000000000000266, 5.6843418860808015e-14)
+        >>> q, err = quadgr(lambda x: x**-0.75, 0, 1)
+        >>> np.allclose(q, 4), err < 1.e-13
+        (True, True)
 
-        >>> quadgr(lambda x: 1./np.sqrt(1-x**2),-1,1)
-        (3.141596056985029, 6.2146261559092864e-06)
+        >>> q, err = quadgr(lambda x: 1./np.sqrt(1-x**2), -1, 1)
+        >>> np.allclose(q, 3.141596056985029), err < 1.0e-05
+        (True, True)
 
-        >>> quadgr(lambda x: np.exp(-x**2),-np.inf,np.inf,1e-9) #% sqrt(pi)
-        (1.7724538509055152, 1.9722334876348668e-11)
+        >>> q, err = quadgr(lambda x: np.exp(-x**2), -np.inf, np.inf, 1e-9)
+        >>> np.allclose(q, np.sqrt(np.pi)), err < 1e-9
+        (True, True)
 
-        >>> quadgr(lambda x: np.cos(x)*np.exp(-x),0,np.inf,1e-9)
-        (0.50000000000000044, 7.3296813063450372e-11)
+        >>> q, err = quadgr(lambda x: np.cos(x)*np.exp(-x), 0, np.inf, 1e-9)
+        >>> np.allclose(q, 0.5), err < 1e-9
+        (True, True)
 
         See also
         --------

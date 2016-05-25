@@ -598,7 +598,8 @@ def prbnormndpc(rho, a, b, abserr=1e-4, relerr=1e-4, usesimpson=True,
 
     '''
     # Call fortran implementation
-    val, err, ier = mvnprdmod.prbnormndpc(rho, a, b, abserr, relerr, usebreakpoints, usesimpson)  # @UndefinedVariable @IgnorePep8
+    val, err, ier = mvnprdmod.prbnormndpc(rho, a, b, abserr, relerr,
+                                          usebreakpoints, usesimpson)
 
     if ier > 0:
         warnings.warn('Abnormal termination ier = %d\n\n%s' %
