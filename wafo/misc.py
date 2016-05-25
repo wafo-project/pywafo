@@ -54,7 +54,7 @@ def valarray(shape, value=np.NaN, typecode=None):
     return out
 
 
-def piecewise(xi, condlist, funclist, fill_value=0.0, args=(), **kw):
+def piecewise(condlist, funclist, xi=None, fill_value=0.0, args=(), **kw):
     """
     Evaluate a piecewise-defined function.
 
@@ -63,8 +63,6 @@ def piecewise(xi, condlist, funclist, fill_value=0.0, args=(), **kw):
 
     Parameters
     ----------
-    xi : tuple
-        input arguments to the functions in funclist, i.e., (x0, x1,...., xn)
     condlist : list of bool arrays
         Each boolean array corresponds to a function in `funclist`.  Wherever
         `condlist[i]` is True, `funclist[i](x0,x1,...,xn)` is used as the
@@ -81,6 +79,8 @@ def piecewise(xi, condlist, funclist, fill_value=0.0, args=(), **kw):
         or a scalar value as output.  If, instead of a callable,
         a scalar is provided then a constant function (``lambda x: scalar``) is
         assumed.
+    xi : tuple
+        input arguments to the functions in funclist, i.e., (x0, x1,...., xn)
     fill_value : scalar
         fill value for out of range values. Default 0.
     args : tuple, optional
@@ -157,23 +157,26 @@ def piecewise(xi, condlist, funclist, fill_value=0.0, args=(), **kw):
                              " must be the same length")
 
     check_shapes(condlist, funclist)
-    if not isinstance(xi, tuple):
-        xi = (xi,)
 
     condlist = np.broadcast_arrays(*condlist)
     if len(condlist) == len(funclist)-1:
         condlist.append(otherwise_condition(condlist))
-
-    arrays = np.broadcast_arrays(*xi)
-    dtype = np.result_type(*arrays)
+    if xi is None:
+        arrays = condlist
+        dtype = np.result_type(*funclist)
+    else:
+        if not isinstance(xi, tuple):
+            xi = (xi,)
+        arrays = np.broadcast_arrays(*xi)
+        dtype = np.result_type(*arrays)
 
     out = valarray(arrays[0].shape, fill_value, dtype)
     for cond, func in zip(condlist, funclist):
         if isinstance(func, collections.Callable):
             temp = tuple(np.extract(cond, arr) for arr in arrays) + args
             np.place(out, cond, func(*temp, **kw))
-        else:  # func is a scalar value
-            np.place(out, cond, func)
+        else:  # func is a scalar value or a list
+            np.putmask(out, cond, func)
     return out
 
 
