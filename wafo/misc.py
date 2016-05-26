@@ -2,7 +2,6 @@
 Misc
 '''
 from __future__ import absolute_import, division
-import collections
 import sys
 import fractions
 import numpy as np
@@ -17,9 +16,9 @@ from scipy.special import gammaln
 from scipy.integrate import trapz, simps
 import warnings
 from time import strftime, gmtime
-from numdifftools.extrapolation import dea3
+from numdifftools.extrapolation import dea3  # @UnusedImport
 from .plotbackend import plotbackend
-from collections import OrderedDict
+from collections import Callable
 try:
     from . import c_library as clib  # @UnresolvedImport
 except ImportError:
@@ -54,7 +53,7 @@ def valarray(shape, value=np.NaN, typecode=None):
     return out
 
 
-def piecewise(xi, condlist, funclist, fill_value=0.0, args=(), **kw):
+def piecewise(condlist, funclist, xi=None, fill_value=0.0, args=(), **kw):
     """
     Evaluate a piecewise-defined function.
 
@@ -126,20 +125,20 @@ def piecewise(xi, condlist, funclist, fill_value=0.0, args=(), **kw):
     Define the sigma function, which is -1 for ``x < 0`` and +1 for ``x >= 0``.
 
     >>> x = np.linspace(-2.5, 2.5, 6)
-    >>> piecewise(x, [x < 0, x >= 0], [-1, 1])
+    >>> piecewise([x < 0, x >= 0], [-1, 1])
     array([-1., -1., -1.,  1.,  1.,  1.])
 
     Define the absolute value, which is ``-x`` for ``x <0`` and ``x`` for
     ``x >= 0``.
 
-    >>> piecewise((x,), [x < 0, x >= 0], [lambda x: -x, lambda x: x])
+    >>> piecewise([x < 0, x >= 0], [lambda x: -x, lambda x: x], xi=(x,))
     array([ 2.5,  1.5,  0.5,  0.5,  1.5,  2.5])
 
     Define the absolute value, which is ``-x*y`` for ``x*y <0`` and ``x*y`` for
     ``x*y >= 0``
     >>> X, Y = np.meshgrid(x, x)
-    >>> piecewise((X, Y), [X * Y < 0, ],
-    ...           [lambda x, y: -x * y, lambda x, y: x * y])
+    >>> piecewise([X * Y < 0, ], [lambda x, y: -x * y, lambda x, y: x * y],
+    ...           xi=(X, Y))
     array([[ 6.25,  3.75,  1.25,  1.25,  3.75,  6.25],
            [ 3.75,  2.25,  0.75,  0.75,  2.25,  3.75],
            [ 1.25,  0.75,  0.25,  0.25,  0.75,  1.25],
@@ -157,23 +156,27 @@ def piecewise(xi, condlist, funclist, fill_value=0.0, args=(), **kw):
                              " must be the same length")
 
     check_shapes(condlist, funclist)
-    if not isinstance(xi, tuple):
-        xi = (xi,)
 
     condlist = np.broadcast_arrays(*condlist)
     if len(condlist) == len(funclist)-1:
         condlist.append(otherwise_condition(condlist))
 
-    arrays = np.broadcast_arrays(*xi)
-    dtype = np.result_type(*arrays)
+    if xi is None:
+        arrays = ()
+        dtype = np.result_type(*funclist)
+    else:
+        if not isinstance(xi, tuple):
+            xi = (xi,)
+        arrays = np.broadcast_arrays(*xi)
+        dtype = np.result_type(*arrays)
 
-    out = valarray(arrays[0].shape, fill_value, dtype)
+    out = valarray(condlist[0].shape, fill_value, dtype)
     for cond, func in zip(condlist, funclist):
-        if isinstance(func, collections.Callable):
+        if isinstance(func, Callable):
             temp = tuple(np.extract(cond, arr) for arr in arrays) + args
             np.place(out, cond, func(*temp, **kw))
-        else:  # func is a scalar value
-            np.place(out, cond, func)
+        else:  # func is a scalar value or array
+            np.putmask(out, cond, func)
     return out
 
 
@@ -1634,6 +1637,7 @@ def findoutliers(x, zcrit=0.0, dcrit=None, ddcrit=None, verbose=False):
     >>> ddcrit = 9.81/2*dt*dt
     >>> zcrit = 0
     >>> [inds, indg] = wm.findoutliers(xx[:,1],zcrit,dcrit,ddcrit,verbose=True)
+    Found 0 missing points
     Found 0 spurious positive jumps of Dx
     Found 0 spurious negative jumps of Dx
     Found 0 spurious positive jumps of D^2x
@@ -1907,19 +1911,18 @@ def getshipchar(value=None, property="max_deadweight",  # @ReservedAssignment
     ---------
     >>> import wafo.misc as wm
     >>> sc = wm.getshipchar(10,'service_speed')
-    >>> for key in sorted(sc): key, sc[key]
-    ('beam', 29.0)
-    ('beamSTD', 2.9000000000000004)
-    ('draught', 9.6)
-    ('draughtSTD', 2.112)
-    ('length', 216.0)
-    ('lengthSTD', 2.011309883194276)
-    ('max_deadweight', 30969.0)
-    ('max_deadweightSTD', 3096.9)
-    ('propeller_diameter', 6.761165385916601)
-    ('propeller_diameterSTD', 0.20267047566705432)
-    ('service_speed', 10.0)
-    ('service_speedSTD', 0)
+    >>> sc == {'service_speedSTD': 0,
+    ...        'lengthSTD': 2.0113098831942762,
+    ...        'draught': 9.5999999999999996,
+    ...        'propeller_diameterSTD': 0.20267047566705432,
+    ...        'max_deadweightSTD': 3096.9000000000001,
+    ...        'beam': 29.0, 'length': 216.0,
+    ...        'beamSTD': 2.9000000000000004,
+    ...        'service_speed': 10.0,
+    ...        'draughtSTD': 2.1120000000000001,
+    ...        'max_deadweight': 30969.0,
+    ...        'propeller_diameter': 6.761165385916601}
+    True
 
     Other units: 1 ft = 0.3048 m and 1 knot = 0.5144 m/s
 
@@ -1936,7 +1939,7 @@ def getshipchar(value=None, property="max_deadweight",  # @ReservedAssignment
             raise ValueError('Only on keyword')
         property = names[0]  # @ReservedAssignment
         value = kwds[property]
-    value = np.atleast_1d(value)
+    value = np.array(value)
     valid_props = dict(l='length', b='beam', d='draught', m='max_deadweigth',
                        s='service_speed', p='propeller_diameter')
     prop = valid_props[property[0]]
@@ -1970,14 +1973,14 @@ def getshipchar(value=None, property="max_deadweight",  # @ReservedAssignment
     max_deadweight = np.round(max_deadweight)
     max_deadweightSTD = 0.1 * max_deadweight
 
-    shipchar = OrderedDict(beam=beam, beamSTD=beam_err,
-                           draught=draught, draughtSTD=draught_err,
-                           length=length, lengthSTD=length_err,
-                           max_deadweight=max_deadweight,
-                           max_deadweightSTD=max_deadweightSTD,
-                           propeller_diameter=p_diam,
-                           propeller_diameterSTD=p_diam_err,
-                           service_speed=speed, service_speedSTD=speed_err)
+    shipchar = dict(beam=beam, beamSTD=beam_err,
+                    draught=draught, draughtSTD=draught_err,
+                    length=length, lengthSTD=length_err,
+                    max_deadweight=max_deadweight,
+                    max_deadweightSTD=max_deadweightSTD,
+                    propeller_diameter=p_diam,
+                    propeller_diameterSTD=p_diam_err,
+                    service_speed=speed, service_speedSTD=speed_err)
 
     shipchar[propertySTD] = 0
     return shipchar
@@ -2559,10 +2562,10 @@ def good_bins(data=None, range=None, num_bins=None,  # @ReservedAssignment
         return m * 10 ** e
 
     if data is not None:
-        x = np.atleast_1d(data)
+        data = np.atleast_1d(data)
 
-    mn, mx = _default_range(range, x)
-    num_bins = _default_bins(num_bins, x)
+    mn, mx = _default_range(range, data)
+    num_bins = _default_bins(num_bins, data)
     d = _default_step(mn, mx, num_bins)
     mn = (np.floor(mn / d) - loose) * d - odd * d / 2
     mx = (np.ceil(mx / d) + loose) * d + odd * d / 2
@@ -2723,7 +2726,7 @@ def fourier(data, t=None, period=None, m=None, n=None, method='trapz'):
     >>> T = 2*np.pi
     >>> t = np.linspace(0,4*T)
     >>> x = np.sin(t)
-    >>> a, b = wm.fourier(x, t, T=T, m=5)
+    >>> a, b = wm.fourier(x, t, period=T, m=5)
     >>> np.abs(a.ravel())<1e-12
     array([ True,  True,  True,  True,  True], dtype=bool)
     >>> np.abs(b.ravel()-np.array([ 0.,  4.,  0.,  0.,  0.]))<1e-12
