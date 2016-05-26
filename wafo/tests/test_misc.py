@@ -475,64 +475,64 @@ def test_tranproc():
 
 class TestPiecewise(TestCase):
     def test_condition_is_single_bool_list(self):
-        assert_raises(ValueError, piecewise, [0, 0], [True, False], [1])
+        assert_raises(ValueError, piecewise, [True, False], [1], [0, 0])
 
     def test_condition_is_list_of_single_bool_list(self):
-        x = piecewise([0, 0], [[True, False]], [1])
+        x = piecewise([[True, False]], [1], [0, 0])
         assert_array_equal(x, [1, 0])
 
     def test_conditions_is_list_of_single_bool_array(self):
-        x = piecewise([0, 0], [np.array([True, False])], [1])
+        x = piecewise([np.array([True, False])], [1], [0, 0])
         assert_array_equal(x, [1, 0])
 
     def test_condition_is_single_int_array(self):
-        assert_raises(ValueError, piecewise, [0, 0], np.array([1, 0]), [1])
+        assert_raises(ValueError, piecewise, np.array([1, 0]), [1], [0, 0])
 
     def test_condition_is_list_of_single_int_array(self):
-        x = piecewise([0, 0], [np.array([1, 0])], [1])
+        x = piecewise([np.array([1, 0])], [1], [0, 0])
         assert_array_equal(x, [1, 0])
 
     def test_simple(self):
-        x = piecewise([0, 0], [[False, True]], [lambda x:-1])
+        x = piecewise([[False, True]], [lambda x:-1], [0, 0])
         assert_array_equal(x, [0, -1])
 
-        x = piecewise([1, 2], [[True, False], [False, True]], [3, 4])
+        x = piecewise([[True, False], [False, True]], [3, 4], [1, 2])
         assert_array_equal(x, [3, 4])
 
     def test_default(self):
         # No value specified for x[1], should be 0
-        x = piecewise([1, 2], [[True, False]], [2])
+        x = piecewise([[True, False]], [2], [1, 2],)
         assert_array_equal(x, [2, 0])
 
         # Should set x[1] to 3
-        x = piecewise([1, 2], [[True, False]], [2, 3])
+        x = piecewise([[True, False]], [2, 3], [1, 2])
         assert_array_equal(x, [2, 3])
 
     def test_0d(self):
         x = np.array(3)
-        y = piecewise(x, [x > 3], [4, 0])
+        y = piecewise([x > 3], [4, 0], x)
         assert_(y.ndim == 0)
         assert_(y == 0)
 
         x = 5
-        y = piecewise(x, [[True], [False]], [1, 0])
-        assert_(y.ndim == 0)
+        y = piecewise([[True], [False]], [1, 0], x)
         assert_(y == 1)
+        assert_(y.ndim == 0)
 
     def test_abs_function(self):
         x = np.linspace(-2.5, 2.5, 6)
-        vals = piecewise((x,), [x < 0, x >= 0], [lambda x: -x, lambda x: x])
+        vals = piecewise([x < 0, x >= 0], [lambda x: -x, lambda x: x], (x,))
         assert_array_equal(vals,
                            [2.5,  1.5,  0.5,  0.5,  1.5,  2.5])
 
     def test_abs_function_with_scalar(self):
         x = np.array(-2.5)
-        vals = piecewise((x,), [x < 0, x >= 0], [lambda x: -x, lambda x: x])
+        vals = piecewise([x < 0, x >= 0], [lambda x: -x, lambda x: x], (x,))
         assert_(vals == 2.5)
 
     def test_otherwise_condition(self):
         x = np.linspace(-2.5, 2.5, 6)
-        vals = piecewise((x,), [x < 0, ], [lambda x: -x, lambda x: x])
+        vals = piecewise([x < 0, ], [lambda x: -x, lambda x: x], (x,))
         assert_array_equal(vals, [2.5,  1.5,  0.5,  0.5,  1.5,  2.5])
 
     def test_passing_further_args_to_fun(self):
@@ -542,24 +542,24 @@ class TestPiecewise(TestCase):
         def fun1(x, y, scale=1.):
             return x*y/scale
         x = np.linspace(-2.5, 2.5, 6)
-        vals = piecewise((x,), [x < 0, ], [fun0, fun1], args=(2.,), scale=2.)
+        vals = piecewise([x < 0, ], [fun0, fun1], (x,), args=(2.,), scale=2.)
         assert_array_equal(vals, [2.5,  1.5,  0.5,  0.5,  1.5,  2.5])
 
     def test_step_function(self):
         x = np.linspace(-2.5, 2.5, 6)
-        vals = piecewise(x, [x < 0, x >= 0], [-1, 1])
+        vals = piecewise([x < 0, x >= 0], [-1, 1], x)
         assert_array_equal(vals, [-1., -1., -1.,  1.,  1.,  1.])
 
     def test_step_function_with_scalar(self):
         x = 1
-        vals = piecewise(x, [x < 0, x >= 0], [-1, 1])
+        vals = piecewise([x < 0, x >= 0], [-1, 1], x)
         assert_(vals == 1)
 
     def test_function_with_two_args(self):
         x = np.linspace(-2, 2, 5)
         X, Y = np.meshgrid(x, x)
         vals = piecewise(
-            (X, Y), [X * Y < 0, ], [lambda x, y: -x * y, lambda x, y: x * y])
+            [X * Y < 0, ], [lambda x, y: -x * y, lambda x, y: x * y], (X, Y))
         assert_array_equal(vals, [[4.,  2., -0.,  2.,  4.],
                                   [2.,  1., -0.,  1.,  2.],
                                   [-0., -0.,  0.,  0.,  0.],
@@ -569,8 +569,8 @@ class TestPiecewise(TestCase):
     def test_fill_value_and_function_with_two_args(self):
         x = np.linspace(-2, 2, 5)
         X, Y = np.meshgrid(x, x)
-        vals = piecewise((X, Y), [X * Y < -0.5, X * Y > 0.5],
-                         [lambda x, y: -x * y, lambda x, y: x * y],
+        vals = piecewise([X * Y < -0.5, X * Y > 0.5],
+                         [lambda x, y: -x * y, lambda x, y: x * y], (X, Y),
                          fill_value=np.nan)
         nan = np.nan
         assert_array_equal(vals, [[4.,   2.,  nan,   2.,   4.],
@@ -582,8 +582,8 @@ class TestPiecewise(TestCase):
     def test_fill_value2_and_function_with_two_args(self):
         x = np.linspace(-2, 2, 5)
         X, Y = np.meshgrid(x, x)
-        vals = piecewise((X, Y), [X * Y < -0.5, X * Y > 0.5],
-                         [lambda x, y: -x * y, lambda x, y: x * y, np.nan])
+        vals = piecewise([X * Y < -0.5, X * Y > 0.5],
+                         [lambda x, y: -x * y, lambda x, y: x * y, np.nan], (X, Y))
         nan = np.nan
         assert_array_equal(vals, [[4.,   2.,  nan,   2.,   4.],
                                   [2.,   1.,  nan,   1.,   2.],

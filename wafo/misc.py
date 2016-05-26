@@ -62,8 +62,6 @@ def piecewise(condlist, funclist, xi=None, fill_value=0.0, args=(), **kw):
 
     Parameters
     ----------
-    xi : tuple
-        input arguments to the functions in funclist, i.e., (x0, x1,...., xn)
     condlist : list of bool arrays
         Each boolean array corresponds to a function in `funclist`.  Wherever
         `condlist[i]` is True, `funclist[i](x0,x1,...,xn)` is used as the
@@ -80,6 +78,8 @@ def piecewise(condlist, funclist, xi=None, fill_value=0.0, args=(), **kw):
         or a scalar value as output.  If, instead of a callable,
         a scalar is provided then a constant function (``lambda x: scalar``) is
         assumed.
+    xi : tuple
+        input arguments to the functions in funclist, i.e., (x0, x1,...., xn)
     fill_value : scalar
         fill value for out of range values. Default 0.
     args : tuple, optional
@@ -160,22 +160,23 @@ def piecewise(condlist, funclist, xi=None, fill_value=0.0, args=(), **kw):
     condlist = np.broadcast_arrays(*condlist)
     if len(condlist) == len(funclist)-1:
         condlist.append(otherwise_condition(condlist))
-
     if xi is None:
         arrays = ()
         dtype = np.result_type(*funclist)
+        shape = condlist[0].shape
     else:
         if not isinstance(xi, tuple):
             xi = (xi,)
         arrays = np.broadcast_arrays(*xi)
         dtype = np.result_type(*arrays)
+        shape = arrays[0].shape
 
-    out = valarray(condlist[0].shape, fill_value, dtype)
+    out = valarray(shape, fill_value, dtype)
     for cond, func in zip(condlist, funclist):
         if isinstance(func, Callable):
             temp = tuple(np.extract(cond, arr) for arr in arrays) + args
             np.place(out, cond, func(*temp, **kw))
-        else:  # func is a scalar value or array
+        else:  # func is a scalar value or a list
             np.putmask(out, cond, func)
     return out
 
