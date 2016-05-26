@@ -516,8 +516,8 @@ class TestPiecewise(TestCase):
 
         x = 5
         y = piecewise([[True], [False]], [1, 0], x)
-        assert_(y.ndim == 0)
         assert_(y == 1)
+        assert_(y.ndim == 0)
 
     def test_abs_function(self):
         x = np.linspace(-2.5, 2.5, 6)

@@ -164,13 +164,15 @@ def piecewise(condlist, funclist, xi=None, fill_value=0.0, args=(), **kw):
     if xi is None:
         arrays = ()
         dtype = np.result_type(*funclist)
+        shape = condlist[0].shape
     else:
         if not isinstance(xi, tuple):
             xi = (xi,)
         arrays = np.broadcast_arrays(*xi)
         dtype = np.result_type(*arrays)
+        shape = arrays[0].shape
 
-    out = valarray(condlist[0].shape, fill_value, dtype)
+    out = valarray(shape, fill_value, dtype)
     for cond, func in zip(condlist, funclist):
         if isinstance(func, collections.Callable):
             temp = tuple(np.extract(cond, arr) for arr in arrays) + args
