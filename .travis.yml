@@ -46,7 +46,8 @@ before_script:
   - git config --global user.email "per.andreas.brodtkorb@gmail.com"
   - git config --global user.name "pbrod"
 script:
-  - coverage run --source=wafo setup.py test
+   - coverage run --source=wafo setup.py test
+   - py.test wafo/ --cov --pep8 --doctest-modules
 after_success:
   - coveralls
   - codecov
