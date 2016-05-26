@@ -351,25 +351,25 @@ class LevinQuadrature(unittest.TestCase):
         zdg = zeros_dg(beta)
         ab = (a, ) + zdg + (b, )
         true_val, _err = mp.quadts(ftot, ab, maxdegree=9, error=True)
+        if False:
+            import matplotlib.pyplot as plt
+            t = np.linspace(a, b, 5*513)
+            plt.subplot(2, 1, 1)
+            f2 = f(t, beta, z1)*np.exp(1j*R*g(t, beta, z1))
 
-        import matplotlib.pyplot as plt
-        t = np.linspace(a, b, 5*513)
-        plt.subplot(2, 1, 1)
-        f2 = f(t, beta, z1)*np.exp(1j*R*g(t, beta, z1))
-
-        true_val2 = np.trapz(f2, t)
-        plt.plot(t, f2.real, t, f2.imag, 'r')
-        plt.title('integral=%g+1j%g, '
-                  '(%g+1j%g)' % (true_val2.real, true_val2.imag,
-                                 true_val.real, true_val.imag))
-        plt.subplot(2, 1, 2)
-        plt.plot(t, dg(t, beta, z1), 'r')
-        plt.plot(t, g(t, beta, z1))
-        plt.hlines(0, a, b)
-        plt.axis([a, b, -5, 5])
-        plt.title('beta=%g' % beta)
-        print(np.trapz(f2, t))
-        plt.show('hold')
+            true_val2 = np.trapz(f2, t)
+            plt.plot(t, f2.real, t, f2.imag, 'r')
+            plt.title('integral=%g+1j%g, '
+                      '(%g+1j%g)' % (true_val2.real, true_val2.imag,
+                                     true_val.real, true_val.imag))
+            plt.subplot(2, 1, 2)
+            plt.plot(t, dg(t, beta, z1), 'r')
+            plt.plot(t, g(t, beta, z1))
+            plt.hlines(0, a, b)
+            plt.axis([a, b, -5, 5])
+            plt.title('beta=%g' % beta)
+            print(np.trapz(f2, t))
+            plt.show('hold')
         # true_val = 0.00253186684281+0.004314054498j
         # s = 15
         for quadfun in [QuadOsc, EvansWebster, AdaptiveLevin]:

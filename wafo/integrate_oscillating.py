@@ -266,7 +266,7 @@ class QuadOsc(object):
         # Successive bisection of intervals
         nq = len(xq)
         n = nq
-        for k in xrange(1, max_iter):
+        for k in range(1, max_iter):
             n += nq*2**k
 
             hh = hh / 2
