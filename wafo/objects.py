@@ -91,8 +91,8 @@ class LevelCrossings(PlotData):
         options.update(**kwds)
         super(LevelCrossings, self).__init__(*args, **options)
         self.intensity = kwds.get('intensity', False)
-        self.sigma = kwds.get('sigma', None)
-        self.mean = kwds.get('mean', None)
+        self.sigma = kwds.get('sigma')
+        self.mean = kwds.get('mean')
         # self.setplotter(plotmethod='step')
 
         icmax = self.data.argmax()
@@ -734,7 +734,7 @@ class CyclePairs(PlotData):
         else:
             defnr = kind
 
-        if ((defnr < 0) or (defnr > 3)):
+        if defnr not in [1, 2, 3, 4]:
             raise ValueError('kind must be one of (1,2,3,4).')
 
         m, M = self.get_minima_and_maxima()
@@ -1230,7 +1230,7 @@ class TimeSeries(PlotData):
         dt = self.sampling_period()
 
         yy = self.data.ravel()
-        if not (tr is None):
+        if tr is not None:
             yy = tr.dat2gauss(yy)
         yy = detrend(yy) if hasattr(detrend, '__call__') else yy
         n = len(yy)
