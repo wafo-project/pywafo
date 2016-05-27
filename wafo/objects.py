@@ -17,7 +17,8 @@ from wafo.transform.core import TrData
 from wafo.transform.estimation import TransformEstimator
 from wafo.stats import distributions
 from wafo.misc import (nextpow2, findtp, findrfc, findtc, findcross,
-                       ecross, JITImport, DotDict, gravity, findrfc_astm)
+                       ecross, JITImport, DotDict, gravity, findrfc_astm,
+                       detrendma)
 from wafo.interpolate import stineman_interp
 from wafo.containers import PlotData
 from wafo.plotbackend import plotbackend
@@ -37,6 +38,7 @@ from numpy import (inf, pi, zeros, ones, sqrt, where, log, exp, cos, sin,
 from numpy.fft import fft  # @UnusedImport
 from numpy.random import randn
 from matplotlib.mlab import psd, detrend_mean
+from scipy.signal.windows import parzen
 
 
 floatinfo = finfo(float)
@@ -1955,93 +1957,94 @@ class TimeSeries(PlotData):
                       ne=7, gvar=1)
         opt.update(options)
 
-        xn = self.data.copy().ravel()
-        n = len(xn)
-
-        if n < 2:
-            raise ValueError('The vector must have more than 2 elements!')
-
-        param = opt.param
-        plotflags = dict(none=0, off=0, final=1, iter=2)
-        plotflag = plotflags.get(opt.plotflag, opt.plotflag)
-
-        olddef = def_
-        method = 'approx'
-        ptime = opt.delay  # pause for ptime sec if plotflag=2
-
-        expect1 = 1  # first reconstruction by expectation? 1=yes 0=no
-        expect = 1   # reconstruct by expectation? 1=yes 0=no
-        tol = 0.001  # absolute tolerance of e(g_new-g_old)
-
-        cmvmax = 100
-        # if number of consecutive missing values (cmv) are longer they
-        # are not used in estimation of g, due to the fact that the
-        # conditional expectation approaches zero as the length to
-        # the closest known points increases, see below in the for loop
-        dT = self.sampling_period()
-
-        Lm = np.minimum([n, 200, int(200/dT)])  # Lagmax 200 seconds
-        if L is not None:
-            Lm = max(L, Lm)
-        # Lma: size of the moving average window used for detrending the
-        #     reconstructed signal
-        Lma = 1500
-        if inds is not None:
-            xn[inds] = np.nan
-
-        inds = isnan(xn)
-        if not inds.any():
-            raise ValueError('No spurious data given')
-
-        endpos = np.diff(inds)
-        strtpos = np.flatnonzero(endpos > 0)
-        endpos = np.flatnonzero(endpos < 0)
-
-        indg = np.flatnonzero(1-inds)  # indices to good points
-        inds = np.flatnonzero(inds)  # indices to spurious points
-
-        indNaN = []  # indices to points omitted in the covariance estimation
-        indr = np.arange(n)  # indices to point used in the estimation of g
-
-        # Finding more than cmvmax consecutive spurios points.
-        # They will not be used in the estimation of g and are thus removed
-        # from indr.
-
-        if strtpos.size > 0 and (endpos.size == 0 or endpos[-1] < strtpos[-1]):
-            if (n - strtpos[-1]) > cmvmax:
-                indNaN = indr[strtpos[-1]+1:n]
-                indr = indr[:strtpos[-1]+1]
-            strtpos = strtpos[:-1]
-
-        if endpos.size > 0 and (strtpos.size == 0 or endpos[0] < strtpos[0]):
-            if endpos[0] > cmvmax:
-                indNaN = np.hstack((indNaN, indr[:endpos[0]]))
-                indr = indr[endpos[0]:]
-
-            strtpos = strtpos-endpos[0]
-            endpos = endpos-endpos[0]
-            endpos = endpos[1:]
-
-        for ix in range(len(strtpos)-1, -1, -1):
-            if (endpos[ix]-strtpos[ix] > cmvmax):
-                indNaN = np.hstack((indNaN, indr[strtpos[ix]+1:endpos[ix]]))
-                # remove this when estimating the transform
-                del indr[strtpos[ix]+1:endpos[ix]]
-
-        if len(indr) < 0.1*n:
-            raise ValueError('Not possible to reconstruct signal')
-
-        if indNaN.any():
-            indNaN = np.sort(indNaN)
-
-        # initial reconstruction attempt
-        # xn(indg,2) = detrendma(xn(indg,2),1500);
-#         [g, test, cmax, irr, g2]  = dat2tr(xn(indg,:),def,opt);
-#         xnt=xn;
-#         xnt(indg,:)=dat2gaus(xn(indg,:),g);
-#         xnt(inds,2)=NaN;
-#         rwin=findrwin(xnt,Lm,L);
-#         disp(['First reconstruction attempt,    e(g-u)=', num2str(test)] )
+        _xn = self.data.copy().ravel()
+#         n = len(xn)
+#
+#         if n < 2:
+#             raise ValueError('The vector must have more than 2 elements!')
+#
+#         param = opt.param
+#         plotflags = dict(none=0, off=0, final=1, iter=2)
+#         plotflag = plotflags.get(opt.plotflag, opt.plotflag)
+#
+#         olddef = def_
+#         method = 'approx'
+#         ptime = opt.delay  # pause for ptime sec if plotflag=2
+#
+#         expect1 = 1  # first reconstruction by expectation? 1=yes 0=no
+#         expect = 1   # reconstruct by expectation? 1=yes 0=no
+#         tol = 0.001  # absolute tolerance of e(g_new-g_old)
+#
+#         cmvmax = 100
+#         # if number of consecutive missing values (cmv) are longer they
+#         # are not used in estimation of g, due to the fact that the
+#         # conditional expectation approaches zero as the length to
+#         # the closest known points increases, see below in the for loop
+#         dT = self.sampling_period()
+#
+#         Lm = np.minimum([n, 200, int(200/dT)])  # Lagmax 200 seconds
+#         if L is not None:
+#             Lm = max(L, Lm)
+#         # Lma: size of the moving average window used for detrending the
+#         #     reconstructed signal
+#         Lma = 1500
+#         if inds is not None:
+#             xn[inds] = np.nan
+#
+#         inds = isnan(xn)
+#         if not inds.any():
+#             raise ValueError('No spurious data given')
+#
+#         endpos = np.diff(inds)
+#         strtpos = np.flatnonzero(endpos > 0)
+#         endpos = np.flatnonzero(endpos < 0)
+#
+#         indg = np.flatnonzero(1-inds)  # indices to good points
+#         inds = np.flatnonzero(inds)  # indices to spurious points
+#
+#         indNaN = []  # indices to points omitted in the covariance estimation
+#         indr = np.arange(n)  # indices to point used in the estimation of g
+#
+#         # Finding more than cmvmax consecutive spurios points.
+#         # They will not be used in the estimation of g and are thus removed
+#         # from indr.
+#
+#         if strtpos.size > 0 and (endpos.size == 0 or
+#                                  endpos[-1] < strtpos[-1]):
+#             if (n - strtpos[-1]) > cmvmax:
+#                 indNaN = indr[strtpos[-1]+1:n]
+#                 indr = indr[:strtpos[-1]+1]
+#             strtpos = strtpos[:-1]
+#
+#         if endpos.size > 0 and (strtpos.size == 0 or endpos[0] < strtpos[0]):
+#             if endpos[0] > cmvmax:
+#                 indNaN = np.hstack((indNaN, indr[:endpos[0]]))
+#                 indr = indr[endpos[0]:]
+#
+#             strtpos = strtpos-endpos[0]
+#             endpos = endpos-endpos[0]
+#             endpos = endpos[1:]
+#
+#         for ix in range(len(strtpos)-1, -1, -1):
+#             if (endpos[ix]-strtpos[ix] > cmvmax):
+#                 indNaN = np.hstack((indNaN, indr[strtpos[ix]+1:endpos[ix]]))
+#                 # remove this when estimating the transform
+#                 del indr[strtpos[ix]+1:endpos[ix]]
+#
+#         if len(indr) < 0.1*n:
+#             raise ValueError('Not possible to reconstruct signal')
+#
+#         if indNaN.any():
+#             indNaN = np.sort(indNaN)
+#
+#         # initial reconstruction attempt
+#         xn[indg, 1] = detrendma(xn[indg, 1], 1500)
+#         g, test, cmax, irr, g2  = dat2tr(xn[indg, :], def_, opt)
+#         xnt = xn.copy()
+#         xnt[indg,:] = dat2gaus(xn[indg,:], g)
+#         xnt[inds, 1] = np.nan
+#         rwin = findrwin(xnt, Lm, L)
+#         print('First reconstruction attempt,  e(g-u) = {}'.format(test))
 #         # old simcgauss
 #         [samp ,mu1o, mu1oStd]  = cov2csdat(xnt(:,2),rwin,1,method,inds);
 #         if expect1,# reconstruction by expectation
@@ -2056,7 +2059,7 @@ class TimeSeries(PlotData):
 #
 #         bias = mean(xn(:,2));
 #         xn(:,2)=xn(:,2)-bias; # bias correction
-
+#
 #         if plotflag==2
 #           clf
 #           mind=1:min(1500,n);
@@ -2091,10 +2094,12 @@ class TimeSeries(PlotData):
 #             pause(ptime)
 #           end
 #
-#           #tobs=sqrt((param(2)-param(1))/(param(3)-1)*sum((g_old(:,2)-g(:,2)).^2))
+#           #tobs=sqrt((param(2)-param(1))/(param(3)-1)*
+#                        sum((g_old(:,2)-g(:,2)).^2))
 #           # new call
-#           tobs=sqrt((param(2)-param(1))/(param(3)-1)....
-#             *sum((g(:,2)-interp1(g_old(:,1)-bias, g_old(:,2),g(:,1),'spline')).^2));
+#           tobs=sqrt((param(2)-param(1))/(param(3)-1)
+#             *sum((g(:,2)-interp1(g_old(:,1)-bias, g_old(:,2),g(:,1),
+#                    'spline')).^2));
 #
 #           if ix>1
 #             if tol>tobs2 && tol>tobs,
@@ -2107,7 +2112,8 @@ class TimeSeries(PlotData):
 #           xnt=dat2gaus(xn,g);
 #           if ~isempty(indNaN),    xnt(indNaN,2)=NaN;  end
 #           rwin=findrwin(xnt,Lm,L);
-#           disp(['Simulation nr: ', int2str(ix), ' of ' num2str(Nsim),'   e(g-g_old)=', num2str(tobs), ',  e(g-u)=', num2str(test)])
+#           disp(['Simulation nr: ', int2str(ix), ' of ' num2str(Nsim),
+#            '   e(g-g_old)=', num2str(tobs), ',  e(g-u)=', num2str(test)])
 #           [samp ,mu1o, mu1oStd]  = cov2csdat(xnt(:,2),rwin,1,method,inds);
 #
 #           if expect,
@@ -2149,7 +2155,8 @@ class TimeSeries(PlotData):
 #         end
 #
 #         if  plotflag==2 && length(xn)<10000,
-#           waveplot(xn,[xn(inds,1) muLStd ;xn(inds,1) muUStd ], 6,round(n/3000),[])
+#           waveplot(xn,[xn(inds,1) muLStd ;xn(inds,1) muUStd ],
+#                    6,round(n/3000),[])
 #           legend('reconstructed','2 stdev')
 #           #axis([770 850 -1 1])
 #           #axis([1300 1325 -1 1])
@@ -2159,22 +2166,20 @@ class TimeSeries(PlotData):
 #
 #         return
 #
-#         function r=findrwin(xnt,Lm,L)
-#           r=dat2cov(xnt,Lm);#computes  ACF
-#           #finding where ACF is less than 2 st. deviations .
-#           # in order to find a better L  value
-#           if nargin<3||isempty(L)
-#             L=find(abs(r.R)>2*r.stdev)+1;
-#             if isempty(L), # pab added this check 09.10.2000
-#               L = Lm;
-#             else
-#               L = min([floor(4/3*L(end)) Lm]);
-#             end
-#           end
-#           win=parzen(2*L-1);
-#           r.R(1:L)=win(L:2*L-1).*r.R(1:L);
-#           r.R(L+1:end)=0;
-#           return
+#     def findrwin(xnt, Lm, L=None):
+#         r = dat2cov(xnt, Lm)  # computes  ACF
+#         # finding where ACF is less than 2 st. deviations .
+#         # in order to find a better L  value
+#         if L is None:
+#             L = np.flatnonzero(np.abs(r.R) > 2 * r.stdev)
+#             if len(L) == 0:
+#                 L = Lm;
+#             else:
+#                 L = min(np.floor(4/3*(L[-1] + 1), Lm)
+#         win = parzen(2 * L - 1)
+#         r.R[:L] = win[L:2*L-1] * r.R[:L]
+#         r.R[L:] = 0
+#         return r
 
     def plot_wave(self, sym1='k.', ts=None, sym2='k+', nfig=None, nsub=None,
                   sigma=None, vfact=3):
