@@ -235,10 +235,12 @@ def polydeg(x, y):
     Example:
     -------
     >>> x = np.linspace(0,10,300)
-    >>> y = np.sin(x ** 3 / 100) ** 2 + 0.05 * np.random.randn(x.size)
+    >>> noise = 0.05 * np.random.randn(x.size)
+    >>> noise = 0.05 * np.sin(100*x)
+    >>> y = np.sin(x ** 3 / 100) ** 2 + noise
     >>> n = polydeg(x,y)
-    >>> 18 < n < 24
-    True
+    >>> n
+    21
 
     ys = orthofit(x,y,n);
     plt.plot(x, y, '.', x, ys, 'k')
