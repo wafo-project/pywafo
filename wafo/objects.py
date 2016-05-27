@@ -2074,9 +2074,9 @@ class TimeSeries(PlotData):
 #            end
 #            # used for isope article
 #            # indr =[1:27000 30000:39000];
-#            # Too many consecutive missing values will influence the estimation of
-#            # g. By default do not use consecutive missing values if there are more
-#            # than cmvmax.
+#            # Too many consecutive missing values will influence the
+#            # estimation of g. By default do not use consecutive missing
+#            # values if there are more than cmvmax.
 #
 #            [g test cmax irr g2]  = dat2tr(xn(indr,:),def,opt);
 #           if plotflag==2,

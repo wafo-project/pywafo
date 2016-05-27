@@ -434,7 +434,7 @@ def plotspec(specdata, linetype='b-', flag=1):
 #             Dtf(:,ind) = Dtf(:,ind)./Sf(ones(Nt,1),ind);
 #           end
 #           Dtheta  = simpson(freq,Dtf,2); %Directional spreading, D(theta)
-#           Dtheta  = Dtheta/simpson(S.theta,Dtheta); % make sure int D(theta)dtheta = 1
+#           Dtheta  = Dtheta/simpson(S.theta,Dtheta); # int D(theta)dtheta = 1
 #           [y,ind] = max(Dtheta);
 #           Wdir    = S.theta(ind)-phi; % main wave direction
 #           txtwdir = ['\theta_p=' num2pistr(Wdir,3)]; % convert to text string
@@ -445,7 +445,7 @@ def plotspec(specdata, linetype='b-', flag=1):
 #           end
 #           plot(S.theta-phi,Dtheta,lintype)
 #
-#           fixthetalabels(thmin,thmax,'x',2)  % fix xticklabel and xlabel for theta
+#           fixthetalabels(thmin,thmax,'x',2)
 #           ylabel('D(\theta)')
 #           title('Spreading function')
 #           if ~ih, hold off, end
@@ -453,7 +453,7 @@ def plotspec(specdata, linetype='b-', flag=1):
 #         elseif plotflag==4 % mesh
 #           mesh(freq,S.theta-phi,S.S)
 #           xlabel(xlbl_txt);
-#           fixthetalabels(thmin,thmax,'y',3) % fix yticklabel and ylabel for theta
+#           fixthetalabels(thmin,thmax,'y',3)
 #           zlabel(zlbl_txt)
 #           title(ylbl3_txt)
 #         elseif plotflag==5 % mesh

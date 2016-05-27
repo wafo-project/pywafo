@@ -239,10 +239,13 @@ def dctn(x, type=2, shape=None, axes=None,  # @ReservedAssignment
     -------
     >>> import os
     >>> import numpy as np
-    >>> import scipy.ndimage as sn
+    >>> from PIL import Image
     >>> import matplotlib.pyplot as plt
     >>> name = os.path.join(path, 'autumn.gif')
-    >>> rgb = sn.imread(name)
+    >>> rgb = Image.open(name)
+    >>> np.shape(rgb2)
+    >>> np.shape(rgb)
+
     >>> J = dctn(rgb)
     >>> (np.abs(rgb-idctn(J))<1e-7).all()
     True

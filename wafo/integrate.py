@@ -158,7 +158,7 @@ def romberg(fun, a, b, releps=1e-3, abseps=1e-3):
     >>> [q,err] = romberg(np.sqrt,0,10,0,1e-4)
     >>> np.allclose(q, 21.08185107)
     True
-    >>> err < 1e-4
+    >>> err[0] < 1e-4
     True
     '''
     h = b - a

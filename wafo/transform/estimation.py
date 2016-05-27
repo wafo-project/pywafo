@@ -395,8 +395,8 @@ class TransformEstimator(object):
         >>> g2, g2emp = ts.trdata(method='n', gvar=[3.5, 0.5, 3.5])
         >>> int(S.tr.dist2gauss()*100)
         141
-        >>> int(g0emp.dist2gauss()*100)
-        217949
+        >>> int(g0emp.dist2gauss()*100)>17000
+        True
         >>> int(g0.dist2gauss()*100)
         93
         >>> int(g1.dist2gauss()*100)
