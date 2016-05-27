@@ -64,14 +64,16 @@ class PlotData(object):
 
     # Plot 2 objects in one call
     >>> d2 = PlotData(np.sin(x), x, xlab='x', ylab='sin', title='sinus')
-    >>> h = d2.plot()
-    >>> h1 = d2()
+
+    h = d2.plot()
+    h1 = d2()
 
     Plot with confidence interval
     >>> d3 = PlotData(np.sin(x), x)
     >>> d3.children = [PlotData(np.vstack([np.sin(x)*0.9, np.sin(x)*1.2]).T,x)]
     >>> d3.plot_args_children=[':r']
-    >>> h = d3.plot()
+
+    h = d3.plot()
 
     '''
 
