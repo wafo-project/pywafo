@@ -36,9 +36,6 @@ before_install:
 # Install packages
 install:
   - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy pytest matplotlib nose pytest-pep8 pytest-cov mpmath
-  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
-      conda install --yes pil
-    fi
   - pip install numdifftools
   - pip install coveralls
   - pip install codecov
