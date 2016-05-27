@@ -68,7 +68,7 @@ def rndnormnd(mean, cov, cases=1):
     Example
     -------
     >>> mu = [0, 5]
-    >>> S = [[1 0.45], [0.45, 0.25]]
+    >>> S = [[1, 0.45], [0.45, 0.25]]
     >>> r = rndnormnd(mu, S, 1)
 
     plot(r(:,1),r(:,2),'.')
@@ -211,11 +211,9 @@ class CovData1D(PlotData):
         >>> abs(S1.data-S.data).max() < 1e-4
         True
 
-        >>> S1.plot('r-')
-        >>> S.plot('b:')
-        >>> pylab.show()
-
-        >>> all(abs(S1.data-S.data)<1e-4)
+        S1.plot('r-')
+        S.plot('b:')
+        pylab.show()
 
         See also
         --------

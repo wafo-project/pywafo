@@ -109,9 +109,11 @@ class Rind(object):
     >>> Bup, Blo = np.atleast_2d(Bup,Blo)
     >>> Bup[0,ind] = np.minimum(Bup[0,ind] , infinity*dev[indI[ind+1]])
     >>> Blo[0,ind] = np.maximum(Blo[0,ind] ,-infinity*dev[indI[ind+1]])
-    >>> np.allclose(rind(Sc,m,Blo,Bup,indI, xc, nt=0),
-    ...   ([0.05494076], [ 0.00083066], [  1.00000000e-10]), rtol=1e-3)
+    >>> val, err, terr = rind(Sc,m,Blo,Bup,indI, xc, nt=0)
+    >>> np.allclose(val, 0.05494076, rtol=1e-3)
     True
+    >>>  err < 1e-3, terr< 1e-7
+    True, True
 
     Compute expectation E( X1^{+}*X2^{+} ) with random
     correlation coefficient,Cov(X1,X2) = rho2.

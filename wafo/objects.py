@@ -17,7 +17,7 @@ from wafo.transform.core import TrData
 from wafo.transform.estimation import TransformEstimator
 from wafo.stats import distributions
 from wafo.misc import (nextpow2, findtp, findrfc, findtc, findcross,
-                   ecross, JITImport, DotDict, gravity, findrfc_astm)
+                       ecross, JITImport, DotDict, gravity, findrfc_astm)
 from wafo.interpolate import stineman_interp
 from wafo.containers import PlotData
 from wafo.plotbackend import plotbackend
@@ -1965,10 +1965,11 @@ class TimeSeries(PlotData):
         expect = 1   # reconstruct by expectation? 1=yes 0=no
         tol = 0.001  # absolute tolerance of e(g_new-g_old)
 
-        cmvmax = 100 # if number of consecutive missing values (cmv) are longer they
-                     # are not used in estimation of g, due to the fact that the
-                     # conditional expectation approaches zero as the length to
-                     # the closest known points increases, see below in the for loop
+        cmvmax = 100
+        # if number of consecutive missing values (cmv) are longer they
+        # are not used in estimation of g, due to the fact that the
+        # conditional expectation approaches zero as the length to
+        # the closest known points increases, see below in the for loop
         dT = self.sampling_period()
 
         Lm = np.minimum([n, 200, int(200/dT)])  # Lagmax 200 seconds

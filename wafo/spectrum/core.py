@@ -651,7 +651,6 @@ class SpecData1D(PlotData):
         objects
         '''
 
-
         dt, rate = self._get_default_dt_and_rate(dt)
         self._check_dt(dt)
 
@@ -970,8 +969,8 @@ class SpecData1D(PlotData):
                 Hw1 = exp(interp1d(log(abs(S1.data / S2.data)), S2.args)(freq))
             else:
                 # Geometric mean
-                Hw1 = exp((interp1d(log(abs(S1.data / S2.data)), S2.args)(freq)
-                           + log(Hw2)) / 2)
+                fun = interp1d(log(abs(S1.data / S2.data)), S2.args)
+                Hw1 = exp((fun(freq) + log(Hw2)) / 2)
                 # end
             # Hw1  = (interp1q( S2.w,abs(S1.S./S2.S),freq)+Hw2)/2
             # plot(freq, abs(Hw11-Hw1),'g')
@@ -1549,7 +1548,7 @@ class SpecData1D(PlotData):
         # semi-definitt, since the circulant spectrum are the eigenvalues of
         # the circulant covariance matrix.
 
-        callFortran = 0
+        # callFortran = 0
         # %options.method<0
         # if callFortran, % call fortran
         # ftmp = cov2mmtpdfexe(R,dt,u,defnr,Nstart,hg,options)
@@ -1732,15 +1731,17 @@ class SpecData1D(PlotData):
          between Maxima, Minima and Max to level v crossing given the Max and
          the min is returned
 
-         Y=
-         X'(t2)..X'(ts)..X'(tn-1)||X''(t1) X''(tn) X'(ts)|| X'(t1) X'(tn)  X(t1) X(tn) X(ts)
-         = [       Xt                      Xd                     Xc           ]
+             Y = [Xt, Xd, Xc]
+         where
+             Xt = X'(t2)..X'(ts)..X'(tn-1)
+             Xd = ||X''(t1) X''(tn) X'(ts)||
+             Xc = X'(t1) X'(tn)  X(t1) X(tn) X(ts)
 
          Nt = tn-2, Nd = 3, Nc = 5
 
-         Xt= contains Nt time points in the indicator function
-         Xd=    "     Nd    derivatives
-         Xc=    "     Nc    variables to condition on
+         Xt = contains Nt time points in the indicator function
+         Xd =    "     Nd    derivatives
+         Xc =    "     Nc    variables to condition on
 
          There are 4 (NI=5) regions with constant barriers:
          (indI(1)=0);     for i\in (indI(1),indI(2)]    Y(i)<0.
@@ -1748,7 +1749,7 @@ class SpecData1D(PlotData):
          (indI(3)=Nt+1);  for i\in (indI(3)+1,indI(4)], Y(i)>0 (deriv. X''(tn))
          (indI(4)=Nt+2);  for i\in (indI(4)+1,indI(5)], Y(i)<0 (deriv. X'(ts))
         '''
-        R0, R1, R2, R3, R4 = R[:, :5].T
+        R0, _R1, R2, _R3, R4 = R[:, :5].T
         covinput = self._covinput_mmt_pdf
         Ntime = len(R0)
         Nx0 = max(1, len(hg))
@@ -2110,12 +2111,14 @@ class SpecData1D(PlotData):
         The order of the variables in the covariance matrix are organized as
         follows:
         for  ts <= 1:
-        X'(t2)..X'(ts),...,X'(tn-1) X''(t1),X''(tn)  X'(t1),X'(tn),X(t1),X(tn)
-        = [          Xt               |      Xd       |          Xc          ]
+            Xt = X'(t2)..X'(ts),...,X'(tn-1)
+            Xd = X''(t1), X''(tn), X'(t1), X'(tn)
+            Xc = X(t1),X(tn)
 
         for ts > =2:
-        X'(t2)..X'(ts),...,X'(tn-1) X''(t1),X''(tn) X'(ts)  X'(t1),X'(tn),X(t1),X(tn) X(ts)
-        = [          Xt               |      Xd               |          Xc             ]
+            Xt = X'(t2)..X'(ts),...,X'(tn-1)
+            Xd = X''(t1), X''(tn), X'(ts), X'(t1), X'(tn),
+            Xc = X(t1),X(tn) X(ts)
 
         where
 
@@ -2123,9 +2126,11 @@ class SpecData1D(PlotData):
          Xd = derivatives
          Xc = variables to condition on
 
-        Computations of all covariances follows simple rules: Cov(X(t),X(s)) = r(t,s),
+        Computations of all covariances follows simple rules:
+            Cov(X(t),X(s)) = r(t,s),
         then  Cov(X'(t),X(s))=dr(t,s)/dt.  Now for stationary X(t) we have
-        a function r(tau) such that Cov(X(t),X(s))=r(s-t) (or r(t-s) will give the same result).
+        a function r(tau) such that Cov(X(t),X(s))=r(s-t) (or r(t-s) will give
+        the same result).
 
         Consequently  Cov(X'(t),X(s))    = -r'(s-t)    = -sign(s-t)*r'(|s-t|)
                        Cov(X'(t),X'(s))   = -r''(s-t)   = -r''(|s-t|)
@@ -2141,11 +2146,11 @@ class SpecData1D(PlotData):
             # for
             i = np.arange(tn - 2)  # 1:tn-2
             # j = abs(i+1-ts)
-            # BIG(i,N)  = -sign(R1(j+1),R1(j+1)*dble(ts-i-1)) %cov(X'(ti+1),X(ts))
+            # BIG(i,N)  = -sign(R1(j+1),R1(j+1)*dble(ts-i-1))
             j = i + 1 - ts
             tau = abs(j)
             # BIG(i,N)  = abs(R1(tau)).*sign(R1(tau).*j.')
-            BIG[i, N] = R1[tau] * sign(j)
+            BIG[i, N] = R1[tau] * sign(j)  # cov(X'(ti+1),X(ts))
             # end do
             # Cov(Xc)
             BIG[N, N] = R0[0]       # cov(X(ts),X(ts))
@@ -2154,8 +2159,8 @@ class SpecData1D(PlotData):
             BIG[tn + shft + 3, N] = R0[ts]      # cov(X(t1),X(ts))
             BIG[tn + shft + 4, N] = R0[tn - ts]  # cov(X(tn),X(ts))
             # Cov(Xd,Xc)
-            BIG[tn - 1, N] = R2[ts]  # %cov(X''(t1),X(ts))
-            BIG[tn, N] = R2[tn - ts]  # %cov(X''(tn),X(ts))
+            BIG[tn - 1, N] = R2[ts]  # cov(X''(t1),X(ts))
+            BIG[tn, N] = R2[tn - ts]  # cov(X''(tn),X(ts))
 
             # ADD a level u crossing  at ts
 
@@ -2163,12 +2168,13 @@ class SpecData1D(PlotData):
             # for
             i = np.arange(tn - 2)  # 1:tn-2
             j = abs(i + 1 - ts)
-            BIG[i, tn + shft] = -R2[j]  #  %cov(X'(ti+1),X'(ts))
+
+            BIG[i, tn + shft] = -R2[j]  # cov(X'(ti+1),X'(ts))
             # end do
             # Cov(Xd)
-            BIG[tn + shft, tn + shft] = -R2[0]  #   %cov(X'(ts),X'(ts))
-            BIG[tn - 1, tn + shft] = R3[ts]  #  %cov(X''(t1),X'(ts))
-            BIG[tn, tn + shft] = -R3[tn - ts]  #   %cov(X''(tn),X'(ts))
+            BIG[tn + shft, tn + shft] = -R2[0]  # cov(X'(ts),X'(ts))
+            BIG[tn - 1, tn + shft] = R3[ts]     # cov(X''(t1),X'(ts))
+            BIG[tn, tn + shft] = -R3[tn - ts]   # cov(X''(tn),X'(ts))
 
             # Cov(Xd,Xc)
             BIG[tn + shft, N] = 0.0  # %cov(X'(ts),X(ts))
@@ -2260,7 +2266,9 @@ class SpecData1D(PlotData):
         #      BIG(i,j) = BIG(j,i)
         # end #do
         # end #do
-        lp = np.flatnonzero(np.tril(ones(BIG.shape)))  # indices to lower triangular part
+
+        # indices to lower triangular part:
+        lp = np.flatnonzero(np.tril(ones(BIG.shape)))
         BIGT = BIG.T
         BIG[lp] = BIGT[lp]
         return BIG
@@ -2304,7 +2312,7 @@ class SpecData1D(PlotData):
         # compiled cov2mmtpdf.f with rind70.f
         # dos([ wafoexepath 'cov2mmtpdf.exe'])
 
-        dens =  1  # load('dens.out')
+        dens = 1  # load('dens.out')
 
         self._cleanup(*filenames)
         self._cleanup(*filenames2)
@@ -2586,7 +2594,7 @@ class SpecData1D(PlotData):
 
         >>> import numpy as np
         >>> import scipy.stats as st
-        >>> x2, x1 = S.sim_nl(ns=20000,cases=20)
+        >>> x2, x1 = S.sim_nl(ns=20000,cases=20, output='data')
         >>> truth1 = [0,np.sqrt(S.moment(1)[0][0])] + S.stats_nl(moments='sk')
         >>> truth1[-1] = truth1[-1]-3
         >>> np.round(truth1, 3)
@@ -2597,7 +2605,7 @@ class SpecData1D(PlotData):
         ...     res = fun(x2[:,1::], axis=0)
         ...     m = res.mean()
         ...     sa = res.std()
-        ...     #trueval, m, sa
+        ...     # trueval, m, sa
         ...     np.abs(m-trueval)<sa
         True
         True
@@ -2606,7 +2614,7 @@ class SpecData1D(PlotData):
 
         >>> x = []
         >>> for i in range(20):
-        ...     x2, x1 = S.sim_nl(ns=20000,cases=1)
+        ...     x2, x1 = S.sim_nl(ns=20000,cases=1, output='data')
         ...     x.append(x2[:,1::])
         >>> x2 = np.hstack(x)
         >>> truth1 = [0,np.sqrt(S.moment(1)[0][0])] + S.stats_nl(moments='sk')
@@ -2619,7 +2627,7 @@ class SpecData1D(PlotData):
         ...     res = fun(x2, axis=0)
         ...     m = res.mean()
         ...     sa = res.std()
-        ...     #trueval, m, sa
+        ...     # trueval, m, sa
         ...     np.abs(m-trueval)<sa
         True
         True
@@ -2687,31 +2695,32 @@ class SpecData1D(PlotData):
 
         # interpolate for freq.  [1:(N/2)-1]*df and create 2-sided, uncentered
         # spectra
-        f = arange(1, ns / 2.) * df
-        f_u = hstack((0., f_i, df * ns / 2.))
-        w = 2. * pi * hstack((0., f, df * ns / 2.))
+        ns2 = ns // 2
+        f = arange(1, ns2) * df
+        f_u = hstack((0., f_i, df * ns2))
+        w = 2. * pi * hstack((0., f, df * ns2))
         kw = w2k(w, 0., water_depth, g)[0]
         s_u = hstack((0., abs(s_i) / 2., 0.))
 
         s_i = interp(f, f_u, s_u)
         nmin = (s_i > s_max * reltol).argmax()
         nmax = flatnonzero(s_i > 0).max()
-        s_u = hstack((0., s_i, 0, s_i[(ns / 2) - 2::-1]))
+        s_u = hstack((0., s_i, 0, s_i[ns2 - 2::-1]))
         del(s_i, f_u)
 
         # Generate standard normal random numbers for the simulations
         randn = random.randn
-        z_r = randn((ns / 2) + 1, cases)
+        z_r = randn(ns2 + 1, cases)
         z_i = vstack((zeros((1, cases)),
-                      randn((ns / 2) - 1, cases),
+                      randn(ns2 - 1, cases),
                       zeros((1, cases))))
 
         amp = zeros((ns, cases), dtype=complex)
-        amp[0:(ns / 2 + 1), :] = z_r - 1j * z_i
+        amp[0:(ns2 + 1), :] = z_r - 1j * z_i
         del(z_r, z_i)
-        amp[(ns / 2 + 1):ns, :] = amp[ns / 2 - 1:0:-1, :].conj()
+        amp[(ns2 + 1):ns, :] = amp[ns2 - 1:0:-1, :].conj()
         amp[0, :] = amp[0, :] * sqrt(2.)
-        amp[(ns / 2), :] = amp[(ns / 2), :] * sqrt(2.)
+        amp[(ns2), :] = amp[(ns2), :] * sqrt(2.)
 
         # Make simulated time series
         T = (ns - 1) * d_t
@@ -2719,8 +2728,8 @@ class SpecData1D(PlotData):
 
         if method.startswith('apd'):  # apdeterministic
             # Deterministic amplitude and phase
-            amp[1:(ns / 2), :] = amp[1, 0]
-            amp[(ns / 2 + 1):ns, :] = amp[1, 0].conj()
+            amp[1:(ns2), :] = amp[1, 0]
+            amp[(ns2 + 1):ns, :] = amp[1, 0].conj()
             amp = sqrt(2) * Ssqr[:, newaxis] * \
                 exp(1J * arctan2(amp.imag, amp.real))
         elif method.startswith('ade'):  # adeterministic
@@ -3038,7 +3047,7 @@ class SpecData1D(PlotData):
         >>> ys = wo.mat2timeseries(S.sim(ns=2**13))
         >>> g0, gemp = ys.trdata()
         >>> t0 = g0.dist2gauss()
-        >>> t1 = S0.testgaussian(ns=2**13, t0=t0, cases=50)
+        >>> t1 = S0.testgaussian(ns=2**13, cases=50)
         >>> sum(t1 > t0) < 5
         True
 
