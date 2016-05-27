@@ -3188,7 +3188,7 @@ def gridcount(data, X, y=1):
 
         c = np.reshape(c / w, csiz, order='F')
 
-        T = range(d)
+        T = [i for i in range(d)]
         T[1], T[0] = T[0], T[1]
         # make sure c is stored in the same way as meshgrid
         c = c.transpose(*T)
