@@ -19,6 +19,7 @@
 # !/usr/bin/env python
 from __future__ import absolute_import
 import warnings  # @UnusedImport
+from functools import reduce
 from numpy.polynomial import polyutils as pu
 from .plotbackend import plotbackend as plt
 import numpy as np
@@ -236,8 +237,8 @@ def polydeg(x, y):
     >>> x = np.linspace(0,10,300)
     >>> y = np.sin(x ** 3 / 100) ** 2 + 0.05 * np.random.randn(x.size)
     >>> n = polydeg(x,y)
-    >>> n
-    21
+    >>> 18 < n < 24
+    True
 
     ys = orthofit(x,y,n);
     plt.plot(x, y, '.', x, ys, 'k')
@@ -266,7 +267,7 @@ def polydeg(x, y):
     # required to take AIC noise into account and to ensure that this minimum
     # is a (likely) global minimum.
 
-    while nit < 6:
+    while nit < 8:
         p = orthofit(x, y, n)
         ys = orthoval(p, x)
         # -- Akaike's Information Criterion
