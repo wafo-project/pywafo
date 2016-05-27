@@ -105,9 +105,10 @@ def cltext(levels, percent=False, n=4, xs=0.036, ys=0.94, zs=0, figure=None,
     >>> import wafo.demos as wd
     >>> import pylab as plt
     >>> x,y,z  = wd.peaks();
-    >>> h = plt.contour(x,y,z)
-    >>> h = wg.cltext(h.levels)
-    >>> plt.show()
+
+    h = plt.contour(x,y,z)
+    h = wg.cltext(h.levels)
+    plt.show()
     '''
     # TODO : Make it work like legend does (but without the box): include
     # position options etc...
@@ -189,8 +190,9 @@ def tallibing(*args, **kwds):
     >>> import wafo.graphutil as wg
     >>> import wafo.demos as wd
     >>> [x,y,z] = wd.peaks(n=20)
-    >>> h0 = wg.pcolor(x,y,z)
-    >>> h1 = wg.tallibing(x,y,z)
+
+    h0 = wg.pcolor(x,y,z)
+    h1 = wg.tallibing(x,y,z)
 
     See also
     --------

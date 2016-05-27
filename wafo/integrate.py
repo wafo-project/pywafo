@@ -156,8 +156,9 @@ def romberg(fun, a, b, releps=1e-3, abseps=1e-3):
     -------
     >>> import numpy as np
     >>> [q,err] = romberg(np.sqrt,0,10,0,1e-4)
-    >>> q,err
-    (array([ 21.0818511]), array([  6.6163547e-05]))
+    >>> np.allclose([q,err],
+    ...    [ 21.08185107,   6.61635466e-05])
+    True
     '''
     h = b - a
     hMin = 1.0e-9

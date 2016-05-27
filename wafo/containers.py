@@ -130,8 +130,9 @@ class PlotData(object):
         >>> d = PlotData(np.sin(x), x, xlab='x', ylab='sin', title='sinus',
         ...                plot_args=['r.'])
         >>> di = PlotData(d.eval_points(xi), xi)
-        >>> hi = di.plot()
-        >>> h = d.plot()
+
+        hi = di.plot()
+        h = d.plot()
 
         See also
         --------

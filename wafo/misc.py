@@ -17,10 +17,10 @@ from scipy.integrate import trapz, simps
 import warnings
 from time import strftime, gmtime
 from numdifftools.extrapolation import dea3  # @UnusedImport
-from .plotbackend import plotbackend
+from wafo.plotbackend import plotbackend
 from collections import Callable
 try:
-    from . import c_library as clib  # @UnresolvedImport
+    from wafo import c_library as clib  # @UnresolvedImport
 except ImportError:
     warnings.warn('c_library not found. Check its compilation.')
     clib = None
@@ -635,15 +635,22 @@ def detrendma(x, L):
 
     Examples
     --------
+    >>> import numpy as np
     >>> import wafo.misc as wm
-    >>> import pylab as plt
-    >>> exp = plt.exp; cos = plt.cos; randn = plt.randn
-    >>> x = plt.linspace(0,1,200)
-    >>> y = exp(x)+cos(5*2*pi*x)+1e-1*randn(x.size)
-    >>> y0 = wm.detrendma(y,20); tr = y-y0
-    >>> h = plt.plot(x, y, x, y0, 'r', x, exp(x), 'k', x, tr, 'm')
+    >>> exp = np.exp; cos = np.cos; randn = np.random.randn
+    >>> x = np.linspace(0,1,200)
+    >>> noise = 0.1*randn(x.size)
+    >>> noise = 0.1*np.sin(100*x)
+    >>> y = exp(x)+cos(5*2*pi*x) + noise
+    >>> y0 = wm.detrendma(y,20)
+    >>> tr = y-y0
+    >>> np.allclose(tr[:5],
+    ...    [ 1.14134814,  1.14134814,  1.14134814,  1.14134814,  1.14134814])
+    True
 
-    >>> plt.close('all')
+    import pylab as plt
+    h = plt.plot(x, y, x, y0, 'r', x, exp(x), 'k', x, tr, 'm')
+    plt.close('all')
 
     See also
     --------
@@ -703,16 +710,16 @@ def ecross(t, f, ind, v=0):
     >>> t = np.linspace(0,7*np.pi,250)
     >>> x = np.sin(t)
     >>> ind = wm.findcross(x,0.75)
-    >>> ind
-    array([  9,  25,  80,  97, 151, 168, 223, 239])
+    >>> np.allclose(ind, [  9,  25,  80,  97, 151, 168, 223, 239])
+    True
     >>> t0 = wm.ecross(t,x,ind,0.75)
-    >>> np.abs(t0 - np.array([0.84910514, 2.2933879 , 7.13205663, 8.57630119,
-    ...        13.41484739, 14.85909194, 19.69776067, 21.14204343]))<1e-7
-    array([ True,  True,  True,  True,  True,  True,  True,  True], dtype=bool)
+    >>> np.allclose(t0, [0.84910514, 2.2933879 , 7.13205663, 8.57630119,
+    ...        13.41484739, 14.85909194, 19.69776067, 21.14204343])
+    True
 
-    >>> a = plt.plot(t, x, '.', t[ind], x[ind], 'r.', t, ones(t.shape)*0.75,
-    ...              t0, ones(t0.shape)*0.75, 'g.')
-    >>> plt.close('all')
+    a = plt.plot(t, x, '.', t[ind], x[ind], 'r.', t, ones(t.shape)*0.75,
+                  t0, ones(t0.shape)*0.75, 'g.')
+    plt.close('all')
 
     See also
     --------
@@ -797,22 +804,21 @@ def findcross(x, v=0.0, kind=None):
     >>> from matplotlib import pylab as plt
     >>> import wafo.misc as wm
     >>> ones = np.ones
-    >>> findcross([0, 1, -1, 1],0)
-    array([0, 1, 2])
+    >>> np.allclose(findcross([0, 1, -1, 1], 0), [0, 1, 2])
+    True
     >>> v = 0.75
     >>> t = np.linspace(0,7*np.pi,250)
     >>> x = np.sin(t)
     >>> ind = wm.findcross(x,v) # all crossings
-    >>> ind
-    array([  9,  25,  80,  97, 151, 168, 223, 239])
-
-    >>> t0 = plt.plot(t,x,'.',t[ind],x[ind],'r.', t, ones(t.shape)*v)
+    >>> np.allclose(ind, [  9,  25,  80,  97, 151, 168, 223, 239])
+    True
     >>> ind2 = wm.findcross(x,v,'u')
-    >>> ind2
-    array([  9,  80, 151, 223])
+    >>> np.allclose(ind2, [  9,  80, 151, 223])
+    True
 
-    >>> t0 = plt.plot(t[ind2],x[ind2],'o')
-    >>> plt.close('all')
+    t0 = plt.plot(t,x,'.',t[ind],x[ind],'r.', t, ones(t.shape)*v)
+    t0 = plt.plot(t[ind2],x[ind2],'o')
+    plt.close('all')
 
     See also
     --------
@@ -873,9 +879,11 @@ def findextrema(x):
     >>> t = np.linspace(0,7*np.pi,250)
     >>> x = np.sin(t)
     >>> ind = wm.findextrema(x)
+    >>> np.allclose(ind, [ 18,  53,  89, 125, 160, 196, 231])
+    True
 
-    >>> a = plt.plot(t,x,'.',t[ind],x[ind],'r.')
-    >>> plt.close('all')
+    a = plt.plot(t,x,'.',t[ind],x[ind],'r.')
+    plt.close('all')
 
     See also
     --------
@@ -912,8 +920,9 @@ def findpeaks(data, n=2, min_h=None, min_p=0.0):
     >>> import wafo.misc as wm
     >>> x = np.arange(0,10,0.01)
     >>> data = x**2+10*np.sin(3*x)+0.5*np.sin(50*x)
-    >>> wm.findpeaks(data, n=8, min_h=5, min_p=0.3)
-    array([908, 694, 481])
+    >>> np.allclose(wm.findpeaks(data, n=8, min_h=5, min_p=0.3),
+    ...            [908, 694, 481])
+    True
 
     See also
     --------
@@ -1031,13 +1040,16 @@ def findrfc(tp, h=0.0, method='clib'):
     >>> ind = wm.findextrema(x)
     >>> ti, tp = t[ind], x[ind]
 
-    >>> a = plt.plot(t,x,'.',ti,tp,'r.')
-    >>> ind1 = wm.findrfc(tp,0.3); ind1
-    array([  0,   9,  32,  53,  74,  95, 116, 137])
-    >>> ind2 = wm.findrfc(tp,0.3, method=''); ind2
-    array([  0,   9,  32,  53,  74,  95, 116, 137])
-    >>> a = plt.plot(ti[ind1],tp[ind1])
-    >>> plt.close('all')
+    >>> ind1 = wm.findrfc(tp,0.3)
+    >>> np.allclose(ind1, [  0,   9,  32,  53,  74,  95, 116, 137])
+    True
+    >>> ind2 = wm.findrfc(tp,0.3, method='')
+    >>> np.allclose(ind2, [  0,   9,  32,  53,  74,  95, 116, 137])
+    True
+
+    a = plt.plot(t,x,'.',ti,tp,'r.')
+    a = plt.plot(ti[ind1],tp[ind1])
+    plt.close('all')
 
     See also
     --------
@@ -1436,14 +1448,15 @@ def findtp(x, h=0.0, kind=None):
     >>> itph = wm.findtp(x1[:,1],0.3,'Mw')
     >>> tp = x1[itp,:]
     >>> tph = x1[itph,:]
-    >>> a = plt.plot(x1[:,0],x1[:,1],
-    ...             tp[:,0],tp[:,1],'ro',
-    ...             tph[:,0],tph[:,1],'k.')
-    >>> plt.close('all')
-    >>> itp
-    array([ 5, 18, 24, 38, 46, 57, 70, 76, 91, 98, 99])
-    >>> itph
-    array([91])
+    >>> np.allclose(itp, [ 5, 18, 24, 38, 46, 57, 70, 76, 91, 98, 99])
+    True
+    >>> np.allclose(itph, 91)
+    True
+
+    a = plt.plot(x1[:,0],x1[:,1],
+                 tp[:,0],tp[:,1],'ro',
+                 tph[:,0],tph[:,1],'k.')
+    plt.close('all')
 
     See also
     ---------
@@ -1535,8 +1548,11 @@ def findtc(x_in, v=None, kind=None):
     >>> x1 = x[0:200,:]
     >>> itc, iv = wm.findtc(x1[:,1],0,'dw')
     >>> tc = x1[itc,:]
-    >>> a = plt.plot(x1[:,0],x1[:,1],tc[:,0],tc[:,1],'ro')
-    >>> plt.close('all')
+    >>> np.allclose(itc, [ 52, 105])
+    True
+
+    a = plt.plot(x1[:,0],x1[:,1],tc[:,0],tc[:,1],'ro')
+    plt.close('all')
 
     See also
     --------
@@ -2164,10 +2180,14 @@ def discretize(fun, a, b, tol=0.005, n=5, method='linear'):
     >>> import pylab as plt
     >>> x,y = wm.discretize(np.cos, 0, np.pi)
     >>> xa,ya = wm.discretize(np.cos, 0, np.pi, method='adaptive')
-    >>> t = plt.plot(x, y, xa, ya, 'r.')
+    >>> np.allclose(xa[:5],
+    ... [ 0.        ,  0.19634954,  0.39269908,  0.58904862,  0.78539816])
+    True
 
+
+    t = plt.plot(x, y, xa, ya, 'r.')
     plt.show()
-    >>> plt.close('all')
+    plt.close('all')
 
     '''
     if method.startswith('a'):
@@ -2426,12 +2446,15 @@ def tranproc(x, f, x0, *xi):
     >>> x = linspace(-5,5,501)
     >>> g = tr(x)
     >>> gder = wm.tranproc(x, g, x, ones(g.shape[0]))
-    >>> h = plt.plot(x, g, x, gder[1])
+    >>> np.allclose(gder[1][:5],
+    ... [ 1.09938766,  1.39779849,  1.39538745,  1.39298656,  1.39059575])
+    True
 
+    h = plt.plot(x, g, x, gder[1])
     plt.plot(x,pdfnorm(g)*gder[1],x,pdfnorm(x))
     plt.legend('Transformed model','Gaussian model')
 
-    >>> plt.close('all')
+    plt.close('all')
 
     See also
     --------
@@ -2615,10 +2638,11 @@ def plot_histgrm(data, bins=None, range=None,  # @ReservedAssignment
     >>> import wafo.stats as ws
     >>> R = ws.weibull_min.rvs(2,loc=0,scale=2, size=100)
 
-    >>> h0 = wm.plot_histgrm(R, 20, normed=True)
-    >>> x = np.linspace(-3,16,200)
-    >>> h1 = plt.plot(x,ws.weibull_min.pdf(x,2,0,2),'r')
-    >>> plt.close('all')
+    h0 = wm.plot_histgrm(R, 20, normed=True)
+    x = np.linspace(-3,16,200)
+
+    h1 = plt.plot(x,ws.weibull_min.pdf(x,2,0,2),'r')
+    plt.close('all')
 
     See also
     --------

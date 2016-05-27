@@ -722,8 +722,9 @@ class SpecData1D(PlotData):
         >>> Nt = len(S.data)-1
         >>> acf = S.tocovdata(nr=0, nt=Nt)
         >>> S1 = acf.tospecdata()
-        >>> h = S.plot('r')
-        >>> h1 = S1.plot('b:')
+
+        h = S.plot('r')
+        h1 = S1.plot('b:')
 
         R   = spec2cov(spec,0,Nt)
         win = parzen(2*Nt+1)
@@ -2449,27 +2450,28 @@ class SpecData1D(PlotData):
 
         # interpolate for freq.  [1:(N/2)-1]*d_f and create 2-sided, uncentered
         # spectra
-        f = arange(1, ns / 2.) * d_f
+        ns2 = ns // 2
+        f = arange(1, ns2) * d_f
 
-        f_u = hstack((0., f_i, d_f * ns / 2.))
-        s_u = hstack((0., abs(s_i) / 2., 0.))
+        f_u = hstack((0., f_i, d_f * ns2))
+        s_u = hstack((0., abs(s_i) / 2, 0.))
 
         s_i = interp(f, f_u, s_u)
-        s_u = hstack((0., s_i, 0, s_i[(ns / 2) - 2::-1]))
+        s_u = hstack((0., s_i, 0, s_i[ns2 - 2::-1]))
         del(s_i, f_u)
 
         # Generate standard normal random numbers for the simulations
         randn = random.randn
-        z_r = randn((ns / 2) + 1, cases)
+        z_r = randn(ns2 + 1, cases)
         z_i = vstack(
-            (zeros((1, cases)), randn((ns / 2) - 1, cases), zeros((1, cases))))
+            (zeros((1, cases)), randn(ns2 - 1, cases), zeros((1, cases))))
 
         amp = zeros((ns, cases), dtype=complex)
-        amp[0:(ns / 2 + 1), :] = z_r - 1j * z_i
+        amp[0:ns2 + 1, :] = z_r - 1j * z_i
         del(z_r, z_i)
-        amp[(ns / 2 + 1):ns, :] = amp[ns / 2 - 1:0:-1, :].conj()
+        amp[ns2 + 1:ns, :] = amp[ns2 - 1:0:-1, :].conj()
         amp[0, :] = amp[0, :] * sqrt(2.)
-        amp[(ns / 2), :] = amp[(ns / 2), :] * sqrt(2.)
+        amp[ns2, :] = amp[ns2, :] * sqrt(2.)
 
         # Make simulated time series
         T = (ns - 1) * d_t
@@ -3127,8 +3129,11 @@ class SpecData1D(PlotData):
         >>> Sj = sm.Jonswap(Hm0=3, Tp=7)
         >>> w = np.linspace(0,4,256)
         >>> S = SpecData1D(Sj(w),w) #Make spectrum object from numerical values
-        >>> S.moment()
-        ([0.5616342024616453, 0.7309966918203602], ['m0', 'm0tt'])
+        >>> mom, mom_txt = S.moment()
+        >>> np.allclose(mom, [0.5616342024616453, 0.7309966918203602])
+        True
+        >>> mom_txt == ['m0', 'm0tt']
+        True
 
         References
         ----------
@@ -3352,13 +3357,14 @@ class SpecData1D(PlotData):
         >>> import wafo.spectrum.models as sm
         >>> Sj = sm.Jonswap(Hm0=5)
         >>> S = Sj.tospecdata() #Make spectrum ob
-        >>> S.moment(2)
-        ([1.5614600345079888, 0.95567089481941048], ['m0', 'm0tt'])
+        >>> np.allclose(S.moment(2)[0],
+        ...    [1.5614600345079888, 0.95567089481941048])
+        True
         >>> Sn = S.copy(); Sn.normalize()
 
         Now the moments should be one
-        >>> Sn.moment(2)
-        ([1.0000000000000004, 0.99999999999999967], ['m0', 'm0tt'])
+        >>> np.allclose(Sn.moment(2)[0], [1.0, 1.0])
+        True
         '''
         mom, unused_mtext = self.moment(nr=4, even=True)
         m0 = mom[0]
@@ -4194,6 +4200,6 @@ def test_docstrings():
 
 
 if __name__ == '__main__':
-    #test_docstrings()
-    test_mm_pdf()
+    test_docstrings()
+    # test_mm_pdf()
         # main()

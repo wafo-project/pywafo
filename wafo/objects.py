@@ -13,14 +13,14 @@
 
 
 from __future__ import absolute_import, division
-from .transform.core import TrData
-from .transform.estimation import TransformEstimator
-from .stats import distributions
-from .misc import (nextpow2, findtp, findrfc, findtc, findcross,
+from wafo.transform.core import TrData
+from wafo.transform.estimation import TransformEstimator
+from wafo.stats import distributions
+from wafo.misc import (nextpow2, findtp, findrfc, findtc, findcross,
                    ecross, JITImport, DotDict, gravity, findrfc_astm)
-from .interpolate import stineman_interp
-from .containers import PlotData
-from .plotbackend import plotbackend
+from wafo.interpolate import stineman_interp
+from wafo.containers import PlotData
+from wafo.plotbackend import plotbackend
 from scipy.integrate import trapz
 from scipy.signal import welch, lfilter
 from scipy.signal.windows import get_window  # @UnusedImport
@@ -76,7 +76,10 @@ class LevelCrossings(PlotData):
     >>> mm = tp.cycle_pairs()
 
     >>> lc = mm.level_crossings()
-    >>> h2 = lc.plot()
+    >>> np.allclose(lc.data[:5], [ 0.,  1.,  2.,  2.,  3.])
+    True
+
+    h2 = lc.plot()
     '''
 
     def __init__(self, *args, **kwds):
@@ -366,16 +369,16 @@ class LevelCrossings(PlotData):
         >>> np.abs(alpha-alpha2)<0.03
         array([ True], dtype=bool)
 
-        >>> h0 = S.plot('b')
-        >>> h1 = Se.plot('r')
-
         >>> lc2 = ts2.turning_points().cycle_pairs().level_crossings()
 
-        >>> import pylab as plt
-        >>> h = plt.subplot(211)
-        >>> h2 = lc2.plot()
-        >>> h = plt.subplot(212)
-        >>> h0 = lc.plot()
+        import pylab as plt
+        h0 = S.plot('b')
+        h1 = Se.plot('r')
+
+        h = plt.subplot(211)
+        h2 = lc2.plot()
+        h = plt.subplot(212)
+        h0 = lc.plot()
 
         """
 
@@ -544,7 +547,7 @@ class LevelCrossings(PlotData):
         >>> tp = ts.turning_points()
         >>> mm = tp.cycle_pairs()
         >>> lc = mm.level_crossings()
-        >>> g0, g0emp = lc.trdata(plotflag=1)
+        >>> g0, g0emp = lc.trdata(plotflag=0)
         >>> g1, g1emp = lc.trdata(gvar=0.5 ) # Equal weight on all points
         >>> g2, g2emp = lc.trdata(gvar=[3.5, 0.5, 3.5])  # Less weight on ends
         >>> int(S.tr.dist2gauss()*100)
@@ -608,7 +611,11 @@ class CyclePairs(PlotData):
 
     >>> tp = ts.turning_points()
     >>> mm = tp.cycle_pairs()
-    >>> h1 = mm.plot(marker='x')
+    >>> np.allclose(mm.data[:5],
+    ...    [ 0.83950546, -0.02049454, -0.04049454,  0.25950546, -0.08049454])
+    True
+
+    h1 = mm.plot(marker='x')
     '''
 
     def __init__(self, *args, **kwds):
@@ -654,13 +661,15 @@ class CyclePairs(PlotData):
         >>> ts = wafo.objects.mat2timeseries(wafo.data.sea())
         >>> tp = ts.turning_points()
         >>> mm = tp.cycle_pairs()
-        >>> h = mm.plot(marker='.')
+
         >>> bv = range(3,9)
         >>> D = mm.damage(beta=bv)
         >>> D
         array([ 138.5238799 ,  117.56050788,  108.99265423,  107.86681126,
                 112.3791076 ,  122.08375071])
-        >>> h = plt.plot(bv,D,'x-')
+
+        h = mm.plot(marker='.')
+        h = plt.plot(bv,D,'x-')
 
         See also
         --------
@@ -708,9 +717,10 @@ class CyclePairs(PlotData):
         >>> ts = wafo.objects.mat2timeseries(wafo.data.sea())
         >>> tp = ts.turning_points()
         >>> mm = tp.cycle_pairs()
-        >>> h = mm.plot(marker='.')
         >>> lc = mm.level_crossings()
-        >>> h2 = lc.plot()
+
+        h = mm.plot(marker='.')
+        h2 = lc.plot()
 
         See also
         --------
@@ -785,7 +795,11 @@ class TurningPoints(PlotData):
     >>> ts = wo.mat2timeseries(x)
 
     >>> tp = ts.turning_points()
-    >>> h1 = tp.plot(marker='x')
+    >>> np.allclose(tp.data[:5],
+    ... [-1.2004945 ,  0.83950546, -0.09049454, -0.02049454, -0.09049454])
+    True
+
+    h1 = tp.plot(marker='x')
     '''
 
     def __init__(self, *args, **kwds):
@@ -828,9 +842,14 @@ class TurningPoints(PlotData):
         >>> ts1 = mat2timeseries(x1)
         >>> tp = ts1.turning_points(wavetype='Mw')
         >>> tph = tp.rainflow_filter(h=0.3)
-        >>> hs = ts1.plot()
-        >>> hp = tp.plot('ro')
-        >>> hph = tph.plot('k.')
+        >>> np.allclose(tph.data[:5],
+        ... [-0.16049454,  0.25950546, -0.43049454, -0.08049454, -0.42049454])
+        True
+
+
+        hs = ts1.plot()
+        hp = tp.plot('ro')
+        hph = tph.plot('k.')
 
         See also
         ---------
@@ -871,7 +890,11 @@ class TurningPoints(PlotData):
         >>> ts = wafo.objects.mat2timeseries(x)
         >>> tp = ts.turning_points()
         >>> mM = tp.cycle_pairs()
-        >>> h = mM.plot(marker='x')
+        >>> np.allclose(mM.data[:5], [ 0.83950546, -0.02049454, -0.04049454,
+        ...    0.25950546, -0.08049454])
+        True
+
+        h = mM.plot(marker='x')
 
 
         See also
@@ -980,15 +1003,15 @@ class TimeSeries(PlotData):
     >>> x = wafo.data.sea()
     >>> ts = wo.mat2timeseries(x)
     >>> rf = ts.tocovdata(lag=150)
-    >>> h = rf.plot()
 
     >>> S = ts.tospecdata()
     >>> tp = ts.turning_points()
     >>> mm = tp.cycle_pairs()
-    >>> h1 = mm.plot(marker='x')
-
     >>> lc = mm.level_crossings()
-    >>> h2 = lc.plot()
+
+    h = rf.plot()
+    h1 = mm.plot(marker='x')
+    h2 = lc.plot()
     '''
 
     def __init__(self, *args, **kwds):
@@ -1065,7 +1088,10 @@ class TimeSeries(PlotData):
          >>> x = wafo.data.sea()
          >>> ts = wo.mat2timeseries(x)
          >>> acf = ts.tocovdata(150)
-         >>> h = acf.plot()
+         >>> np.allclose(acf.data[:3], [ 0.22368637,  0.20838473,  0.17110733])
+         True
+
+         h = acf.plot()
         '''
         estimate_cov = _wafocov_estimation.CovarianceEstimator(
             lag=lag, tr=tr, detrend=detrend, window=window, flag=flag,
@@ -1328,7 +1354,7 @@ class TimeSeries(PlotData):
         ...        sigma=Hs/4, ysigma=Hs/4)
         >>> xs = S.sim(ns=2**16, iseed=10)
         >>> ts = mat2timeseries(xs)
-        >>> g0, g0emp = ts.trdata(plotflag=1)
+        >>> g0, g0emp = ts.trdata(plotflag=0)
         >>> g1, g1emp = ts.trdata(method='mnonlinear', gvar=0.5 )
         >>> g2, g2emp = ts.trdata(method='nonlinear', gvar=[3.5, 0.5, 3.5])
         >>> 100 < S.tr.dist2gauss()*100 < 200
@@ -1397,9 +1423,12 @@ class TimeSeries(PlotData):
         >>> ts1 = mat2timeseries(x1)
         >>> tp = ts1.turning_points(wavetype='Mw')
         >>> tph = ts1.turning_points(h=0.3,wavetype='Mw')
-        >>> hs = ts1.plot()
-        >>> hp = tp.plot('ro')
-        >>> hph = tph.plot('k.')
+        >>> np.allclose(tph.data[:3], [ 0.83950546, -0.16049454,  0.25950546])
+        True
+
+        hs = ts1.plot()
+        hp = tp.plot('ro')
+        hph = tph.plot('k.')
 
         See also
         ---------
@@ -1485,10 +1514,10 @@ class TimeSeries(PlotData):
         ('Tcf', array([ 0.42656819,  0.57361617]))
         ('Tcb', array([ 0.93355982,  1.04063638]))
 
-        >>> import pylab as plt
-        >>> h = plt.plot(wp['Td'],wp['Hd'],'.')
-        >>> h = plt.xlabel('Td [s]')
-        >>> h = plt.ylabel('Hd [m]')
+        import pylab as plt
+        h = plt.plot(wp['Td'],wp['Hd'],'.')
+        h = plt.xlabel('Td [s]')
+        h = plt.ylabel('Hd [m]')
 
 
         See also
@@ -1574,10 +1603,10 @@ class TimeSeries(PlotData):
         (array([ 0.10140867,  0.06141156]), array([ 0.42,  0.78]))
         (array([ 0.01821413,  0.01236672]), array([ 0.42,  0.78]))
 
-        >>> import pylab as plt
-        >>> h = plt.plot(S,H,'.')
-        >>> h = plt.xlabel('S')
-        >>> h = plt.ylabel('Hd [m]')
+        import pylab as plt
+        h = plt.plot(S,H,'.')
+        h = plt.xlabel('S')
+        h = plt.ylabel('Hd [m]')
 
         See also
         --------
@@ -1675,7 +1704,8 @@ class TimeSeries(PlotData):
 
     def _get_start_index(self, pdef, down_crossing_or_max):
         if down_crossing_or_max:
-            if pdef in ('d2t', 'M2m', 'c2t', 'd2u', 'M2M', 'c2c', 'd2d', 'all'):
+            if pdef in ('d2t', 'M2m', 'c2t', 'd2u', 'M2M', 'c2c', 'd2d',
+                        'all'):
                 start = 1
             elif pdef in ('t2u', 'm2M', 't2c', 'u2d', 'm2m', 't2t', 'u2u'):
                 start = 2
@@ -1698,13 +1728,12 @@ class TimeSeries(PlotData):
             raise ValueError('Unknown pdef option!')
         return start
 
-
     def _get_step(self, pdef):
-    # determine the steps between wanted periods
+        # determine the steps between wanted periods
         if pdef in ('d2t', 't2u', 'u2c', 'c2d'):
             step = 4
         elif pdef in ('all'):
-            step = 1 # % secret option!
+            step = 1  # secret option!
         else:
             step = 2
         return step
@@ -1773,7 +1802,10 @@ class TimeSeries(PlotData):
         >>> x = wd.sea()
         >>> ts = wo.mat2timeseries(x[0:400,:])
         >>> T, ix = ts.wave_periods(vh=0.0,pdef='c2c')
-        >>> h = plb.hist(T)
+        >>> np.allclose(T[:3,0], [-0.27, -0.08,  0.32])
+        True
+
+        h = plb.hist(T)
 
         See also:
         --------
@@ -2166,7 +2198,8 @@ class TimeSeries(PlotData):
         >>> import wafo
         >>> x = wafo.data.sea()
         >>> ts150 = wafo.objects.mat2timeseries(x[:150,:])
-        >>> h = ts150.plot_wave('r-', sym2='bo')
+
+        h = ts150.plot_wave('r-', sym2='bo')
 
         See also
         --------
@@ -2259,7 +2292,8 @@ class TimeSeries(PlotData):
         >>> import wafo
         >>> x = wafo.data.sea()
         >>> ts = wafo.objects.mat2timeseries(x[0:500,...])
-        >>> h = ts.plot_sp_wave(np.r_[6:9,12:18])
+
+        h = ts.plot_sp_wave(np.r_[6:9,12:18])
 
         See also
         --------

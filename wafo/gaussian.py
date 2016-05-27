@@ -361,7 +361,7 @@ class Rind(object):
         Blo[0, ind] = maximum(Blo[0, ind], -infinity * dev[indI[ind + 1]])
         ind2 = indI + 1
 
-        return rindmod.rind(BIG, Ex, xc, nt, ind2, Blo, Bup, infin, seed)  # @UndefinedVariable @IgnorePep8
+        return rindmod.rind(BIG, Ex, xc, nt, ind2, Blo, Bup, infin, seed)
 
 
 def test_rind():
@@ -440,7 +440,8 @@ def cdflomax(x, alpha, m0):
     >>> alpha = S.characteristic('alpha')[0]
     >>> x = np.linspace(-10,10,200);
     >>> mcdf = ws.edf(mM.data)
-    >>> h = mcdf.plot(), pylab.plot(x,wg.cdflomax(x,alpha,m0))
+
+    h = mcdf.plot(), pylab.plot(x,wg.cdflomax(x,alpha,m0))
 
     See also
     --------
@@ -533,7 +534,7 @@ def prbnormtndpc(rho, a, b, D=None, df=0, abseps=1e-4, IERC=0, HNC=0.24):
     A = np.clip(a - D, -100, 100)
     B = np.clip(b - D, -100, 100)
 
-    return mvnprdmod.prbnormtndpc(rho, A, B, df, abseps, IERC, HNC)  # @UndefinedVariable @IgnorePep8
+    return mvnprdmod.prbnormtndpc(rho, A, B, df, abseps, IERC, HNC)
 
 
 def prbnormndpc(rho, a, b, abserr=1e-4, relerr=1e-4, usesimpson=True,
@@ -696,8 +697,10 @@ def prbnormnd(correl, a, b, abseps=1e-4, releps=1e-3, maxpts=None, method=0):
 
     >>> A = np.repeat(Blo,n)
     >>> B = np.repeat(Bup,n)-m
-    >>> [val,err,inform] = prbnormnd(Sc,A,B);[val, err, inform]
-    [0.0019456719705212067, 1.0059406844578488e-05, 0]
+    >>> val, err, inform = prbnormnd(Sc,A,B)
+    >>> np.allclose([val, err, inform],
+    ...    [0.0019456719705212067, 1.0059406844578488e-05, 0])
+    True
 
     >>> np.abs(val-Et)< err0+terr0
     array([ True], dtype=bool)
@@ -738,7 +741,7 @@ def prbnormnd(correl, a, b, abseps=1e-4, releps=1e-3, maxpts=None, method=0):
     infinity = 37
     infin = np.repeat(2, n) - (B > infinity) - 2 * (A < -infinity)
 
-    err, val, inform = mvn.mvndst(A, B, infin, L, maxpts, abseps, releps)  # @UndefinedVariable @IgnorePep8
+    err, val, inform = mvn.mvndst(A, B, infin, L, maxpts, abseps, releps)
 
     return val, err, inform
 
@@ -910,8 +913,9 @@ def cdfnorm2d(b1, b2, r):
             if len(k5) > 0:
                 #               b = sqrt(bs);
                 k135 = k13[k5]
-                bvn[k135] = bvn[k135] - exp(-hk[k135] / 2) * sqrt(twopi) * fi(-b[k5] / a[k5]) * \
-                    b[k5] * (1 - c[k5] * bs[k5] * (1 - d[k5] * bs[k5] / 5) / 3)
+                bvn[k135] = bvn[k135] - exp(-hk[k135] / 2) * sqrt(twopi) * \
+                    fi(-b[k5] / a[k5]) * b[k5] * \
+                    (1 - c[k5] * bs[k5] * (1 - d[k5] * bs[k5] / 5) / 3)
 
             a /= two
             for i in range(10):
@@ -971,8 +975,8 @@ def prbnorm2d(a, b, r):
     >>> a = [-1, -2]
     >>> b = [1, 1]
     >>> r = 0.3
-    >>> wg.prbnorm2d(a,b,r)
-    array([ 0.56659121])
+    >>> np.allclose(wg.prbnorm2d(a,b,r), 0.56659121350428077)
+    True
 
     See also
     --------

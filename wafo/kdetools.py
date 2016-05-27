@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -------------------------------------------------------------------------
 # Name:        kdetools
 # Purpose:
@@ -8,7 +9,7 @@
 # Copyright:   (c) pab 2008
 # Licence:     LGPL
 # -------------------------------------------------------------------------
-#!/usr/bin/env python  # @IgnorePep8
+
 from __future__ import absolute_import, division
 import copy
 import numpy as np
@@ -19,12 +20,12 @@ from scipy import interpolate, linalg, optimize, sparse, special, stats
 from scipy.special import gamma
 from numpy import pi, sqrt, atleast_2d, exp, newaxis  # @UnresolvedImport
 
-from .misc import meshgrid, nextpow2, tranproc  # , trangood
-from .containers import PlotData
-from .dctpack import dct, dctn, idctn
-from .plotbackend import plotbackend as plt
+from wafo.misc import meshgrid, nextpow2, tranproc  # , trangood
+from wafo.containers import PlotData
+from wafo.dctpack import dct, dctn, idctn
+from wafo.plotbackend import plotbackend as plt
 try:
-    from . import fig
+    from wafo import fig
 except ImportError:
     warnings.warn('fig import only supported on Windows')
 
@@ -841,8 +842,8 @@ class KDE(_KDE):
     ...   [ 0.20397743,  0.40252228,  0.54594119,  0.52219025,  0.39062189,
     ...     0.2638171 ,  0.16407487,  0.08270755,  0.04784434,  0.04784434])
     True
-    >>> h = f1.plot()
 
+    h = f1.plot()
     import pylab as plb
     h1 = plb.plot(x, f) #  1D probability density plot
     t = np.trapz(f, x)
@@ -1080,16 +1081,20 @@ class KRegression(_KDE):
 
     Example
     -------
-    >>> N = 100
-    >>> ei = np.random.normal(loc=0, scale=0.075, size=(N,))
-
-    >>> x = np.linspace(0, 1, N)
     >>> import wafo.kdetools as wk
+    >>> N = 100
+    >>> x = np.linspace(0, 1, N)
+    >>> ei = np.random.normal(loc=0, scale=0.075, size=(N,))
+    >>> ei = np.sqrt(0.075) * np.sin(100*x)
 
     >>> y = 2*np.exp(-x**2/(2*0.3**2))+3*np.exp(-(x-1)**2/(2*0.7**2)) + ei
     >>> kreg = wk.KRegression(x, y)
     >>> f = kreg(output='plotobj', title='Kernel regression', plotflag=1)
-    >>> h = f.plot(label='p=0')
+    >>> np.allclose(f.data[:5],
+    ...     [ 3.18381052,  3.18362269,  3.18343648,  3.1832536 ,  3.1830757 ])
+    True
+
+    h = f.plot(label='p=0')
     """
 
     def __init__(self, data, y, p=0, hs=None, kernel=None, alpha=0.0,
@@ -3105,18 +3110,26 @@ def gridcount(data, X, y=1):
     >>> import numpy as np
     >>> import wafo.kdetools as wk
     >>> import pylab as plb
-    >>> N = 200
+    >>> N = 20
     >>> data  = np.random.rayleigh(1,N)
+    >>> data = np.array(
+    ...    [ 1.07855907,  1.51199717,  1.54382893,  1.54774808,  1.51913566,
+    ...     1.11386486,  1.49146216,  1.51127214,  2.61287913,  0.94793051,
+    ...     2.08532731,  1.35510641,  0.56759888,  1.55766981,  0.77883602,
+    ...     0.9135759 ,  0.81177855,  1.02111483,  1.76334202,  0.07571454])
     >>> x = np.linspace(0,max(data)+1,50)
     >>> dx = x[1]-x[0]
 
-    >>> c = wk.gridcount(data,x)
+    >>> c = wk.gridcount(data, x)
+    >>> np.allclose(c[:5], [ 0.,  0.9731147,  0.0268853,  0.,  0.])
+    True
 
-    >>> h = plb.plot(x,c,'.')   # 1D histogram
     >>> pdf = c/dx/N
-    >>> h1 = plb.plot(x, pdf) #  1D probability density plot
-    >>> '%1.2f' % np.trapz(pdf, x)
-    '1.00'
+    >>> np.allclose(np.trapz(pdf, x), 1)
+    True
+
+    h = plb.plot(x,c,'.')   # 1D histogram
+    h1 = plb.plot(x, pdf) #  1D probability density plot
 
     See also
     --------

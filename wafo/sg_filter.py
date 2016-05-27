@@ -6,8 +6,8 @@ from numpy import (pi, abs, size, convolve, linalg, concatenate, sqrt)
 from scipy.sparse import spdiags
 from scipy.sparse.linalg import spsolve, expm
 from scipy.signal import medfilt
-from .dctpack import dctn, idctn
-from .plotbackend import plotbackend as plt
+from wafo.dctpack import dctn, idctn
+from wafo.plotbackend import plotbackend as plt
 import scipy.optimize as optimize
 from scipy.signal import _savitzky_golay
 from scipy.ndimage import convolve1d
@@ -91,14 +91,19 @@ class SavitzkyGolay(object):
     Examples
     --------
     >>> t = np.linspace(-4, 4, 500)
-    >>> y = np.exp( -t**2 ) + np.random.normal(0, 0.05, t.shape)
+    >>> noise = np.random.normal(0, 0.05, t.shape)
+    >>> noise = np.sqrt(0.05)*np.sin(100*t)
+    >>> y = np.exp( -t**2 ) + noise
     >>> ysg = SavitzkyGolay(n=20, degree=2).smooth(y)
-    >>> import matplotlib.pyplot as plt
-    >>> h = plt.plot(t, y, label='Noisy signal')
-    >>> h1 = plt.plot(t, np.exp(-t**2), 'k', lw=1.5, label='Original signal')
-    >>> h2 = plt.plot(t, ysg, 'r', label='Filtered signal')
-    >>> h3 = plt.legend()
-    >>> h4 = plt.title('Savitzky-Golay')
+    >>> np.allclose(ysg[:3], [ 0.01345312,  0.01164172,  0.00992839])
+    True
+
+    import matplotlib.pyplot as plt
+    h = plt.plot(t, y, label='Noisy signal')
+    h1 = plt.plot(t, np.exp(-t**2), 'k', lw=1.5, label='Original signal')
+    h2 = plt.plot(t, ysg, 'r', label='Filtered signal')
+    h3 = plt.legend()
+    h4 = plt.title('Savitzky-Golay')
     plt.show()
 
     References
@@ -232,10 +237,10 @@ def evar(y):
 
     3D function
     >>> yp = np.linspace(-2,2,50)
-    >>> [x,y,z] = meshgrid(yp,yp,yp, sparse=True)
-    >>> f = x*exp(-x**2-y**2-z**2)
+    >>> [x,y,z] = np.meshgrid(yp,yp,yp, sparse=True)
+    >>> f = x*np.exp(-x**2-y**2-z**2)
     >>> var0 = 0.5  # noise variance
-    >>> fn = f + sqrt(var0)*np.random.randn(*f.shape)
+    >>> fn = f + np.sqrt(var0)*np.random.randn(*f.shape)
     >>> s = evar(fn)  # estimated variance
     >>> np.abs(s-var0)/var0 < 3.5/np.sqrt(50)
     True
@@ -571,12 +576,13 @@ def smoothn(data, s=None, weight=None, robust=False, z0=None, tolz=1e-3,
     >>> y[np.r_[70, 75, 80]] = np.array([5.5, 5, 6])
     >>> z = smoothn(y) # Regular smoothing
     >>> zr = smoothn(y,robust=True) #  Robust smoothing
-    >>> h=plt.subplot(121),
-    >>> h = plt.plot(x,y,'r.',x,z,'k',linewidth=2)
-    >>> h=plt.title('Regular smoothing')
-    >>> h=plt.subplot(122)
-    >>> h=plt.plot(x,y,'r.',x,zr,'k',linewidth=2)
-    >>> h=plt.title('Robust smoothing')
+
+    h=plt.subplot(121),
+    h = plt.plot(x,y,'r.',x,z,'k',linewidth=2)
+    h=plt.title('Regular smoothing')
+    h=plt.subplot(122)
+    h=plt.plot(x,y,'r.',x,zr,'k',linewidth=2)
+    h=plt.title('Robust smoothing')
 
      2-D example
     >>> xp = np.r_[0:1:.02]
@@ -584,10 +590,11 @@ def smoothn(data, s=None, weight=None, robust=False, z0=None, tolz=1e-3,
     >>> f = np.exp(x+y) + np.sin((x-2*y)*3);
     >>> fn = f + np.random.randn(*f.shape)*0.5;
     >>> fs = smoothn(fn);
-    >>> h=plt.subplot(121),
-    >>> h=plt.contourf(xp,xp,fn)
-    >>> h=plt.subplot(122)
-    >>> h=plt.contourf(xp,xp,fs)
+
+    h=plt.subplot(121),
+    h=plt.contourf(xp,xp,fn)
+    h=plt.subplot(122)
+    h=plt.contourf(xp,xp,fs)
 
      2-D example with missing data
     n = 256;
@@ -780,13 +787,14 @@ class HodrickPrescott(object):
     >>> t = np.linspace(-4, 4, 500)
     >>> y = np.exp( -t**2 ) + np.random.normal(0, 0.05, t.shape)
     >>> ysg = HodrickPrescott(w=10000)(y)
-    >>> import matplotlib.pyplot as plt
-    >>> h = plt.plot(t, y, label='Noisy signal')
-    >>> h1 = plt.plot(t, np.exp(-t**2), 'k', lw=1.5, label='Original signal')
-    >>> h2 = plt.plot(t, ysg, 'r', label='Filtered signal')
-    >>> h3 = plt.legend()
-    >>> h4 = plt.title('Hodrick-Prescott')
-    >>> plt.show()
+
+    import matplotlib.pyplot as plt
+    h = plt.plot(t, y, label='Noisy signal')
+    h1 = plt.plot(t, np.exp(-t**2), 'k', lw=1.5, label='Original signal')
+    h2 = plt.plot(t, ysg, 'r', label='Filtered signal')
+    h3 = plt.legend()
+    h4 = plt.title('Hodrick-Prescott')
+    plt.show()
 
     References
     ----------
@@ -944,15 +952,15 @@ class Kalman(object):
     >>> for i, zi in enumerate(z):
     ...     x[i] = filt(zi, u) #  perform a Kalman filter iteration
 
-    >>> import matplotlib.pyplot as plt
-    >>> hz = plt.plot(z,'r.', label='observations')
+    import matplotlib.pyplot as plt
+    hz = plt.plot(z,'r.', label='observations')
 
     # a-posteriori state estimates:
-    >>> hx = plt.plot(x,'b-', label='Kalman output')
-    >>> ht = plt.plot(truth,'g-', label='true voltage')
-    >>> h = plt.legend()
-    >>> h1 = plt.title('Automobile Voltimeter Example')
-    >>> plt.show()
+    hx = plt.plot(x,'b-', label='Kalman output')
+    ht = plt.plot(truth,'g-', label='true voltage')
+    h = plt.legend()
+    h1 = plt.title('Automobile Voltimeter Example')
+    plt.show()
 
     '''
 
@@ -1555,12 +1563,12 @@ def test_docstrings():
     doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
 
 if __name__ == '__main__':
-    # test_docstrings()
+    test_docstrings()
     # test_kalman_sine()
     # test_tide_filter()
     # demo_hampel()
     # test_kalman()
     # test_smooth()
     # test_hodrick_cardioid()
-    test_smoothn_1d()
+    # test_smoothn_1d()
     # test_smoothn_cardioid()

@@ -19,6 +19,7 @@ This module gives gives detailed information and easy access to all datasets
 included in WAFO
 
 """
+import numpy as np
 from numpy import (loadtxt, nan)
 import os
 __path2data = os.path.dirname(os.path.realpath(__file__))
@@ -73,7 +74,10 @@ def atlantic():
     >>> import pylab
     >>> import wafo
     >>> Hs = wafo.data.atlantic()
-    >>> h = pylab.plot(Hs)
+    >>> np.allclose(Hs[:3], [ 5.48296296,  4.3615    ,  5.26023256])
+    True
+
+    h = pylab.plot(Hs)
 
     Acknowledgement:
     ---------------
@@ -121,7 +125,10 @@ def gfaks89():
     >>> import pylab
     >>> import wafo
     >>> x = wafo.data.gfaks89()
-    >>> h = pylab.plot(x[:,0],x[:,1])
+    >>> np.allclose(x[:3, 1], [-0.19667949, -0.46667949, -0.38667949])
+    True
+
+    h = pylab.plot(x[:,0],x[:,1])
 
     Acknowledgement:
     ---------------
@@ -216,13 +223,16 @@ def japansea():
     >>> import pylab
     >>> import wafo
     >>> map1 = wafo.data.japansea()
-    >>> h = pylab.plot(map1[:,0],map1[:,1])
-    >>> lon_loc = [131,132,132,135,139.5,139]
-    >>> lat_loc = [46, 43, 40, 35, 38.3, 35.7]
-    >>> loc = ['China','Vladivostok','Japan Sea', 'Japan', 'Yura','Tokyo']
-    >>> algn = 'right'
-    >>> for lon, lat, name in zip(lon_loc,lat_loc,loc):
-            pylab.text(lon,lat,name,horizontalalignment=algn)
+    >>> np.allclose(map1[1:4, 0], [ 141.960057,  142.058624,  142.103214])
+    True
+
+    h = pylab.plot(map1[:,0],map1[:,1])
+    lon_loc = [131,132,132,135,139.5,139]
+    lat_loc = [46, 43, 40, 35, 38.3, 35.7]
+    loc = ['China','Vladivostok','Japan Sea', 'Japan', 'Yura','Tokyo']
+    algn = 'right'
+    for lon, lat, name in zip(lon_loc,lat_loc,loc):
+        pylab.text(lon,lat,name,horizontalalignment=algn)
 
 
     # If you have the m_map toolbox (see http://www.ocgy.ubc.ca/~rich/):
@@ -263,40 +273,43 @@ def northsea():
     >>> import pylab
     >>> import wafo
     >>> map1 = wafo.data.northsea()
-    >>> h = pylab.plot(map1[:,0],map1[:,1])
-    >>> lon_pltfrm = [1.8,   2.3,  2.,  1.9, 2.6]
-    >>> lat_pltfrm = [61.2, 61.2, 59.9, 58.4, 57.7]
-    >>> pltfrm = ['Statfjord A', 'Gullfaks C', 'Frigg', 'Sleipner', 'Draupner']
-    >>> h = pylab.scatter(lon_pltfrm,lat_pltfrm);
-    >>> algn = 'right'
-    >>> for lon, lat, name in zip(lon_pltfrm,lat_pltfrm,pltfrm):
-            pylab.text(lon,lat,name,horizontalalignment=algn); algn = 'left'
+    >>> np.allclose(map1[1:4, 0], [ 1.261996,  1.264064,  1.268171])
+    True
+
+    h = pylab.plot(map1[:,0],map1[:,1])
+    lon_pltfrm = [1.8,   2.3,  2.,  1.9, 2.6]
+    lat_pltfrm = [61.2, 61.2, 59.9, 58.4, 57.7]
+    pltfrm = ['Statfjord A', 'Gullfaks C', 'Frigg', 'Sleipner', 'Draupner']
+    h = pylab.scatter(lon_pltfrm,lat_pltfrm);
+    algn = 'right'
+    for lon, lat, name in zip(lon_pltfrm,lat_pltfrm,pltfrm):
+        pylab.text(lon,lat,name,horizontalalignment=algn); algn = 'left'
 
 
-    >>> lon_city = [10.8, 10.8, 5.52, 5.2]
-    >>> lat_city = [59.85, 63.4, 58.9, 60.3]
-    >>> city = ['Oslo','Trondheim','Stavanger', 'Bergen']
-    >>> h = pylab.scatter(lon_city,lat_city);
-    >>> algn = 'right'
-    >>> for lon, lat, name in zip(lon_city,lat_city,city):
-            pylab.text(lon,lat,name,horizontalalignment=algn)
+    lon_city = [10.8, 10.8, 5.52, 5.2]
+    lat_city = [59.85, 63.4, 58.9, 60.3]
+    city = ['Oslo','Trondheim','Stavanger', 'Bergen']
+    h = pylab.scatter(lon_city,lat_city);
+    algn = 'right'
+    for lon, lat, name in zip(lon_city,lat_city,city):
+         pylab.text(lon,lat,name,horizontalalignment=algn)
 
     # If you have the mpl_toolkits.basemap installed
-    >>> from mpl_toolkits.basemap import Basemap
-    >>> import matplotlib.pyplot as plt
+    from mpl_toolkits.basemap import Basemap
+    import matplotlib.pyplot as plt
 
     # setup Lambert Conformal basemap.
-    >>> m = Basemap(width=1200000,height=900000,projection='lcc',
+    m = Basemap(width=1200000,height=900000,projection='lcc',
             resolution='f',lat_1=56.,lat_2=64,lat_0=58,lon_0=5.)
-    >>> m.drawcoastlines()
-    >>> h = m.scatter(lon_pltfrm,lat_pltfrm);
-    >>> algn = 'right'
-    >>> for lon, lat, name in zip(lon_pltfrm,lat_pltfrm,pltfrm):
-            m.text(lon,lat,name,horizontalalignment=algn); algn = 'left'
-    >>> m.scatter(lon_city,lat_city)
-    >>> algn = 'right'
-    >>> for lon, lat, name in zip(lon_city,lat_city,city):
-            m.text(lon,lat,name,horizontalalignment=algn)
+    m.drawcoastlines()
+    h = m.scatter(lon_pltfrm,lat_pltfrm);
+    algn = 'right'
+    for lon, lat, name in zip(lon_pltfrm,lat_pltfrm,pltfrm):
+         m.text(lon,lat,name,horizontalalignment=algn); algn = 'left'
+    m.scatter(lon_city,lat_city)
+    algn = 'right'
+    for lon, lat, name in zip(lon_city,lat_city,city):
+         m.text(lon,lat,name,horizontalalignment=algn)
     """
     return _loadnan('northsea.dat')
 
@@ -324,7 +337,10 @@ def sea():
     >>> import pylab
     >>> import wafo
     >>> x = wafo.data.sea()
-    >>> h = pylab.plot(x[:,0],x[:,1])
+    >>> np.allclose(x[:3,1],[-1.2004945 , -1.0904945 , -0.79049454])
+    True
+
+    h = pylab.plot(x[:,0],x[:,1])
     """
     return _load('sea.dat')
 
@@ -459,6 +475,8 @@ def yura87():
     japansea
     """
     return _load('yura87.dat')
+
+
 if __name__ == '__main__':
     import doctest
     doctest.testmod()
