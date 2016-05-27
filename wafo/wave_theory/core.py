@@ -245,14 +245,15 @@ class TransferFunction(object):
     >>> stypes = ['n', 'n_x', 'n_y'];
     >>> tf = TransferFunction(pos=(0, 0, 0), h=50)
     >>> vals = []
-    >>> fh = plt.plot(t, eta0.real, 'r.')
-    >>> plt.hold(True)
     >>> for i,stype in enumerate(stypes):
     ...    tf.sensortype = stype
     ...    Hw, Gwt = tf.tran(w0,th0)
     ...    vals.append((Hw*Gwt*eta0).real.ravel())
 
-    fh = plt.plot(t, vals[i])
+    fh = plt.plot(t, eta0.real, 'r.')
+    plt.hold(True)
+    for val in vals:
+        fh = plt.plot(t, val)
     plt.show()
 
 
@@ -543,8 +544,10 @@ def wave_pressure(z, Hm0, h=10000, g=9.81, rho=1028):
     -----
     >>> import pylab as plt
     >>> z = -np.linspace(10,20)
-    >>> fh = plt.plot(z, wave_pressure(z, Hm0=1, h=20))
-    >>> plt.show()
+    >>> p = wave_pressure(z, Hm0=1, h=20)
+
+    fh = plt.plot(z, p)
+    plt.show()
 
     See also
     --------

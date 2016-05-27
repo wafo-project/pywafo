@@ -110,7 +110,8 @@ class CovarianceEstimator(object):
          >>> x = wafo.data.sea()
          >>> ts = wo.mat2timeseries(x)
          >>> acf = ts.tocovdata(150)
-         >>> h = acf.plot()
+
+         h = acf.plot()
         '''
         lag = self.lag
         window = self.window

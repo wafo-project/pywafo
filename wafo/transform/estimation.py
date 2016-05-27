@@ -196,7 +196,7 @@ class TransformEstimator(object):
         >>> tp = ts.turning_points()
         >>> mm = tp.cycle_pairs()
         >>> lc = mm.level_crossings()
-        >>> g0, g0emp = lc.trdata(monitor=True) # Monitor the development
+        >>> g0, g0emp = lc.trdata(monitor=False) # Monitor the development
         >>> g1, g1emp = lc.trdata(gvar=0.5 ) # Equal weight on all points
         >>> g2, g2emp = lc.trdata(gvar=[3.5, 0.5, 3.5])  # Less weight on ends
         >>> int(S.tr.dist2gauss()*100)
@@ -213,6 +213,7 @@ class TransformEstimator(object):
         g0.plot() # Check the fit.
 
         See also
+        --------
           troptset, dat2tr, trplot, findcross, smooth
 
         NB! the transformated data will be N(0,1)
@@ -389,7 +390,7 @@ class TransformEstimator(object):
         ...        sigma=Hs/4, ysigma=Hs/4)
         >>> xs = S.sim(ns=2**16, iseed=10)
         >>> ts = mat2timeseries(xs)
-        >>> g0, g0emp = ts.trdata(monitor=True)
+        >>> g0, g0emp = ts.trdata(monitor=False)
         >>> g1, g1emp = ts.trdata(method='m', gvar=0.5 )
         >>> g2, g2emp = ts.trdata(method='n', gvar=[3.5, 0.5, 3.5])
         >>> int(S.tr.dist2gauss()*100)

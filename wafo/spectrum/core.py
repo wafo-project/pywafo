@@ -1072,6 +1072,7 @@ class SpecData1D(PlotData):
         >>> w = np.linspace(0,4,256)
         >>> S1 = Sj.tospecdata(w)   #Make spectrum object from numerical values
         >>> S = sm.SpecData1D(Sj(w),w) # Alternatively do it manually
+
         mm = S.to_mm_pdf()
         mm.plot()
         mm.plot(plotflag=1)
@@ -1174,12 +1175,11 @@ class SpecData1D(PlotData):
         >>> Sj = sm.Jonswap()
         >>> S = Sj.tospecdata()
         >>> f = S.to_t_pdf(pdef='Tc', paramt=(0, 10, 51), speed=7)
-        >>> h = f.plot()
 
-        estimated error bounds
-        >>> h2 = plb.plot(f.args, f.data+f.err, 'r', f.args, f.data-f.err, 'r')
-
-        >>> plb.close('all')
+        h = f.plot()
+        # estimated error bounds
+        h2 = plb.plot(f.args, f.data+f.err, 'r', f.args, f.data-f.err, 'r')
+        plb.close('all')
 
         See also
         --------
@@ -3955,11 +3955,13 @@ class SpecData2D(PlotData):
         >>> D = sm.Spreading()
         >>> SD = D.tospecdata2d(sm.Jonswap().tospecdata(),nt=101)
         >>> m,mtext = SD.moment(nr=2,vari='xyt')
-        >>> np.round(m,3),mtext
-        (array([ 3.061,  0.132, -0.   ,  2.13 ,  0.011,  0.008,  1.677, -0.,
-                0.109,  0.109]),
-                ['m0', 'mx', 'my', 'mt', 'mxx', 'myy', 'mtt', 'mxy', 'mxt',
-                'myt'])
+        >>> np.allclose(np.round(m,3),
+        ... [ 3.061,  0.132, -0.   ,  2.13 ,  0.011,  0.008,  1.677, -0.,
+        ...     0.109,  0.109])
+        True
+        >>> mtext == ['m0', 'mx', 'my', 'mt', 'mxx', 'myy', 'mtt', 'mxy',
+        ...            'mxt', 'myt']
+        True
 
         References
         ----------

@@ -297,17 +297,18 @@ def jonswap_peakfact(Hm0, Tp):
     >>> [T,H] = plb.meshgrid(Tp,Hm0)
     >>> gam = wsm.jonswap_peakfact(H,T)
     >>> v = plb.arange(0,8)
-    >>> h = plb.contourf(Tp,Hm0,gam,v);h=plb.colorbar()
 
     >>> Hm0 = plb.arange(1,11)
     >>> Tp  = plb.linspace(2,16)
     >>> T,H = plb.meshgrid(Tp,Hm0)
     >>> gam = wsm.jonswap_peakfact(H,T)
-    >>> h = plb.plot(Tp,gam.T)
-    >>> h = plb.xlabel('Tp [s]')
-    >>> h = plb.ylabel('Peakedness parameter')
 
-    >>> plb.close('all')
+    h = plb.contourf(Tp,Hm0,gam,v);h=plb.colorbar()
+    h = plb.plot(Tp,gam.T)
+    h = plb.xlabel('Tp [s]')
+    h = plb.ylabel('Peakedness parameter')
+
+    plb.close('all')
 
     See also
     --------
@@ -495,13 +496,13 @@ class Jonswap(ModelSpectrum):
     >>> import pylab as plb
     >>> import wafo.spectrum.models as wsm
     >>> S = wsm.Jonswap(Hm0=7, Tp=11,gamma=1)
-    >>> w = plb.linspace(0,5)
-    >>> h = plb.plot(w,S(w))
-
     >>> S2 = wsm.Bretschneider(Hm0=7, Tp=11)
+    >>> w = plb.linspace(0,5)
     >>> all(abs(S(w)-S2(w))<1.e-7)
     True
-    >>> plb.close('all')
+
+    h = plb.plot(w,S(w))
+    plb.close('all')
 
     See also
     --------
@@ -755,11 +756,12 @@ class Tmaspec(Jonswap):
     >>> import pylab as plb
     >>> w = plb.linspace(0,2.5)
     >>> S = wsm.Tmaspec(h=10,gamma=1) # Bretschneider spectrum Hm0=7, Tp=11
-    >>> o=plb.plot(w,S(w))
-    >>> o=plb.plot(w,S(w,h=21))
-    >>> o=plb.plot(w,S(w,h=42))
-    >>> plb.show()
-    >>> plb.close('all')
+
+    o=plb.plot(w,S(w))
+    o=plb.plot(w,S(w,h=21))
+    o=plb.plot(w,S(w,h=42))
+    plb.show()
+    plb.close('all')
 
     See also
     ---------
@@ -850,7 +852,8 @@ class Torsethaugen(ModelSpectrum):
     >>> import pylab as plb
     >>> w = plb.linspace(0,4)
     >>> S = wsm.Torsethaugen(Hm0=6, Tp=8)
-    >>> h=plb.plot(w,S(w),w,S.wind(w),w,S.swell(w))
+
+    h=plb.plot(w,S(w),w,S.wind(w),w,S.swell(w))
 
     See also
     --------
@@ -1429,25 +1432,26 @@ class Spreading(object):
     # Make directionale spectrum
     >>> S = wsm.Jonswap().tospecdata()
     >>> SD = D.tospecdata2d(S)
-    >>> h = SD.plot()
 
     >>> w = plb.linspace(0,3,257)
     >>> theta = plb.linspace(-pi,pi,129)
-    >>> t = plb.contour(D(theta,w)[0].squeeze())
 
     # Make frequency dependent direction spreading
     >>> theta0 = lambda w: w*plb.pi/6.0
     >>> D2 = wsm.Spreading('cos2s',theta0=theta0)
-    >>> t = plb.contour(D2(theta,w)[0])
+
+    h = SD.plot()
+    t = plb.contour(D(theta,w)[0].squeeze())
+    t = plb.contour(D2(theta,w)[0])
 
     # Plot all spreading functions
-    >>> alltypes = ('cos2s','box','mises','poisson','sech2','wrap_norm')
-    >>> for ix in range(len(alltypes)):
+    alltypes = ('cos2s','box','mises','poisson','sech2','wrap_norm')
+    for ix in range(len(alltypes)):
     ...     D3 = wsm.Spreading(alltypes[ix])
     ...     t = plb.figure(ix)
     ...     t = plb.contour(D3(theta,w)[0])
     ...     t = plb.title(alltypes[ix])
-    >>> plb.close('all')
+    plb.close('all')
 
 
     See also
@@ -2007,7 +2011,8 @@ class Spreading(object):
          >>> S = wsm.Jonswap().tospecdata()
          >>> D = wsm.Spreading('cos2s')
          >>> SD = D.tospecdata2d(S)
-         >>> h = SD.plot()
+
+         h = SD.plot()
 
          See also  spreading, rotspec, jonswap, torsethaugen
         '''

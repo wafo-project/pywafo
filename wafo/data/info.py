@@ -20,7 +20,7 @@ included in WAFO
 
 """
 import numpy as np
-from numpy import (loadtxt, nan)
+
 import os
 __path2data = os.path.dirname(os.path.realpath(__file__))
 
@@ -31,7 +31,7 @@ _NANS = set(['nan', 'NaN', '-1.#IND00+00', '1.#IND00+00', '-1.#INF00+00'])
 
 
 def _tofloat(x):
-    return nan if x in _NANS else float(x or 0)
+    return np.nan if x in _NANS else float(x or 0)
 
 
 _MYCONVERTER = {}
@@ -42,13 +42,13 @@ for i in range(2):
 def _load(file):  # @ReservedAssignment
     """ local load function
     """
-    return loadtxt(os.path.join(__path2data, file))
+    return np.loadtxt(os.path.join(__path2data, file))
 
 
 def _loadnan(file):  # @ReservedAssignment
     """ local load function accepting nan's
     """
-    return loadtxt(os.path.join(__path2data, file), converters=_MYCONVERTER)
+    return np.loadtxt(os.path.join(__path2data, file), converters=_MYCONVERTER)
 
 
 def atlantic():
@@ -188,8 +188,8 @@ def gfaksr89():
     >>> import pylab
     >>> import wafo
     >>> x = wafo.data.gfaksr89()
-    >>> h = pylab.plot(x[:,0],x[:,1])
 
+    h = pylab.plot(x[:,0],x[:,1])
 
     See also
     --------
@@ -378,7 +378,8 @@ def sfa89():
     >>> import pylab
     >>> import wafo
     >>> x = wafo.data.sfa89()
-    >>> h = pylab.plot(x[:,0],x[:,1])
+
+    h = pylab.plot(x[:,0],x[:,1])
 
     Acknowledgement
     ----------------
@@ -415,7 +416,8 @@ def sn():
     >>> import pylab
     >>> import wafo
     >>> x = wafo.data.sn()
-    >>> h = pylab.plot(x[:,0],x[:,1])
+
+    h = pylab.plot(x[:,0],x[:,1])
 
     See also
     --------
@@ -463,7 +465,8 @@ def yura87():
     >>> import pylab
     >>> import wafo
     >>> x = wafo.data.yura87()
-    >>> h = pylab.plot(x[:,0],x[:,1])
+
+    h = pylab.plot(x[:,0],x[:,1])
 
     Acknowledgement:
     -----------------
