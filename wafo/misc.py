@@ -584,8 +584,8 @@ def sub_dict_select(somedict, somekeys):
     >>> kwds = dict(arg2=100,arg3=1000)
     >>> sub_dict = sub_dict_select(kwds,opt.keys())
     >>> opt.update(sub_dict)
-    >>> opt
-    {'arg1': 2, 'arg2': 100}
+    >>> opt == {'arg1': 2, 'arg2': 100}
+    True
 
     See also
     --------

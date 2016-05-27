@@ -7,7 +7,7 @@ import scipy.sparse as sparse
 from numpy import ones, zeros, prod, sin, diff, pi, inf, vstack, linspace
 from scipy.interpolate import PiecewisePolynomial, interp1d
 
-from . import polynomial as pl
+from wafo import polynomial as pl
 
 
 __all__ = [
@@ -1015,7 +1015,8 @@ class StinemanInterp2(PiecewisePolynomial):
     def __init__(self, x, y, yp=None, method='parabola', monotone=False):
         if yp is None:
             yp = slopes(x, y, method, monotone=monotone)
-        super(StinemanInterp2, self).__init__(x, zip(y, yp))
+        yyp = [z for z in zip(y, yp)]
+        super(StinemanInterp2, self).__init__(x, yyp)
 
 
 class CubicHermiteSpline(PiecewisePolynomial):
@@ -1028,7 +1029,8 @@ class CubicHermiteSpline(PiecewisePolynomial):
     def __init__(self, x, y, yp=None, method='Catmull-Rom'):
         if yp is None:
             yp = slopes(x, y, method, monotone=False)
-        super(CubicHermiteSpline, self).__init__(x, zip(y, yp), orders=3)
+        yyp = [z for z in zip(y, yp)]
+        super(CubicHermiteSpline, self).__init__(x, yyp, orders=3)
 
 
 class Pchip(PiecewisePolynomial):
@@ -1127,7 +1129,8 @@ class Pchip(PiecewisePolynomial):
     def __init__(self, x, y, yp=None, method='secant'):
         if yp is None:
             yp = slopes(x, y, method=method, monotone=True)
-        super(Pchip, self).__init__(x, zip(y, yp), orders=3)
+        yyp = [z for z in zip(y, yp)]
+        super(Pchip, self).__init__(x, yyp, orders=3)
 
 
 def interp3(x, y, z, v, xi, yi, zi, method='cubic'):

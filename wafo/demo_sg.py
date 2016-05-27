@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 from pylab import subplot, plot, title, figure
 from numpy import random, arange, sin
-from sg_filter import SavitzkyGolay, smoothn  # calc_coeff, smooth
+from .sg_filter import SavitzkyGolay, smoothn  # calc_coeff, smooth
 
 
 def example_reconstruct_noisy_chirp():

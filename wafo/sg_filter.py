@@ -6,8 +6,8 @@ from numpy import (pi, abs, size, convolve, linalg, concatenate, sqrt)
 from scipy.sparse import spdiags
 from scipy.sparse.linalg import spsolve, expm
 from scipy.signal import medfilt
-from wafo.dctpack import dctn, idctn
-from wafo.plotbackend import plotbackend as plt
+from .dctpack import dctn, idctn
+from .plotbackend import plotbackend as plt
 import scipy.optimize as optimize
 from scipy.signal import _savitzky_golay
 from scipy.ndimage import convolve1d

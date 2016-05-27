@@ -2819,7 +2819,7 @@ def _compute_qth_weighted_percentile(a, q, axis, out, method, weights,
     if axis is None:
         sorted_ = a.ravel()
     else:
-        taxes = range(a.ndim)
+        taxes = [i for i in range(a.ndim)]
         taxes[-1], taxes[axis] = taxes[axis], taxes[-1]
         sorted_ = np.transpose(a, taxes).reshape(-1, shape0[axis])
 
