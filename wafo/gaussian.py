@@ -113,7 +113,7 @@ class Rind(object):
     >>> np.allclose(val, 0.05494076, rtol=1e-2)
     True
     >>> err[0] < 1e-3, terr[0] < 1e-7
-    True, True
+    (True, True)
 
     Compute expectation E( X1^{+}*X2^{+} ) with random
     correlation coefficient,Cov(X1,X2) = rho2.

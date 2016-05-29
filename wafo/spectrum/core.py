@@ -1587,17 +1587,17 @@ class SpecData1D(PlotData):
         else:
             note = note + 'Density is not scaled to unity'
             if defnr in (-2, -1, 0, 1):
-                title = 'Density of (%sMm, M = %2.5g, m = %2.5g)' % (
-                    tmp, h[1], h[0])
+                title_txt = 'Density of (%sMm, M = %2.5g, m = %2.5g)'
+                title = title_txt % (tmp, h[1], h[0])
             elif defnr in (2, 3):
-                title = 'Density of (%sMm, M = %2.5g, m = %2.5g)_{v=%2.5g}' % (
-                    tmp, h[1], -h[1], utc)
+                title_txt = 'Density of (%sMm, M = %2.5g, m = %2.5g)_{v=%2.5g}'
+                title = title_txt % (tmp, h[1], -h[1], utc)
             elif defnr == 4:
-                title = 'Density of (%sMd, %sMm, M = %2.5g, m = %2.5g)_{v=%2.5g}' % (
-                    tmp, tmp, h[1], -h[1], utc)
+                txt = 'Density of (%sMd, %sMm, M = %2.5g, m = %2.5g)_{v=%2.5g}'
+                title = txt % (tmp, tmp, h[1], -h[1], utc)
             elif defnr == 5:
-                title = 'Density of (%sdm, %sMm, M = %2.5g, m = %2.5g)_{v=%2.5g}' % (
-                    tmp, tmp, h[1], -h[1], utc)
+                txt = 'Density of (%sdm, %sMm, M = %2.5g, m = %2.5g)_{v=%2.5g}'
+                title = txt % (tmp, tmp, h[1], -h[1], utc)
 
         f = PlotData(args=args, title=title, labx=labx, laby=laby)
         f.options = options
@@ -1632,7 +1632,7 @@ class SpecData1D(PlotData):
                                                   paramu)) * sqrt(L4*L0)/L2
                         err = np.abs(ftmp0 -
                                      np.fliplr(mctp2tc(np.fliplr(ftmp+err),
-                                                       utc,paramu)) *
+                                                       utc, paramu)) *
                                      sqrt(L4*L0)/L2)
                         index1 = np.flatnonzero(f.args[0] > 0)
                         index2 = np.flatnonzero(f.args[1] < 0)
@@ -1780,17 +1780,17 @@ class SpecData1D(PlotData):
 
         Nstart = max(2, Nstart)
         symmetry = 0
-        isOdd = np.mod(Nx1, 2)
+        is_odd = np.mod(Nx1, 2)
         if def_nr <= 1:  # just plain Mm
             Nx = Nx1 * (Nx1 - 1) / 2
-            IJ = (Nx1 + isOdd) / 2
+            IJ = (Nx1 + is_odd) / 2
             if (hg[0] + hg[Nx1 - 1] == 0 and (hg[IJ - 1] == 0 or
                                               hg[IJ - 1] + hg[IJ] == 0)):
                 symmetry = 0
                 print(' Integration region symmetric')
-                # May save Nx1-isOdd integrations in each time step
+                # May save Nx1-is_odd integrations in each time step
                 # This is not implemented yet.
-                # Nx = Nx1*(Nx1-1)/2-Nx1+isOdd
+                # Nx = Nx1*(Nx1-1)/2-Nx1+is_odd
             # normalizing constant:
             # CC = 1/ expected number of zero-up-crossings of X'
             # CC = 2*pi*sqrt(-R2[0]/R4[0])
@@ -1819,6 +1819,7 @@ class SpecData1D(PlotData):
 #         opt0 = [options[n] for n in ('SCIS', 'XcScale', 'ABSEPS', 'RELEPS',
 #                                      'COVEPS', 'MAXPTS', 'MINPTS', 'seed',
 #                                      'NIT1')]
+        dt2 = dt ** 2
         rind = Rind(**options)
         if (Nx > 1):
             # (M,m) or (M,m)v distribution wanted
@@ -1892,15 +1893,16 @@ class SpecData1D(PlotData):
                 # positive wave period
                 # self._covinput_mmt_pdf(BIG, R, tn, ts, tnold)
                 BIG[:Ntdc, :Ntdc] = covinput(BIG[:Ntdc, :Ntdc], R, Ntd, 0)
-                [fxind, err0, terr0] = rind(BIG[:Ntdc, :Ntdc], ex[:Ntdc],
-                                            a_lo, a_up, indI, xc, Nt)
+                fxind, err0, terr0 = rind(BIG[:Ntdc, :Ntdc], ex[:Ntdc],
+                                          a_lo, a_up, indI, xc, Nt)
+                err0 = err0 ** 2
                 # fxind  = CC*rind(BIG(1:Ntdc,1:Ntdc),ex(1:Ntdc),xc,Nt,NIT1,
                 # speed1,indI,a_lo,a_up)
                 if (Nx < 2):
                     # Density of TMm given the Max and the Min. Note that the
                     # density is not scaled to unity
                     pdf[0, 0, Ntd] = fxind[0]
-                    err[0, 0, Ntd] = err0[0] ** 2
+                    err[0, 0, Ntd] = err0[0]
                     terr[0, 0, Ntd] = terr0[0]
                     # GOTO 100
                 else:
@@ -1910,24 +1912,24 @@ class SpecData1D(PlotData):
                         for i in range(1, Nx1):
                             J = IJ + i
                             pdf[:i, i, 0] += fxind[IJ:J].T * dt  # *CC
-                            err[:i, i, 0] += (err0[IJ + 1:J].T * dt) ** 2
-                            terr[:i, i, 0] += (terr0[IJ:J].T * dt)
+                            err[:i, i, 0] += err0[IJ + 1:J].T * dt2
+                            terr[:i, i, 0] += terr0[IJ:J].T * dt
                             IJ = J
                     elif def_nr == 1:  # joint density of (M,m,TMm)
                         for i in range(1, Nx1):
                             J = IJ + i
-                            pdf[:i, i, Ntd] = fxind[IJ:J].T  # %*CC
-                            err[:i, i, Ntd] = (err0[IJ:J].T) ** 2  # %*CC
-                            terr[:i, i, Ntd] = (terr0[IJ:J].T)  # %*CC
+                            pdf[:i, i, Ntd] = fxind[IJ:J].T  # *CC
+                            err[:i, i, Ntd] = err0[IJ:J].T  # *CC
+                            terr[:i, i, Ntd] = terr0[IJ:J].T  # *CC
                             IJ = J
-                        # end %do
+                        # end do
                     # joint density of level v separated (M,m)v
                     elif def_nr == 2:
                         for i in range(1, Nx1):
                             J = IJ + Nx1
-                            pdf[1:Nx1, i, 0] += fxind[IJ:J].T * dt  # %*CC
-                            err[1:Nx1, i, 0] += (err0[IJ:J].T * dt) ** 2
-                            terr[1:Nx1, i, 0] += (terr0[IJ:J].T * dt)
+                            pdf[1:Nx1, i, 0] += fxind[IJ:J].T * dt  # *CC
+                            err[1:Nx1, i, 0] += err0[IJ:J].T * dt2
+                            terr[1:Nx1, i, 0] += terr0[IJ:J].T * dt
                             IJ = J
                         # end %do
                     elif def_nr == 3:
@@ -1935,13 +1937,13 @@ class SpecData1D(PlotData):
                         for i in range(1, Nx1):
                             J = IJ + Nx1
                             pdf[1:Nx1, i, Ntd] += fxind[IJ:J].T  # %*CC
-                            err[1:Nx1, i, Ntd] += (err0[IJ:J].T) ** 2
-                            terr[1:Nx1, i, Ntd] += (terr0[IJ:J].T)
+                            err[1:Nx1, i, Ntd] += err0[IJ:J].T
+                            terr[1:Nx1, i, Ntd] += terr0[IJ:J].T
                             IJ = J
                         # end do
                     # end  SELECT
                 # end ENDIF
-                # waitTxt = sprintf('%s Ready: %d of %d',datestr(now),Ntd,Ntime)
+                # waitTxt = '%s Ready: %d of %d' % (datestr(now),Ntd,Ntime)
                 # fwaitbar(Ntd/Ntime,h11,waitTxt)
 
             # end %do
@@ -1969,14 +1971,15 @@ class SpecData1D(PlotData):
                                                      R, tn, ts, tnold)
                         fxind, err0, terr0 = rind(BIG[:Ntdc, :Ntdc], ex[:Ntdc],
                                                   a_lo, a_up, indI, xc, Nt)
-
+                        err0 = err0 ** 2
                         # tnold = tn
+                        tns = tn - ts
                         if def_nr in [3, 4]:
                             if (Nx == 1):
                                 # Joint density (TMd,TMm) given the Max and min
                                 # Note the density is not scaled to unity
                                 pdf[0, ts, tn] = fxind[0]  # *CC
-                                err[0, ts, tn] = err0[0] ** 2  # *CC
+                                err[0, ts, tn] = err0[0]  # *CC
                                 terr[0, ts, tn] = terr0[0]  # *CC
                             else:
                                 # level u separated Max2min and wave period
@@ -1986,8 +1989,8 @@ class SpecData1D(PlotData):
                                 for i in range(1, Nx1):
                                     J = IJ + Nx1
                                     pdf[1:Nx1, i, ts] += fxind[IJ:J].T * dt
-                                    err[1:Nx1, i, ts] += (err0[IJ:J].T * dt) ** 2
-                                    terr[1:Nx1, i, ts] += (terr0[IJ:J].T * dt)
+                                    err[1:Nx1, i, ts] += err0[IJ:J].T * dt2
+                                    terr[1:Nx1, i, ts] += terr0[IJ:J].T * dt
                                     IJ = J
                                 # end %do
                             # end
@@ -1995,9 +1998,9 @@ class SpecData1D(PlotData):
                             if (Nx == 1):
                                 # Joint density (Tdm,TMm) given the Max and min
                                 # Note the density is not scaled to unity
-                                pdf[0, tn - ts, tn] = fxind[0]  # *CC
-                                err[0, tn - ts, tn] = err0[0] ** 2
-                                terr[0, tn - ts, tn] = terr0[0]
+                                pdf[0, tns, tn] = fxind[0]  # *CC
+                                err[0, tns, tn] = err0[0]
+                                terr[0, tns, tn] = terr0[0]
                             else:
                                 # level u separated Max2min and wave period
                                 # from the crossing of level u to the
@@ -2007,9 +2010,9 @@ class SpecData1D(PlotData):
                                 for i in range(1, Nx1):  # = 2:Nx1
                                     J = IJ + Nx1
                                     # *CC
-                                    pdf[1:Nx1, i, tn - ts] += fxind[IJ:J].T * dt
-                                    err[1:Nx1, i, tn - ts] += (err0[IJ:J].T * dt) ** 2
-                                    terr[1:Nx1, i, tn - ts] += (terr0[IJ:J].T * dt)
+                                    pdf[1:Nx1, i, tns] += fxind[IJ:J].T * dt
+                                    err[1:Nx1, i, tns] += err0[IJ:J].T * dt2
+                                    terr[1:Nx1, i, tns] += terr0[IJ:J].T * dt
                                     IJ = J
                                 # end %do
                             # end
@@ -2029,17 +2032,18 @@ class SpecData1D(PlotData):
                         # [fxind,err0] = rind(BIG(1:Ntdc,1:Ntdc),ex,a_lo,a_up,
                         #                     indI, xc,Nt,opt0{:})
                         # tnold = tn
+                        tns = tn - ts
                         if (Nx == 1):  # % THEN
                             #  Joint density of (TMd,TMm),(Tdm,TMm) given
                             #  the max and the min.
                             #  Note that the density is not scaled to unity
                             pdf[0, ts, tn] = fxind[0]  # %*CC
-                            err[0, ts, tn] = err0[0] ** 2
-                            err[0, ts, tn] = terr0(1)
-                            if (ts < tn - ts):  # %THEN
-                                pdf[0, tn - ts, tn] = fxind[0]  # *CC
-                                err[0, tn - ts, tn] = err0[0] ** 2
-                                terr[0, tn - ts, tn] = terr0[0]
+                            err[0, ts, tn] = err0[0]
+                            err[0, ts, tn] = terr0[0]
+                            if (ts < tns):  # %THEN
+                                pdf[0, tns, tn] = fxind[0]  # *CC
+                                err[0, tns, tn] = err0[0] ** 2
+                                terr[0, tns, tn] = terr0[0]
                             # end
                             # GOTO 350
                         else:
@@ -2051,34 +2055,33 @@ class SpecData1D(PlotData):
                                     J = IJ + Nx1
                                     # *CC
                                     pdf[1:Nx1, i, ts] += fxind[IJ:J] * dt
-                                    err[1:Nx1, i, ts] += (err0[IJ:J] * dt) ** 2
-                                    terr[1:Nx1, i, ts] += (terr0[IJ:J] * dt)
-                                    if (ts < tn - ts):
-                                        #  exploiting the symmetry
-                                        # %*CC
-                                        pdf[i, 1:Nx1, tn - ts] += fxind[IJ:J] * dt
-                                        err[i, 1:Nx1, tn - ts] += (err0[IJ:J] * dt) ** 2
-                                        terr[i, 1:Nx1, tn - ts] += (terr0[IJ:J] * dt)
+                                    err[1:Nx1, i, ts] += err0[IJ:J] * dt2
+                                    terr[1:Nx1, i, ts] += terr0[IJ:J] * dt
+                                    if (ts < tns):
+                                        # exploiting the symmetry
+                                        # *CC
+                                        pdf[i, 1:Nx1, tns] += fxind[IJ:J] * dt
+                                        err[i, 1:Nx1, tns] += err0[IJ:J] * dt2
+                                        terr[i, 1:Nx1, tns] += terr0[IJ:J] * dt
                                     # end
                                     IJ = J
-                                # end %do
+                                # end do
                             elif def_nr == 5:
                                 # level u separated Max2min and wave period
                                 # from the crossing of level u to min (M,m,Tdm)
                                 for i in range(1, Nx1):  # = 2:Nx1,
                                     J = IJ + Nx1
-                                    pdf[1:Nx1, i, tn - ts] += fxind[IJ:J] * dt
-                                    err[1:Nx1, i, tn - ts] += (err0[IJ:J] * dt) ** 2
-                                    terr[
-                                        1:Nx1, i, tn - ts] += (terr0[IJ:J] * dt)
-                                    if (ts < tn - ts + 1):
+                                    pdf[1:Nx1, i, tns] += fxind[IJ:J] * dt
+                                    err[1:Nx1, i, tns] += err0[IJ:J] * dt2
+                                    terr[1:Nx1, i, tns] += terr0[IJ:J] * dt
+                                    if (ts < tns + 1):
                                         # exploiting the symmetry
                                         pdf[i, 1:Nx1, ts] += fxind[IJ:J] * dt
-                                        err[i, 1:Nx1, ts] += (err0[IJ:J] * dt) ** 2
-                                        terr[i, 1:Nx1, ts] += (terr0[IJ:J] * dt)
+                                        err[i, 1:Nx1, ts] += err0[IJ:J] * dt2
+                                        terr[i, 1:Nx1, ts] += terr0[IJ:J] * dt
                                     # end %ENDIF
                                     IJ = J
-                                # end %do
+                                # end do
                             # end %END SELECT
                         # end
                         # 350
