@@ -1562,6 +1562,10 @@ class SpecData1D(PlotData):
         if hasattr(self, 'note'):
             note = note + self.note
         tmp = 'L' if in_space else 'T'
+        title = ''
+        labx = ''
+        laby = ''
+        args = None
         if Nx > 2:
             titledict = {
                 '-2': 'Joint density of (Ac,At) in %s' % ptxt,
@@ -1594,7 +1598,7 @@ class SpecData1D(PlotData):
                 title = 'Density of (%sdm, %sMm, M = %2.5g, m = %2.5g)_{v=%2.5g}' % (
                     tmp, tmp, h[1], -h[1], utc)
 
-        f = PlotData(data=data, args=args, title=title, labx=labx. laby=laby)
+        f = PlotData(args=args, title=title, labx=labx, laby=laby)
         f.options = options
         if defnr>1 or defnr==-2:
             f.u  = utc # save level u
