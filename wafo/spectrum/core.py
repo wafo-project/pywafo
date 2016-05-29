@@ -473,10 +473,10 @@ def plotspec(specdata, linetype='b-', flag=1):
 #         elseif (plotflag==6) || (plotflag==7),
 #           theta = S.theta-phi;
 #           [c, h] = contour(freq,theta,S.S); %,Nlevel); % calculate levels
-#           fixthetalabels(thmin,thmax,'y',2) % fix yticklabel and ylabel for theta
+#           fixthetalabels(thmin,thmax,'y',2)
 #           if plotflag==7,
 #             hold on
-#             [c,h] =    contourf(freq,theta,S.S); %,Nlevel); % calculate levels
+#             [c,h] =    contourf(freq,theta,S.S); %,Nlevel);
 #             %hold on
 #           end
 #
@@ -487,7 +487,7 @@ def plotspec(specdata, linetype='b-', flag=1):
 #             % label the contour levels
 #             if txtFlag==1
 #               textstart_x = 0.06; textstart_y=0.94;
-#               cltext1(z_level,textstart_x,textstart_y) % a local variant of cltext
+#               cltext1(z_level,textstart_x,textstart_y) #local: cltext
 #             else
 #               cltext(z_level)
 #             end
@@ -1555,7 +1555,7 @@ class SpecData1D(PlotData):
         # err = repmat(nan,size(ftmp))
         # else
         ftmp, err, terr, options = self._cov2mmtpdf(R, dt, u, defnr, Nstart,
-                                                    hg, options)
+                                                     hg, options)
 
         # end
         note = ''
@@ -1594,82 +1594,81 @@ class SpecData1D(PlotData):
                 title = 'Density of (%sdm, %sMm, M = %2.5g, m = %2.5g)_{v=%2.5g}' % (
                     tmp, tmp, h[1], -h[1], utc)
 
-        f = PlotData()
-#        f.options = options
-#        if defnr>1 or defnr==-2:
-# f.u  = utc # save level u
-#
-#        if Nx>2  % amplitude distributions wanted
-#        f.x{2}    = h
-#        f.labx{2} = 'min [m]'
-#
-#
-#        if defnr>2 || defnr==1
-#            der0 = der1[:,None] * der[None,:]
-#            ftmp = np.reshape(ftmp,Nx,Nx,Nt) * der0[:,:, None] / A
-#            err  = np.reshape(err,Nx,Nx,Nt) * der0[:,:, None] / A
-#
-#            f.x{3} = t(:)*A
-#            labz = 'wave length [m]' if in_space else 'period [sec]'
-#
-#        else
-#            der0 = der[:,None] * der[None,:]
-#            ftmp  = np.reshape(ftmp,Nx,Nx) * der0
-#            err   = np.reshape(err,Nx,Nx) * der0
-#
-#            if (defnr==-1):
-#                ftmp0 = fliplr(mctp2rfc(fliplr(ftmp)))
-#                err  = abs(ftmp0-fliplr(mctp2rfc(fliplr(ftmp+err))))
-#                ftmp = ftmp0
-#            elif (defnr==-2):
-#              ftmp0=fliplr(mctp2tc(fliplr(ftmp),utc,paramu))*sqrt(L4*L0)/L2
-#              err =abs(ftmp0-fliplr(mctp2tc(fliplr(ftmp+err),utc,paramu))*sqrt(L4*L0)/L2)
-#              index1=find(f.x{1}>0)
-#              index2=find(f.x{2}<0)
-#              ftmp=flipud(ftmp0(index2,index1))
-#              err =flipud(err(index2,index1))
-#              f.x{1} = f.x{1}(index1)
-#              f.x{2} = abs(flipud(f.x{2}(index2)))
-#            end
-#        end
-#        f.f = ftmp
-#        f.err = err
-#        else % Only time or wave length distributions wanted
-#        f.f = ftmp/A
-#        f.err = err/A
-#        f.x{1}=A*t'
-#        if strcmpi(def(1),'t')
-#        f.labx{1} = 'period [sec]'
-#        else
-#        f.labx{1} = 'wave length [m]'
-#        end
-#        if defnr>3,
-#        f.f   = reshape(f.f,[Nt, Nt])
-#        f.err = reshape(f.err,[Nt, Nt])
-#        f.x{2}= A*t'
-#        if strcmpi(def(1),'t')
-#          f.labx{2} = 'period [sec]'
-#        else
-#          f.labx{2} = 'wave length [m]'
-#        end
-#        end
-#        end
-#
-#
-#        try
-#        [f.cl,f.pl]=qlevels(f.f,[10 30 50 70 90 95 99 99.9],f.x{1},f.x{2})
-#        catch
-#        warning('WAFO:SPEC2MMTPDF','Singularity likely in pdf')
-#        end
-#        %pdfplot(f)
-#
-#        %Test of spec2mmtpdf
-#        % cd  f:\matlab\matlab\wafo\source\sp2thpdfalan
-#        % addpath f:\matlab\matlab\wafo ,initwafo, addpath f:\matlab\matlab\graphutil
-#        % Hm0=7;Tp=11; S = jonswap(4*pi/Tp,[Hm0 Tp])
-#        % ft = spec2mmtpdf(S,0,'vMmTMm',[0.3,.4,11],[0 .00005 2])
+        f = PlotData(data=data, args=args, title=title, labx=labx. laby=laby)
+        f.options = options
+        if defnr>1 or defnr==-2:
+            f.u  = utc # save level u
 
-        return f  # % main
+            if Nx>2:  # amplitude distributions wanted
+                f.x{2}    = h
+                f.labx{2} = 'min [m]'
+
+
+                if defnr>2 || defnr==1
+                    der0 = der1[:,None] * der[None,:]
+                    ftmp = np.reshape(ftmp,Nx,Nx,Nt) * der0[:,:, None] / A
+                    err  = np.reshape(err,Nx,Nx,Nt) * der0[:,:, None] / A
+
+                    f.x{3} = t(:)*A
+                    labz = 'wave length [m]' if in_space else 'period [sec]'
+
+                else:
+                    der0 = der[:,None] * der[None,:]
+                    ftmp  = np.reshape(ftmp,Nx,Nx) * der0
+                    err   = np.reshape(err,Nx,Nx) * der0
+
+                    if (defnr==-1):
+                        ftmp0 = fliplr(mctp2rfc(fliplr(ftmp)))
+                        err  = abs(ftmp0-fliplr(mctp2rfc(fliplr(ftmp+err))))
+                        ftmp = ftmp0
+                    elif (defnr==-2):
+                        ftmp0=fliplr(mctp2tc(fliplr(ftmp),utc,paramu))*sqrt(L4*L0)/L2
+                        err =abs(ftmp0-fliplr(mctp2tc(fliplr(ftmp+err),utc,paramu))*sqrt(L4*L0)/L2)
+                        index1=find(f.x{1}>0)
+                        index2=find(f.x{2}<0)
+                        ftmp=flipud(ftmp0(index2,index1))
+                        err =flipud(err(index2,index1))
+                        f.x{1} = f.x{1}(index1)
+                        f.x{2} = abs(flipud(f.x{2}(index2)))
+                    # end
+                #end
+                f.f = ftmp
+                f.err = err
+            else:  # Only time or wave length distributions wanted
+                f.f = ftmp/A
+                f.err = err/A
+                f.x{1}=A*t'
+                if strcmpi(def(1),'t')
+                    f.labx{1} = 'period [sec]'
+                else:
+                    f.labx{1} = 'wave length [m]'
+                # end
+                if defnr>3,
+                f.f   = reshape(f.f,[Nt, Nt])
+                f.err = reshape(f.err,[Nt, Nt])
+                f.x{2}= A*t'
+                if strcmpi(def(1),'t')
+                    f.labx{2} = 'period [sec]'
+                else:
+                    f.labx{2} = 'wave length [m]'
+                # end
+            #end
+        #end
+
+
+        try
+            [f.cl,f.pl]=qlevels(f.f,[10 30 50 70 90 95 99 99.9],f.x{1},f.x{2})
+        except:
+            warnings.warn('Singularity likely in pdf')
+
+
+        # Test of spec2mmtpdf
+        # cd  f:\matlab\matlab\wafo\source\sp2thpdfalan
+        # addpath f:\matlab\matlab\wafo ,initwafo, addpath f:\matlab\matlab\graphutil
+        # Hm0=7;Tp=11; S = jonswap(4*pi/Tp,[Hm0 Tp])
+        # ft = spec2mmtpdf(S,0,'vMmTMm',[0.3,.4,11],[0 .00005 2])
+
+        return f
 
     def _cov2mmtpdf(self, R, dt, u, def_nr, Nstart, hg, options):
         '''

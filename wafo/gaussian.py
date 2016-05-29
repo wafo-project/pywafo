@@ -112,7 +112,7 @@ class Rind(object):
     >>> val, err, terr = rind(Sc,m,Blo,Bup,indI, xc, nt=0)
     >>> np.allclose(val, 0.05494076, rtol=1e-2)
     True
-    >>> err < 1e-3, terr< 1e-7
+    >>> err[0] < 1e-3, terr[0] < 1e-7
     True, True
 
     Compute expectation E( X1^{+}*X2^{+} ) with random
