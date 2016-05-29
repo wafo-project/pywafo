@@ -1145,6 +1145,10 @@ def _findrfc(y, h):
     return ind, ix
 
 
+def mctp2tc(fmM, ):
+    raise ValueError("Not implemented yet")
+
+
 def mctp2rfc(fmM, fMm=None):
     '''
     Return Rainflow matrix given a Markov chain of turning points

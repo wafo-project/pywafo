@@ -14,12 +14,12 @@ from scipy.special import erf
 from scipy.linalg import toeplitz
 import scipy.interpolate as interpolate
 from scipy.interpolate.interpolate import interp1d, interp2d
-from ..misc import meshgrid, gravity, cart2polar, polar2cart
 from ..objects import TimeSeries, mat2timeseries
 from ..interpolate import stineman_interp
 from ..wave_theory.dispersion_relation import w2k  # , k2w
 from ..containers import PlotData, now
-from ..misc import sub_dict_select, nextpow2, discretize, JITImport
+from ..misc import sub_dict_select, nextpow2, discretize, JITImport, mctp2tc
+from ..misc import meshgrid, gravity, cart2polar, polar2cart, mctp2rfc
 from ..kdetools import qlevels
 
 # from wafo.transform import TrData
@@ -1486,6 +1486,7 @@ class SpecData1D(PlotData):
         S = self.copy()
         S.normalize()
         m, unused_mtxt = self.moment(nr=4, even=True)
+        L0, L2, L4 = m
         A = sqrt(m[0] / m[1])
 
         if paramt is None:
@@ -1510,7 +1511,7 @@ class SpecData1D(PlotData):
             print('The level u for Gaussian process = %g' % u)
 
         t0, tn, Nt = paramt
-        t = linspace(0, tn / A, Nt)  # normalized times
+        t = np.linspace(0, tn / A, Nt)  # normalized times
 
         # the starting point to evaluate
         Nstart = 1 + round(t0 / tn * (Nt - 1))
@@ -1554,7 +1555,7 @@ class SpecData1D(PlotData):
         # ftmp = cov2mmtpdfexe(R,dt,u,defnr,Nstart,hg,options)
         # err = repmat(nan,size(ftmp))
         # else
-        ftmp, err, terr, options = self._cov2mmtpdf(R, dt, u, defnr, Nstart,
+        ftmp, err, _terr, options = self._cov2mmtpdf(R, dt, u, defnr, Nstart,
                                                      hg, options)
 
         # end
@@ -1600,75 +1601,80 @@ class SpecData1D(PlotData):
 
         f = PlotData(args=args, title=title, labx=labx, laby=laby)
         f.options = options
-        if defnr>1 or defnr==-2:
-            f.u  = utc # save level u
+        if defnr > 1 or defnr == -2:
+            f.u = utc  # save level u
 
-            if Nx>2:  # amplitude distributions wanted
-                f.x{2}    = h
-                f.labx{2} = 'min [m]'
+            if Nx > 2:  # amplitude distributions wanted
+                # f.x{2}    = h
+                # f.labx{2} = 'min [m]'
 
+                if defnr > 2 or defnr == 1:
+                    der0 = der1[:, None] * der[None, :]
+                    shape = (Nx, Nx, Nt)
+                    ftmp = np.reshape(ftmp, shape) * der0[:, :, None] / A
+                    err = np.reshape(err, shape) * der0[:, :, None] / A
 
-                if defnr>2 || defnr==1
-                    der0 = der1[:,None] * der[None,:]
-                    ftmp = np.reshape(ftmp,Nx,Nx,Nt) * der0[:,:, None] / A
-                    err  = np.reshape(err,Nx,Nx,Nt) * der0[:,:, None] / A
-
-                    f.x{3} = t(:)*A
-                    labz = 'wave length [m]' if in_space else 'period [sec]'
+                    f.args[2] = t[:]*A
+                    _labz = 'wave length [m]' if in_space else 'period [sec]'
 
                 else:
-                    der0 = der[:,None] * der[None,:]
-                    ftmp  = np.reshape(ftmp,Nx,Nx) * der0
-                    err   = np.reshape(err,Nx,Nx) * der0
+                    der0 = der[:, None] * der[None, :]
+                    ftmp = np.reshape(ftmp, [Nx, Nx]) * der0
+                    err = np.reshape(err, [Nx, Nx]) * der0
 
-                    if (defnr==-1):
-                        ftmp0 = fliplr(mctp2rfc(fliplr(ftmp)))
-                        err  = abs(ftmp0-fliplr(mctp2rfc(fliplr(ftmp+err))))
+                    if (defnr == -1):
+                        ftmp0 = np.fliplr(mctp2rfc(np.fliplr(ftmp)))
+                        err = np.abs(ftmp0 -
+                                     np.fliplr(mctp2rfc(np.fliplr(ftmp+err))))
                         ftmp = ftmp0
-                    elif (defnr==-2):
-                        ftmp0=fliplr(mctp2tc(fliplr(ftmp),utc,paramu))*sqrt(L4*L0)/L2
-                        err =abs(ftmp0-fliplr(mctp2tc(fliplr(ftmp+err),utc,paramu))*sqrt(L4*L0)/L2)
-                        index1=find(f.x{1}>0)
-                        index2=find(f.x{2}<0)
-                        ftmp=flipud(ftmp0(index2,index1))
-                        err =flipud(err(index2,index1))
-                        f.x{1} = f.x{1}(index1)
-                        f.x{2} = abs(flipud(f.x{2}(index2)))
+                    elif (defnr == -2):
+                        ftmp0 = np.fliplr(mctp2tc(np.fliplr(ftmp), utc,
+                                                  paramu)) * sqrt(L4*L0)/L2
+                        err = np.abs(ftmp0 -
+                                     np.fliplr(mctp2tc(np.fliplr(ftmp+err),
+                                                       utc,paramu)) *
+                                     sqrt(L4*L0)/L2)
+                        index1 = np.flatnonzero(f.args[0] > 0)
+                        index2 = np.flatnonzero(f.args[1] < 0)
+                        ftmp = np.flipud(ftmp0[index2, index1])
+                        err = np.flipud(err[index2, index1])
+                        f.args[0] = f.args[0][index1]
+                        f.args[1] = np.abs(np.flipud(f.args[1][index2]))
                     # end
-                #end
-                f.f = ftmp
+                # end
+                f.data = ftmp
                 f.err = err
             else:  # Only time or wave length distributions wanted
-                f.f = ftmp/A
+                f.data = ftmp/A
                 f.err = err/A
-                f.x{1}=A*t'
-                if strcmpi(def(1),'t')
-                    f.labx{1} = 'period [sec]'
-                else:
-                    f.labx{1} = 'wave length [m]'
+                f.args[0] = A*t
+#                 if def_[0] == 't':
+#                     f.labx{1} = 'period [sec]'
+#                 else:
+#                     f.labx{1} = 'wave length [m]'
                 # end
-                if defnr>3,
-                f.f   = reshape(f.f,[Nt, Nt])
-                f.err = reshape(f.err,[Nt, Nt])
-                f.x{2}= A*t'
-                if strcmpi(def(1),'t')
-                    f.labx{2} = 'period [sec]'
-                else:
-                    f.labx{2} = 'wave length [m]'
-                # end
-            #end
-        #end
+                if defnr > 3:
+                    f.data = np.reshape(f.data, [Nt, Nt])
+                    f.err = np.reshape(f.err, [Nt, Nt])
+                    f.args[1] = A*t
+#                     if def_[0] == 't':
+#                         f.labx{2} = 'period [sec]'
+#                     else:
+#                         f.labx{2} = 'wave length [m]'
+                    # end
+            # end
+        # end
 
-
-        try
-            [f.cl,f.pl]=qlevels(f.f,[10 30 50 70 90 95 99 99.9],f.x{1},f.x{2})
+        try:
+            f.cl, f.pl = qlevels(f.f, [10, 30, 50, 70, 90, 95, 99, 99.9],
+                                 f.args[0], f.args[1])
         except:
             warnings.warn('Singularity likely in pdf')
 
-
         # Test of spec2mmtpdf
         # cd  f:\matlab\matlab\wafo\source\sp2thpdfalan
-        # addpath f:\matlab\matlab\wafo ,initwafo, addpath f:\matlab\matlab\graphutil
+        # addpath f:\matlab\matlab\wafo ,initwafo,
+        # addpath f:\matlab\matlab\graphutil
         # Hm0=7;Tp=11; S = jonswap(4*pi/Tp,[Hm0 Tp])
         # ft = spec2mmtpdf(S,0,'vMmTMm',[0.3,.4,11],[0 .00005 2])
 
@@ -1932,9 +1938,9 @@ class SpecData1D(PlotData):
                             err[1:Nx1, i, Ntd] += (err0[IJ:J].T) ** 2
                             terr[1:Nx1, i, Ntd] += (terr0[IJ:J].T)
                             IJ = J
-                        # end %do
-                    # end % SELECT
-                # end %ENDIF
+                        # end do
+                    # end  SELECT
+                # end ENDIF
                 # waitTxt = sprintf('%s Ready: %d of %d',datestr(now),Ntd,Ntime)
                 # fwaitbar(Ntd/Ntime,h11,waitTxt)
 
@@ -1967,13 +1973,13 @@ class SpecData1D(PlotData):
                         # tnold = tn
                         if def_nr in [3, 4]:
                             if (Nx == 1):
-                                # Joint density (TMd,TMm) given the Max and the min.
+                                # Joint density (TMd,TMm) given the Max and min
                                 # Note the density is not scaled to unity
                                 pdf[0, ts, tn] = fxind[0]  # *CC
                                 err[0, ts, tn] = err0[0] ** 2  # *CC
                                 terr[0, ts, tn] = terr0[0]  # *CC
                             else:
-                                # 4,  gives level u separated Max2min and wave period
+                                # level u separated Max2min and wave period
                                 # from Max to the crossing of level u
                                 # (M,m,TMd).
                                 IJ = 0
@@ -1987,19 +1993,20 @@ class SpecData1D(PlotData):
                             # end
                         elif def_nr == 5:
                             if (Nx == 1):
-                                #  Joint density (Tdm,TMm) given the Max and the min.
-                                #  Note the density is not scaled to unity
-                                pdf[0, tn - ts, tn] = fxind[0]  #  %*CC
+                                # Joint density (Tdm,TMm) given the Max and min
+                                # Note the density is not scaled to unity
+                                pdf[0, tn - ts, tn] = fxind[0]  # *CC
                                 err[0, tn - ts, tn] = err0[0] ** 2
                                 terr[0, tn - ts, tn] = terr0[0]
                             else:
-                                #  5,  gives level u separated Max2min and wave period from
-                                #  the crossing of level u to the min (M,m,Tdm).
+                                # level u separated Max2min and wave period
+                                # from the crossing of level u to the
+                                # min (M,m,Tdm).
 
                                 IJ = 0
                                 for i in range(1, Nx1):  # = 2:Nx1
                                     J = IJ + Nx1
-                                    # %*CC
+                                    # *CC
                                     pdf[1:Nx1, i, tn - ts] += fxind[IJ:J].T * dt
                                     err[1:Nx1, i, tn - ts] += (err0[IJ:J].T * dt) ** 2
                                     terr[1:Nx1, i, tn - ts] += (terr0[IJ:J].T * dt)
@@ -2011,19 +2018,20 @@ class SpecData1D(PlotData):
                 else:  # % exploit symmetry
                     # 300   Symmetry
                     for ts in range(1, Ntd // 2):  # = 2:floor(Ntd//2)
-                        #  Using the symmetry since U = 0 and the transformation is
-                        #  linear.
+                        #  Using the symmetry since U = 0 and the
+                        # transformation is linear.
                         #  positive wave period
                         BIG[:Ntdc, :Ntdc] = covinput(BIG[:Ntdc, :Ntdc],
                                                      R, tn, ts, tnold)
                         fxind, err0, terr0 = rind(BIG[:Ntdc, :Ntdc], ex[:Ntdc],
-                                                    a_lo, a_up, indI, xc, Nt)
+                                                  a_lo, a_up, indI, xc, Nt)
 
-                        #[fxind,err0] = rind(BIG(1:Ntdc,1:Ntdc),ex,a_lo,a_up,indI, xc,Nt,opt0{:})
+                        # [fxind,err0] = rind(BIG(1:Ntdc,1:Ntdc),ex,a_lo,a_up,
+                        #                     indI, xc,Nt,opt0{:})
                         # tnold = tn
                         if (Nx == 1):  # % THEN
-                            #  Joint density of (TMd,TMm),(Tdm,TMm) given the max and
-                            #  the min.
+                            #  Joint density of (TMd,TMm),(Tdm,TMm) given
+                            #  the max and the min.
                             #  Note that the density is not scaled to unity
                             pdf[0, ts, tn] = fxind[0]  # %*CC
                             err[0, ts, tn] = err0[0] ** 2
@@ -2037,11 +2045,12 @@ class SpecData1D(PlotData):
                         else:
                             IJ = 0
                             if def_nr == 4:
-                                #  4,  gives level u separated Max2min and wave period from
-                                #  Max to the crossing of level u (M,m,TMd).
+                                # level u separated Max2min and wave period
+                                # from Max to the crossing of level u (M,m,TMd)
                                 for i in range(1, Nx1):
                                     J = IJ + Nx1
-                                    pdf[1:Nx1, i, ts] += fxind[IJ:J] * dt  # %*CC
+                                    # *CC
+                                    pdf[1:Nx1, i, ts] += fxind[IJ:J] * dt
                                     err[1:Nx1, i, ts] += (err0[IJ:J] * dt) ** 2
                                     terr[1:Nx1, i, ts] += (terr0[IJ:J] * dt)
                                     if (ts < tn - ts):
@@ -2054,8 +2063,8 @@ class SpecData1D(PlotData):
                                     IJ = J
                                 # end %do
                             elif def_nr == 5:
-                                #  5,   gives level u separated Max2min and wave period
-                                #  from the crossing of level u to min (M,m,Tdm).
+                                # level u separated Max2min and wave period
+                                # from the crossing of level u to min (M,m,Tdm)
                                 for i in range(1, Nx1):  # = 2:Nx1,
                                     J = IJ + Nx1
                                     pdf[1:Nx1, i, tn - ts] += fxind[IJ:J] * dt
@@ -3916,7 +3925,7 @@ class SpecData2D(PlotData):
                 [th, r] = cart2polar(k, k2)
                 [k, k2] = polar2cart(th + self.phi, r)
                 ki1, ki2 = self.args
-                Sn = interp2(ki1, ki2, self.data, k, k2, method)
+                Sn = interp2d(ki1, ki2, self.data, kind=method)(k, k2)
                 self.data = np.where(np.isnan(Sn), 0, Sn)
                 self.phi = 0
         else:
