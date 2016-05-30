@@ -1505,16 +1505,24 @@ class TimeSeries(PlotData):
         >>> x = wd.sea()
         >>> ts = wo.mat2timeseries(x)
         >>> wp = ts.wave_parameters()
+        >>> true_wp = {'Ac':[ 0.25950546,  0.34950546],
+        ...            'At': [ 0.16049454,  0.43049454],
+        ...            'Hu': [ 0.69,  0.86],
+        ...            'Hd': [ 0.42,  0.78],
+        ...            'Tu': [ 6.10295202,  3.36978685],
+        ...            'Td': [ 3.84377468,  6.35707656],
+        ...            'Tcf': [ 0.42656819,  0.57361617],
+        ...            'Tcb': [ 0.93355982,  1.04063638]}
         >>> for name in ['Ac', 'At', 'Hu', 'Hd', 'Tu', 'Td', 'Tcf', 'Tcb']:
-        ...    print('%s' % name, wp[name][:2])
-        ('Ac', array([ 0.25950546,  0.34950546]))
-        ('At', array([ 0.16049454,  0.43049454]))
-        ('Hu', array([ 0.69,  0.86]))
-        ('Hd', array([ 0.42,  0.78]))
-        ('Tu', array([ 6.10295202,  3.36978685]))
-        ('Td', array([ 3.84377468,  6.35707656]))
-        ('Tcf', array([ 0.42656819,  0.57361617]))
-        ('Tcb', array([ 0.93355982,  1.04063638]))
+        ...    np.allclose(wp[name][:2], true_wp[name])
+        True
+        True
+        True
+        True
+        True
+        True
+        True
+        True
 
         import pylab as plt
         h = plt.plot(wp['Td'],wp['Hd'],'.')

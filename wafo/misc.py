@@ -602,8 +602,8 @@ def parse_kwargs(options, **kwargs):
     Example
     >>> opt = dict(arg1=2, arg2=3)
     >>> opt = parse_kwargs(opt,arg2=100)
-    >>> print(opt)
-    {'arg1': 2, 'arg2': 100}
+    >>> opt == {'arg1': 2, 'arg2': 100}
+    True
     >>> opt2 = dict(arg2=101)
     >>> opt = parse_kwargs(opt,**opt2)
 
@@ -1005,9 +1005,9 @@ def findrfc_astm(tp):
     # the sig_rfc was constructed too big in rainflow.rf3, so
     # reduce the sig_rfc array as done originally by a matlab mex c function
     n = len(sig_rfc)
-    sig_rfc = sig_rfc.__getslice__(0, n - cnr[0])
+    # sig_rfc = sig_rfc.__getslice__(0, n - cnr[0])
     # sig_rfc holds the actual rainflow counted cycles, not the indices
-    return sig_rfc
+    return sig_rfc[:n - cnr[0]]
 
 
 def findrfc(tp, h=0.0, method='clib'):
