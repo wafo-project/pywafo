@@ -400,7 +400,7 @@ class TransformEstimator(object):
         >>> int(g0.dist2gauss()*100) > 90
         True
         >>> int(g1.dist2gauss()*100)
-        66
+        63
         >>> int(g2.dist2gauss()*100)
         84
 

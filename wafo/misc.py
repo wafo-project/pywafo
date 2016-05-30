@@ -1145,8 +1145,241 @@ def _findrfc(y, h):
     return ind, ix
 
 
-def mctp2tc(fmM, ):
-    raise ValueError("Not implemented yet")
+def nt2cmat(nt, kind=11):
+    """
+    Return cycle matrix from a counting distribution.
+
+    Parameters
+    ----------
+    NT: 2D array
+        Counting distribution. [nxn]
+    kind     =  1: causes peaks to be projected upwards and troughs
+                   downwards to the closest discrete level (default).
+             =  0: causes peaks and troughs to be projected to
+                   the closest discrete level.
+             = -1: causes peaks to be projected downwards and the
+                   troughs upwards to the closest discrete level.
+
+    Returns
+    -------
+    cmat = Cycle matrix. [nxn]
+
+    Example
+    --------
+    >>> import numpy as np
+    >>> cmat0 = np.round(np.triu(np.random.rand(4, 4), 1)*10)
+    >>> cmat0 = np.array([[ 0.,  5.,  6.,  9.],
+    ...                   [ 0.,  0.,  1.,  7.],
+    ...                   [ 0.,  0.,  0.,  4.],
+    ...                   [ 0.,  0.,  0.,  0.]])
+
+    >>> nt = cmat2nt(cmat0)
+    >>> cmat = nt2cmat(nt)
+    >>> np.allclose(cmat, [[ 0.,  5.,  6.,  9.],
+    ...                    [ 0.,  0.,  1.,  7.],
+    ...                    [ 0.,  0.,  0.,  4.],
+    ...                    [ 0.,  0.,  0.,  0.]])
+    True
+
+    See also
+    --------
+    cmat2nt
+    """
+
+    n = len(nt)  # Number of discrete levels
+    cmat = np.zeros((n, n))
+    if kind == 1:
+        I = np.r_[0:n-1]
+        J = np.r_[1:n]
+        cmat[I, J] = nt[I+1, J-1] - nt[I, J-1] - nt[I+1, J] + nt[I, J]
+    elif kind == 11:  # same as def=1 but using for-loop
+        j = np.r_[1:n]
+        for i in range(n-1):
+            cmat[i, j] = nt[i+1, j-1] - nt[i, j-1] - nt[i+1, j] + nt[i, j]
+
+    elif kind == 0:
+        raise NotImplementedError('kind == 0 not yet implemented')
+    elif kind == -1:
+        raise NotImplementedError('kind == -1 not yet implemented')
+    else:
+        raise ValueError('kind = {}: not a valid value of kind'.format(kind))
+    return cmat
+
+
+def cmat2nt(cmat, kind=11):
+    """
+    CMAT2NT Calculates a counting distribution from a cycle matrix.
+
+    CALL:  NT = cmat2nt(F,def);
+
+     NT       = Counting distribution. [nxn]
+
+     cmat        = Cycle matrix. [nxn]
+     kind     =  1: causes peaks to be projected upwards and troughs
+                    downwards to the closest discrete level (default).
+              =  0: causes peaks and troughs to be projected to
+                    the closest discrete level.
+              = -1: causes peaks to be projected downwards and the
+                    troughs upwards to the closest discrete level.
+
+    Example
+    -------
+     F = round(triu(rand(4),1)*10)
+     NT = cmat2nt(F)
+
+    See also
+    --------
+    nt2cmat
+    """
+    n = len(cmat)  # Number of discrete levels
+    nt = zeros((n, n))
+    if kind == 1:
+        nt[1:n, :n-1] = np.fliplr(np.cumsum(np.fliplr(np.cumsum(cmat[:-1,
+                                                                     1:])),
+                                            axis=1))
+    elif kind == 11:  # same as def=1 but using for-loop
+        # j = np.r_[1:n]
+        for i in range(1, n):
+            for j in range(n-1):
+                nt[i, j] = np.sum(np.sum(cmat[:i, j+1:n]))
+    elif kind == 0:
+        raise NotImplementedError('kind == 0 not yet implemented')
+    elif kind == -1:
+        raise NotImplementedError('kind == -1 not yet implemented')
+    else:
+        raise ValueError('kind = {}: not a valid value of kind'.format(kind))
+    return nt
+
+
+def mctp2tc(f_Mm, utc, param, f_mM=None):
+    """
+    MCTP2TC  Calculates frequencies for the  upcrossing troughs and crests
+    using Markov chain of turning points.
+
+    CALL: f_tc = mctp2tc(f_Mm,utc,param);
+
+    where
+
+    f_tc  = the matrix with frequences of upcrossing troughs and crests,
+    f_Mm  = the frequency matrix for the Max2min cycles,
+    utc   = the reference level,
+    param = a vector defining the discretization used to compute f_Mm,
+            note that f_mM has to be computed on the same grid as f_mM.
+
+    optional call: f_tc = mctp2tc(f_Mm,utc,param,f_mM)
+
+    f_mM  = the frequency matrix for the min2Max cycles.
+    """
+    raise NotImplementedError('')
+#     if f_mM is None:
+#         f_mM = np.copy(f_Mm)
+#
+#     u = np.linspace(*param)
+#     udisc = np.fliplr(u)
+#     ntc = np.sum(udisc >= utc)
+#     n = len(f_Mm)
+#     if ntc > n-1:
+#         raise IndexError('index for mean-level out of range, stop')
+#     if param[2]-1 < ntc or ntc < 2 :
+#         raise ValueError('the reference level out of range, stop')
+#
+#     # normalization of frequency matrices
+#
+#     for i in range(n):
+#         rowsum = np.sum(f_Mm[i])
+#         if rowsum!=0:
+#             f_Mm[i] = f_Mm[i] /rowsum
+#
+#     P = np.fliplr(f_Mm)
+#
+#     Ph = np.rot90(np.fliplr(f_mM), -1)
+#     for i in range(n):
+#         rowsum = np.sum(Ph[i])
+#         if rowsum!=0:
+#            Ph[i] = Ph[i] / rowsum
+#
+#     Ph = np.fliplr(Ph)
+#
+#     F = np.zeros((n, n))
+#     F[:ntc-1,:(n-ntc)] = f_mM[:ntc-1, :(n-ntc)]
+#     F = cmat2nt(F)
+#
+#     for i in range(1, ntc):
+#         for j in range(ntc, n-1):
+#
+#         if i<ntc:
+#             Ap = P[i:ntc-1,i+1:ntc]
+#             Bp = Ph[i+1:ntc,i:ntc-1]
+#             dim_p = ntc-i
+#             tempp=zeros((dim_p, 1))
+#             I=np.eye(np.shape(Ap))
+#             if i==2:
+#                 e = Ph[i+1:ntc,0]
+#             else:
+#                 e = np.sum(Ph[i+1:ntc, 1:i-1], axis=1)
+#
+#             if max(abs(e)) > 1e-10
+#                 if dim_p == 1:
+#                     tempp[0] = (Ap/(1-Bp*Ap)*e);
+#                 else:
+#                     tempp = Ap*((I-Bp*Ap)\e)
+#                 # end
+#             # end
+#         # end
+#
+#         if j>ntc
+#
+#           Am=P(ntc:j-1,ntc+1:j); Bm=Ph(ntc+1:j,ntc:j-1);
+#           dim_m=j-ntc;
+#           tempm=zeros(dim_m,1);
+#           Im=eye(size(Am));
+#           if j==n-1
+#             em=P(ntc:j-1,n);
+#           else
+#             em=sum(P(ntc:j-1,j+1:n),2);
+#           end
+#           if max(abs(em))>1e-10
+#             if dim_m==1
+#               tempm(1,1)=(Bm/(1-Am*Bm)*em);
+#             else
+#               tempm=Bm*((Im-Am*Bm)\em);
+#             end
+#           end
+#         end
+#
+#         if (j>ntc) && (i<ntc)
+#           F(i,n-j+1)=F(i,n-j+1)+tempp'*freqPVL(i:ntc-1,n-ntc:-1:n-j+1)*tempm;
+#           F(i,n-j+1)=F(i,n-j+1)+tempp'*freqPVL(i:ntc-1,n-j:-1:1)*ones(n-j,1);
+#           F(i,n-j+1)=F(i,n-j+1)+ones(1,i-1)*freqPVL(1:i-1,n-ntc:-1:n-j+1)*tempm;
+#         end
+#         if (j==ntc) && (i<ntc)
+#           F(i,n-j+1)=F(i,n-j+1)+tempp'*freqPVL(i:ntc-1,n-j:-1:1)*ones(n-j,1);
+#           for k=1:ntc
+#             F(i,n-k+1)=F(i,n-ntc+1);
+#           end
+#         end
+#         if (j>ntc) && (i==ntc)
+#           F(i,n-j+1)=F(i,n-j+1)+ones(1,i-1)*freqPVL(1:i-1,n-ntc:-1:n-j+1)*tempm;
+#           for k=ntc:n
+#             F(k,n-j+1)=F(ntc,n-j+1);
+#           end
+#         end
+#       end
+#     end
+#
+#     return nt2cmat(F);
+
+
+    # fmax=max(max(F));
+
+    #  contour (u,u,flipud(F),...
+    # fmax*[0.005 0.01 0.02 0.05 0.1 0.2 0.4 0.6 0.8])
+    #  axis([param(1) param(2) param(1) param(2)])
+
+    #  title('Crest-trough density')
+    #  ylabel('crest'), xlabel('trough')
+    #  axis('square')
+    # if mlver>1, commers, end
 
 
 def mctp2rfc(fmM, fMm=None):
@@ -1274,20 +1507,20 @@ def mctp2rfc(fmM, fMm=None):
         f_rfc[0, N - 1 - k] = min(m0, M0)
     # end
 
-#    %clf
-#    %subplot(1,2,2)
-#    %pcolor(levels(paramm),levels(paramM),flipud(f_mM))
-#    %  title('Markov matrix')
-#    %  ylabel('max'), xlabel('min')
-#    %axis([paramm(1) paramm(2) paramM(1) paramM(2)])
-#    %axis('square')
+#    clf
+#    subplot(1,2,2)
+#    pcolor(levels(paramm),levels(paramM),flipud(f_mM))
+#      title('Markov matrix')
+#      ylabel('max'), xlabel('min')
+#    axis([paramm(1) paramm(2) paramM(1) paramM(2)])
+#    axis('square')
 #
-#    %subplot(1,2,1)
-#    %pcolor(levels(paramm),levels(paramM),flipud(f_rfc))
-#    %  title('Rainflow matrix')
-#    %  ylabel('max'), xlabel('rfc-min')
-#    %axis([paramm(1) paramm(2) paramM(1) paramM(2)])
-#    %axis('square')
+#    subplot(1,2,1)
+#    pcolor(levels(paramm),levels(paramM),flipud(f_rfc))
+#      title('Rainflow matrix')
+#      ylabel('max'), xlabel('rfc-min')
+#    axis([paramm(1) paramm(2) paramM(1) paramM(2)])
+#    axis('square')
 
     return f_rfc
 
