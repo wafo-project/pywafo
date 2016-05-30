@@ -189,8 +189,12 @@ def lazywhere(cond, arrays, f, fillvalue=None, f2=None):
     >>> a, b = np.array([1, 2, 3, 4]), np.array([5, 6, 7, 8])
     >>> def f(a, b):
     ...     return a*b
+    >>> def f2(a, b):
+    ...     return np.ones(np.shape(a))*np.ones(np.shape(b))
     >>> lazywhere(a > 2, (a, b), f, np.nan)
     array([ nan,  nan,  21.,  32.])
+    >>> lazywhere(a > 2, (a, b), f, f2=f2)
+    array([ 1.,  1.,  21.,  32.])
 
     Notice it assumes that all `arrays` are of the same shape, or can be
     broadcasted together.

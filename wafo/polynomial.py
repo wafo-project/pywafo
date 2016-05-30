@@ -650,9 +650,8 @@ def poly2hstr(p, variable='x'):
 
             # We need the coefficient only if it is different from 1 or -1 or
             # when it is the constant term.
-            needcoef = (
-                (abs(coef) != 1) | (
-                    expon == 0) & isfirst) | 1 - isfirst
+            needcoef = ((abs(coef) != 1) |
+                        (expon == 0) & isfirst) | 1 - isfirst
 
             # We need the variable except in the constant term.
             needvar = (expon != 0)
