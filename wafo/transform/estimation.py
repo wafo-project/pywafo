@@ -402,7 +402,7 @@ class TransformEstimator(object):
         >>> int(g1.dist2gauss()*100)
         63
         >>> int(g2.dist2gauss()*100)
-        84
+        120
 
         See also
         --------

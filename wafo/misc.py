@@ -1369,13 +1369,10 @@ def mctp2tc(f_Mm, utc, param, f_mM=None):
 #
 #     return nt2cmat(F);
 
-
     # fmax=max(max(F));
-
     #  contour (u,u,flipud(F),...
     # fmax*[0.005 0.01 0.02 0.05 0.1 0.2 0.4 0.6 0.8])
     #  axis([param(1) param(2) param(1) param(2)])
-
     #  title('Crest-trough density')
     #  ylabel('crest'), xlabel('trough')
     #  axis('square')
