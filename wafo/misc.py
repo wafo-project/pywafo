@@ -201,13 +201,10 @@ def lazywhere(cond, arrays, f, fillvalue=None, f2=None):
 
     """
     if fillvalue is None:
-        if f2 is None:
-            raise ValueError("One of (fillvalue, f2) must be given.")
-        else:
-            fillvalue = np.nan
+        _assert(f2 is not None, "One of (fillvalue, f2) must be given.")
+        fillvalue = np.nan
     else:
-        if f2 is not None:
-            raise ValueError("Only one of (fillvalue, f2) can be given.")
+        _assert(f2 is None, "Only one of (fillvalue, f2) can be given.")
 
     arrays = np.broadcast_arrays(*arrays)
     temp = tuple(np.extract(cond, arr) for arr in arrays)
@@ -224,6 +221,7 @@ def rotation_matrix(heading, pitch, roll):
     '''
 
     Examples
+    --------
     >>> import numpy as np
     >>> rotation_matrix(heading=0, pitch=0, roll=0)
     array([[ 1.,  0.,  0.],
@@ -266,6 +264,24 @@ def rotation_matrix(heading, pitch, roll):
 
 
 def rotate(x, y, z, heading=0, pitch=0, roll=0):
+    """
+    Example
+    -------
+    >>> import numpy as np
+    >>> x, y, z = 1, 1, 1
+    >>> np.allclose(rotate(x, y, z, heading=0, pitch=0, roll=0),
+    ...    (1.0, 1.0, 1.0))
+    True
+    >>> np.allclose(rotate(x, y, z, heading=90, pitch=0, roll=0),
+    ...            (-1.0, 1.0, 1.0))
+    True
+    >>> np.allclose(rotate(x, y, z, heading=0, pitch=90, roll=0),
+    ...            (1.0, 1.0, -1.0))
+    True
+    >>> np.allclose(rotate(x, y, z, heading=0, pitch=0, roll=90),
+    ...            (1.0, -1.0, 1.0))
+    True
+    """
     rot_param = rotation_matrix(heading, pitch, roll).ravel()
     X = x * rot_param[0] + y * rot_param[1] + z * rot_param[2]
     Y = x * rot_param[3] + y * rot_param[4] + z * rot_param[5]
@@ -354,8 +370,19 @@ def spaceline(start_point, stop_point, num=10):
     return np.array([e1 + n * delta * C for n in range(num)])
 
 
-def narg_smallest(n, arr):
-    ''' Return the n smallest indicis to the arr
+def narg_smallest(arr, n=1):
+    ''' Return the n smallest indices to the arr
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> t = np.array([37, 11, 4, 23, 4, 6, 3, 2, 7, 4, 0])
+    >>> ix = narg_smallest(t, 3)
+    >>> np.allclose(ix,
+    ...             [10,  7,  6])
+    True
+    >>> np.allclose(t[ix], [0, 2, 3])
+    True
     '''
     return np.array(arr).argsort()[:n]
 
@@ -408,18 +435,16 @@ def args_flat(*args):
 
     '''
     nargin = len(args)
-
+    _assert(nargin in [1, 3], 'Number of arguments must be 1 or 3!')
     if (nargin == 1):  # pos
         pos = np.atleast_2d(args[0])
         _assert((pos.shape[1] == 3) and (pos.ndim == 2),
                 'POS array must be of shape N x 3!')
         return pos, None
-    elif nargin == 3:
-        x, y, z = np.broadcast_arrays(*args[:3])
-        c_shape = x.shape
-        return np.vstack((x.ravel(), y.ravel(), z.ravel())).T, c_shape
-    else:
-        raise ValueError('Number of arguments must be 1 or 3!')
+
+    x, y, z = np.broadcast_arrays(*args[:3])
+    c_shape = x.shape
+    return np.vstack((x.ravel(), y.ravel(), z.ravel())).T, c_shape
 
 
 def index2sub(shape, index, order='C'):
@@ -501,13 +526,20 @@ def sub2index(shape, *subscripts, **kwds):
 
 
 def is_numlike(obj):
-    'return true if *obj* looks like a number'
+    """return true if *obj* looks like a number
+
+    Examples
+    --------
+    >>> is_numlike(1)
+    True
+    >>> is_numlike('1')
+    False
+    """
     try:
         obj + 1
     except TypeError:
         return False
-    else:
-        return True
+    return True
 
 
 class JITImport(object):
@@ -560,6 +592,11 @@ class Bunch(object):
     >>> d = Bunch(test1=1,test2=3)
     >>> d.test1
     1
+    >>> d.keys() ==  ['test1', 'test2']
+    True
+    >>> d.update(test1=2)
+    >>> d.test1
+    2
     '''
 
     def __init__(self, **kwargs):
@@ -651,6 +688,9 @@ def detrendma(x, L):
     >>> np.allclose(tr[:5],
     ...    [ 1.14134814,  1.14134814,  1.14134814,  1.14134814,  1.14134814])
     True
+    >>> y1 = wm.detrendma(y, 200)
+    >>> np.allclose((y-y1), 1.7239972279640454)
+    True
 
     import pylab as plt
     h = plt.plot(x, y, x, y0, 'r', x, exp(x), 'k', x, tr, 'm')
@@ -660,11 +700,8 @@ def detrendma(x, L):
     --------
     Reconstruct
     """
-
-    if L <= 0:
-        raise ValueError('L must be positive')
-    if L != round(L):
-        raise ValueError('L must be an integer')
+    _assert(0 < L, 'L must be positive')
+    _assert(L == round(L), 'L must be an integer')
 
     x1 = np.atleast_1d(x)
     if x1.shape[0] == 1:
@@ -818,6 +855,9 @@ def findcross(x, v=0.0, kind=None):
     True
     >>> ind2 = wm.findcross(x,v,'u')
     >>> np.allclose(ind2, [  9,  80, 151, 223])
+    True
+     >>> ind3 = wm.findcross(x,v,'d')
+    >>> np.allclose(ind3, [  25,  97, 168, 239])
     True
 
     t0 = plt.plot(t,x,'.',t[ind],x[ind],'r.', t, ones(t.shape)*v)
@@ -1788,6 +1828,9 @@ def findtc(x_in, v=None, kind=None):
     >>> tc = x1[itc,:]
     >>> np.allclose(itc, [ 52, 105])
     True
+    >>> itc, iv = wm.findtc(x1[:,1],0,'uw')
+    >>> np.allclose(itc, [ 105, 157])
+    True
 
     a = plt.plot(x1[:,0],x1[:,1],tc[:,0],tc[:,1],'ro')
     plt.close('all')
@@ -1891,8 +1934,10 @@ def findoutliers(x, zcrit=0.0, dcrit=None, ddcrit=None, verbose=False):
     >>> dcrit = 5*dt
     >>> ddcrit = 9.81/2*dt*dt
     >>> zcrit = 0
-    >>> [inds, indg] = wm.findoutliers(xx[:,1],zcrit,dcrit,ddcrit,verbose=True)
+    >>> inds, indg = wm.findoutliers(xx[:,1], verbose=True)
     Found 0 missing points
+    dcrit is set to 1.05693
+    ddcrit is set to 1.05693
     Found 0 spurious positive jumps of Dx
     Found 0 spurious negative jumps of Dx
     Found 0 spurious positive jumps of D^2x
@@ -1952,8 +1997,7 @@ def findoutliers(x, zcrit=0.0, dcrit=None, ddcrit=None, verbose=False):
 
     xn = asarray(x).flatten()
 
-    if xn.size < 2:
-        raise ValueError('The vector must have more than 2 elements!')
+    _assert(2 < xn.size, 'The vector must have more than 2 elements!')
 
     i_missing = _find_nans(xn)
     if np.any(i_missing):
@@ -2084,8 +2128,16 @@ def stirlerr(n):
     Example
     -------
     >>> import wafo.misc as wm
-    >>> np.abs(wm.stirlerr(2)- 0.0413407)<1e-7
-    array([ True], dtype=bool)
+    >>> np.allclose(wm.stirlerr(2),  0.0413407)
+    True
+    >>> np.allclose(wm.stirlerr(5), 0.01664469)
+    True
+    >>> np.allclose(wm.stirlerr(8), 0.01041127)
+    True
+    >>> np.allclose(wm.stirlerr(12), 0.00694284)
+    True
+    >>> np.allclose(wm.stirlerr(70), 0.00119047)
+    True
 
     See also
     ---------
@@ -2131,7 +2183,7 @@ def stirlerr(n):
 
 
 def getshipchar(value=None, property="max_deadweight",  # @ReservedAssignment
-                **kwds):  # @IgnorePep8
+                **kwds):
     '''
     Return ship characteristics from value of one ship-property
 
@@ -2165,8 +2217,7 @@ def getshipchar(value=None, property="max_deadweight",  # @ReservedAssignment
     Example
     ---------
     >>> import wafo.misc as wm
-    >>> sc = wm.getshipchar(10,'service_speed')
-    >>> sc == {'service_speedSTD': 0,
+    >>> true_sc = {'service_speedSTD': 0,
     ...        'lengthSTD': 2.0113098831942762,
     ...        'draught': 9.5999999999999996,
     ...        'propeller_diameterSTD': 0.20267047566705432,
@@ -2177,6 +2228,10 @@ def getshipchar(value=None, property="max_deadweight",  # @ReservedAssignment
     ...        'draughtSTD': 2.1120000000000001,
     ...        'max_deadweight': 30969.0,
     ...        'propeller_diameter': 6.761165385916601}
+    >>> wm.getshipchar(10,'service_speed') == true_sc
+    True
+    >>> sc = wm.getshipchar(service_speed=10)
+    >>> sc == true_sc
     True
 
     Other units: 1 ft = 0.3048 m and 1 knot = 0.5144 m/s
@@ -2190,8 +2245,7 @@ def getshipchar(value=None, property="max_deadweight",  # @ReservedAssignment
     '''
     if value is None:
         names = kwds.keys()
-        if len(names) != 1:
-            raise ValueError('Only on keyword')
+        _assert(len(names) == 1, 'Only one keyword allowed!')
         property = names[0]  # @ReservedAssignment
         value = kwds[property]
     value = np.array(value)
@@ -2509,6 +2563,13 @@ def polar2cart(theta, rho, z=None):
     x, y : array-like
         Cartesian coordinates, x = rho*cos(theta), y = rho*sin(theta)
 
+    Examples
+    --------
+    >>> np.allclose(polar2cart(0, 1, 1), (1, 0, 1))
+    True
+    >>> np.allclose(polar2cart(0, 1), (1, 0))
+    True
+
     See also
     --------
     cart2polar
@@ -2516,8 +2577,7 @@ def polar2cart(theta, rho, z=None):
     x, y = rho * cos(theta), rho * sin(theta)
     if z is None:
         return x, y
-    else:
-        return x, y, z
+    return x, y, z
 pol2cart = polar2cart
 
 
@@ -2531,6 +2591,13 @@ def cart2polar(x, y, z=None):
     rho : array-like
         radial distance, sqrt(x**2+y**2)
 
+    Examples
+    --------
+    >>> np.allclose(cart2polar(1, 0, 1), (0, 1, 1))
+    True
+    >>> np.allclose(cart2polar(1, 0), (0, 1))
+    True
+
     See also
     --------
     polar2cart
@@ -2538,8 +2605,7 @@ def cart2polar(x, y, z=None):
     t, r = arctan2(y, x), hypot(x, y)
     if z is None:
         return t, r
-    else:
-        return t, r, z
+    return t, r, z
 cart2pol = cart2polar
 
 
@@ -2586,30 +2652,22 @@ def trangood(x, f, min_n=None, min_x=None, max_x=None, max_n=inf):
     """
     xo, fo = atleast_1d(x, f)
 
-    if (xo.ndim != 1):
-        raise ValueError('x must be a vector.')
-    if (fo.ndim != 1):
-        raise ValueError('f  must be a vector.')
+    _assert(xo.ndim == 1, 'x must be a vector.')
+    _assert(fo.ndim == 1, 'f  must be a vector.')
 
     i = xo.argsort()
     xo, fo = xo[i], fo[i]
     del i
     dx = diff(xo)
-    if (any(dx <= 0)):
-        raise ValueError('Duplicate x-values not allowed.')
+    _assert(all(dx > 0), 'Duplicate x-values not allowed.')
 
     nf = fo.shape[0]
 
-    if max_x is None:
-        max_x = xo[-1]
-    if min_x is None:
-        min_x = xo[0]
-    if min_n is None:
-        min_n = nf
-    if (min_n < 2):
-        min_n = 2
-    if (max_n < 2):
-        max_n = 2
+    max_x = xo[-1] if max_x is None else max_x
+    min_x = xo[0] if min_x is None else min_x
+    min_n = nf if min_n is None else min_n
+    min_n = max(min_n, 2)
+    max_n = max(max_n, 2)
 
     ddx = diff(dx)
     xn = xo[-1]
@@ -2835,6 +2893,20 @@ def good_bins(data=None, range=None, num_bins=None,  # @ReservedAssignment
     return limits
 
 
+def _make_bars(limits, bin_):
+    limits.shape = (-1, 1)
+    xx = limits.repeat(3, axis=1)
+    xx.shape = (-1,)
+    xx = xx[1:-1]
+    bin_.shape = (-1, 1)
+    yy = bin_.repeat(3, axis=1)
+    # yy[0,0] = 0.0 # pdf
+    yy[:, 0] = 0.0  # histogram
+    yy.shape = (-1,)
+    yy = np.hstack((yy, 0.0))
+    return xx, yy
+
+
 def plot_histgrm(data, bins=None, range=None,  # @ReservedAssignment
                  normed=False, weights=None, lintype='b-'):
     '''
@@ -2892,18 +2964,9 @@ def plot_histgrm(data, bins=None, range=None,  # @ReservedAssignment
     if bins is None:
         bins = np.ceil(4 * np.sqrt(np.sqrt(len(x))))
 
-    bin_, limits = np.histogram(
-        data, bins=bins, normed=normed, weights=weights)
-    limits.shape = (-1, 1)
-    xx = limits.repeat(3, axis=1)
-    xx.shape = (-1,)
-    xx = xx[1:-1]
-    bin_.shape = (-1, 1)
-    yy = bin_.repeat(3, axis=1)
-    # yy[0,0] = 0.0 # pdf
-    yy[:, 0] = 0.0  # histogram
-    yy.shape = (-1,)
-    yy = np.hstack((yy, 0.0))
+    bin_, limits = np.histogram(data, bins=bins,
+                                normed=normed, weights=weights)
+    xx, yy = _make_bars(limits, bin_)
     return plotbackend.plot(xx, yy, lintype, limits, limits * 0)
 
 
@@ -2927,6 +2990,12 @@ def num2pistr(x, n=3, numerator_max=10, denominator_max=10):
     >>> import wafo.misc as wm
     >>> wm.num2pistr(np.pi*3/4)=='3\\pi/4'
     True
+    >>> wm.num2pistr(-np.pi/4)=='-\\pi/4'
+    True
+    >>> wm.num2pistr(-np.pi)=='-\\pi'
+    True
+    >>> wm.num2pistr(-1/4)=='-0.25'
+    True
     '''
     def _denominator_text(den):
         return '' if abs(den) == 1 else '/%d' % den
@@ -2934,13 +3003,14 @@ def num2pistr(x, n=3, numerator_max=10, denominator_max=10):
     def _numerator_text(num):
         if abs(num) == 1:
             return '-' if num == -1 else ''
-        return '%d' % num
+        return '{:d}'.format(num)
     frac = fractions.Fraction.from_float(x / pi).limit_denominator(int(1e+13))
     num, den = frac.numerator, frac.denominator
     if (den < denominator_max) and (num < numerator_max) and (num != 0):
-        return _numerator_text(num) + r'\pi' + _denominator_text(den)
-    fmt = '%0.' + '%dg' % n
-    return fmt % x
+        return r'{0:s}\pi{1:s}'.format(_numerator_text(num),
+                                       _denominator_text(den))
+    fmt = '{:0.' + '{:d}'.format(n) + 'g}'
+    return fmt.format(x)
 
 
 def fourier(data, t=None, period=None, m=None, n=None, method='trapz'):
