@@ -603,7 +603,7 @@ class Bunch(object):
         self.__dict__.update(kwargs)
 
     def keys(self):
-        return self.__dict__.keys()
+        return list(self.__dict__)
 
     def update(self, ** kwargs):
         self.__dict__.update(kwargs)
@@ -2244,7 +2244,7 @@ def getshipchar(value=None, property="max_deadweight",  # @ReservedAssignment
     merchant fleet", Bolt Beranek and Newman Technical Memorandum No. 458.
     '''
     if value is None:
-        names = kwds.keys()
+        names = list(kwds)
         _assert(len(names) == 1, 'Only one keyword allowed!')
         property = names[0]  # @ReservedAssignment
         value = kwds[property]
