@@ -2136,8 +2136,13 @@ def stirlerr(n):
     True
     >>> np.allclose(wm.stirlerr(12), 0.00694284)
     True
+    >>> np.allclose(wm.stirlerr(25), 0.00333316)
+    True
     >>> np.allclose(wm.stirlerr(70), 0.00119047)
     True
+    >>> np.allclose(wm.stirlerr(100), 0.00083333)
+    True
+
 
     See also
     ---------
