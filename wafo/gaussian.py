@@ -110,9 +110,7 @@ class Rind(object):
     >>> Bup[0,ind] = np.minimum(Bup[0,ind] , infinity*dev[indI[ind+1]])
     >>> Blo[0,ind] = np.maximum(Blo[0,ind] ,-infinity*dev[indI[ind+1]])
     >>> val, err, terr = rind(Sc,m,Blo,Bup,indI, xc, nt=0)
-    >>> val
-
-    >>> np.allclose(val, 0.05494076, rtol=1e-2)
+    >>> np.allclose(val, 0.05494076, rtol=4e-2)
     True
     >>> err[0] < 1e-3, terr[0] < 1e-7
     (True, True)

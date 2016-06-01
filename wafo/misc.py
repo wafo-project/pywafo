@@ -316,8 +316,7 @@ def now(show_seconds=True):
     '''
     if show_seconds:
         return strftime("%a, %d %b %Y %H:%M:%S", gmtime())
-    else:
-        return strftime("%a, %d %b %Y %H:%M", gmtime())
+    return strftime("%a, %d %b %Y %H:%M", gmtime())
 
 
 def _assert(cond, txt=''):
@@ -3116,38 +3115,6 @@ def fourier(data, t=None, period=None, m=None, n=None, method='trapz'):
 #    b = imag(Fcof(1:M,:));
 
     return a, b
-
-
-def real_main0():
-    x = np.arange(10000)
-    y = np.arange(100).reshape(-1, 1)
-    np.broadcast_arrays(x, y, x, x, x, x, x, x, x, x)
-
-
-def real_main():
-    x = np.arange(100000)
-    y = np.arange(100).reshape(-1, 1)
-    common_shape(x, y, x, x, x, x, x, x, x, x)
-
-
-def profile_main1():
-    # This is the main function for profiling
-    # We've renamed our original main() above to real_main()
-    import cProfile
-    import pstats
-    prof = cProfile.Profile()
-    prof = prof.runctx("real_main()", globals(), locals())
-    print("<pre>")
-    stats = pstats.Stats(prof)
-    stats.sort_stats("time")  # Or cumulative
-    stats.print_stats(80)  # 80 = how many to print
-    # The rest is optional.
-    # stats.print_callees()
-    # stats.print_callers()
-    print("</pre>")
-
-
-main = profile_main1
 
 
 def test_docstrings():
