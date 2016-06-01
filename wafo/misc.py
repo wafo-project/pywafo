@@ -592,7 +592,7 @@ class Bunch(object):
     >>> d = Bunch(test1=1,test2=3)
     >>> d.test1
     1
-    >>> d.keys() ==  ['test1', 'test2']
+    >>> sorted(d.keys()) ==  ['test1', 'test2']
     True
     >>> d.update(test1=2)
     >>> d.test1
