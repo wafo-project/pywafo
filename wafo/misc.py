@@ -1187,7 +1187,14 @@ def _findrfc(y, h):
     return ind, ix
 
 
-def nt2cmat(nt, kind=11):
+def _raise_kind_error(kind):
+    if kind in (-1, 0):
+        raise NotImplementedError('kind = {} not yet implemented'.format(kind))
+    else:
+        raise ValueError('kind = {}: not a valid value of kind'.format(kind))
+
+
+def nt2cmat(nt, kind=1):
     """
     Return cycle matrix from a counting distribution.
 
@@ -1216,6 +1223,12 @@ def nt2cmat(nt, kind=11):
     ...                   [ 0.,  0.,  0.,  0.]])
 
     >>> nt = cmat2nt(cmat0)
+    >>> np.allclose(nt,
+    ...    [[  0.,   0.,   0.,   0.],
+    ...    [ 20.,  15.,   9.,   0.],
+    ...    [ 28.,  23.,  16.,   0.],
+    ...    [ 32.,  27.,  20.,   0.]])
+    True
     >>> cmat = nt2cmat(nt)
     >>> np.allclose(cmat, [[ 0.,  5.,  6.,  9.],
     ...                    [ 0.,  0.,  1.,  7.],
@@ -1227,47 +1240,64 @@ def nt2cmat(nt, kind=11):
     --------
     cmat2nt
     """
-
     n = len(nt)  # Number of discrete levels
-    cmat = np.zeros((n, n))
     if kind == 1:
         I = np.r_[0:n-1]
         J = np.r_[1:n]
-        cmat[I, J] = nt[I+1, J-1] - nt[I, J-1] - nt[I+1, J] + nt[I, J]
+        c = nt[I+1][:, J-1] - nt[I][:, J-1] - nt[I+1][:, J] + nt[I][:, J]
+        c2 = np.vstack((c, np.zeros((n-1))))
+        cmat = np.hstack((np.zeros((n, 1)), c2))
     elif kind == 11:  # same as def=1 but using for-loop
+        cmat = np.zeros((n, n))
         j = np.r_[1:n]
         for i in range(n-1):
             cmat[i, j] = nt[i+1, j-1] - nt[i, j-1] - nt[i+1, j] + nt[i, j]
-
-    elif kind == 0:
-        raise NotImplementedError('kind == 0 not yet implemented')
-    elif kind == -1:
-        raise NotImplementedError('kind == -1 not yet implemented')
     else:
-        raise ValueError('kind = {}: not a valid value of kind'.format(kind))
+        _raise_kind_error(kind)
     return cmat
 
 
-def cmat2nt(cmat, kind=11):
+def cmat2nt(cmat, kind=1):
     """
     CMAT2NT Calculates a counting distribution from a cycle matrix.
 
-    CALL:  NT = cmat2nt(F,def);
-
-     NT       = Counting distribution. [nxn]
-
-     cmat        = Cycle matrix. [nxn]
+    Parameters
+    ----------
+     cmat     = Cycle matrix. [nxn]
      kind     =  1: causes peaks to be projected upwards and troughs
                     downwards to the closest discrete level (default).
               =  0: causes peaks and troughs to be projected to
                     the closest discrete level.
               = -1: causes peaks to be projected downwards and the
                     troughs upwards to the closest discrete level.
+    Returns
+    -------
+    NT: n x n array
+        Counting distribution.
 
     Example
     -------
-     F = round(triu(rand(4),1)*10)
-     NT = cmat2nt(F)
+    >>> import numpy as np
+    >>> cmat0 = np.round(np.triu(np.random.rand(4, 4), 1)*10)
+    >>> cmat0 = np.array([[ 0.,  5.,  6.,  9.],
+    ...                   [ 0.,  0.,  1.,  7.],
+    ...                   [ 0.,  0.,  0.,  4.],
+    ...                   [ 0.,  0.,  0.,  0.]])
+
+    >>> nt = cmat2nt(cmat0, kind=11)
+    >>> np.allclose(nt,
+    ...    [[  0.,   0.,   0.,   0.],
+    ...    [ 20.,  15.,   9.,   0.],
+    ...    [ 28.,  23.,  16.,   0.],
+    ...    [ 32.,  27.,  20.,   0.]])
+    True
+
+    >>> cmat = nt2cmat(nt, kind=11)
+    >>> np.allclose(cmat, [[ 0.,  5.,  6.,  9.],
+    ...                    [ 0.,  0.,  1.,  7.],
+    ...                    [ 0.,  0.,  0.,  4.],
+    ...                    [ 0.,  0.,  0.,  0.]])
+    True
 
     See also
     --------
@@ -1275,21 +1305,18 @@ def cmat2nt(cmat, kind=11):
     """
     n = len(cmat)  # Number of discrete levels
     nt = zeros((n, n))
+
     if kind == 1:
-        nt[1:n, :n-1] = np.fliplr(np.cumsum(np.fliplr(np.cumsum(cmat[:-1,
-                                                                     1:])),
-                                            axis=1))
+        csum = np.cumsum
+        flip = np.fliplr
+        nt[1:n, :n-1] = flip(csum(flip(csum(cmat[:-1, 1:], axis=0)), axis=1))
     elif kind == 11:  # same as def=1 but using for-loop
         # j = np.r_[1:n]
         for i in range(1, n):
             for j in range(n-1):
-                nt[i, j] = np.sum(np.sum(cmat[:i, j+1:n]))
-    elif kind == 0:
-        raise NotImplementedError('kind == 0 not yet implemented')
-    elif kind == -1:
-        raise NotImplementedError('kind == -1 not yet implemented')
+                nt[i, j] = np.sum(cmat[:i, j+1:n])
     else:
-        raise ValueError('kind = {}: not a valid value of kind'.format(kind))
+        _raise_kind_error(kind)
     return nt
 
 
@@ -1564,6 +1591,78 @@ def mctp2rfc(fmM, fMm=None):
     return f_rfc
 
 
+def _findrfc2(y, h, method):
+    n = len(y)
+    t = zeros(n, dtype=np.int)
+    j = 0
+    t0 = 0
+    y0 = y[t0]
+    z0 = 0
+
+    def a_le_b(a, b):
+        return a <= b
+
+    def a_lt_b(a, b):
+        return a < b
+
+    if method == 0:
+        cmpfun1 = a_le_b
+        cmpfun2 = a_lt_b
+    else:
+        cmpfun1 = a_lt_b
+        cmpfun2 = a_le_b
+
+    # The rainflow filter
+    for tim1, yi in enumerate(y[1::]):
+        fpi = y0 + h
+        fmi = y0 - h
+        ti = tim1 + 1
+        # yi = y[ti]
+
+        if z0 == 0:
+            if cmpfun1(yi, fmi):
+                z1 = -1
+            elif cmpfun1(fpi, yi):
+                z1 = +1
+            else:
+                z1 = 0
+            t1, y1 = (t0, y0) if z1 == 0 else (ti, yi)
+        else:
+            if (((z0 == +1) & cmpfun1(yi, fmi)) |
+                    ((z0 == -1) & cmpfun2(yi, fpi))):
+                z1 = -1
+            elif (((z0 == +1) & cmpfun2(fmi, yi)) |
+                  ((z0 == -1) & cmpfun1(fpi, yi))):
+                z1 = +1
+            else:
+                warnings.warn('Something wrong, i=%d' % tim1)
+
+            # Update y1
+            if z1 != z0:
+                t1, y1 = ti, yi
+            elif z1 == -1:
+                # y1 = min([y0 xi])
+                t1, y1 = (t0, y0) if y0 < yi else (ti, yi)
+            elif z1 == +1:
+                # y1 = max([y0 xi])
+                t1, y1 = (t0, y0) if y0 > yi else (ti, yi)
+
+        # Update y if y0 is a turning point
+        if abs(z0 - z1) == 2:
+            j += 1
+            t[j] = t0
+
+        # Update t0, y0, z0
+        t0, y0, z0 = t1, y1, z1
+    # end
+
+    # Update y if last y0 is greater than (or equal) threshold
+    if cmpfun1(h, abs(y0 - y[t[j]])):
+        j += 1
+        t[j] = t0
+    return t[:j + 1]
+
+
 def rfcfilter(x, h, method=0):
     """
     Rainflow filter a signal.
@@ -1615,75 +1714,8 @@ def rfcfilter(x, h, method=0):
     """
     # TODO merge rfcfilter and findrfc
     y = atleast_1d(x).ravel()
-    n = len(y)
-    t = zeros(n, dtype=np.int)
-    j = 0
-    t0 = 0
-    y0 = y[t0]
-    z0 = 0
-
-    def aleb(a, b):
-        return a <= b
-
-    def altb(a, b):
-        return a < b
-
-    if method == 0:
-        cmpfun1 = aleb
-        cmpfun2 = altb
-    else:
-        cmpfun1 = altb
-        cmpfun2 = aleb
-
-    # The rainflow filter
-    for tim1, yi in enumerate(y[1::]):
-        fpi = y0 + h
-        fmi = y0 - h
-        ti = tim1 + 1
-        # yi = y[ti]
-
-        if z0 == 0:
-            if cmpfun1(yi, fmi):
-                z1 = -1
-            elif cmpfun1(fpi, yi):
-                z1 = +1
-            else:
-                z1 = 0
-            t1, y1 = (t0, y0) if z1 == 0 else (ti, yi)
-        else:
-            if (((z0 == +1) & cmpfun1(yi, fmi)) |
-                    ((z0 == -1) & cmpfun2(yi, fpi))):
-                z1 = -1
-            elif (((z0 == +1) & cmpfun2(fmi, yi)) |
-                  ((z0 == -1) & cmpfun1(fpi, yi))):
-                z1 = +1
-            else:
-                warnings.warn('Something wrong, i=%d' % tim1)
-
-            # Update y1
-            if z1 != z0:
-                t1, y1 = ti, yi
-            elif z1 == -1:
-                # y1 = min([y0 xi])
-                t1, y1 = (t0, y0) if y0 < yi else (ti, yi)
-            elif z1 == +1:
-                # y1 = max([y0 xi])
-                t1, y1 = (t0, y0) if y0 > yi else (ti, yi)
-
-        # Update y if y0 is a turning point
-        if abs(z0 - z1) == 2:
-            j += 1
-            t[j] = t0
-
-        # Update t0, y0, z0
-        t0, y0, z0 = t1, y1, z1
-    # end
-
-    # Update y if last y0 is greater than (or equal) threshold
-    if cmpfun1(h, abs(y0 - y[t[j]])):
-        j += 1
-        t[j] = t0
-    return y[t[:j + 1]]
+    ix = _findrfc2(y, h, method)
+    return y[ix]
 
 
 def findtp(x, h=0.0, kind=None):
