@@ -560,13 +560,12 @@ class JITImport(object):
     def __getattr__(self, attr):
         try:
             return getattr(self._module, attr)
-        except:
+        except AttributeError as exc:
             if self._module is None:
                 self._module = __import__(self._module_name, None, None, ['*'])
                 # assert(isinstance(self._module, types.ModuleType), 'module')
                 return getattr(self._module, attr)
-            else:
-                raise
+            raise exc
 
 
 class DotDict(dict):
@@ -2617,6 +2616,18 @@ def ndgrid(*args, **kwargs):
     """
     Same as calling meshgrid with indexing='ij' (see meshgrid for
     documentation).
+
+    Example
+    -------
+    >>> x, y = ndgrid([1,2,3],[4,5,6])
+    >>> np.allclose(x, [[1, 1, 1],
+    ...                 [2, 2, 2],
+    ...                 [3, 3, 3]])
+    True
+    >>> np.allclose(y, [[4, 5, 6],
+    ...                 [4, 5, 6],
+    ...                 [4, 5, 6]])
+    True
     """
     kwargs['indexing'] = 'ij'
     return meshgrid(*args, ** kwargs)
@@ -2911,8 +2922,36 @@ def _make_bars(limits, bin_):
     return xx, yy
 
 
+def _histogram(data, bins=None, range=None, normed=False, weights=None,
+               density=None):
+    """
+    Example
+    -------
+    >>> import numpy as np
+    >>> data = np.linspace(0, 10)
+    >>> xx, yy, limits = _histogram(data)
+    >>> len(limits)
+    12
+    >>> xx, yy, limits = _histogram(data, bins=[0, 5, 11])
+    >>> np.allclose(xx, [ 0,  0,  5,  5,  5, 11, 11])
+    True
+    >>> np.allclose(yy, [  0.,  25.,  25.,   0.,  25.,  25.,   0.])
+    True
+    >>> np.allclose(limits, [[ 0], [ 5], [11]])
+    True
+
+    """
+    x = np.atleast_1d(data)
+    if bins is None:
+        bins = np.ceil(4 * np.sqrt(np.sqrt(len(x))))
+    bin_, limits = np.histogram(data, bins=bins, range=range, normed=normed,
+                                weights=weights, density=density)
+    xx, yy = _make_bars(limits, bin_)
+    return xx, yy, limits
+
+
 def plot_histgrm(data, bins=None, range=None,  # @ReservedAssignment
-                 normed=False, weights=None, lintype='b-'):
+                 normed=False, weights=None, density=None, lintype='b-'):
     '''
     Plot histogram
 
@@ -2951,8 +2990,12 @@ def plot_histgrm(data, bins=None, range=None,  # @ReservedAssignment
     >>> import wafo.misc as wm
     >>> import wafo.stats as ws
     >>> R = ws.weibull_min.rvs(2,loc=0,scale=2, size=100)
+    >>> R = np.linspace(0,10)
+    >>> bins = good_bins(R)
+    >>> len(bins)
+    13
 
-    h0 = wm.plot_histgrm(R, 20, normed=True)
+    h0 = wm.plot_histgrm(R, bins, normed=True)
     x = np.linspace(-3,16,200)
 
     h1 = plt.plot(x,ws.weibull_min.pdf(x,2,0,2),'r')
@@ -2964,13 +3007,7 @@ def plot_histgrm(data, bins=None, range=None,  # @ReservedAssignment
     numpy.histogram
     '''
 
-    x = np.atleast_1d(data)
-    if bins is None:
-        bins = np.ceil(4 * np.sqrt(np.sqrt(len(x))))
-
-    bin_, limits = np.histogram(data, bins=bins,
-                                normed=normed, weights=weights)
-    xx, yy = _make_bars(limits, bin_)
+    xx, yy, limits = _histogram(data, bins, normed, weights)
     return plotbackend.plot(xx, yy, lintype, limits, limits * 0)
 
 
