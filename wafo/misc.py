@@ -771,10 +771,10 @@ def ecross(t, f, ind, v=0):
             (f[ind + 1] - f[ind]))
 
 
-def _findcross(xn):
+def _findcross(xn, method='clib'):
     '''Return indices to zero up and downcrossings of a vector
     '''
-    if clib is not None:
+    if clib is not None and method == 'clib':
         ind, m = clib.findcross(xn, 0.0)
         return ind[:m]
 
@@ -813,7 +813,7 @@ def xor(a, b):
     return a ^ b
 
 
-def findcross(x, v=0.0, kind=None):
+def findcross(x, v=0.0, kind=None, method='clib'):
     '''
     Return indices to level v up and/or downcrossings of a vector
 
@@ -854,8 +854,11 @@ def findcross(x, v=0.0, kind=None):
     >>> ind2 = wm.findcross(x,v,'u')
     >>> np.allclose(ind2, [  9,  80, 151, 223])
     True
-     >>> ind3 = wm.findcross(x,v,'d')
+    >>> ind3 = wm.findcross(x,v,'d')
     >>> np.allclose(ind3, [  25,  97, 168, 239])
+    True
+    >>> ind4 = wm.findcross(x,v,'d', method='2')
+    >>> np.allclose(ind4, [  25,  97, 168, 239])
     True
 
     t0 = plt.plot(t,x,'.',t[ind],x[ind],'r.', t, ones(t.shape)*v)
@@ -868,7 +871,7 @@ def findcross(x, v=0.0, kind=None):
     wavedef
     '''
     xn = np.int8(sign(atleast_1d(x).ravel() - v))  # @UndefinedVariable
-    ind = _findcross(xn)
+    ind = _findcross(xn, method)
     if ind.size == 0:
         warnings.warn('No level v = %0.5g crossings found in x' % v)
         return ind
