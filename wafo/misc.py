@@ -1082,12 +1082,16 @@ def findrfc(tp, h=0.0, method='clib'):
     >>> ind = wm.findextrema(x)
     >>> ti, tp = t[ind], x[ind]
 
-    >>> ind1 = wm.findrfc(tp,0.3)
+    >>> ind1 = wm.findrfc(tp, 0.3)
     >>> np.allclose(ind1, [  0,   9,  32,  53,  74,  95, 116, 137])
     True
-    >>> ind2 = wm.findrfc(tp,0.3, method='')
+    >>> ind2 = wm.findrfc(tp, 0.3, method='2')
     >>> np.allclose(ind2, [  0,   9,  32,  53,  74,  95, 116, 137])
     True
+    >>> ind3 = wm.findrfc(tp, 0.3, method='3')
+    >>> np.allclose(ind2, [  0,   9,  32,  53,  74,  95, 116, 137])
+    True
+
 
     a = plt.plot(t,x,'.',ti,tp,'r.')
     a = plt.plot(ti[ind1],tp[ind1])
@@ -1113,10 +1117,14 @@ def findrfc(tp, h=0.0, method='clib'):
         warnings.warn('This is not a sequence of turningpoints, exit')
         return zeros(0, dtype=np.int)
 
-    if clib is None or method not in ('clib'):
-        ind, ix = _findrfc(y, h)
-    else:
+    if clib is not None and method == 'clib':
         ind, ix = clib.findrfc(y, h)
+    elif method == '2':
+        ix = -1
+        ind = _findrfc2(y, h)
+    else:
+        ind, ix = _findrfc(y, h)
+
     return np.sort(ind[:ix]) + t_start
 
 
@@ -1591,7 +1599,7 @@ def mctp2rfc(fmM, fMm=None):
     return f_rfc
 
 
-def _findrfc2(y, h, method):
+def _findrfc2(y, h, method=0):
     n = len(y)
     t = zeros(n, dtype=np.int)
     j = 0
