@@ -13,7 +13,8 @@ from scipy import optimize
 from scipy import integrate
 from scipy.special import (gammaln as gamln, gamma as gam, boxcox, boxcox1p,
                            inv_boxcox, inv_boxcox1p, erfc, chndtr, chndtrix,
-                           log1p, expm1)
+                           log1p, expm1,
+                           i0, i1, ndtr as _norm_cdf, log_ndtr as _norm_logcdf)
 
 from numpy import (where, arange, putmask, ravel, shape,
                    log, sqrt, exp, arctanh, tan, sin, arcsin, arctan,
@@ -32,9 +33,8 @@ from scipy.stats._tukeylambda_stats import (tukeylambda_variance as _tlvar,
                                             tukeylambda_kurtosis as _tlkurt)
 
 from ._distn_infrastructure import (
-        rv_continuous, valarray, _skew, _kurtosis,  # @UnresolvedImport
-        _lazywhere,  _ncx2_log_pdf, _ncx2_pdf, _ncx2_cdf,  # @UnresolvedImport
-        get_distribution_names,  # @UnresolvedImport
+        rv_continuous, valarray, _skew, _kurtosis, _lazywhere,
+        _ncx2_log_pdf, _ncx2_pdf, _ncx2_cdf, get_distribution_names,
         )
 
 from ._constants import _XMIN, _EULER, _ZETA3, _XMAX, _LOGXMAX, _EPS
@@ -89,24 +89,16 @@ def _norm_logpdf(x):
     return -x**2 / 2.0 - _norm_pdf_logC
 
 
-def _norm_cdf(x):
-    return special.ndtr(x)
-
-
-def _norm_logcdf(x):
-    return special.log_ndtr(x)
-
-
 def _norm_ppf(q):
     return special.ndtri(q)
 
 
 def _norm_sf(x):
-    return special.ndtr(-x)
+    return _norm_cdf(-x)
 
 
 def _norm_logsf(x):
-    return special.log_ndtr(-x)
+    return _norm_logcdf(-x)
 
 
 def _norm_isf(q):
@@ -126,6 +118,10 @@ class norm_gen(rv_continuous):
     The probability density function for `norm` is::
 
         norm.pdf(x) = exp(-x**2/2)/sqrt(2*pi)
+
+    The survival function, ``norm.sf``, is also referred to as the
+    Q-function in some contexts (see, e.g.,
+    `Wikipedia's <https://en.wikipedia.org/wiki/Q-function>`_ definition).
 
     %(after_notes)s
 
@@ -220,13 +216,13 @@ class alpha_gen(rv_continuous):
 
     """
     def _pdf(self, x, a):
-        return 1.0/(x**2)/special.ndtr(a)*_norm_pdf(a-1.0/x)
+        return 1.0/(x**2)/_norm_cdf(a)*_norm_pdf(a-1.0/x)
 
     def _logpdf(self, x, a):
-        return -2*log(x) + _norm_logpdf(a-1.0/x) - log(special.ndtr(a))
+        return -2*log(x) + _norm_logpdf(a-1.0/x) - log(_norm_cdf(a))
 
     def _cdf(self, x, a):
-        return special.ndtr(a-1.0/x) / special.ndtr(a)
+        return _norm_cdf(a-1.0/x) / _norm_cdf(a)
 
     def _ppf(self, q, a):
         return 1.0/asarray(a-special.ndtri(q*special.ndtr(a)))
@@ -1221,12 +1217,12 @@ class exponnorm_gen(rv_continuous):
     def _cdf(self, x, K):
         invK = 1.0 / K
         expval = invK * (0.5 * invK - x)
-        return special.ndtr(x) - exp(expval) * special.ndtr(x - invK)
+        return _norm_cdf(x) - exp(expval) * _norm_cdf(x - invK)
 
     def _sf(self, x, K):
         invK = 1.0 / K
         expval = invK * (0.5 * invK - x)
-        return special.ndtr(-x) + exp(expval) * special.ndtr(x - invK)
+        return _norm_cdf(-x) + exp(expval) * _norm_cdf(x - invK)
 
     def _stats(self, K):
         K2 = K * K
@@ -1366,7 +1362,7 @@ class fatiguelife_gen(rv_continuous):
                 0.5*(log(2*pi) + 3*log(x)))
 
     def _cdf(self, x, c):
-        return special.ndtr(1.0 / c * (sqrt(x) - 1.0/sqrt(x)))
+        return _norm_cdf(1.0 / c * (sqrt(x) - 1.0/sqrt(x)))
 
     def _ppf(self, q, c):
         tmp = c*special.ndtri(q)
@@ -1545,7 +1541,7 @@ class foldnorm_gen(rv_continuous):
         return _norm_pdf(x + c) + _norm_pdf(x-c)
 
     def _cdf(self, x, c):
-        return special.ndtr(x-c) + special.ndtr(x+c) - 1.0
+        return _norm_cdf(x-c) + _norm_cdf(x+c) - 1.0
 
     def _stats(self, c):
         # Regina C. Elandt, Technometrics 3, 551 (1961)
@@ -2061,6 +2057,13 @@ class genextreme_gen(rv_continuous):
         return _lazywhere((x == x) & (c != 0), (x, c),
                           lambda x, c: -expm1(-c * x) / c, x)
 
+    def _isf(self, q, c):
+        x = -log(-special.log1p(-q))
+        result = _lazywhere((c == 0)*(x == x), (x, c),
+                            f=lambda x, c: x,
+                            f2=lambda x, c: -special.expm1(-c*x)/c)
+        return result
+
     def _stats(self, c):
         g = lambda n: gam(n*c+1)
         g1 = g(1)
@@ -2087,16 +2090,6 @@ class genextreme_gen(rv_continuous):
         ku = where(abs(c) <= (eps)**0.23, 12.0/5.0, ku1-3.0)
         return m, v, sk, ku
 
-    def _munp(self, n, c):
-        k = arange(0, n+1)
-        vals = 1.0/c**n * np.sum(
-            comb(n, k) * (-1)**k * special.gamma(c*k + 1),
-            axis=0)
-        return where(c*n > -1, vals, inf)
-
-    def _entropy(self, c):
-        return _EULER*(1 - c) + 1
-
     def _fitstart(self, data):
         d = asarray(data)
         # Probability weighted moments
@@ -2114,6 +2107,17 @@ class genextreme_gen(rv_continuous):
             (exp(gamln(1 + shape)) * (1 - 2 ** (-shape)))
         loc = b0 + scale * (expm1(gamln(1 + shape))) / shape
         return shape, loc, scale
+
+    def _munp(self, n, c):
+        k = arange(0, n+1)
+        vals = 1.0/c**n * np.sum(
+            comb(n, k) * (-1)**k * special.gamma(c*k + 1),
+            axis=0)
+        return where(c*n > -1, vals, inf)
+
+    def _entropy(self, c):
+        return _EULER*(1 - c) + 1
+
 genextreme = genextreme_gen(name='genextreme')
 
 
@@ -2695,7 +2699,7 @@ class halfnorm_gen(rv_continuous):
         return 0.5 * np.log(2.0/pi) - x*x/2.0
 
     def _cdf(self, x):
-        return special.ndtr(x)*2-1.0
+        return _norm_cdf(x)*2-1.0
 
     def _ppf(self, q):
         return special.ndtri((1+q)/2.0)
@@ -2852,7 +2856,7 @@ class invgauss_gen(rv_continuous):
 
     %(after_notes)s
 
-    When `mu` is too small, evaluating the cumulative density function will be
+    When `mu` is too small, evaluating the cumulative distribution function will be
     inaccurate due to ``cdf(mu -> 0) = inf * 0``.
     NaNs are returned for ``mu <= 0.0028``.
 
@@ -3348,8 +3352,17 @@ class lognorm_gen(rv_continuous):
     def _cdf(self, x, s):
         return _norm_cdf(log(x) / s)
 
+    def _logcdf(self, x, s):
+        return _norm_logcdf(log(x) / s)
+
     def _ppf(self, q, s):
         return exp(s * _norm_ppf(q))
+
+    def _sf(self, x, s):
+        return _norm_sf(log(x) / s)
+
+    def _logsf(self, x, s):
+        return _norm_logsf(log(x) / s)
 
     def _stats(self, s):
         p = exp(s*s)
@@ -4546,13 +4559,13 @@ class skew_norm_gen(rv_continuous):
 
     Notes
     -----
-    The pdf is
+    The pdf is::
 
-    skewnorm.pdf(x, a) = 2*norm.pdf(x)*norm.cdf(ax)
+        skewnorm.pdf(x, a) = 2*norm.pdf(x)*norm.cdf(ax)
 
     `skewnorm` takes ``a`` as a skewness parameter
     When a=0 the distribution is identical to a normal distribution.
-    rvs implements the method of [1].
+    rvs implements the method of [1]_.
 
     %(after_notes)s
 
@@ -4562,7 +4575,7 @@ class skew_norm_gen(rv_continuous):
     References
     ----------
 
-    [1] A. Azzalini and A. Capitanio (1999). Statistical applications of the
+    .. [1] A. Azzalini and A. Capitanio (1999). Statistical applications of the
         multivariate skew-normal distribution. J. Roy. Statist. Soc., B 61, 579-602.
         http://azzalini.stat.unipd.it/SN/faq-r.html
     """
@@ -4596,6 +4609,56 @@ class skew_norm_gen(rv_continuous):
         return output
 
 skewnorm = skew_norm_gen(name='skewnorm')
+
+
+class trapz_gen(rv_continuous):
+    """A trapezoidal continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The trapezoidal distribution can be represented with an up-sloping line
+    from ``loc`` to ``(loc + c*scale)``, then constant to ``(loc + d*scale)``
+    and then downsloping from ``(loc + d*scale)`` to ``(loc+scale)``.
+
+    `trapz` takes ``c`` and ``d`` as shape parameters.
+
+    %(after_notes)s
+
+    The standard form is in the range [0, 1] with c the mode.
+    The location parameter shifts the start to `loc`.
+    The scale parameter changes the width from 1 to `scale`.
+
+    %(example)s
+
+    """
+    def _argcheck(self, c, d):
+        return (c >= 0) & (c <= 1) & (d >= 0) & (d <= 1) & (d >= c)
+
+    def _pdf(self, x, c, d):
+        u = 2 / (d - c + 1)
+
+        condlist = [x < c, x <= d, x > d]
+        choicelist = [u * x / c, u, u * (1 - x) / (1 - d)]
+        return np.select(condlist, choicelist)
+
+    def _cdf(self, x, c, d):
+        condlist = [x < c, x <= d, x > d]
+        choicelist = [x**2 / c / (d - c + 1),
+                      (c + 2 * (x - c)) / (d - c + 1),
+                      1 - ((1 - x)**2 / (d - c + 1) / (1 - d))]
+        return np.select(condlist, choicelist)
+
+    def _ppf(self, q, c, d):
+        qc, qd = self._cdf(c, c, d), self._cdf(d, c, d)
+        condlist = [q < qc, q <= qd, q > qd]
+        choicelist = [np.sqrt(q * c * (1 + d - c)),
+                      0.5 * q * (1 + d - c) + 0.5 * c,
+                      1 - sqrt((1 - q) * (d - c + 1) * (1 - d))]
+        return np.select(condlist, choicelist)
+trapz = trapz_gen(a=0.0, b=1.0, name="trapz")
+
 
 class triang_gen(rv_continuous):
     """A triangular continuous random variable.
@@ -4868,13 +4931,17 @@ class vonmises_gen(rv_continuous):
         return self._random_state.vonmises(0.0, kappa, size=self._size)
 
     def _pdf(self, x, kappa):
-        return exp(kappa * cos(x)) / (2*pi*special.i0(kappa))
+        return exp(kappa * cos(x)) / (2*pi*i0(kappa))
 
     def _cdf(self, x, kappa):
         return vonmises_cython.von_mises_cdf(kappa, x)
 
     def _stats_skip(self, kappa):
         return 0, None, 0, None
+
+    def _entropy(self, kappa):
+        return (-kappa * i1(kappa) / i0(kappa)
+                + np.log(2 * np.pi * i0(kappa)))
 vonmises = vonmises_gen(name='vonmises')
 vonmises_line = vonmises_gen(a=-np.pi, b=np.pi, name='vonmises_line')
 
