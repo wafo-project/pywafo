@@ -601,13 +601,13 @@ class bradford_gen(rv_continuous):
 
     """
     def _pdf(self, x, c):
-        return c / (c * x + 1.0) / log1p(c)
+        return c * exp(-log1p(c * x)) / log1p(c)
 
     def _cdf(self, x, c):
         return log1p(c * x) / log1p(c)
 
     def _ppf(self, q, c):
-        return ((1.0+c)**q-1)/c
+        return expm1(q * log1p(c))/c  # ((1.0+c)**q-1)/c
 
     def _stats(self, c, moments='mv'):
         k = log1p(c)
@@ -1732,14 +1732,6 @@ class genlogistic_gen(rv_continuous):
 genlogistic = genlogistic_gen(name='genlogistic')
 
 
-def log1pxdx(x):
-    '''Computes Log(1+x)/x
-    '''
-    xd = where((x == 0) | (x == inf), 1.0, x)  # avoid 0/0 or inf/inf
-    y = where(x == 0, 1.0, log1p(x) / xd)
-    return where(x == inf, 0.0, y)
-
-
 class genpareto_gen(rv_continuous):
     """A generalized Pareto continuous random variable.
 
@@ -2026,28 +2018,26 @@ class genextreme_gen(rv_continuous):
         return exp(self._logpdf(x, c))
 
     def _logpdf(self, x, c):
-        x1 = where((c == 0) & (x == inf), 0.0, x)
-        cx = c * x1
-        cond1 = (c == 0) * (x == x)
-        logex2 = where(cond1, 0.0, log1p(-cx))
-        logpex2 = -x * log1pxdx(-cx)
-        # logpex2 = where(cond1,-x, logex2/c)
+        cx = c*x
+        logex2 = where((c == 0)*(x == x), 0.0, special.log1p(-cx))
+        logpex2 = self._loglogcdf(x, c)
+        # logpex2 = where((c == 0)*(x == x), -x, logex2/c)
         pex2 = exp(logpex2)
         # Handle special cases
-        logpdf = where(
-            (cx == 1) | (cx == -inf), -inf, -pex2 + logpex2 - logex2)
+        logpdf = where((cx == 1) | (cx == -inf), -inf, -pex2+logpex2-logex2)
         putmask(logpdf, (c == 1) & (x == 1), 0.0)
         return logpdf
 
     def _cdf(self, x, c):
         return exp(self._logcdf(x, c))
 
+    def _loglogcdf(self, x, c):
+        return _lazywhere((c == 0)*(x == x), (x, c),
+                          f=lambda x, c: -x,
+                          f2=lambda x, c: special.log1p(-c*x)/c)
+
     def _logcdf(self, x, c):
-        x1 = where((c == 0) & (x == inf), 0.0, x)
-        cx = c * x1
-        loglogcdf = -x * log1pxdx(-cx)
-        # loglogcdf = where((c==0)*(x==x),-x,log1p(-cx)/c)
-        return -exp(loglogcdf)
+        return -exp(self._loglogcdf(x, c))
 
     def _sf(self, x, c):
         return -expm1(self._logcdf(x, c))
@@ -2569,6 +2559,9 @@ class gumbel_l_gen(rv_continuous):
 
     def _logpdf(self, x):
         return x - exp(x)
+
+    def _sf(self, x):
+        return exp(-exp(x))
 
     def _cdf(self, x):
         return -expm1(-exp(x))
