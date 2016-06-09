@@ -1120,15 +1120,6 @@ class expon_gen(rv_continuous):
     %(example)s
 
     """
-
-    def _link(self, x, logSF, phat, ix):
-        if ix == 1:
-            return - (x - phat[0]) / logSF
-        elif ix == 0:
-            return x + phat[1] * logSF
-        else:
-            raise IndexError('Index to the fixed parameter is out of bounds')
-
     def _rvs(self):
         return self._random_state.standard_exponential(self._size)
 
@@ -1593,17 +1584,6 @@ class frechet_r_gen(rv_continuous):
     %(example)s
 
     """
-    def _link(self, x, logSF, phat, ix):
-        if ix == 0:
-            phati = log(-logSF) / log((x - phat[1]) / phat[2])
-        elif ix == 1:
-            phati = x - phat[2] * (-logSF) ** (1. / phat[0])
-        elif ix == 2:
-            phati = (x - phat[1]) / (-logSF) ** (1. / phat[0])
-        else:
-            raise IndexError('Index to the fixed parameter is out of bounds')
-        return phati
-
     def _pdf(self, x, c):
         return c*pow(x, c-1)*exp(-pow(x, c))
 
@@ -1762,33 +1742,6 @@ class genpareto_gen(rv_continuous):
     %(example)s
 
     """
-
-    def _link(self, x, logSF, phat, ix):
-        # Reference
-        # Stuart Coles (2004)
-        # "An introduction to statistical modelling of extreme values".
-        # Springer series in statistics
-        c, loc, scale = phat
-        if ix == 2:
-            # Reorganizing w.r.t.scale, Eq. 4.13 and 4.14, pp 81 in
-            # Coles (2004) gives
-            #   link = -(x-loc)*c/expm1(-c*logSF)
-            if c != 0.0:
-                phati = (x - loc) * c / expm1(-c * logSF)
-            else:
-                phati = -(x - loc) / logSF
-        elif ix == 1:
-            if c != 0:
-                phati = x + scale * expm1(c * logSF) / c
-            else:
-                phati = x + scale * logSF
-        elif ix == 0:
-            raise NotImplementedError(
-                'link(x,logSF,phat,i) where i=0 is not implemented!')
-        else:
-            raise IndexError('Index to the fixed parameter is out of bounds')
-        return phati
-
     def _argcheck(self, c):
         c = asarray(c)
         self.b = _lazywhere(c < 0, (c,),
@@ -1831,57 +1784,6 @@ class genpareto_gen(rv_continuous):
         shape = ((m / s) ** 2 - 1) / 2
         scale = m * ((m / s) ** 2 + 1) / 2
         return shape, loc, scale
-
-    def hessian_nnlf(self, theta, x, eps=None):
-        try:
-            loc = theta[-2]
-            scale = theta[-1]
-            args = tuple(theta[:-2])
-        except IndexError:
-            raise ValueError("Not enough input arguments.")
-        if not self._argcheck(*args) or scale <= 0:
-            return inf
-        x = asarray((x - loc) / scale)
-        cond0 = (x <= self.a) | (x >= self.b)
-        if any(cond0):
-            np = self.numargs + 2
-            return valarray((np, np), value=nan)
-        eps = _EPS
-        c = args[0]
-        n = len(x)
-        if abs(c) > eps:
-            cx = c * x
-            sumlog1pcx = sum(log1p(cx))
-            # LL = n*log(scale) + (1-1/k)*sumlog1mkxn
-            r = x / (1.0 + cx)
-            sumix = sum(1.0 / (1.0 + cx) ** 2.0)
-
-            sumr = sum(r)
-            sumr2 = sum(r ** 2.0)
-            H11 = -2 * sumlog1pcx / c ** 3 + 2 * \
-                sumr / c ** 2 + (1.0 + 1.0 / c) * sumr2
-            H22 = c * (c + 1) * sumix / scale ** 2.0
-            H33 = (n - 2 * (c + 1) * sumr +
-                   c * (c + 1) * sumr2) / scale ** 2.0
-            H12 = -sum((1 - x) / ((1 + cx) ** 2.0)) / scale
-            H23 = -(c + 1) * sumix / scale ** 2.0
-            H13 = -(sumr - (c + 1) * sumr2) / scale
-
-        else:  # c == 0
-            sumx = sum(x)
-            # LL = n*log(scale) + sumx;
-
-            sumx2 = sum(x ** 2.0)
-            H11 = -(2 / 3) * sum(x ** 3.0) + sumx2
-            H22 = 0.0
-            H12 = -(n - sum(x)) / scale
-            H23 = -n * 1.0 / scale ** 2.0
-            H33 = (n - 2 * sumx) / scale ** 2.0
-            H13 = -(sumx - sumx2) / scale
-
-        # Hessian matrix
-        H = [[H11, H12, H13], [H12, H22, H23], [H13, H23, H33]]
-        return asarray(H)
 
     def __stats(self, c):
         # return None,None,None,None
@@ -1950,25 +1852,9 @@ class genexpon_gen(rv_continuous):
     %(example)s
 
     """
-
-    def _link(self, x, logSF, phat, ix):
-        _a, b, c, loc, scale = phat
-        xn = (x - loc) / scale
-        fact1 = (xn + expm1(-c * xn) / c)
-        if ix == 0:
-            phati = b * fact1 + logSF
-        elif ix == 1:
-            phati = (phat[0] - logSF) / fact1
-        elif ix in [2, 3, 4]:
-            raise NotImplementedError('Only implemented for index in [0,1]!')
-        else:
-            raise IndexError('Index to the fixed parameter is out of bounds')
-
-        return phati
-
     def _pdf(self, x, a, b, c):
-        return (a + b*(-special.expm1(-c*x)))*exp((-a-b)*x +
-            b*(-special.expm1(-c*x))/c)
+        return (a + b*(-special.expm1(-c*x))) * exp((-a-b)*x +
+                                                    b*(-special.expm1(-c*x))/c)
 
     def _cdf(self, x, a, b, c):
         return -special.expm1((-a-b)*x + b*(-special.expm1(-c*x))/c)
@@ -4248,15 +4134,6 @@ class rayleigh_gen(rv_continuous):
     %(example)s
 
     """
-
-    def _link(self, x, logSF, phat, ix):
-        if ix == 1:
-            return x - phat[0] / sqrt(-2.0 * logSF)
-        elif ix == 0:
-            return x - phat[1] * sqrt(-2.0 * logSF)
-        else:
-            raise IndexError('Index to the fixed parameter is out of bounds')
-
     def _rvs(self):
         return chi.rvs(2, size=self._size, random_state=self._random_state)
 
@@ -4313,18 +4190,6 @@ class truncrayleigh_gen(rv_continuous):
 
     def _argcheck(self, c):
         return (c >= 0)
-
-    def _link(self, x, logSF, phat, ix):
-        c, loc, scale = phat
-        if ix == 2:
-            return x - loc / (sqrt(c * c - 2 * logSF) - c)
-        elif ix == 1:
-            return x - scale * (sqrt(c * c - 2 * logSF) - c)
-        elif ix == 0:
-            xn = (x - loc) / scale
-            return - 2 * logSF / xn - xn / 2.0
-        else:
-            raise IndexError('Index to the fixed parameter is out of bounds')
 
     def _fitstart(self, data, args=None):
         if args is None:
@@ -5167,7 +5032,7 @@ _distn_names, _distn_gen_names = get_distribution_names(pairs, rv_continuous)
 __all__ = _distn_names + _distn_gen_names
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
     v = genextreme.logpdf(np.inf, 0)
     v2 = genextreme.logpdf(-np.inf, 0)
     v2 = genextreme.logpdf(-100, 0)
