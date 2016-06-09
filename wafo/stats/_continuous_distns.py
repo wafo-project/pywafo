@@ -13,7 +13,8 @@ from scipy import optimize
 from scipy import integrate
 from scipy.special import (gammaln as gamln, gamma as gam, boxcox, boxcox1p,
                            inv_boxcox, inv_boxcox1p, erfc, chndtr, chndtrix,
-                           log1p, expm1)
+                           log1p, expm1,
+                           i0, i1, ndtr as _norm_cdf, log_ndtr as _norm_logcdf)
 
 from numpy import (where, arange, putmask, ravel, shape,
                    log, sqrt, exp, arctanh, tan, sin, arcsin, arctan,
@@ -31,13 +32,12 @@ except:
 from scipy.stats._tukeylambda_stats import (tukeylambda_variance as _tlvar,
                                             tukeylambda_kurtosis as _tlkurt)
 
-from ._distn_infrastructure import (
-        rv_continuous, valarray, _skew, _kurtosis,  # @UnresolvedImport
-        _lazywhere,  _ncx2_log_pdf, _ncx2_pdf, _ncx2_cdf,  # @UnresolvedImport
-        get_distribution_names,  # @UnresolvedImport
+from wafo.stats._distn_infrastructure import (
+        rv_continuous, valarray, _skew, _kurtosis, _lazywhere,
+        _ncx2_log_pdf, _ncx2_pdf, _ncx2_cdf, get_distribution_names,
         )
 
-from ._constants import _XMIN, _EULER, _ZETA3, _XMAX, _LOGXMAX, _EPS
+from wafo.stats._constants import _XMIN, _EULER, _ZETA3, _XMAX, _LOGXMAX, _EPS
 
 
 ## Kolmogorov-Smirnov one-sided and two-sided test statistics
@@ -89,24 +89,16 @@ def _norm_logpdf(x):
     return -x**2 / 2.0 - _norm_pdf_logC
 
 
-def _norm_cdf(x):
-    return special.ndtr(x)
-
-
-def _norm_logcdf(x):
-    return special.log_ndtr(x)
-
-
 def _norm_ppf(q):
     return special.ndtri(q)
 
 
 def _norm_sf(x):
-    return special.ndtr(-x)
+    return _norm_cdf(-x)
 
 
 def _norm_logsf(x):
-    return special.log_ndtr(-x)
+    return _norm_logcdf(-x)
 
 
 def _norm_isf(q):
@@ -126,6 +118,10 @@ class norm_gen(rv_continuous):
     The probability density function for `norm` is::
 
         norm.pdf(x) = exp(-x**2/2)/sqrt(2*pi)
+
+    The survival function, ``norm.sf``, is also referred to as the
+    Q-function in some contexts (see, e.g.,
+    `Wikipedia's <https://en.wikipedia.org/wiki/Q-function>`_ definition).
 
     %(after_notes)s
 
@@ -220,13 +216,13 @@ class alpha_gen(rv_continuous):
 
     """
     def _pdf(self, x, a):
-        return 1.0/(x**2)/special.ndtr(a)*_norm_pdf(a-1.0/x)
+        return 1.0/(x**2)/_norm_cdf(a)*_norm_pdf(a-1.0/x)
 
     def _logpdf(self, x, a):
-        return -2*log(x) + _norm_logpdf(a-1.0/x) - log(special.ndtr(a))
+        return -2*log(x) + _norm_logpdf(a-1.0/x) - log(_norm_cdf(a))
 
     def _cdf(self, x, a):
-        return special.ndtr(a-1.0/x) / special.ndtr(a)
+        return _norm_cdf(a-1.0/x) / _norm_cdf(a)
 
     def _ppf(self, q, a):
         return 1.0/asarray(a-special.ndtri(q*special.ndtr(a)))
@@ -605,13 +601,13 @@ class bradford_gen(rv_continuous):
 
     """
     def _pdf(self, x, c):
-        return c / (c * x + 1.0) / log1p(c)
+        return c * exp(-log1p(c * x)) / log1p(c)
 
     def _cdf(self, x, c):
         return log1p(c * x) / log1p(c)
 
     def _ppf(self, q, c):
-        return ((1.0+c)**q-1)/c
+        return expm1(q * log1p(c))/c  # ((1.0+c)**q-1)/c
 
     def _stats(self, c, moments='mv'):
         k = log1p(c)
@@ -1124,15 +1120,6 @@ class expon_gen(rv_continuous):
     %(example)s
 
     """
-
-    def _link(self, x, logSF, phat, ix):
-        if ix == 1:
-            return - (x - phat[0]) / logSF
-        elif ix == 0:
-            return x + phat[1] * logSF
-        else:
-            raise IndexError('Index to the fixed parameter is out of bounds')
-
     def _rvs(self):
         return self._random_state.standard_exponential(self._size)
 
@@ -1221,12 +1208,12 @@ class exponnorm_gen(rv_continuous):
     def _cdf(self, x, K):
         invK = 1.0 / K
         expval = invK * (0.5 * invK - x)
-        return special.ndtr(x) - exp(expval) * special.ndtr(x - invK)
+        return _norm_cdf(x) - exp(expval) * _norm_cdf(x - invK)
 
     def _sf(self, x, K):
         invK = 1.0 / K
         expval = invK * (0.5 * invK - x)
-        return special.ndtr(-x) + exp(expval) * special.ndtr(x - invK)
+        return _norm_cdf(-x) + exp(expval) * _norm_cdf(x - invK)
 
     def _stats(self, K):
         K2 = K * K
@@ -1366,7 +1353,7 @@ class fatiguelife_gen(rv_continuous):
                 0.5*(log(2*pi) + 3*log(x)))
 
     def _cdf(self, x, c):
-        return special.ndtr(1.0 / c * (sqrt(x) - 1.0/sqrt(x)))
+        return _norm_cdf(1.0 / c * (sqrt(x) - 1.0/sqrt(x)))
 
     def _ppf(self, q, c):
         tmp = c*special.ndtri(q)
@@ -1545,7 +1532,7 @@ class foldnorm_gen(rv_continuous):
         return _norm_pdf(x + c) + _norm_pdf(x-c)
 
     def _cdf(self, x, c):
-        return special.ndtr(x-c) + special.ndtr(x+c) - 1.0
+        return _norm_cdf(x-c) + _norm_cdf(x+c) - 1.0
 
     def _stats(self, c):
         # Regina C. Elandt, Technometrics 3, 551 (1961)
@@ -1597,17 +1584,6 @@ class frechet_r_gen(rv_continuous):
     %(example)s
 
     """
-    def _link(self, x, logSF, phat, ix):
-        if ix == 0:
-            phati = log(-logSF) / log((x - phat[1]) / phat[2])
-        elif ix == 1:
-            phati = x - phat[2] * (-logSF) ** (1. / phat[0])
-        elif ix == 2:
-            phati = (x - phat[1]) / (-logSF) ** (1. / phat[0])
-        else:
-            raise IndexError('Index to the fixed parameter is out of bounds')
-        return phati
-
     def _pdf(self, x, c):
         return c*pow(x, c-1)*exp(-pow(x, c))
 
@@ -1736,14 +1712,6 @@ class genlogistic_gen(rv_continuous):
 genlogistic = genlogistic_gen(name='genlogistic')
 
 
-def log1pxdx(x):
-    '''Computes Log(1+x)/x
-    '''
-    xd = where((x == 0) | (x == inf), 1.0, x)  # avoid 0/0 or inf/inf
-    y = where(x == 0, 1.0, log1p(x) / xd)
-    return where(x == inf, 0.0, y)
-
-
 class genpareto_gen(rv_continuous):
     """A generalized Pareto continuous random variable.
 
@@ -1774,33 +1742,6 @@ class genpareto_gen(rv_continuous):
     %(example)s
 
     """
-
-    def _link(self, x, logSF, phat, ix):
-        # Reference
-        # Stuart Coles (2004)
-        # "An introduction to statistical modelling of extreme values".
-        # Springer series in statistics
-        c, loc, scale = phat
-        if ix == 2:
-            # Reorganizing w.r.t.scale, Eq. 4.13 and 4.14, pp 81 in
-            # Coles (2004) gives
-            #   link = -(x-loc)*c/expm1(-c*logSF)
-            if c != 0.0:
-                phati = (x - loc) * c / expm1(-c * logSF)
-            else:
-                phati = -(x - loc) / logSF
-        elif ix == 1:
-            if c != 0:
-                phati = x + scale * expm1(c * logSF) / c
-            else:
-                phati = x + scale * logSF
-        elif ix == 0:
-            raise NotImplementedError(
-                'link(x,logSF,phat,i) where i=0 is not implemented!')
-        else:
-            raise IndexError('Index to the fixed parameter is out of bounds')
-        return phati
-
     def _argcheck(self, c):
         c = asarray(c)
         self.b = _lazywhere(c < 0, (c,),
@@ -1843,57 +1784,6 @@ class genpareto_gen(rv_continuous):
         shape = ((m / s) ** 2 - 1) / 2
         scale = m * ((m / s) ** 2 + 1) / 2
         return shape, loc, scale
-
-    def hessian_nnlf(self, theta, x, eps=None):
-        try:
-            loc = theta[-2]
-            scale = theta[-1]
-            args = tuple(theta[:-2])
-        except IndexError:
-            raise ValueError("Not enough input arguments.")
-        if not self._argcheck(*args) or scale <= 0:
-            return inf
-        x = asarray((x - loc) / scale)
-        cond0 = (x <= self.a) | (x >= self.b)
-        if any(cond0):
-            np = self.numargs + 2
-            return valarray((np, np), value=nan)
-        eps = _EPS
-        c = args[0]
-        n = len(x)
-        if abs(c) > eps:
-            cx = c * x
-            sumlog1pcx = sum(log1p(cx))
-            # LL = n*log(scale) + (1-1/k)*sumlog1mkxn
-            r = x / (1.0 + cx)
-            sumix = sum(1.0 / (1.0 + cx) ** 2.0)
-
-            sumr = sum(r)
-            sumr2 = sum(r ** 2.0)
-            H11 = -2 * sumlog1pcx / c ** 3 + 2 * \
-                sumr / c ** 2 + (1.0 + 1.0 / c) * sumr2
-            H22 = c * (c + 1) * sumix / scale ** 2.0
-            H33 = (n - 2 * (c + 1) * sumr +
-                   c * (c + 1) * sumr2) / scale ** 2.0
-            H12 = -sum((1 - x) / ((1 + cx) ** 2.0)) / scale
-            H23 = -(c + 1) * sumix / scale ** 2.0
-            H13 = -(sumr - (c + 1) * sumr2) / scale
-
-        else:  # c == 0
-            sumx = sum(x)
-            # LL = n*log(scale) + sumx;
-
-            sumx2 = sum(x ** 2.0)
-            H11 = -(2 / 3) * sum(x ** 3.0) + sumx2
-            H22 = 0.0
-            H12 = -(n - sum(x)) / scale
-            H23 = -n * 1.0 / scale ** 2.0
-            H33 = (n - 2 * sumx) / scale ** 2.0
-            H13 = -(sumx - sumx2) / scale
-
-        # Hessian matrix
-        H = [[H11, H12, H13], [H12, H22, H23], [H13, H23, H33]]
-        return asarray(H)
 
     def __stats(self, c):
         # return None,None,None,None
@@ -1962,25 +1852,9 @@ class genexpon_gen(rv_continuous):
     %(example)s
 
     """
-
-    def _link(self, x, logSF, phat, ix):
-        _a, b, c, loc, scale = phat
-        xn = (x - loc) / scale
-        fact1 = (xn + expm1(-c * xn) / c)
-        if ix == 0:
-            phati = b * fact1 + logSF
-        elif ix == 1:
-            phati = (phat[0] - logSF) / fact1
-        elif ix in [2, 3, 4]:
-            raise NotImplementedError('Only implemented for index in [0,1]!')
-        else:
-            raise IndexError('Index to the fixed parameter is out of bounds')
-
-        return phati
-
     def _pdf(self, x, a, b, c):
-        return (a + b*(-special.expm1(-c*x)))*exp((-a-b)*x +
-            b*(-special.expm1(-c*x))/c)
+        return (a + b*(-special.expm1(-c*x))) * exp((-a-b)*x +
+                                                    b*(-special.expm1(-c*x))/c)
 
     def _cdf(self, x, a, b, c):
         return -special.expm1((-a-b)*x + b*(-special.expm1(-c*x))/c)
@@ -2030,34 +1904,36 @@ class genextreme_gen(rv_continuous):
         return exp(self._logpdf(x, c))
 
     def _logpdf(self, x, c):
-        x1 = where((c == 0) & (x == inf), 0.0, x)
-        cx = c * x1
-        cond1 = (c == 0) * (x == x)
-        logex2 = where(cond1, 0.0, log1p(-cx))
-        logpex2 = -x * log1pxdx(-cx)
-        # logpex2 = where(cond1,-x, logex2/c)
+        cx = _lazywhere((c != 0)*(x == x), (x, c), lambda x, c: c*x,  0.0)
+        logex2 = special.log1p(-cx)
+        logpex2 = self._loglogcdf(x, c)
         pex2 = exp(logpex2)
         # Handle special cases
-        logpdf = where(
-            (cx == 1) | (cx == -inf), -inf, -pex2 + logpex2 - logex2)
+        putmask(logpex2, (c == 0) & (x == -inf), 0.0)
+        logpdf = where((cx == 1) | (cx == -inf), -inf, -pex2+logpex2-logex2)
         putmask(logpdf, (c == 1) & (x == 1), 0.0)
         return logpdf
 
     def _cdf(self, x, c):
         return exp(self._logcdf(x, c))
 
+    def _loglogcdf(self, x, c):
+        return _lazywhere((c != 0) & (x == x), (x, c),
+                          lambda x, c: special.log1p(-c * x)/c, -x)
+
     def _logcdf(self, x, c):
-        x1 = where((c == 0) & (x == inf), 0.0, x)
-        cx = c * x1
-        loglogcdf = -x * log1pxdx(-cx)
-        # loglogcdf = where((c==0)*(x==x),-x,log1p(-cx)/c)
-        return -exp(loglogcdf)
+        return -exp(self._loglogcdf(x, c))
 
     def _sf(self, x, c):
         return -expm1(self._logcdf(x, c))
 
     def _ppf(self, q, c):
         x = -log(-log(q))
+        return _lazywhere((x == x) & (c != 0), (x, c),
+                          lambda x, c: -expm1(-c * x) / c, x)
+
+    def _isf(self, q, c):
+        x = -log(-special.log1p(-q))
         return _lazywhere((x == x) & (c != 0), (x, c),
                           lambda x, c: -expm1(-c * x) / c, x)
 
@@ -2087,16 +1963,6 @@ class genextreme_gen(rv_continuous):
         ku = where(abs(c) <= (eps)**0.23, 12.0/5.0, ku1-3.0)
         return m, v, sk, ku
 
-    def _munp(self, n, c):
-        k = arange(0, n+1)
-        vals = 1.0/c**n * np.sum(
-            comb(n, k) * (-1)**k * special.gamma(c*k + 1),
-            axis=0)
-        return where(c*n > -1, vals, inf)
-
-    def _entropy(self, c):
-        return _EULER*(1 - c) + 1
-
     def _fitstart(self, data):
         d = asarray(data)
         # Probability weighted moments
@@ -2114,6 +1980,17 @@ class genextreme_gen(rv_continuous):
             (exp(gamln(1 + shape)) * (1 - 2 ** (-shape)))
         loc = b0 + scale * (expm1(gamln(1 + shape))) / shape
         return shape, loc, scale
+
+    def _munp(self, n, c):
+        k = arange(0, n+1)
+        vals = 1.0/c**n * np.sum(
+            comb(n, k) * (-1)**k * special.gamma(c*k + 1),
+            axis=0)
+        return where(c*n > -1, vals, inf)
+
+    def _entropy(self, c):
+        return _EULER*(1 - c) + 1
+
 genextreme = genextreme_gen(name='genextreme')
 
 
@@ -2566,6 +2443,12 @@ class gumbel_l_gen(rv_continuous):
     def _logpdf(self, x):
         return x - exp(x)
 
+    def _logsf(self, x):
+        return -exp(x)
+
+    def _sf(self, x):
+        return exp(-exp(x))
+
     def _cdf(self, x):
         return -expm1(-exp(x))
 
@@ -2695,7 +2578,7 @@ class halfnorm_gen(rv_continuous):
         return 0.5 * np.log(2.0/pi) - x*x/2.0
 
     def _cdf(self, x):
-        return special.ndtr(x)*2-1.0
+        return _norm_cdf(x)*2-1.0
 
     def _ppf(self, q):
         return special.ndtri((1+q)/2.0)
@@ -2852,7 +2735,7 @@ class invgauss_gen(rv_continuous):
 
     %(after_notes)s
 
-    When `mu` is too small, evaluating the cumulative density function will be
+    When `mu` is too small, evaluating the cumulative distribution function will be
     inaccurate due to ``cdf(mu -> 0) = inf * 0``.
     NaNs are returned for ``mu <= 0.0028``.
 
@@ -3206,6 +3089,9 @@ class logistic_gen(rv_continuous):
     def _ppf(self, q):
         return -log1p(-q) + log(q)
 
+    def _isf(self, q):
+        return log1p(-q) - log(q)
+
     def _stats(self):
         return 0, pi*pi/3.0, 0, 6.0/5.0
 
@@ -3348,8 +3234,17 @@ class lognorm_gen(rv_continuous):
     def _cdf(self, x, s):
         return _norm_cdf(log(x) / s)
 
+    def _logcdf(self, x, s):
+        return _norm_logcdf(log(x) / s)
+
     def _ppf(self, q, s):
         return exp(s * _norm_ppf(q))
+
+    def _sf(self, x, s):
+        return _norm_sf(log(x) / s)
+
+    def _logsf(self, x, s):
+        return _norm_logsf(log(x) / s)
 
     def _stats(self, s):
         p = exp(s*s)
@@ -4239,15 +4134,6 @@ class rayleigh_gen(rv_continuous):
     %(example)s
 
     """
-
-    def _link(self, x, logSF, phat, ix):
-        if ix == 1:
-            return x - phat[0] / sqrt(-2.0 * logSF)
-        elif ix == 0:
-            return x - phat[1] * sqrt(-2.0 * logSF)
-        else:
-            raise IndexError('Index to the fixed parameter is out of bounds')
-
     def _rvs(self):
         return chi.rvs(2, size=self._size, random_state=self._random_state)
 
@@ -4256,7 +4142,8 @@ class rayleigh_gen(rv_continuous):
 
     def _logpdf(self, r):
         rr2 = r * r / 2.0
-        return where(rr2 == inf, - rr2, log(r) - rr2)
+        return _lazywhere(rr2 != inf, (r, rr2), lambda r, rr2: log(r) - rr2,
+                          -rr2)
 
     def _cdf(self, r):
         return -special.expm1(-0.5 * r**2)
@@ -4266,6 +4153,9 @@ class rayleigh_gen(rv_continuous):
 
     def _sf(self, r):
         return exp(-0.5 * r**2)
+
+    def _logsf(self, r):
+        return -0.5 * r**2
 
     def _isf(self, q):
         return sqrt(-2 * log(q))
@@ -4300,18 +4190,6 @@ class truncrayleigh_gen(rv_continuous):
 
     def _argcheck(self, c):
         return (c >= 0)
-
-    def _link(self, x, logSF, phat, ix):
-        c, loc, scale = phat
-        if ix == 2:
-            return x - loc / (sqrt(c * c - 2 * logSF) - c)
-        elif ix == 1:
-            return x - scale * (sqrt(c * c - 2 * logSF) - c)
-        elif ix == 0:
-            xn = (x - loc) / scale
-            return - 2 * logSF / xn - xn / 2.0
-        else:
-            raise IndexError('Index to the fixed parameter is out of bounds')
 
     def _fitstart(self, data, args=None):
         if args is None:
@@ -4546,13 +4424,13 @@ class skew_norm_gen(rv_continuous):
 
     Notes
     -----
-    The pdf is
+    The pdf is::
 
-    skewnorm.pdf(x, a) = 2*norm.pdf(x)*norm.cdf(ax)
+        skewnorm.pdf(x, a) = 2*norm.pdf(x)*norm.cdf(ax)
 
     `skewnorm` takes ``a`` as a skewness parameter
     When a=0 the distribution is identical to a normal distribution.
-    rvs implements the method of [1].
+    rvs implements the method of [1]_.
 
     %(after_notes)s
 
@@ -4562,7 +4440,7 @@ class skew_norm_gen(rv_continuous):
     References
     ----------
 
-    [1] A. Azzalini and A. Capitanio (1999). Statistical applications of the
+    .. [1] A. Azzalini and A. Capitanio (1999). Statistical applications of the
         multivariate skew-normal distribution. J. Roy. Statist. Soc., B 61, 579-602.
         http://azzalini.stat.unipd.it/SN/faq-r.html
     """
@@ -4596,6 +4474,56 @@ class skew_norm_gen(rv_continuous):
         return output
 
 skewnorm = skew_norm_gen(name='skewnorm')
+
+
+class trapz_gen(rv_continuous):
+    """A trapezoidal continuous random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    The trapezoidal distribution can be represented with an up-sloping line
+    from ``loc`` to ``(loc + c*scale)``, then constant to ``(loc + d*scale)``
+    and then downsloping from ``(loc + d*scale)`` to ``(loc+scale)``.
+
+    `trapz` takes ``c`` and ``d`` as shape parameters.
+
+    %(after_notes)s
+
+    The standard form is in the range [0, 1] with c the mode.
+    The location parameter shifts the start to `loc`.
+    The scale parameter changes the width from 1 to `scale`.
+
+    %(example)s
+
+    """
+    def _argcheck(self, c, d):
+        return (c >= 0) & (c <= 1) & (d >= 0) & (d <= 1) & (d >= c)
+
+    def _pdf(self, x, c, d):
+        u = 2 / (d - c + 1)
+
+        condlist = [x < c, x <= d, x > d]
+        choicelist = [u * x / c, u, u * (1 - x) / (1 - d)]
+        return np.select(condlist, choicelist)
+
+    def _cdf(self, x, c, d):
+        condlist = [x < c, x <= d, x > d]
+        choicelist = [x**2 / c / (d - c + 1),
+                      (c + 2 * (x - c)) / (d - c + 1),
+                      1 - ((1 - x)**2 / (d - c + 1) / (1 - d))]
+        return np.select(condlist, choicelist)
+
+    def _ppf(self, q, c, d):
+        qc, qd = self._cdf(c, c, d), self._cdf(d, c, d)
+        condlist = [q < qc, q <= qd, q > qd]
+        choicelist = [np.sqrt(q * c * (1 + d - c)),
+                      0.5 * q * (1 + d - c) + 0.5 * c,
+                      1 - sqrt((1 - q) * (d - c + 1) * (1 - d))]
+        return np.select(condlist, choicelist)
+trapz = trapz_gen(a=0.0, b=1.0, name="trapz")
+
 
 class triang_gen(rv_continuous):
     """A triangular continuous random variable.
@@ -4868,13 +4796,17 @@ class vonmises_gen(rv_continuous):
         return self._random_state.vonmises(0.0, kappa, size=self._size)
 
     def _pdf(self, x, kappa):
-        return exp(kappa * cos(x)) / (2*pi*special.i0(kappa))
+        return exp(kappa * cos(x)) / (2*pi*i0(kappa))
 
     def _cdf(self, x, kappa):
         return vonmises_cython.von_mises_cdf(kappa, x)
 
     def _stats_skip(self, kappa):
         return 0, None, 0, None
+
+    def _entropy(self, kappa):
+        return (-kappa * i1(kappa) / i0(kappa)
+                + np.log(2 * np.pi * i0(kappa)))
 vonmises = vonmises_gen(name='vonmises')
 vonmises_line = vonmises_gen(a=-np.pi, b=np.pi, name='vonmises_line')
 
@@ -5098,3 +5030,9 @@ pairs = list(globals().items())
 _distn_names, _distn_gen_names = get_distribution_names(pairs, rv_continuous)
 
 __all__ = _distn_names + _distn_gen_names
+
+
+if __name__ == '__main__':
+    v = genextreme.logpdf(np.inf, 0)
+    v2 = genextreme.logpdf(-np.inf, 0)
+    v2 = genextreme.logpdf(-100, 0)

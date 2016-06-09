@@ -21,17 +21,113 @@ from scipy.linalg import pinv2
 from scipy import optimize
 
 import numpy as np
-from numpy import (alltrue, arange, zeros, log, sqrt, exp,
+from numpy import (alltrue, arange, zeros, log, sqrt, exp, expm1,
                    atleast_1d, any, asarray, nan, pi, isfinite)
 from numpy import flatnonzero as nonzero
 
 
 __all__ = ['Profile', 'FitDistribution']
 
+
 floatinfo = np.finfo(float)
 
 arr = asarray
 all = alltrue  # @ReservedAssignment
+
+
+def _expon_link(x, logSF, phat, ix):
+    if ix == 1:
+        return - (x - phat[0]) / logSF
+    elif ix == 0:
+        return x + phat[1] * logSF
+    else:
+        raise IndexError('Index to the fixed parameter is out of bounds')
+
+
+def _weibull_min_link(x, logSF, phat, ix):
+    if ix == 0:
+        phati = log(-logSF) / log((x - phat[1]) / phat[2])
+    elif ix == 1:
+        phati = x - phat[2] * (-logSF) ** (1. / phat[0])
+    elif ix == 2:
+        phati = (x - phat[1]) / (-logSF) ** (1. / phat[0])
+    else:
+        raise IndexError('Index to the fixed parameter is out of bounds')
+    return phati
+
+
+def _genpareto_link(x, logSF, phat, ix):
+    # Reference
+    # Stuart Coles (2004)
+    # "An introduction to statistical modelling of extreme values".
+    # Springer series in statistics
+    c, loc, scale = phat
+    if ix == 2:
+        # Reorganizing w.r.t.scale, Eq. 4.13 and 4.14, pp 81 in
+        # Coles (2004) gives
+        #   link = -(x-loc)*c/expm1(-c*logSF)
+        if c != 0.0:
+            phati = (x - loc) * c / expm1(-c * logSF)
+        else:
+            phati = -(x - loc) / logSF
+    elif ix == 1:
+        if c != 0:
+            phati = x + scale * expm1(c * logSF) / c
+        else:
+            phati = x + scale * logSF
+    elif ix == 0:
+        raise NotImplementedError(
+            'link(x,logSF,phat,i) where i=0 is not implemented!')
+    else:
+        raise IndexError('Index to the fixed parameter is out of bounds')
+    return phati
+
+
+def _genexpon_link(x, logSF, phat, ix):
+    _a, b, c, loc, scale = phat
+    xn = (x - loc) / scale
+    fact1 = (xn + expm1(-c * xn) / c)
+    if ix == 0:
+        phati = b * fact1 + logSF
+    elif ix == 1:
+        phati = (phat[0] - logSF) / fact1
+    elif ix in [2, 3, 4]:
+        raise NotImplementedError('Only implemented for index in [0,1]!')
+    else:
+        raise IndexError('Index to the fixed parameter is out of bounds')
+
+    return phati
+
+
+def _rayleigh_link(x, logSF, phat, ix):
+    if ix == 1:
+        return x - phat[0] / sqrt(-2.0 * logSF)
+    elif ix == 0:
+        return x - phat[1] * sqrt(-2.0 * logSF)
+    else:
+        raise IndexError('Index to the fixed parameter is out of bounds')
+
+
+def _trunclayleigh_link(x, logSF, phat, ix):
+    c, loc, scale = phat
+    if ix == 2:
+        return x - loc / (sqrt(c * c - 2 * logSF) - c)
+    elif ix == 1:
+        return x - scale * (sqrt(c * c - 2 * logSF) - c)
+    elif ix == 0:
+        xn = (x - loc) / scale
+        return - 2 * logSF / xn - xn / 2.0
+    else:
+        raise IndexError('Index to the fixed parameter is out of bounds')
+
+
+LINKS = dict(expon=_expon_link,
+             weibull_min=_weibull_min_link,
+             frechet_r=_weibull_min_link,
+             genpareto=_genpareto_link,
+             genexpon=_genexpon_link,
+             rayleigh=_rayleigh_link,
+             trunclayleigh=_trunclayleigh_link)
 
 
 def chi2isf(p, df):
@@ -197,7 +293,7 @@ class Profile(object):
         self.profile_par = not (self.profile_x or self.profile_logSF)
 
         if self.link is None:
-            self.link = self.fit_dist.dist.link
+            self.link = LINKS[self.fit_dist.dist.name]
         if self.profile_par:
             self._local_link = self._par_link
             self.xlabel = 'phat(%d)' % self.i_fixed
