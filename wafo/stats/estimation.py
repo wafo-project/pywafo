@@ -134,7 +134,9 @@ class Profile(object):
     >>> sf_ci = Lsf.get_bounds(alpha=0.2)
     '''
 
-    def __init__(self, fit_dist, **kwds):
+    def __init__(self, fit_dist, method=None, **kwds):
+        if method is None:
+            method = fit_dist.method.lower()
 
         try:
             i0 = (1 - np.isfinite(fit_dist.par_fix)).argmax()
@@ -153,10 +155,10 @@ class Profile(object):
             [i0, 100, 0.05, None, None, None, None, None])]
 
         self.title = '%g%s CI' % (100 * (1.0 - self.alpha), '%')
-        if fit_dist.method.startswith('ml'):
+        if method.startswith('ml'):
             self.ylabel = self.ylabel + 'likelihood'
             Lmax = fit_dist.LLmax
-        elif fit_dist.method.startswith('mps'):
+        elif method.startswith('mps'):
             self.ylabel = self.ylabel + ' product spacing'
             Lmax = fit_dist.LPSmax
         else:
@@ -604,13 +606,13 @@ class FitDistribution(rv_frozen):
         self.dist = dist
         numargs = dist.numargs
 
-        self.method = method
+        self.method = method.lower()
         self.alpha = alpha
         self.par_fix = par_fix
         self.search = search
         self.copydata = copydata
 
-        if self.method.lower()[:].startswith('mps'):
+        if self.method.startswith('mps'):
             self._fitfun = self._nlogps
         else:
             self._fitfun = self._nnlf
@@ -797,7 +799,7 @@ class FitDistribution(rv_frozen):
             return np.inf
         dist = self.dist
         x = asarray((x - loc) / scale)
-        cond0 = (x <= dist.a) | (dist.b <= x)
+        cond0 = (x < dist.a) | (dist.b < x)
         Nbad = np.sum(cond0)
         if Nbad > 0:
             x = argsreduce(~cond0, x)[0]
@@ -816,8 +818,8 @@ class FitDistribution(rv_frozen):
         if any(tie):
             # TODO : implement this method for treating ties in data:
             # Assume measuring error is delta. Then compute
-            # yL = F(xi-delta,theta)
-            # yU = F(xi+delta,theta)
+            # yL = F(xi - delta, theta)
+            # yU = F(xi + delta, theta)
             # and replace
             # logDj = log((yU-yL)/(r-1)) for j = i+1,i+2,...i+r-1
 
@@ -1020,7 +1022,7 @@ class FitDistribution(rv_frozen):
                 fixstr = 'Fixed: phat[%s] = %s ' % (phatistr, phatvstr)
 
         infostr = 'Fit method: %s, Fit p-value: %2.2f %s' % (
-            self.method, self.pvalue, fixstr)
+            self.method.upper(), self.pvalue, fixstr)
         try:
             plotbackend.figtext(0.05, 0.01, infostr)
         except:

@@ -289,7 +289,7 @@ def nlogps(self, theta, x):
     if not self._argcheck(*args) or scale <= 0:
         return inf
     x = asarray((x - loc) / scale)
-    cond0 = (x <= self.a) | (self.b <= x)
+    cond0 = (x < self.a) | (self.b < x)
     Nbad = np.sum(cond0)
     if Nbad > 0:
         x = argsreduce(~cond0, x)[0]
@@ -328,11 +328,40 @@ def nlogps(self, theta, x):
     return T
 
 
+def _penalized_nnlf(self, theta, x):
+        ''' Return negative loglikelihood function,
+        i.e., - sum (log pdf(x, theta), axis=0)
+           where theta are the parameters (including loc and scale)
+        '''
+        try:
+            loc = theta[-2]
+            scale = theta[-1]
+            args = tuple(theta[:-2])
+        except IndexError:
+            raise ValueError("Not enough input arguments.")
+        if not self._argcheck(*args) or scale <= 0:
+            return inf
+        x = asarray((x-loc) / scale)
+
+        loginf = log(_XMAX)
+
+        if np.isneginf(self.a).all() and np.isinf(self.b).all():
+            Nbad = 0
+        else:
+            cond0 = (x < self.a) | (self.b < x)
+            Nbad = sum(cond0)
+            if Nbad > 0:
+                x = argsreduce(~cond0, x)[0]
+
+        N = len(x)
+        return self._nnlf(x, *args) + N*log(scale) + Nbad * 100.0 * loginf
+
+
 def _reduce_func(self, args, options):
     # First of all, convert fshapes params to fnum: eg for stats.beta,
     # shapes='a, b'. To fix `a`, can specify either `f1` or `fa`.
     # Convert the latter into the former.
-    kwds = options.copy()
+    kwds = options  # .copy()
     if self.shapes:
         shapes = self.shapes.replace(',', ' ').split()
         for j, s in enumerate(shapes):
@@ -574,6 +603,7 @@ rv_continuous.freeze = freeze
 rv_continuous.link = link
 rv_continuous._link = _link
 rv_continuous.nlogps = nlogps
+rv_continuous._penalized_nnlf = _penalized_nnlf
 rv_continuous._reduce_func = _reduce_func
 rv_continuous.fit = fit
 rv_continuous.fit2 = fit2

@@ -1422,8 +1422,14 @@ class SpecData1D(PlotData):
         The joint density of zero separated Max2min cycles in time (a);
         in space (b); AcAt in time for nonlinear sea model (c):
 
-        Hm0=7;Tp=11
-        S = jonswap(4*pi/Tp,[Hm0 Tp])
+        >>> from wafo.spectrum import models as sm
+        >>> w = np.linspace(0,3,100)
+        >>> Sj = sm.Jonswap()
+        >>> S = Sj.tospecdata()
+        >>> f = S.to_t_pdf(pdef='Tc', paramt=(0, 10, 51), speed=7)
+        >>> Hm0 = 7
+        >>> Tp = 11
+        >>> S = sm.Jonswap(4*pi/Tp,[Hm0 Tp])
         Sk = spec2spec(S,'k1d')
         L0 = spec2mom(S,1)
         paramu = [sqrt(L0)*[-4 4] 41]
