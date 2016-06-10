@@ -5033,6 +5033,7 @@ __all__ = _distn_names + _distn_gen_names
 
 
 if __name__ == '__main__':
+    v = rayleigh.logpdf(x)
     v = genextreme.logpdf(np.inf, 0)
     v2 = genextreme.logpdf(-np.inf, 0)
     v2 = genextreme.logpdf(-100, 0)
