@@ -21,7 +21,8 @@ from scipy.linalg import pinv2
 from scipy import optimize
 
 import numpy as np
-from numpy import (alltrue, arange, zeros, log, sqrt, exp, expm1,
+from scipy.special import expm1, log1p
+from numpy import (alltrue, arange, zeros, log, sqrt, exp,
                    atleast_1d, any, asarray, nan, pi, isfinite)
 from numpy import flatnonzero as nonzero
 
@@ -38,10 +39,9 @@ all = alltrue  # @ReservedAssignment
 def _expon_link(x, logSF, phat, ix):
     if ix == 1:
         return - (x - phat[0]) / logSF
-    elif ix == 0:
+    if ix == 0:
         return x + phat[1] * logSF
-    else:
-        raise IndexError('Index to the fixed parameter is out of bounds')
+    raise IndexError('Index to the fixed parameter is out of bounds')
 
 
 def _weibull_min_link(x, logSF, phat, ix):
@@ -54,6 +54,21 @@ def _weibull_min_link(x, logSF, phat, ix):
     else:
         raise IndexError('Index to the fixed parameter is out of bounds')
     return phati
+
+
+def _exponweib_link(x, logSF, phat, ix):
+    a, c, loc, scale = phat
+    logP = -log(-expm1(logSF))
+    xn = (x - loc) / scale
+    if ix == 0:
+        return - logP / log(-expm1(-xn**c))
+    if ix == 1:
+        return log(-log1p(- logP**(1.0 / a))) / log(xn)
+    if ix == 2:
+        return x - (-log1p(- logP**(1.0/a))) ** (1.0 / c) * scale
+    if ix == 3:
+        return (x - loc) / (-log1p(- logP**(1.0/a))) ** (1.0 / c)
+    raise IndexError('Index to the fixed parameter is out of bounds')
 
 
 def _genpareto_link(x, logSF, phat, ix):
@@ -83,42 +98,61 @@ def _genpareto_link(x, logSF, phat, ix):
     return phati
 
 
+def _genextreme_link(x, logSF, phat, ix):
+    c, loc, scale = phat
+    loglogP = log(-log(-expm1(logSF)))
+    if ix == 2:
+        #   link = -(x-loc)*c/expm1(c*log(-logP))
+        if c != 0.0:
+            phati = -(x - loc) * c / expm1(c * loglogP)
+        else:
+            phati = -(x - loc) / loglogP
+    elif ix == 1:
+        if c != 0:
+            phati = x + scale * expm1(c * loglogP) / c
+        else:
+            phati = x + scale * loglogP
+    elif ix == 0:
+        raise NotImplementedError(
+            'link(x,logSF,phat,i) where i=0 is not implemented!')
+    else:
+        raise IndexError('Index to the fixed parameter is out of bounds')
+    return phati
+
+
 def _genexpon_link(x, logSF, phat, ix):
-    _a, b, c, loc, scale = phat
+    a, b, c, loc, scale = phat
     xn = (x - loc) / scale
     fact1 = (xn + expm1(-c * xn) / c)
     if ix == 0:
         phati = b * fact1 + logSF
     elif ix == 1:
-        phati = (phat[0] - logSF) / fact1
+        phati = (a - logSF) / fact1
     elif ix in [2, 3, 4]:
         raise NotImplementedError('Only implemented for index in [0,1]!')
     else:
         raise IndexError('Index to the fixed parameter is out of bounds')
-
     return phati
 
 
 def _rayleigh_link(x, logSF, phat, ix):
     if ix == 1:
         return x - phat[0] / sqrt(-2.0 * logSF)
-    elif ix == 0:
+    if ix == 0:
         return x - phat[1] * sqrt(-2.0 * logSF)
-    else:
-        raise IndexError('Index to the fixed parameter is out of bounds')
+    raise IndexError('Index to the fixed parameter is out of bounds')
 
 
 def _trunclayleigh_link(x, logSF, phat, ix):
     c, loc, scale = phat
-    if ix == 2:
-        return x - loc / (sqrt(c * c - 2 * logSF) - c)
-    elif ix == 1:
-        return x - scale * (sqrt(c * c - 2 * logSF) - c)
-    elif ix == 0:
+    if ix == 0:
         xn = (x - loc) / scale
         return - 2 * logSF / xn - xn / 2.0
-    else:
-        raise IndexError('Index to the fixed parameter is out of bounds')
+    if ix == 2:
+        return x - loc / (sqrt(c * c - 2 * logSF) - c)
+    if ix == 1:
+        return x - scale * (sqrt(c * c - 2 * logSF) - c)
+    raise IndexError('Index to the fixed parameter is out of bounds')
 
 
 LINKS = dict(expon=_expon_link,
@@ -127,7 +161,9 @@ LINKS = dict(expon=_expon_link,
              genpareto=_genpareto_link,
              genexpon=_genexpon_link,
              rayleigh=_rayleigh_link,
-             trunclayleigh=_trunclayleigh_link)
+             trunclayleigh=_trunclayleigh_link,
+             genextreme=_genextreme_link,
+             exponweib=_exponweib_link)
 
 
 def chi2isf(p, df):
