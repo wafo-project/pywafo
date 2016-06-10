@@ -329,32 +329,32 @@ def nlogps(self, theta, x):
 
 
 def _penalized_nnlf(self, theta, x):
-        ''' Return negative loglikelihood function,
-        i.e., - sum (log pdf(x, theta), axis=0)
-           where theta are the parameters (including loc and scale)
-        '''
-        try:
-            loc = theta[-2]
-            scale = theta[-1]
-            args = tuple(theta[:-2])
-        except IndexError:
-            raise ValueError("Not enough input arguments.")
-        if not self._argcheck(*args) or scale <= 0:
-            return inf
-        x = asarray((x-loc) / scale)
-
-        loginf = log(_XMAX)
-
-        if np.isneginf(self.a).all() and np.isinf(self.b).all():
-            Nbad = 0
-        else:
-            cond0 = (x < self.a) | (self.b < x)
-            Nbad = sum(cond0)
-            if Nbad > 0:
-                x = argsreduce(~cond0, x)[0]
-
-        N = len(x)
-        return self._nnlf(x, *args) + N*log(scale) + Nbad * 100.0 * loginf
+    ''' Return negative loglikelihood function,
+    i.e., - sum (log pdf(x, theta), axis=0)
+       where theta are the parameters (including loc and scale)
+    '''
+    try:
+        loc = theta[-2]
+        scale = theta[-1]
+        args = tuple(theta[:-2])
+    except IndexError:
+        raise ValueError("Not enough input arguments.")
+    if not self._argcheck(*args) or scale <= 0:
+        return inf
+    x = asarray((x-loc) / scale)
+    N = len(x)
+    cond0 = (x < self.a) | (self.b < x)
+    Nbad = sum(cond0)
+    if Nbad > 0:
+        x = argsreduce(~cond0, x)[0]
+    logpdf = self._logpdf(x, *args)
+    finite_logpdf = np.isfinite(logpdf)
+    Nbad += np.sum(~finite_logpdf, axis=0)
+    logscale = N * log(scale)
+    if Nbad > 0:
+        penalty = Nbad * log(_XMAX) * 100
+        return -np.sum(logpdf[finite_logpdf], axis=0) + penalty + logscale
+    return -np.sum(logpdf, axis=0) + logscale
 
 
 def _reduce_func(self, args, options):
