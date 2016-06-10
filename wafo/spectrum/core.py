@@ -1427,7 +1427,7 @@ class SpecData1D(PlotData):
         >>> Sj = sm.Jonswap()
         >>> S = Sj.tospecdata()
         >>> f = S.to_t_pdf(pdef='Tc', paramt=(0, 10, 51), speed=7)
-        >>> S = sm.Jonswap(4*pi/Tp, Hm0=7, Tp=11)
+        >>> S = sm.Jonswap(wnc=2, Hm0=7, Tp=11)
 
 
         Sk = spec2spec(S,'k1d')
