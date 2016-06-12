@@ -36,6 +36,21 @@ arr = asarray
 all = alltrue  # @ReservedAssignment
 
 
+def _burr_link(x, logSF, phat, ix):
+    c, d, loc, scale = phat
+    logp = log(-expm1(logSF))
+    xn = (x - loc) / scale
+    if ix == 1:
+        return -logp / log1p(xn**(-c))
+    if ix == 0:
+        return log1p(-exp(-logp / d)) / log(xn)
+    if ix == 2:
+        return x - scale * exp(log1p(-exp(-logp / d)) / c)
+    if ix == 3:
+        return (x - loc) / exp(log1p(-exp(-logp / d)) / c)
+    raise IndexError('Index to the fixed parameter is out of bounds')
+
+
 def _expon_link(x, logSF, phat, ix):
     if ix == 1:
         return - (x - phat[0]) / logSF
@@ -104,20 +119,16 @@ def _genextreme_link(x, logSF, phat, ix):
     if ix == 2:
         #   link = -(x-loc)*c/expm1(c*log(-logP))
         if c != 0.0:
-            phati = -(x - loc) * c / expm1(c * loglogP)
-        else:
-            phati = -(x - loc) / loglogP
-    elif ix == 1:
+            return -(x - loc) * c / expm1(c * loglogP)
+        return -(x - loc) / loglogP
+    if ix == 1:
         if c != 0:
-            phati = x + scale * expm1(c * loglogP) / c
-        else:
-            phati = x + scale * loglogP
-    elif ix == 0:
+            return x + scale * expm1(c * loglogP) / c
+        return x + scale * loglogP
+    if ix == 0:
         raise NotImplementedError(
             'link(x,logSF,phat,i) where i=0 is not implemented!')
-    else:
-        raise IndexError('Index to the fixed parameter is out of bounds')
-    return phati
+    raise IndexError('Index to the fixed parameter is out of bounds')
 
 
 def _genexpon_link(x, logSF, phat, ix):
@@ -125,14 +136,12 @@ def _genexpon_link(x, logSF, phat, ix):
     xn = (x - loc) / scale
     fact1 = (xn + expm1(-c * xn) / c)
     if ix == 0:
-        phati = b * fact1 + logSF
-    elif ix == 1:
-        phati = (a - logSF) / fact1
-    elif ix in [2, 3, 4]:
+        return b * fact1 + logSF  # a
+    if ix == 1:
+        return (a - logSF) / fact1  # b
+    if ix in [2, 3, 4]:
         raise NotImplementedError('Only implemented for index in [0,1]!')
-    else:
-        raise IndexError('Index to the fixed parameter is out of bounds')
-    return phati
+    raise IndexError('Index to the fixed parameter is out of bounds')
 
 
 def _rayleigh_link(x, logSF, phat, ix):
@@ -163,7 +172,8 @@ LINKS = dict(expon=_expon_link,
              rayleigh=_rayleigh_link,
              trunclayleigh=_trunclayleigh_link,
              genextreme=_genextreme_link,
-             exponweib=_exponweib_link)
+             exponweib=_exponweib_link,
+             burr=_burr_link)
 
 
 def chi2isf(p, df):
