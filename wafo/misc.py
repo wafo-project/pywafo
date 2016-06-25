@@ -3050,7 +3050,7 @@ def plot_histgrm(data, bins=None, range=None,  # @ReservedAssignment
     numpy.histogram
     '''
 
-    xx, yy, limits = _histogram(data, bins, normed, weights)
+    xx, yy, limits = _histogram(data, bins, range, normed, weights, density)
     return plotbackend.plot(xx, yy, lintype, limits, limits * 0)
 
 
