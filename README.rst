@@ -99,18 +99,17 @@ Getting started
 ===============
 
 A quick introduction to some of the many features of wafo can be found in the Tutorial IPython notebooks in the 
-'tutorial scripts folder'_:
+`tutorial scripts folder`_:
 
+* Chapter 1 - `Some applications of WAFO`_
 
-* Chapter 1 - 'Some applications of WAFO'_
+* Chapter 2 - `Modelling random loads and stochastic waves`_
 
-* Chapter 2 - 'Modelling random loads and stochastic waves'_
+* Chapter 3 - `Demonstrates distributions of wave characteristics`_
 
-* Chapter 3 - 'Demonstrates distributions of wave characteristics'_
+* Chapter 4 - `Fatigue load analysis and rain-flow cycles`_
 
-* Chapter 4 - 'Fatigue load analysis and rain-flow cycles'_
-
-* Chapter 5 - 'Extreme value analysis'_
+* Chapter 5 - `Extreme value analysis`_
 
 -- _tutorial scripts folder: http://nbviewer.jupyter.org/github/wafo-project/pywafo/tree/master/wafo/doc/tutorial_scripts/
 
