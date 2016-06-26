@@ -335,8 +335,8 @@ class Profile(object):
                 'Something wrong with fit (par = {})'.format(str(par)))
 
     def _profile_optimum(self, phatfree0, p_opt):
-        phatfree = optimize.fmin(
-            self._profile_fun, phatfree0, args=(p_opt,), disp=0)
+        phatfree = optimize.fmin(self._profile_fun, phatfree0, args=(p_opt,),
+                                 disp=0)
         Lmax = -self._profile_fun(phatfree, p_opt)
         self._correct_Lmax(Lmax, phatfree, p_opt)
         return Lmax, phatfree
@@ -740,8 +740,8 @@ class ProfileOld(object):
                 'Something wrong with fit (par = {})'.format(str(par)))
 
     def _profile_optimum(self, phatfree0, p_opt):
-        phatfree = optimize.fmin(
-            self._profile_fun, phatfree0, args=(p_opt,), disp=0)
+        phatfree = optimize.fmin(self._profile_fun, phatfree0, args=(p_opt,),
+                                 disp=0)
         Lmax = -self._profile_fun(phatfree, p_opt)
         self._correct_Lmax(Lmax, phatfree, p_opt)
         return Lmax, phatfree
@@ -1353,7 +1353,8 @@ class FitDistribution(rv_frozen):
         Narg = len(args)
         if Narg > dist.numargs + 2:
                 raise ValueError("Too many input arguments.")
-        if (Narg < dist.numargs + 2) or not ('loc' in kwds and 'scale' in kwds):
+        if (Narg < dist.numargs + 2) or not ('loc' in kwds and
+                                             'scale' in kwds):
             # get distribution specific starting locations
             start = dist._fitstart(data)
             args += start[Narg:]
@@ -1376,14 +1377,17 @@ class FitDistribution(rv_frozen):
             # by now kwds must be empty, since everybody took what they needed
             if kwds:
                 raise TypeError("Unknown arguments: %s." % kwds)
-            output = optimizer(func, x0, args=(data,), full_output=True)
+            output = optimizer(func, x0, args=(data,), full_output=True,
+                               disp=0)
 
-            # output = optimize.fmin_bfgs(func, vals, args=(data,), full_output=True)
+            # output = optimize.fmin_bfgs(func, vals, args=(data,),
+            # full_output=True)
             # dfunc = nd.Gradient(func)(vals, data)
             # nd.directionaldiff(f, x0, vec)
             warnflag = output[-1]
             if warnflag == 1:
-                output = optimizer(func, output[0], args=(data,), full_output=True)
+                output = optimizer(func, output[0], args=(data,),
+                                   full_output=True)
                 warnflag = output[-1]
             vals = tuple(output[0])
             if warnflag == 1:
@@ -1550,13 +1554,12 @@ class FitDistribution(rv_frozen):
                 fixstr = 'Fixed: phat[{0:s}] = {1:s} '.format(phatistr,
                                                               phatvstr)
 
-        infostr = 'Fit method: {0:s}, Fit p-value: {1:2.2f} {2:s}, phat=[{3:s}]'
+        subtxt = 'Fit method: {0:s}, Fit p-value: {1:2.2f} {2:s}, phat=[{3:s}]'
         par_txt = ('{:1.2g}, '*len(self.par))[:-2].format(*self.par)
         try:
-            plotbackend.figtext(0.05, 0.01, infostr.format(self.method.upper(),
-                                                           self.pvalue,
-                                                           fixstr,
-                                                           par_txt))
+            plotbackend.figtext(0.05, 0.01, subtxt.format(self.method.upper(),
+                                                          self.pvalue, fixstr,
+                                                          par_txt))
         except:
             pass
 
@@ -1727,10 +1730,10 @@ def test_doctstrings():
 
 def test1():
     import wafo.stats as ws
-    dist = ws.weibull_min
+    # dist = ws.weibull_min
     # dist = ws.bradford
     dist = ws.gengamma
-    R = dist.rvs(2,.5, size=500)
+    R = dist.rvs(2, .5, size=500)
     phat = FitDistribution(dist, R,  method='ml')
     phats = FitDistribution(dist, R,  method='mps')
     import matplotlib.pyplot as plt
