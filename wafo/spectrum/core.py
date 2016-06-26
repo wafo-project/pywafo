@@ -3447,8 +3447,10 @@ class SpecData1D(PlotData):
         >>> S.bandwidth([0,'eps2',2,3])
         array([ 0.73062845,  0.34476034,  0.68277527,  2.90817052])
         '''
-        m, unused_mtxt = self.moment(nr=4, even=False)
 
+        m, unused_mtxt = self.moment(nr=4, even=False)
+        if isinstance(factors, str):
+            factors = [factors]
         fact_dict = dict(alpha=0, eps2=1, eps4=3, qp=3, Qp=3)
         fact = array([fact_dict.get(idx, idx)
                       for idx in list(factors)], dtype=int)

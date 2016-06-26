@@ -1,17 +1,14 @@
-import numpy as np
-from scipy import *
-from pylab import *
 
 #! CHAPTER4 contains the commands used in Chapter 4 of the tutorial
 #!=================================================================
 #!
 #! CALL:  Chapter4
-#! 
-#! Some of the commands are edited for fast computation. 
+#!
+#! Some of the commands are edited for fast computation.
 #! Each set of commands is followed by a 'pause' command.
-#! 
-#! This routine also can print the figures; 
-#! For printing the figures on directory ../bilder/ edit the file and put  
+#!
+#! This routine also can print the figures;
+#! For printing the figures on directory ../bilder/ edit the file and put
 #!     printing=1;
 
 #! Tested on Matlab 5.3
@@ -23,76 +20,80 @@ from pylab import *
 #! Created by GL July 13, 2000
 #! from commands used in Chapter 4
 #!
- 
+
 #! Chapter 4 Fatigue load analysis and rain-flow cycles
 #!------------------------------------------------------
 
-printing=0;
+printing = 0
 
 
 #! Section 4.3.1 Crossing intensity
 #!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+import numpy as np
+from wafo.plotbackend import plotbackend as plt
 import wafo.data as wd
 import wafo.objects as wo
 
-xx_sea = wd.sea()  
+xx_sea = wd.sea()
 ts = wo.mat2timeseries(xx_sea)
 tp = ts.turning_points()
 mM = tp.cycle_pairs(kind='min2max')
 lc = mM.level_crossings(intensity=True)
 T_sea = ts.args[-1]-ts.args[0]
 
-subplot(1,2,1)
+plt.subplot(1,2,1)
 lc.plot()
-subplot(1,2,2)
+plt.subplot(1,2,2)
 lc.setplotter(plotmethod='step')
 lc.plot()
-show() 
- 
- 
-m_sea = ts.data.mean() 
-f0_sea = interp(m_sea, lc.args,lc.data)
+plt.show()
+
+
+m_sea = ts.data.mean()
+f0_sea = np.interp(m_sea, lc.args,lc.data)
 extr_sea = len(tp.data)/(2*T_sea)
 alfa_sea = f0_sea/extr_sea
-print('alfa = %g ' % alfa_sea )
+print('alfa = %g ' % alfa_sea)
 
 #! Section 4.3.2 Extraction of rainflow cycles
 #!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #! Min-max and rainflow cycle plots
 #!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 mM_rfc = tp.cycle_pairs(h=0.3)
- 
-clf()
-subplot(122), 
-mM.plot() 
-title('min-max cycle pairs')
-subplot(121), 
+
+plt.clf()
+plt.subplot(122),
+mM.plot()
+plt.title('min-max cycle pairs')
+plt.subplot(121),
 mM_rfc.plot()
-title('Rainflow filtered cycles')
-show()
+plt.title('Rainflow filtered cycles')
+plt.show()
 
 #! Min-max and rainflow cycle distributions
 #!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 import wafo.misc as wm
 ampmM_sea = mM.amplitudes()
 ampRFC_sea = mM_rfc.amplitudes()
-clf()
-subplot(121) 
+plt.clf()
+plt.subplot(121)
 wm.plot_histgrm(ampmM_sea,25)
-ylim = gca().get_ylim()
-title('min-max amplitude distribution')
-subplot(122)
+ylim = plt.gca().get_ylim()
+plt.title('min-max amplitude distribution')
+plt.subplot(122)
 wm.plot_histgrm(ampRFC_sea,25)
-gca().set_ylim(ylim)
-title('Rainflow amplitude distribution')
-show()
+plt.gca().set_ylim(ylim)
+plt.title('Rainflow amplitude distribution')
+plt.show()
 
 #!#! Section 4.3.3 Simulation of rainflow cycles
 #!#! Simulation of cycles in a Markov model
-n=41; param_m=[-1, 1, n]; param_D=[1, n, n];
-u_markov=levels(param_m);
-G_markov=mktestmat(param_m,[-0.2, 0.2],0.15,1);
-T_markov=5000;
+# n = 41
+# param_m = [-1, 1, n]
+# param_D = [1, n, n]
+# u_markov=levels(param_m);
+# G_markov=mktestmat(param_m,[-0.2, 0.2],0.15,1);
+# T_markov=5000;
 #xxD_markov=mctpsim({G_markov [,]},T_markov);
 #xx_markov=[(1:T_markov)' u_markov(xxD_markov)'];
 #clf
@@ -118,7 +119,7 @@ T_markov=5000;
 #xx_herm = spec2sdat(spec_norm,[2^15 1],0.1);
 ##! ????? PJ, JR 11-Apr-2001
 ##! NOTE, in the simulation program spec2sdat
-##!the spectrum must be normalized to variance 1 
+##!the spectrum must be normalized to variance 1
 ##! ?????
 #h = 0.2;
 #[dtp,u_herm,xx_herm_1]=dat2dtp(param_h,xx_herm,h);
@@ -142,7 +143,7 @@ T_markov=5000;
 #title('h=0')
 #subplot(122), ccplot(RFC_herm_1)
 #title('h=0.2')
-#if (printing==1), print -deps ../bilder/fatigue_8.eps 
+#if (printing==1), print -deps ../bilder/fatigue_8.eps
 #end
 #wafostamp([],'(ER)')
 #disp('Block 7'),pause(pstate)
@@ -157,17 +158,17 @@ T_markov=5000;
 #wafostamp([],'(ER)')
 #disp('Block 8'),pause(pstate)
 #
-##!#! 
+##!#!
 #clf
-#cmatplot(u_markov,u_markov,{G_markov Grfc_markov},3) 
+#cmatplot(u_markov,u_markov,{G_markov Grfc_markov},3)
 #wafostamp([],'(ER)')
-#disp('Block 9'),pause(pstate)	
+#disp('Block 9'),pause(pstate)
 #
 ##!#! Min-max-matrix and theoretical rainflow matrix for test Markov sequence.
 #cmatplot(u_markov,u_markov,{G_markov Grfc_markov},4)
 #subplot(121), axis('square'), title('min2max transition matrix')
 #subplot(122), axis('square'), title('Rainflow matrix')
-#if (printing==1), print -deps ../bilder/fatigue_9.eps 
+#if (printing==1), print -deps ../bilder/fatigue_9.eps
 #end
 #wafostamp([],'(ER)')
 #disp('Block 10'),pause(pstate)
@@ -176,10 +177,10 @@ T_markov=5000;
 #n=length(u_markov);
 #Frfc_markov=dtp2rfm(xxD_markov,n);
 #clf
-#cmatplot(u_markov,u_markov,{Frfc_markov Grfc_markov*T_markov/2},3) 
+#cmatplot(u_markov,u_markov,{Frfc_markov Grfc_markov*T_markov/2},3)
 #subplot(121), axis('square'), title('Observed rainflow matrix')
 #subplot(122), axis('square'), title('Theoretical rainflow matrix')
-#if (printing==1), print -deps ../bilder/fatigue_10.eps 
+#if (printing==1), print -deps ../bilder/fatigue_10.eps
 #end
 #wafostamp([],'(ER)')
 #disp('Block 11'),pause(pstate)
@@ -193,7 +194,7 @@ T_markov=5000;
 #cmatplot(u_markov,u_markov,{Frfc_markov_smooth Grfc_markov*T_markov/2},4)
 #subplot(121), axis('square'), title('Smoothed observed rainflow matrix')
 #subplot(122), axis('square'), title('Theoretical rainflow matrix')
-#if (printing==1), print -deps ../bilder/fatigue_11.eps 
+#if (printing==1), print -deps ../bilder/fatigue_11.eps
 #end
 #wafostamp([],'(ER)')
 #disp('Block 12'),pause(pstate)
@@ -214,7 +215,7 @@ T_markov=5000;
 #cmatplot(u_herm,u_herm,{GmM3_herm.f Grfc_herm},4)
 #subplot(121), axis('square'), title('min-max matrix')
 #subplot(122), axis('square'), title('Theoretical rainflow matrix')
-#if (printing==1), print -deps ../bilder/fatigue_12.eps 
+#if (printing==1), print -deps ../bilder/fatigue_12.eps
 #end
 #wafostamp([],'(ER)')
 #disp('Block 14'),pause(pstate)
@@ -230,7 +231,7 @@ T_markov=5000;
 #disp('Block 15'),pause(pstate)
 #
 #
-##!#! Observed smoothed and theoretical min-max matrix, 
+##!#! Observed smoothed and theoretical min-max matrix,
 ##!#! (and observed smoothed and theoretical rainflow matrix for Hermite-transformed Gaussian waves).
 #tp_herm=dat2tp(xx_herm);
 #RFC_herm=tp2rfc(tp_herm);
@@ -246,11 +247,11 @@ T_markov=5000;
 #subplot(222), axis('square'), title('Theoretical min-max matrix')
 #subplot(223), axis('square'), title('Observed smoothed rainflow matrix')
 #subplot(224), axis('square'), title('Theoretical rainflow matrix')
-#if (printing==1), print -deps ../bilder/fatigue_13.eps 
+#if (printing==1), print -deps ../bilder/fatigue_13.eps
 #end
 #wafostamp([],'(ER)')
 #disp('Block 16'),pause(pstate)
-#   
+#
 ##!#! Section 4.3.5 Simulation from crossings and rainflow structure
 #
 ##!#! Crossing spectrum (smooth curve) and obtained spectrum (wiggled curve)
@@ -271,7 +272,7 @@ T_markov=5000;
 #subplot(212)
 #plot(xx_herm_sim1(:,1),xx_herm_sim1(:,2))
 #title('Simulated load, \alpha = 0.25')
-#if (printing==1), print -deps ../bilder/fatigue_14_25.eps 
+#if (printing==1), print -deps ../bilder/fatigue_14_25.eps
 #end
 #wafostamp([],'(ER)')
 #disp('Block 16'),pause(pstate)
@@ -290,7 +291,7 @@ T_markov=5000;
 #subplot(212)
 #plot(xx_herm_sim2(:,1),xx_herm_sim2(:,2))
 #title('Simulated load, \alpha = 0.75')
-#if (printing==1), print -deps ../bilder/fatigue_14_75.eps 
+#if (printing==1), print -deps ../bilder/fatigue_14_75.eps
 #end
 #wafostamp([],'(ER)')
 #disp('Block 17'),pause(pstate)
@@ -310,7 +311,7 @@ T_markov=5000;
 #clf
 #plot(mu_markov(:,1),mu_markov(:,2),muObs_markov(:,1),muObs_markov(:,2),'--')
 #title('Theoretical and observed crossing intensity ')
-#if (printing==1), print -deps ../bilder/fatigue_15.eps 
+#if (printing==1), print -deps ../bilder/fatigue_15.eps
 #end
 #wafostamp([],'(ER)')
 #disp('Block 19'),pause(pstate)
@@ -324,13 +325,13 @@ T_markov=5000;
 #disp('Block 20'),pause(pstate)
 #
 #Dmat_markov = cmat2dmat(param_m,Grfc_markov,beta);
-#DmatObs_markov = cmat2dmat(param_m,Frfc_markov,beta)/(T_markov/2); 
+#DmatObs_markov = cmat2dmat(param_m,Frfc_markov,beta)/(T_markov/2);
 #clf
 #subplot(121), cmatplot(u_markov,u_markov,Dmat_markov,4)
-#title('Theoretical damage matrix') 
+#title('Theoretical damage matrix')
 #subplot(122), cmatplot(u_markov,u_markov,DmatObs_markov,4)
-#title('Observed damage matrix') 
-#if (printing==1), print -deps ../bilder/fatigue_16.eps 
+#title('Observed damage matrix')
+#if (printing==1), print -deps ../bilder/fatigue_16.eps
 #end
 #wafostamp([],'(ER)')
 #disp('Block 21'),pause(pstate)
@@ -356,7 +357,7 @@ T_markov=5000;
 ##!#! Check of S-N-model on normal probability paper.
 #
 #normplot(reshape(log(N),8,5))
-#if (printing==1), print -deps ../bilder/fatigue_17.eps 
+#if (printing==1), print -deps ../bilder/fatigue_17.eps
 #end
 #wafostamp([],'(ER)')
 #disp('Block 23'),pause(pstate)
@@ -366,7 +367,7 @@ T_markov=5000;
 #[e0,beta0,s20] = snplot(s,N,12);
 #title('S-N-data with estimated N(s)','FontSize',20)
 #set(gca,'FontSize',20)
-#if (printing==1), print -deps ../bilder/fatigue_18a.eps 
+#if (printing==1), print -deps ../bilder/fatigue_18a.eps
 #end
 #wafostamp([],'(ER)')
 #disp('Block 24'),pause(pstate)
@@ -376,7 +377,7 @@ T_markov=5000;
 #[e0,beta0,s20] = snplot(s,N,14);
 #title('S-N-data with estimated N(s)','FontSize',20)
 #set(gca,'FontSize',20)
-#if (printing==1), print -deps ../bilder/fatigue_18b.eps 
+#if (printing==1), print -deps ../bilder/fatigue_18b.eps
 #end
 #wafostamp([],'(ER)')
 #disp('Block 25'),pause(pstate)
@@ -388,7 +389,7 @@ T_markov=5000;
 #dRFC = DRFC/T_sea;
 #plot(beta,dRFC), axis([3 8 0 0.25])
 #title('Damage intensity as function of \beta')
-#if (printing==1), print -deps ../bilder/fatigue_19.eps 
+#if (printing==1), print -deps ../bilder/fatigue_19.eps
 #end
 #wafostamp([],'(ER)')
 #disp('Block 26'),pause(pstate)
@@ -400,7 +401,7 @@ T_markov=5000;
 #[t2,F2] = ftf(e0,dam0,s20,5,1);
 #plot(t0,F0,t1,F1,t2,F2)
 #title('Fatigue life distribution function')
-#if (printing==1), print -deps ../bilder/fatigue_20.eps 
+#if (printing==1), print -deps ../bilder/fatigue_20.eps
 #end
 #wafostamp([],'(ER)')
 #disp('Block 27, last block')

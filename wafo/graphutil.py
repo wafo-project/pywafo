@@ -45,7 +45,10 @@ def delete_text_object(gidtxt, figure=None, axis=None, verbose=False):
 
     def _delete_gid_objects(handle, gidtxt, verbose):
         objs = handle.findobj(lmatchfun)
-        name = handle.__name__
+        try:
+            name = handle.__class__.__name__
+        except AttributeError:
+            name = 'unknown object'
         msg = "Tried to delete a non-existing {0} from {1}".format(gidtxt,
                                                                    name)
         for obj in objs:
@@ -127,7 +130,10 @@ def cltext(levels, percent=False, n=4, xs=0.036, ys=0.94, zs=0, figure=None,
     yss = yint[0] + ys * (yint[1] - yint[0])
 
     # delete cltext object if it exists
-    delete_text_object(_CLTEXT_GID, axis=axis)
+    try:
+        delete_text_object(_CLTEXT_GID, axis=axis)
+    except Exception:
+        pass
 
     charHeight = 1.0 / 33.0
     delta_y = charHeight

@@ -160,6 +160,12 @@ class PlotData(object):
             return interpolate.griddata(
                 self.args, self.data, points, **options)
 
+    def to_cdf(self):
+        if isinstance(self.args, (list, tuple)):  # Multidimensional data
+            raise NotImplementedError('integration for ndim>1 not implemented')
+        cdf = np.hstack((0, integrate.cumtrapz(self.data, self.args)))
+        return PlotData(cdf, np.copy(self.args), xlab='x', ylab='F(x)')
+
     def integrate(self, a, b, **kwds):
         '''
         >>> x = np.linspace(0,5,60)
@@ -551,7 +557,7 @@ def plot2d(axis, wdata, plotflag, *args, **kwds):
         clvec = np.sort(CL)
 
         if plotflag in [1, 8, 9]:
-            h = axis.contour(*args1, levels=CL, **kwds)
+            h = axis.contour(*args1, levels=clvec, **kwds)
         # else:
         #  [cs hcs] = contour3(f.x{:},f.f,CL,sym);
 
@@ -563,9 +569,7 @@ def plot2d(axis, wdata, plotflag, *args, **kwds):
                     'Only the first 12 levels will be listed in table.')
 
             clvals = PL[:ncl] if isPL else clvec[:ncl]
-            unused_axcl = cltext(
-                clvals,
-                percent=isPL)  # print contour level text
+            unused_axcl = cltext(clvals, percent=isPL)
         elif any(plotflag == [7, 9]):
             axis.clabel(h)
         else:

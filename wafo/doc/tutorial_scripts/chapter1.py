@@ -1,6 +1,5 @@
-from scipy import *
-from pylab import *
-
+import wafo.plotbackend.plotbackend as plt
+import numpy as np
 # pyreport -o chapter1.html chapter1.py
 
 #! CHAPTER1 demonstrates some applications of WAFO
@@ -15,16 +14,16 @@ from pylab import *
 
 #! Section 1.4 Some applications of WAFO
 #!---------------------------------------
-#! Section 1.4.1 Simulation from spectrum, estimation of spectrum 
+#! Section 1.4.1 Simulation from spectrum, estimation of spectrum
 #!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #! Simulation of the sea surface from spectrum
 #! The following code generates 200 seconds of data sampled with 10Hz from
 #! the Torsethaugen spectrum
 import wafo.spectrum.models as wsm
-S = wsm.Torsethaugen(Hm0=6, Tp=8);
+S = wsm.Torsethaugen(Hm0=6, Tp=8)
 S1 = S.tospecdata()
 S1.plot()
-show()
+plt.show()
 
 
 ##
@@ -32,23 +31,23 @@ import wafo.objects as wo
 xs = S1.sim(ns=2000, dt=0.1)
 ts = wo.mat2timeseries(xs)
 ts.plot_wave('-')
-show()
+plt.show()
 
 
-#! Estimation of spectrum 
+#! Estimation of spectrum
 #!~~~~~~~~~~~~~~~~~~~~~~~
 #! A common situation is that one wants to estimate the spectrum for wave
 #! measurements. The following code simulate 20 minutes signal sampled at 4Hz
 #! and compare the spectral estimate with the original Torsethaugen spectum.
-clf()
-Fs = 4;  
-xs = S1.sim(ns=fix(20 * 60 * Fs), dt=1. / Fs) 
-ts = wo.mat2timeseries(xs) 
+plt.clf()
+Fs = 4
+xs = S1.sim(ns=np.fix(20 * 60 * Fs), dt=1. / Fs)
+ts = wo.mat2timeseries(xs)
 Sest = ts.tospecdata(L=400)
 S1.plot()
 Sest.plot('--')
-axis([0, 3, 0, 5]) # This may depend on the simulation
-show()
+plt.axis([0, 3, 0, 5])
+plt.show()
 
 #! Section 1.4.2 Probability distributions of wave characteristics.
 #!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -58,7 +57,7 @@ show()
 #! In the following example we study the trough period extracted from the
 #! time series and compared with the theoretical density computed with exact
 #! spectrum, S1, and the estimated spectrum, Sest.
-clf()
+plt.clf()
 import wafo.misc as wm
 dtyex = S1.to_t_pdf(pdef='Tt', paramt=(0, 10, 51), nit=3)
 dtyest = Sest.to_t_pdf(pdef='Tt', paramt=(0, 10, 51), nit=3)
@@ -69,29 +68,29 @@ wm.plot_histgrm(T, bins=bins, normed=True)
 
 dtyex.plot()
 dtyest.plot('-.')
-axis([0, 10, 0, 0.35])
-show()
+plt.axis([0, 10, 0, 0.35])
+plt.show()
 
 #! Section 1.4.3 Directional spectra
 #!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#! Here are a few lines of code, which produce directional spectra 
+#! Here are a few lines of code, which produce directional spectra
 #! with frequency independent and frequency dependent spreading.
-clf()
+plt.clf()
 plotflag = 1
-Nt = 101;   # number of angles
-th0 = pi / 2; # primary direction of waves
-Sp = 15;   # spreading parameter
+Nt = 101      # number of angles
+th0 = np.pi / 2  # primary direction of waves
+Sp = 15       # spreading parameter
 
-D1 = wsm.Spreading(type='cos', theta0=th0, method=None) # frequency independent
-D12 = wsm.Spreading(type='cos', theta0=0, method='mitsuyasu') # frequency dependent
+D1 = wsm.Spreading(type='cos', theta0=th0, method=None)
+D12 = wsm.Spreading(type='cos', theta0=0, method='mitsuyasu')
 
 SD1 = D1.tospecdata2d(S1)
 SD12 = D12.tospecdata2d(S1)
 SD1.plot()
-SD12.plot()#linestyle='dashdot')
-show()
+SD12.plot()  # linestyle='dashdot')
+plt.show()
 
-#! 3D Simulation of the sea surface 
+#! 3D Simulation of the sea surface
 #!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #! The simulations show that frequency dependent spreading leads to
 #! much more irregular surface so the orientation of waves is less
@@ -120,7 +119,7 @@ show()
 #!  The figure is not shown in the Tutorial
 #
 # Nx = 3; Ny = 2; Nt = 2 ^ 12; dx = 10; dy = 10;dt = 0.5;
-# F = seasim(SD12, Nx, Ny, Nt, dx, dy, dt, 1, 0);  
+# F = seasim(SD12, Nx, Ny, Nt, dx, dy, dt, 1, 0);
 # Z = permute(F.Z, [3 1 2]);
 # [X, Y] = meshgrid(F.x, F.y);
 # N = Nx * Ny;
@@ -137,16 +136,16 @@ show()
 
 #! Section 1.4.4 Fatigue, Load cycles and Markov models.
 #! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#! Switching Markow chain of turningpoints 
+#! Switching Markow chain of turningpoints
 #! In fatigue applications the exact sample path is not important, but
 #! only the tops and bottoms of the load, called the sequence of turning
 #! points (TP). From the turning points one can extract load cycles, from
 #! which damage calculations and fatigue life predictions can be
 #! performed.
 #!
-#! The commands below computes the intensity of rainflowcycles for 
-#! the Gaussian model with spectrum S1 using the Markov approximation. 
-#! The rainflow cycles found in the simulated load signal are shown in the 
+#! The commands below computes the intensity of rainflowcycles for
+#! the Gaussian model with spectrum S1 using the Markov approximation.
+#! The rainflow cycles found in the simulated load signal are shown in the
 #! figure.
 
 #clf()
@@ -164,30 +163,30 @@ show()
 #! Section 1.4.5 Extreme value statistics
 #!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Plot of yura87 data
-clf()
+plt.clf()
 import wafo.data as wd
 xn = wd.yura87()
-#xn = load('yura87.dat'); 
-subplot(211) 
-plot(xn[::30, 0] / 3600, xn[::30, 1], '.')
-title('Water level')
-ylabel('(m)')
+#xn = load('yura87.dat');
+plt.subplot(211)
+plt.plot(xn[::30, 0] / 3600, xn[::30, 1], '.')
+plt.title('Water level')
+plt.ylabel('(m)')
 
 #! Formation of 5 min maxima
 yura = xn[:85500, 1]
 yura = np.reshape(yura, (285, 300)).T
 maxyura = yura.max(axis=0)
-subplot(212)
-plot(xn[299:85500:300, 0] / 3600, maxyura, '.')
-xlabel('Time (h)')
-ylabel('(m)')
-title('Maximum 5 min water level')
-show()
+plt.subplot(212)
+plt.plot(xn[299:85500:300, 0] / 3600, maxyura, '.')
+plt.xlabel('Time (h)')
+plt.ylabel('(m)')
+plt.title('Maximum 5 min water level')
+plt.show()
 
 #! Estimation of GEV for yuramax
-clf()
+plt.clf()
 import wafo.stats as ws
 phat = ws.genextreme.fit2(maxyura, method='ml')
 phat.plotfitsummary()
-show()
+plt.show()
 #disp('Block = 11, Last block')
