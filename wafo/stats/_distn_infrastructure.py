@@ -1,11 +1,12 @@
 from __future__ import absolute_import
 from scipy.stats._distn_infrastructure import *  # @UnusedWildImport
 from scipy.stats._distn_infrastructure import (_skew,  # @UnusedImport
-    _kurtosis, _lazywhere, _ncx2_log_pdf,  # @IgnorePep8 @UnusedImport
+    _kurtosis,  _ncx2_log_pdf,  # @IgnorePep8 @UnusedImport
     _ncx2_pdf,  _ncx2_cdf)  # @UnusedImport @IgnorePep8
 from .estimation import FitDistribution
 from ._constants import _XMAX
-
+from wafo.misc import lazyselect as _lazyselect
+from wafo.misc import lazywhere as _lazywhere
 
 _doc_default_example = """\
 Examples
@@ -328,7 +329,7 @@ def nlogps(self, theta, x):
     return T
 
 
-def _penalized_nnlf(self, theta, x):
+def _penalized_nnlf(self, theta, x, penalty=None):
     ''' Return negative loglikelihood function,
     i.e., - sum (log pdf(x, theta), axis=0)
        where theta are the parameters (including loc and scale)
@@ -352,7 +353,8 @@ def _penalized_nnlf(self, theta, x):
     Nbad += np.sum(~finite_logpdf, axis=0)
     logscale = N * log(scale)
     if Nbad > 0:
-        penalty = Nbad * log(_XMAX) * 100
+        if penalty is None:
+            penalty = Nbad * log(_XMAX) * 100
         return -np.sum(logpdf[finite_logpdf], axis=0) + penalty + logscale
     return -np.sum(logpdf, axis=0) + logscale
 
@@ -597,6 +599,14 @@ def fit2(self, data, *args, **kwds):
     return FitDistribution(self, data, args, **kwds)
 
 
+def _support_mask(self, x):
+    return (self.a <= x) & (x <= self.b)
+
+
+def _open_support_mask(self, x):
+    return (self.a < x) & (x < self.b)
+
+
 rv_generic.freeze = freeze
 rv_discrete.freeze = freeze
 rv_continuous.freeze = freeze
@@ -607,3 +617,5 @@ rv_continuous._penalized_nnlf = _penalized_nnlf
 rv_continuous._reduce_func = _reduce_func
 rv_continuous.fit = fit
 rv_continuous.fit2 = fit2
+rv_continuous._support_mask = _support_mask
+rv_continuous._open_support_mask = _open_support_mask

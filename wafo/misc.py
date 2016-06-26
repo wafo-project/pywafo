@@ -19,6 +19,8 @@ from time import strftime, gmtime
 from numdifftools.extrapolation import dea3  # @UnusedImport
 from wafo.plotbackend import plotbackend
 from collections import Callable
+import numbers
+
 try:
     from wafo import c_library as clib  # @UnresolvedImport
 except ImportError:
@@ -37,8 +39,28 @@ __all__ = ['now', 'spaceline', 'narg_smallest', 'args_flat', 'is_numlike',
            'betaloge', 'gravity', 'nextpow2', 'discretize', 'polar2cart',
            'cart2polar', 'meshgrid', 'ndgrid', 'trangood', 'tranproc',
            'plot_histgrm', 'num2pistr', 'test_docstrings', 'lazywhere',
+           'lazyselect'
            'piecewise',
-           'valarray']
+           'valarray', 'check_random_state']
+
+
+def check_random_state(seed):
+    """Turn seed into a np.random.RandomState instance
+
+    If seed is None (or np.random), return the RandomState singleton used
+    by np.random.
+    If seed is an int, return a new RandomState instance seeded with seed.
+    If seed is already a RandomState instance, return it.
+    Otherwise raise ValueError.
+    """
+    if seed is None or seed is np.random:
+        return np.random.mtrand._rand
+    if isinstance(seed, (numbers.Integral, np.integer)):
+        return np.random.RandomState(seed)
+    if isinstance(seed, np.random.RandomState):
+        return seed
+    raise ValueError('%r cannot be used to seed a numpy.random.RandomState'
+                     ' instance' % seed)
 
 
 def valarray(shape, value=np.NaN, typecode=None):
@@ -214,6 +236,46 @@ def lazywhere(cond, arrays, f, fillvalue=None, f2=None):
         temp = tuple(np.extract(~cond, arr) for arr in arrays)
         np.place(out, ~cond, f2(*temp))
 
+    return out
+
+
+def lazyselect(condlist, choicelist, arrays, default=0):
+    """
+    Mimic `np.select(condlist, choicelist)`.
+
+    Notice it assumes that all `arrays` are of the same shape, or can be
+    broadcasted together.
+
+    All functions in `choicelist` must accept array arguments in the order
+    given in `arrays` and must return an array of the same shape as broadcasted
+    `arrays`.
+
+    Examples
+    --------
+    >>> x = np.arange(6)
+    >>> np.select([x <3, x > 3], [x**2, x**3], default=0)
+    array([  0,   1,   4,   0,  64, 125])
+
+    >>> lazyselect([x < 3, x > 3], [lambda x: x**2, lambda x: x**3], (x,))
+    array([   0.,    1.,    4.,    0.,   64.,  125.])
+
+    >>> a = -np.ones_like(x)
+    >>> lazyselect([x < 3, x > 3],
+    ...             [lambda x, a: x**2, lambda x, a: a * x**3],
+    ...             (x, a))
+    array([   0.,    1.,    4.,    0.,  -64., -125.])
+
+    """
+    arrays = np.broadcast_arrays(*arrays)
+    tcode = np.mintypecode([a.dtype.char for a in arrays])
+    out = valarray(np.shape(arrays[0]), value=default, typecode=tcode)
+    for index in range(len(condlist)):
+        func, cond = choicelist[index], condlist[index]
+        if np.all(cond is False):
+            continue
+        cond, _ = np.broadcast_arrays(cond, arrays[0])
+        temp = tuple(np.extract(cond, arr) for arr in arrays)
+        np.place(out, cond, func(*temp))
     return out
 
 
