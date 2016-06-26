@@ -95,6 +95,35 @@ And install the wheel package with::
 
     pip install dist/wafo-X.Y.Z+abcd123-os_platform.whl
 
+Getting started
+===============
+
+A quick introduction to some of the many features of wafo can be found in the Tutorial IPython notebooks in the 
+_tutorial scripts folder:
+
+
+* Chapter 1 - _Some applications of WAFO
+
+* Chapter 2 - _Modelling random loads and stochastic waves
+
+* Chapter 3 - _Demonstrates distributions of wave characteristics
+
+* Chapter 4 - _Fatigue load analysis and rain-flow cycles 
+
+* Chapter 5 - _Extreme value analysis
+
+-- _tutorial scripts folder: http://nbviewer.jupyter.org/github/wafo-project/pywafo/tree/master/wafo/doc/tutorial_scripts/
+
+.. _Some applications of WAFO: http://nbviewer.jupyter.org/github/wafo-project/pywafo/blob/master/wafo/doc/tutorial_scripts/WAFO%20Chapter%201.ipynb
+
+.. _Modelling random loads and stochastic waves: http://nbviewer.jupyter.org/github/wafo-project/pywafo/blob/master/wafo/doc/tutorial_scripts/WAFO%20Chapter%202.ipynb
+
+.. _Demonstrates distributions of wave characteristics: http://nbviewer.jupyter.org/github/wafo-project/pywafo/blob/master/wafo/doc/tutorial_scripts/WAFO%20Chapter%203.ipynb
+
+.. _Fatigue load analysis and rain-flow cycles: http://nbviewer.jupyter.org/github/wafo-project/pywafo/blob/master/wafo/doc/tutorial_scripts/WAFO%20Chapter%204.ipynb
+
+.. _Extreme value analysis: http://nbviewer.jupyter.org/github/wafo-project/pywafo/blob/master/wafo/doc/tutorial_scripts/WAFO%20Chapter%205.ipynb
+
 
 Unit tests
 ==========
