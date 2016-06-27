@@ -962,7 +962,8 @@ def findcross(x, v=0.0, kind=None, method='clib'):
             if xor(is_odd, kind in ('dw', 'uw')):
                 ind = ind[:-1]
         else:
-            raise ValueError('Unknown wave/crossing definition! {}'.format(kind))
+            raise ValueError('Unknown wave/crossing definition!'
+                             ' ({})'.format(kind))
     return ind
 
 
