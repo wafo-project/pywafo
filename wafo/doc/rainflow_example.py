@@ -4,7 +4,6 @@ import logging
 import matplotlib.pyplot as plt
 import itertools
 # import sys
-import itertools
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
@@ -13,6 +12,7 @@ MARKERS = ('o', 'x', '+', '.', '<', '>', '^', 'v')
 
 def set_windows_title(title='', log=None):
     pass
+
 
 def plot_varying_symbols(x, y, color='red', size=5):
     """
@@ -29,7 +29,9 @@ def plot_varying_symbols(x, y, color='red', size=5):
     """
     markers = itertools.cycle(MARKERS)
     for q, p in zip(x, y):
-        plt.plot(q, p, marker=markers.next(), linestyle='', color=color, markersize=size)
+        plt.plot(q, p, marker=markers.next(), linestyle='', color=color,
+                 markersize=size)
+
 
 def damage_vs_S(S, beta, K):
     """
@@ -47,7 +49,7 @@ def damage_vs_S(S, beta, K):
     return K * np.power(S, beta)
 
 # Section 4.3.1 Crossing intensity
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 import wafo.data as wd
 import wafo.objects as wo
 import wafo.misc as wm
