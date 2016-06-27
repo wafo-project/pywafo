@@ -219,7 +219,7 @@ class TrHermite(TrCommon2):
         return
 
     def check_forward(self, x):
-        if not (self._x_limit is None):
+        if self._x_limit is not None:
             x00 = self._x_limit
             txt2 = 'for the given interval x = [%g, %g]' % (x[0], x[-1])
 
@@ -306,7 +306,7 @@ class TrHermite(TrCommon2):
 #            Km1 = np.sqrt(1.+2.*c3**2+6*c4**2)
 #            q0 = x0**3-1.5*b1*(x0+xn*Km1)
             # q0 = x0**3-1.5*b1*(x0+xn)
-            if not (self._x_limit is None):  # % Three real roots
+            if self._x_limit is not None:  # % Three real roots
                 d = sqrt(-p1)
                 theta1 = arccos(-q0 / d ** 3) / 3
                 th2 = np.r_[0, -2 * pi / 3, 2 * pi / 3]
