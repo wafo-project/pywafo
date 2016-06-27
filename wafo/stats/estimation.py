@@ -1266,9 +1266,9 @@ class FitDistribution(rv_frozen):
                 else:
                     pcov = -pinv2(H[self.i_notfixed, :][..., self.i_notfixed])
                     for row, ix in enumerate(list(self.i_notfixed)):
-                        self.par_cov[ix, self.i_notfixed] = pcov[row, :]
+                        par_cov[ix, self.i_notfixed] = pcov[row, :]
             else:
-                self.par_cov = -pinv2(H)
+                par_cov = -pinv2(H)
         except:
             par_cov[:, :] = nan
         return par_cov
