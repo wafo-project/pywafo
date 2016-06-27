@@ -23,7 +23,7 @@ from scipy import optimize
 import numpy as np
 from scipy.special import expm1, log1p
 from numpy import (alltrue, arange, zeros, log, sqrt, exp,
-                   atleast_1d, any, asarray, nan, pi, isfinite)
+                   any, asarray, nan, pi, isfinite)
 from numpy import flatnonzero as nonzero
 
 
@@ -1577,7 +1577,7 @@ def test1():
     # 80% CI for x
     Lx = ProfileQuantile(phat, x)
     Lx.plot()
-    x_ci = Lx.get_bounds(alpha=0.2)
+    # x_ci = Lx.get_bounds(alpha=0.2)
 
     plt.figure(5)
 
@@ -1587,9 +1587,7 @@ def test1():
     # 80% CI for x
     Lsf = ProfileProbability(phat, np.log(sf))
     Lsf.plot()
-    logsf_ci = Lsf.get_bounds(alpha=0.2)
-
-
+    # logsf_ci = Lsf.get_bounds(alpha=0.2)
     plt.show('hold')
 
 
