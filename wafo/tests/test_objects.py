@@ -14,11 +14,13 @@ import wafo.spectrum.models as sm
 import wafo.transform.models as tm
 
 
-class TestObjects(TestCase):
-    def test_timeseries(self):
-
+class TestTimeSeries(TestCase):
+    def setUp(self):
         x = wafo.data.sea()
-        ts = wo.mat2timeseries(x)
+        self.ts = wo.mat2timeseries(x)
+
+    def test_timeseries(self):
+        ts = self.ts
         assert_array_almost_equal(ts.sampling_period(), 0.25)
 
         S = ts.tospecdata()
@@ -54,12 +56,57 @@ class TestObjects(TestCase):
         self.assert_(0.54 < g1.dist2gauss() < 0.95)
         self.assert_(1.5 < g2.dist2gauss() < 1.9)
 
-    def test_cycles_and_levelcrossings(self):
+    def test_timeseries_wave_periods(self):
+        true_t = ([-0.69, -0.86, -1.05],
+                  [0.42, 0.78, 1.37],
+                  [0.09, 0.51, -0.85],
+                  [-0.27, -0.08, 0.32],
+                  [3.84377468, 3.60707656, 3.90490909],
+                  [6.25273295, 6.35295202, 6.11978685],
+                  [2.48364668, 2.49282402, 2.50553431],
+                  [3.76908628, 3.860128, 3.61425254],
+                  [-5.05027968, -5.41405436, -5.35113091],
+                  [7.53392635, 7.90687837, 7.85666522],
+                  [-0.2811934, -0.86392635, -0.87687837],
+                  [4.05027968, 4.72405436, 4.49113092],
+                  [2.03999996, 0.07, 0.05],
+                  [-0.93, -0.07, -0.12],
+                  [1.10999996, 0., -0.07],
+                  [-0.86, -0.02, 0.3],
+                  [0.93, -0.8, -0.2])
 
+        pdefs = ['t2c', 'c2t', 't2t', 'c2c',
+                 'd2d', 'u2u', 'd2u', 'u2d',
+                 'd2t', 't2u', 'u2c', 'c2d',
+                 'm2M', 'M2m', 'm2m', 'M2M', 'all',
+                 ]
+        ts = wo.TimeSeries(self.ts.data[0:400, :], self.ts.args[:400])
+        for pdef, truth in zip(pdefs, true_t):
+            T, _ix = ts.wave_periods(vh=0.0, pdef=pdef)
+            # print(T[:3, 0])
+            assert_array_almost_equal(T[:3, 0], truth)
+
+        true_t2 = ([1.10999996, 0., - 0.07],
+                   [-0.02, 0.3, - 0.34],
+                   [6.10295202, 5.86978685, 6.08501107],
+                   [6.25273295, 6.35295202, 6.11978685],
+                   [-0.27, -0.08, 0.32],
+                   [-0.27, -0.08, 0.32])
+        wdefs = ['mw', 'Mw', 'dw', 'uw', 'tw', 'cw', ]
+        for wdef, truth in zip(wdefs, true_t2):
+            pdef = '{0}2{0}'.format(wdef[0].lower())
+            T, _ix = ts.wave_periods(vh=0.0, pdef=pdef, wdef=wdef)
+            # print(T[:3, 0])
+            assert_array_almost_equal(T[:3, 0], truth)
+
+
+class TestObjects(TestCase):
+    def setUp(self):
         x = wafo.data.sea()
-        ts = wo.mat2timeseries(x)
+        self.ts = wo.mat2timeseries(x)
 
-        tp = ts.turning_points()
+    def test_cycles_and_levelcrossings(self):
+        tp = self.ts.turning_points()
         assert_array_almost_equal(tp.data[:10],
                                   [-1.200495,  0.839505, -0.090495, -0.020495,
                                    -0.090495, -0.040495, -0.160495,  0.259505,
@@ -71,29 +118,59 @@ class TestObjects(TestCase):
                                   [0.839505, -0.020495, -0.040495,  0.259505,
                                    -0.080495, -0.080495, 0.349505,  0.859505,
                                    0.009505,  0.319505])
-
-        lc = mm.level_crossings()
-
-        assert_array_almost_equal(lc.data[:10],
-                                  [0.,  1.,  2.,  2.,  3.,  4.,
-                                   5.,  6.,  7.,  9.])
+        true_lcs = (([0., 1., 2., 2., 3., 4., 5., 6., 7., 9.],
+                    [-1.7504945, -1.4404945, -1.4204945, -1.4004945,
+                     -1.3704945, -1.3204945, -1.2704945, -1.2604945,
+                     -1.2504945, -1.2004945]),
+                    ([0., 1., 2., 3., 3., 4., 5., 6., 7., 9.],
+                    [-1.7504945, -1.4404945, -1.4204945, -1.4004945,
+                     -1.3704945, -1.3204945, -1.2704945, -1.2604945,
+                     -1.2504945, -1.2004945]),
+                    ([1.,  2.,  3.,  4.,  4.,  5.,  6.,  7.,  9., 11.],
+                    [-1.7504945, -1.4404945, -1.4204945, -1.4004945,
+                     -1.3704945, -1.3204945, -1.2704945, -1.2604945,
+                     -1.2504945, -1.2004945]),
+                    ([1.,  2.,  3.,  3.,  4.,  5.,  6.,  7.,  9., 11.],
+                    [-1.7504945, -1.4404945, -1.4204945, -1.4004945,
+                     -1.3704945, -1.3204945, -1.2704945, -1.2604945,
+                     -1.2504945, -1.2004945]))
+        for i, true_lc in enumerate(true_lcs):
+            true_count, true_levels = true_lc
+            lc = mm.level_crossings(kind=i+1)
+            assert_array_almost_equal(lc.data[:10], true_count)
+            assert_array_almost_equal(lc.args[:10], true_levels)
 
     def test_levelcrossings_extrapolate(self):
-        x = wafo.data.sea()
-        ts = wo.mat2timeseries(x)
-
-        tp = ts.turning_points()
+        tp = self.ts.turning_points()
         mm = tp.cycle_pairs()
         lc = mm.level_crossings()
 
-        s = x[:, 1].std()
-        lc_gpd = lc.extrapolate(-2 * s, 2 * s, dist='rayleigh')
-        assert_array_almost_equal(lc_gpd.data[:10],
-                                  [1.789254e-37,   2.610988e-37,
-                                   3.807130e-37,   5.546901e-37,
-                                   8.075384e-37,   1.174724e-36,
-                                   1.707531e-36,   2.480054e-36,
-                                   3.599263e-36,   5.219466e-36])
+        s = lc.sigma  # x[:, 1].std()
+        ix = slice(0, 1000, 100)
+        lc_ray = lc.extrapolate(-2 * s, 2 * s, dist='rayleigh')
+
+        assert_array_almost_equal(lc_ray.data[ix],
+                                  [1.78925398e-37,   9.61028192e-23,
+                                   2.05282628e-11,   1.74389448e-03,
+                                   5.89169345e+01,   5.240000e+02,
+                                   6.72609651e+01,   4.46086175e-01,
+                                   2.23463577e-04,   8.45526153e-09])
+        lc_exp = lc.extrapolate(-2 * s, 2 * s, dist='expon')
+
+        lc_gpd = lc.extrapolate(-2 * s, 2 * s, dist='genpareto')
+
+        assert_array_almost_equal(lc_exp.data[ix],
+                                  [6.51864195e-12, 1.13025876e-08,
+                                   1.95974080e-05, 3.39796881e-02,
+                                   5.89169345e+01, 5.24000000e+02,
+                                   6.43476951e+01, 1.13478843e+00,
+                                   2.00122906e-02, 3.52921977e-04])
+        assert_array_almost_equal(lc_gpd.data[ix],
+                                  [0.00000000e+00, 0.00000000e+00,
+                                   0.00000000e+00, 0.00000000e+00,
+                                   5.89169345e+01, 5.24000000e+02,
+                                   6.80484770e+01, 1.41019390e-01,
+                                   0.00000000e+00, 0.00000000e+00])
 
 
 if __name__ == "__main__":

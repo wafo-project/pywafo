@@ -21,7 +21,7 @@ from wafo.misc import (nextpow2, findtp, findrfc, findtc, findcross,
                        detrendma)
 from wafo.interpolate import stineman_interp
 from wafo.containers import PlotData
-from wafo.plotbackend import plotbackend
+from wafo.plotbackend import plotbackend as plt
 from scipy.integrate import trapz
 from scipy.signal import welch, lfilter
 from scipy.signal.windows import get_window  # @UnusedImport
@@ -69,9 +69,9 @@ class LevelCrossings(PlotData):
 
     Examples
     --------
-    >>> import wafo.data
+    >>> import wafo.data as wd
     >>> import wafo.objects as wo
-    >>> x = wafo.data.sea()
+    >>> x = wd.sea()
     >>> ts = wo.mat2timeseries(x)
 
     >>> tp = ts.turning_points()
@@ -80,8 +80,14 @@ class LevelCrossings(PlotData):
     >>> lc = mm.level_crossings()
     >>> np.allclose(lc.data[:5], [ 0.,  1.,  2.,  2.,  3.])
     True
+    >>> m, s = lc.estimate_mean_and_stdev()
+    >>> np.allclose([m, s], (0.033974280952584639, 0.48177752818956326))
+    True
+    >>> np.allclose((lc.mean, lc.sigma),
+    ...             (1.5440875692709283e-09, 0.47295493383306714))
+    True
 
-    h2 = lc.plot()
+    >>> h2 = lc.plot()
     '''
 
     def __init__(self, *args, **kwds):
@@ -97,26 +103,36 @@ class LevelCrossings(PlotData):
         self.mean = kwds.get('mean')
         # self.setplotter(plotmethod='step')
 
-        icmax = self.data.argmax()
         if self.data is not None:
+            i_cmax = self.data.argmax()
             if self.sigma is None or self.mean is None:
-                logcros = where(self.data == 0.0, inf, -log(self.data))
-                logcmin = logcros[icmax]
-                logcros = sqrt(2 * abs(logcros - logcmin))
-                logcros[0:icmax + 1] = 2 * logcros[
-                    icmax] - logcros[0:icmax + 1]
-                ncr = 10
-                # least square fit
-                p = polyfit(self.args[ncr:-ncr], logcros[ncr:-ncr], 1)
+                mean, sigma = self.estimate_mean_and_stdev(i_cmax)
                 if self.sigma is None:
                     # estimated standard deviation of x
-                    self.sigma = 1.0 / p[0]
+                    self.sigma = sigma
                 if self.mean is None:
-                    self.mean = -p[1] / p[0]  # self.args[icmax]
-            cmax = self.data[icmax]
+                    self.mean = mean
+            cmax = self.data[i_cmax]
             x = (self.args - self.mean) / self.sigma
             y = cmax * exp(-x ** 2 / 2.0)
             self.children = [PlotData(y, self.args)]
+
+    def estimate_mean_and_stdev(self, i_cmax=None):
+        """
+        Return mean and standard deviation of process x estimated from crossing
+        """
+        if i_cmax is None:
+            i_cmax = self.data.argmax()
+        logcros = where(self.data == 0.0, inf, -log(self.data))
+        logcmin = logcros[i_cmax]
+        logcros = sqrt(2 * abs(logcros - logcmin))
+        logcros[0:i_cmax + 1] = 2 * logcros[i_cmax] - logcros[0:i_cmax + 1]
+        ncr = 10
+        # least square fit
+        p = polyfit(self.args[ncr:-ncr], logcros[ncr:-ncr], 1)
+        sigma = 1.0 / p[0]
+        mean = -p[1] / p[0]  # self.args[i_cmax]
+        return mean, sigma
 
     def extrapolate(self, u_min=None, u_max=None, method='ml', dist='genpar',
                     plotflag=0):
@@ -137,8 +153,8 @@ class LevelCrossings(PlotData):
             expon : Exponential distribution (GPD with k=0)
             rayleigh : truncated Rayleigh distribution
         plotflag : scalar integer
-            1: Diagnostic plots. (default)
-            0: Don't plot diagnostic plots.
+            1: Diagnostic plots.
+            0: Don't plot diagnostic plots. (default)
 
         Returns
         -------
@@ -155,7 +171,7 @@ class LevelCrossings(PlotData):
            H(x) = exp(-x/s),  k=0               (expon)
         The tails with the survival function of a truncated Rayleigh
         distribution.
-           H(x) = exp(-((x+x0).^2-x0^2)/s^2)    (rayleigh)
+           H(x) = exp(-((x+x0)**2-x0^2)/s**2)    (rayleigh)
         where x0 is the distance from the truncation level to where the LC has
         its maximum.
         The method 'gpd' uses the GPD. We recommend the use of 'gpd,ml'.
@@ -165,24 +181,36 @@ class LevelCrossings(PlotData):
 
         Example
         -------
-        >>> import wafo.data
+        >>> import wafo.data as wd
         >>> import wafo.objects as wo
-        >>> x = wafo.data.sea()
+        >>> x = wd.sea()
         >>> ts = wo.mat2timeseries(x)
 
         >>> tp = ts.turning_points()
         >>> mm = tp.cycle_pairs()
         >>> lc = mm.level_crossings()
 
-        >>> s = x[:,1].std()
+        >>> s = x[:, 1].std()
         >>> lc_gpd = lc.extrapolate(-2*s, 2*s)
         >>> lc_exp = lc.extrapolate(-2*s, 2*s, dist='expon')
         >>> lc_ray = lc.extrapolate(-2*s, 2*s, dist='rayleigh')
 
-        lc.plot()
-        lc_gpd.plot()
-        lc_exp.plot()
-        lc_ray.plot()
+        >>> n = 3
+        >>> np.allclose([lc_gpd.data[:n], lc_gpd.data[-n:]],
+        ...            [[ 0.,  0.,  0.], [ 0.,  0.,  0.]])
+        True
+        >>> np.allclose([lc_exp.data[:n], lc_exp.data[-n:]],
+        ...            [[  6.51864195e-12,   7.02339889e-12,   7.56724060e-12],
+        ...            [  1.01040335e-05,   9.70417448e-06,   9.32013956e-06]])
+        True
+        >>> np.allclose([lc_ray.data[:n], lc_ray.data[-n:]],
+        ...        [[  1.78925398e-37,   2.61098785e-37,   3.80712964e-37],
+        ...         [  1.28140956e-13,   1.11668143e-13,   9.72878135e-14]])
+        True
+        >>> h0 = lc.plot()
+        >>> h1 = lc_gpd.plot()
+        >>> h2 = lc_exp.plot()
+        >>> h3 = lc_ray.plot()
 
 
         See also
@@ -209,18 +237,17 @@ class LevelCrossings(PlotData):
                 u_max = self.args[i.max()]
         lcf, lcx = self.data, self.args
         # Extrapolate LC for high levels
-        [lc_High, phat_high] = self._extrapolate(lcx, lcf, u_max,
-                                                 u_max - lc_max, method, dist)
+        lc_High, phat_high = self._extrapolate(lcx, lcf, u_max, u_max - lc_max,
+                                               method, dist)
         # Extrapolate LC for low levels
-        [lcEst1, phat_low] = self._extrapolate(-lcx[::-1], lcf[::-1], -u_min,
-                                               lc_max - u_min, method, dist)
+        lcEst1, phat_low = self._extrapolate(-lcx[::-1], lcf[::-1], -u_min,
+                                             lc_max - u_min, method, dist)
         lc_Low = lcEst1[::-1, :]  # [-lcEst1[::-1, 0], lcEst1[::-1, 1::]]
         lc_Low[:, 0] *= -1
 
         if plotflag:
-            plotbackend.semilogx(lcf, lcx,
-                                 lc_High[:, 1], lc_High[:, 0],
-                                 lc_Low[:, 1], lc_Low[:, 0])
+            plt.semilogx(lcf, lcx, lc_High[:, 1], lc_High[:, 0],
+                         lc_Low[:, 1], lc_Low[:, 0])
         i_mask = (u_min < lcx) & (lcx < u_max)
         f = np.hstack((lc_Low[:, 1], lcf[i_mask], lc_High[:, 1]))
         x = np.hstack((lc_Low[:, 0], lcx[i_mask], lc_High[:, 0]))
@@ -267,7 +294,7 @@ class LevelCrossings(PlotData):
             r = sqrt(-2 * log(1 - 90 / 100))  # 90 # confidence sphere
             Nc = 16 + 1
             ang = linspace(0, 2 * pi, Nc)
-            # 90# Circle
+            # 90% Circle
             c0 = np.vstack(
                 (r * sqrt(D[0]) * sin(ang), r * sqrt(D[1]) * cos(ang)))
         #    plot(c0(1,:),c0(2,:))
@@ -309,7 +336,7 @@ class LevelCrossings(PlotData):
 #                F = -np.expm1(-((xF + offset) ** 2 - offset ** 2) / s ** 2)
             lcEst = np.vstack((xF + u, lcu * (SF))).T
         else:
-            raise ValueError()
+            raise NotImplementedError('Unknown distribution {}'.format(dist))
 
         return lcEst, phat
         # End extrapolate
@@ -373,14 +400,14 @@ class LevelCrossings(PlotData):
 
         >>> lc2 = ts2.turning_points().cycle_pairs().level_crossings()
 
-        import pylab as plt
-        h0 = S.plot('b')
-        h1 = Se.plot('r')
+        >>> import pylab as plt
+        >>> h0 = S.plot('b')
+        >>> h1 = Se.plot('r')
 
-        h = plt.subplot(211)
-        h2 = lc2.plot()
-        h = plt.subplot(212)
-        h0 = lc.plot()
+        >>> h = plt.subplot(211)
+        >>> h2 = lc2.plot()
+        >>> h = plt.subplot(212)
+        >>> h0 = lc.plot()
 
         """
 
@@ -438,8 +465,7 @@ class LevelCrossings(PlotData):
         lc1 = self.args
         mcr = trapz(lc1 * lc, lc1) if self.mean is None else self.mean
         if self.sigma is None:
-            scr = trapz(lc1 ** 2 * lc, lc1)
-            scr = sqrt(scr - mcr ** 2)
+            scr = sqrt(trapz(lc1 ** 2 * lc, lc1) - mcr ** 2)
         else:
             scr = self.sigma
         lc2 = LevelCrossings(lc, lc1, mean=mcr, sigma=scr, intensity=True)
@@ -582,19 +608,6 @@ class LevelCrossings(PlotData):
         return estimate._trdata_lc(self, mean, sigma)
 
 
-def test_levelcrossings_extrapolate():
-    import wafo.data
-    x = wafo.data.sea()
-    ts = mat2timeseries(x)
-
-    tp = ts.turning_points()
-    mm = tp.cycle_pairs()
-    lc = mm.level_crossings()
-
-    s = x[:, 1].std()
-    lc_gpd = lc.extrapolate(-2 * s, 2 * s, dist='rayleigh')  # @UnusedVariable
-
-
 class CyclePairs(PlotData):
     '''
     Container class for Cycle Pairs data objects in WAFO
@@ -612,12 +625,22 @@ class CyclePairs(PlotData):
     >>> ts = wo.mat2timeseries(x)
 
     >>> tp = ts.turning_points()
-    >>> mm = tp.cycle_pairs()
-    >>> np.allclose(mm.data[:5],
+    >>> mM = tp.cycle_pairs(kind='min2max')
+    >>> np.allclose(mM.data[:5],
     ...    [ 0.83950546, -0.02049454, -0.04049454,  0.25950546, -0.08049454])
     True
+    >>> np.allclose(mM.args[:5],
+    ...    [-1.2004945 , -0.09049454, -0.09049454, -0.16049454, -0.43049454])
+    True
+    >>> Mm = tp.cycle_pairs(kind='max2min')
+    >>> np.allclose(Mm.data[:5],
+    ...    [ 0.83950546, -0.02049454, -0.04049454,  0.25950546, -0.08049454])
+    True
+    >>> np.allclose(Mm.args[:5],
+    ...    [-0.09049454, -0.09049454, -0.16049454, -0.43049454, -0.21049454])
+    True
 
-    h1 = mm.plot(marker='x')
+    >>> h1 = mM.plot(marker='x')
     '''
 
     def __init__(self, *args, **kwds):
@@ -666,12 +689,11 @@ class CyclePairs(PlotData):
 
         >>> bv = range(3,9)
         >>> D = mm.damage(beta=bv)
-        >>> D
-        array([ 138.5238799 ,  117.56050788,  108.99265423,  107.86681126,
-                112.3791076 ,  122.08375071])
-
-        h = mm.plot(marker='.')
-        h = plt.plot(bv,D,'x-')
+        >>> np.allclose(D, [ 138.5238799 ,  117.56050788,  108.99265423,
+        ...                 107.86681126, 112.3791076 ,  122.08375071])
+        True
+        >>> h = mm.plot(marker='.')
+        >>> h = plt.plot(bv, D, 'x-')
 
         See also
         --------
@@ -730,14 +752,10 @@ class CyclePairs(PlotData):
         LevelCrossings
         """
 
-        if isinstance(kind, str):
-            t = dict(u=0, uM=1, umM=2, um=3)
-            defnr = t.get(kind, 1)
-        else:
-            defnr = kind
-
+        defnr = dict(u=0, uM=1, umM=2, um=3).get(kind, kind)
         if defnr not in [1, 2, 3, 4]:
-            raise ValueError('kind must be one of (1,2,3,4).')
+            raise ValueError('kind must be one of (1, 2, 3, 4, "u", "uM",'
+                             ' "umM", "um").  Got kind = {}'.format(kind))
 
         m, M = self.get_minima_and_maxima()
 
@@ -847,11 +865,13 @@ class TurningPoints(PlotData):
         >>> np.allclose(tph.data[:5],
         ... [-0.16049454,  0.25950546, -0.43049454, -0.08049454, -0.42049454])
         True
+        >>> np.allclose(tph.args[:5],
+        ... [  7.05,   7.8 ,   9.8 ,  11.8 ,  12.8 ])
+        True
 
-
-        hs = ts1.plot()
-        hp = tp.plot('ro')
-        hph = tph.plot('k.')
+        >>> hs = ts1.plot()
+        >>> hp = tp.plot('ro')
+        >>> hph = tph.plot('k.')
 
         See also
         ---------
@@ -896,7 +916,7 @@ class TurningPoints(PlotData):
         ...    0.25950546, -0.08049454])
         True
 
-        h = mM.plot(marker='x')
+        >>> h = mM.plot(marker='x')
 
 
         See also
@@ -1205,9 +1225,15 @@ class TimeSeries(PlotData):
 
         Example
         -------
-        x = load('sea.dat');
-        S = dat2spec(x);
-        specplot(S)
+        >>> import wafo.data as wd
+        >>> import wafo.objects as wo
+        >>> x = wd.sea()
+        >>> ts = wo.mat2timeseries(x)
+        >>> S = ts.tospecdata()
+        >>> np.allclose(S.data[21:25],
+        ...    (0.00207876,  0.0025113 ,  0.00300008,  0.00351852))
+        True
+        >>> h = S.plot()
 
         See also
         --------
@@ -1717,7 +1743,7 @@ class TimeSeries(PlotData):
             # sorting crossings and tp in sequence
             index = sort(r_[index, v_ind])
         else:
-            raise ValueError('Unknown pdef option!')
+            raise ValueError('Unknown pdef option! {}'.format(str(pdef)))
         return index
 
     def _get_start_index(self, pdef, down_crossing_or_max):
@@ -2221,7 +2247,7 @@ class TimeSeries(PlotData):
         >>> x = wafo.data.sea()
         >>> ts150 = wafo.objects.mat2timeseries(x[:150,:])
 
-        h = ts150.plot_wave('r-', sym2='bo')
+        >>> h = ts150.plot_wave('r-', sym2='bo')
 
         See also
         --------
@@ -2272,12 +2298,12 @@ class TimeSeries(PlotData):
         if np.max(abs(xn[indg])) > 5 * sigma:
             XlblTxt = XlblTxt + ' (Spurious data since max > 5 std.)'
 
-        plot = plotbackend.plot
-        subplot = plotbackend.subplot
+        plot = plt.plot
+        subplot = plt.subplot
         figs = []
         for unused_iz in range(nfig):
-            figs.append(plotbackend.figure())
-            plotbackend.title('Surface elevation from mean water level (MWL).')
+            figs.append(plt.figure())
+            plt.title('Surface elevation from mean water level (MWL).')
             for ix in range(nsub):
                 if nsub > 1:
                     subplot(nsub, 1, ix)
@@ -2287,11 +2313,11 @@ class TimeSeries(PlotData):
                 if len(ind2) > 0:
                     plot(tn2[ind2] * dT, xn2[ind2], sym2)
                 plot(h_scale * dT, [0, 0], 'k-')
-                # plotbackend.axis([h_scale*dT, v_scale])
+                # plt.axis([h_scale*dT, v_scale])
                 for iy in [-2, 2]:
                     plot(h_scale * dT, iy * sigma * ones(2), ':')
                 ind = ind + Ns
-            plotbackend.xlabel(XlblTxt)
+            plt.xlabel(XlblTxt)
 
         return figs
 
@@ -2315,7 +2341,7 @@ class TimeSeries(PlotData):
         >>> x = wafo.data.sea()
         >>> ts = wafo.objects.mat2timeseries(x[0:500,...])
 
-        h = ts.plot_sp_wave(np.r_[6:9,12:18])
+        >>> h = ts.plot_sp_wave(np.r_[6:9,12:18])
 
         See also
         --------
@@ -2350,67 +2376,26 @@ class TimeSeries(PlotData):
         Nsub = min(6, int(ceil(Nsub / Nfig)))
         figs = []
         for unused_iy in range(Nfig):
-            figs.append(plotbackend.figure())
+            figs.append(plt.figure())
             for ix in range(Nsub):
-                plotbackend.subplot(Nsub, 1, mod(ix, Nsub) + 1)
+                plt.subplot(Nsub, 1, mod(ix, Nsub) + 1)
                 ind = r_[tz_idx[2 * wave_idx[ix] - 1]:tz_idx[
                     2 * wave_idx[ix] + 2 * Nwp[ix] - 1]]
                 # indices to wave
-                plotbackend.plot(self.args[ind], self.data[ind], *args, **kwds)
-                plotbackend.hold('on')
+                plt.plot(self.args[ind], self.data[ind], *args, **kwds)
+                plt.hold('on')
                 xi = [self.args[ind[0]], self.args[ind[-1]]]
-                plotbackend.plot(xi, [0, 0])
+                plt.plot(xi, [0, 0])
 
                 if Nwp[ix] == 1:
-                    plotbackend.ylabel('Wave %d' % wave_idx[ix])
+                    plt.ylabel('Wave %d' % wave_idx[ix])
                 else:
-                    plotbackend.ylabel(
+                    plt.ylabel(
                         'Wave %d - %d' % (wave_idx[ix],
                                           wave_idx[ix] + Nwp[ix] - 1))
-            plotbackend.xlabel('Time [sec]')
+            plt.xlabel('Time [sec]')
             # wafostamp
         return figs
-
-
-def main():
-    import wafo
-    ts = wafo.objects.mat2timeseries(wafo.data.sea())
-    _S = ts.tospecdata(method='psd')
-    tp = ts.turning_points()
-    mm = tp.cycle_pairs()
-    lc = mm.level_crossings()
-    lc.plot()
-    T = ts.wave_periods(vh=0.0, pdef='c2c')  # @UnusedVariable
-
-    # main()
-    import wafo.spectrum.models as sm
-    Sj = sm.Jonswap()
-    S = Sj.tospecdata()
-
-    R = S.tocovdata()
-    x = R.sim(ns=1000, dt=0.2)  # @UnusedVariable
-    S.characteristic(['hm0', 'tm02'])
-    ns = 1000
-    dt = .2
-    x1 = S.sim(ns, dt=dt)
-
-    ts = TimeSeries(x1[:, 1], x1[:, 0])
-    tp = ts.turning_points(0.0)
-
-    x = np.arange(-2, 2, 0.2)
-
-    # Plot 2 objects in one call
-    d2 = PlotData(np.sin(x), x, xlab='x', ylab='sin', title='sinus')
-
-    d0 = d2.copy()
-    d0.data = d0.data * 0.9
-    d1 = d2.copy()
-    d1.data = d1.data * 1.2
-    d1.children = [d0]
-    d2.children = [d1]
-
-    d2.plot()
-    print('Done')
 
 
 def test_docstrings():
@@ -2418,7 +2403,6 @@ def test_docstrings():
     print('Testing docstrings in %s' % __file__)
     doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
 
+
 if __name__ == '__main__':
     test_docstrings()
-    # main()
-    # test_levelcrossings_extrapolate()

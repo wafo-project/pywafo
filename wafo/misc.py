@@ -962,7 +962,7 @@ def findcross(x, v=0.0, kind=None, method='clib'):
             if xor(is_odd, kind in ('dw', 'uw')):
                 ind = ind[:-1]
         else:
-            raise ValueError('Unknown wave/crossing definition!')
+            raise ValueError('Unknown wave/crossing definition! {}'.format(kind))
     return ind
 
 
@@ -1973,7 +1973,7 @@ def findtc(x_in, v=None, kind=None):
 
         if (2 * n_tc + 1 < n_c) and (kind in (None, 'tw')):
             # trough
-            ind[n_c - 2] = x[v_ind[n_c - 2] + 1:v_ind[n_c - 1]].argmin()
+            ind[n_c - 2] = x[v_ind[n_c - 2] + 1:v_ind[n_c - 1]+1].argmin()
 
     else:  # the first is a up-crossing
         for i in range(n_tc):
@@ -1985,7 +1985,7 @@ def findtc(x_in, v=None, kind=None):
 
         if (2 * n_tc + 1 < n_c) and (kind in (None, 'cw')):
             # crest
-            ind[n_c - 2] = x[v_ind[n_c - 2] + 1:v_ind[n_c - 1]].argmax()
+            ind[n_c - 2] = x[v_ind[n_c - 2] + 1:v_ind[n_c - 1]+1].argmax()
 
     return v_ind[:n_c - 1] + ind + 1, v_ind
 
