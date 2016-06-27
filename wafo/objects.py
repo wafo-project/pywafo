@@ -1171,19 +1171,13 @@ class TimeSeries(PlotData):
         '''Returns bandwidth (rad/sec) and degrees of freedom
             used in chi^2 distribution
         '''
-        Be = v = None
         if isinstance(wname, tuple):
             wname = wname[0]
-        if wname == 'parzen':
-            v = int(3.71 * n / L)
-            Be = 2 * pi * 1.33 / (L * dt)
-        elif wname == 'hanning':
-            v = int(2.67 * n / L)
-            Be = 2 * pi / (L * dt)
-        elif wname == 'bartlett':
-            v = int(3 * n / L)
-            Be = 2 * pi * 1.33 / (L * dt)
-        return Be, v
+        dof = int(dict(parzen=3.71, hanning=2.67,
+                       bartlett=3).get(wname, np.nan) * n/L)
+        Be = dict(parzen=1.33, hanning=1,
+                  bartlett=1.33).get(wname, np.nan) * 2 * pi / (L*dt)
+        return Be, dof
 
     def tospecdata(self, L=None, tr=None, method='cov', detrend=detrend_mean,
                    window='parzen', noverlap=0, ftype='w', alpha=None):
