@@ -1,17 +1,10 @@
-#from tutor_init import *
-import numpy as np
-import logging
-import matplotlib.pyplot as plt
+from tutor_init import *
 import itertools
 # import sys
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
 
 MARKERS = ('o', 'x', '+', '.', '<', '>', '^', 'v')
-
-
-def set_windows_title(title='', log=None):
-    pass
 
 
 def plot_varying_symbols(x, y, color='red', size=5):
@@ -60,11 +53,11 @@ Tlength = xx_sea[-1, 0] - xx_sea[0, 0]
 beta = 3
 K1 = 6.5e-31
 Np = 200
-Tp = Tlength/Np
+Tp = Tlength / Np
 A = 100e6
 log.info("setting sin wave with Tp={} and T={}".format(Tp, Tlength))
 Nc = 1.0 / damage_vs_S(A, beta, K1)
-damage = float(Np)/float(Nc)
+damage = float(Np) / float(Nc)
 log.info("budget at S={} N={}: damage = {} ".format(A, Nc, damage))
 #xx_sea[:, 1] = A * np.cos(2 * np.pi * xx_sea[:, 0]/Tp)
 xx_sea[:, 1] *= 500e6
@@ -76,13 +69,13 @@ tp = ts.turning_points()
 mM = tp.cycle_pairs(kind='min2max')
 Mm = tp.cycle_pairs(kind='max2min')
 lc = mM.level_crossings(intensity=True)
-T_sea = ts.args[-1]-ts.args[0]
+T_sea = ts.args[-1] - ts.args[0]
 
-#for i in dir(mM):
+# for i in dir(mM):
 #    print(i)
 
 
-ts1 = wo.mat2timeseries(xx_sea[:,:])
+ts1 = wo.mat2timeseries(xx_sea[:, :])
 tp1 = ts1.turning_points()
 sig_tp = ts.turning_points(h=0, wavetype='astm')
 try:
@@ -113,7 +106,7 @@ else:
     i_min_start = 2
 
 m_rfc, M_rfc = mM_rfc.get_minima_and_maxima()
-#m_rfc_a, M_rfc_a = mM_rfc_a.get_minima_and_maxima()
+# m_rfc_a, M_rfc_a = mM_rfc_a.get_minima_and_maxima()
 ts1.plot('b-')
 if rfc_plot:
     plot_varying_symbols(tp_rfc.args[0::2], m_rfc, color='red', size=10)
@@ -144,11 +137,11 @@ ampRFC_sea = mM_rfc.amplitudes()
 plt.figure()
 title = "s_n_curve"
 set_windows_title(title)
-S = np.linspace(1e6,1000e6)
+S = np.linspace(1e6, 1000e6)
 plt.loglog(S, damage_vs_S(S, beta, K1))
 plt.figure()
 plt.subplot(121)
-stress_range = (1,1e9)
+stress_range = (1, 1e9)
 n_bins = 100
 wm.plot_histgrm(ampmM_sea, bins=n_bins, range=stress_range)
 plt.xlim(stress_range)
@@ -156,14 +149,16 @@ ylim = plt.gca().get_ylim()
 plt.title('min-max amplitude distribution')
 plt.subplot(122)
 if sig_cp is not None:
-    wm.plot_histgrm(sig_cp[:, 0],bins=n_bins, range=stress_range)
+    wm.plot_histgrm(sig_cp[:, 0], bins=n_bins, range=stress_range)
     plt.gca().set_ylim(ylim)
     title = 'Rainflow amplitude distribution'
     plt.title(title)
     plt.semilogy
     set_windows_title(title)
 
-    hist, bin_edges = np.histogram(sig_cp[:, 0], bins=n_bins, range=stress_range)
+    hist, bin_edges = np.histogram(
+        sig_cp[
+            :, 0], bins=n_bins, range=stress_range)
 
     plt.figure()
     title = "my_bins"
@@ -171,7 +166,7 @@ if sig_cp is not None:
     plt.title(title)
     set_windows_title(title)
     plt.semilogy
-    plt.bar(bin_edges[:-1], hist, width=stress_range[1]/n_bins)
+    plt.bar(bin_edges[:-1], hist, width=stress_range[1] / n_bins)
 
     print("damage min/max : {}".format(mM_rfc.damage([beta], K1)))
 
