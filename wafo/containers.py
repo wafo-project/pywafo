@@ -129,7 +129,8 @@ class PlotData(object):
 
         >>> hi = di.plot()
         >>> h = d.plot()
-        >>> di.to_cdf()
+        >>> dicdf = di.to_cdf()
+        >>> h = dicdf.plot()
 
 
         See also
@@ -606,5 +607,5 @@ def test_docstrings():
 
 
 if __name__ == '__main__':
-    #test_docstrings()
-    test_plotdata()
+    test_docstrings()
+    #test_plotdata()
