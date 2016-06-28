@@ -1792,8 +1792,8 @@ class TimeSeries(PlotData):
         >>> import pylab as plb
         >>> x = wd.sea()
         >>> ts = wo.mat2timeseries(x[0:400,:])
-        >>> T, ix = ts.wave_periods(vh=0.0,pdef='c2c')
-        >>> np.allclose(T[:3,0], [-0.27, -0.08,  0.32])
+        >>> T, ix = ts.wave_periods(vh=0.0, pdef='c2c')
+        >>> np.allclose(T[:3], [-0.27, -0.08,  0.32])
         True
 
         h = plb.hist(T)
