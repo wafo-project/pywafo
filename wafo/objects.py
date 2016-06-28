@@ -1120,54 +1120,7 @@ class TimeSeries(PlotData):
             norm=norm, dt=dt)
         return estimate_cov(self)
 
-    def _specdata(self, L=None, tr=None, method='cov', detrend=detrend_mean,
-                  window='parzen', noverlap=0, pad_to=None):
-        """
-        Obsolete: Delete?
-        Return power spectral density by Welches average periodogram method.
-
-        Parameters
-        ----------
-        NFFT : int, scalar
-            if len(data) < NFFT, it will be zero padded to `NFFT`
-            before estimation. Must be even; a power 2 is most efficient.
-        detrend : function
-        window : vector of length NFFT or function
-            To create window vectors see numpy.blackman, numpy.hamming,
-            numpy.bartlett, scipy.signal, scipy.signal.get_window etc.
-        noverlap : scalar int
-             gives the length of the overlap between segments.
-
-        Returns
-        -------
-        S : SpecData1D
-            Power Spectral Density
-
-        Notes
-        -----
-        The data vector is divided into NFFT length segments.  Each segment
-        is detrended by function detrend and windowed by function window.
-        noverlap gives the length of the overlap between segments.  The
-        absolute(fft(segment))**2 of each segment are averaged to compute Pxx,
-        with a scaling to correct for power loss due to windowing.
-
-        Reference
-        ---------
-        Bendat & Piersol (1986) Random Data: Analysis and Measurement
-        Procedures, John Wiley & Sons
-        """
-        dt = self.sampling_period()
-        yy = self.data.ravel() if tr is None else tr.dat2gauss(
-            self.data.ravel())
-        yy = detrend(yy) if hasattr(detrend, '__call__') else yy
-
-        S, f = psd(yy, Fs=1. / dt, NFFT=L, detrend=detrend, window=window,
-                   noverlap=noverlap, pad_to=pad_to, scale_by_freq=True)
-        fact = 2.0 * pi
-        w = fact * f
-        return _wafospec.SpecData1D(S / fact, w)
-
-    def _get_bandwidth_and_dof(self, wname, n, L, dt):
+    def _get_bandwidth_and_dof(self, wname, n, L, dt, ftype='w'):
         '''Returns bandwidth (rad/sec) and degrees of freedom
             used in chi^2 distribution
         '''
@@ -1177,6 +1130,8 @@ class TimeSeries(PlotData):
                        bartlett=3).get(wname, np.nan) * n/L)
         Be = dict(parzen=1.33, hanning=1,
                   bartlett=1.33).get(wname, np.nan) * 2 * pi / (L*dt)
+        if ftype == 'f':
+            Be = Be / (2 * pi)  # bandwidth in Hz
         return Be, dof
 
     def tospecdata(self, L=None, tr=None, method='cov', detrend=detrend_mean,
@@ -1223,6 +1178,10 @@ class TimeSeries(PlotData):
         >>> import wafo.objects as wo
         >>> x = wd.sea()
         >>> ts = wo.mat2timeseries(x)
+        >>> S0 = ts.tospecdata(method='psd')
+        >>> np.allclose(S0.data[21:25],
+        ...    ( 0.2543896 ,  0.26366755,  0.23372824,  0.19459349))
+        True
         >>> S = ts.tospecdata()
         >>> np.allclose(S.data[21:25],
         ...    (0.00207876,  0.0025113 ,  0.00300008,  0.00351852))
@@ -1284,15 +1243,13 @@ class TimeSeries(PlotData):
         else:
             raise ValueError('Unknown method (%s)' % method)
 
-        Be, v = self._get_bandwidth_and_dof(window, n, L, dt)
+        Be, dof = self._get_bandwidth_and_dof(window, n, L, dt, ftype)
         spec.Bw = Be
-        if ftype == 'f':
-            spec.Bw = Be / (2 * pi)  # bandwidth in Hz
 
         if alpha is not None:
             # Confidence interval constants
-            spec.CI = [v / _invchi2(1 - alpha / 2, v),
-                       v / _invchi2(alpha / 2, v)]
+            spec.CI = [dof / _invchi2(1 - alpha / 2, dof),
+                       dof / _invchi2(alpha / 2, dof)]
 
         spec.tr = tr
         spec.L = L
@@ -1554,15 +1511,8 @@ class TimeSeries(PlotData):
         --------
         wafo.definitions
         '''
-        dT = self.sampling_period()
-        if rate > 1:
-            dT = dT / rate
-            t0, tn = self.args[0], self.args[-1]
-            n = len(self.args)
-            ti = linspace(t0, tn, int(rate * n))
-            xi = interp1d(self.args, self.data.ravel(), kind='cubic')(ti)
-        else:
-            ti, xi = self.args, self.data.ravel()
+        dT = self.sampling_period()/np.maximum(rate, 1)
+        xi, ti = self._interpolate(rate)
 
         tc_ind, z_ind = findtc(xi, v=0, kind='tw')
         tc_a = xi[tc_ind]
@@ -1581,7 +1531,7 @@ class TimeSeries(PlotData):
         Tcb[(Tcb == 0)] = dT  # avoiding division by zero
         return dict(Ac=Ac, At=At, Hu=Hu, Hd=Hd, Tu=Tu, Td=Td, Tcf=Tcf, Tcb=Tcb)
 
-    def wave_height_steepness(self, method=1, rate=1, g=None):
+    def wave_height_steepness(self, kind='Vcf', rate=1, g=None):
         '''
         Returns waveheights and steepnesses from data.
 
@@ -1590,7 +1540,7 @@ class TimeSeries(PlotData):
         rate : scalar integer
             interpolation rate. Interpolates with spline if greater than one.
 
-        method : scalar integer (default 1)
+        kind : scalar integer (default 1)
             0 max(Vcf, Vcb) and corresponding wave height Hd or Hu in H
             1 crest front (rise) speed (Vcf) in S and wave height Hd in H.
            -1 crest back (fall) speed (Vcb) in S and waveheight Hu in H.
@@ -1602,7 +1552,7 @@ class TimeSeries(PlotData):
                 for zero-upcrossing waves.
         Returns
         -------
-        S, H = Steepness and the corresponding wave height according to method
+        S, H = Steepness and the corresponding wave height according to kind
 
 
         The parameters are calculated as follows:
@@ -1631,7 +1581,7 @@ class TimeSeries(PlotData):
         ...     [[ 0.10140867,  0.06141156], [ 0.42,  0.78]],
         ...     [[ 0.01821413,  0.01236672], [ 0.42,  0.78]]]
         >>> for i in range(-3,4):
-        ...     S, H = ts.wave_height_steepness(method=i)
+        ...     S, H = ts.wave_height_steepness(kind=i)
         ...     np.allclose((S[:2],H[:2]), true_SH[i+3])
         True
         True
@@ -1651,71 +1601,63 @@ class TimeSeries(PlotData):
         wafo.definitions
         '''
 
-        dT = self.sampling_period()
+        dT = self.sampling_period() / np.maximum(rate, 1)
         if g is None:
-            g = gravity()  # % acceleration of gravity
+            g = gravity()  # acceleration of gravity
 
-        if rate > 1:
-            dT = dT / rate
-            t0, tn = self.args[0], self.args[-1]
-            n = len(self.args)
-            ti = linspace(t0, tn, int(rate * n))
-            xi = interp1d(self.args, self.data.ravel(), kind='cubic')(ti)
-
-        else:
-            ti, xi = self.args, self.data.ravel()
+        xi, ti = self._interpolate(rate)
 
         tc_ind, z_ind = findtc(xi, v=0, kind='tw')
         tc_a = xi[tc_ind]
         tc_t = ti[tc_ind]
         Ac = tc_a[1::2]  # crest amplitude
         At = -tc_a[0::2]  # trough  amplitude
-
-        if (0 <= method and method <= 2):
+        defnr = dict(maxVcfVcb=0, Vcf=1, Vcb=-1, Scf=2, Scb=-2, StHd=3,
+                     StHu=-3).get(kind, kind)
+        if 0 <= defnr <= 2:
             # time between zero-upcrossing and  crest  [s]
             tu = ecross(ti, xi, z_ind[1:-1:2], v=0)
             Tcf = tc_t[1::2] - tu
             Tcf[(Tcf == 0)] = dT  # avoiding division by zero
-        if (0 >= method and method >= -2):
+        if -2 <= defnr <= 0:
             # time between  crest and zero-downcrossing [s]
             td = ecross(ti, xi, z_ind[2::2], v=0)
             Tcb = td - tc_t[1::2]
             Tcb[(Tcb == 0)] = dT
-            # % avoiding division by zero
 
-        if method == 0:
+        if defnr == 0:
             # max(Vcf, Vcr) and the corresponding wave height Hd or Hu in H
             Hu = Ac + At[1:]
             Hd = Ac + At[:-1]
             T = np.where(Tcf < Tcb, Tcf, Tcb)
             S = Ac / T
             H = np.where(Tcf < Tcb, Hd, Hu)
-        elif method == 1:  # extracting crest front velocity [m/s] and
+        elif defnr == 1:  # extracting crest front velocity [m/s] and
             # Zero-downcrossing wave height [m]
             H = Ac + At[:-1]  # Hd
             S = Ac / Tcf
-        elif method == -1:  # extracting crest rear velocity [m/s] and
+        elif defnr == -1:  # extracting crest rear velocity [m/s] and
             # Zero-upcrossing wave height [m]
             H = Ac + At[1:]  # Hu
             S = Ac / Tcb
         # crest front steepness in S and the wave height Hd in H.
-        elif method == 2:
+        elif defnr == 2:
             H = Ac + At[:-1]  # Hd
             Td = diff(ecross(ti, xi, z_ind[::2], v=0))
             S = 2 * pi * Ac / Td / Tcf / g
         # crest back steepness in S and the wave height Hu in H.
-        elif method == -2:
+        elif defnr == -2:
             H = Ac + At[1:]
             Tu = diff(ecross(ti, xi, z_ind[1::2], v=0))
             S = 2 * pi * Ac / Tu / Tcb / g
-        elif method == 3:  # total steepness in S and the wave height Hd in H
-            # for zero-doewncrossing waves.
+        elif defnr == 3:  # total steepness in S and the wave height Hd in H
+            # for zero-downcrossing waves.
             H = Ac + At[:-1]
             # Period zero-downcrossing waves
             Td = diff(ecross(ti, xi, z_ind[::2], v=0))
             S = 2 * pi * H / Td ** 2 / g
         # total steepness in S and the wave height Hu in H for
-        elif method == -3:
+        elif defnr == -3:
             # zero-upcrossing waves.
             H = Ac + At[1:]
             # Period zero-upcrossing waves
@@ -1775,6 +1717,17 @@ class TimeSeries(PlotData):
         else:
             step = 2
         return step
+
+    def _interpolate(self, rate):
+        if rate > 1:  # interpolate with spline
+            n = ceil(self.data.size * rate)
+            ti = linspace(self.args[0], self.args[-1], n)
+            x = stineman_interp(ti, self.args, self.data.ravel())
+            # xi = interp1d(self.args, self.data.ravel(), kind='cubic')(ti)
+        else:
+            x = self.data.ravel()
+            ti = self.args
+        return x, ti
 
     def wave_periods(self, vh=None, pdef='d2d', wdef=None, index=None, rate=1):
         """
@@ -1852,30 +1805,7 @@ class TimeSeries(PlotData):
         findcross, perioddef
         """
 
-# % This is a more flexible version than the dat2hwa or tp2wa routines.
-# % There is a secret option: if pdef='all' the function returns
-# % all the waveperiods 'd2t', 't2u', 'u2c' and 'c2d' in sequence.
-# % It is up to the user to extract the right waveperiods.
-# % If the first is a down-crossing then the first is a 'd2t' waveperiod.
-# % If the first is a up-crossing then the first is a 'u2c' waveperiod.
-# %
-# %    Example:
-# %        [T ind]=dat2wa(x,0,'all') %returns all waveperiods
-# %        nn = length(T)
-# %        % want to extract all t2u waveperiods
-# %        if x(ind(1),2)>0 % if first is down-crossing
-# %            Tt2u=T(2:4:nn)
-# %        else         % first is up-crossing
-# %            Tt2u=T(4:4:nn)
-# %        end
-
-        if rate > 1:  # % interpolate with spline
-            n = ceil(self.data.size * rate)
-            ti = linspace(self.args[0], self.args[-1], n)
-            x = stineman_interp(ti, self.args, self.data.ravel())
-        else:
-            x = self.data
-            ti = self.args
+        x, ti = self._interpolate(rate)
 
         if vh is None:
             if pdef[0] in ('m', 'M'):
@@ -1899,7 +1829,7 @@ class TimeSeries(PlotData):
             dist = 1
 
         nn = len(index)
-        # New call: (pab 28.06.2001)
+
         if pdef[0] in ('u', 'd'):
             t0 = ecross(ti, x, index[start:(nn - dist):step], vh)
         else:  # min, Max, trough, crest or all crossings wanted
