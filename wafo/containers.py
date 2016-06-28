@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 import warnings
-from .graphutil import cltext
-from .plotbackend import plotbackend
+from wafo.graphutil import cltext
+from wafo.plotbackend import plotbackend
 from time import gmtime, strftime
 import numpy as np
 from scipy.integrate.quadrature import cumtrapz  # @UnresolvedImport
@@ -166,13 +166,16 @@ class PlotData(object):
         cdf = np.hstack((0, integrate.cumtrapz(self.data, self.args)))
         return PlotData(cdf, np.copy(self.args), xlab='x', ylab='F(x)')
 
-    def integrate(self, a, b, **kwds):
+    def integrate(self, a=None, b=None, **kwds):
         '''
         >>> x = np.linspace(0,5,60)
         >>> d = PlotData(np.sin(x), x)
         >>> d.dataCI = np.vstack((d.data*.9,d.data*1.1)).T
         >>> d.integrate(0,np.pi/2, return_ci=True)
         array([ 0.99940055,  0.85543644,  1.04553343])
+        >>> np.allclose(d.integrate(0, 5, return_ci=True),
+        ...    d.integrate(return_ci=True))
+        True
 
         '''
         method = kwds.pop('method', 'trapz')
@@ -193,6 +196,10 @@ class PlotData(object):
         else:  # One dimensional data
             return_ci = kwds.pop('return_ci', False)
             x = self.args
+            if a is None:
+                a = x[0]
+            if b is None:
+                b = x[-1]
             ix = np.flatnonzero((a < x) & (x < b))
             xi = np.hstack((a, x.take(ix), b))
             fi = np.hstack(

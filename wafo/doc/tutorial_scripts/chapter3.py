@@ -47,7 +47,7 @@ plt.show()
 #! Extreme waves - model check: the highest and steepest wave
 #!~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 plt.clf()
-S, H = ts.wave_height_steepness(method=0)
+S, H = ts.wave_height_steepness(kind=0)
 indS = S.argmax()
 indH = H.argmax()
 ts.plot_sp_wave([indH, indS],'k.')
@@ -98,7 +98,8 @@ plt.clf()#
 fac = wk.TKDE(Ac,L2=L2)(np.linspace(0.01,3,200), output='plot')
 fac.plot()
 # wafostamp([],'(ER)')
-fac.integrate(a=0.01, b=3)
+print(fac.integrate(a=0.01, b=3))
+print(fac.integrate())
 print('Block = 8'),
 # pause(pstate)
 
@@ -149,7 +150,7 @@ print(mt)
 
 plt.clf()
 S.bandwidth(['alpha'])
-ch, Sa2 = S.characteristic(['Hm0', 'Tm02'])
+ch, Sa2, chtxt = S.characteristic(['Hm0', 'Tm02'])
 
 # disp('Block = 13'), pause(pstate)
 
