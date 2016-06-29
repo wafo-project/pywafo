@@ -180,7 +180,6 @@ except TypeError as err:
 # Plot of yura87 data
 import wafo.data as wd
 
-plt.figure()
 xn = wd.yura87()
 # xn = load('yura87.dat');
 plt.subplot(211)
