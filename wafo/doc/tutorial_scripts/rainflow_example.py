@@ -1,5 +1,4 @@
 from tutor_init import *
-import sys
 import itertools
 log = logging.getLogger(__name__)
 log.setLevel(logging.DEBUG)
@@ -42,7 +41,6 @@ def damage_vs_S(S, beta, K):
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 import wafo.data as wd
 import wafo.objects as wo
-import wafo.misc as wm
 
 xx_sea = wd.sea()
 
@@ -68,14 +66,15 @@ Mm = tp.cycle_pairs(kind='max2min')
 lc = mM.level_crossings(intensity=True)
 T_sea = ts.args[-1]-ts.args[0]
 
-#for i in dir(mM):
-#    print(i)
-
-
 ts1 = wo.mat2timeseries(xx_sea[:,:])
 tp1 = ts1.turning_points()
 sig_tp = ts.turning_points(h=0, wavetype='astm')
-sig_cp = sig_tp.cycle_astm()
+try:
+    sig_cp = sig_tp.cycle_astm()
+    log.info("Successfully used cycle_astm")
+except AttributeError:
+    log.warning("Could use cycle_astm")
+    sig_cp = None
 tp1 = ts1.turning_points()
 tp2 = ts1.turning_points(wavetype='Mw')
 mM1 = tp1.cycle_pairs(kind='min2max')
@@ -83,7 +82,10 @@ Mm1 = tp1.cycle_pairs(kind='max2min')
 
 tp_rfc = tp1.rainflow_filter(h=100e6)
 mM_rfc = tp_rfc.cycle_pairs()
-mM_rfc_a = tp1.cycle_astm()
+try:
+    mM_rfc_a = tp1.cycle_astm()
+except AttributeError:
+    mM_rfc_a = None
 tc1 = ts1.trough_crest()
 min_to_max= True
 rfc_plot = True
@@ -117,7 +119,6 @@ title = 'Rainflow filtered cycles'
 plt.title(title)
 set_windows_title(title)
 
-
 # Min-max and rainflow cycle distributions
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 import wafo.misc as wm
@@ -137,26 +138,26 @@ plt.xlim(stress_range)
 ylim = plt.gca().get_ylim()
 plt.title('min-max amplitude distribution')
 plt.subplot(122)
-wm.plot_histgrm(sig_cp[:, 0],bins=n_bins, range=stress_range)
-plt.gca().set_ylim(ylim)
-title='Rainflow amplitude distribution'
-plt.title(title)
-plt.semilogy
-set_windows_title(title)
+if sig_cp is not None:
+    wm.plot_histgrm(sig_cp[:, 0],bins=n_bins, range=stress_range)
+    plt.gca().set_ylim(ylim)
+    title='Rainflow amplitude distribution'
+    plt.title(title)
+    plt.semilogy
+    set_windows_title(title)
 
-hist, bin_edges = np.histogram(sig_cp[:, 0], bins=n_bins, range=stress_range)
+    hist, bin_edges = np.histogram(sig_cp[:, 0], bins=n_bins, range=stress_range)
 
-plt.figure()
-title = "my_bins"
-plt.title(title)
-plt.title(title)
-set_windows_title(title)
-plt.semilogy
-plt.bar(bin_edges[:-1], hist, width=stress_range[1]/n_bins)
+    plt.figure()
+    title = "my_bins"
+    plt.title(title)
+    plt.title(title)
+    set_windows_title(title)
+    plt.semilogy
+    plt.bar(bin_edges[:-1], hist, width=stress_range[1]/n_bins)
 
-print("damage min/max : {}".format(mM_rfc.damage([beta], K1)))
+    print("damage min/max : {}".format(mM_rfc.damage([beta], K1)))
 
-damage_rfc = K1 * np.sum(sig_cp[:, 0]** beta)
-print("damage rfc : {}".format(damage_rfc))
-
+    damage_rfc = K1 * np.sum(sig_cp[:, 0]** beta)
+    print("damage rfc : {}".format(damage_rfc))
 plt.show('hold')
