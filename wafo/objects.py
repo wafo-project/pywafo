@@ -1,17 +1,3 @@
-
-
-# Name:        module1
-# Purpose:
-#
-# Author:      pab
-#
-# Created:     16.09.2008
-# Copyright:   (c) pab 2008
-# Licence:     <your licence>
-
-# !/usr/bin/env python
-
-
 from __future__ import absolute_import, division
 from wafo.transform.core import TrData
 from wafo.transform.estimation import TransformEstimator
@@ -2230,7 +2216,7 @@ class TimeSeries(PlotData):
             plt.title('Surface elevation from mean water level (MWL).')
             for ix in range(nsub):
                 if nsub > 1:
-                    subplot(nsub, 1, ix)
+                    subplot(nsub, 1, ix + 1)
                 h_scale = array([tn[ind[0]], tn[ind[-1]]])
                 ind2 = where((h_scale[0] <= tn2) & (tn2 <= h_scale[1]))[0]
                 plot(tn[ind] * dT, xn[ind], sym1)
