@@ -93,6 +93,7 @@ inds, indg = wm.findoutliers(ts.data, zcrit, dcrit, ddcrit, verbose=True)
 # Periodogram: Raw spectrum
 #
 plt.figure()
+
 Lmax = 9500
 S = ts.tospecdata(L=Lmax)
 S.plot()
@@ -112,6 +113,7 @@ log.info("sigma = {}, m0 = {}".format(sa, np.sqrt(mom[0])))
 
 plt.figure()
 Lmax0 = 200; Lmax1 = 50
+
 S1 = ts.tospecdata(L=Lmax0)
 S2 = ts.tospecdata(L=Lmax1)
 S1.plot('-.')
@@ -126,8 +128,9 @@ set_windows_title("Spectral Density Compare L={} and L={}".format(Lmax0, Lmax1),
 # covariance of the signal xx.
 plt.figure()
 plt.subplot(211)
+
 Lmax = 85
-R1 = S1.tocovdata(nr=1)   
+R1 = S1.tocovdata(nr=1)
 Rest = ts.tocovdata(lag=Lmax)
 R1.plot('.')
 Rest.plot()
@@ -155,12 +158,12 @@ rho3 = ws.skew(xx[:, 1])
 rho4 = ws.kurtosis(xx[:, 1])
 
 sk, ku = S1.stats_nl(moments='sk')
- 
+
 # Comparisons of 3 transformations
 plt.figure()
 import wafo.transform.models as wtm
 gh = wtm.TrHermite(mean=me, sigma=sa, skew=sk, kurt=ku).trdata()
-g = wtm.TrLinear(mean=me, sigma=sa).trdata() # Linear transformation 
+g = wtm.TrLinear(mean=me, sigma=sa).trdata()  # Linear transformation
 glc, gemp = lc.trdata(mean=me, sigma=sa)
 
 glc.plot('b-') # Transf. estimated from level-crossings
@@ -256,8 +259,8 @@ set_windows_title("Spreading function", log)
 ##wafostamp('','(ER)')
 #disp('Block = 20'),pause(pstate)
 #
-###! Section 2.3 Simulation of transformed Gaussian process
-###! Example 3: Simulation of random sea
+## Section 2.3 Simulation of transformed Gaussian process
+## Example 3: Simulation of random sea
 ## The reconstruct function replaces the spurious points of seasurface by
 ## simulated data on the basis of the remaining data and a transformed Gaussian
 ## process. As noted previously one must be careful using the criteria
@@ -288,7 +291,7 @@ set_windows_title("Spreading function", log)
 #Sx = dat2spec(x,L);
 #disp('Block = 23'),pause(pstate)
 #
-###!
+###
 #clf
 #dt = spec2dt(Sx)
 #Ny = fix(2*60/dt) # = 2 minutes
@@ -315,7 +318,7 @@ set_windows_title("Torsethaugen Spectral Density", log)
 # Transformed Gaussian model compared to Gaussian model
 #--------------------------------------------------------
 dt = St.sampling_period()
-va, sk, ku = St.stats_nl(moments='vsk' )
+va, sk, ku = St.stats_nl(moments='vsk')
 #sa = sqrt(va)
 gh = wtm.TrHermite(mean=me, sigma=sa, skew=sk, kurt=ku, ysigma=sa)
 

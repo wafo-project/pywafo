@@ -12,11 +12,12 @@ Examples
 --------
 In order to view the documentation do the following in an ipython window:
 
->>> import wafo.definitions as wd
->>> wd.crossings()
+import wafo.definitions as wd
+wd.crossings()
 
 or
->>> wd.crossings?
+
+wd.crossings?
 
 
 """
@@ -303,3 +304,7 @@ def waves():
     findcross
     """
     print(waves.__doc__)
+
+if __name__ == '__main__':
+    import doctest
+    doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)

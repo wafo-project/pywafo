@@ -6,6 +6,31 @@
     This file was generated with PyScaffold 2.4.2, a tool that easily
     puts up a scaffold for your new Python project. Learn more under:
     http://pyscaffold.readthedocs.org/
+
+Usage:
+Run all tests:
+  python setup.py test
+
+  python setup.py doctests
+
+Build documentation
+
+  python setup.py docs
+
+Install
+  python setup.py install [, --prefix=$PREFIX]
+
+Build
+
+  python setup.py bdist_wininst
+
+  python setup.py bdist_wheel --universal
+
+  python setup.py sdist
+
+PyPi upload:
+  twine upload dist/*
+
 """
 
 from __future__ import division, absolute_import, print_function
@@ -40,7 +65,7 @@ def setup_package_pyscaffold():
                          'wafo/source/mvnprd/mvnprodcorrprb.f']
     config.add_library('_mvnprdmod', sources=lib_mvnprdmod_src)
     config.add_extension('mvnprdmod',
-                         sources=['wafo/source/mreg/cov2mmpdfreg_intfc.f'],
+                         sources=['wafo/source/mvnprd/mvnprd_interface.f'],
                          libraries=['_mvnprdmod'],
                          depends=(lib_mvnprdmod_src))
 

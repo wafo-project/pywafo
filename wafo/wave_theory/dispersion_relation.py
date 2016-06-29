@@ -5,7 +5,7 @@ k2w - Translates from wave number to frequency
 w2k - Translates from frequency to wave number
 """
 import warnings
-#import numpy as np
+# import numpy as np
 from numpy import (atleast_1d, sqrt, ones_like, zeros_like, arctan2, where,
                    tanh, any, sin, cos, sign, inf,
                    flatnonzero, finfo, cosh, abs)
@@ -124,13 +124,13 @@ def w2k(w, theta=0.0, h=inf, g=9.81, count_limit=100):
     >>> import pylab as plb
     >>> import wafo.wave_theory.dispersion_relation as wsd
     >>> w = plb.linspace(0,3);
-    >>> h = plb.plot(w,w2k(w)[0])
     >>> wsd.w2k(range(4))[0]
     array([ 0.        ,  0.1019368 ,  0.4077472 ,  0.91743119])
     >>> wsd.w2k(range(4),h=20)[0]
     array([ 0.        ,  0.10503601,  0.40774726,  0.91743119])
 
-    >>> plb.close('all')
+    h = plb.plot(w,w2k(w)[0])
+    plb.close('all')
 
     See also
     --------

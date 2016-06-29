@@ -5,10 +5,10 @@ Created on 20. jan. 2011
 
 license BSD
 '''
-from __future__ import division
+from __future__ import absolute_import, division
 import warnings
 import numpy as np
-from wafo.plotbackend import plotbackend
+from .plotbackend import plotbackend
 from matplotlib import mlab
 __all__ = ['cltext', 'tallibing', 'test_docstrings']
 
@@ -39,23 +39,27 @@ def delete_text_object(gidtxt, figure=None, axis=None, verbose=False):
         figure = plotbackend.gcf()
     if axis is None:
         axis = figure.gca()
-    lmatchfun = lambda x: _matchfun(x, gidtxt)
-    objs = axis.findobj(lmatchfun)
-    for obj in objs:
+
+    def lmatchfun(x):
+        return _matchfun(x, gidtxt)
+
+    def _delete_gid_objects(handle, gidtxt, verbose):
+        objs = handle.findobj(lmatchfun)
         try:
-            axis.texts.remove(obj)
-        except:
-            if verbose:
-                warnings.warn(
-                    'Tried to delete a non-existing %s from axis' % gidtxt)
-    objs = figure.findobj(lmatchfun)
-    for obj in objs:
-        try:
-            figure.texts.remove(obj)
-        except:
-            if verbose:
-                warnings.warn(
-                    'Tried to delete a non-existing %s from figure' % gidtxt)
+            name = handle.__class__.__name__
+        except AttributeError:
+            name = 'unknown object'
+        msg = "Tried to delete a non-existing {0} from {1}".format(gidtxt,
+                                                                   name)
+        for obj in objs:
+            try:
+                handle.texts.remove(obj)
+            except:
+                if verbose:
+                    warnings.warn(msg)
+
+    for handle in [axis, figure]:
+        _delete_gid_objects(handle, gidtxt, verbose)
 
 
 def cltext(levels, percent=False, n=4, xs=0.036, ys=0.94, zs=0, figure=None,
@@ -104,9 +108,10 @@ def cltext(levels, percent=False, n=4, xs=0.036, ys=0.94, zs=0, figure=None,
     >>> import wafo.demos as wd
     >>> import pylab as plt
     >>> x,y,z  = wd.peaks();
-    >>> h = plt.contour(x,y,z)
-    >>> h = wg.cltext(h.levels)
-    >>> plt.show()
+
+    h = plt.contour(x,y,z)
+    h = wg.cltext(h.levels)
+    plt.show()
     '''
     # TODO : Make it work like legend does (but without the box): include
     # position options etc...
@@ -125,7 +130,10 @@ def cltext(levels, percent=False, n=4, xs=0.036, ys=0.94, zs=0, figure=None,
     yss = yint[0] + ys * (yint[1] - yint[0])
 
     # delete cltext object if it exists
-    delete_text_object(_CLTEXT_GID, axis=axis)
+    try:
+        delete_text_object(_CLTEXT_GID, axis=axis)
+    except Exception:
+        pass
 
     charHeight = 1.0 / 33.0
     delta_y = charHeight
@@ -188,8 +196,9 @@ def tallibing(*args, **kwds):
     >>> import wafo.graphutil as wg
     >>> import wafo.demos as wd
     >>> [x,y,z] = wd.peaks(n=20)
-    >>> h0 = wg.pcolor(x,y,z)
-    >>> h1 = wg.tallibing(x,y,z)
+
+    h0 = wg.pcolor(x,y,z)
+    h1 = wg.tallibing(x,y,z)
 
     See also
     --------

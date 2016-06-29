@@ -4,4 +4,5 @@ numpy>=1.4
 numdifftools>=0.2
 scipy>=0.9
 matplotlib
+mpmath
 

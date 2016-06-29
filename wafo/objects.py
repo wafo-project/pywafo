@@ -1,25 +1,13 @@
-
-
-# Name:        module1
-# Purpose:
-#
-# Author:      pab
-#
-# Created:     16.09.2008
-# Copyright:   (c) pab 2008
-# Licence:     <your licence>
-
-# !/usr/bin/env python
-
-
-from __future__ import division
+from __future__ import absolute_import, division
 from wafo.transform.core import TrData
 from wafo.transform.estimation import TransformEstimator
 from wafo.stats import distributions
 from wafo.misc import (nextpow2, findtp, findrfc, findtc, findcross,
-                       ecross, JITImport, DotDict, gravity, findrfc_astm)
+                       ecross, JITImport, DotDict, gravity, findrfc_astm,
+                       detrendma)
 from wafo.interpolate import stineman_interp
 from wafo.containers import PlotData
+from wafo.plotbackend import plotbackend as plt
 from scipy.integrate import trapz
 from scipy.signal import welch, lfilter
 from scipy.signal.windows import get_window  # @UnusedImport
@@ -35,12 +23,12 @@ from numpy import (inf, pi, zeros, ones, sqrt, where, log, exp, cos, sin,
                    cumsum, ravel, isnan, ceil, diff, array)
 from numpy.fft import fft  # @UnusedImport
 from numpy.random import randn
-import matplotlib
 from matplotlib.mlab import psd, detrend_mean
-from plotbackend import plotbackend
+from scipy.signal.windows import parzen
+
 
 floatinfo = finfo(float)
-matplotlib.interactive(True)
+
 _wafocov = JITImport('wafo.covariance')
 _wafocov_estimation = JITImport('wafo.covariance.estimation')
 _wafospec = JITImport('wafo.spectrum')
@@ -67,15 +55,24 @@ class LevelCrossings(PlotData):
 
     Examples
     --------
-    >>> import wafo.data
+    >>> import wafo.data as wd
     >>> import wafo.objects as wo
-    >>> x = wafo.data.sea()
+    >>> x = wd.sea()
     >>> ts = wo.mat2timeseries(x)
 
     >>> tp = ts.turning_points()
     >>> mm = tp.cycle_pairs()
 
     >>> lc = mm.level_crossings()
+    >>> np.allclose(lc.data[:5], [ 0.,  1.,  2.,  2.,  3.])
+    True
+    >>> m, s = lc.estimate_mean_and_stdev()
+    >>> np.allclose([m, s], (0.033974280952584639, 0.48177752818956326))
+    True
+    >>> np.allclose((lc.mean, lc.sigma),
+    ...             (1.5440875692709283e-09, 0.47295493383306714))
+    True
+
     >>> h2 = lc.plot()
     '''
 
@@ -88,30 +85,40 @@ class LevelCrossings(PlotData):
         options.update(**kwds)
         super(LevelCrossings, self).__init__(*args, **options)
         self.intensity = kwds.get('intensity', False)
-        self.sigma = kwds.get('sigma', None)
-        self.mean = kwds.get('mean', None)
+        self.sigma = kwds.get('sigma')
+        self.mean = kwds.get('mean')
         # self.setplotter(plotmethod='step')
 
-        icmax = self.data.argmax()
         if self.data is not None:
+            i_cmax = self.data.argmax()
             if self.sigma is None or self.mean is None:
-                logcros = where(self.data == 0.0, inf, -log(self.data))
-                logcmin = logcros[icmax]
-                logcros = sqrt(2 * abs(logcros - logcmin))
-                logcros[0:icmax + 1] = 2 * logcros[
-                    icmax] - logcros[0:icmax + 1]
-                ncr = 10
-                # least square fit
-                p = polyfit(self.args[ncr:-ncr], logcros[ncr:-ncr], 1)
+                mean, sigma = self.estimate_mean_and_stdev(i_cmax)
                 if self.sigma is None:
                     # estimated standard deviation of x
-                    self.sigma = 1.0 / p[0]
+                    self.sigma = sigma
                 if self.mean is None:
-                    self.mean = -p[1] / p[0]  # self.args[icmax]
-            cmax = self.data[icmax]
+                    self.mean = mean
+            cmax = self.data[i_cmax]
             x = (self.args - self.mean) / self.sigma
             y = cmax * exp(-x ** 2 / 2.0)
             self.children = [PlotData(y, self.args)]
+
+    def estimate_mean_and_stdev(self, i_cmax=None):
+        """
+        Return mean and standard deviation of process x estimated from crossing
+        """
+        if i_cmax is None:
+            i_cmax = self.data.argmax()
+        logcros = where(self.data == 0.0, inf, -log(self.data))
+        logcmin = logcros[i_cmax]
+        logcros = sqrt(2 * abs(logcros - logcmin))
+        logcros[0:i_cmax + 1] = 2 * logcros[i_cmax] - logcros[0:i_cmax + 1]
+        ncr = 10
+        # least square fit
+        p = polyfit(self.args[ncr:-ncr], logcros[ncr:-ncr], 1)
+        sigma = 1.0 / p[0]
+        mean = -p[1] / p[0]  # self.args[i_cmax]
+        return mean, sigma
 
     def extrapolate(self, u_min=None, u_max=None, method='ml', dist='genpar',
                     plotflag=0):
@@ -132,8 +139,8 @@ class LevelCrossings(PlotData):
             expon : Exponential distribution (GPD with k=0)
             rayleigh : truncated Rayleigh distribution
         plotflag : scalar integer
-            1: Diagnostic plots. (default)
-            0: Don't plot diagnostic plots.
+            1: Diagnostic plots.
+            0: Don't plot diagnostic plots. (default)
 
         Returns
         -------
@@ -150,7 +157,7 @@ class LevelCrossings(PlotData):
            H(x) = exp(-x/s),  k=0               (expon)
         The tails with the survival function of a truncated Rayleigh
         distribution.
-           H(x) = exp(-((x+x0).^2-x0^2)/s^2)    (rayleigh)
+           H(x) = exp(-((x+x0)**2-x0^2)/s**2)    (rayleigh)
         where x0 is the distance from the truncation level to where the LC has
         its maximum.
         The method 'gpd' uses the GPD. We recommend the use of 'gpd,ml'.
@@ -160,24 +167,36 @@ class LevelCrossings(PlotData):
 
         Example
         -------
-        >>> import wafo.data
+        >>> import wafo.data as wd
         >>> import wafo.objects as wo
-        >>> x = wafo.data.sea()
+        >>> x = wd.sea()
         >>> ts = wo.mat2timeseries(x)
 
         >>> tp = ts.turning_points()
         >>> mm = tp.cycle_pairs()
         >>> lc = mm.level_crossings()
 
-        >>> s = x[:,1].std()
+        >>> s = x[:, 1].std()
         >>> lc_gpd = lc.extrapolate(-2*s, 2*s)
         >>> lc_exp = lc.extrapolate(-2*s, 2*s, dist='expon')
         >>> lc_ray = lc.extrapolate(-2*s, 2*s, dist='rayleigh')
 
-        lc.plot()
-        lc_gpd.plot()
-        lc_exp.plot()
-        lc_ray.plot()
+        >>> n = 3
+        >>> np.allclose([lc_gpd.data[:n], lc_gpd.data[-n:]],
+        ...            [[ 0.,  0.,  0.], [ 0.,  0.,  0.]])
+        True
+        >>> np.allclose([lc_exp.data[:n], lc_exp.data[-n:]],
+        ...            [[  6.51864195e-12,   7.02339889e-12,   7.56724060e-12],
+        ...            [  1.01040335e-05,   9.70417448e-06,   9.32013956e-06]])
+        True
+        >>> np.allclose([lc_ray.data[:n], lc_ray.data[-n:]],
+        ...        [[  1.78925398e-37,   2.61098785e-37,   3.80712964e-37],
+        ...         [  1.28140956e-13,   1.11668143e-13,   9.72878135e-14]])
+        True
+        >>> h0 = lc.plot()
+        >>> h1 = lc_gpd.plot()
+        >>> h2 = lc_exp.plot()
+        >>> h3 = lc_ray.plot()
 
 
         See also
@@ -204,18 +223,17 @@ class LevelCrossings(PlotData):
                 u_max = self.args[i.max()]
         lcf, lcx = self.data, self.args
         # Extrapolate LC for high levels
-        [lc_High, phat_high] = self._extrapolate(lcx, lcf, u_max,
-                                                 u_max - lc_max, method, dist)
+        lc_High, phat_high = self._extrapolate(lcx, lcf, u_max, u_max - lc_max,
+                                               method, dist)
         # Extrapolate LC for low levels
-        [lcEst1, phat_low] = self._extrapolate(-lcx[::-1], lcf[::-1], -u_min,
-                                               lc_max - u_min, method, dist)
+        lcEst1, phat_low = self._extrapolate(-lcx[::-1], lcf[::-1], -u_min,
+                                             lc_max - u_min, method, dist)
         lc_Low = lcEst1[::-1, :]  # [-lcEst1[::-1, 0], lcEst1[::-1, 1::]]
         lc_Low[:, 0] *= -1
 
         if plotflag:
-            plotbackend.semilogx(lcf, lcx,
-                                 lc_High[:, 1], lc_High[:, 0],
-                                 lc_Low[:, 1], lc_Low[:, 0])
+            plt.semilogx(lcf, lcx, lc_High[:, 1], lc_High[:, 0],
+                         lc_Low[:, 1], lc_Low[:, 0])
         i_mask = (u_min < lcx) & (lcx < u_max)
         f = np.hstack((lc_Low[:, 1], lcf[i_mask], lc_High[:, 1]))
         x = np.hstack((lc_Low[:, 0], lcx[i_mask], lc_High[:, 0]))
@@ -262,7 +280,7 @@ class LevelCrossings(PlotData):
             r = sqrt(-2 * log(1 - 90 / 100))  # 90 # confidence sphere
             Nc = 16 + 1
             ang = linspace(0, 2 * pi, Nc)
-            # 90# Circle
+            # 90% Circle
             c0 = np.vstack(
                 (r * sqrt(D[0]) * sin(ang), r * sqrt(D[1]) * cos(ang)))
         #    plot(c0(1,:),c0(2,:))
@@ -304,7 +322,7 @@ class LevelCrossings(PlotData):
 #                F = -np.expm1(-((xF + offset) ** 2 - offset ** 2) / s ** 2)
             lcEst = np.vstack((xF + u, lcu * (SF))).T
         else:
-            raise ValueError()
+            raise NotImplementedError('Unknown distribution {}'.format(dist))
 
         return lcEst, phat
         # End extrapolate
@@ -318,7 +336,7 @@ class LevelCrossings(PlotData):
         ff = [f[0], ]
         tt = [t[0], ]
 
-        for i in xrange(1, n):
+        for i in range(1, n):
             if f[i] > ff[-1]:
                 ff.append(f[i])
                 tt.append(t[i])
@@ -366,12 +384,12 @@ class LevelCrossings(PlotData):
         >>> np.abs(alpha-alpha2)<0.03
         array([ True], dtype=bool)
 
-        >>> h0 = S.plot('b')
-        >>> h1 = Se.plot('r')
-
         >>> lc2 = ts2.turning_points().cycle_pairs().level_crossings()
 
         >>> import pylab as plt
+        >>> h0 = S.plot('b')
+        >>> h1 = Se.plot('r')
+
         >>> h = plt.subplot(211)
         >>> h2 = lc2.plot()
         >>> h = plt.subplot(212)
@@ -433,8 +451,7 @@ class LevelCrossings(PlotData):
         lc1 = self.args
         mcr = trapz(lc1 * lc, lc1) if self.mean is None else self.mean
         if self.sigma is None:
-            scr = trapz(lc1 ** 2 * lc, lc1)
-            scr = sqrt(scr - mcr ** 2)
+            scr = sqrt(trapz(lc1 ** 2 * lc, lc1) - mcr ** 2)
         else:
             scr = self.sigma
         lc2 = LevelCrossings(lc, lc1, mean=mcr, sigma=scr, intensity=True)
@@ -544,7 +561,7 @@ class LevelCrossings(PlotData):
         >>> tp = ts.turning_points()
         >>> mm = tp.cycle_pairs()
         >>> lc = mm.level_crossings()
-        >>> g0, g0emp = lc.trdata(plotflag=1)
+        >>> g0, g0emp = lc.trdata(plotflag=0)
         >>> g1, g1emp = lc.trdata(gvar=0.5 ) # Equal weight on all points
         >>> g2, g2emp = lc.trdata(gvar=[3.5, 0.5, 3.5])  # Less weight on ends
         >>> int(S.tr.dist2gauss()*100)
@@ -577,19 +594,6 @@ class LevelCrossings(PlotData):
         return estimate._trdata_lc(self, mean, sigma)
 
 
-def test_levelcrossings_extrapolate():
-    import wafo.data
-    x = wafo.data.sea()
-    ts = mat2timeseries(x)
-
-    tp = ts.turning_points()
-    mm = tp.cycle_pairs()
-    lc = mm.level_crossings()
-
-    s = x[:, 1].std()
-    lc_gpd = lc.extrapolate(-2 * s, 2 * s, dist='rayleigh')  # @UnusedVariable
-
-
 class CyclePairs(PlotData):
     '''
     Container class for Cycle Pairs data objects in WAFO
@@ -607,8 +611,22 @@ class CyclePairs(PlotData):
     >>> ts = wo.mat2timeseries(x)
 
     >>> tp = ts.turning_points()
-    >>> mm = tp.cycle_pairs()
-    >>> h1 = mm.plot(marker='x')
+    >>> mM = tp.cycle_pairs(kind='min2max')
+    >>> np.allclose(mM.data[:5],
+    ...    [ 0.83950546, -0.02049454, -0.04049454,  0.25950546, -0.08049454])
+    True
+    >>> np.allclose(mM.args[:5],
+    ...    [-1.2004945 , -0.09049454, -0.09049454, -0.16049454, -0.43049454])
+    True
+    >>> Mm = tp.cycle_pairs(kind='max2min')
+    >>> np.allclose(Mm.data[:5],
+    ...    [ 0.83950546, -0.02049454, -0.04049454,  0.25950546, -0.08049454])
+    True
+    >>> np.allclose(Mm.args[:5],
+    ...    [-0.09049454, -0.09049454, -0.16049454, -0.43049454, -0.21049454])
+    True
+
+    >>> h1 = mM.plot(marker='x')
     '''
 
     def __init__(self, *args, **kwds):
@@ -654,13 +672,14 @@ class CyclePairs(PlotData):
         >>> ts = wafo.objects.mat2timeseries(wafo.data.sea())
         >>> tp = ts.turning_points()
         >>> mm = tp.cycle_pairs()
-        >>> h = mm.plot(marker='.')
+
         >>> bv = range(3,9)
         >>> D = mm.damage(beta=bv)
-        >>> D
-        array([ 138.5238799 ,  117.56050788,  108.99265423,  107.86681126,
-                112.3791076 ,  122.08375071])
-        >>> h = plt.plot(bv,D,'x-')
+        >>> np.allclose(D, [ 138.5238799 ,  117.56050788,  108.99265423,
+        ...                 107.86681126, 112.3791076 ,  122.08375071])
+        True
+        >>> h = mm.plot(marker='.')
+        >>> h = plt.plot(bv, D, 'x-')
 
         See also
         --------
@@ -708,9 +727,10 @@ class CyclePairs(PlotData):
         >>> ts = wafo.objects.mat2timeseries(wafo.data.sea())
         >>> tp = ts.turning_points()
         >>> mm = tp.cycle_pairs()
-        >>> h = mm.plot(marker='.')
         >>> lc = mm.level_crossings()
-        >>> h2 = lc.plot()
+
+        h = mm.plot(marker='.')
+        h2 = lc.plot()
 
         See also
         --------
@@ -718,14 +738,10 @@ class CyclePairs(PlotData):
         LevelCrossings
         """
 
-        if isinstance(kind, str):
-            t = dict(u=0, uM=1, umM=2, um=3)
-            defnr = t.get(kind, 1)
-        else:
-            defnr = kind
-
-        if ((defnr < 0) or (defnr > 3)):
-            raise ValueError('kind must be one of (1,2,3,4).')
+        defnr = dict(u=0, uM=1, umM=2, um=3).get(kind, kind)
+        if defnr not in [1, 2, 3, 4]:
+            raise ValueError('kind must be one of (1, 2, 3, 4, "u", "uM",'
+                             ' "umM", "um").  Got kind = {}'.format(kind))
 
         m, M = self.get_minima_and_maxima()
 
@@ -741,7 +757,7 @@ class CyclePairs(PlotData):
         n = extremes.shape[1]
         extr = zeros((4, n))
         extr[:, 0] = extremes[:, 0]
-        for i in xrange(1, n):
+        for i in range(1, n):
             if extremes[0, i] == extr[0, ii]:
                 extr[1:4, ii] = extr[1:4, ii] + extremes[1:4, i]
             else:
@@ -785,7 +801,11 @@ class TurningPoints(PlotData):
     >>> ts = wo.mat2timeseries(x)
 
     >>> tp = ts.turning_points()
-    >>> h1 = tp.plot(marker='x')
+    >>> np.allclose(tp.data[:5],
+    ... [-1.2004945 ,  0.83950546, -0.09049454, -0.02049454, -0.09049454])
+    True
+
+    h1 = tp.plot(marker='x')
     '''
 
     def __init__(self, *args, **kwds):
@@ -828,6 +848,13 @@ class TurningPoints(PlotData):
         >>> ts1 = mat2timeseries(x1)
         >>> tp = ts1.turning_points(wavetype='Mw')
         >>> tph = tp.rainflow_filter(h=0.3)
+        >>> np.allclose(tph.data[:5],
+        ... [-0.16049454,  0.25950546, -0.43049454, -0.08049454, -0.42049454])
+        True
+        >>> np.allclose(tph.args[:5],
+        ... [  7.05,   7.8 ,   9.8 ,  11.8 ,  12.8 ])
+        True
+
         >>> hs = ts1.plot()
         >>> hp = tp.plot('ro')
         >>> hph = tph.plot('k.')
@@ -871,6 +898,10 @@ class TurningPoints(PlotData):
         >>> ts = wafo.objects.mat2timeseries(x)
         >>> tp = ts.turning_points()
         >>> mM = tp.cycle_pairs()
+        >>> np.allclose(mM.data[:5], [ 0.83950546, -0.02049454, -0.04049454,
+        ...    0.25950546, -0.08049454])
+        True
+
         >>> h = mM.plot(marker='x')
 
 
@@ -980,15 +1011,15 @@ class TimeSeries(PlotData):
     >>> x = wafo.data.sea()
     >>> ts = wo.mat2timeseries(x)
     >>> rf = ts.tocovdata(lag=150)
-    >>> h = rf.plot()
 
     >>> S = ts.tospecdata()
     >>> tp = ts.turning_points()
     >>> mm = tp.cycle_pairs()
-    >>> h1 = mm.plot(marker='x')
-
     >>> lc = mm.level_crossings()
-    >>> h2 = lc.plot()
+
+    h = rf.plot()
+    h1 = mm.plot(marker='x')
+    h2 = lc.plot()
     '''
 
     def __init__(self, *args, **kwds):
@@ -1065,77 +1096,29 @@ class TimeSeries(PlotData):
          >>> x = wafo.data.sea()
          >>> ts = wo.mat2timeseries(x)
          >>> acf = ts.tocovdata(150)
-         >>> h = acf.plot()
+         >>> np.allclose(acf.data[:3], [ 0.22368637,  0.20838473,  0.17110733])
+         True
+
+         h = acf.plot()
         '''
         estimate_cov = _wafocov_estimation.CovarianceEstimator(
             lag=lag, tr=tr, detrend=detrend, window=window, flag=flag,
             norm=norm, dt=dt)
         return estimate_cov(self)
 
-    def _specdata(self, L=None, tr=None, method='cov', detrend=detrend_mean,
-                  window='parzen', noverlap=0, pad_to=None):
-        """
-        Obsolete: Delete?
-        Return power spectral density by Welches average periodogram method.
-
-        Parameters
-        ----------
-        NFFT : int, scalar
-            if len(data) < NFFT, it will be zero padded to `NFFT`
-            before estimation. Must be even; a power 2 is most efficient.
-        detrend : function
-        window : vector of length NFFT or function
-            To create window vectors see numpy.blackman, numpy.hamming,
-            numpy.bartlett, scipy.signal, scipy.signal.get_window etc.
-        noverlap : scalar int
-             gives the length of the overlap between segments.
-
-        Returns
-        -------
-        S : SpecData1D
-            Power Spectral Density
-
-        Notes
-        -----
-        The data vector is divided into NFFT length segments.  Each segment
-        is detrended by function detrend and windowed by function window.
-        noverlap gives the length of the overlap between segments.  The
-        absolute(fft(segment))**2 of each segment are averaged to compute Pxx,
-        with a scaling to correct for power loss due to windowing.
-
-        Reference
-        ---------
-        Bendat & Piersol (1986) Random Data: Analysis and Measurement
-        Procedures, John Wiley & Sons
-        """
-        dt = self.sampling_period()
-        yy = self.data.ravel() if tr is None else tr.dat2gauss(
-            self.data.ravel())
-        yy = detrend(yy) if hasattr(detrend, '__call__') else yy
-
-        S, f = psd(yy, Fs=1. / dt, NFFT=L, detrend=detrend, window=window,
-                   noverlap=noverlap, pad_to=pad_to, scale_by_freq=True)
-        fact = 2.0 * pi
-        w = fact * f
-        return _wafospec.SpecData1D(S / fact, w)
-
-    def _get_bandwidth_and_dof(self, wname, n, L, dt):
+    def _get_bandwidth_and_dof(self, wname, n, L, dt, ftype='w'):
         '''Returns bandwidth (rad/sec) and degrees of freedom
             used in chi^2 distribution
         '''
-        Be = v = None
         if isinstance(wname, tuple):
             wname = wname[0]
-        if wname == 'parzen':
-            v = int(3.71 * n / L)
-            Be = 2 * pi * 1.33 / (L * dt)
-        elif wname == 'hanning':
-            v = int(2.67 * n / L)
-            Be = 2 * pi / (L * dt)
-        elif wname == 'bartlett':
-            v = int(3 * n / L)
-            Be = 2 * pi * 1.33 / (L * dt)
-        return Be, v
+        dof = int(dict(parzen=3.71, hanning=2.67,
+                       bartlett=3).get(wname, np.nan) * n/L)
+        Be = dict(parzen=1.33, hanning=1,
+                  bartlett=1.33).get(wname, np.nan) * 2 * pi / (L*dt)
+        if ftype == 'f':
+            Be = Be / (2 * pi)  # bandwidth in Hz
+        return Be, dof
 
     def tospecdata(self, L=None, tr=None, method='cov', detrend=detrend_mean,
                    window='parzen', noverlap=0, ftype='w', alpha=None):
@@ -1177,9 +1160,19 @@ class TimeSeries(PlotData):
 
         Example
         -------
-        x = load('sea.dat');
-        S = dat2spec(x);
-        specplot(S)
+        >>> import wafo.data as wd
+        >>> import wafo.objects as wo
+        >>> x = wd.sea()
+        >>> ts = wo.mat2timeseries(x)
+        >>> S0 = ts.tospecdata(method='psd')
+        >>> np.allclose(S0.data[21:25],
+        ...    ( 0.2543896 ,  0.26366755,  0.23372824,  0.19459349))
+        True
+        >>> S = ts.tospecdata()
+        >>> np.allclose(S.data[21:25],
+        ...    (0.00207876,  0.0025113 ,  0.00300008,  0.00351852))
+        True
+        >>> h = S.plot()
 
         See also
         --------
@@ -1204,11 +1197,10 @@ class TimeSeries(PlotData):
         dt = self.sampling_period()
 
         yy = self.data.ravel()
-        if not (tr is None):
+        if tr is not None:
             yy = tr.dat2gauss(yy)
         yy = detrend(yy) if hasattr(detrend, '__call__') else yy
         n = len(yy)
-        L = min(L, n - 1)
 
         estimate_L = L is None
         if method == 'cov' or estimate_L:
@@ -1219,6 +1211,7 @@ class TimeSeries(PlotData):
                 # add a nugget effect to ensure that round off errors
                 # do not result in negative spectral estimates
                 spec = R.tospecdata(rate=rate, nugget=nugget)
+        L = min(L, n - 1)
         if method == 'psd':
             nfft = 2 ** nextpow2(L)
             pad_to = rate * nfft  # Interpolate the spectrum with rate
@@ -1236,15 +1229,13 @@ class TimeSeries(PlotData):
         else:
             raise ValueError('Unknown method (%s)' % method)
 
-        Be, v = self._get_bandwidth_and_dof(window, n, L, dt)
+        Be, dof = self._get_bandwidth_and_dof(window, n, L, dt, ftype)
         spec.Bw = Be
-        if ftype == 'f':
-            spec.Bw = Be / (2 * pi)  # bandwidth in Hz
 
         if alpha is not None:
             # Confidence interval constants
-            spec.CI = [v / _invchi2(1 - alpha / 2, v),
-                       v / _invchi2(alpha / 2, v)]
+            spec.CI = [dof / _invchi2(1 - alpha / 2, dof),
+                       dof / _invchi2(alpha / 2, dof)]
 
         spec.tr = tr
         spec.L = L
@@ -1328,7 +1319,7 @@ class TimeSeries(PlotData):
         ...        sigma=Hs/4, ysigma=Hs/4)
         >>> xs = S.sim(ns=2**16, iseed=10)
         >>> ts = mat2timeseries(xs)
-        >>> g0, g0emp = ts.trdata(plotflag=1)
+        >>> g0, g0emp = ts.trdata(plotflag=0)
         >>> g1, g1emp = ts.trdata(method='mnonlinear', gvar=0.5 )
         >>> g2, g2emp = ts.trdata(method='nonlinear', gvar=[3.5, 0.5, 3.5])
         >>> 100 < S.tr.dist2gauss()*100 < 200
@@ -1397,9 +1388,12 @@ class TimeSeries(PlotData):
         >>> ts1 = mat2timeseries(x1)
         >>> tp = ts1.turning_points(wavetype='Mw')
         >>> tph = ts1.turning_points(h=0.3,wavetype='Mw')
-        >>> hs = ts1.plot()
-        >>> hp = tp.plot('ro')
-        >>> hph = tph.plot('k.')
+        >>> np.allclose(tph.data[:3], [ 0.83950546, -0.16049454,  0.25950546])
+        True
+
+        hs = ts1.plot()
+        hp = tp.plot('ro')
+        hph = tph.plot('k.')
 
         See also
         ---------
@@ -1474,36 +1468,37 @@ class TimeSeries(PlotData):
         >>> x = wd.sea()
         >>> ts = wo.mat2timeseries(x)
         >>> wp = ts.wave_parameters()
+        >>> true_wp = {'Ac':[ 0.25950546,  0.34950546],
+        ...            'At': [ 0.16049454,  0.43049454],
+        ...            'Hu': [ 0.69,  0.86],
+        ...            'Hd': [ 0.42,  0.78],
+        ...            'Tu': [ 6.10295202,  3.36978685],
+        ...            'Td': [ 3.84377468,  6.35707656],
+        ...            'Tcf': [ 0.42656819,  0.57361617],
+        ...            'Tcb': [ 0.93355982,  1.04063638]}
         >>> for name in ['Ac', 'At', 'Hu', 'Hd', 'Tu', 'Td', 'Tcf', 'Tcb']:
-        ...    print('%s' % name, wp[name][:2])
-        ('Ac', array([ 0.25950546,  0.34950546]))
-        ('At', array([ 0.16049454,  0.43049454]))
-        ('Hu', array([ 0.69,  0.86]))
-        ('Hd', array([ 0.42,  0.78]))
-        ('Tu', array([ 6.10295202,  3.36978685]))
-        ('Td', array([ 3.84377468,  6.35707656]))
-        ('Tcf', array([ 0.42656819,  0.57361617]))
-        ('Tcb', array([ 0.93355982,  1.04063638]))
+        ...    np.allclose(wp[name][:2], true_wp[name])
+        True
+        True
+        True
+        True
+        True
+        True
+        True
+        True
 
-        >>> import pylab as plt
-        >>> h = plt.plot(wp['Td'],wp['Hd'],'.')
-        >>> h = plt.xlabel('Td [s]')
-        >>> h = plt.ylabel('Hd [m]')
+        import pylab as plt
+        h = plt.plot(wp['Td'],wp['Hd'],'.')
+        h = plt.xlabel('Td [s]')
+        h = plt.ylabel('Hd [m]')
 
 
         See also
         --------
         wafo.definitions
         '''
-        dT = self.sampling_period()
-        if rate > 1:
-            dT = dT / rate
-            t0, tn = self.args[0], self.args[-1]
-            n = len(self.args)
-            ti = linspace(t0, tn, int(rate * n))
-            xi = interp1d(self.args, self.data.ravel(), kind='cubic')(ti)
-        else:
-            ti, xi = self.args, self.data.ravel()
+        dT = self.sampling_period()/np.maximum(rate, 1)
+        xi, ti = self._interpolate(rate)
 
         tc_ind, z_ind = findtc(xi, v=0, kind='tw')
         tc_a = xi[tc_ind]
@@ -1522,7 +1517,7 @@ class TimeSeries(PlotData):
         Tcb[(Tcb == 0)] = dT  # avoiding division by zero
         return dict(Ac=Ac, At=At, Hu=Hu, Hd=Hd, Tu=Tu, Td=Td, Tcf=Tcf, Tcb=Tcb)
 
-    def wave_height_steepness(self, method=1, rate=1, g=None):
+    def wave_height_steepness(self, kind='Vcf', rate=1, g=None):
         '''
         Returns waveheights and steepnesses from data.
 
@@ -1531,7 +1526,7 @@ class TimeSeries(PlotData):
         rate : scalar integer
             interpolation rate. Interpolates with spline if greater than one.
 
-        method : scalar integer (default 1)
+        kind : scalar integer (default 1)
             0 max(Vcf, Vcb) and corresponding wave height Hd or Hu in H
             1 crest front (rise) speed (Vcf) in S and wave height Hd in H.
            -1 crest back (fall) speed (Vcb) in S and waveheight Hu in H.
@@ -1543,7 +1538,7 @@ class TimeSeries(PlotData):
                 for zero-upcrossing waves.
         Returns
         -------
-        S, H = Steepness and the corresponding wave height according to method
+        S, H = Steepness and the corresponding wave height according to kind
 
 
         The parameters are calculated as follows:
@@ -1563,92 +1558,92 @@ class TimeSeries(PlotData):
         >>> import wafo.objects as wo
         >>> x = wd.sea()
         >>> ts = wo.mat2timeseries(x)
-        >>> for i in xrange(-3,4):
-        ...     S, H = ts.wave_height_steepness(method=i)
-        ...     print(S[:2],H[:2])
-        (array([ 0.01186982,  0.04852534]), array([ 0.69,  0.86]))
-        (array([ 0.02918363,  0.06385979]), array([ 0.69,  0.86]))
-        (array([ 0.27797411,  0.33585743]), array([ 0.69,  0.86]))
-        (array([ 0.60835634,  0.60930197]), array([ 0.42,  0.78]))
-        (array([ 0.60835634,  0.60930197]), array([ 0.42,  0.78]))
-        (array([ 0.10140867,  0.06141156]), array([ 0.42,  0.78]))
-        (array([ 0.01821413,  0.01236672]), array([ 0.42,  0.78]))
+        >>> true_SH = [
+        ...     [[ 0.01186982,  0.04852534], [ 0.69,  0.86]],
+        ...     [[ 0.02918363,  0.06385979], [ 0.69,  0.86]],
+        ...     [[ 0.27797411,  0.33585743], [ 0.69,  0.86]],
+        ...     [[ 0.60835634,  0.60930197], [ 0.42,  0.78]],
+        ...     [[ 0.60835634,  0.60930197], [ 0.42,  0.78]],
+        ...     [[ 0.10140867,  0.06141156], [ 0.42,  0.78]],
+        ...     [[ 0.01821413,  0.01236672], [ 0.42,  0.78]]]
+        >>> for i in range(-3,4):
+        ...     S, H = ts.wave_height_steepness(kind=i)
+        ...     np.allclose((S[:2],H[:2]), true_SH[i+3])
+        True
+        True
+        True
+        True
+        True
+        True
+        True
 
-        >>> import pylab as plt
-        >>> h = plt.plot(S,H,'.')
-        >>> h = plt.xlabel('S')
-        >>> h = plt.ylabel('Hd [m]')
+        import pylab as plt
+        h = plt.plot(S,H,'.')
+        h = plt.xlabel('S')
+        h = plt.ylabel('Hd [m]')
 
         See also
         --------
         wafo.definitions
         '''
 
-        dT = self.sampling_period()
+        dT = self.sampling_period() / np.maximum(rate, 1)
         if g is None:
-            g = gravity()  # % acceleration of gravity
+            g = gravity()  # acceleration of gravity
 
-        if rate > 1:
-            dT = dT / rate
-            t0, tn = self.args[0], self.args[-1]
-            n = len(self.args)
-            ti = linspace(t0, tn, int(rate * n))
-            xi = interp1d(self.args, self.data.ravel(), kind='cubic')(ti)
-
-        else:
-            ti, xi = self.args, self.data.ravel()
+        xi, ti = self._interpolate(rate)
 
         tc_ind, z_ind = findtc(xi, v=0, kind='tw')
         tc_a = xi[tc_ind]
         tc_t = ti[tc_ind]
         Ac = tc_a[1::2]  # crest amplitude
         At = -tc_a[0::2]  # trough  amplitude
-
-        if (0 <= method and method <= 2):
+        defnr = dict(maxVcfVcb=0, Vcf=1, Vcb=-1, Scf=2, Scb=-2, StHd=3,
+                     StHu=-3).get(kind, kind)
+        if 0 <= defnr <= 2:
             # time between zero-upcrossing and  crest  [s]
             tu = ecross(ti, xi, z_ind[1:-1:2], v=0)
             Tcf = tc_t[1::2] - tu
             Tcf[(Tcf == 0)] = dT  # avoiding division by zero
-        if (0 >= method and method >= -2):
+        if -2 <= defnr <= 0:
             # time between  crest and zero-downcrossing [s]
             td = ecross(ti, xi, z_ind[2::2], v=0)
             Tcb = td - tc_t[1::2]
             Tcb[(Tcb == 0)] = dT
-            # % avoiding division by zero
 
-        if method == 0:
+        if defnr == 0:
             # max(Vcf, Vcr) and the corresponding wave height Hd or Hu in H
             Hu = Ac + At[1:]
             Hd = Ac + At[:-1]
             T = np.where(Tcf < Tcb, Tcf, Tcb)
             S = Ac / T
             H = np.where(Tcf < Tcb, Hd, Hu)
-        elif method == 1:  # extracting crest front velocity [m/s] and
+        elif defnr == 1:  # extracting crest front velocity [m/s] and
             # Zero-downcrossing wave height [m]
             H = Ac + At[:-1]  # Hd
             S = Ac / Tcf
-        elif method == -1:  # extracting crest rear velocity [m/s] and
+        elif defnr == -1:  # extracting crest rear velocity [m/s] and
             # Zero-upcrossing wave height [m]
             H = Ac + At[1:]  # Hu
             S = Ac / Tcb
         # crest front steepness in S and the wave height Hd in H.
-        elif method == 2:
+        elif defnr == 2:
             H = Ac + At[:-1]  # Hd
             Td = diff(ecross(ti, xi, z_ind[::2], v=0))
             S = 2 * pi * Ac / Td / Tcf / g
         # crest back steepness in S and the wave height Hu in H.
-        elif method == -2:
+        elif defnr == -2:
             H = Ac + At[1:]
             Tu = diff(ecross(ti, xi, z_ind[1::2], v=0))
             S = 2 * pi * Ac / Tu / Tcb / g
-        elif method == 3:  # total steepness in S and the wave height Hd in H
-            # for zero-doewncrossing waves.
+        elif defnr == 3:  # total steepness in S and the wave height Hd in H
+            # for zero-downcrossing waves.
             H = Ac + At[:-1]
             # Period zero-downcrossing waves
             Td = diff(ecross(ti, xi, z_ind[::2], v=0))
             S = 2 * pi * H / Td ** 2 / g
         # total steepness in S and the wave height Hu in H for
-        elif method == -3:
+        elif defnr == -3:
             # zero-upcrossing waves.
             H = Ac + At[1:]
             # Period zero-upcrossing waves
@@ -1656,6 +1651,69 @@ class TimeSeries(PlotData):
             S = 2 * pi * H / Tu ** 2 / g
 
         return S, H
+
+    @staticmethod
+    def _default_index(x, vh, wdef, pdef):
+        if pdef in ('m2m', 'm2M', 'M2m', 'M2M'):
+            index = findtp(x, vh, wdef)
+        elif pdef in ('u2u', 'u2d', 'd2u', 'd2d'):
+            index = findcross(x, vh, wdef)
+        elif pdef in ('t2t', 't2c', 'c2t', 'c2c'):
+            index = findtc(x, vh, wdef)[0]
+        elif pdef in ('d2t', 't2u', 'u2c', 'c2d', 'all'):
+            index, v_ind = findtc(x, vh, wdef)
+            # sorting crossings and tp in sequence
+            index = sort(r_[index, v_ind])
+        else:
+            raise ValueError('Unknown pdef option! {}'.format(str(pdef)))
+        return index
+
+    def _get_start_index(self, pdef, down_crossing_or_max):
+        if down_crossing_or_max:
+            if pdef in ('d2t', 'M2m', 'c2t', 'd2u', 'M2M', 'c2c', 'd2d',
+                        'all'):
+                start = 1
+            elif pdef in ('t2u', 'm2M', 't2c', 'u2d', 'm2m', 't2t', 'u2u'):
+                start = 2
+            elif pdef in ('u2c'):
+                start = 3
+            elif pdef in ('c2d'):
+                start = 4
+            else:
+                raise ValueError('Unknown pdef option!')
+            # else first is up-crossing or min
+        elif pdef in ('all', 'u2c', 'm2M', 't2c', 'u2d', 'm2m', 't2t', 'u2u'):
+            start = 0
+        elif pdef in ('c2d', 'M2m', 'c2t', 'd2u', 'M2M', 'c2c', 'd2d'):
+            start = 1
+        elif pdef in ('d2t'):
+            start = 2
+        elif pdef in ('t2u'):
+            start = 3
+        else:
+            raise ValueError('Unknown pdef option!')
+        return start
+
+    def _get_step(self, pdef):
+        # determine the steps between wanted periods
+        if pdef in ('d2t', 't2u', 'u2c', 'c2d'):
+            step = 4
+        elif pdef in ('all'):
+            step = 1  # secret option!
+        else:
+            step = 2
+        return step
+
+    def _interpolate(self, rate):
+        if rate > 1:  # interpolate with spline
+            n = ceil(self.data.size * rate)
+            ti = linspace(self.args[0], self.args[-1], n)
+            x = stineman_interp(ti, self.args, self.data.ravel())
+            # xi = interp1d(self.args, self.data.ravel(), kind='cubic')(ti)
+        else:
+            x = self.data.ravel()
+            ti = self.args
+        return x, ti
 
     def wave_periods(self, vh=None, pdef='d2d', wdef=None, index=None, rate=1):
         """
@@ -1720,8 +1778,11 @@ class TimeSeries(PlotData):
         >>> import pylab as plb
         >>> x = wd.sea()
         >>> ts = wo.mat2timeseries(x[0:400,:])
-        >>> T, ix = ts.wave_periods(vh=0.0,pdef='c2c')
-        >>> h = plb.hist(T)
+        >>> T, ix = ts.wave_periods(vh=0.0, pdef='c2c')
+        >>> np.allclose(T[:3], [-0.27, -0.08,  0.32])
+        True
+
+        h = plb.hist(T)
 
         See also:
         --------
@@ -1730,30 +1791,7 @@ class TimeSeries(PlotData):
         findcross, perioddef
         """
 
-# % This is a more flexible version than the dat2hwa or tp2wa routines.
-# % There is a secret option: if pdef='all' the function returns
-# % all the waveperiods 'd2t', 't2u', 'u2c' and 'c2d' in sequence.
-# % It is up to the user to extract the right waveperiods.
-# % If the first is a down-crossing then the first is a 'd2t' waveperiod.
-# % If the first is a up-crossing then the first is a 'u2c' waveperiod.
-# %
-# %    Example:
-# %        [T ind]=dat2wa(x,0,'all') %returns all waveperiods
-# %        nn = length(T)
-# %        % want to extract all t2u waveperiods
-# %        if x(ind(1),2)>0 % if first is down-crossing
-# %            Tt2u=T(2:4:nn)
-# %        else         % first is up-crossing
-# %            Tt2u=T(4:4:nn)
-# %        end
-
-        if rate > 1:  # % interpolate with spline
-            n = ceil(self.data.size * rate)
-            ti = linspace(self.args[0], self.args[-1], n)
-            x = stineman_interp(ti, self.args, self.data.ravel())
-        else:
-            x = self.data
-            ti = self.args
+        x, ti = self._interpolate(rate)
 
         if vh is None:
             if pdef[0] in ('m', 'M'):
@@ -1764,50 +1802,11 @@ class TimeSeries(PlotData):
                 print('   The level l is set to: %g' % vh)
 
         if index is None:
-            if pdef in ('m2m', 'm2M', 'M2m', 'M2M'):
-                index = findtp(x, vh, wdef)
-            elif pdef in ('u2u', 'u2d', 'd2u', 'd2d'):
-                index = findcross(x, vh, wdef)
-            elif pdef in ('t2t', 't2c', 'c2t', 'c2c'):
-                index = findtc(x, vh, wdef)[0]
-            elif pdef in ('d2t', 't2u', 'u2c', 'c2d', 'all'):
-                index, v_ind = findtc(x, vh, wdef)
-                # sorting crossings and tp in sequence
-                index = sort(r_[index, v_ind])
-            else:
-                raise ValueError('Unknown pdef option!')
+            index = self._default_index(x, vh, wdef, pdef)
 
-        if (x[index[0]] > x[index[1]]):  # % if first is down-crossing or max
-            if pdef in ('d2t', 'M2m', 'c2t', 'd2u', 'M2M', 'c2c', 'd2d',
-                        'all'):
-                start = 1
-            elif pdef in ('t2u', 'm2M', 't2c', 'u2d', 'm2m', 't2t', 'u2u'):
-                start = 2
-            elif pdef in ('u2c'):
-                start = 3
-            elif pdef in ('c2d'):
-                start = 4
-            else:
-                raise ValueError('Unknown pdef option!')
-            # else first is up-crossing or min
-        elif pdef in ('all', 'u2c', 'm2M', 't2c', 'u2d', 'm2m', 't2t', 'u2u'):
-            start = 0
-        elif pdef in ('c2d', 'M2m', 'c2t', 'd2u', 'M2M', 'c2c', 'd2d'):
-            start = 1
-        elif pdef in ('d2t'):
-            start = 2
-        elif pdef in ('t2u'):
-            start = 3
-        else:
-            raise ValueError('Unknown pdef option!')
-
-        # determine the steps between wanted periods
-        if pdef in ('d2t', 't2u', 'u2c', 'c2d'):
-            step = 4
-        elif pdef in ('all'):
-            step = 1  # % secret option!
-        else:
-            step = 2
+        down_crossing_or_max = (x[index[0]] > x[index[1]])
+        start = self._get_start_index(pdef, down_crossing_or_max)
+        step = self._get_step(pdef)
 
         # determine the distance between min2min, t2t etc..
         if pdef in ('m2m', 't2t', 'u2u', 'M2M', 'c2c', 'd2d'):
@@ -1816,7 +1815,7 @@ class TimeSeries(PlotData):
             dist = 1
 
         nn = len(index)
-        # New call: (pab 28.06.2001)
+
         if pdef[0] in ('u', 'd'):
             t0 = ecross(ti, x, index[start:(nn - dist):step], vh)
         else:  # min, Max, trough, crest or all crossings wanted
@@ -1902,92 +1901,94 @@ class TimeSeries(PlotData):
                       ne=7, gvar=1)
         opt.update(options)
 
-        xn = self.data.copy().ravel()
-        n = len(xn)
-
-        if n < 2:
-            raise ValueError('The vector must have more than 2 elements!')
-
-        param = opt.param
-        plotflags = dict(none=0, off=0, final=1, iter=2)
-        plotflag = plotflags.get(opt.plotflag, opt.plotflag)
-
-        olddef = def_
-        method = 'approx'
-        ptime = opt.delay  # pause for ptime sec if plotflag=2
-
-        expect1 = 1  # first reconstruction by expectation? 1=yes 0=no
-        expect = 1   # reconstruct by expectation? 1=yes 0=no
-        tol = 0.001  # absolute tolerance of e(g_new-g_old)
-
-        cmvmax = 100 # if number of consecutive missing values (cmv) are longer they
-                     # are not used in estimation of g, due to the fact that the
-                     # conditional expectation approaches zero as the length to
-                     # the closest known points increases, see below in the for loop 
-        dT = self.sampling_period()
-
-        Lm = np.minimum([n, 200, int(200/dT)])  # Lagmax 200 seconds
-        if L is not None:
-            Lm = max(L, Lm)
-        # Lma: size of the moving average window used for detrending the
-        #     reconstructed signal
-        Lma = 1500
-        if inds is not None:
-            xn[inds] = np.nan
-
-        inds = isnan(xn)
-        if not inds.any():
-            raise ValueError('No spurious data given')
-
-        endpos = np.diff(inds)
-        strtpos = np.flatnonzero(endpos > 0)
-        endpos = np.flatnonzero(endpos < 0)
-
-        indg = np.flatnonzero(1-inds)  # indices to good points
-        inds = np.flatnonzero(inds)  # indices to spurious points
-
-        indNaN = []  # indices to points omitted in the covariance estimation
-        indr = np.arange(n)  # indices to point used in the estimation of g
-
-        # Finding more than cmvmax consecutive spurios points.
-        # They will not be used in the estimation of g and are thus removed
-        # from indr.
-
-        if strtpos.size > 0 and (endpos.size == 0 or endpos[-1] < strtpos[-1]):
-            if (n - strtpos[-1]) > cmvmax:
-                indNaN = indr[strtpos[-1]+1:n]
-                indr = indr[:strtpos[-1]+1]
-            strtpos = strtpos[:-1]
-
-        if endpos.size > 0 and (strtpos.size == 0 or endpos[0] < strtpos[0]):
-            if endpos[0] > cmvmax:
-                indNaN = np.hstack((indNaN, indr[:endpos[0]]))
-                indr = indr[endpos[0]:]
-
-            strtpos = strtpos-endpos[0]
-            endpos = endpos-endpos[0]
-            endpos = endpos[1:]
-
-        for ix in range(len(strtpos)-1, -1, -1):
-            if (endpos[ix]-strtpos[ix] > cmvmax):
-                indNaN = np.hstack((indNaN, indr[strtpos[ix]+1:endpos[ix]]))
-                # remove this when estimating the transform
-                del indr[strtpos[ix]+1:endpos[ix]]
-
-        if len(indr) < 0.1*n:
-            raise ValueError('Not possible to reconstruct signal')
-
-        if indNaN.any():
-            indNaN = np.sort(indNaN)
-
-        # initial reconstruction attempt
-        # xn(indg,2) = detrendma(xn(indg,2),1500);
-#         [g, test, cmax, irr, g2]  = dat2tr(xn(indg,:),def,opt);
-#         xnt=xn;
-#         xnt(indg,:)=dat2gaus(xn(indg,:),g);
-#         xnt(inds,2)=NaN;
-#         rwin=findrwin(xnt,Lm,L);
-#         disp(['First reconstruction attempt,    e(g-u)=', num2str(test)] )
+        _xn = self.data.copy().ravel()
+#         n = len(xn)
+#
+#         if n < 2:
+#             raise ValueError('The vector must have more than 2 elements!')
+#
+#         param = opt.param
+#         plotflags = dict(none=0, off=0, final=1, iter=2)
+#         plotflag = plotflags.get(opt.plotflag, opt.plotflag)
+#
+#         olddef = def_
+#         method = 'approx'
+#         ptime = opt.delay  # pause for ptime sec if plotflag=2
+#
+#         expect1 = 1  # first reconstruction by expectation? 1=yes 0=no
+#         expect = 1   # reconstruct by expectation? 1=yes 0=no
+#         tol = 0.001  # absolute tolerance of e(g_new-g_old)
+#
+#         cmvmax = 100
+#         # if number of consecutive missing values (cmv) are longer they
+#         # are not used in estimation of g, due to the fact that the
+#         # conditional expectation approaches zero as the length to
+#         # the closest known points increases, see below in the for loop
+#         dT = self.sampling_period()
+#
+#         Lm = np.minimum([n, 200, int(200/dT)])  # Lagmax 200 seconds
+#         if L is not None:
+#             Lm = max(L, Lm)
+#         # Lma: size of the moving average window used for detrending the
+#         #     reconstructed signal
+#         Lma = 1500
+#         if inds is not None:
+#             xn[inds] = np.nan
+#
+#         inds = isnan(xn)
+#         if not inds.any():
+#             raise ValueError('No spurious data given')
+#
+#         endpos = np.diff(inds)
+#         strtpos = np.flatnonzero(endpos > 0)
+#         endpos = np.flatnonzero(endpos < 0)
+#
+#         indg = np.flatnonzero(1-inds)  # indices to good points
+#         inds = np.flatnonzero(inds)  # indices to spurious points
+#
+#         indNaN = []  # indices to points omitted in the covariance estimation
+#         indr = np.arange(n)  # indices to point used in the estimation of g
+#
+#         # Finding more than cmvmax consecutive spurios points.
+#         # They will not be used in the estimation of g and are thus removed
+#         # from indr.
+#
+#         if strtpos.size > 0 and (endpos.size == 0 or
+#                                  endpos[-1] < strtpos[-1]):
+#             if (n - strtpos[-1]) > cmvmax:
+#                 indNaN = indr[strtpos[-1]+1:n]
+#                 indr = indr[:strtpos[-1]+1]
+#             strtpos = strtpos[:-1]
+#
+#         if endpos.size > 0 and (strtpos.size == 0 or endpos[0] < strtpos[0]):
+#             if endpos[0] > cmvmax:
+#                 indNaN = np.hstack((indNaN, indr[:endpos[0]]))
+#                 indr = indr[endpos[0]:]
+#
+#             strtpos = strtpos-endpos[0]
+#             endpos = endpos-endpos[0]
+#             endpos = endpos[1:]
+#
+#         for ix in range(len(strtpos)-1, -1, -1):
+#             if (endpos[ix]-strtpos[ix] > cmvmax):
+#                 indNaN = np.hstack((indNaN, indr[strtpos[ix]+1:endpos[ix]]))
+#                 # remove this when estimating the transform
+#                 del indr[strtpos[ix]+1:endpos[ix]]
+#
+#         if len(indr) < 0.1*n:
+#             raise ValueError('Not possible to reconstruct signal')
+#
+#         if indNaN.any():
+#             indNaN = np.sort(indNaN)
+#
+#         # initial reconstruction attempt
+#         xn[indg, 1] = detrendma(xn[indg, 1], 1500)
+#         g, test, cmax, irr, g2  = dat2tr(xn[indg, :], def_, opt)
+#         xnt = xn.copy()
+#         xnt[indg,:] = dat2gaus(xn[indg,:], g)
+#         xnt[inds, 1] = np.nan
+#         rwin = findrwin(xnt, Lm, L)
+#         print('First reconstruction attempt,  e(g-u) = {}'.format(test))
 #         # old simcgauss
 #         [samp ,mu1o, mu1oStd]  = cov2csdat(xnt(:,2),rwin,1,method,inds);
 #         if expect1,# reconstruction by expectation
@@ -2002,7 +2003,7 @@ class TimeSeries(PlotData):
 #
 #         bias = mean(xn(:,2));
 #         xn(:,2)=xn(:,2)-bias; # bias correction
-
+#
 #         if plotflag==2
 #           clf
 #           mind=1:min(1500,n);
@@ -2028,23 +2029,25 @@ class TimeSeries(PlotData):
 #            end
 #            # used for isope article
 #            # indr =[1:27000 30000:39000];
-#            # Too many consecutive missing values will influence the estimation of
-#            # g. By default do not use consecutive missing values if there are more 
-#            # than cmvmax. 
+#            # Too many consecutive missing values will influence the
+#            # estimation of g. By default do not use consecutive missing
+#            # values if there are more than cmvmax.
 #
 #            [g test cmax irr g2]  = dat2tr(xn(indr,:),def,opt);
 #           if plotflag==2,
 #             pause(ptime)
 #           end
-# 
-#           #tobs=sqrt((param(2)-param(1))/(param(3)-1)*sum((g_old(:,2)-g(:,2)).^2))
-#           # new call
-#           tobs=sqrt((param(2)-param(1))/(param(3)-1)....
-#             *sum((g(:,2)-interp1(g_old(:,1)-bias, g_old(:,2),g(:,1),'spline')).^2));
 #
-#           if ix>1 
+#           #tobs=sqrt((param(2)-param(1))/(param(3)-1)*
+#                        sum((g_old(:,2)-g(:,2)).^2))
+#           # new call
+#           tobs=sqrt((param(2)-param(1))/(param(3)-1)
+#             *sum((g(:,2)-interp1(g_old(:,1)-bias, g_old(:,2),g(:,1),
+#                    'spline')).^2));
+#
+#           if ix>1
 #             if tol>tobs2 && tol>tobs,
-#               break, #estimation of g converged break out of for loop    
+#               break, #estimation of g converged break out of for loop
 #             end
 #           end
 #
@@ -2052,16 +2055,17 @@ class TimeSeries(PlotData):
 #
 #           xnt=dat2gaus(xn,g);
 #           if ~isempty(indNaN),    xnt(indNaN,2)=NaN;  end
-#           rwin=findrwin(xnt,Lm,L);    
-#           disp(['Simulation nr: ', int2str(ix), ' of ' num2str(Nsim),'   e(g-g_old)=', num2str(tobs), ',  e(g-u)=', num2str(test)])
+#           rwin=findrwin(xnt,Lm,L);
+#           disp(['Simulation nr: ', int2str(ix), ' of ' num2str(Nsim),
+#            '   e(g-g_old)=', num2str(tobs), ',  e(g-u)=', num2str(test)])
 #           [samp ,mu1o, mu1oStd]  = cov2csdat(xnt(:,2),rwin,1,method,inds);
-#           
+#
 #           if expect,
 #             xnt(inds,2) =mu1o;
 #           else
 #             xnt(inds,2) =samp;
 #           end
-#           
+#
 #           xn=gaus2dat(xnt,g);
 #           if ix<Nsim
 #             bias=mean(xn(:,2));
@@ -2074,8 +2078,8 @@ class TimeSeries(PlotData):
 #             pause(ptime)
 #           end
 #         end # for loop
-#         
-#         if 1, #test>test0(end-5) 
+#
+#         if 1, #test>test0(end-5)
 #           xnt=dat2gaus(xn,g);
 #           [samp ,mu1o, mu1oStd]  = cov2csdat(xnt(:,2),rwin,1,method,inds);
 #           xnt(inds,2) =samp;
@@ -2085,7 +2089,7 @@ class TimeSeries(PlotData):
 #           g(:,1)=g(:,1)-bias;
 #           g2(:,1)=g2(:,1)-bias;
 #           gn=trangood(g);
-#          
+#
 #           #mu1o=mu1o-tranproc(bias,gn);
 #           muUStd=tranproc(mu1o+2*mu1oStd,fliplr(gn));#
 #           muLStd=tranproc(mu1o-2*mu1oStd,fliplr(gn));#
@@ -2093,9 +2097,10 @@ class TimeSeries(PlotData):
 #           muLStd=mu1o-2*mu1oStd;
 #           muUStd=mu1o+2*mu1oStd;
 #         end
-#         
+#
 #         if  plotflag==2 && length(xn)<10000,
-#           waveplot(xn,[xn(inds,1) muLStd ;xn(inds,1) muUStd ], 6,round(n/3000),[])
+#           waveplot(xn,[xn(inds,1) muLStd ;xn(inds,1) muUStd ],
+#                    6,round(n/3000),[])
 #           legend('reconstructed','2 stdev')
 #           #axis([770 850 -1 1])
 #           #axis([1300 1325 -1 1])
@@ -2105,22 +2110,20 @@ class TimeSeries(PlotData):
 #
 #         return
 #
-#         function r=findrwin(xnt,Lm,L)
-#           r=dat2cov(xnt,Lm);#computes  ACF
-#           #finding where ACF is less than 2 st. deviations .
-#           # in order to find a better L  value
-#           if nargin<3||isempty(L)
-#             L=find(abs(r.R)>2*r.stdev)+1;
-#             if isempty(L), # pab added this check 09.10.2000
-#               L = Lm;
-#             else
-#               L = min([floor(4/3*L(end)) Lm]);
-#             end
-#           end
-#           win=parzen(2*L-1);
-#           r.R(1:L)=win(L:2*L-1).*r.R(1:L);
-#           r.R(L+1:end)=0;
-#           return
+#     def findrwin(xnt, Lm, L=None):
+#         r = dat2cov(xnt, Lm)  # computes  ACF
+#         # finding where ACF is less than 2 st. deviations .
+#         # in order to find a better L  value
+#         if L is None:
+#             L = np.flatnonzero(np.abs(r.R) > 2 * r.stdev)
+#             if len(L) == 0:
+#                 L = Lm;
+#             else:
+#                 L = min(np.floor(4/3*(L[-1] + 1), Lm)
+#         win = parzen(2 * L - 1)
+#         r.R[:L] = win[L:2*L-1] * r.R[:L]
+#         r.R[L:] = 0
+#         return r
 
     def plot_wave(self, sym1='k.', ts=None, sym2='k+', nfig=None, nsub=None,
                   sigma=None, vfact=3):
@@ -2153,6 +2156,7 @@ class TimeSeries(PlotData):
         >>> import wafo
         >>> x = wafo.data.sea()
         >>> ts150 = wafo.objects.mat2timeseries(x[:150,:])
+
         >>> h = ts150.plot_wave('r-', sym2='bo')
 
         See also
@@ -2204,26 +2208,26 @@ class TimeSeries(PlotData):
         if np.max(abs(xn[indg])) > 5 * sigma:
             XlblTxt = XlblTxt + ' (Spurious data since max > 5 std.)'
 
-        plot = plotbackend.plot
-        subplot = plotbackend.subplot
+        plot = plt.plot
+        subplot = plt.subplot
         figs = []
-        for unused_iz in xrange(nfig):
-            figs.append(plotbackend.figure())
-            plotbackend.title('Surface elevation from mean water level (MWL).')
-            for ix in xrange(nsub):
+        for unused_iz in range(nfig):
+            figs.append(plt.figure())
+            plt.title('Surface elevation from mean water level (MWL).')
+            for ix in range(nsub):
                 if nsub > 1:
-                    subplot(nsub, 1, ix+1)
+                    subplot(nsub, 1, ix + 1)
                 h_scale = array([tn[ind[0]], tn[ind[-1]]])
                 ind2 = where((h_scale[0] <= tn2) & (tn2 <= h_scale[1]))[0]
                 plot(tn[ind] * dT, xn[ind], sym1)
                 if len(ind2) > 0:
                     plot(tn2[ind2] * dT, xn2[ind2], sym2)
                 plot(h_scale * dT, [0, 0], 'k-')
-                # plotbackend.axis([h_scale*dT, v_scale])
+                # plt.axis([h_scale*dT, v_scale])
                 for iy in [-2, 2]:
                     plot(h_scale * dT, iy * sigma * ones(2), ':')
                 ind = ind + Ns
-            plotbackend.xlabel(XlblTxt)
+            plt.xlabel(XlblTxt)
 
         return figs
 
@@ -2246,6 +2250,7 @@ class TimeSeries(PlotData):
         >>> import wafo
         >>> x = wafo.data.sea()
         >>> ts = wafo.objects.mat2timeseries(x[0:500,...])
+
         >>> h = ts.plot_sp_wave(np.r_[6:9,12:18])
 
         See also
@@ -2281,67 +2286,26 @@ class TimeSeries(PlotData):
         Nsub = min(6, int(ceil(Nsub / Nfig)))
         figs = []
         for unused_iy in range(Nfig):
-            figs.append(plotbackend.figure())
+            figs.append(plt.figure())
             for ix in range(Nsub):
-                plotbackend.subplot(Nsub, 1, mod(ix, Nsub) + 1)
+                plt.subplot(Nsub, 1, mod(ix, Nsub) + 1)
                 ind = r_[tz_idx[2 * wave_idx[ix] - 1]:tz_idx[
                     2 * wave_idx[ix] + 2 * Nwp[ix] - 1]]
                 # indices to wave
-                plotbackend.plot(self.args[ind], self.data[ind], *args, **kwds)
-                plotbackend.hold('on')
+                plt.plot(self.args[ind], self.data[ind], *args, **kwds)
+                plt.hold('on')
                 xi = [self.args[ind[0]], self.args[ind[-1]]]
-                plotbackend.plot(xi, [0, 0])
+                plt.plot(xi, [0, 0])
 
                 if Nwp[ix] == 1:
-                    plotbackend.ylabel('Wave %d' % wave_idx[ix])
+                    plt.ylabel('Wave %d' % wave_idx[ix])
                 else:
-                    plotbackend.ylabel(
+                    plt.ylabel(
                         'Wave %d - %d' % (wave_idx[ix],
                                           wave_idx[ix] + Nwp[ix] - 1))
-            plotbackend.xlabel('Time [sec]')
+            plt.xlabel('Time [sec]')
             # wafostamp
         return figs
-
-
-def main():
-    import wafo
-    ts = wafo.objects.mat2timeseries(wafo.data.sea())
-    _S = ts.tospecdata(method='psd')
-    tp = ts.turning_points()
-    mm = tp.cycle_pairs()
-    lc = mm.level_crossings()
-    lc.plot()
-    T = ts.wave_periods(vh=0.0, pdef='c2c')  # @UnusedVariable
-
-    # main()
-    import wafo.spectrum.models as sm
-    Sj = sm.Jonswap()
-    S = Sj.tospecdata()
-
-    R = S.tocovdata()
-    x = R.sim(ns=1000, dt=0.2)  # @UnusedVariable
-    S.characteristic(['hm0', 'tm02'])
-    ns = 1000
-    dt = .2
-    x1 = S.sim(ns, dt=dt)
-
-    ts = TimeSeries(x1[:, 1], x1[:, 0])
-    tp = ts.turning_points(0.0)
-
-    x = np.arange(-2, 2, 0.2)
-
-    # Plot 2 objects in one call
-    d2 = PlotData(np.sin(x), x, xlab='x', ylab='sin', title='sinus')
-
-    d0 = d2.copy()
-    d0.data = d0.data * 0.9
-    d1 = d2.copy()
-    d1.data = d1.data * 1.2
-    d1.children = [d0]
-    d2.children = [d1]
-
-    d2.plot()
-    print 'Done'
 
 
 def test_docstrings():
@@ -2349,7 +2313,6 @@ def test_docstrings():
     print('Testing docstrings in %s' % __file__)
     doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
 
+
 if __name__ == '__main__':
     test_docstrings()
-    # main()
-    # test_levelcrossings_extrapolate()

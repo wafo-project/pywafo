@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 Models module
 -------------
@@ -26,17 +27,7 @@ Spreading - Directional spreading function.
 
 """
 
-# Name:        models
-# Purpose: Interface to various spectrum models
-#
-# Author:      pab
-#
-# Created:     29.08.2008
-# Copyright:   (c) pab 2008
-# Licence:     <your licence>
-
-#!/usr/bin/env python
-from __future__ import division
+from __future__ import absolute_import, division
 
 import warnings
 from scipy.interpolate import interp1d
@@ -50,16 +41,19 @@ from numpy import (inf, atleast_1d, newaxis, any, minimum, maximum, array,
                    cos, abs, sinh, isfinite, mod, expm1, tanh, cosh, finfo,
                    ones, ones_like, isnan, zeros_like, flatnonzero, sinc,
                    hstack, vstack, real, flipud, clip)
-from wafo.wave_theory.dispersion_relation import w2k, k2w  # @UnusedImport
-from wafo.spectrum import SpecData1D, SpecData2D
-sech = lambda x: 1.0 / cosh(x)
-
-eps = finfo(float).eps
+from ..wave_theory.dispersion_relation import w2k, k2w  # @UnusedImport
+from .core import SpecData1D, SpecData2D
 
 
 __all__ = ['Bretschneider', 'Jonswap', 'Torsethaugen', 'Wallop', 'McCormick',
            'OchiHubble', 'Tmaspec', 'jonswap_peakfact', 'jonswap_seastate',
            'spreading', 'w2k', 'k2w', 'phi1']
+
+_EPS = finfo(float).eps
+
+
+def sech(x):
+    return 1.0 / cosh(x)
 
 
 def _gengamspec(wn, N=5, M=4):
@@ -303,17 +297,18 @@ def jonswap_peakfact(Hm0, Tp):
     >>> [T,H] = plb.meshgrid(Tp,Hm0)
     >>> gam = wsm.jonswap_peakfact(H,T)
     >>> v = plb.arange(0,8)
-    >>> h = plb.contourf(Tp,Hm0,gam,v);h=plb.colorbar()
 
     >>> Hm0 = plb.arange(1,11)
     >>> Tp  = plb.linspace(2,16)
     >>> T,H = plb.meshgrid(Tp,Hm0)
     >>> gam = wsm.jonswap_peakfact(H,T)
-    >>> h = plb.plot(Tp,gam.T)
-    >>> h = plb.xlabel('Tp [s]')
-    >>> h = plb.ylabel('Peakedness parameter')
 
-    >>> plb.close('all')
+    h = plb.contourf(Tp,Hm0,gam,v);h=plb.colorbar()
+    h = plb.plot(Tp,gam.T)
+    h = plb.xlabel('Tp [s]')
+    h = plb.ylabel('Peakedness parameter')
+
+    plb.close('all')
 
     See also
     --------
@@ -409,7 +404,7 @@ def jonswap_seastate(u10, fetch=150000., method='lewis', g=9.81,
 
     # The following formulas are from Lewis and Allos 1990:
     zeta = g * fetch / (u10 ** 2)  # dimensionless fetch, Table 1
-    #zeta = min(zeta, 2.414655013429281e+004)
+    # zeta = min(zeta, 2.414655013429281e+004)
     if method.startswith('h'):
         if method[-1] == '3':  # Hasselman et.al (1973)
             A = 0.076 * zeta ** (-0.22)
@@ -501,13 +496,13 @@ class Jonswap(ModelSpectrum):
     >>> import pylab as plb
     >>> import wafo.spectrum.models as wsm
     >>> S = wsm.Jonswap(Hm0=7, Tp=11,gamma=1)
-    >>> w = plb.linspace(0,5)
-    >>> h = plb.plot(w,S(w))
-
     >>> S2 = wsm.Bretschneider(Hm0=7, Tp=11)
+    >>> w = plb.linspace(0,5)
     >>> all(abs(S(w)-S2(w))<1.e-7)
     True
-    >>> plb.close('all')
+
+    h = plb.plot(w,S(w))
+    plb.close('all')
 
     See also
     --------
@@ -543,10 +538,10 @@ class Jonswap(ModelSpectrum):
         self.method = method
         self.wnc = wnc
 
-        if self.gamma == None or not isfinite(self.gamma) or self.gamma < 1:
+        if self.gamma is None or not isfinite(self.gamma) or self.gamma < 1:
             self.gamma = jonswap_peakfact(Hm0, Tp)
 
-        self._preCalculateAg()
+        self._pre_calculate_ag()
 
         if chk_seastate:
             self.chk_seastate()
@@ -574,57 +569,66 @@ class Jonswap(ModelSpectrum):
         Gf = self.peak_e_factor(wn)
         return Gf * _gengamspec(wn, self.N, self.M)
 
-    def _preCalculateAg(self):
+    def _parametric_ag(self):
+        """
+        Original normalization
+
+        NOTE: that  Hm0**2/16 generally is not equal to intS(w)dw
+              with this definition of Ag if sa or sb are changed from the
+              default values
+        """
+        self.method = 'parametric'
+
+        N = self.N
+        M = self.M
+        gammai = self.gamma
+        parameters_ok = (3 <= N <= 50 or 2 <= M <= 9.5 and 1 <= gammai <= 20)
+        f1NM = 4.1 * (N - 2 * M ** 0.28 + 5.3) ** (-1.45 * M ** 0.1 + 0.96)
+        f2NM = ((2.2 * M ** (-3.3) + 0.57) * N ** (-0.58 * M ** 0.37 + 0.53) -
+                1.04 * M ** (-1.9) + 0.94)
+        self.Ag = (1 + f1NM * log(gammai) ** f2NM) / gammai
+        if not parameters_ok:
+            raise ValueError('Not knowing the normalization because N, ' +
+                             'M or peakedness parameter is out of bounds!')
+        # elseif N == 5 && M == 4,
+        #     options.Ag = (1+1.0*log(gammai).**1.16)/gammai
+        #     options.Ag = (1-0.287*log(gammai))
+        #     options.normalizeMethod = 'Three'
+        # elseif  N == 4 && M == 4,
+        #     options.Ag = (1+1.1*log(gammai).**1.19)/gammai
+        if self.sigmaA != 0.07 or self.sigmaB != 0.09:
+            warnings.warn('Use integration to calculate Ag when ' +
+                          'sigmaA!=0.07 or sigmaB!=0.09')
+
+    def _custom_ag(self):
+        self.method = 'custom'
+        if self.Ag <= 0:
+            raise ValueError('Ag must be larger than 0!')
+
+    def _integrate_ag(self):
+        # normalizing by integration
+        self.method = 'integration'
+        if self.wnc < 1.0:
+            raise ValueError('Normalized cutoff frequency, wnc, ' +
+                             'must be larger than one!')
+        area1, unused_err1 = integrate.quad(self._localspec, 0, 1)
+        area2, unused_err2 = integrate.quad(self._localspec, 1, self.wnc)
+        area = area1 + area2
+        self.Ag = 1.0 / area
+
+    def _pre_calculate_ag(self):
         ''' PRECALCULATEAG Precalculate normalization.
         '''
         if self.gamma == 1:
             self.Ag = 1.0
             self.method = 'parametric'
-        elif self.Ag != None:
-            self.method = 'custom'
-            if self.Ag <= 0:
-                raise ValueError('Ag must be larger than 0!')
-        elif self.method[0] == 'i':
-            # normalizing by integration
-            self.method = 'integration'
-            if self.wnc < 1.0:
-                raise ValueError('Normalized cutoff frequency, wnc, ' +
-                                 'must be larger than one!')
-            area1, unused_err1 = integrate.quad(self._localspec, 0, 1)
-            area2, unused_err2 = integrate.quad(self._localspec, 1, self.wnc)
-            area = area1 + area2
-            self.Ag = 1.0 / area
-        elif self.method[1] == 'p':
-            self.method = 'parametric'
-            # Original normalization
-            # NOTE: that  Hm0**2/16 generally is not equal to intS(w)dw
-            # with this definition of Ag if sa or sb are changed from the
-            # default values
-            N = self.N
-            M = self.M
-            gammai = self.gamma
-            parametersOK = (3 <= N and N <= 50) or (
-                2 <= M and M <= 9.5) and (1 <= gammai and gammai <= 20)
-            if parametersOK:
-                f1NM = 4.1 * \
-                    (N - 2 * M ** 0.28 + 5.3) ** (-1.45 * M ** 0.1 + 0.96)
-                f2NM = (2.2 * M ** (-3.3) + 0.57) * \
-                    N ** (-0.58 * M ** 0.37 + 0.53) - 1.04 * M ** (-1.9) + 0.94
-                self.Ag = (1 + f1NM * log(gammai) ** f2NM) / gammai
-
-            # elseif N == 5 && M == 4,
-            # options.Ag = (1+1.0*log(gammai).**1.16)/gammai
-            # options.Ag = (1-0.287*log(gammai))
-            ###      options.normalizeMethod = 'Three'
-            # elseif  N == 4 && M == 4,
-            # options.Ag = (1+1.1*log(gammai).**1.19)/gammai
-            else:
-                raise ValueError('Not knowing the normalization because N, ' +
-                                 'M or peakedness parameter is out of bounds!')
-
-            if self.sigmaA != 0.07 or self.sigmaB != 0.09:
-                warnings.warn('Use integration to calculate Ag when ' +
-                              'sigmaA~=0.07 or sigmaB~=0.09')
+        elif self.Ag is not None:
+            self._custom_ag()
+        else:
+            norm_ag = dict(i=self._integrate_ag,
+                           p=self._parametric_ag,
+                           c=self._custom_ag)[self.method[0]]
+            norm_ag()
 
     def peak_e_factor(self, wn):
         ''' PEAKENHANCEMENTFACTOR
@@ -752,11 +756,12 @@ class Tmaspec(Jonswap):
     >>> import pylab as plb
     >>> w = plb.linspace(0,2.5)
     >>> S = wsm.Tmaspec(h=10,gamma=1) # Bretschneider spectrum Hm0=7, Tp=11
-    >>> o=plb.plot(w,S(w))
-    >>> o=plb.plot(w,S(w,h=21))
-    >>> o=plb.plot(w,S(w,h=42))
-    >>> plb.show()
-    >>> plb.close('all')
+
+    o=plb.plot(w,S(w))
+    o=plb.plot(w,S(w,h=21))
+    o=plb.plot(w,S(w,h=42))
+    plb.show()
+    plb.close('all')
 
     See also
     ---------
@@ -790,9 +795,9 @@ class Tmaspec(Jonswap):
         self.type = 'TMA'
 
     def phi(self, w, h=None, g=None):
-        if h == None:
+        if h is None:
             h = self.h
-        if g == None:
+        if g is None:
             g = self.g
         return phi1(w, h, g)
 
@@ -847,7 +852,8 @@ class Torsethaugen(ModelSpectrum):
     >>> import pylab as plb
     >>> w = plb.linspace(0,4)
     >>> S = wsm.Torsethaugen(Hm0=6, Tp=8)
-    >>> h=plb.plot(w,S(w),w,S.wind(w),w,S.swell(w))
+
+    h=plb.plot(w,S(w),w,S.wind(w),w,S.swell(w))
 
     See also
     --------
@@ -1005,8 +1011,8 @@ class Torsethaugen(ModelSpectrum):
             C = (Nw - 1) / Mw
             B = Nw / Mw
             G0w = B ** C * Mw / sp.gamma(C)  # normalizing factor
-            #G0w = exp(C*log(B)+log(Mw)-gammaln(C))
-            #G0w  = Mw/((B)**(-C)*gamma(C))
+            # G0w = exp(C*log(B)+log(Mw)-gammaln(C))
+            # G0w  = Mw/((B)**(-C)*gamma(C))
 
             if Hpw > 0:
                 Tpw = (16 * S0 * (1 - exp(-Hm0 / S1)) * (0.4) **
@@ -1014,7 +1020,7 @@ class Torsethaugen(ModelSpectrum):
             else:
                 Tpw = inf
 
-            #Tpw  = max(Tpw,2.5)
+            # Tpw  = max(Tpw,2.5)
             gammaw = 1
             if monitor:
                 if Rpw > 0.1:
@@ -1095,14 +1101,14 @@ class McCormick(Bretschneider):
         self.type = 'McCormick'
         self.Hm0 = Hm0
         self.Tp = Tp
-        if Tz == None:
+        if Tz is None:
             Tz = 0.8143 * Tp
 
         self.Tz = Tz
         if chk_seastate:
             self.chk_seastate()
 
-        if M == None and self.Hm0 > 0:
+        if M is None and self.Hm0 > 0:
             self._TpdTz = Tp / Tz
             M = 1.0 / optimize.fminbound(self._localoptfun, 0.01, 5)
         self.M = M
@@ -1410,7 +1416,7 @@ class Spreading(object):
     5 to 30 being a function of dimensionless wind speed.
     However, Goda and Suzuki (1975) proposed SP = 10 for wind waves, SP = 25
     for swell with short decay distance and SP = 75 for long decay distance.
-    Compared to experiments Krogstad et al. (1998) found that m_a = 5 +/- eps
+    Compared to experiments Krogstad et al. (1998) found that m_a = 5 +/- _EPS
     and that -1< m_b < -3.5.
     Values given in the litterature:  [s_a  s_b  m_a   m_b  wn_lo wn_c wn_up]
     (Mitsuyasu: s_a == s_b)  (cos-2s) [15   15   5    -2.5  0     1    3  ]
@@ -1426,25 +1432,26 @@ class Spreading(object):
     # Make directionale spectrum
     >>> S = wsm.Jonswap().tospecdata()
     >>> SD = D.tospecdata2d(S)
-    >>> h = SD.plot()
 
     >>> w = plb.linspace(0,3,257)
     >>> theta = plb.linspace(-pi,pi,129)
-    >>> t = plb.contour(D(theta,w)[0].squeeze())
 
     # Make frequency dependent direction spreading
     >>> theta0 = lambda w: w*plb.pi/6.0
     >>> D2 = wsm.Spreading('cos2s',theta0=theta0)
-    >>> t = plb.contour(D2(theta,w)[0])
+
+    h = SD.plot()
+    t = plb.contour(D(theta,w)[0].squeeze())
+    t = plb.contour(D2(theta,w)[0])
 
     # Plot all spreading functions
-    >>> alltypes = ('cos2s','box','mises','poisson','sech2','wrap_norm')
-    >>> for ix in range(len(alltypes)):
+    alltypes = ('cos2s','box','mises','poisson','sech2','wrap_norm')
+    for ix in range(len(alltypes)):
     ...     D3 = wsm.Spreading(alltypes[ix])
     ...     t = plb.figure(ix)
     ...     t = plb.contour(D3(theta,w)[0])
     ...     t = plb.title(alltypes[ix])
-    >>> plb.close('all')
+    plb.close('all')
 
 
     See also
@@ -1510,7 +1517,7 @@ class Spreading(object):
             if not self.method[0] in methods:
                 raise ValueError('Unknown method')
             self.method = methods[self.method[0]]
-        elif self.method == None:
+        elif self.method is None:
             pass
         else:
             if method < 0 or 3 < method:
@@ -1529,25 +1536,7 @@ class Spreading(object):
         spreadfun = self._spreadfun[self.type[0]]
         return spreadfun(theta, w, wc)
 
-    def chk_input(self, theta, w=1, wc=1):  # [s_par,TH,phi0,Nt] =
-        ''' CHK_INPUT
-
-        CALL [s_par,TH,phi0,Nt] = inputchk(theta,w,wc)
-        '''
-
-        wn = atleast_1d(w / wc)
-        theta = theta.ravel()
-        Nt = len(theta)
-
-        # Make sure theta is from -pi to pi
-        phi0 = 0.0
-        theta = mod(theta + pi, 2 * pi) - pi
-
-        if hasattr(self.theta0, '__call__'):
-            th0 = self.theta0(wn.flatten())
-        else:
-            th0 = atleast_1d(self.theta0).flatten()
-
+    def _normalize_angle(self, wn, theta, th0):
         Nt0 = th0.size
         Nw = wn.size
         isFreqDepDir = (Nt0 == Nw)
@@ -1561,22 +1550,33 @@ class Spreading(object):
                 'The length of theta0 must equal to 1 or the length of w')
         else:
             TH = mod(theta - th0 + pi, 2 * pi) - pi  # make sure -pi<=TH<pi
-            if self.method != None:  # frequency dependent spreading
+            if self.method is not None:  # frequency dependent spreading
                 TH = TH[:, newaxis]
+        return TH
 
-        # Get spreading parameter
-        s = self.spread_par_s(wn)
+    def _get_main_direction(self, wn):
+        if hasattr(self.theta0, '__call__'):
+            return self.theta0(wn.flatten())
+        return atleast_1d(self.theta0).flatten()
 
-        if self.type[0] == 'c':  # cos2s
-            s_par = s
-        else:
-            # First Fourier coefficient of the directional spreading function.
-            r1 = abs(s / (s + 1))
-            # Find distribution parameter from first Fourier coefficient.
-            s_par = self.fourier2distpar(r1)
-        if self.method != None:
-            s_par = s_par[newaxis, :]
-        return s_par, TH, phi0, Nt
+    def chk_input(self, theta, w=1, wc=1):
+        ''' CHK_INPUT
+
+        CALL [s_par,TH,phi0,Nt] = inputchk(theta,w,wc)
+        '''
+
+        wn = atleast_1d(w / wc)
+        theta = theta.ravel()
+        Nt = len(theta)
+
+        # Make sure theta is from -pi to pi
+        phi0 = 0.0
+        theta = mod(theta + pi, 2 * pi) - pi
+        theta0 = self._get_main_direction(wn)
+
+        TH = self._normalize_angle(wn, theta, theta0)
+        s = self.spread_parameter_s(wn)
+        return s, TH, phi0, Nt
 
     def cos2s(self, theta, w=1, wc=1):  # [D, phi0] =
         ''' COS2S spreading function
@@ -1823,7 +1823,7 @@ class Spreading(object):
             A[ix] = Ai + 0.5 * (da[ix] - Ai) * (Ai <= 0.0)
 
             ix = flatnonzero(
-                (abs(da) > sqrt(eps) * abs(A)) * (abs(da) > sqrt(eps)))
+                (abs(da) > sqrt(_EPS) * abs(A)) * (abs(da) > sqrt(_EPS)))
             if ix.size == 0:
                 if any(A > pi):
                     raise ValueError(
@@ -1837,8 +1837,10 @@ class Spreading(object):
         '''
         Returns the solution of R1 = besseli(1,K)/besseli(0,K),
         '''
+        def fun0(x):
+            return sp.ive(1, x) / sp.ive(0, x)
+
         K0 = hstack((linspace(0, 10, 513), linspace(10.00001, 100)))
-        fun0 = lambda x: sp.ive(1, x) / sp.ive(0, x)
         funK = interp1d(fun0(K0), K0)
         K0 = funK(r1.ravel())
         k1 = flatnonzero(isnan(K0))
@@ -1848,15 +1850,14 @@ class Spreading(object):
 
         ix0 = flatnonzero(r1 != 0.0)
         K = zeros_like(r1)
-        fun = lambda x: fun0(x) - r1[ix]
         for ix in ix0:
-            K[ix] = optimize.fsolve(fun, K0[ix])
+            K[ix] = optimize.fsolve(lambda x: fun0(x) - r1[ix], K0[ix])
         return K
 
     def fourier2b(self, r1):
         ''' Returns the solution of R1 = pi/(2*B*sinh(pi/(2*B)).
         '''
-        B0 = hstack((linspace(eps, 5, 513), linspace(5.0001, 100)))
+        B0 = hstack((linspace(_EPS, 5, 513), linspace(5.0001, 100)))
         funB = interp1d(self._r1ofsech2(B0), B0)
 
         B0 = funB(r1.ravel())
@@ -1867,7 +1868,9 @@ class Spreading(object):
 
         ix0 = flatnonzero(r1 != 0.0)
         B = zeros_like(r1)
-        fun = lambda x: 0.5 * pi / (sinh(.5 * pi / x)) - x * r1[ix]
+
+        def fun(x):
+            return 0.5 * pi / (sinh(.5 * pi / x)) - x * r1[ix]
         for ix in ix0:
             B[ix] = abs(optimize.fsolve(fun, B0[ix]))
         return B
@@ -1878,65 +1881,91 @@ class Spreading(object):
         r = clip(r1, 0., 1.0)
         return where(r <= 0, inf, sqrt(-2.0 * log(r)))
 
-    def spread_par_s(self, wn):
-        ''' Return spread parameter, S, of COS2S function
+    def _init_frequency_dependent_spreading(self, wn):
+        wn_lo, wn_up = self.wn_lo, self.wn_up
+        wn_c = self.wn_c
+        spa, spb = self.s_a, self.s_b
+        ma, mb = self.m_a, self.m_b
+
+        # Mitsuyasu et. al and Hasselman et. al parametrization   of
+        # frequency dependent spreading
+        s = where(wn <= wn_c, spa * wn ** ma, spb * wn ** mb)
+        s[wn <= wn_lo] = 0.0
+        return s, spb, wn_up, mb
+
+    def _donelan_spread(self, wn):
+        # Donelan et. al. parametrization for B in SECH-2
+        s, spb, wn_up, mb = self._init_frequency_dependent_spreading(wn)
+        k = flatnonzero(wn_up < wn)
+        s[k] = spb * (wn_up) ** mb
+        # Convert to S-paramater in COS-2S distribution
+        r1 = self.r1ofsech2(s)
+        s = r1 / (1. - r1)
+        return s
+
+    def _banner_spread(self, wn):
+        # Donelan et. al. parametrization for B in SECH-2
+        s, spb, wn_up, mb = self._init_frequency_dependent_spreading(wn)
+        k = flatnonzero(wn_up < wn)
+        # Banner parametrization  for B in SECH-2
+        s3m = spb * (wn_up) ** mb
+        s3p = self._donelan(wn_up)
+        #  Scale so that parametrization will be continous
+        scale = s3m / s3p
+        s[k] = scale * self.donelan(wn[k])
+        r1 = self.r1ofsech2(s)
+        # Convert to S-paramater in COS-2S distribution
+        s = r1 / (1. - r1)
+
+        return s
+
+    def _mitsuyasu_spread(self, wn):
+        s, _spb, wn_up, _mb = self._init_frequency_dependent_spreading(wn)
+        k = flatnonzero(wn_up < wn)
+        s[k] = 0
+        return s
+
+    def _frequency_independent_spread(self, _wn):
+        """
+        no frequency dependent spreading,
+        but possible frequency dependent direction
+        """
+        return atleast_1d(self.s_a)
+
+    def spread_parameter_s(self, wn):
+        ''' Return spread parameter, S, equivalent for the COS2S function
 
         Parameters
         ----------
         wn  : array_like
             normalized frequencies.
+
         Returns
         -------
         S   : ndarray
             spread parameter of COS2S functions
         '''
-        if self.method == None:
-            # no frequency dependent spreading,
-            # but possible frequency dependent direction
-            s = atleast_1d(self.s_a)
-        else:
-            wn_lo = self.wn_lo
-            wn_up = self.wn_up
-            wn_c = self.wn_c
 
-            spa = self.s_a
-            spb = self.s_b
-            ma = self.m_a
-            mb = self.m_b
-
-            # Mitsuyasu et. al and Hasselman et. al parametrization   of
-            # frequency dependent spreading
-            s = where(wn <= wn_c, spa * wn ** ma, spb * wn ** mb)
-            s[wn <= wn_lo] = 0.0
-
-            k = flatnonzero(wn_up < wn)
-            if k.size > 0:
-                if self.method[0] == 'd':
-                    # Donelan et. al. parametrization for B in SECH-2
-                    s[k] = spb * (wn_up) ** mb
-
-                    # Convert to S-paramater in COS-2S distribution
-                    r1 = self.r1ofsech2(s)
-                    s = r1 / (1. - r1)
-
-                elif self.method[0] == 'b':
-                    # Banner parametrization  for B in SECH-2
-                    s3m = spb * (wn_up) ** mb
-                    s3p = self._donelan(wn_up)
-                    # % Scale so that parametrization will be continous
-                    scale = s3m / s3p
-                    s[k] = scale * self.donelan(wn[k])
-                    r1 = self.r1ofsech2(s)
-
-                    #% Convert to S-paramater in COS-2S distribution
-                    s = r1 / (1. - r1)
-                else:
-                    s[k] = 0.0
+        spread = dict(b=self._banner_spread,
+                      d=self._donelan_spread,
+                      m=self._mitsuyasu_spread
+                      ).get(self.method[0],
+                            self._frequency_independent_spread)
+        s = spread(wn)
 
         if any(s < 0):
             raise ValueError('The COS2S spread parameter, S(w), ' +
                              'value must be larger than 0')
-        return s
+        if self.type[0] == 'c':  # cos2s
+            s_par = s
+        else:
+            # First Fourier coefficient of the directional spreading function.
+            r1 = abs(s / (s + 1))
+            # Find distribution parameter from first Fourier coefficient.
+            s_par = self.fourier2distpar(r1)
+        if self.method is not None:
+            s_par = s_par[newaxis, :]
+        return s_par
 
     def _donelan(self, wn):
         ''' High frequency decay of B of sech2 paramater
@@ -1982,7 +2011,8 @@ class Spreading(object):
          >>> S = wsm.Jonswap().tospecdata()
          >>> D = wsm.Spreading('cos2s')
          >>> SD = D.tospecdata2d(S)
-         >>> h = SD.plot()
+
+         h = SD.plot()
 
          See also  spreading, rotspec, jonswap, torsethaugen
         '''
@@ -1994,7 +2024,7 @@ class Spreading(object):
             theta = np.linspace(-pi, pi, nt)
         else:
             L = abs(theta[-1] - theta[0])
-            if abs(L - pi) > eps:
+            if abs(L - pi) > _EPS:
                 raise ValueError('theta must cover all angles -pi -> pi')
             nt = len(theta)
 
@@ -2015,7 +2045,7 @@ class Spreading(object):
         Snew.h = specdata.h
         Snew.phi = phi0
         Snew.norm = specdata.norm
-        #Snew.note = specdata.note + ', spreading: %s' % self.type
+        # Snew.note = specdata.note + ', spreading: %s' % self.type
         return Snew
 
 
@@ -2036,11 +2066,9 @@ def _test_some_spectra():
     plb.show()
     plb.close('all')
 
-    #import pylab as plb
-    #w = plb.linspace(0,3)
     w, th = plb.ogrid[0:4, 0:6]
     k, k2 = w2k(w, th)
-    #k1, k12 = w2k(w, th, h=20)
+
     plb.plot(w, k, w, k2)
 
     plb.show()
@@ -2080,8 +2108,8 @@ def _test_spreading():
     pi = plb.pi
     w = plb.linspace(0, 3, 257)
     theta = plb.linspace(-pi, pi, 129)
-    theta0 = lambda w: w * plb.pi / 6.0
-    D2 = Spreading('cos2s', theta0=theta0)
+
+    D2 = Spreading('cos2s', theta0=lambda w: w * plb.pi / 6.0)
     d1 = D2(theta, w)[0]
     _t = plb.contour(d1.squeeze())
 

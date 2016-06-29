@@ -1,4 +1,4 @@
-from __future__ import division
+from __future__ import absolute_import, division
 import numpy as np
 # from math import pow
 # from numpy import zeros,dot
@@ -6,13 +6,14 @@ from numpy import (pi, abs, size, convolve, linalg, concatenate, sqrt)
 from scipy.sparse import spdiags
 from scipy.sparse.linalg import spsolve, expm
 from scipy.signal import medfilt
-from wafo.dctpack import dctn, idctn
+from .dctpack import dctn, idctn
+from .plotbackend import plotbackend as plt
 import scipy.optimize as optimize
 from scipy.signal import _savitzky_golay
 from scipy.ndimage import convolve1d
 from scipy.ndimage.morphology import distance_transform_edt
 import warnings
-from wafo.plotbackend import plotbackend as plt
+
 
 __all__ = ['SavitzkyGolay', 'Kalman', 'HodrickPrescott', 'smoothn']
 
@@ -90,14 +91,19 @@ class SavitzkyGolay(object):
     Examples
     --------
     >>> t = np.linspace(-4, 4, 500)
-    >>> y = np.exp( -t**2 ) + np.random.normal(0, 0.05, t.shape)
+    >>> noise = np.random.normal(0, 0.05, t.shape)
+    >>> noise = np.sqrt(0.05)*np.sin(100*t)
+    >>> y = np.exp( -t**2 ) + noise
     >>> ysg = SavitzkyGolay(n=20, degree=2).smooth(y)
-    >>> import matplotlib.pyplot as plt
-    >>> h = plt.plot(t, y, label='Noisy signal')
-    >>> h1 = plt.plot(t, np.exp(-t**2), 'k', lw=1.5, label='Original signal')
-    >>> h2 = plt.plot(t, ysg, 'r', label='Filtered signal')
-    >>> h3 = plt.legend()
-    >>> h4 = plt.title('Savitzky-Golay')
+    >>> np.allclose(ysg[:3], [ 0.01345312,  0.01164172,  0.00992839])
+    True
+
+    import matplotlib.pyplot as plt
+    h = plt.plot(t, y, label='Noisy signal')
+    h1 = plt.plot(t, np.exp(-t**2), 'k', lw=1.5, label='Original signal')
+    h2 = plt.plot(t, ysg, 'r', label='Filtered signal')
+    h3 = plt.legend()
+    h4 = plt.title('Savitzky-Golay')
     plt.show()
 
     References
@@ -231,10 +237,10 @@ def evar(y):
 
     3D function
     >>> yp = np.linspace(-2,2,50)
-    >>> [x,y,z] = meshgrid(yp,yp,yp, sparse=True)
-    >>> f = x*exp(-x**2-y**2-z**2)
+    >>> [x,y,z] = np.meshgrid(yp,yp,yp, sparse=True)
+    >>> f = x*np.exp(-x**2-y**2-z**2)
     >>> var0 = 0.5  # noise variance
-    >>> fn = f + sqrt(var0)*np.random.randn(*f.shape)
+    >>> fn = f + np.sqrt(var0)*np.random.randn(*f.shape)
     >>> s = evar(fn)  # estimated variance
     >>> np.abs(s-var0)/var0 < 3.5/np.sqrt(50)
     True
@@ -285,6 +291,239 @@ def evar(y):
     return noisevar
 
 
+class _Filter(object):
+    def __init__(self, y, z0, weightstr, weights, s, robust, maxiter, tolz):
+        self.y = y
+        self.z0 = z0
+        self.weightstr = weightstr
+        self.s = s
+        self.robust = robust
+        self.maxiter = maxiter
+        self.tolz = tolz
+
+        self.auto_smooth = s is None
+        self.is_finite = np.isfinite(y)
+        self.nof = self.is_finite.sum()  # number of finite elements
+        self.W = self._normalized_weights(weights, self.is_finite)
+
+        self.gamma = self._gamma_fun(y)
+
+        self.N = self._tensor_rank(y)
+        self.s_min, self.s_max = self._smoothness_limits(self.N)
+
+        # Initialize before iterating
+        self.Wtot = self.W
+        self.is_weighted = (self.W < 1).any()  # Weighted or missing data?
+
+        self.z0 = self._get_start_condition(y, z0)
+
+        self.y[~self.is_finite] = 0  # arbitrary values for missing y-data
+
+        # Error on p. Smoothness parameter s = 10^p
+        self.errp = 0.1
+
+        # Relaxation factor RF: to speedup convergence
+        self.RF = 1.75 if self.is_weighted else 1.0
+
+    @staticmethod
+    def _tensor_rank(y):
+        """tensor rank of the y-array"""
+        return (np.array(y.shape) != 1).sum()
+
+    @staticmethod
+    def _smoothness_limits(n):
+        """
+        Return upper and lower bound for the smoothness parameter
+
+        The average leverage (h) is by definition in [0 1]. Weak smoothing
+        occurs if h is close to 1, while over-smoothing appears when h is
+        near 0. Upper and lower bounds for h are given to avoid under- or
+        over-smoothing. See equation relating h to the smoothness parameter
+        (Equation #12 in the referenced CSDA paper).
+        """
+        h_min = 1e-6 ** (2. / n)
+        h_max = 0.99 ** (2. / n)
+
+        s_min = (((1 + sqrt(1 + 8 * h_max)) / 4. / h_max) ** 2 - 1) / 16
+        s_max = (((1 + sqrt(1 + 8 * h_min)) / 4. / h_min) ** 2 - 1) / 16
+        return s_min, s_max
+
+    @staticmethod
+    def _lambda_tensor(y):
+        """
+        Return the Lambda tensor
+
+        Lambda contains the eigenvalues of the difference matrix used in this
+        penalized least squares process.
+        """
+        d = y.ndim
+        Lambda = np.zeros(y.shape)
+        shape0 = [1, ] * d
+        for i in range(d):
+            shape0[i] = y.shape[i]
+            Lambda = Lambda + \
+                np.cos(pi * np.arange(y.shape[i]) / y.shape[i]).reshape(shape0)
+            shape0[i] = 1
+        Lambda = -2 * (d - Lambda)
+        return Lambda
+
+    def _gamma_fun(self, y):
+        Lambda = self._lambda_tensor(y)
+
+        def gamma(s):
+            return 1. / (1 + s * Lambda ** 2)
+        return gamma
+
+    @staticmethod
+    def _initial_guess(y, I):
+        # Initial Guess with weighted/missing data
+        # nearest neighbor interpolation (in case of missing values)
+        z = y
+        if (1 - I).any():
+            notI = ~I
+            z, L = distance_transform_edt(notI,  return_indices=True)
+            z[notI] = y[L.flat[notI]]
+
+        # coarse fast smoothing using one-tenth of the DCT coefficients
+        shape = z.shape
+        d = z.ndim
+        z = dctn(z)
+        for k in range(d):
+            z[int((shape[k] + 0.5) / 10) + 1::, ...] = 0
+            z = z.reshape(np.roll(shape, -k))
+            z = z.transpose(np.roll(range(d), -1))
+            # z = shiftdim(z,1);
+        return idctn(z)
+
+    def _get_start_condition(self, y, z0):
+        # Initial conditions for z
+        if self.is_weighted:
+            # With weighted/missing data
+            # An initial guess is provided to ensure faster convergence. For
+            # that purpose, a nearest neighbor interpolation followed by a
+            # coarse smoothing are performed.
+            if z0 is None:
+                z = self._initial_guess(y, self.is_finite)
+            else:
+                z = z0  # an initial guess (z0) has been provided
+        else:
+            z = np.zeros(y.shape)
+        return z
+
+    @staticmethod
+    def _normalized_weights(weight, is_finite):
+        """ Return normalized weights.
+
+        Zero weights are assigned to not finite values (Inf or NaN),
+        (Inf/NaN values = missing data).
+        """
+        weights = weight * is_finite
+        if (weights < 0).any():
+            raise ValueError('Weights must all be >=0')
+        return weights / weights.max()
+
+    @staticmethod
+    def _studentized_residuals(r, I, h):
+        median_abs_deviation = np.median(abs(r[I] - np.median(r[I])))
+        return abs(r / (1.4826 * median_abs_deviation) / sqrt(1 - h))
+
+    def robust_weights(self, r, I, h):
+        """Return weights for robust smoothing."""
+        def bisquare(u):
+            c = 4.685
+            return (1 - (u / c) ** 2) ** 2 * ((u / c) < 1)
+
+        def talworth(u):
+            c = 2.795
+            return u < c
+
+        def cauchy(u):
+            c = 2.385
+            return 1. / (1 + (u / c) ** 2)
+
+        u = self._studentized_residuals(r, I, h)
+
+        wfun = {'cauchy': cauchy, 'talworth': talworth}.get(self.weightstr,
+                                                            bisquare)
+        weights = wfun(u)
+
+        weights[np.isnan(weights)] = 0
+        return weights
+
+    @staticmethod
+    def _average_leverage(s, N):
+        h = sqrt(1 + 16 * s)
+        h = sqrt(1 + h) / sqrt(2) / h
+        return h ** N
+
+    def check_smooth_parameter(self, s):
+        if self.auto_smooth:
+            if abs(np.log10(s) - np.log10(self.s_min)) < self.errp:
+                warnings.warn('''s = %g: the lower bound for s has been reached.
+            Put s as an input variable if required.''' % s)
+            elif abs(np.log10(s) - np.log10(self.s_max)) < self.errp:
+                warnings.warn('''s = %g: the Upper bound for s has been reached.
+            Put s as an input variable if required.''' % s)
+
+    def gcv(self, p, aow, DCTy, y, Wtot):
+        # Search the smoothing parameter s that minimizes the GCV score
+        s = 10.0 ** p
+        Gamma = self.gamma(s)
+        if aow > 0.9:
+            # aow = 1 means that all of the data are equally weighted
+            # very much faster: does not require any inverse DCT
+            residual = DCTy.ravel() * (Gamma.ravel() - 1)
+        else:
+            # take account of the weights to calculate RSS:
+            is_finite = self.is_finite
+            yhat = idctn(Gamma * DCTy)
+            residual = sqrt(Wtot[is_finite]) * (y[is_finite] - yhat[is_finite])
+
+        TrH = Gamma.sum()
+        RSS = linalg.norm(residual)**2  # Residual sum-of-squares
+        GCVscore = RSS / self.nof / (1.0 - TrH / y.size) ** 2
+        return GCVscore
+
+    def __call__(self, z, s):
+        auto_smooth = self.auto_smooth
+        norm = linalg.norm
+        y = self.y
+        Wtot = self.Wtot
+        Gamma = 1
+        if s is not None:
+            Gamma = self.gamma(s)
+        # "amount" of weights (see the function GCVscore)
+        aow = Wtot.sum() / y.size  # 0 < aow <= 1
+        for nit in range(self.maxiter):
+            DCTy = dctn(Wtot * (y - z) + z)
+            if auto_smooth and not np.remainder(np.log2(nit + 1), 1):
+                # The generalized cross-validation (GCV) method is used.
+                # We seek the smoothing parameter s that minimizes the GCV
+                # score i.e. s = Argmin(GCVscore).
+                # Because this process is time-consuming, it is performed from
+                # time to time (when nit is a power of 2)
+                log10s = optimize.fminbound(
+                    self.gcv, np.log10(self.s_min), np.log10(self.s_max),
+                    args=(aow, DCTy, y, Wtot),
+                    xtol=self.errp, full_output=False, disp=False)
+                s = 10 ** log10s
+                Gamma = self.gamma(s)
+            z0 = z
+            z = self.RF * idctn(Gamma * DCTy) + (1 - self.RF) * z
+            # if no weighted/missing data => tol=0 (no iteration)
+            tol = norm(z0.ravel() - z.ravel()) / norm(z.ravel())
+            converged = tol <= self.tolz or not self.is_weighted
+            if converged:
+                break
+        if self.robust:
+            # -- Robust Smoothing: iteratively re-weighted process
+            h = self._average_leverage(s, self.N)
+            self.Wtot = self.W * self.robust_weights(y - z, self.is_finite, h)
+            # re-initialize for another iterative weighted process
+            self.is_weighted = True
+        return z, s, converged
+
+
 def smoothn(data, s=None, weight=None, robust=False, z0=None, tolz=1e-3,
             maxiter=100, fulloutput=False):
     '''
@@ -302,7 +541,7 @@ def smoothn(data, s=None, weight=None, robust=False, z0=None, tolz=1e-3,
     weight : string or array weights
         weighting array of real positive values, that must have the same size
         as DATA. Note that a zero weight corresponds to a missing value.
-    robust  : bool
+    robust : bool
         If true carry out a robust smoothing that minimizes the influence of
         outlying data.
     tolz : real positive scalar
@@ -337,12 +576,13 @@ def smoothn(data, s=None, weight=None, robust=False, z0=None, tolz=1e-3,
     >>> y[np.r_[70, 75, 80]] = np.array([5.5, 5, 6])
     >>> z = smoothn(y) # Regular smoothing
     >>> zr = smoothn(y,robust=True) #  Robust smoothing
-    >>> h=plt.subplot(121),
-    >>> h = plt.plot(x,y,'r.',x,z,'k',linewidth=2)
-    >>> h=plt.title('Regular smoothing')
-    >>> h=plt.subplot(122)
-    >>> h=plt.plot(x,y,'r.',x,zr,'k',linewidth=2)
-    >>> h=plt.title('Robust smoothing')
+
+    h=plt.subplot(121),
+    h = plt.plot(x,y,'r.',x,z,'k',linewidth=2)
+    h=plt.title('Regular smoothing')
+    h=plt.subplot(122)
+    h=plt.plot(x,y,'r.',x,zr,'k',linewidth=2)
+    h=plt.title('Robust smoothing')
 
      2-D example
     >>> xp = np.r_[0:1:.02]
@@ -350,10 +590,11 @@ def smoothn(data, s=None, weight=None, robust=False, z0=None, tolz=1e-3,
     >>> f = np.exp(x+y) + np.sin((x-2*y)*3);
     >>> fn = f + np.random.randn(*f.shape)*0.5;
     >>> fs = smoothn(fn);
-    >>> h=plt.subplot(121),
-    >>> h=plt.contourf(xp,xp,fn)
-    >>> h=plt.subplot(122)
-    >>> h=plt.contourf(xp,xp,fs)
+
+    h=plt.subplot(121),
+    h=plt.contourf(xp,xp,fn)
+    h=plt.subplot(122)
+    h=plt.contourf(xp,xp,fs)
 
      2-D example with missing data
     n = 256;
@@ -413,221 +654,67 @@ def smoothn(data, s=None, weight=None, robust=False, z0=None, tolz=1e-3,
     http://www.biomecardio.com/matlab/smoothn.html
     for more details about SMOOTHN
     '''
+    return SmoothNd(s, weight, robust, z0, tolz, maxiter, fulloutput)(data)
 
-    y = np.atleast_1d(data)
-    sizy = y.shape
-    noe = y.size
-    if noe < 2:
-        return data
 
-    weightstr = 'bisquare'
-    W = np.ones(sizy)
-    # Smoothness parameter and weights
-    if weight is None:
-        pass
-    elif isinstance(weight, str):
-        weightstr = weight.lower()
-    else:
-        W = weight
+class SmoothNd(object):
+    def __init__(self, s=None, weight=None, robust=False, z0=None, tolz=1e-3,
+                 maxiter=100, fulloutput=False):
+        self.s = s
+        self.weight = weight
+        self.robust = robust
+        self.z0 = z0
+        self.tolz = tolz
+        self.maxiter = maxiter
+        self.fulloutput = fulloutput
 
-    # Weights. Zero weights are assigned to not finite values (Inf or NaN),
-    # (Inf/NaN values = missing data).
-    IsFinite = np.isfinite(y)
-    nof = IsFinite.sum()  # number of finite elements
-    W = W * IsFinite
-    if (W < 0).any():
-        raise ValueError('Weights must all be >=0')
-    else:
-        W = W / W.max()
+    @property
+    def weightstr(self):
+        if isinstance(self._weight, str):
+            return self._weight.lower()
+        return 'bisquare'
 
-    isweighted = (W < 1).any()  # Weighted or missing data?
-    isauto = s is None  # Automatic smoothing?
-    # Creation of the Lambda tensor
-    # Lambda contains the eingenvalues of the difference matrix used in this
-    # penalized least squares process.
-    d = y.ndim
-    Lambda = np.zeros(sizy)
-    siz0 = [1, ] * d
-    for i in range(d):
-        siz0[i] = sizy[i]
-        Lambda = Lambda + \
-            np.cos(pi * np.arange(sizy[i]) / sizy[i]).reshape(siz0)
-        siz0[i] = 1
+    @property
+    def weight(self):
+        if self._weight is None or isinstance(self._weight, str):
+            return 1.0
+        return self._weight
 
-    Lambda = -2 * (d - Lambda)
-    if not isauto:
-        Gamma = 1. / (1 + s * Lambda ** 2)
+    @weight.setter
+    def weight(self, weight):
+        self._weight = weight
 
-    # Upper and lower bound for the smoothness parameter
-    # The average leverage (h) is by definition in [0 1]. Weak smoothing occurs
-    # if h is close to 1, while over-smoothing appears when h is near 0. Upper
-    # and lower bounds for h are given to avoid under- or over-smoothing. See
-    # equation relating h to the smoothness parameter (Equation #12 in the
-    # referenced CSDA paper).
-    N = (np.array(sizy) != 1).sum()  # tensor rank of the y-array
-    hMin = 1e-6
-    hMax = 0.99
-    sMinBnd = (((1 + sqrt(1 + 8 * hMax ** (2. / N))) / 4. /
-                hMax ** (2. / N)) ** 2 - 1) / 16
-    sMaxBnd = (((1 + sqrt(1 + 8 * hMin ** (2. / N))) / 4. /
-                hMin ** (2. / N)) ** 2 - 1) / 16
+    def _init_filter(self, y):
+        return _Filter(y, self.z0, self.weightstr, self.weight, self.s,
+                       self.robust, self.maxiter, self.tolz)
 
-    # Initialize before iterating
+    @property
+    def num_steps(self):
+        return 3 if self.robust else 1
 
-    Wtot = W
-    # Initial conditions for z
-    if isweighted:
-        # With weighted/missing data
-        # An initial guess is provided to ensure faster convergence. For that
-        # purpose, a nearest neighbor interpolation followed by a coarse
-        # smoothing are performed.
+    def __call__(self, data):
 
-        if z0 is None:
-            z = InitialGuess(y, IsFinite)
-        else:
-            # an initial guess (z0) has been provided
-            z = z0
-    else:
-        z = np.zeros(sizy)
-    z0 = z
-    y[~IsFinite] = 0  # arbitrary values for missing y-data
+        y = np.atleast_1d(data)
+        if y.size < 2:
+            return data
 
-    tol = 1
-    RobustIterativeProcess = True
-    RobustStep = 1
+        _filter = self._init_filter(y)
+        z = _filter.z0
+        s = _filter.s
+        converged = False
+        for _i in range(self.num_steps):
+            z, s, converged = _filter(z, s)
 
-    # Error on p. Smoothness parameter s = 10^p
-    errp = 0.1
+        if not converged:
+            msg = '''Maximum number of iterations (%d) has been exceeded.
+            Increase MaxIter option or decrease TolZ value.''' % (self.maxiter)
+            warnings.warn(msg)
 
-    # Relaxation factor RF: to speedup convergence
-    RF = 1.75 if isweighted else 1.0
+        _filter.check_smooth_parameter(s)
 
-    norm = linalg.norm
-    # Main iterative process
-    while RobustIterativeProcess:
-        # "amount" of weights (see the function GCVscore)
-        aow = Wtot.sum() / noe  # 0 < aow <= 1
-        exitflag = True
-        for nit in range(1, maxiter + 1):
-            DCTy = dctn(Wtot * (y - z) + z)
-            if isauto and not np.remainder(np.log2(nit), 1):
-
-                # The generalized cross-validation (GCV) method is used.
-                # We seek the smoothing parameter s that minimizes the GCV
-                # score i.e. s = Argmin(GCVscore).
-                # Because this process is time-consuming, it is performed from
-                # time to time (when nit is a power of 2)
-                log10s = optimize.fminbound(
-                    gcv, np.log10(sMinBnd), np.log10(sMaxBnd),
-                    args=(aow, Lambda, DCTy, y, Wtot, IsFinite, nof, noe),
-                    xtol=errp, full_output=False, disp=False)
-                s = 10 ** log10s
-                Gamma = 1.0 / (1 + s * Lambda ** 2)
-            z = RF * idctn(Gamma * DCTy) + (1 - RF) * z
-
-            # if no weighted/missing data => tol=0 (no iteration)
-            tol = norm(z0.ravel() - z.ravel()) / norm(
-                z.ravel()) if isweighted else 0.0
-            if tol <= tolz:
-                break
-            z0 = z  # re-initialization
-        else:
-            exitflag = False  # nit<MaxIter;
-
-        if robust:
-            # -- Robust Smoothing: iteratively re-weighted process
-            # --- average leverage
-            h = sqrt(1 + 16 * s)
-            h = sqrt(1 + h) / sqrt(2) / h
-            h = h ** N
-            # take robust weights into account
-            Wtot = W * RobustWeights(y - z, IsFinite, h, weightstr)
-            # re-initialize for another iterative weighted process
-            isweighted = True
-            tol = 1
-            RobustStep = RobustStep + 1
-            # 3 robust steps are enough.
-            RobustIterativeProcess = RobustStep < 4
-        else:
-            RobustIterativeProcess = False  # stop the whole process
-
-    # Warning messages
-    if isauto:
-        if abs(np.log10(s) - np.log10(sMinBnd)) < errp:
-            warnings.warn('''s = %g: the lower bound for s has been reached.
-            Put s as an input variable if required.''' % s)
-        elif abs(np.log10(s) - np.log10(sMaxBnd)) < errp:
-            warnings.warn('''s = %g: the Upper bound for s has been reached.
-            Put s as an input variable if required.''' % s)
-
-    if not exitflag:
-        warnings.warn('''Maximum number of iterations (%d) has been exceeded.
-        Increase MaxIter option or decrease TolZ value.''' % (maxiter))
-    if fulloutput:
-        return z, s
-    else:
+        if self.fulloutput:
+            return z, s
         return z
-
-
-def gcv(p, aow, Lambda, DCTy, y, Wtot, IsFinite, nof, noe):
-    # Search the smoothing parameter s that minimizes the GCV score
-    s = 10 ** p
-    Gamma = 1.0 / (1 + s * Lambda ** 2)
-    # RSS = Residual sum-of-squares
-    if aow > 0.9:  # aow = 1 means that all of the data are equally weighted
-        # very much faster: does not require any inverse DCT
-        RSS = linalg.norm(DCTy.ravel() * (Gamma.ravel() - 1)) ** 2
-    else:
-        # take account of the weights to calculate RSS:
-        yhat = idctn(Gamma * DCTy)
-        RSS = linalg.norm(sqrt(Wtot[IsFinite]) *
-                          (y[IsFinite] - yhat[IsFinite])) ** 2
-
-    TrH = Gamma.sum()
-    GCVscore = RSS / nof / (1.0 - TrH / noe) ** 2
-    return GCVscore
-
-
-# Robust weights
-def RobustWeights(r, I, h, wstr):
-    # weights for robust smoothing.
-    MAD = np.median(abs(r[I] - np.median(r[I])))  # median absolute deviation
-    u = abs(r / (1.4826 * MAD) / sqrt(1 - h))  # studentized residuals
-    if wstr == 'cauchy':
-        c = 2.385
-        W = 1. / (1 + (u / c) ** 2)  # Cauchy weights
-    elif wstr == 'talworth':
-        c = 2.795
-        W = u < c  # Talworth weights
-    else:  # bisquare weights
-        c = 4.685
-        W = (1 - (u / c) ** 2) ** 2 * ((u / c) < 1)
-
-    W[np.isnan(W)] = 0
-    return W
-
-
-def InitialGuess(y, I):
-    # Initial Guess with weighted/missing data
-    # nearest neighbor interpolation (in case of missing values)
-    z = y
-    if (1 - I).any():
-        notI = ~I
-        z, L = distance_transform_edt(notI,  return_indices=True)
-        z[notI] = y[L.flat[notI]]
-
-    # coarse fast smoothing using one-tenth of the DCT coefficients
-    siz = z.shape
-    d = z.ndim
-    z = dctn(z)
-    for k in range(d):
-        z[int((siz[k] + 0.5) / 10) + 1::, ...] = 0
-        z = z.reshape(np.roll(siz, -k))
-        z = z.transpose(np.roll(range(z.ndim), -1))
-        # z = shiftdim(z,1);
-    z = idctn(z)
-
-    return z
 
 
 def test_smoothn_1d():
@@ -700,13 +787,14 @@ class HodrickPrescott(object):
     >>> t = np.linspace(-4, 4, 500)
     >>> y = np.exp( -t**2 ) + np.random.normal(0, 0.05, t.shape)
     >>> ysg = HodrickPrescott(w=10000)(y)
-    >>> import matplotlib.pyplot as plt
-    >>> h = plt.plot(t, y, label='Noisy signal')
-    >>> h1 = plt.plot(t, np.exp(-t**2), 'k', lw=1.5, label='Original signal')
-    >>> h2 = plt.plot(t, ysg, 'r', label='Filtered signal')
-    >>> h3 = plt.legend()
-    >>> h4 = plt.title('Hodrick-Prescott')
-    >>> plt.show()
+
+    import matplotlib.pyplot as plt
+    h = plt.plot(t, y, label='Noisy signal')
+    h1 = plt.plot(t, np.exp(-t**2), 'k', lw=1.5, label='Original signal')
+    h2 = plt.plot(t, ysg, 'r', label='Filtered signal')
+    h3 = plt.legend()
+    h4 = plt.title('Hodrick-Prescott')
+    plt.show()
 
     References
     ----------
@@ -864,15 +952,15 @@ class Kalman(object):
     >>> for i, zi in enumerate(z):
     ...     x[i] = filt(zi, u) #  perform a Kalman filter iteration
 
-    >>> import matplotlib.pyplot as plt
-    >>> hz = plt.plot(z,'r.', label='observations')
+    import matplotlib.pyplot as plt
+    hz = plt.plot(z,'r.', label='observations')
 
     # a-posteriori state estimates:
-    >>> hx = plt.plot(x,'b-', label='Kalman output')
-    >>> ht = plt.plot(truth,'g-', label='true voltage')
-    >>> h = plt.legend()
-    >>> h1 = plt.title('Automobile Voltimeter Example')
-    >>> plt.show()
+    hx = plt.plot(x,'b-', label='Kalman output')
+    ht = plt.plot(truth,'g-', label='true voltage')
+    h = plt.legend()
+    h1 = plt.title('Automobile Voltimeter Example')
+    plt.show()
 
     '''
 
@@ -881,7 +969,7 @@ class Kalman(object):
         self.x = x  # Initial state estimate.
         self.P = P  # Initial covariance estimate.
         self.A = A  # State transition matrix.
-        self.B = B   # Control matrix.
+        self.B = B  # Control matrix.
         self.Q = Q  # Estimated error in process.
         self.H = H  # Observation matrix.
         self.reset()
@@ -889,38 +977,55 @@ class Kalman(object):
     def reset(self):
         self._filter = self._filter_first
 
-    def _filter_first(self, z, u):
-
-        self._filter = self._filter_main
-
-        auto_init = self.x is None
-        if auto_init:
-            n = np.size(z)
-        else:
-            n = np.size(self.x)
+    def _set_A(self, n):
         if self.A is None:
             self.A = np.eye(n)
         self.A = np.atleast_2d(self.A)
+
+    def _set_Q(self, n):
         if self.Q is None:
             self.Q = np.zeros((n, n))
         self.Q = np.atleast_2d(self.Q)
+
+    def _set_H(self, n):
         if self.H is None:
             self.H = np.eye(n)
         self.H = np.atleast_2d(self.H)
+
+    def _set_P(self, HI):
+        if self.P is None:
+            self.P = np.dot(np.dot(HI, self.R), HI.T)
+        self.P = np.atleast_2d(self.P)
+
+    def _init_first(self, n):
+        self._set_A(n)
+        self._set_Q(n)
+        self._set_H(n)
         try:
             HI = np.linalg.inv(self.H)
         except:
             HI = np.eye(n)
-        if self.P is None:
-            self.P = np.dot(np.dot(HI, self.R), HI.T)
+        self._set_P(HI)
+        return HI
 
-        self.P = np.atleast_2d(self.P)
-        if auto_init:
-            # initialize state estimate from first observation
-            self.x = np.dot(HI, z)
+    def _first_state(self, z):
+        n = np.size(z)
+        HI = self._init_first(n)
+        # initialize state estimate from first observation
+        x = np.dot(HI, z)
+        return x
+
+    def _filter_first(self, z, u):
+
+        self._filter = self._filter_main
+
+        if self.x is None:
+            self.x = self._first_state(z)
             return self.x
-        else:
-            return self._filter_main(z, u)
+
+        n = np.size(self.x)
+        self._init_first(n)
+        return self._filter_main(z, u)
 
     def _predict_state(self, x, u):
         return np.dot(self.A, x) + np.dot(self.B, u)
@@ -1042,12 +1147,12 @@ def lti_disc(F, L=None, Q=None, dt=1):
 
 def test_kalman_sine():
     """Kalman Filter demonstration with sine signal."""
-    sd = 1.
+    sd = 0.5
     dt = 0.1
     w = 1
     T = np.arange(0, 30 + dt / 2, dt)
     n = len(T)
-    X = np.sin(w * T)
+    X = 3*np.sin(w * T)
     Y = X + sd * np.random.randn(n)
 
     ''' Initialize KF to values
@@ -1090,7 +1195,7 @@ def test_kalman_sine():
     _ht = plt.plot(truth, 'g-', label='true voltage')
     plt.legend()
     plt.title('Automobile Voltimeter Example')
-    plt.show()
+    plt.show('hold')
 
 #     for k in range(m):
 #         [M,P] = kf_predict(M,P,A,Q);
@@ -1216,76 +1321,96 @@ class HampelFilter(object):
         self.adaptive = adaptive
         self.fulloutput = fulloutput
 
+    def _check(self, dx):
+        if not np.isscalar(dx):
+            raise ValueError('DX must be a scalar.')
+        if dx < 0:
+            raise ValueError('DX must be larger than zero.')
+
+    @staticmethod
+    def localwindow(X, Y, DX, i):
+        mask = (X[i] - DX <= X) & (X <= X[i] + DX)
+        Y0 = np.median(Y[mask])
+        # Calculate Local Scale of Natural Variation
+        S0 = 1.4826 * np.median(np.abs(Y[mask] - Y0))
+        return Y0, S0
+
+    @staticmethod
+    def smgauss(X, V, DX):
+        Xj = X
+        Xk = np.atleast_2d(X).T
+        Wjk = np.exp(-((Xj - Xk) / (2 * DX)) ** 2)
+        G = np.dot(Wjk, V) / np.sum(Wjk, axis=0)
+        return G
+
+    def _adaptive(self, Y, X, dx):
+        localwindow = self.localwindow
+        Y0, S0, ADX = self._init(Y, dx)
+        Y0Tmp = np.nan * np.zeros(Y.shape)
+        S0Tmp = np.nan * np.zeros(Y.shape)
+        DXTmp = np.arange(1, len(S0) + 1) * dx
+        # Integer variation of Window Half Size
+        # Calculate Initial Guess of Optimal Parameters Y0, S0, ADX
+        for i in range(len(Y)):
+            j = 0
+            S0Rel = np.inf
+            while S0Rel > self.adaptive:
+                Y0Tmp[j], S0Tmp[j] = localwindow(X, Y, DXTmp[j], i)
+                if j > 0:
+                    S0Rel = abs((S0Tmp[j - 1] - S0Tmp[j]) /
+                                (S0Tmp[j - 1] + S0Tmp[j]) / 2)
+                j += 1
+
+            Y0[i] = Y0Tmp[j - 2]
+            S0[i] = S0Tmp[j - 2]
+            ADX[i] = DXTmp[j - 2] / dx
+
+    # Gaussian smoothing of relevant parameters
+        DX = 2 * np.median(np.diff(X))
+        ADX = self.smgauss(X, ADX, DX)
+        S0 = self.smgauss(X, S0, DX)
+        Y0 = self.smgauss(X, Y0, DX)
+        return Y0, S0, ADX
+
+    def _init(self, Y, dx):
+        S0 = np.nan * np.zeros(Y.shape)
+        Y0 = np.nan * np.zeros(Y.shape)
+        ADX = dx * np.ones(Y.shape)
+        return Y0, S0, ADX
+
+    def _fixed(self, Y, X, dx):
+        localwindow = self.localwindow
+        Y0, S0, ADX = self._init(Y, dx)
+        for i in range(len(Y)):
+            Y0[i], S0[i] = localwindow(X, Y, dx, i)
+        return Y0, S0, ADX
+
+    def _filter(self, Y, X, dx):
+        if len(X) <= 1:
+            Y0, S0, ADX = self._init(Y, dx)
+        elif self.adaptive is None:
+            Y0, S0, ADX = self._fixed(Y, X, dx)
+        else:
+            Y0, S0, ADX = self._adaptive(Y, X, dx)  # 'adaptive'
+        return Y0, S0, ADX
+
     def __call__(self, y, x=None):
         Y = np.atleast_1d(y).ravel()
         if x is None:
             x = range(len(Y))
         X = np.atleast_1d(x).ravel()
 
-        dx = self.dx
-        if dx is None:
-            dx = 3 * np.median(np.diff(X))
-        if not np.isscalar(dx):
-            raise ValueError('DX must be a scalar.')
-        elif dx < 0:
-            raise ValueError('DX must be larger than zero.')
+        dx = 3 * np.median(np.diff(X)) if self.dx is None else self.dx
+        self._check(dx)
 
-        YY = Y
-        S0 = np.nan * np.zeros(YY.shape)
-        Y0 = np.nan * np.zeros(YY.shape)
-        ADX = dx * np.ones(Y.shape)
-
-        def localwindow(X, Y, DX, i):
-            mask = (X[i] - DX <= X) & (X <= X[i] + DX)
-            Y0 = np.median(Y[mask])
-            # Calculate Local Scale of Natural Variation
-            S0 = 1.4826 * np.median(np.abs(Y[mask] - Y0))
-            return Y0, S0
-
-        def smgauss(X, V, DX):
-            Xj = X
-            Xk = np.atleast_2d(X).T
-            Wjk = np.exp(-((Xj - Xk) / (2 * DX)) ** 2)
-            G = np.dot(Wjk, V) / np.sum(Wjk, axis=0)
-            return G
-
-        if len(X) > 1:
-            if self.adaptive is None:
-                for i in range(len(Y)):
-                    Y0[i], S0[i] = localwindow(X, Y, dx, i)
-            else:  # 'adaptive'
-
-                Y0Tmp = np.nan * np.zeros(YY.shape)
-                S0Tmp = np.nan * np.zeros(YY.shape)
-                DXTmp = np.arange(1, len(S0) + 1) * dx
-                # Integer variation of Window Half Size
-
-                # Calculate Initial Guess of Optimal Parameters Y0, S0, ADX
-                for i in range(len(Y)):
-                    j = 0
-                    S0Rel = np.inf
-                    while S0Rel > self.adaptive:
-                        Y0Tmp[j], S0Tmp[j] = localwindow(X, Y, DXTmp[j], i)
-                        if j > 0:
-                            S0Rel = abs((S0Tmp[j - 1] - S0Tmp[j]) /
-                                        (S0Tmp[j - 1] + S0Tmp[j]) / 2)
-                        j += 1
-                    Y0[i] = Y0Tmp[j - 2]
-                    S0[i] = S0Tmp[j - 2]
-                    ADX[i] = DXTmp[j - 2] / dx
-
-                # Gaussian smoothing of relevant parameters
-                DX = 2 * np.median(np.diff(X))
-                ADX = smgauss(X, ADX, DX)
-                S0 = smgauss(X, S0, DX)
-                Y0 = smgauss(X, Y0, DX)
-
+        Y0, S0, ADX = self._filter(Y, X, dx)
+        YY = Y.copy()
         T = self.t
         # Prepare Output
         self.UB = Y0 + T * S0
         self.LB = Y0 - T * S0
         outliers = np.abs(Y - Y0) > T * S0  # possible outliers
-        YY[outliers] = Y0[outliers]
+        np.putmask(YY, outliers, Y0)  # YY[outliers] = Y0[outliers]
         self.outliers = outliers
         self.num_outliers = outliers.sum()
         self.ADX = ADX
@@ -1296,7 +1421,7 @@ class HampelFilter(object):
         return YY
 
 
-def test_hampel():
+def demo_hampel():
     randint = np.random.randint
     Y = 5000 + np.random.randn(1000)
     outliers = randint(0, 1000, size=(10,))
@@ -1441,9 +1566,9 @@ if __name__ == '__main__':
     test_docstrings()
     # test_kalman_sine()
     # test_tide_filter()
-    # test_hampel()
+    # demo_hampel()
     # test_kalman()
     # test_smooth()
     # test_hodrick_cardioid()
-    test_smoothn_1d()
+    # test_smoothn_1d()
     # test_smoothn_cardioid()

@@ -82,10 +82,10 @@ Contents.m              : Contents file for Matlab
 
 
 '''
-from __future__ import division
+from __future__ import absolute_import, division
 import numpy as np
 from numpy.fft import fft
-from wafo.dctpack import dct
+from .dctpack import dct
 # from scipy.fftpack.realtransforms import dct
 
 
@@ -274,7 +274,7 @@ class _ExampleFunctions(object):
         arg_z = 1. / arg_z
         return np.exp(-arg_z)
 
-    def __call__(self, x, y, id=0):
+    def __call__(self, x, y, id=0):  # @ReservedAssignment
         s = self
         test_function = [s.franke, s.half_sphere, s.poly_degree20, s.exp_fun1,
                          s.exp_fun100, s.cos30, s.constant, s.exp_xy, s.runge,
@@ -410,7 +410,7 @@ def paduavals2coefs(f):
     else:
 
         # dct = @(c) chebtech2.coeffs2vals(c);
-        C = np.rot90(dct(dct(G.T).T)) #, axis=1)
+        C = np.rot90(dct(dct(G.T).T))  # , axis=1)
 
     C[0] = .5 * C[0]
     C[:, 1] = .5 * C[:, 1]
@@ -423,6 +423,7 @@ def paduavals2coefs(f):
     # C = C(:,end:-1:1);
 
 
+# TODO: padua_fit2 does not work correctly yet.
 def padua_fit2(Pad, fun, *args):
     N = np.shape(Pad)[1]
     # recover the degree n from N = (n+1)(n+2)/2
@@ -489,13 +490,8 @@ def padua_val(X, Y, coefficients, domain=(-1, 1, -1, 1), use_meshgrid=False):
     TX2 = np.cos(tn * np.arccos(X2))
     TX1[1:n + 1] = TX1[1:n + 1] * np.sqrt(2)
     TX2[1:n + 1] = TX2[1:n + 1] * np.sqrt(2)
-    if use_meshgrid:
-        # eval on meshgrid points
+    if use_meshgrid:  # eval on meshgrid points
         return np.dot(TX1.T, np.dot(coefficients, TX2)).T
-    val = np.sum(
-        np.dot(
-            TX1.T,
-            coefficients) *
-        TX2.T,
-        axis=1)  # scattered points
+    # scattered points
+    val = np.sum(np.dot(TX1.T, coefficients) * TX2.T, axis=1)
     return val.reshape(original_shape)

@@ -14,7 +14,7 @@ note : Memorandum string.
 date : Date and time of creation or change.
 '''
 
-from __future__ import division
+from __future__ import division, absolute_import
 import warnings
 import numpy as np
 from numpy import (zeros, ones, sqrt, inf, where, nan,
@@ -27,9 +27,9 @@ from scipy.linalg import toeplitz, lstsq
 from scipy import sparse
 from pylab import stineman_interp
 
-from wafo.containers import PlotData
-from wafo.misc import sub_dict_select, nextpow2  # , JITImport
-import wafo.spectrum as _wafospec
+from ..containers import PlotData
+from ..misc import sub_dict_select, nextpow2  # , JITImport
+from .. import spectrum as _wafospec
 from scipy.sparse.linalg.dsolve.linsolve import spsolve
 from scipy.sparse.base import issparse
 from scipy.signal.windows import parzen
@@ -68,7 +68,7 @@ def rndnormnd(mean, cov, cases=1):
     Example
     -------
     >>> mu = [0, 5]
-    >>> S = [[1 0.45], [0.45 0.25]]
+    >>> S = [[1, 0.45], [0.45, 0.25]]
     >>> r = rndnormnd(mu, S, 1)
 
     plot(r(:,1),r(:,2),'.')
@@ -208,13 +208,12 @@ class CovData1D(PlotData):
         >>> S = Sj.tospecdata()
         >>> R2 = S.tocovdata()
         >>> S1 = R2.tospecdata()
-        >>> abs(S1.data-S.data).max()
+        >>> abs(S1.data-S.data).max() < 1e-4
+        True
 
-        >>> S1.plot('r-')
-        >>> S.plot('b:')
-        >>> pylab.show()
-
-        >>> all(abs(S1.data-S.data)<1e-4)
+        S1.plot('r-')
+        S.plot('b:')
+        pylab.show()
 
         See also
         --------

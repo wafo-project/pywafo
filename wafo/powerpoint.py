@@ -3,12 +3,12 @@ Created on 15. des. 2009
 
 @author: pab
 '''
-#import os
-#import sys
-#import win32com
-#from win32com.client.selecttlb import EnumTlbs
-#typelib_mso = None
-#typelib_msppt = None
+# import os
+# import sys
+# import win32com
+# from win32com.client.selecttlb import EnumTlbs
+# typelib_mso = None
+# typelib_msppt = None
 # for typelib in EnumTlbs():
 #    d = typelib.desc.split(' ')
 #    if d[0] == 'Microsoft' and d[1] == 'Office' and d[3] == 'Object' \
@@ -19,7 +19,7 @@ Created on 15. des. 2009
 #        typelib_msppt = typelib
 # if hasattr(sys, 'frozen'):  # If we're an .exe file
 #    win32com.__gen_path__ = os.path.dirname(sys.executable)
-##    win32com.__gen_path__ = os.environ['TEMP']
+# #    win32com.__gen_path__ = os.environ['TEMP']
 # if win32com.client.gencache.is_readonly:
 #    win32com.client.gencache.is_readonly = False
 #    win32com.client.gencache.Rebuild()
@@ -30,11 +30,13 @@ Created on 15. des. 2009
 # MSO = win32com.client.gencache.EnsureModule(typelib_mso.clsid,
 #                        typelib_mso.lcid,
 #                              int(typelib_mso.major), int(typelib_mso.minor))
+from __future__ import absolute_import
+from six import iteritems  # @UnresolvedImport
 import os
 import warnings
 import win32com.client
-import MSO
-import MSPPT
+from . import MSO
+from . import MSPPT
 from PIL import Image  # @UnresolvedImport
 
 g = globals()
@@ -49,7 +51,7 @@ class Powerpoint(object):
     def __init__(self, file_name=''):
 
         self.application = win32com.client.Dispatch("Powerpoint.Application")
-        #self.application.Visible = True
+        # self.application.Visible = True
         self._visible = self.application.Visible
         if file_name:
             self.presentation = self.application.Presentations.Open(file_name)
@@ -129,7 +131,7 @@ class Powerpoint(object):
             titlerange.Font.Size = self.title_size
 
         if texts != '' and texts != ['']:
-            #textrange = slide.Shapes(textbox_id).TextFrame.TextRange
+            # textrange = slide.Shapes(textbox_id).TextFrame.TextRange
             self._add_text(slide, textbox_id, texts, maxlevel)
 
         if image_file != '' and image_file != ['']:
@@ -171,7 +173,7 @@ class Powerpoint(object):
     def _add_text_from_dict(self, page, id, txt_dict,  # @ReservedAssignment
                             level, maxlevel=None):
         if maxlevel is None or level <= maxlevel:
-            for name, subdict in txt_dict.iteritems():
+            for name, subdict in iteritems(txt_dict):
                 tr = page.Shapes(id).TextFrame.TextRange.InsertAfter(name)
                 unused_temp = page.Shapes(
                     id).TextFrame.TextRange.InsertAfter('\r')
@@ -213,7 +215,6 @@ def test_powerpoint():
     # Make powerpoint
 
     ppt = Powerpoint()
-                # time.
     ppt.footer = 'This is the footer'
     ppt.add_title_slide('Title', 'Per A.')
     ppt.add_slide(title='alsfkasldk', texts='asdflaf', notes='asdfas')
@@ -231,7 +232,7 @@ def make_ppt():
 #    title.TextFrame.TextRange.Text = 'Overskrift'
     title_id, textbox_id = 1, 2
     slide1.Shapes(title_id).TextFrame.TextRange.Text = 'Overskrift'
-    #slide1.Shapes(title_id).TextFrame.Width = 190
+    # slide1.Shapes(title_id).TextFrame.Width = 190
 
     slide1.Shapes(textbox_id).TextFrame.TextRange.InsertAfter('Test')
     unused_tr = slide1.Shapes(textbox_id).TextFrame.TextRange.InsertAfter('\r')
@@ -242,12 +243,12 @@ def make_ppt():
     tr.IndentLevel = 2
     tr1 = slide1.Shapes(textbox_id).TextFrame.TextRange.InsertAfter('test3')
     tr1.IndentLevel = 3
-    #slide1.Shapes(textbox_id).TextFrame.TextRange.Text = 'Test \r test2'
+    # slide1.Shapes(textbox_id).TextFrame.TextRange.Text = 'Test \r test2'
 
 #    textbox = slide1.Shapes.AddTextBox(Type=msoTextOrientationHorizontal,
 #                    Left=30, Top=100, Width=190, Height=400)
 #    textbox.TextFrame.TextRange.Text = 'Test \r test2'
-    #picbox = slide1.Shapes(picb_id)
+    # picbox = slide1.Shapes(picb_id)
 
     filename = r'c:\temp\data1_report1_and_2_Tr120_1.png'
     slide1.Shapes.AddPicture(FileName=filename, LinkToFile=False,
@@ -280,13 +281,8 @@ def make_ppt():
     # application.Quit()
 def rename_ppt():
     root = r'C:/pab/tsm_opeval/analysis_tsmps_aco_v2008b/plots'
-#    root = r'C:/pab/tsm_opeval/analysis_tsmps_mag_v2008b/plots'
-#    root = r'C:/pab/tsm_opeval/analysis_tsmps_mag_v2010a/plots'
-#    root = r'C:/pab/tsm_opeval/analysis_tsmps_aco_v2010a/plots'
-    #filename = r'mag_sweep_best_tsmps_ship_eff0-10.ppt'
     filenames = os.listdir(root)
     prefix = 'TSMPSv2008b_'
-    #prefix = 'TSMPSv2010a_'
     for filename in filenames:
         if filename.endswith('.ppt'):
             try:
@@ -300,13 +296,8 @@ def rename_ppt():
 
 def load_file_into_ppt():
     root = r'C:/pab/tsm_opeval/analysis_tsmps_aco_v2008b/plots'
-#    root = r'C:/pab/tsm_opeval/analysis_tsmps_mag_v2008b/plots'
-#    root = r'C:/pab/tsm_opeval/analysis_tsmps_mag_v2010a/plots'
-#    root = r'C:/pab/tsm_opeval/analysis_tsmps_aco_v2010a/plots'
-    #filename = r'mag_sweep_best_tsmps_ship_eff0-10.ppt'
     filenames = os.listdir(root)
     prefix = 'TSMPSv2008b_'
-    #prefix = 'TSMPSv2010a_'
     for filename in filenames:
         if filename.startswith(prefix) and filename.endswith('.ppt'):
             try:

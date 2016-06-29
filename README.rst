@@ -1,25 +1,9 @@
+|wafo_logo|
 ==========================================
 Wave Analysis for Fatigue and Oceanography
 ==========================================
 
-.. image:: https://badge.fury.io/py/wafo.png
-    :target: https://pypi.python.org/pypi/wafo/
-
-.. image:: https://travis-ci.org/wafo-project/pywafo.svg?branch=master
-    :target: https://travis-ci.org/wafo-project/pywafo
-
-.. image:: https://readthedocs.org/projects/pip/badge/?version=latest
-    :target: http://pywafo.readthedocs.org/en/latest/
-
-.. image:: https://landscape.io/github/wafo-project/pywafo/master/landscape.svg?style=flat
-   :target: https://landscape.io/github/wafo-project/pywafo/master
-   :alt: Code Health
-
-.. image:: https://coveralls.io/repos/wafo-project/pywafo/badge.svg?branch=master
-   :target: https://coveralls.io/github/wafo-project/pywafo?branch=master
-
-.. image:: https://img.shields.io/pypi/pyversions/pywafo.svg
-   :target: https://github.com/wafo-project/pywafo
+|pkg_img| |tests_img| |docs_img| |health_img| |coverage_img| |versions_img| |depsy_img|
 
 
 Description
@@ -28,7 +12,7 @@ Description
 WAFO is a toolbox Python routines for statistical analysis and simulation of
 random waves and random loads. WAFO is freely redistributable software, see WAFO
 icence, cf. the GNU General Public License (GPL) and contain tools for:
-        
+
 Fatigue Analysis
 ----------------
 
@@ -63,7 +47,7 @@ Classes
 
 * SpecData:
     Computation of spectral moments and covariance functions, linear and
-    non-linear time series simulation. Ex: common spectra implemented, 
+    non-linear time series simulation. Ex: common spectra implemented,
     directional spectra, bandwidth measures, exact distributions for wave
     characteristics.
 
@@ -111,6 +95,34 @@ And install the wheel package with::
 
     pip install dist/wafo-X.Y.Z+abcd123-os_platform.whl
 
+Getting started
+===============
+
+A quick introduction to some of the many features of wafo can be found in the Tutorial IPython notebooks in the 
+`tutorial scripts folder`_:
+
+* Chapter 1 - `Some applications of WAFO`_
+
+* Chapter 2 - `Modelling random loads and stochastic waves`_
+
+* Chapter 3 - `Demonstrates distributions of wave characteristics`_
+
+* Chapter 4 - `Fatigue load analysis and rain-flow cycles`_
+
+* Chapter 5 - `Extreme value analysis`_
+
+-- _tutorial scripts folder: http://nbviewer.jupyter.org/github/wafo-project/pywafo/tree/master/wafo/doc/tutorial_scripts/
+
+.. _Some applications of WAFO: http://nbviewer.jupyter.org/github/wafo-project/pywafo/blob/master/wafo/doc/tutorial_scripts/WAFO%20Chapter%201.ipynb
+
+.. _Modelling random loads and stochastic waves: http://nbviewer.jupyter.org/github/wafo-project/pywafo/blob/master/wafo/doc/tutorial_scripts/WAFO%20Chapter%202.ipynb
+
+.. _Demonstrates distributions of wave characteristics: http://nbviewer.jupyter.org/github/wafo-project/pywafo/blob/master/wafo/doc/tutorial_scripts/WAFO%20Chapter%203.ipynb
+
+.. _Fatigue load analysis and rain-flow cycles: http://nbviewer.jupyter.org/github/wafo-project/pywafo/blob/master/wafo/doc/tutorial_scripts/WAFO%20Chapter%204.ipynb
+
+.. _Extreme value analysis: http://nbviewer.jupyter.org/github/wafo-project/pywafo/blob/master/wafo/doc/tutorial_scripts/WAFO%20Chapter%205.ipynb
+
 
 Unit tests
 ==========
@@ -128,3 +140,29 @@ Note
 This project has been set up using PyScaffold 2.4.2. For details and usage
 information on PyScaffold see http://pyscaffold.readthedocs.org/.
 
+.. |wafo_logo| image:: https://github.com/wafo-project/pywafo/blob/master/wafo/data/wafoLogoNewWithoutBorder.png
+    :target: https://github.com/wafo-project/pywafo
+
+
+.. |pkg_img| image:: https://badge.fury.io/py/wafo.png
+    :target: https://pypi.python.org/pypi/wafo/
+
+.. |tests_img| image:: https://travis-ci.org/wafo-project/pywafo.svg?branch=master
+    :target: https://travis-ci.org/wafo-project/pywafo
+
+.. |docs_img| image:: https://readthedocs.org/projects/pip/badge/?version=latest
+    :target: http://pywafo.readthedocs.org/en/latest/
+
+.. |health_img| image:: https://codeclimate.com/github/wafo-project/pywafo/badges/gpa.svg
+   :target: https://codeclimate.com/github/wafo-project/pywafo
+   :alt: Code Climate
+
+.. |coverage_img| image:: https://coveralls.io/repos/wafo-project/pywafo/badge.svg?branch=master
+   :target: https://coveralls.io/github/wafo-project/pywafo?branch=master
+
+.. |versions_img| image:: https://img.shields.io/pypi/pyversions/wafo.svg
+   :target: https://github.com/wafo-project/pywafo
+
+
+.. |depsy_img| image:: http://depsy.org/api/package/pypi/wafo/badge.svg
+   :target: http://depsy.org/package/python/wafo

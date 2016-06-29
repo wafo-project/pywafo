@@ -157,7 +157,8 @@ Cf2py integer, optional :: nint1 = 2
       USE rindmod
       USE rind71mod, only : rind71
       IMPLICIT NONE
-      INTEGER :: Ntd,Nj,K,I
+      INTEGER :: Ntd
+C      INTEGER :: Nj,K, I
       INTEGER :: seed1
       integer :: Nx,Nx1,Nt, Nc,Ntdc,Ni,Nb,Mb
       DOUBLE PRECISION, dimension(Ntdc,Ntdc) :: BIG

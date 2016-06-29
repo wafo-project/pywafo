@@ -1,14 +1,17 @@
-from __future__ import division
+from __future__ import absolute_import, division
 import warnings
 import numpy as np
 from numpy import pi, sqrt, ones, zeros  # @UnresolvedImport
 from scipy import integrate as intg
 import scipy.special.orthogonal as ort
 from scipy import special as sp
-from wafo.plotbackend import plotbackend as plt
+
 from scipy.integrate import simps, trapz
-from wafo.demos import humps
-#from pychebfun import Chebfun
+from .plotbackend import plotbackend as plt
+from .demos import humps
+from .misc import dea3
+from .dctpack import dct
+# from pychebfun import Chebfun
 
 _EPS = np.finfo(float).eps
 _POINTS_AND_WEIGHTS = {}
@@ -16,79 +19,6 @@ _POINTS_AND_WEIGHTS = {}
 __all__ = ['dea3', 'clencurt', 'romberg',
            'h_roots', 'j_roots', 'la_roots', 'p_roots', 'qrule',
            'gaussq', 'richardson', 'quadgr', 'qdemo']
-
-
-def dea3(v0, v1, v2):
-    '''
-    Extrapolate a slowly convergent sequence
-
-    Parameters
-    ----------
-    v0,v1,v2 : array-like
-        3 values of a convergent sequence to extrapolate
-
-    Returns
-    -------
-    result : array-like
-        extrapolated value
-    abserr : array-like
-        absolute error estimate
-
-    Description
-    -----------
-    DEA3 attempts to extrapolate nonlinearly to a better estimate
-    of the sequence's limiting value, thus improving the rate of
-    convergence. The routine is based on the epsilon algorithm of
-    P. Wynn, see [1]_.
-
-     Example
-     -------
-     # integrate sin(x) from 0 to pi/2
-
-     >>> import numpy as np
-     >>> Ei= np.zeros(3)
-     >>> linfun = lambda k : np.linspace(0, np.pi/2., 2.**(k+5)+1)
-     >>> for k in np.arange(3):
-     ...     x = linfun(k)
-     ...     Ei[k] = np.trapz(np.sin(x),x)
-     >>> En, err = dea3(Ei[0],Ei[1],Ei[2])
-     >>> En, err
-     (array([ 1.]), array([ 0.0002008]))
-     >>> TrueErr = Ei-1.
-     >>> TrueErr
-     array([ -2.0080568e-04,  -5.0199908e-05,  -1.2549882e-05])
-
-     See also
-     --------
-     dea
-
-     Reference
-     ---------
-     .. [1] C. Brezinski (1977)
-            "Acceleration de la convergence en analyse numerique",
-            "Lecture Notes in Math.", vol. 584,
-            Springer-Verlag, New York, 1977.
-    '''
-    E0, E1, E2 = np.atleast_1d(v0, v1, v2)
-    abs = np.abs  # @ReservedAssignment
-    max = np.maximum  # @ReservedAssignment
-    delta2, delta1 = E2 - E1, E1 - E0
-    err2, err1 = abs(delta2), abs(delta1)
-    tol2, tol1 = max(abs(E2), abs(E1)) * _EPS, max(abs(E1), abs(E0)) * _EPS
-
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")  # ignore division by zero and overflow
-        ss = 1.0 / delta2 - 1.0 / delta1
-        smalle2 = (abs(ss * E1) <= 1.0e-3).ravel()
-
-    result = 1.0 * E2
-    abserr = err1 + err2 + abs(E2) * _EPS * 10.0
-    converged = (err1 <= tol1) & (err2 <= tol2).ravel() | smalle2
-    k4, = (1 - converged).nonzero()
-    if k4.size > 0:
-        result[k4] = E1[k4] + 1.0 / ss[k4]
-        abserr[k4] = err1[k4] + err2[k4] + abs(result[k4] - E2[k4])
-    return result, abserr
 
 
 def clencurt(fun, a, b, n0=5, trace=False, args=()):
@@ -119,9 +49,9 @@ def clencurt(fun, a, b, n0=5, trace=False, args=()):
     Example
     -------
     >>> import numpy as np
-    >>> val,err = clencurt(np.exp,0,2)
-    >>> abs(val-np.expm1(2))< err, err<1e-10
-    (array([ True], dtype=bool), array([ True], dtype=bool))
+    >>> val, err = clencurt(np.exp, 0, 2)
+    >>> np.allclose(val, np.expm1(2)), err[0] < 1e-10
+    (True, True)
 
 
     See also
@@ -174,26 +104,20 @@ def clencurt(fun, a, b, n0=5, trace=False, args=()):
     f[0, :] = f[0, :] / 2
     f[n, :] = f[n, :] / 2
 
-# % x = cos(pi*0:n/n)
-# % f = f(x)
-# %
-# %               N+1
-# %  c(k) = (2/N) sum  f''(n)*cos(pi*(2*k-2)*(n-1)/N), 1 <= k <= N/2+1.
-# %               n=1
+    # x = cos(pi*0:n/n)
+    # f = f(x)
+    #
+    #               N+1
+    #  c(k) = (2/N) sum  f''(n)*cos(pi*(2*k-2)*(n-1)/N), 1 <= k <= N/2+1.
+    #               n=1
     fft = np.fft.fft
     tmp = np.real(fft(f[:n, :], axis=0))
     c = 2 / n * (tmp[0:n / 2 + 1, :] + np.cos(np.pi * s2) * f[n, :])
-# % old call
-# %  c = 2/n * cos(s2*s'*pi/n) * f
     c[0, :] = c[0, :] / 2
     c[n / 2, :] = c[n / 2, :] / 2
 
-# % alternative call
-# % c = dct(f)
-
     c = c[0:n / 2 + 1, :] / ((s2 - 1) * (s2 + 1))
     Q = (af - bf) * np.sum(c, axis=0)
-    # Q = (a-b).*sum( c(1:n/2+1,:)./repmat((s2-1).*(s2+1),1,Na))
 
     abserr = (bf - af) * np.abs(c[n / 2, :])
 
@@ -232,8 +156,10 @@ def romberg(fun, a, b, releps=1e-3, abseps=1e-3):
     -------
     >>> import numpy as np
     >>> [q,err] = romberg(np.sqrt,0,10,0,1e-4)
-    >>> q,err
-    (array([ 21.0818511]), array([  6.6163547e-05]))
+    >>> np.allclose(q, 21.08185107)
+    True
+    >>> err[0] < 1e-4
+    True
     '''
     h = b - a
     hMin = 1.0e-9
@@ -255,7 +181,7 @@ def romberg(fun, a, b, releps=1e-3, abseps=1e-3):
     # [res,abserr,epstab,newflg] = dea(newflg,Ih4,abserr,epstab)
     two = 1
     one = 0
-    for i in xrange(1, tableLimit):
+    for i in range(1, tableLimit):
         h *= 0.5
         Un5 = np.sum(fun(a + np.arange(1, 2 * ipower, 2) * h)) * h
 
@@ -265,9 +191,9 @@ def romberg(fun, a, b, releps=1e-3, abseps=1e-3):
 
         fp[i] = 4 * fp[i - 1]
         #   Richardson extrapolation
-        for k in xrange(i):
-            rom[two, k + 1] = rom[two, k] + \
-                (rom[two, k] - rom[one, k]) / (fp[k] - 1)
+        for k in range(i):
+            rom[two, k + 1] = (rom[two, k] +
+                               (rom[two, k] - rom[one, k]) / (fp[k] - 1))
 
         Ih1 = Ih2
         Ih2 = Ih4
@@ -311,9 +237,9 @@ def h_roots(n, method='newton'):
     Example
     -------
     >>> import numpy as np
-    >>> [x,w] = h_roots(10)
-    >>> np.sum(x*w)
-    -5.2516042729766621e-19
+    >>> x, w = h_roots(10)
+    >>> np.allclose(np.sum(x*w), -5.2516042729766621e-19)
+    True
 
     See also
     --------
@@ -354,12 +280,12 @@ def h_roots(n, method='newton'):
         L = zeros((3, len(z)))
         k0 = 0
         kp1 = 1
-        for _its in xrange(max_iter):
+        for _its in range(max_iter):
             # Newtons method carried out simultaneously on the roots.
             L[k0, :] = 0
             L[kp1, :] = PIM4
 
-            for j in xrange(1, n + 1):
+            for j in range(1, n + 1):
                 # Loop up the recurrence relation to get the Hermite
                 # polynomials evaluated at z.
                 km1 = k0
@@ -454,13 +380,13 @@ def j_roots(n, alpha, beta, method='newton'):
         L = zeros((3, len(z)))
         k0 = 0
         kp1 = 1
-        for _its in xrange(max_iter):
+        for _its in range(max_iter):
             # Newton's method carried out simultaneously on the roots.
             tmp = 2 + alfbet
             L[k0, :] = 1
             L[kp1, :] = (alpha - beta + tmp * z) / 2
 
-            for j in xrange(2, n + 1):
+            for j in range(2, n + 1):
                 # Loop up the recurrence relation to get the Jacobi
                 # polynomials evaluated at z.
                 km1 = k0
@@ -524,7 +450,7 @@ def la_roots(n, alpha=0, method='newton'):
     >>> import numpy as np
     >>> [x,w] = h_roots(10)
     >>> np.sum(x*w)
-    -5.2516042729766621e-19
+    1.3352627380516791e-17
 
     See also
     --------
@@ -565,12 +491,12 @@ def la_roots(n, alpha=0, method='newton'):
         k0 = 0
         kp1 = 1
         k = slice(len(z))
-        for _its in xrange(max_iter):
+        for _its in range(max_iter):
             # Newton's method carried out simultaneously on the roots.
             L[k0, k] = 0.
             L[kp1, k] = 1.
 
-            for jj in xrange(1, n + 1):
+            for jj in range(1, n + 1):
                 # Loop up the recurrence relation to get the Laguerre
                 # polynomials evaluated at z.
                 km1 = k0
@@ -628,9 +554,9 @@ def p_roots(n, method='newton', a=-1, b=1):
     -------
     Integral of exp(x) from a = 0 to b = 3 is: exp(3)-exp(0)=
     >>> import numpy as np
-    >>> [x,w] = p_roots(11,a=0,b=3)
-    >>> np.sum(np.exp(x)*w)
-    19.085536923187668
+    >>> x, w = p_roots(11, a=0, b=3)
+    >>> np.allclose(np.sum(np.exp(x)*w), 19.085536923187668)
+    True
 
     See also
     --------
@@ -683,11 +609,11 @@ def p_roots(n, method='newton', a=-1, b=1):
             k = slice(m)
             k0 = 0
             kp1 = 1
-            for _ix in xrange(max_iter):
+            for _ix in range(max_iter):
                 L[k0, k] = 1
                 L[kp1, k] = xo[k]
 
-                for jj in xrange(2, n + 1):
+                for jj in range(2, n + 1):
                     km1 = k0
                     k0 = kp1
                     kp1 = np.mod(k0 + 1, 3)
@@ -712,10 +638,10 @@ def p_roots(n, method='newton', a=-1, b=1):
 
             e1 = n * (n + 1)
 
-            for _j in xrange(2):
+            for _j in range(2):
                 pkm1 = 1
                 pk = xo
-                for k in xrange(2, n + 1):
+                for k in range(2, n + 1):
                     t1 = xo * pk
                     pkp1 = t1 - pkm1 - (t1 - pkm1) / k + t1
                     pkm1 = pk
@@ -796,15 +722,22 @@ def qrule(n, wfun=1, alpha=0, beta=0):
 
     Examples:
     ---------
+    >>> import numpy as np
+
+    # integral of x^2 from a = -1 to b = 1
     >>> [bp,wf] = qrule(10)
-    >>> sum(bp**2*wf)  # integral of x^2 from a = -1 to b = 1
-    0.66666666666666641
+    >>> np.allclose(sum(bp**2*wf), 0.66666666666666641)
+    True
+
+    # integral of exp(-x.^2)*x.^2 from a = -inf to b = inf
     >>> [bp,wf] = qrule(10,2)
-    >>> sum(bp**2*wf)  # integral of exp(-x.^2)*x.^2 from a = -inf to b = inf
-    0.88622692545275772
+    >>> np.allclose(sum(bp**2*wf), 0.88622692545275772)
+    True
+
+    # integral of (x+1)*(1-x)^2 from  a = -1 to b = 1
     >>> [bp,wf] = qrule(10,4,1,2)
-    >>> (bp*wf).sum()     # integral of (x+1)*(1-x)^2 from  a = -1 to b = 1
-    0.26666666666666755
+    >>> np.allclose((bp*wf).sum(), 0.26666666666666755)
+    True
 
     See also
     --------
@@ -914,23 +847,24 @@ class _Gaussq(object):
     ---------
     integration of x**2        from 0 to 2 and from 1 to 4
 
-    >>> from scitools import numpyutils as npt
-    >>> A = [0, 1]; B = [2,4]
-    >>> fun = npt.wrap2callable('x**2')
-    >>> [val1,err1] = gaussq(fun,A,B)
-    >>> val1
-    array([  2.6666667,  21.       ])
-    >>> err1
-    array([  1.7763568e-15,   1.0658141e-14])
+    >>> import numpy as np
+    >>> A = [0, 1]
+    >>> B = [2, 4]
+    >>> fun = lambda x: x**2
+    >>> val1, err1 = gaussq(fun,A,B)
+    >>> np.allclose(val1, [  2.6666667,  21.       ])
+    True
+    >>> np.allclose(err1, [  1.7763568e-15,   1.0658141e-14])
+    True
 
     Integration of x^2*exp(-x) from zero to infinity:
-    >>> fun2 = npt.wrap2callable('1')
-    >>> val2, err2 = gaussq(fun2, 0, npt.inf, wfun=3, alpha=2)
-    >>> val3, err3 = gaussq(lambda x: x**2,0, npt.inf, wfun=3, alpha=0)
-    >>> val2, err2
-    (array([ 2.]), array([  6.6613381e-15]))
-    >>> val3, err3
-    (array([ 2.]), array([  1.7763568e-15]))
+    >>> fun2 = lambda x : np.ones(np.shape(x))
+    >>> val2, err2 = gaussq(fun2, 0, np.inf, wfun=3, alpha=2)
+    >>> val3, err3 = gaussq(lambda x: x**2,0, np.inf, wfun=3, alpha=0)
+    >>> np.allclose(val2, 2),  err2[0] < 1e-14
+    (True, True)
+    >>> np.allclose(val3, 2), err3[0] < 1e-14
+    (True, True)
 
     Integrate humps from 0 to 2 and from 1 to 4
     >>> val4, err4 = gaussq(humps,A,B)
@@ -1008,7 +942,7 @@ class _Gaussq(object):
     def _initialize(self, wfun, a, b, args):
         args = np.broadcast_arrays(*np.atleast_1d(a, b, *args))
         a_shape = args[0].shape
-        args = map(lambda x: np.reshape(x, (-1, 1)), args)
+        args = [np.reshape(x, (-1, 1)) for x in args]
         A, B = args[:2]
         args = args[2:]
         if wfun in [2, 3]:
@@ -1036,7 +970,7 @@ class _Gaussq(object):
         k = np.arange(nk)
         opts = (nk, dtype)
         val, val_old, abserr = zeros(*opts), ones(*opts), zeros(*opts)
-        for i in xrange(max_iter):
+        for i in range(max_iter):
             xn, w = self._points_and_weights(gn, wfun, alpha, beta)
             x = (xn + shift) * jacob[k, :] + A[k, :]
 
@@ -1076,161 +1010,176 @@ def richardson(Q, k):
     return R
 
 
-def quadgr(fun, a, b, abseps=1e-5, max_iter=17):
-    '''
-    Gauss-Legendre quadrature with Richardson extrapolation.
+class _Quadgr(object):
 
-    [Q,ERR] = QUADGR(FUN,A,B,TOL) approximates the integral of a function
-    FUN from A to B with an absolute error tolerance TOL. FUN is a function
-    handle and must accept vector arguments. TOL is 1e-6 by default. Q is
-    the integral approximation and ERR is an estimate of the absolute error.
+    def __call__(self, fun, a, b, abseps=1e-5, max_iter=17):
+        '''
+        Gauss-Legendre quadrature with Richardson extrapolation.
 
-    QUADGR uses a 12-point Gauss-Legendre quadrature. The error estimate is
-    based on successive interval bisection. Richardson extrapolation
-    accelerates the convergence for some integrals, especially integrals
-    with endpoint singularities.
+        [Q,ERR] = QUADGR(FUN,A,B,TOL) approximates the integral of a function
+        FUN from A to B with an absolute error tolerance TOL. FUN is a function
+        handle and must accept vector arguments. TOL is 1e-6 by default. Q is
+        the integral approximation and ERR is an estimate of the absolute
+        error.
 
-    Examples
-    --------
-    >>> import numpy as np
-    >>> Q, err = quadgr(np.log,0,1)
-    >>> quadgr(np.exp,0,9999*1j*np.pi)
-    (-2.0000000000122662, 2.1933237448479304e-09)
+        QUADGR uses a 12-point Gauss-Legendre quadrature. The error estimate is
+        based on successive interval bisection. Richardson extrapolation
+        accelerates the convergence for some integrals, especially integrals
+        with endpoint singularities.
 
-    >>> quadgr(lambda x: np.sqrt(4-x**2),0,2,1e-12)
-    (3.1415926535897811, 1.5809575870662229e-13)
+        Examples
+        --------
+        >>> import numpy as np
+        >>> Q, err = quadgr(np.log,0,1)
+        >>> q, err = quadgr(np.exp,0,9999*1j*np.pi)
+        >>> np.allclose(q, -2.0000000000122662), err < 1.0e-08
+        (True, True)
 
-    >>> quadgr(lambda x: x**-0.75,0,1)
-    (4.0000000000000266, 5.6843418860808015e-14)
+        >>> q, err = quadgr(lambda x: np.sqrt(4-x**2), 0, 2, abseps=1e-12)
+        >>> np.allclose(q, 3.1415926535897811), err < 1.0e-12
+        (True, True)
 
-    >>> quadgr(lambda x: 1./np.sqrt(1-x**2),-1,1)
-    (3.141596056985029, 6.2146261559092864e-06)
+        >>> q, err = quadgr(lambda x: x**-0.75, 0, 1)
+        >>> np.allclose(q, 4), err < 1.e-13
+        (True, True)
 
-    >>> quadgr(lambda x: np.exp(-x**2),-np.inf,np.inf,1e-9) #% sqrt(pi)
-    (1.7724538509055152, 1.9722334876348668e-11)
+        >>> q, err = quadgr(lambda x: 1./np.sqrt(1-x**2), -1, 1)
+        >>> np.allclose(q, 3.141596056985029), err < 1.0e-05
+        (True, True)
 
-    >>> quadgr(lambda x: np.cos(x)*np.exp(-x),0,np.inf,1e-9)
-    (0.50000000000000044, 7.3296813063450372e-11)
+        >>> q, err = quadgr(lambda x: np.exp(-x**2), -np.inf, np.inf, 1e-9)
+        >>> np.allclose(q, np.sqrt(np.pi)), err < 1e-9
+        (True, True)
 
-    See also
-    --------
-    QUAD,
-    QUADGK
-    '''
-    # Author: jonas.lundgren@saabgroup.com, 2009. license BSD
-    # Order limits (required if infinite limits)
-    if a == b:
-        Q = b - a
-        err = b - a
-        return Q, err
-    elif np.real(a) > np.real(b):
-        reverse = True
-        a, b = b, a
-    else:
-        reverse = False
+        >>> q, err = quadgr(lambda x: np.cos(x)*np.exp(-x), 0, np.inf, 1e-9)
+        >>> np.allclose(q, 0.5), err < 1e-9
+        (True, True)
 
-    # Infinite limits
-    if np.isinf(a) | np.isinf(b):
-        # Check real limits
-        if ~ np.isreal(a) | ~np.isreal(b) | np.isnan(a) | np.isnan(b):
-            raise ValueError('Infinite intervals must be real.')
+        See also
+        --------
+        QUAD,
+        QUADGK
+        '''
+        # Author: jonas.lundgren@saabgroup.com, 2009. license BSD
+        # Order limits (required if infinite limits)
+        a = np.asarray(a)
+        b = np.asarray(b)
+        if a == b:
+            Q = b - a
+            err = b - a
+            return Q, err
+        elif np.real(a) > np.real(b):
+            reverse = True
+            a, b = b, a
+        else:
+            reverse = False
 
-        # Change of variable
-        if np.isfinite(a) & np.isinf(b):
-            # a to inf
-            fun1 = lambda t: fun(a + t / (1 - t)) / (1 - t) ** 2
-            [Q, err] = quadgr(fun1, 0, 1, abseps)
-        elif np.isinf(a) & np.isfinite(b):
-            # -inf to b
-            fun2 = lambda t: fun(b + t / (1 + t)) / (1 + t) ** 2
-            [Q, err] = quadgr(fun2, -1, 0, abseps)
-        else:  # -inf to inf
-            fun1 = lambda t: fun(t / (1 - t)) / (1 - t) ** 2
-            fun2 = lambda t: fun(t / (1 + t)) / (1 + t) ** 2
-            [Q1, err1] = quadgr(fun1, 0, 1, abseps / 2)
-            [Q2, err2] = quadgr(fun2, -1, 0, abseps / 2)
-            Q = Q1 + Q2
-            err = err1 + err2
+        # Infinite limits
+        if np.isinf(a) | np.isinf(b):
+            # Check real limits
+            if ~ np.isreal(a) | ~np.isreal(b) | np.isnan(a) | np.isnan(b):
+                raise ValueError('Infinite intervals must be real.')
 
+            # Change of variable
+            if np.isfinite(a) & np.isinf(b):
+                # a to inf
+                Q, err = quadgr(lambda t: fun(a + t / (1 - t)) / (1 - t) ** 2,
+                                0, 1, abseps)
+            elif np.isinf(a) & np.isfinite(b):
+                # -inf to b
+                Q, err = quadgr(lambda t: fun(b + t / (1 + t)) / (1 + t) ** 2,
+                                -1, 0, abseps)
+            else:  # -inf to inf
+                Q1, err1 = quadgr(lambda t: fun(t / (1 - t)) / (1 - t) ** 2,
+                                  0, 1, abseps / 2)
+                Q2, err2 = quadgr(lambda t: fun(t / (1 + t)) / (1 + t) ** 2,
+                                  -1, 0, abseps / 2)
+                Q = Q1 + Q2
+                err = err1 + err2
+
+            # Reverse direction
+            if reverse:
+                Q = -Q
+            return Q, err
+
+        # Gauss-Legendre quadrature (12-point)
+        xq = np.asarray(
+            [0.12523340851146894, 0.36783149899818018, 0.58731795428661748,
+             0.76990267419430469, 0.9041172563704748, 0.98156063424671924])
+        wq = np.asarray(
+            [0.24914704581340288, 0.23349253653835478, 0.20316742672306584,
+             0.16007832854334636, 0.10693932599531818, 0.047175336386511842])
+        xq = np.hstack((xq, -xq))
+        wq = np.hstack((wq, wq))
+        nq = len(xq)
+        dtype = np.result_type(fun(a), fun(b))
+
+        # Initiate vectors
+        Q0 = zeros(max_iter, dtype=dtype)  # Quadrature
+        Q1 = zeros(max_iter, dtype=dtype)  # First Richardson extrapolation
+        Q2 = zeros(max_iter, dtype=dtype)  # Second Richardson extrapolation
+
+        # One interval
+        hh = (b - a) / 2             # Half interval length
+        x = (a + b) / 2 + hh * xq      # Nodes
+        # Quadrature
+        Q0[0] = hh * np.sum(wq * fun(x), axis=0)
+
+        # Successive bisection of intervals
+        for k in range(1, max_iter):
+
+            # Interval bisection
+            hh = hh / 2
+            x = np.hstack([x + a, x + b]) / 2
+            # Quadrature
+            Q0[k] = hh * np.sum(wq * np.sum(np.reshape(fun(x), (-1, nq)),
+                                            axis=0),
+                                axis=0)
+
+            # Richardson extrapolation
+            if k >= 5:
+                Q1[k] = richardson(Q0, k)
+                Q2[k] = richardson(Q1, k)
+            elif k >= 3:
+                Q1[k] = richardson(Q0, k)
+
+            # Estimate absolute error
+            if k >= 6:
+                Qv = np.hstack((Q0[k], Q1[k], Q2[k]))
+                Qw = np.hstack((Q0[k - 1], Q1[k - 1], Q2[k - 1]))
+            elif k >= 4:
+                Qv = np.hstack((Q0[k], Q1[k]))
+                Qw = np.hstack((Q0[k - 1], Q1[k - 1]))
+            else:
+                Qv = np.atleast_1d(Q0[k])
+                Qw = Q0[k - 1]
+
+            errors = np.atleast_1d(abs(Qv - Qw))
+            j = errors.argmin()
+            err = errors[j]
+            Q = Qv[j]
+            if k >= 2:  # and not iscomplex:
+                _val, err1 = dea3(Q0[k - 2], Q0[k - 1], Q0[k])
+
+            # Convergence
+            if (err < abseps) | ~np.isfinite(Q):
+                break
+        else:
+            warnings.warn('Max number of iterations reached without ' +
+                          'convergence.')
+
+        if ~ np.isfinite(Q):
+            warnings.warn('Integral approximation is Infinite or NaN.')
+
+        # The error estimate should not be zero
+        err = err + 2 * np.finfo(Q).eps
         # Reverse direction
         if reverse:
             Q = -Q
+
         return Q, err
 
-    # Gauss-Legendre quadrature (12-point)
-    xq = np.asarray(
-        [0.12523340851146894, 0.36783149899818018, 0.58731795428661748,
-         0.76990267419430469, 0.9041172563704748, 0.98156063424671924])
-    wq = np.asarray(
-        [0.24914704581340288, 0.23349253653835478, 0.20316742672306584,
-         0.16007832854334636, 0.10693932599531818, 0.047175336386511842])
-    xq = np.hstack((xq, -xq))
-    wq = np.hstack((wq, wq))
-    nq = len(xq)
-    dtype = np.result_type(fun(a), fun(b))
-
-    # Initiate vectors
-    Q0 = zeros(max_iter, dtype=dtype)       	# Quadrature
-    Q1 = zeros(max_iter, dtype=dtype)       	# First Richardson extrapolation
-    Q2 = zeros(max_iter, dtype=dtype)       	# Second Richardson extrapolation
-
-    # One interval
-    hh = (b - a) / 2             # Half interval length
-    x = (a + b) / 2 + hh * xq      # Nodes
-    # Quadrature
-    Q0[0] = hh * np.sum(wq * fun(x), axis=0)
-
-    # Successive bisection of intervals
-    for k in xrange(1, max_iter):
-
-        # Interval bisection
-        hh = hh / 2
-        x = np.hstack([x + a, x + b]) / 2
-        # Quadrature
-        Q0[k] = hh * \
-            np.sum(wq * np.sum(np.reshape(fun(x), (-1, nq)), axis=0), axis=0)
-
-        # Richardson extrapolation
-        if k >= 5:
-            Q1[k] = richardson(Q0, k)
-            Q2[k] = richardson(Q1, k)
-        elif k >= 3:
-            Q1[k] = richardson(Q0, k)
-
-        # Estimate absolute error
-        if k >= 6:
-            Qv = np.hstack((Q0[k], Q1[k], Q2[k]))
-            Qw = np.hstack((Q0[k - 1], Q1[k - 1], Q2[k - 1]))
-        elif k >= 4:
-            Qv = np.hstack((Q0[k], Q1[k]))
-            Qw = np.hstack((Q0[k - 1], Q1[k - 1]))
-        else:
-            Qv = np.atleast_1d(Q0[k])
-            Qw = Q0[k - 1]
-
-        errors = np.atleast_1d(abs(Qv - Qw))
-        j = errors.argmin()
-        err = errors[j]
-        Q = Qv[j]
-        if k >= 2:  # and not iscomplex:
-            _val, err1 = dea3(Q0[k - 2], Q0[k - 1], Q0[k])
-
-        # Convergence
-        if (err < abseps) | ~np.isfinite(Q):
-            break
-    else:
-        warnings.warn('Max number of iterations reached without convergence.')
-
-    if ~ np.isfinite(Q):
-        warnings.warn('Integral approximation is Infinite or NaN.')
-
-    # The error estimate should not be zero
-    err = err + 2 * np.finfo(Q).eps
-    # Reverse direction
-    if reverse:
-        Q = -Q
-
-    return Q, err
+quadgr = _Quadgr()
 
 
 def boole(y, x):
@@ -1312,7 +1261,7 @@ def qdemo(f, a, b, kmax=9, plot_error=False):
     # try various approximations
     methods = [trapz, simps, boole, ]
 
-    for k in xrange(kmax):
+    for k in range(kmax):
         n = 2 ** (k + 1) + 1
         neval[k] = n
         x = np.linspace(a, b, n)
@@ -1365,7 +1314,7 @@ def qdemo(f, a, b, kmax=9, plot_error=False):
             data.append(vals_dic[name])
             data.append(err_dic[name])
         data = np.vstack(tuple(data)).T
-        for k in xrange(kmax):
+        for k in range(kmax):
             tmp = data[k].tolist()
             print(''.join(fi % t for fi, t in zip(formats, tmp)))
         if plot_error:
@@ -1415,7 +1364,7 @@ def main():
     x = np.linspace(0, np.pi / 2)
     _q0 = np.trapz(humps(x), x)
     [q, err] = romberg(humps, 0, np.pi / 2, 1e-4)
-    print q, err
+    print(q, err)
 
 
 def test_docstrings():
@@ -1424,207 +1373,7 @@ def test_docstrings():
     doctest.testmod()
 
 
-# def levin_integrate():
-#     ''' An oscillatory integral
-#     Sheehan Olver, December 2010
-#
-#
-#     (Chebfun example quad/LevinIntegrate.m)
-#
-#     This example computes the highly oscillatory integral of
-#
-#          f * exp( 1i * w * g ),
-#
-#     over (0,1) using the Levin method [1]. This method computes the integral
-#     by rewriting it as an ODE
-#
-#          u' + 1i * w * g' u = f,
-#
-#     so that the indefinite integral of f * exp( 1i * w * g ) is
-#
-#          u * exp( 1i * w * g ).
-#
-#
-#
-#     We use as an example
-#
-#          f = 1 / ( x + 2 );
-#          g = cos( x - 2 );
-#          w = 100000;
-#
-#          #
-#     References:
-#
-#     [1] Levin, D., Procedures for computing one and two-dimensional integrals
-#     of functions with rapid irregular oscillations, Maths Comp.,  38 (1982) 531--538
-#     '''
-#     exp = np.exp
-#     domain=[0, 1]
-#     x = Chebfun.identity(domain=domain)
-#     f = 1./(x+2)
-#     g = np.cos(x-2)
-#     D = np.diff(domain)
-#
-#
-#     # Here is are plots of this integrand, with w = 100, in complex space
-#     w = 100;
-#     line_opts = dict(line_width=1.6)
-#     font_opts = dict(font_size= 14)
-#     #
-#
-#     intg = f*exp(1j*w*g)
-#     xs, ys, xi, yi, d = intg.plot_data(1000)
-#     #intg.plot(with_interpolation_points=True)
-#     #xi = np.linspace(0, 1, 1024)
-# #     plt.plot(xs, ys) # , **line_opts)
-# #     plt.plot(xi, yi, 'r.')
-# #     #axis equal
-# #     plt.title('Complex plot of integrand') #,**font_opts)
-# #     plt.show('hold')
-#     ##
-#     # and of just the real part
-# #     intgr = np.real(intg)
-# #     xs, ys, xi, yi, d = intgr.plot_data(1000)
-#     #intgr.plot()
-# #     plt.plot(xs, np.real(ys)) # , **line_opts)
-# #     plt.plot(xi, np.real(yi), 'r.')
-#     #axis equal
-# #     plt.title('Real part of integrand') #,**font_opts)
-# #     plt.show('hold')
-#
-#     ##
-#     # The Levin method will be accurate for large and small w, and the time
-#     # taken is independent of w. Here we take a reasonably large value of w.
-#     w = 1000;
-#     intg = f*exp(1j*w*g)
-#     val0 = np.sum(intg)
-#     # val1 = sum(intg)
-#     print(val0)
-#     ##
-#     # Start timing
-#     #tic
-#
-#     ##
-#     # Construct the operator L
-#     L = D + 1j*w*np.diag(g.differentiate())
-#
-#     ##
-#     # From asymptotic analysis, we know that there exists a solution to the
-#     # equation which is non-oscillatory, though we do not know what initial
-#     # condition it satisfies.  Thus we find a particular solution to this
-#     # equation with no boundary conditions.
-#
-#     u = L / f
-#
-#     ##
-#     # Because L is a differential operator with derivative order 1, \ expects
-#     # it to be given a boundary condition, which is why the warning message is
-#     # displayed. However, this doesn't cause any problems: though there are,
-#     # in fact, a family of solutions to the ODE without boundary conditions
-#     # due to the kernel
-#     #
-#     #     exp(- 1i * w * g),
-#     #
-#     # it does not actually matter which particular solution is computed.
-#     # Non-uniqueness is also not an issue: \ in matlab is least squares, hence
-#     # does not require uniqueness. The existence of a non-oscillatory solution
-#     # ensures that \ converges to a u with length independent of w.
-#     #
-#     # One could prevent the warning by applying a boundary condition consistent
-#     # with the rest of the system, that is
-#     #  L.lbc = {L(1,:),f(0)};
-#
-#     ##
-#     # Now we evaluate the antiderivative at the endpoints to obtain the
-#     # integral.
-#
-#     u(1)*exp(1j*w*g(1)) - u(0)*exp(1j*w*g(0))
-#
-#     #toc
-#
-#
-#     ##
-#     # Here is a way to compute the integral using Clenshaw--Curtis quadrature.
-#     # As w becomes large, this takes an increasingly long time as the
-#     # oscillations must be resolved.
-#
-#     #tic
-#     sum( f*exp(1j*w*g) )
-#     #toc
-
-
-# aLevinTQ[omega_,a_,b_,f_,g_,nu_,wprec_,prm_,test_,basis_,np_]:=
-#
-# Module[{r,betam,A,AA,BB,S,F,w=N[omega, wprec]},
-#        M=Length[nu]-1;
-# PB[k_,t_]:=If[basis==1,t^k,ChebyshevT[k,t]];
-#
-# ff[t_]:=((b-a)/2)*f[(b-a)*t/2+(a+b)/2];
-#
-# gg[t_]:=g[(b-a)*t/2+(a+b)/2];
-# dgg[t_]:=Derivative[1][gg][t];
-#
-# If[test==0, betam=Min[Abs[dgg[-1]*w], Abs[dgg[1]*w]];
-# While[prm*M/betam >=1, betam=2*betam]];
-# If[test>0,x[k_]:=N[Cos[k*Pi/M], wprec],x[k_]:=
-# Which[k<prm*M, N[-1+k/betam, wprec], k==Ceiling[prm*M],0,
-# k>prm*M, N[1-(M-k)/betam, wprec]]];
-#
-# Psi[k_,t_]:=Derivative[0,1][PB][k,t]+I*w*dgg[t]*PB[k,t];
-#
-# ne[j_]:=nu[[j+1]]; S[-1]=0; S[j_]:=Sum[ne[i],{i,0,j}];
-# nn=S[M]-1;
-# A=ConstantArray[0,{nn+1,nn+1}];
-# F=ConstantArray[0,nn+1]; r=0;
-# While[r<M+1, Do[Do[ AA[j,k]=
-# Limit[Derivative[0,Mod[j-S[r-1],ne[r]]][Psi][k,t],t->x[r]],
-# {k,0,S[M]-1}],{j,S[r-1],S[r]-1}];
-#
-# Do[BB[j]=Limit[Derivative[Mod[j-S[r-1],ne[r]]][ff][t],
-# t->x[r]],{j,S[r-1],S[r]-1}];
-# Do[F[[j]]=BB[j-1],{j,S[r-1]+1,S[r]}];
-# Do[Do[A[[j,k]]=AA[j-1,k-1],{k,1,S[M]}],{j,S[r-1]+1,S[r]}];
-# r=r+1;]; (*sv=SingularValueList[N[A,wprec]];
-# con=sv[[1]]/sv[[-1]]; Print["cond2(A)= ",N[con,3]];*)
-# LS=Block[{MaxExtraPrecision=0},LeastSquares[N[A, wprec],F]];
-# vvv[t_]:=Sum[LS[[k+1]]*PB[k,t], {k,0,nn}];
-# NR=vvv[1]*Exp[I*w*gg[1]]-vvv[-1]*Exp[I*w*gg[-1]];
-# Print["n=", np+ii+2s-2, ", Result= ", N[NR, wprec/2+5]];
-# If[ii==0,PR=NR];];
-# (* End of subroutine aLevinTQ /A.I. Hascelik, July 2013/ *)
-#
-# def main_levin():
-#     a=1; b=2;
-#     omega=100;
-#     prm=1/2;
-#     f[t_]=Exp[4t]
-#     g[t_]=t+Exp[4t]*Gamma[t]
-#
-#     dg[t_]:=Derivative[1][g][t];
-#
-#     prec=16
-#     wprec=2*prec
-#     delta = min(abs(omega*dg(a)), abs(omega*dg(b)))
-#     alpha = min(abs(omega*g(a)), abs(omega*g(b)))
-#     s=1; #(*if s>1, the integral is computed by Q_s^L*)
-#     test= 1 if delta<10 or alpha <=10 or s>1 else 0
-#
-#     m = 1 if s>1 else np.floor(prec/max(np.log10(beta+1),1)+2)
-#     nc = 2*m+1   #(*or np=2m, number of collocation points*)
-#     basis=1; # (*take basis=0 for the Chebysev basis*)
-#     for ii in range(0, 2, 2):
-#        nu = np.ones((nc+ii,)) # ConstantArray[1,nc+ii];
-#        nu[0] = s
-#        nu[-1] = s
-#        #nu[[1]]=s;
-#        #nu[[-1]]=s;
-#        aLevinTQ[omega,a,b,f,g,nu,wprec,prm,test,basis,nc],
-#     #{ii,0,2,2}];
-#     Print["Error= ",Abs[NR-PR]];
-
-
 if __name__ == '__main__':
-    # levin_integrate()
     test_docstrings()
     # qdemo(np.exp, 0, 3, plot_error=True)
     # plt.show('hold')

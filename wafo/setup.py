@@ -5,6 +5,7 @@ Created on Sun Oct 25 14:55:34 2015
 @author: dave
 """
 
+
 def configuration(parent_package='', top_path=None):
     from numpy.distutils.misc_util import Configuration
     config = Configuration('wafo', parent_package, top_path)

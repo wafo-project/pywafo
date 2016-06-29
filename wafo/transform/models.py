@@ -6,13 +6,13 @@ TrOchi
 TrLinear
 '''
 # !/usr/bin/env python
-from __future__ import division
+from __future__ import division, absolute_import
 from scipy.optimize import brentq  # @UnresolvedImport
 from numpy import (sqrt, atleast_1d, abs, imag, sign, where, cos, arccos, ceil,
                    expm1, log1p, pi)
 import numpy as np
 import warnings
-from core import TrCommon, TrData
+from .core import TrCommon, TrData
 __all__ = ['TrHermite', 'TrLinear', 'TrOchi']
 
 _example = '''
@@ -219,7 +219,7 @@ class TrHermite(TrCommon2):
         return
 
     def check_forward(self, x):
-        if not (self._x_limit is None):
+        if self._x_limit is not None:
             x00 = self._x_limit
             txt2 = 'for the given interval x = [%g, %g]' % (x[0], x[-1])
 
@@ -306,7 +306,7 @@ class TrHermite(TrCommon2):
 #            Km1 = np.sqrt(1.+2.*c3**2+6*c4**2)
 #            q0 = x0**3-1.5*b1*(x0+xn*Km1)
             # q0 = x0**3-1.5*b1*(x0+xn)
-            if not (self._x_limit is None):  # % Three real roots
+            if self._x_limit is not None:  # % Three real roots
                 d = sqrt(-p1)
                 theta1 = arccos(-q0 / d ** 3) / 3
                 th2 = np.r_[0, -2 * pi / 3, 2 * pi / 3]
@@ -453,10 +453,11 @@ class TrOchi(TrCommon2):
         # g1='[x(2)-2.*x(1).^2.*x(2).^2-P1,
         #      2.*x(1).*x(2).^2.*(3-8.*x(1).^2.*x(2))-P2  ]'
         # Or solve the following 1D non-linear equation for sig2^2:
-        g2 = lambda x: -sqrt(abs(x - 1) * 2) * \
-            (3. * x - 4 * abs(x - 1)) + abs(skew)
+        def g2(x):
+            return (-sqrt(abs(x - 1) * 2) * (3. * x - 4 * abs(x - 1)) +
+                    abs(skew))
 
-        a1 = 1.  # % Start interval where sig2^2 is located.
+        a1 = 1.  # Start interval where sig2^2 is located.
         a2 = 2.
 
         sig22 = brentq(g2, a1, a2)  # % smallest solution for sig22
@@ -477,8 +478,8 @@ class TrOchi(TrCommon2):
         '''
         Returns ga, gb, sigma2, mean2
         '''
-        if (self._phat is None or self.sigma != self._phat[0]
-                or self.mean != self._phat[1]):
+        if (self._phat is None or self.sigma != self._phat[0] or
+                self.mean != self._phat[1]):
             self._par_from_stats()
         # sigma1 = self._phat[0]
         # mean1 = self._phat[1]

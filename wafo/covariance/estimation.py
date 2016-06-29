@@ -110,7 +110,8 @@ class CovarianceEstimator(object):
          >>> x = wafo.data.sea()
          >>> ts = wo.mat2timeseries(x)
          >>> acf = ts.tocovdata(150)
-         >>> h = acf.plot()
+
+         h = acf.plot()
         '''
         lag = self.lag
         window = self.window
@@ -122,10 +123,10 @@ class CovarianceEstimator(object):
         except Exception:
             x = timeseries[:, 1:].flatten('F')
             dt = sampling_period(timeseries[:, 0])
-        if not (self.dt is None):
+        if self.dt is not None:
             dt = self.dt
 
-        if not (self.tr is None):
+        if self.tr is not None:
             x = self.tr.dat2gauss(x)
 
         n = len(x)

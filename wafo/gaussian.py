@@ -1,3 +1,4 @@
+from __future__ import absolute_import
 from numpy import (r_, minimum, maximum, atleast_1d, atleast_2d, mod, ones,
                    floor, random, eye, nonzero, where, repeat, sqrt, exp, inf,
                    diag, zeros, sin, arcsin, nan)
@@ -6,20 +7,19 @@ from scipy.special import ndtr as cdfnorm, ndtri as invnorm
 from scipy.special import erfc
 import warnings
 import numpy as np
-from wafo.misc import common_shape
 
 try:
-    import mvn  # @UnresolvedImport
+    from . import mvn  # @UnresolvedImport
 except ImportError:
     warnings.warn('mvn not found. Check its compilation.')
     mvn = None
 try:
-    import mvnprdmod  # @UnresolvedImport
+    from . import mvnprdmod  # @UnresolvedImport
 except ImportError:
     warnings.warn('mvnprdmod not found. Check its compilation.')
     mvnprdmod = None
 try:
-    import rindmod  # @UnresolvedImport
+    from . import rindmod  # @UnresolvedImport
 except ImportError:
     warnings.warn('rindmod not found. Check its compilation.')
     rindmod = None
@@ -109,9 +109,11 @@ class Rind(object):
     >>> Bup, Blo = np.atleast_2d(Bup,Blo)
     >>> Bup[0,ind] = np.minimum(Bup[0,ind] , infinity*dev[indI[ind+1]])
     >>> Blo[0,ind] = np.maximum(Blo[0,ind] ,-infinity*dev[indI[ind+1]])
-    >>> np.allclose(rind(Sc,m,Blo,Bup,indI, xc, nt=0),
-    ...   ([0.05494076], [ 0.00083066], [  1.00000000e-10]), rtol=1e-3)
+    >>> val, err, terr = rind(Sc,m,Blo,Bup,indI, xc, nt=0)
+    >>> np.allclose(val, 0.05494076, rtol=4e-2)
     True
+    >>> err[0] < 1e-3, terr[0] < 1e-7
+    (True, True)
 
     Compute expectation E( X1^{+}*X2^{+} ) with random
     correlation coefficient,Cov(X1,X2) = rho2.
@@ -354,14 +356,14 @@ class Rind(object):
         dev = sqrt(diag(BIG))  # std
         ind = nonzero(indI[1:] > -1)[0]
         infin = repeat(2, len(indI) - 1)
-        infin[ind] = (2 - (Bup[0, ind] > infinity * dev[indI[ind + 1]])
-                      - 2 * (Blo[0, ind] < -infinity * dev[indI[ind + 1]]))
+        infin[ind] = (2 - (Bup[0, ind] > infinity * dev[indI[ind + 1]]) -
+                      2 * (Blo[0, ind] < -infinity * dev[indI[ind + 1]]))
 
         Bup[0, ind] = minimum(Bup[0, ind], infinity * dev[indI[ind + 1]])
         Blo[0, ind] = maximum(Blo[0, ind], -infinity * dev[indI[ind + 1]])
         ind2 = indI + 1
 
-        return rindmod.rind(BIG, Ex, xc, nt, ind2, Blo, Bup, infin, seed)  # @UndefinedVariable @IgnorePep8
+        return rindmod.rind(BIG, Ex, xc, nt, ind2, Blo, Bup, infin, seed)
 
 
 def test_rind():
@@ -440,7 +442,8 @@ def cdflomax(x, alpha, m0):
     >>> alpha = S.characteristic('alpha')[0]
     >>> x = np.linspace(-10,10,200);
     >>> mcdf = ws.edf(mM.data)
-    >>> h = mcdf.plot(), pylab.plot(x,wg.cdflomax(x,alpha,m0))
+
+    h = mcdf.plot(), pylab.plot(x,wg.cdflomax(x,alpha,m0))
 
     See also
     --------
@@ -533,7 +536,7 @@ def prbnormtndpc(rho, a, b, D=None, df=0, abseps=1e-4, IERC=0, HNC=0.24):
     A = np.clip(a - D, -100, 100)
     B = np.clip(b - D, -100, 100)
 
-    return mvnprdmod.prbnormtndpc(rho, A, B, df, abseps, IERC, HNC)  # @UndefinedVariable @IgnorePep8
+    return mvnprdmod.prbnormtndpc(rho, A, B, df, abseps, IERC, HNC)
 
 
 def prbnormndpc(rho, a, b, abserr=1e-4, relerr=1e-4, usesimpson=True,
@@ -598,7 +601,8 @@ def prbnormndpc(rho, a, b, abserr=1e-4, relerr=1e-4, usesimpson=True,
 
     '''
     # Call fortran implementation
-    val, err, ier = mvnprdmod.prbnormndpc(rho, a, b, abserr, relerr, usebreakpoints, usesimpson)  # @UndefinedVariable @IgnorePep8
+    val, err, ier = mvnprdmod.prbnormndpc(rho, a, b, abserr, relerr,
+                                          usebreakpoints, usesimpson)
 
     if ier > 0:
         warnings.warn('Abnormal termination ier = %d\n\n%s' %
@@ -695,8 +699,10 @@ def prbnormnd(correl, a, b, abseps=1e-4, releps=1e-3, maxpts=None, method=0):
 
     >>> A = np.repeat(Blo,n)
     >>> B = np.repeat(Bup,n)-m
-    >>> [val,err,inform] = prbnormnd(Sc,A,B);[val, err, inform]
-    [0.0019456719705212067, 1.0059406844578488e-05, 0]
+    >>> val, err, inform = prbnormnd(Sc,A,B)
+    >>> np.allclose([val, err, inform],
+    ...    [0.0019456719705212067, 1.0059406844578488e-05, 0])
+    True
 
     >>> np.abs(val-Et)< err0+terr0
     array([ True], dtype=bool)
@@ -737,7 +743,7 @@ def prbnormnd(correl, a, b, abseps=1e-4, releps=1e-3, maxpts=None, method=0):
     infinity = 37
     infin = np.repeat(2, n) - (B > infinity) - 2 * (A < -infinity)
 
-    err, val, inform = mvn.mvndst(A, B, infin, L, maxpts, abseps, releps)  # @UndefinedVariable @IgnorePep8
+    err, val, inform = mvn.mvndst(A, B, infin, L, maxpts, abseps, releps)
 
     return val, err, inform
 
@@ -835,10 +841,9 @@ def cdfnorm2d(b1, b2, r):
     #     pullman, wa 99164-3113
     #     email : alangenz@wsu.edu
 
-    cshape = common_shape(b1, b2, r, shape=[1, ])
-    one = ones(cshape)
-
-    h, k, r = (-b1 * one).ravel(), (-b2 * one).ravel(), (r * one).ravel()
+    b1, b2, r = np.broadcast_arrays(b1, b2, r)
+    cshape = b1.shape
+    h, k, r = -b1.ravel(), -b2.ravel(), r.ravel()
 
     bvn = where(abs(r) > 1, nan, 0.0)
 
@@ -910,8 +915,9 @@ def cdfnorm2d(b1, b2, r):
             if len(k5) > 0:
                 #               b = sqrt(bs);
                 k135 = k13[k5]
-                bvn[k135] = bvn[k135] - exp(-hk[k135] / 2) * sqrt(twopi) * fi(-b[k5] / a[k5]) * \
-                    b[k5] * (1 - c[k5] * bs[k5] * (1 - d[k5] * bs[k5] / 5) / 3)
+                bvn[k135] = bvn[k135] - exp(-hk[k135] / 2) * sqrt(twopi) * \
+                    fi(-b[k5] / a[k5]) * b[k5] * \
+                    (1 - c[k5] * bs[k5] * (1 - d[k5] * bs[k5] / 5) / 3)
 
             a /= two
             for i in range(10):
@@ -971,8 +977,8 @@ def prbnorm2d(a, b, r):
     >>> a = [-1, -2]
     >>> b = [1, 1]
     >>> r = 0.3
-    >>> wg.prbnorm2d(a,b,r)
-    array([ 0.56659121])
+    >>> np.allclose(wg.prbnorm2d(a,b,r), 0.56659121350428077)
+    True
 
     See also
     --------
@@ -991,10 +997,10 @@ def prbnorm2d(a, b, r):
     infin = np.repeat(2, 2) - (upper > infinity) - 2 * (lower < -infinity)
 
     if np.all(infin == 2):
-        return (bvd(lower[0], lower[1], correl)
-                - bvd(upper[0], lower[1], correl)
-                - bvd(lower[0], upper[1], correl)
-                + bvd(upper[0], upper[1], correl))
+        return (bvd(lower[0], lower[1], correl) -
+                bvd(upper[0], lower[1], correl) -
+                bvd(lower[0], upper[1], correl) +
+                bvd(upper[0], upper[1], correl))
     elif (infin[0] == 2 and infin[1] == 1):
         return (bvd(lower[0], lower[1], correl) -
                 bvd(upper[0], lower[1], correl))

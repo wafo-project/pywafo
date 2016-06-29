@@ -58,7 +58,7 @@ def f2py_call_str():
             break
 
     try:
-        print 'found f2py in:', f2py_path
+        print('found f2py in:', f2py_path)
         return f2py_call
     except NameError:
         raise UserWarning('Couldn\'t locate f2py. '

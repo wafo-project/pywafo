@@ -3,11 +3,14 @@ Created on 3. juni 2011
 
 @author: pab
 '''
+from __future__ import absolute_import
 import numpy as np
 from numpy import exp, expm1, inf, nan, pi, hstack, where, atleast_1d, cos, sin
-from dispersion_relation import w2k, k2w  # @UnusedImport
-
+from .dispersion_relation import w2k, k2w  # @UnusedImport
+from ..misc import JITImport
 __all__ = ['w2k', 'k2w', 'sensor_typeid', 'sensor_type', 'TransferFunction']
+
+_MODELS = JITImport('wafo.spectrum.models')
 
 
 def hyperbolic_ratio(a, b, sa, sb):
@@ -242,14 +245,15 @@ class TransferFunction(object):
     >>> stypes = ['n', 'n_x', 'n_y'];
     >>> tf = TransferFunction(pos=(0, 0, 0), h=50)
     >>> vals = []
-    >>> fh = plt.plot(t, eta0.real, 'r.')
-    >>> plt.hold(True)
     >>> for i,stype in enumerate(stypes):
     ...    tf.sensortype = stype
     ...    Hw, Gwt = tf.tran(w0,th0)
     ...    vals.append((Hw*Gwt*eta0).real.ravel())
 
-    fh = plt.plot(t, vals[i])
+    fh = plt.plot(t, eta0.real, 'r.')
+    plt.hold(True)
+    for val in vals:
+        fh = plt.plot(t, val)
     plt.show()
 
 
@@ -348,7 +352,8 @@ class TransferFunction(object):
             Gwt = -Gwt
         return Hw, Gwt
     __call__ = tran
-#---Private member methods
+
+# --- Private member methods ---
 
     def _get_ee_cthxy(self, theta, kw):
         # convert from angle in degrees to radians
@@ -357,7 +362,7 @@ class TransferFunction(object):
         thyr = self.thetay * pi / 180
 
         cthx = bet * cos(theta - thxr + pi / 2)
-        #cthy = cos(theta-thyr-pi/2)
+        # cthy = cos(theta-thyr-pi/2)
         cthy = bet * sin(theta - thyr)
 
         # Compute location complex exponential
@@ -379,14 +384,14 @@ class TransferFunction(object):
             zk = kw * z  # z measured positive upward from sea floor
         return zk
 
-    #--- Surface elevation ---
+    # --- Surface elevation ---
     def _n(self, w, theta, kw):
         '''n = Eta = wave profile
         '''
         ee, unused_cthx, unused_cthy = self._get_ee_cthxy(theta, kw)
         return np.ones_like(w), ee
 
-    #---- Vertical surface velocity and acceleration-----
+    # --- Vertical surface velocity and acceleration ---
     def _n_t(self, w, theta, kw):
         ''' n_t = Eta_t '''
         ee, unused_cthx, unused_cthy = self._get_ee_cthxy(theta, kw)
@@ -397,7 +402,7 @@ class TransferFunction(object):
         ee, unused_cthx, unused_cthy = self._get_ee_cthxy(theta, kw)
         return w ** 2, -ee
 
-    #--- Surface slopes ---
+    # --- Surface slopes ---
     def _n_x(self, w, theta, kw):
         ''' n_x = Eta_x = x-slope'''
         ee, cthx, unused_cthy = self._get_ee_cthxy(theta, kw)
@@ -408,7 +413,7 @@ class TransferFunction(object):
         ee, unused_cthx, cthy = self._get_ee_cthxy(theta, kw)
         return kw, 1j * cthy * ee
 
-    #--- Surface curvatures ---
+    # --- Surface curvatures ---
     def _n_xx(self, w, theta, kw):
         ''' n_xx = Eta_xx = Surface curvature (x-dir)'''
         ee, cthx, unused_cthy = self._get_ee_cthxy(theta, kw)
@@ -424,7 +429,7 @@ class TransferFunction(object):
         ee, cthx, cthy = self._get_ee_cthxy(theta, kw)
         return kw ** 2, -cthx * cthy * ee
 
-    #--- Pressure---
+    # --- Pressure---
     def _p(self, w, theta, kw):
         ''' pressure fluctuations'''
         ee, unused_cthx, unused_cthy = self._get_ee_cthxy(theta, kw)
@@ -433,7 +438,7 @@ class TransferFunction(object):
         # hyperbolic_ratio =  cosh(zk)/cosh(hk)
         return self.rho * self.g * hyperbolic_ratio(zk, hk, 1, 1), ee
 
-    #---- Water particle velocities ---
+    # --- Water particle velocities ---
     def _u(self, w, theta, kw):
         ''' U = x-velocity'''
         ee, cthx, unused_cthy = self._get_ee_cthxy(theta, kw)
@@ -458,7 +463,7 @@ class TransferFunction(object):
         # w*sinh(zk)/sinh(hk), -?
         return w * hyperbolic_ratio(zk, hk, -1, -1), -1j * ee
 
-    #---- Water particle acceleration ---
+    # --- Water particle acceleration ---
     def _u_t(self, w, theta, kw):
         ''' U_t = x-acceleration'''
         ee, cthx, unused_cthy = self._get_ee_cthxy(theta, kw)
@@ -483,7 +488,7 @@ class TransferFunction(object):
         # w*sinh(zk)/sinh(hk), ?
         return (w ** 2) * hyperbolic_ratio(zk, hk, -1, -1), -ee
 
-    #---- Water particle displacement ---
+    # --- Water particle displacement ---
     def _x_p(self, w, theta, kw):
         ''' X_p = x-displacement'''
         ee, cthx, unused_cthy = self._get_ee_cthxy(theta, kw)
@@ -507,88 +512,75 @@ class TransferFunction(object):
         zk = self._get_zk(kw)
         return hyperbolic_ratio(zk, hk, -1, -1), ee  # sinh(zk)./sinh(hk), ee
 
-# def wave_pressure(z, Hm0, h=10000, g=9.81, rho=1028):
-#    '''
-#    Calculate pressure amplitude due to water waves.
-#
-#    Parameters
-#    ----------
-#    z : array-like
-#        depth where pressure is calculated [m]
-#    Hm0 : array-like
-#        significant wave height (same as the average of the 1/3'rd highest
-#        waves in a seastate. [m]
-#    h : real scalar
-#        waterdepth (default 10000 [m])
-#    g : real scalar
-#        acceleration of gravity (default 9.81 m/s**2)
-#    rho : real scalar
-#        water density    (default 1028 kg/m**3)
-#
-#
-#    Returns
-#    -------
-#    p : ndarray
-#        pressure amplitude due to water waves at water depth z. [Pa]
-#
-#    PRESSURE calculate pressure amplitude due to water waves according to
-#    linear theory.
-#
-#    Example
-#    -----
-#    >>> import pylab as plt
-#    >>> z = -np.linspace(10,20)
-#    >>> fh = plt.plot(z, wave_pressure(z, Hm0=1, h=20))
-#    >>> plt.show()
-#
-#    See also
-#    --------
-#    w2k
-#
-#
-#    u = psweep.Fn*sqrt(mgf.length*9.81)
-#    z = -10; h = inf;
-#    Hm0 = 1.5;Tp = 4*sqrt(Hm0);
-#    S = jonswap([],[Hm0,Tp]);
-#    Hw = tran(S.w,0,[0 0 -z],'P',h)
-#    Sm = S;
-#    Sm.S = Hw.'.*S.S;
-#    x1 = spec2sdat(Sm,1000);
-#    pwave = pressure(z,Hm0,h)
-#
-#    plot(psweep.x{1}/u, psweep.f)
-#    hold on
-#    plot(x1(1:100,1)-30,x1(1:100,2),'r')
-#    '''
-#
-#
-# Assume seastate with jonswap spectrum:
-#
-#    Tp = 4 * np.sqrt(Hm0)
-#    gam = jonswap_peakfact(Hm0, Tp)
-#    Tm02 = Tp / (1.30301 - 0.01698 * gam + 0.12102 / gam)
-#    w = 2 * np.pi / Tm02
-#    kw, unused_kw2 = w2k(w, 0, h)
-#
-#    hk = kw * h
-#    zk1 = kw * z
-# zk = hk + zk1 # z measured positive upward from mean water level (default)
-# zk = hk-zk1; % z measured positive downward from mean water level
-# zk1 = -zk1;
-# zk = zk1;    % z measured positive upward from sea floor
-#
-# cosh(zk)/cosh(hk) approx exp(zk) for large h
-# hyperbolic_ratio(zk,hk,1,1) = cosh(zk)/cosh(hk)
-# pr = np.where(np.pi < hk, np.exp(zk1), hyperbolic_ratio(zk, hk, 1, 1))
-#    pr = hyperbolic_ratio(zk, hk, 1, 1)
-#    pressure = (rho * g * Hm0 / 2) * pr
-#
-##    pos = [np.zeros_like(z),np.zeros_like(z),z]
-##    tf = TransferFunction(pos=pos, sensortype='p', h=h, rho=rho, g=g)
-##    Hw, Gwt = tf.tran(w,0)
-##    pressure2 = np.abs(Hw) * Hm0 / 2
-#
-#    return pressure
+
+def wave_pressure(z, Hm0, h=10000, g=9.81, rho=1028):
+    '''
+    Calculate pressure amplitude due to water waves.
+
+    Parameters
+    ----------
+    z : array-like
+        depth where pressure is calculated [m]
+    Hm0 : array-like
+        significant wave height (same as the average of the 1/3'rd highest
+        waves in a seastate. [m]
+    h : real scalar
+        waterdepth (default 10000 [m])
+    g : real scalar
+        acceleration of gravity (default 9.81 m/s**2)
+    rho : real scalar
+        water density    (default 1028 kg/m**3)
+
+
+    Returns
+    -------
+    p : ndarray
+        pressure amplitude due to water waves at water depth z. [Pa]
+
+    PRESSURE calculate pressure amplitude due to water waves according to
+    linear theory.
+
+    Example
+    -----
+    >>> import pylab as plt
+    >>> z = -np.linspace(10,20)
+    >>> p = wave_pressure(z, Hm0=1, h=20)
+
+    fh = plt.plot(z, p)
+    plt.show()
+
+    See also
+    --------
+    w2k
+
+    '''
+
+    # Assume seastate with jonswap spectrum:
+    Tp = 4 * np.sqrt(Hm0)
+    gam = _MODELS.jonswap_peakfact(Hm0, Tp)
+    Tm02 = Tp / (1.30301 - 0.01698 * gam + 0.12102 / gam)
+    w = 2 * np.pi / Tm02
+    kw, unused_kw2 = w2k(w, 0, h)
+
+    hk = kw * h
+    zk1 = kw * z
+    zk = hk + zk1  # z measured positive upward from mean water level (default)
+    #  zk = hk-zk1  # z measured positive downward from mean water level
+    #  zk1 = -zk1
+    #  zk = zk1  # z measured positive upward from sea floor
+
+    #  cosh(zk)/cosh(hk) approx exp(zk) for large h
+    #  hyperbolic_ratio(zk,hk,1,1) = cosh(zk)/cosh(hk)
+    # pr = np.where(np.pi < hk, np.exp(zk1), hyperbolic_ratio(zk, hk, 1, 1))
+    pr = hyperbolic_ratio(zk, hk, 1, 1)
+    pressure = (rho * g * Hm0 / 2) * pr
+
+    #    pos = [np.zeros_like(z),np.zeros_like(z),z]
+    #    tf = TransferFunction(pos=pos, sensortype='p', h=h, rho=rho, g=g)
+    #    Hw, Gwt = tf.tran(w,0)
+    #    pressure2 = np.abs(Hw) * Hm0 / 2
+
+    return pressure
 
 
 def test_docstrings():

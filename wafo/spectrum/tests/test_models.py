@@ -1,15 +1,14 @@
 import unittest
 import numpy as np
+from numpy.testing import assert_array_almost_equal
 
 from wafo.spectrum.models import (Bretschneider, Jonswap, OchiHubble, Tmaspec,
                                   Torsethaugen, McCormick, Wallop, Spreading)
 
 
 class TestCase(unittest.TestCase):
-    def assertListAlmostEqual(self, list1, list2, places=None, msg=None):
-        self.assertEqual(len(list1), len(list2))
-        for a, b in zip(list1, list2):
-            self.assertAlmostEqual(a, b, places, msg)
+    def assertListAlmostEqual(self, list1, list2, decimal=5, msg=''):
+        assert_array_almost_equal(list1, list2, decimal, msg)
 
 
 class TestSpectra(TestCase):

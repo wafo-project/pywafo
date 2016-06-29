@@ -96,11 +96,14 @@ Sp = 15         # spreading parameter
 D1 = wsm.Spreading(type='cos', theta0=th0, method=None)  # frequency independent
 D12 = wsm.Spreading(type='cos', theta0=0, method='mitsuyasu')  # frequency dependent
 
-SD1 = D1.tospecdata2d(S1)
-SD12 = D12.tospecdata2d(S1)
-SD1.plot()
-SD12.plot()  # linestyle='dashdot')
-set_windows_title("Directional spectrum with the={} and 0".format(th0), log)
+try:
+    SD1 = D1.tospecdata2d(S1)
+    SD12 = D12.tospecdata2d(S1)
+    SD1.plot()
+    SD12.plot()  # linestyle='dashdot')
+    set_windows_title("Directional spectrum with the={} and 0".format(th0), log)
+except TypeError as err:
+    print("Skipped example with error message {}".format(err))
 
 #  3D Simulation of the sea surface
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

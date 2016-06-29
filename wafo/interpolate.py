@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from __future__ import division
+from __future__ import absolute_import, division
 import numpy as np
 import scipy.signal
 # import scipy.sparse.linalg  # @UnusedImport
@@ -7,7 +7,7 @@ import scipy.sparse as sparse
 from numpy import ones, zeros, prod, sin, diff, pi, inf, vstack, linspace
 from scipy.interpolate import PiecewisePolynomial, interp1d
 
-import polynomial as pl
+from wafo import polynomial as pl
 
 
 __all__ = [
@@ -51,14 +51,21 @@ def savitzky_golay(y, window_size, order, deriv=0):
     Examples
     --------
     >>> t = np.linspace(-4, 4, 500)
-    >>> y = np.exp( -t**2 ) + np.random.normal(0, 0.05, t.shape)
+    >>> noise = np.random.normal(0, 0.05, t.shape)
+    >>> noise = 0.4*np.sin(100*t)
+    >>> y = np.exp( -t**2 ) + noise
     >>> ysg = savitzky_golay(y, window_size=31, order=4)
-    >>> import matplotlib.pyplot as plt
-    >>> h=plt.plot(t, y, label='Noisy signal')
-    >>> h=plt.plot(t, np.exp(-t**2), 'k', lw=1.5, label='Original signal')
-    >>> h=plt.plot(t, ysg, 'r', label='Filtered signal')
-    >>> h=plt.legend()
-    >>> plt.show()
+    >>> np.allclose(ysg[:10],
+    ... [-0.00127789, -0.02390299, -0.04444364, -0.01738837,  0.00585856,
+    ...  -0.01675704, -0.03140276,  0.00010455,  0.02099063, -0.00380031])
+    True
+
+    import matplotlib.pyplot as plt
+    h=plt.plot(t, y, label='Noisy signal')
+    h=plt.plot(t, np.exp(-t**2), 'k', lw=1.5, label='Original signal')
+    h=plt.plot(t, ysg, 'r', label='Filtered signal')
+    h=plt.legend()
+    plt.show()
 
     References
     ----------
@@ -114,10 +121,16 @@ def savitzky_golay_piecewise(xvals, data, kernel=11, order=4):
     # As an example, this figure shows the effect of an additive noise with a
     # variance of 0.2 (original signal (black), noisy signal (red) and filtered
     # signal (blue dots)).
-
-    >>> yn = y + np.sqrt(0.2)*np.random.randn(*x.shape)
+    >>> noise = np.sqrt(0.2)*np.random.randn(*x.shape)
+    >>> noise = np.sqrt(0.2)*np.sin(1000*x)
+    >>> yn = y + noise
     >>> yr = savitzky_golay_piecewise(x, yn, kernel=11, order=4)
-    >>> h=plt.plot(x, yn, 'r', x, y, 'k', x, yr, 'b.')
+    >>> np.allclose(yr[:10],
+    ...    [-0.02708216, -0.04295155, -0.08522043, -0.13995016, -0.1908162 ,
+    ...     -0.22938387, -0.26932722, -0.30614865, -0.33942134, -0.3687596 ])
+    True
+
+    h=plt.plot(x, yn, 'r', x, y, 'k', x, yr, 'b.')
     '''
     turnpoint = 0
     last = len(xvals)
@@ -171,16 +184,23 @@ def sgolay2d(z, window_size, order, derivative=None):
     >>> Z = np.exp( -(X**2+Y**2))
 
     # add noise
-    >>> Zn = Z + np.random.normal( 0, 0.2, Z.shape )
+    >>> noise = np.random.normal( 0, 0.2, Z.shape )
+    >>> noise = np.sqrt(0.2) * np.sin(100*X)*np.sin(100*Y)
+    >>> Zn = Z + noise
 
     # filter it
     >>> Zf = sgolay2d( Zn, window_size=29, order=4)
+    >>> np.allclose(Zf[:3,:5],
+    ...  [[ 0.29304073,  0.29749652,  0.29007645,  0.2695685 ,  0.23541966],
+    ...    [ 0.29749652,  0.29819304,  0.28766723,  0.26524542,  0.23081572],
+    ...    [ 0.29007645,  0.28766723,  0.27483445,  0.25141198,  0.21769662]])
+    True
 
     # do some plotting
-    >>> import matplotlib.pyplot as plt
-    >>> h=plt.matshow(Z)
-    >>> h=plt.matshow(Zn)
-    >>> h=plt.matshow(Zf)
+    import matplotlib.pyplot as plt
+    h=plt.matshow(Z)
+    h=plt.matshow(Zn)
+    h=plt.matshow(Zf)
     """
     # number of terms in the polynomial expression
     n_terms = (order + 1) * (order + 2) / 2.0
@@ -290,8 +310,14 @@ class PPform(object):
     >>> coef = np.array([[1,1],[1,1],[0,2]]) # linear from 0 to 2
     >>> breaks = [0,1,2]
     >>> self = PPform(coef, breaks)
-    >>> x = linspace(-1,3)
-    >>> h=plt.plot(x,self(x))
+    >>> x = linspace(-1, 3, 21)
+    >>> y = self(x)
+    >>> np.allclose(y, [ 0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.  ,  0.24,  0.56,
+    ...    0.96, 1.44,  2.  ,  2.24,  2.56,  2.96,  3.44,  4.  ,  0.  ,  0.  ,
+    ...     0.  ,  0.  ,  0.  ])
+    True
+
+    h=plt.plot(x, y)
     """
 
     def __init__(self, coeffs, breaks, fill=0.0, sort=False, a=None, b=None):
@@ -322,7 +348,7 @@ class PPform(object):
         dx = xx - self.breaks.take(indxs)
 
         v = pp[0, indxs]
-        for i in xrange(1, self.order):
+        for i in range(1, self.order):
             v = dx * v + pp[i, indxs]
         values = v
 
@@ -409,7 +435,7 @@ class PPform(object):
 
             vv = xs * cof[0, index]
             k = self.order
-            for i in xrange(1, k):
+            for i in range(1, k):
                 vv = xs * (vv + cof[i, index])
 
             cof[-1] = np.hstack((0, vv)).cumsum()
@@ -419,7 +445,7 @@ class PPform(object):
 #     def fromspline(self, xk, cvals, order, fill=0.0):
 #         N = len(xk) - 1
 #         sivals = np.empty((order + 1, N), dtype=float)
-#         for m in xrange(order, -1, -1):
+#         for m in range(order, -1, -1):
 #             fact = spec.gamma(m + 1)
 #             res = _fitpack._bspleval(xk[:-1], xk, cvals, order, m)
 #             res /= fact
@@ -468,11 +494,37 @@ class SmoothSpline(PPform):
     -------
     >>> import numpy as np
     >>> import matplotlib.pyplot as plt
-    >>> x = np.linspace(0,1)
-    >>> y = np.exp(x)+1e-1*np.random.randn(x.size)
+    >>> x = np.linspace(0, 1, 21)
+    >>> noise = 1e-1*np.random.randn(x.size)
+    >>> noise = np.array(
+    ...    [-0.03298601, -0.08164429, -0.06845745, -0.20718593,  0.08666282,
+    ...     0.04702094,  0.08208645, -0.1017021 , -0.03031708,  0.22871709,
+    ...    -0.10302486, -0.17724316, -0.05885157, -0.03875947, -0.1102984 ,
+    ...    -0.05542001, -0.12717549,  0.14337697, -0.02637848, -0.10353976,
+    ...    -0.0618834 ])
+
+    >>> y = np.exp(x) + noise
     >>> pp9 = SmoothSpline(x, y, p=.9)
     >>> pp99 = SmoothSpline(x, y, p=.99, var=0.01)
-    >>> h=plt.plot(x,y, x,pp99(x),'g', x,pp9(x),'k', x,np.exp(x),'r')
+
+    >>> y99 = pp99(x); y9 = pp9(x)
+    >>> np.allclose(y9,
+    ...    [ 0.8754795 ,  0.95285289,  1.03033239,  1.10803792,  1.18606854,
+    ...     1.26443234,  1.34321265,  1.42258227,  1.5027733 ,  1.58394785,
+    ...     1.66625727,  1.74998243,  1.8353173 ,  1.92227431,  2.01076693,
+    ...     2.10064087,  2.19164551,  2.28346334,  2.37573696,  2.46825194,
+    ...     2.56087699])
+    True
+    >>> np.allclose(y99,
+    ...     [ 0.95227461,  0.97317995,  1.01159244,  1.08726908,  1.21260587,
+    ...     1.31545644,  1.37829108,  1.42719649,  1.51308685,  1.59669367,
+    ...     1.61486217,  1.64481078,  1.72970022,  1.83208819,  1.93312796,
+    ...     2.05164767,  2.19326122,  2.34608425,  2.45023567,  2.5357288 ,
+    ...     2.6357401 ])
+    True
+
+
+    h=plt.plot(x,y, x,pp99(x),'g', x,pp9(x),'k', x,np.exp(x),'r')
 
     See also
     --------
@@ -882,14 +934,19 @@ class StinemanInterp(object):
     >>> y = np.sin(x); yp = np.cos(x)
     >>> xi = np.linspace(0,2*pi,40);
     >>> yi = wi.StinemanInterp(x,y)(xi)
+    >>> np.allclose(yi[:10],
+    ...    [ 0.,  0.16258231,  0.31681338,  0.46390886,  0.60091421,
+    ...      0.7206556 ,  0.82314953,  0.90304148,  0.96059538,  0.99241945])
+    True
     >>> yi1 = wi.CubicHermiteSpline(x,y, yp)(xi)
     >>> yi2 = wi.Pchip(x,y, method='parabola')(xi)
-    >>> h=plt.subplot(211)
-    >>> h=plt.plot(x,y,'o',xi,yi,'r', xi,yi1, 'g', xi,yi1, 'b')
-    >>> h=plt.subplot(212)
-    >>> h=plt.plot(xi,np.abs(sin(xi)-yi), 'r',
-    ...            xi,  np.abs(sin(xi)-yi1), 'g',
-    ...            xi, np.abs(sin(xi)-yi2), 'b')
+
+    h=plt.subplot(211)
+    h=plt.plot(x,y,'o',xi,yi,'r', xi,yi1, 'g', xi,yi1, 'b')
+    h=plt.subplot(212)
+    h=plt.plot(xi,np.abs(sin(xi)-yi), 'r',
+               xi,  np.abs(sin(xi)-yi1), 'g',
+               xi, np.abs(sin(xi)-yi2), 'b')
 
     References
     ----------
@@ -958,7 +1015,8 @@ class StinemanInterp2(PiecewisePolynomial):
     def __init__(self, x, y, yp=None, method='parabola', monotone=False):
         if yp is None:
             yp = slopes(x, y, method, monotone=monotone)
-        super(StinemanInterp2, self).__init__(x, zip(y, yp))
+        yyp = [z for z in zip(y, yp)]
+        super(StinemanInterp2, self).__init__(x, yyp)
 
 
 class CubicHermiteSpline(PiecewisePolynomial):
@@ -971,7 +1029,8 @@ class CubicHermiteSpline(PiecewisePolynomial):
     def __init__(self, x, y, yp=None, method='Catmull-Rom'):
         if yp is None:
             yp = slopes(x, y, method, monotone=False)
-        super(CubicHermiteSpline, self).__init__(x, zip(y, yp), orders=3)
+        yyp = [z for z in zip(y, yp)]
+        super(CubicHermiteSpline, self).__init__(x, yyp, orders=3)
 
 
 class Pchip(PiecewisePolynomial):
@@ -1012,43 +1071,66 @@ class Pchip(PiecewisePolynomial):
     >>> y = np.array([-1.0, -1,-1,0,1,1,1])
 
     # Interpolate using monotonic piecewise Hermite cubic spline
-    >>> xvec = np.arange(599.)/100. - 3.0
+    >>> n = 20.
+    >>> xvec = np.arange(n)/10. - 1.0
     >>> yvec = wi.Pchip(x, y)(xvec)
+    >>> np.allclose(yvec, [-1.   , -0.981, -0.928, -0.847, -0.744, -0.625,
+    ...    -0.496, -0.363, -0.232, -0.109,  0.   ,  0.109,  0.232,  0.363,
+    ...    0.496,  0.625, 0.744,  0.847,  0.928,  0.981])
+    True
 
     # Call the Scipy cubic spline interpolator
     >>> from scipy.interpolate import interpolate
     >>> function = interpolate.interp1d(x, y, kind='cubic')
     >>> yvec1 = function(xvec)
+    >>> np.allclose(yvec1, [-1.00000000e+00, -9.41911765e-01, -8.70588235e-01,
+    ...        -7.87500000e-01,  -6.94117647e-01,  -5.91911765e-01,
+    ...        -4.82352941e-01,  -3.66911765e-01,  -2.47058824e-01,
+    ...        -1.24264706e-01,   2.49800181e-16,   1.24264706e-01,
+    ...         2.47058824e-01,   3.66911765e-01,   4.82352941e-01,
+    ...         5.91911765e-01,   6.94117647e-01,   7.87500000e-01,
+    ...         8.70588235e-01,   9.41911765e-01])
+    True
+
 
     # Non-montonic cubic Hermite spline interpolator using
     # Catmul-Rom method for computing slopes...
     >>> yvec2 = wi.CubicHermiteSpline(x,y)(xvec)
-
     >>> yvec3 = wi.StinemanInterp(x, y)(xvec)
 
-    # Plot the results
-    >>> import matplotlib.pyplot as plt
-    >>> h=plt.plot(x,    y,     'ro')
-    >>> h=plt.plot(xvec, yvec,  'b')
-    >>> h=plt.plot(xvec, yvec1, 'k')
-    >>> h=plt.plot(xvec, yvec2, 'g')
-    >>> h=plt.plot(xvec, yvec3, 'm')
-    >>> h=plt.title("pchip() step function test")
+    >>> np.allclose(yvec2, [-1., -0.9405, -0.864 , -0.7735, -0.672 , -0.5625,
+    ...    -0.448 , -0.3315, -0.216 , -0.1045,  0.    ,  0.1045,  0.216 ,
+    ...    0.3315, 0.448 ,  0.5625,  0.672 ,  0.7735,  0.864 ,  0.9405])
+    True
 
-    >>> h=plt.xlabel("X")
-    >>> h=plt.ylabel("Y")
-    >>> txt = "Comparing pypchip() vs. Scipy interp1d() vs. non-monotonic CHS"
-    >>> h=plt.title(txt)
-    >>> legends = ["Data", "pypchip()", "interp1d","CHS", 'SI']
-    >>> h=plt.legend(legends, loc="upper left")
-    >>> plt.show()
+    >>> np.allclose(yvec3, [-1. , -0.9, -0.8, -0.7, -0.6, -0.5, -0.4, -0.3,
+    ... -0.2, -0.1,  0. , 0.1,  0.2,  0.3,  0.4,  0.5,  0.6,  0.7,  0.8,  0.9])
+    True
+
+    # Plot the results
+    import matplotlib.pyplot as plt
+    h=plt.plot(x,    y,     'ro')
+    h=plt.plot(xvec, yvec,  'b')
+    h=plt.plot(xvec, yvec1, 'k')
+    h=plt.plot(xvec, yvec2, 'g')
+    h=plt.plot(xvec, yvec3, 'm')
+    h=plt.title("pchip() step function test")
+
+    h=plt.xlabel("X")
+    h=plt.ylabel("Y")
+    txt = "Comparing pypchip() vs. Scipy interp1d() vs. non-monotonic CHS"
+    h=plt.title(txt)
+    legends = ["Data", "pypchip()", "interp1d","CHS", 'SI']
+    h=plt.legend(legends, loc="upper left")
+    plt.show()
 
     """
 
     def __init__(self, x, y, yp=None, method='secant'):
         if yp is None:
             yp = slopes(x, y, method=method, monotone=True)
-        super(Pchip, self).__init__(x, zip(y, yp), orders=3)
+        yyp = [z for z in zip(y, yp)]
+        super(Pchip, self).__init__(x, yyp, orders=3)
 
 
 def interp3(x, y, z, v, xi, yi, zi, method='cubic'):
@@ -1102,10 +1184,10 @@ def test_smoothing_spline():
     dy1 = pp1(x1)
     y01 = pp0(x1)
     # dy = y-y1
-    import matplotlib.pyplot as plb
+    import matplotlib.pyplot as plt
 
-    plb.plot(x, y, x1, y1, '.', x1, dy1, 'ro', x1, y01, 'r-')
-    plb.show('hold')
+    plt.plot(x, y, x1, y1, '.', x1, dy1, 'ro', x1, y01, 'r-')
+    plt.show('hold')
     pass
     # tck = interpolate.splrep(x, y, s=len(x))
 
@@ -1250,10 +1332,10 @@ def test_pp():
     pp(1)
     pp(1.5)
     dpp = pp.derivative()
-    import pylab as plb
-    x = plb.linspace(-1, 3)
-    plb.plot(x, pp(x), x, dpp(x), '.')
-    plb.show()
+    import matplotlib.pyplot as plt
+    x = np.linspace(-1, 3)
+    plt.plot(x, pp(x), x, dpp(x), '.')
+    plt.show()
 
 
 def test_docstrings():
@@ -1264,8 +1346,8 @@ def test_docstrings():
 
 if __name__ == '__main__':
     # test_func()
-    # test_doctstrings()
-    test_smoothing_spline()
+    test_docstrings()
+    # test_smoothing_spline()
     # compare_methods()
     # demo_monoticity()
     # test_interp3()

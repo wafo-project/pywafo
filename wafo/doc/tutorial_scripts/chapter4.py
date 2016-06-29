@@ -34,8 +34,6 @@ printing=0
 def s_n_curve(S, beta, K):
     return np.power(S, -beta)/K1
 
-# Section 4.3.1 Crossing intensity
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 import wafo.data as wd
 import wafo.objects as wo
 
@@ -196,7 +194,6 @@ set_windows_title(title)
 #wafostamp([],'(ER)')
 #disp('Block 8'),pause(pstate)
 #
-###!
 #clf
 #cmatplot(u_markov,u_markov,{G_markov Grfc_markov},3)
 #wafostamp([],'(ER)')

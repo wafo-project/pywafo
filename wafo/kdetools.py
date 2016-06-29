@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -------------------------------------------------------------------------
 # Name:        kdetools
 # Purpose:
@@ -8,8 +9,8 @@
 # Copyright:   (c) pab 2008
 # Licence:     LGPL
 # -------------------------------------------------------------------------
-#!/usr/bin/env python  # @IgnorePep8
-from __future__ import division
+
+from __future__ import absolute_import, division
 import copy
 import numpy as np
 import scipy
@@ -26,7 +27,7 @@ from wafo.plotbackend import plotbackend as plt
 try:
     from wafo import fig
 except ImportError:
-    print 'fig import only supported on Windows'
+    warnings.warn('fig import only supported on Windows')
 
 
 def _invnorm(q):
@@ -841,8 +842,8 @@ class KDE(_KDE):
     ...   [ 0.20397743,  0.40252228,  0.54594119,  0.52219025,  0.39062189,
     ...     0.2638171 ,  0.16407487,  0.08270755,  0.04784434,  0.04784434])
     True
-    >>> h = f1.plot()
 
+    h = f1.plot()
     import pylab as plb
     h1 = plb.plot(x, f) #  1D probability density plot
     t = np.trapz(f, x)
@@ -1080,16 +1081,20 @@ class KRegression(_KDE):
 
     Example
     -------
-    >>> N = 100
-    >>> ei = np.random.normal(loc=0, scale=0.075, size=(N,))
-
-    >>> x = np.linspace(0, 1, N)
     >>> import wafo.kdetools as wk
+    >>> N = 100
+    >>> x = np.linspace(0, 1, N)
+    >>> ei = np.random.normal(loc=0, scale=0.075, size=(N,))
+    >>> ei = np.sqrt(0.075) * np.sin(100*x)
 
     >>> y = 2*np.exp(-x**2/(2*0.3**2))+3*np.exp(-(x-1)**2/(2*0.7**2)) + ei
     >>> kreg = wk.KRegression(x, y)
     >>> f = kreg(output='plotobj', title='Kernel regression', plotflag=1)
-    >>> h = f.plot(label='p=0')
+    >>> np.allclose(f.data[:5],
+    ...     [ 3.18381052,  3.18362269,  3.18343648,  3.1832536 ,  3.1830757 ])
+    True
+
+    h = f.plot(label='p=0')
     """
 
     def __init__(self, data, y, p=0, hs=None, kernel=None, alpha=0.0,
@@ -1841,8 +1846,8 @@ class Kernel(object):
             return self.hns(data)
         name = self.name[:4].lower()
         if name == 'epan':        # Epanechnikov kernel
-            a = (8.0 * (d + 4.0) * (2 * sqrt(pi))
-                 ** d / sphere_volume(d)) ** (1. / (4.0 + d))
+            a = (8.0 * (d + 4.0) * (2 * sqrt(pi)) ** d /
+                 sphere_volume(d)) ** (1. / (4.0 + d))
         elif name == 'biwe':  # Bi-weight kernel
             a = 2.7779
             if d > 2:
@@ -2814,7 +2819,7 @@ def _compute_qth_weighted_percentile(a, q, axis, out, method, weights,
     if axis is None:
         sorted_ = a.ravel()
     else:
-        taxes = range(a.ndim)
+        taxes = [i for i in range(a.ndim)]
         taxes[-1], taxes[axis] = taxes[axis], taxes[-1]
         sorted_ = np.transpose(a, taxes).reshape(-1, shape0[axis])
 
@@ -3105,18 +3110,26 @@ def gridcount(data, X, y=1):
     >>> import numpy as np
     >>> import wafo.kdetools as wk
     >>> import pylab as plb
-    >>> N = 200
+    >>> N = 20
     >>> data  = np.random.rayleigh(1,N)
+    >>> data = np.array(
+    ...    [ 1.07855907,  1.51199717,  1.54382893,  1.54774808,  1.51913566,
+    ...     1.11386486,  1.49146216,  1.51127214,  2.61287913,  0.94793051,
+    ...     2.08532731,  1.35510641,  0.56759888,  1.55766981,  0.77883602,
+    ...     0.9135759 ,  0.81177855,  1.02111483,  1.76334202,  0.07571454])
     >>> x = np.linspace(0,max(data)+1,50)
     >>> dx = x[1]-x[0]
 
-    >>> c = wk.gridcount(data,x)
+    >>> c = wk.gridcount(data, x)
+    >>> np.allclose(c[:5], [ 0.,  0.9731147,  0.0268853,  0.,  0.])
+    True
 
-    >>> h = plb.plot(x,c,'.')   # 1D histogram
     >>> pdf = c/dx/N
-    >>> h1 = plb.plot(x, pdf) #  1D probability density plot
-    >>> '%1.2f' % np.trapz(pdf, x)
-    '1.00'
+    >>> np.allclose(np.trapz(pdf, x), 1)
+    True
+
+    h = plb.plot(x,c,'.')   # 1D histogram
+    h1 = plb.plot(x, pdf) #  1D probability density plot
 
     See also
     --------
@@ -3172,10 +3185,10 @@ def gridcount(data, X, y=1):
         # fact1 = fact1(ones(n,1),:);
         bt0 = [0, 0]
         X1 = X.ravel()
-        for ir in xrange(2 ** (d - 1)):
+        for ir in range(2 ** (d - 1)):
             bt0[0] = np.reshape(bitget(ir, np.arange(d)), (d, -1))
             bt0[1] = 1 - bt0[0]
-            for ix in xrange(2):
+            for ix in range(2):
                 one = np.mod(ix, 2)
                 two = np.mod(ix + 1, 2)
                 # Convert to linear index
@@ -3188,7 +3201,7 @@ def gridcount(data, X, y=1):
 
         c = np.reshape(c / w, csiz, order='F')
 
-        T = range(d)
+        T = [i for i in range(d)]
         T[1], T[0] = T[0], T[1]
         # make sure c is stored in the same way as meshgrid
         c = c.transpose(*T)
@@ -3318,8 +3331,8 @@ def kde_demo4(N=50):
     f1.plot('b', label='hisj=%g' % kde1.hs)
     x = np.linspace(-4, 4)
     for loc in [-5, 5]:
-        plt.plot(x + loc, st.norm.pdf(x, 0, scale=1)
-                 / 2, 'k:', label='True density')
+        plt.plot(x + loc, st.norm.pdf(x, 0, scale=1) / 2, 'k:',
+                 label='True density')
     plt.legend()
 
 

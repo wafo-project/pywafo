@@ -1,7 +1,7 @@
 """
     Extended functions to operate on polynomials
 """
-# -------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 # Name:        polynomial
 # Purpose:     Functions to operate on polynomials.
 #
@@ -15,20 +15,18 @@
 # Created:     30.12.2008
 # Copyright:   (c) pab 2008
 # Licence:     LGPL
-# -------------------------------------------------------------------------
+# ------------------------------------------------------------------------
 # !/usr/bin/env python
-import warnings
+from __future__ import absolute_import
+import warnings  # @UnusedImport
+from functools import reduce
 from numpy.polynomial import polyutils as pu
-from plotbackend import plotbackend as plt
+from .plotbackend import plotbackend as plt
 import numpy as np
-from numpy import (zeros, ones, zeros_like, array, asarray, newaxis, arange,
-                   logical_or, any, pi, cos, round, diff, all, exp, atleast_1d,
-                   where, extract, linalg, sign, concatenate, floor, isreal,
-                   conj, remainder, linspace, sum, meshgrid, hstack)
-
+from numpy import (newaxis, arange, pi)
 from scipy.fftpack import dct, idct as _idct
 from numpy.lib.polynomial import *  # @UnusedWildImport
-from scipy.misc.common import pade  # @UnresolvedImport
+from scipy.misc import pade  # @UnresolvedImport
 __all__ = np.lib.polynomial.__all__
 __all__ = __all__ + ['pade', 'padefit', 'polyreloc', 'polyrescl', 'polytrim',
                      'poly2hstr', 'poly2str', 'polyshift', 'polyishift',
@@ -90,9 +88,8 @@ def polyint(p, m=1, k=None):
     >>> np.polyder(P, 2)(0)
     0.0
     >>> P = np.polyint(p, 3, k=[6, 5, 3])
-    >>> P.coefficients.tolist()
-    [0.016666666666666666, 0.041666666666666664, 0.16666666666666666, 3.0,
-    5.0, 3.0]
+    >>> P
+    poly1d([ 0.01666667,  0.04166667,  0.16666667,  3. ,  5. , 3. ])
 
     Note that 3 = 6 / 2!, and that the constants are given in the order of
     integrations. Constant of the highest-order polynomial term comes first:
@@ -109,15 +106,15 @@ def polyint(p, m=1, k=None):
     if m < 0:
         raise ValueError("Order of integral must be positive (see polyder)")
     if k is None:
-        k = zeros(m, float)
-    k = atleast_1d(k)
+        k = np.zeros(m, float)
+    k = np.atleast_1d(k)
     if len(k) == 1 and m > 1:
-        k = k[0] * ones(m, float)
+        k = k[0] * np.ones(m, float)
     if len(k) < m:
         raise ValueError(
             "k must be a scalar or a rank-1 array of length 1 or >m.")
     truepoly = isinstance(p, poly1d)
-    p = asarray(p)
+    p = np.asarray(p)
     if m == 0:
         if truepoly:
             return poly1d(p)
@@ -127,7 +124,7 @@ def polyint(p, m=1, k=None):
         if p.ndim > 1:
             ix = ix[..., newaxis]
             pieces = p.shape[-1]
-            k0 = k[0] * ones((1, pieces), dtype=int)
+            k0 = k[0] * np.ones((1, pieces), dtype=int)
         else:
             k0 = [k[0]]
         y = np.concatenate((p.__truediv__(ix), k0), axis=0)
@@ -194,7 +191,7 @@ def polyder(p, m=1):
     if m < 0:
         raise ValueError("Order of derivative must be positive (see polyint)")
     truepoly = isinstance(p, poly1d)
-    p = asarray(p)
+    p = np.asarray(p)
     if m == 0:
         if truepoly:
             return poly1d(p)
@@ -238,7 +235,9 @@ def polydeg(x, y):
     Example:
     -------
     >>> x = np.linspace(0,10,300)
-    >>> y = np.sin(x ** 3 / 100) ** 2 + 0.05 * np.random.randn(x.size)
+    >>> noise = 0.05 * np.random.randn(x.size)
+    >>> noise = 0.05 * np.sin(100*x)
+    >>> y = np.sin(x ** 3 / 100) ** 2 + noise
     >>> n = polydeg(x,y)
     >>> n
     21
@@ -260,8 +259,8 @@ def polydeg(x, y):
     #  developed in a series of orthogonal polynomials.
     ys = np.ones((N,)) * y.mean()
     # correction for small sample sizes
-    AIC = 2 + N * \
-        (np.log(2 * pi * ((ys - y) ** 2).sum() / N) + 1) + 4 / (N - 2)
+    logsum2 = (np.log(2 * pi * ((ys - y) ** 2).sum() / N) + 1)
+    AIC = 2 + N * logsum2 + 4 / (N - 2)
 
     n = 1
     nit = 0
@@ -270,12 +269,12 @@ def polydeg(x, y):
     # required to take AIC noise into account and to ensure that this minimum
     # is a (likely) global minimum.
 
-    while nit < 3:
+    while nit < 8:
         p = orthofit(x, y, n)
         ys = orthoval(p, x)
         # -- Akaike's Information Criterion
         aic = (2 * (n + 1) * (1 + (n + 2) / (N - n - 2)) +
-               N * (np.log(2 * pi * sum((ys - y) ** 2) / N) + 1))
+               N * (np.log(2 * pi * np.sum((ys - y) ** 2) / N) + 1))
 
         if aic >= AIC:
             nit += 1
@@ -443,10 +442,10 @@ def orthofit(x, y, n):
     PL[1] = x - p[1, 1]
 
     for i in range(2, n + 1):
-        p[1, i] = np.dot(x, PL[i - 1] ** 2) / sum(PL[i - 1] ** 2)
-        p[2, i] = np.dot(x, PL[i - 2] * PL[i - 1]) / sum(PL[i - 2] ** 2)
+        p[1, i] = np.dot(x, PL[i - 1] ** 2) / np.sum(PL[i - 1] ** 2)
+        p[2, i] = np.dot(x, PL[i - 2] * PL[i - 1]) / np.sum(PL[i - 2] ** 2)
         PL[i] = (x - p[1, i]) * PL[i - 1] - p[2, i] * PL[i - 2]
-    p[0, :] = np.dot(PL, y) / sum(PL ** 2, axis=1)
+    p[0, :] = np.dot(PL, y) / np.sum(PL ** 2, axis=1)
     return p
     # ys = np.dot(p[0, :], PL)  # smoothed y
 
@@ -495,7 +494,7 @@ def polyreloc(p, x, y=0.0):
     """
 
     truepoly = isinstance(p, poly1d)
-    r = atleast_1d(p).copy()
+    r = np.atleast_1d(p).copy()
     n = r.shape[0]
 
     # Relocate polynomial using Horner's algorithm
@@ -548,7 +547,7 @@ def polyrescl(p, x, y=1.0):
     """
 
     truepoly = isinstance(p, poly1d)
-    r = atleast_1d(p)
+    r = np.atleast_1d(p)
     n = r.shape[0]
 
     xscale = (float(x) ** arange(1 - n, 1))
@@ -591,13 +590,13 @@ def polytrim(p):
     if truepoly:
         return p
     else:
-        r = atleast_1d(p).copy()
+        r = np.atleast_1d(p).copy()
         # Remove leading zeros
-        is_not_lead_zeros = logical_or.accumulate(r != 0, axis=0)
+        is_not_lead_zeros = np.logical_or.accumulate(r != 0, axis=0)
         if r.ndim == 1:
             r = r[is_not_lead_zeros]
         else:
-            is_not_lead_zeros = any(is_not_lead_zeros, axis=1)
+            is_not_lead_zeros = np.any(is_not_lead_zeros, axis=1)
             r = r[is_not_lead_zeros, :]
         return r
 
@@ -630,7 +629,7 @@ def poly2hstr(p, variable='x'):
     """
     var = variable
 
-    coefs = polytrim(atleast_1d(p))
+    coefs = polytrim(np.atleast_1d(p))
     order = len(coefs) - 1  # Order of polynomial.
     s = ''    # Initialize output string.
     ix = 1
@@ -651,9 +650,8 @@ def poly2hstr(p, variable='x'):
 
             # We need the coefficient only if it is different from 1 or -1 or
             # when it is the constant term.
-            needcoef = (
-                (abs(coef) != 1) | (
-                    expon == 0) & isfirst) | 1 - isfirst
+            needcoef = ((abs(coef) != 1) |
+                        (expon == 0) & isfirst) | 1 - isfirst
 
             # We need the variable except in the constant term.
             needvar = (expon != 0)
@@ -719,11 +717,11 @@ def poly2str(p, variable='x'):
     var = variable
 
     # Remove leading zeros
-    coeffs = polytrim(atleast_1d(p))
+    coeffs = polytrim(np.atleast_1d(p))
 
     N = len(coeffs) - 1
 
-    for k in range(len(coeffs)):
+    for k in range(N+1):
         coefstr = '%.4g' % abs(coeffs[k])
         if coefstr[-4:] == '0000':
             coefstr = coefstr[:-5]
@@ -732,21 +730,18 @@ def poly2str(p, variable='x'):
             if coefstr != '0':
                 newstr = '%s' % (coefstr,)
             else:
-                if k == 0:
-                    newstr = '0'
-                else:
-                    newstr = ''
+                newstr = '0' if k == 0 else ''
         elif power == 1:
             if coefstr == '0':
                 newstr = ''
-            elif coefstr == 'b' or coefstr == '1':
+            elif coefstr in ['b', '1']:
                 newstr = var
             else:
                 newstr = '%s*%s' % (coefstr, var)
         else:
             if coefstr == '0':
                 newstr = ''
-            elif coefstr == 'b' or coefstr == '1':
+            elif coefstr in ['b', '1']:
                 newstr = '%s**%d' % (var, power,)
             else:
                 newstr = '%s*%s**%d' % (coefstr, var, power)
@@ -954,13 +949,13 @@ def cheb2poly(ck, a=-1, b=1):
 
     n = len(ck)
 
-    b_Nmi = zeros(1)
-    b_Nmip1 = zeros(1)
+    b_Nmi = np.zeros(1)
+    b_Nmip1 = np.zeros(1)
     y = np.r_[2 / (b - a), -(a + b) / (b - a)]
     y2 = 2. * y
 
     # Clenshaw recurence
-    for ix in xrange(n - 1):
+    for ix in range(n - 1):
         tmp = b_Nmi
         b_Nmi = polymul(y2, b_Nmi)  # polynomial multiplication
         nb = len(b_Nmip1)
@@ -1005,7 +1000,7 @@ def chebextr(n):
     http://en.wikipedia.org/wiki/Chebyshev_nodes
     http://en.wikipedia.org/wiki/Chebyshev_polynomials
     """
-    return - cos((pi * arange(n + 1)) / n)
+    return - np.cos((pi * arange(n + 1)) / n)
 
 
 def chebroot(n, kind=1):
@@ -1045,7 +1040,7 @@ def chebroot(n, kind=1):
     """
     if kind not in (1, 2):
         raise ValueError('kind must be 1 or 2')
-    return - cos(pi * (arange(n) + 0.5 * kind) / (n + kind - 1))
+    return - np.cos(pi * (arange(n) + 0.5 * kind) / (n + kind - 1))
 
 
 def chebpoly(n, x=None, kind=1):
@@ -1094,15 +1089,15 @@ def chebpoly(n, x=None, kind=1):
     """
     if x is None:  # Calculate coefficients.
         if n == 0:
-            p = ones(1)
+            p = np.ones(1)
         else:
-            p = round(pow(2, n - 2 + kind) * poly(chebroot(n, kind=kind)))
+            p = np.round(pow(2, n - 2 + kind) * poly(chebroot(n, kind=kind)))
             p[1::2] = 0
         return p
     else:  # Evaluate polynomial in chebychev form
-        ck = zeros(n + 1)
+        ck = np.zeros(n + 1)
         ck[0] = 1.
-        return _chebval(atleast_1d(x), ck, kind=kind)
+        return _chebval(np.atleast_1d(x), ck, kind=kind)
 
 
 def chebfit(fun, n=10, a=-1, b=1, trace=False):
@@ -1139,12 +1134,12 @@ def chebfit(fun, n=10, a=-1, b=1, trace=False):
     >>> a = 0; b = 2
     >>> ck = chebfit(np.exp,7,a,b);
     >>> x = np.linspace(0,4);
-    >>> h=plt.plot(x, np.exp(x), 'r', x, chebval(x,ck,a,b), 'g.')
     >>> x1 = chebroot(9)*(b-a)/2+(b+a)/2
     >>> ck1 = chebfit(np.exp(x1))
-    >>> h = plt.plot(x,np.exp(x), 'r', x, chebval(x,ck1,a,b),'g.')
 
-    >>> plt.close()
+    h=plt.plot(x, np.exp(x), 'r', x, chebval(x,ck,a,b), 'g.')
+    h = plt.plot(x,np.exp(x), 'r', x, chebval(x,ck1,a,b),'g.')
+    plt.close()
 
     See also
     --------
@@ -1188,7 +1183,8 @@ def chebfit_dct(f, n=(10, ), domain=None):
     Fit Chebyshev series to N-dimensional function
     so that f(x1, x2,..., xn) can be approximated by:
 
-    .. math:: f(x_1, x_2,...,x_n) = \\sum_{i,j,...k} c_i T_i(x_1)*...*c_k T_k(x_n) ,
+    .. math:: f(x_1, x_2,...,x_n) =
+                    \\sum_{i,j,...k} c_i T_i(x_1)*...*c_k T_k(x_n) ,
 
     where Tk is the k'th Chebyshev polynomial of the first kind.
 
@@ -1251,10 +1247,10 @@ def chebfit_dct(f, n=(10, ), domain=None):
 
     if hasattr(f, '__call__'):
         if domain is None:
-            domain = (-1,1) * len(n)
+            domain = (-1, 1) * len(n)
         domain = np.atleast_2d(domain).reshape((-1, 2))
         xi = [map_to_interval(chebroot(ni), d[0], d[1])
-                for ni, d in zip(n, domain)]
+              for ni, d in zip(n, domain)]
         Xi = np.meshgrid(*xi)
         ck = f(*Xi)
     else:
@@ -1263,7 +1259,7 @@ def chebfit_dct(f, n=(10, ), domain=None):
 
     ndim = len(n)
     for i in range(ndim):
-        ck = dct(ck[...,::-1])
+        ck = dct(ck[..., ::-1])
         ck[..., 0] = ck[..., 0] / 2.
         if i < ndim-1:
             ck = np.rollaxis(ck, axis=-1)
@@ -1284,7 +1280,7 @@ def idct(x, n=None):
     Examples
     --------
     >>> import numpy as np
-    >>> x = np.arange(5)
+    >>> x = np.arange(5)*1.0
     >>> np.abs(x-idct(dct(x)))<1e-14
     array([ True,  True,  True,  True,  True], dtype=bool)
     >>> np.abs(x-dct(idct(x)))<1e-14
@@ -1321,11 +1317,11 @@ def _chebval(x, ck, kind=1):
     http://mathworld.wolfram.com/ClenshawRecurrenceFormula.html
     """
     n = len(ck)
-    b_Nmi = zeros(x.shape)  # b_(N-i)
+    b_Nmi = np.zeros(x.shape)  # b_(N-i)
     b_Nmip1 = b_Nmi.copy()    # b_(N-i+1)
     x2 = 2 * x
     # Clenshaw reccurence
-    for ix in xrange(n - 1):
+    for ix in range(n - 1):
         tmp = b_Nmi
         b_Nmi = x2 * b_Nmi - b_Nmip1 + ck[ix]
         b_Nmip1 = tmp
@@ -1364,15 +1360,19 @@ def chebval(x, ck, a=-1, b=1, kind=1, fill=None):
     >>> import matplotlib.pyplot as plt
     >>> x = np.linspace(-1,1)
     >>> ck = np.zeros(5); ck[-1]=1
-    >>> h = plt.plot(x,chebval(x,ck),x,chebpoly(4,x),'.')
-    >>> plt.close()
+    >>> y = chebval(x,ck)
+
+    h = plt.plot(x, y, x, chebpoly(4,x),'.')
+    plt.close()
 
     Fit exponential function:
     >>> import matplotlib.pyplot as plt
     >>> ck = chebfit(np.exp,7,0,2)
     >>> x = np.linspace(0,4);
-    >>> h=plt.plot(x,chebval(x,ck,0,2),'g',x,np.exp(x))
-    >>> plt.close()
+    >>> y2 = chebval(x,ck,0,2)
+
+    h=plt.plot(x, y2, 'g', x, np.exp(x))
+    plt.close()
 
     See also
     --------
@@ -1384,14 +1384,14 @@ def chebval(x, ck, a=-1, b=1, kind=1, fill=None):
     http://mathworld.wolfram.com/ClenshawRecurrenceFormula.html
     """
 
-    y = map_from_interval(atleast_1d(x), a, b)
+    y = map_from_interval(np.atleast_1d(x), a, b)
     if fill is None:
         f = _chebval(y, ck, kind=kind)
     else:
         cond = (abs(y) <= 1)
-        f = where(cond, 0, fill)
-        if any(cond):
-            yk = extract(cond, y)
+        f = np.where(cond, 0, fill)
+        if np.any(cond):
+            yk = np.extract(cond, y)
             f[cond] = _chebval(yk, ck, kind=kind)
     return f
 
@@ -1419,9 +1419,11 @@ def chebder(ck, a=-1, b=1):
     >>> import matplotlib.pyplot as plt
     >>> ck = chebfit(np.exp,7,0,2)
     >>> x = np.linspace(0,4)
-    >>> ck2 = chebder(ck,0,2);
-    >>> h = plt.plot(x,chebval(x,ck,0,2),'g',x,np.exp(x),'r')
-    >>> plt.close()
+    >>> ck2 = chebder(ck,0,2)
+    >>> y = chebval(x,ck2,0,2)
+
+    h = plt.plot(x, y, 'g', x, np.exp(x), 'r')
+    plt.close()
 
     See also
     --------
@@ -1439,10 +1441,10 @@ def chebder(ck, a=-1, b=1):
     """
 
     n = len(ck) - 1
-    cder = zeros(n, dtype=asarray(ck).dtype)
+    cder = np.zeros(n, dtype=np.asarray(ck).dtype)
     cder[0] = 2 * n * ck[0]
     cder[1] = 2 * (n - 1) * ck[1]
-    for j in xrange(2, n):
+    for j in range(2, n):
         cder[j] = cder[j - 2] + 2 * (n - j) * ck[j]
 
     return cder * 2. / (b - a)  # Normalize to the interval b-a.
@@ -1471,8 +1473,10 @@ def chebint(ck, a=-1, b=1):
     >>> ck = chebfit(np.exp,7,0,2)
     >>> x = np.linspace(0,4)
     >>> ck2 = chebint(ck,0,2);
-    >>> h=plt.plot(x,chebval(x,ck,0,2),'g',x,np.exp(x),'r.')
-    >>> plt.close()
+    >>> y =chebval(x,ck2,0,2)
+
+    h=plt.plot(x,y,'g',x,np.exp(x),'r.')
+    plt.close()
 
     See also
     --------
@@ -1501,14 +1505,14 @@ def chebint(ck, a=-1, b=1):
 
     n = len(ck)
 
-    cint = zeros(n)
+    cint = np.zeros(n)
     con = 0.25 * (b - a)
 
-    dif1 = diff(ck[-1::-2])
+    dif1 = np.diff(ck[-1::-2])
     ix1 = np.r_[1:n - 1:2]
     cint[ix1] = -(con * dif1) / ix1
     if n > 3:
-        dif2 = diff(ck[-2::-2])
+        dif2 = np.diff(ck[-2::-2])
         ix2 = np.r_[2:n - 1:2]
         cint[ix2] = -(con * dif2) / ix2
     cint = cint[::-1]
@@ -1531,7 +1535,7 @@ class Cheb1d(object):
             for key in ck.__dict__.keys():
                 self.__dict__[key] = ck.__dict__[key]
             return
-        cki = trim_zeros(atleast_1d(ck), 'b')
+        cki = trim_zeros(np.atleast_1d(ck), 'b')
         if len(cki.shape) > 1:
             raise ValueError("Polynomial must be 1d only.")
         self.__dict__['coeffs'] = cki
@@ -1545,9 +1549,9 @@ class Cheb1d(object):
 
     def __array__(self, t=None):
         if t:
-            return asarray(self.coeffs, t)
+            return np.asarray(self.coeffs, t)
         else:
-            return asarray(self.coeffs)
+            return np.asarray(self.coeffs)
 
     def __repr__(self):
         vals = repr(self.coeffs)
@@ -1591,11 +1595,11 @@ class Cheb1d(object):
 
     def __eq__(self, other):
         other = Cheb1d(other)
-        return (all(self.coeffs == other.coeffs) and (self.a == other.a)
-                and (self.b == other.b) and (self.kind == other.kind))
+        return (np.all(self.coeffs == other.coeffs) and (self.a == other.a) and
+                (self.b == other.b) and (self.kind == other.kind))
 
     def __ne__(self, other):
-        return any(self.coeffs != other.coeffs) or (self.a != other.a) or (
+        return np.any(self.coeffs != other.coeffs) or (self.a != other.a) or (
             self.b != other.b) or (self.kind != other.kind)
 
     def __setattr__(self, key, val):
@@ -1632,8 +1636,8 @@ class Cheb1d(object):
         if key < 0:
             raise ValueError("Does not support negative powers.")
         if key > self.order:
-            zr = zeros(key - self.order, self.coeffs.dtype)
-            self.__dict__['coeffs'] = concatenate((self.coeffs, zr))
+            zr = np.zeros(key - self.order, self.coeffs.dtype)
+            self.__dict__['coeffs'] = np.concatenate((self.coeffs, zr))
             self.__dict__['order'] = key
         self.__dict__['coeffs'][key] = val
         return
@@ -1715,9 +1719,9 @@ def padefit(c, m=None):
     poly1d([ 0.00277778,  0.03333333,  0.2       ,  0.66666667,  1.        ])
     poly1d([ 0.03333333, -0.33333333,  1.        ])
 
-    >>> x = np.linspace(0,4);
-    >>> h = plt.plot(x,c(x),x,p(x)/q(x),'g-', x,np.exp(x),'r.')
-    >>> plt.close()
+    x = np.linspace(0,4)
+    h = plt.plot(x,c(x),x,p(x)/q(x),'g-', x,np.exp(x),'r.')
+    plt.close()
 
     See also
     --------
@@ -1725,16 +1729,16 @@ def padefit(c, m=None):
 
     """
     if not m:
-        m = int(floor((len(c) - 1) * 0.5))
-    c = asarray(c)
+        m = int(np.floor((len(c) - 1) * 0.5))
+    c = np.asarray(c)
     return pade(c[::-1], m)
 
 
 def test_pade():
-    cof = array(([1.0, 1.0, 1.0 / 2, 1. / 6, 1. / 24]))
+    cof = np.array(([1.0, 1.0, 1.0 / 2, 1. / 6, 1. / 24]))
     p, q = pade(cof, 2)
     t = arange(0, 2, 0.1)
-    assert(all(abs(p(t) / q(t) - exp(t)) < 0.3))
+    assert(np.all(abs(p(t) / q(t) - np.exp(t)) < 0.3))
 
 
 def padefitlsq(fun, m, k, a=-1, b=1, trace=False, x=None, end_points=True):
@@ -1782,9 +1786,9 @@ def padefitlsq(fun, m, k, a=-1, b=1, trace=False, x=None, end_points=True):
     poly1d([ 0.01443847,  0.128842  ,  0.55284547,  0.99999962])
     poly1d([-0.0049658 ,  0.07610473, -0.44716929,  1.        ])
 
-    >>> x = np.linspace(0,4)
-    >>> h = plt.plot(x, polyval(c1,x)/polyval(c2,x),'g')
-    >>> h = plt.plot(x, np.exp(x), 'r')
+    x = np.linspace(0,4)
+    h = plt.plot(x, polyval(c1,x)/polyval(c2,x),'g')
+    h = plt.plot(x, np.exp(x), 'r')
 
     See also
     --------
@@ -1823,34 +1827,33 @@ def padefitlsq(fun, m, k, a=-1, b=1, trace=False, x=None, end_points=True):
         fs = fun
         n = len(fs)
         if n < npt:
-            warnings.warn(
-                'Check the result! ' +
-                'Number of function values should be at least: %d' % npt)
+            warnings.warn('Check the result! Number of function values ' +
+                          'should be at least: %d' % npt)
 
     if trace:
         plt.plot(x, fs, '+')
 
-    wt = ones((npt))
-    ee = ones((npt))
+    wt = np.ones((npt))
+    ee = np.ones((npt))
     mad = 0
 
-    u = zeros((npt, ncof))
-    for ix in xrange(MAXIT):
+    u = np.zeros((npt, ncof))
+    for ix in range(MAXIT):
         # Set up design matrix for least squares fit.
         pow1 = wt
-        bb = pow1 * (fs + abs(mad) * sign(ee))
+        bb = pow1 * (fs + abs(mad) * np.sign(ee))
 
-        for jx in xrange(m + 1):
+        for jx in range(m + 1):
             u[:, jx] = pow1
             pow1 = pow1 * x
 
         pow1 = -bb
-        for jx in xrange(m + 1, ncof):
+        for jx in range(m + 1, ncof):
             pow1 = pow1 * x
             u[:, jx] = pow1
 
-        [u1, w, v] = linalg.svd(u, full_matrices=False)
-        cof = where(w == 0, 0.0, np.dot(bb, u1) / w)
+        [u1, w, v] = np.linalg.svd(u, full_matrices=False)
+        cof = np.where(w == 0, 0.0, np.dot(bb, u1) / w)
         cof = np.dot(cof, v)
 
         # Tabulate the deviations and revise the weights
@@ -1874,10 +1877,10 @@ def padefitlsq(fun, m, k, a=-1, b=1, trace=False, x=None, end_points=True):
 
 
 def main():
-
+    exp = np.exp
     [c1, c2] = padefitlsq(exp, 3, 3, 0, 2)
 
-    x = linspace(0, 4)
+    x = np.linspace(0, 4)
     plt.plot(x, polyval(c1, x) / polyval(c2, x), 'g')
     plt.plot(x, exp(x), 'r')
 
@@ -1888,15 +1891,10 @@ def main():
     _pr = polyreloc(p, 2)
     _pd = polyder(p)
     _st = poly2str(p)
-    c = poly1d(
-        1. /
-        sp.gamma(
-            np.r_[
-                6 +
-                1:0:-
-                1]))  # polynomial coeff exponential function
+    # polynomial coeff exponential function:
+    c = poly1d(1. / sp.gamma(np.r_[6 + 1:0:-1]))
     [p, q] = padefit(c)
-    x = linspace(0, 4)
+    x = np.linspace(0, 4)
     plt.plot(x, c(x), x, p(x) / q(x), 'g-', x, exp(x), 'r.')
     plt.close()
     x = arange(4)
@@ -1907,7 +1905,7 @@ def main():
     b = 2
     ck = chebfit(exp, 6, a, b)
     _t = chebval(0, ck, a, b)
-    x = linspace(0, 2, 6)
+    x = np.linspace(0, 2, 6)
     plt.plot(x, exp(x), 'r', x, chebval(x, ck, a, b), 'g.')
     # x1 = chebroot(9).'*(b-a)/2+(b+a)/2 ;
     # ck1 =chebfit([x1 exp(x1)],9,a,b);
@@ -1933,7 +1931,7 @@ def test_polydeg():
     n = polydeg(x, y)
     # n = 2
     p = orthofit(x, y, n)
-    xi = linspace(x.min(), x.max())
+    xi = np.linspace(x.min(), x.max())
     ys0 = orthoval(p, x)
     ys = orthoval(p, xi)
 
@@ -1948,7 +1946,8 @@ def test_polydeg():
 def test_docstrings():
     import doctest
     print('Testing docstrings in %s' % __file__)
-    doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
+    options = doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS
+    doctest.testmod(optionflags=options, verbose=False)
 
 
 def chebvandernd(deg, *xi):
@@ -1989,37 +1988,40 @@ def chebvandernd(deg, *xi):
     -------
     vander : ndarray
         The shape of the returned matrix is ``x1.shape + (order,)``, where
-        :math:`order = (deg[0]+1)*(deg([1]+1)*...*(deg[n-1]+1)`.  The dtype will
-        be the same as the converted `x1`, `x2`, ... `xn`.
+        :math:`order = (deg[0]+1)*(deg([1]+1)*...*(deg[n-1]+1)`.  The dtype
+        will be the same as the converted `x1`, `x2`, ... `xn`.
 
     See Also
     --------
     chebvander, chebvalnd, chebfitnd
     """
     ideg = [int(d) for d in deg]
-    is_valid = np.array([id == d and id >= 0 for id, d in zip(ideg, deg)])
+    is_valid = np.array([di == d and di >= 0 for di, d in zip(ideg, deg)])
     if np.any(is_valid != 1):
         raise ValueError("degrees must be non-negative integers")
     ndim = len(xi)
-    if len(ideg)!=ndim:
-        raise ValueError('length of deg must be the same as number of dimensions')
+    if len(ideg) != ndim:
+        msg = 'length of deg must be the same as number of dimensions'
+        raise ValueError(msg)
 
     xi = np.array(xi, copy=0) + 0.0
     chebvander = np.polynomial.chebyshev.chebvander
     shape0 = xi[0].shape
     s0 = (1,) * ndim
     vxi = [chebvander(x, d).reshape(shape0 + s0[:i] + (-1,) + s0[i + 1::])
-            for i, (d, x) in enumerate(zip(ideg, xi))]
+           for i, (d, x) in enumerate(zip(ideg, xi))]
 
     v = reduce(np.multiply, vxi)
 
     return v.reshape(v.shape[:-ndim] + (-1,))
 
+
 def chebfitnd(xi, f, deg, rcond=None, full=False, w=None):
     """
     Least squares fit of Chebyshev series to N-dimensional data.
     Return the coefficients of a Chebyshev series of degree `deg` that is the
-    least squares fit to the data values `f` given at points `x1`, `x2`,..., `xn`
+    least squares fit to the data values `f` given at points
+    `x1`, `x2`,..., `xn`
 
     The fitted polynomial(s) are in the form
     .. math::  p(x,y) = c_00 + c_11 * T_1(x)*T_1(y) + ..c_ij * T_i(x)*T_j(y).
@@ -2033,7 +2035,8 @@ def chebfitnd(xi, f, deg, rcond=None, full=False, w=None):
     f : array_like
         function values at the sample points ``(x1[i], x2[i], ..., xn[i])``.
     deg : list
-        Degrees of the fitting series in the x1, x2, ..., xn directions, respectively.
+        Degrees of the fitting series in the x1, x2, ..., xn directions,
+        respectively.
     rcond : float, optional
         Relative condition number of the fit. Singular values smaller than
         this relative to the largest singular value will be ignored. The
@@ -2103,7 +2106,7 @@ def chebfitnd(xi, f, deg, rcond=None, full=False, w=None):
     Examples
     --------
     """
-    xi_ = np.array(xi, copy=0) + 0.0
+    # xi = np.array(xi, copy=0) + 0.0
     z = np.array(f)
     degrees = np.asarray(deg, dtype=int)
     orders = degrees + 1
@@ -2112,7 +2115,7 @@ def chebfitnd(xi, f, deg, rcond=None, full=False, w=None):
     ndims = np.array([x.ndim for x in xi])
     ndim = len(ndims)
     sizes = np.array([x.size for x in xi])
-    if np.any(ndims!=ndim) or z.ndim!=ndim:
+    if np.any(ndims != ndim) or z.ndim != ndim:
         raise TypeError("expected %dD array for x1, x2,...,xn and f" % ndim)
     if np.any(sizes == 0):
         raise TypeError("expected non-empty vector for xi")
@@ -2148,13 +2151,15 @@ def chebfitnd(xi, f, deg, rcond=None, full=False, w=None):
     else:
         return c
 
+
 def chebvalnd(c, *xi):
     """
     Evaluate a N-D Chebyshev series at points (x1, x2, ..., xn).
 
     This function returns the values:
 
-    .. math:: p(x1,x2,...,xn) = \\sum_{i,j,...,k} c_{i,j,...,k} * T_i(x1) * T_j(x2)*...* T_k(xn)
+    .. math:: p(x1,x2,...,xn) =
+            \\sum_{i,j,...,k} c_{i,j,...,k} * T_i(x1) * T_j(x2)*...* T_k(xn)
 
     The parameters `x1`, `x2`, ...., `xn` are converted to arrays only if
     they are tuples or a lists, otherwise they are treated as a scalars and
@@ -2171,14 +2176,14 @@ def chebvalnd(c, *xi):
     c : array_like
         Array of coefficients ordered so that the coefficient of the term of
         multi-degree i,j,...,k is contained in ``c[i,j,...,k]``. If `c` has
-        dimension greater than N the remaining indices enumerate multiple sets of
-        coefficients.
+        dimension greater than N the remaining indices enumerate multiple sets
+        of coefficients.
     x1, x2,..., xn : array_like, compatible object
         The N dimensional series is evaluated at the points
         `(x1, x2,...,xn)`, where `x1`, `x2`,..., `xn` must have the same shape.
-        If any of `x1`, `x2`, ..., `xn` is a list or tuple, it is first converted
-        to an ndarray, otherwise it is left unchanged and if it isn't an
-        ndarray it is  treated as a scalar.
+        If any of `x1`, `x2`, ..., `xn` is a list or tuple, it is first
+        converted to an ndarray, otherwise it is left unchanged and if it isn't
+        an ndarray it is  treated as a scalar.
 
     Returns
     -------
@@ -2194,11 +2199,12 @@ def chebvalnd(c, *xi):
         xi = np.array(xi, copy=0)
     except:
         raise ValueError('x, y, z are incompatible')
-    chebval =  np.polynomial.chebyshev.chebval
+    chebval = np.polynomial.chebyshev.chebval
     c = chebval(xi[0], c)
     for x in xi[1:]:
         c = chebval(x, c, tensor=False)
     return c
+
 
 def chebgridnd(c, *xi):
     """
@@ -2212,8 +2218,8 @@ def chebgridnd(c, *xi):
     `a` from `x1`, `b` from `x2`, and so on. The resulting points form
     a grid with `x1` in the first dimension, `x2` in the second, and so on.
 
-    The parameters `x1`, `x2`, ... and `xn` are converted to arrays only if they
-    are tuples or a lists, otherwise they are treated as a scalars. In
+    The parameters `x1`, `x2`, ... and `xn` are converted to arrays only if
+    they are tuples or a lists, otherwise they are treated as a scalars. In
     either case, either `x1`, `x2`,... and `xn` or their elements must support
     multiplication and addition both with themselves and with the elements
     of `c`.
@@ -2247,26 +2253,25 @@ def chebgridnd(c, *xi):
     --------
     chebval, chebvalnd, chebfitnd
     """
-    chebval =  np.polynomial.chebyshev.chebval
+    chebval = np.polynomial.chebyshev.chebval
     for x in xi:
         c = chebval(x, c)
     return c
 
-def test_chebfit1d():
-    n = 63
-    x = chebroot(n=64, kind=1)
 
+def test_chebfit1d():
     def f(x):
         return np.exp(-x**2)
 
-    z = f(x)
+    # x = chebroot(n=64, kind=1)
+    # z = f(x)
 
     c = chebfit(f, n=64)[::-1]
 
     xi = np.linspace(-1, 1, 151)
     zi = np.polynomial.chebyshev.chebval(xi, c)
 
-    #plt.plot(xi, zi,'.', xi, f(xi))
+    # plt.plot(xi, zi,'.', xi, f(xi))
     plt.semilogy(xi, np.abs(zi-f(xi)))
     plt.show('hold')
 
@@ -2275,29 +2280,31 @@ def test_chebfit2d():
     n = 3
     xorder, yorder = n-1, n-1
     x = chebroot(n=n, kind=1)
-    xgrid, ygrid = meshgrid(x, x)
+    xgrid, ygrid = np.meshgrid(x, x)
+
     def f(x, y):
         return np.exp(-x**2-6*y**2)
     zgrid = f(xgrid, ygrid)
 
-    #v2d = np.polynomial.chebyshev.chebvander2d(xgrid, ygrid, [xorder,yorder]).reshape((-1, (xorder+1)*(yorder+1)))
-    #coeff, residuals, rank, s = np.linalg.lstsq(v2d, zgrid.ravel())
-    #doeff = coeff.reshape(xorder+1,yorder+1)
-    dcoeff2 = chebfitnd((xgrid, ygrid), zgrid, [xorder,yorder])
-    dcoeff = chebfit_dct(f, n=(xorder+1,yorder+1))
+    # v2d = np.polynomial.chebyshev.chebvander2d(xgrid, ygrid,
+    #                   [xorder,yorder]).reshape((-1, (xorder+1)*(yorder+1)))
+    # coeff, residuals, rank, s = np.linalg.lstsq(v2d, zgrid.ravel())
+    # doeff = coeff.reshape(xorder+1,yorder+1)
+    _dcoeff2 = chebfitnd((xgrid, ygrid), zgrid, [xorder, yorder])
+    dcoeff = chebfit_dct(f, n=(xorder+1, yorder+1))
 
     xi = np.linspace(-1, 1, 151)
-    Xi,Yi = np.meshgrid(xi, xi)
+    Xi, Yi = np.meshgrid(xi, xi)
     Zi = f(Xi, Yi)
     zzi = chebvalnd(dcoeff, Xi, Yi)
-    devi = Zi - zzi
+    _devi = Zi - zzi
     # plot residuals
-    #zz = np.polynomial.chebyshev.chebval2d(xgrid, ygrid, dcoeff)
+    # zz = np.polynomial.chebyshev.chebval2d(xgrid, ygrid, dcoeff)
     zz = chebvalnd(dcoeff, xgrid, ygrid)
     dev = zgrid - zz
-    #plt.spy(np.abs(dcoeff)>1e-13)
+    # plt.spy(np.abs(dcoeff)>1e-13)
     plt.contourf(xgrid, ygrid, np.abs(dev))
-    #plt.contourf(Xi, Yi, np.abs(devi))
+    # plt.contourf(Xi, Yi, np.abs(devi))
     plt.colorbar()
     # plt.semilogy(np.abs(devi.ravel()))
     plt.show('hold')
@@ -2307,6 +2314,6 @@ if __name__ == '__main__':
     if False:  # True: #
         main()
     else:
-        test_chebfit2d()
-        # test_docstrings()
+        # test_chebfit2d()
+        test_docstrings()
         # test_polydeg()

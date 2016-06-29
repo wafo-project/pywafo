@@ -1,11 +1,10 @@
 # Travis configuration file using the build matrix feature
 # Read more under http://docs.travis-ci.com/user/build-configuration/
 # THIS SCRIPT IS SUPPOSED TO BE AN EXAMPLE. MODIFY IT ACCORDING TO YOUR NEEDS!
-#sudo: true
+sudo: true
 language: python
 python:
   - 2.7
-  - 3.3
   - 3.4
   - 3.5
 notifications:
@@ -32,10 +31,12 @@ before_install:
   - conda config --add channels https://conda.anaconda.org/omnia
   - conda config --add channels https://conda.anaconda.org/pbrod
   - source activate condaenv
+  - sudo apt-get update
   - sudo apt-get install gfortran
 # Install packages
 install:
-  - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy pytest numdifftools matplotlib nose
+  - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy nose pytest matplotlib pytest-pep8 pytest-cov mpmath pillow
+  - pip install numdifftools
   - pip install coveralls
   - pip install codecov
   - python setup.py build
@@ -43,10 +44,14 @@ install:
 #  - conda build conda_recipe
 #  - conda install wafo --use-local
 before_script:
+  - "export DISPLAY=:99.0"
+  - "sh -e /etc/init.d/xvfb start"
+  - sleep 3 # give xvfb some time to start
   - git config --global user.email "per.andreas.brodtkorb@gmail.com"
   - git config --global user.name "pbrod"
 script:
-  - coverage run --source=wafo setup.py test
+   - coverage run --source=wafo setup.py test
+#   - py.test wafo --cov --pep8 --doctest-modules
 after_success:
   - coveralls
   - codecov
