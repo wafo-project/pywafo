@@ -212,6 +212,66 @@ def romberg(fun, a, b, releps=1e-3, abseps=1e-3):
     return res, abserr
 
 
+def _h_roots_newton(n, releps=3e-14, max_iter=10):
+    C = [9.084064e-01, 5.214976e-02, 2.579930e-03, 3.986126e-03]
+    # PIM4=0.7511255444649425
+    PIM4 = np.pi ** (-1. / 4)
+
+    # The roots are symmetric about the origin, so we have to
+    # find only half of them.
+    m = int(np.fix((n + 1) / 2))
+
+    # Initial approximations to the roots go into z.
+    anu = 2.0 * n + 1
+    rhs = np.arange(3, 4 * m, 4) * np.pi / anu
+    r3 = rhs ** (1. / 3)
+    r2 = r3 ** 2
+    theta = r3 * (C[0] + r2 * (C[1] + r2 * (C[2] + r2 * C[3])))
+    z = sqrt(anu) * np.cos(theta)
+
+    L = zeros((3, len(z)))
+    k0 = 0
+    kp1 = 1
+    for _its in range(max_iter):
+        # Newtons method carried out simultaneously on the roots.
+        L[k0, :] = 0
+        L[kp1, :] = PIM4
+
+        for j in range(1, n + 1):
+            # Loop up the recurrence relation to get the Hermite
+            # polynomials evaluated at z.
+            km1 = k0
+            k0 = kp1
+            kp1 = np.mod(kp1 + 1, 3)
+
+            L[kp1, :] = (z * sqrt(2 / j) * L[k0, :] -
+                         np.sqrt((j - 1) / j) * L[km1, :])
+
+        # L now contains the desired Hermite polynomials.
+        # We next compute pp, the derivatives,
+        # by the relation (4.5.21) using p2, the polynomials
+        # of one lower order.
+
+        pp = sqrt(2 * n) * L[k0, :]
+        dz = L[kp1, :] / pp
+
+        z = z - dz  # Newtons formula.
+
+        if not np.any(abs(dz) > releps):
+            break
+    else:
+        warnings.warn('too many iterations!')
+    w = 2. / pp ** 2
+    return _expand_roots(z, w, n, m)
+#     x = np.empty(n)
+#     w = np.empty(n)
+#     x[0:m] = z      # Store the root
+#     x[n - 1:n - m - 1:-1] = -z     # and its symmetric counterpart.
+#     w[0:m] = 2. / pp ** 2    # Compute the weight
+#     w[n - 1:n - m - 1:-1] = w[0:m]  # and its symmetric counterpart.
+#     return x, w
+
+
 def h_roots(n, method='newton'):
     '''
     Returns the roots (x) of the nth order Hermite polynomial,
@@ -257,66 +317,59 @@ def h_roots(n, method='newton'):
 
     if not method.startswith('n'):
         return ort.h_roots(n)
+    return _h_roots_newton(n)
+
+
+def _j_roots_newton(n, alpha, beta, releps=3e-14, max_iter=10):
+    # Initial approximations to the roots go into z.
+    alfbet = alpha + beta
+
+    z = np.cos(np.pi * (np.arange(1, n + 1) - 0.25 + 0.5 * alpha) /
+               (n + 0.5 * (alfbet + 1)))
+
+    L = zeros((3, len(z)))
+    k0 = 0
+    kp1 = 1
+    for _its in range(max_iter):
+        # Newton's method carried out simultaneously on the roots.
+        tmp = 2 + alfbet
+        L[k0, :] = 1
+        L[kp1, :] = (alpha - beta + tmp * z) / 2
+
+        for j in range(2, n + 1):
+            # Loop up the recurrence relation to get the Jacobi
+            # polynomials evaluated at z.
+            km1 = k0
+            k0 = kp1
+            kp1 = np.mod(kp1 + 1, 3)
+
+            a = 2. * j * (j + alfbet) * tmp
+            tmp = tmp + 2
+            c = 2 * (j - 1 + alpha) * (j - 1 + beta) * tmp
+            b = (tmp - 1) * (alpha ** 2 - beta ** 2 + tmp * (tmp - 2) * z)
+
+            L[kp1, :] = (b * L[k0, :] - c * L[km1, :]) / a
+
+        # L now contains the desired Jacobi polynomials.
+        # We next compute pp, the derivatives with a standard
+        # relation involving the polynomials of one lower order.
+
+        pp = ((n * (alpha - beta - tmp * z) * L[kp1, :] +
+              2 * (n + alpha) * (n + beta) * L[k0, :]) /
+              (tmp * (1 - z ** 2)))
+        dz = L[kp1, :] / pp
+        z = z - dz  # Newton's formula.
+
+        if not any(abs(dz) > releps * abs(z)):
+            break
     else:
-        sqrt = np.sqrt
-        max_iter = 10
-        releps = 3e-14
-        C = [9.084064e-01, 5.214976e-02, 2.579930e-03, 3.986126e-03]
-        # PIM4=0.7511255444649425
-        PIM4 = np.pi ** (-1. / 4)
+        warnings.warn('too many iterations in jrule')
 
-        # The roots are symmetric about the origin, so we have to
-        # find only half of them.
-        m = int(np.fix((n + 1) / 2))
-
-        # Initial approximations to the roots go into z.
-        anu = 2.0 * n + 1
-        rhs = np.arange(3, 4 * m, 4) * np.pi / anu
-        r3 = rhs ** (1. / 3)
-        r2 = r3 ** 2
-        theta = r3 * (C[0] + r2 * (C[1] + r2 * (C[2] + r2 * C[3])))
-        z = sqrt(anu) * np.cos(theta)
-
-        L = zeros((3, len(z)))
-        k0 = 0
-        kp1 = 1
-        for _its in range(max_iter):
-            # Newtons method carried out simultaneously on the roots.
-            L[k0, :] = 0
-            L[kp1, :] = PIM4
-
-            for j in range(1, n + 1):
-                # Loop up the recurrence relation to get the Hermite
-                # polynomials evaluated at z.
-                km1 = k0
-                k0 = kp1
-                kp1 = np.mod(kp1 + 1, 3)
-
-                L[kp1, :] = (z * sqrt(2 / j) * L[k0, :] -
-                             np.sqrt((j - 1) / j) * L[km1, :])
-
-            # L now contains the desired Hermite polynomials.
-            # We next compute pp, the derivatives,
-            # by the relation (4.5.21) using p2, the polynomials
-            # of one lower order.
-
-            pp = sqrt(2 * n) * L[k0, :]
-            dz = L[kp1, :] / pp
-
-            z = z - dz  # Newtons formula.
-
-            if not np.any(abs(dz) > releps):
-                break
-        else:
-            warnings.warn('too many iterations!')
-
-        x = np.empty(n)
-        w = np.empty(n)
-        x[0:m] = z      # Store the root
-        x[n - 1:n - m - 1:-1] = -z     # and its symmetric counterpart.
-        w[0:m] = 2. / pp ** 2    # Compute the weight
-        w[n - 1:n - m - 1:-1] = w[0:m]  # and its symmetric counterpart.
-        return x, w
+    x = z  # Store the root and the weight.
+    f = (sp.gammaln(alpha + n) + sp.gammaln(beta + n) -
+         sp.gammaln(n + 1) - sp.gammaln(alpha + beta + n + 1))
+    w = (np.exp(f) * tmp * 2 ** alfbet / (pp * L[k0, :]))
+    return x, w
 
 
 def j_roots(n, alpha, beta, method='newton'):
@@ -366,61 +419,8 @@ def j_roots(n, alpha, beta, method='newton'):
     '''
 
     if not method.startswith('n'):
-        [x, w] = ort.j_roots(n, alpha, beta)
-    else:
-        max_iter = 10
-        releps = 3e-14
-
-        # Initial approximations to the roots go into z.
-        alfbet = alpha + beta
-
-        z = np.cos(np.pi * (np.arange(1, n + 1) - 0.25 + 0.5 * alpha) /
-                   (n + 0.5 * (alfbet + 1)))
-
-        L = zeros((3, len(z)))
-        k0 = 0
-        kp1 = 1
-        for _its in range(max_iter):
-            # Newton's method carried out simultaneously on the roots.
-            tmp = 2 + alfbet
-            L[k0, :] = 1
-            L[kp1, :] = (alpha - beta + tmp * z) / 2
-
-            for j in range(2, n + 1):
-                # Loop up the recurrence relation to get the Jacobi
-                # polynomials evaluated at z.
-                km1 = k0
-                k0 = kp1
-                kp1 = np.mod(kp1 + 1, 3)
-
-                a = 2. * j * (j + alfbet) * tmp
-                tmp = tmp + 2
-                c = 2 * (j - 1 + alpha) * (j - 1 + beta) * tmp
-                b = (tmp - 1) * (alpha ** 2 - beta ** 2 + tmp * (tmp - 2) * z)
-
-                L[kp1, :] = (b * L[k0, :] - c * L[km1, :]) / a
-
-            # L now contains the desired Jacobi polynomials.
-            # We next compute pp, the derivatives with a standard
-            # relation involving the polynomials of one lower order.
-
-            pp = ((n * (alpha - beta - tmp * z) * L[kp1, :] +
-                  2 * (n + alpha) * (n + beta) * L[k0, :]) /
-                  (tmp * (1 - z ** 2)))
-            dz = L[kp1, :] / pp
-            z = z - dz  # Newton's formula.
-
-            if not any(abs(dz) > releps * abs(z)):
-                break
-        else:
-            warnings.warn('too many iterations in jrule')
-
-        x = z  # %Store the root and the weight.
-        f = (sp.gammaln(alpha + n) + sp.gammaln(beta + n) -
-             sp.gammaln(n + 1) - sp.gammaln(alpha + beta + n + 1))
-        w = (np.exp(f) * tmp * 2 ** alfbet / (pp * L[k0, :]))
-
-    return x, w
+        return ort.j_roots(n, alpha, beta)
+    return _j_roots_newton(n, alpha, beta)
 
 
 def la_roots(n, alpha=0, method='newton'):
@@ -471,60 +471,167 @@ def la_roots(n, alpha=0, method='newton'):
 
     if not method.startswith('n'):
         return ort.la_roots(n, alpha)
+    return _la_roots_newton(n, alpha)
+
+
+def _la_roots_newton(n, alpha, releps=3e-14, max_iter=10):
+
+    C = [9.084064e-01, 5.214976e-02, 2.579930e-03, 3.986126e-03]
+
+    # Initial approximations to the roots go into z.
+    anu = 4.0 * n + 2.0 * alpha + 2.0
+    rhs = np.arange(4 * n - 1, 2, -4) * np.pi / anu
+    r3 = rhs ** (1. / 3)
+    r2 = r3 ** 2
+    theta = r3 * (C[0] + r2 * (C[1] + r2 * (C[2] + r2 * C[3])))
+    z = anu * np.cos(theta) ** 2
+
+    dz = zeros(len(z))
+    L = zeros((3, len(z)))
+    Lp = zeros((1, len(z)))
+    pp = zeros((1, len(z)))
+    k0 = 0
+    kp1 = 1
+    k = slice(len(z))
+    for _its in range(max_iter):
+        # Newton's method carried out simultaneously on the roots.
+        L[k0, k] = 0.
+        L[kp1, k] = 1.
+
+        for jj in range(1, n + 1):
+            # Loop up the recurrence relation to get the Laguerre
+            # polynomials evaluated at z.
+            km1 = k0
+            k0 = kp1
+            kp1 = np.mod(kp1 + 1, 3)
+
+            L[kp1, k] = ((2 * jj - 1 + alpha - z[k]) * L[
+                         k0, k] - (jj - 1 + alpha) * L[km1, k]) / jj
+        # end
+        # L now contains the desired Laguerre polynomials.
+        # We next compute pp, the derivatives with a standard
+        #  relation involving the polynomials of one lower order.
+
+        Lp[k] = L[k0, k]
+        pp[k] = (n * L[kp1, k] - (n + alpha) * Lp[k]) / z[k]
+
+        dz[k] = L[kp1, k] / pp[k]
+        z[k] = z[k] - dz[k]  # % Newton?s formula.
+        # k = find((abs(dz) > releps.*z))
+
+        if not np.any(abs(dz) > releps):
+            break
     else:
-        max_iter = 10
-        releps = 3e-14
-        C = [9.084064e-01, 5.214976e-02, 2.579930e-03, 3.986126e-03]
+        warnings.warn('too many iterations!')
 
-        # Initial approximations to the roots go into z.
-        anu = 4.0 * n + 2.0 * alpha + 2.0
-        rhs = np.arange(4 * n - 1, 2, -4) * np.pi / anu
-        r3 = rhs ** (1. / 3)
-        r2 = r3 ** 2
-        theta = r3 * (C[0] + r2 * (C[1] + r2 * (C[2] + r2 * C[3])))
-        z = anu * np.cos(theta) ** 2
+    x = z
+    w = -np.exp(sp.gammaln(alpha + n) - sp.gammaln(n)) / (pp * n * Lp)
+    return x, w
 
-        dz = zeros(len(z))
-        L = zeros((3, len(z)))
-        Lp = zeros((1, len(z)))
-        pp = zeros((1, len(z)))
-        k0 = 0
-        kp1 = 1
-        k = slice(len(z))
-        for _its in range(max_iter):
-            # Newton's method carried out simultaneously on the roots.
-            L[k0, k] = 0.
-            L[kp1, k] = 1.
 
-            for jj in range(1, n + 1):
-                # Loop up the recurrence relation to get the Laguerre
-                # polynomials evaluated at z.
-                km1 = k0
-                k0 = kp1
-                kp1 = np.mod(kp1 + 1, 3)
+def _p_roots_newton_start(n):
+    m = int(np.fix((n + 1) / 2))
+    mm = 4 * m - 1
+    t = (np.pi / (4 * n + 2)) * np.arange(3, mm + 1, 4)
+    nn = 1 - (1 - 1 / n) / (8 * n * n)
+    xo = nn * np.cos(t)
+    return m, xo
 
-                L[kp1, k] = ((2 * jj - 1 + alpha - z[k]) * L[
-                             k0, k] - (jj - 1 + alpha) * L[km1, k]) / jj
-            # end
-            # L now contains the desired Laguerre polynomials.
-            # We next compute pp, the derivatives with a standard
-            #  relation involving the polynomials of one lower order.
 
-            Lp[k] = L[k0, k]
-            pp[k] = (n * L[kp1, k] - (n + alpha) * Lp[k]) / z[k]
+def _p_roots_newton(n, ):
+    """
+    Algorithm given by Davis and Rabinowitz in 'Methods
+    of Numerical Integration', page 365, Academic Press, 1975.
+    """
+    m, xo = _p_roots_newton_start(n)
 
-            dz[k] = L[kp1, k] / pp[k]
-            z[k] = z[k] - dz[k]  # % Newton?s formula.
-            # k = find((abs(dz) > releps.*z))
+    e1 = n * (n + 1)
+    for _j in range(2):
+        pkm1 = 1
+        pk = xo
+        for k in range(2, n + 1):
+            t1 = xo * pk
+            pkp1 = t1 - pkm1 - (t1 - pkm1) / k + t1
+            pkm1 = pk
+            pk = pkp1
 
-            if not np.any(abs(dz) > releps):
-                break
-        else:
-            warnings.warn('too many iterations!')
+        den = 1. - xo * xo
+        d1 = n * (pkm1 - xo * pk)
+        dpn = d1 / den
+        d2pn = (2. * xo * dpn - e1 * pk) / den
+        d3pn = (4. * xo * d2pn + (2 - e1) * dpn) / den
+        d4pn = (6. * xo * d3pn + (6 - e1) * d2pn) / den
+        u = pk / dpn
+        v = d2pn / dpn
+        h = -u * (1 + (.5 * u) * (v + u * (v * v - u * d3pn / (3 * dpn))))
+        p = pk + h * (dpn + (.5 * h) * (d2pn +
+                                        (h / 3) * (d3pn + .25 * h * d4pn)))
+        dp = dpn + h * (d2pn + (.5 * h) * (d3pn + h * d4pn / 3))
+        h = h - p / dp
+        xo = xo + h
 
-        x = z
-        w = -np.exp(sp.gammaln(alpha + n) - sp.gammaln(n)) / (pp * n * Lp)
-        return x, w
+    x = -xo - h
+    fx = d1 - h * e1 * (pk + (h / 2) * (dpn + (h / 3) *
+                                        (d2pn + (h / 4) *
+                                         (d3pn + (.2 * h) * d4pn))))
+    w = 2 * (1 - x ** 2) / (fx ** 2)
+    return _expand_roots(x, w, n, m)
+
+
+def _p_roots_newton1(n, releps=1e-15, max_iter=100):
+    m, xo = _p_roots_newton_start(n)
+    # Compute the zeros of the N+1 Legendre Polynomial
+    # using the recursion relation and the Newton-Raphson method
+
+    # Legendre-Gauss Polynomials
+    L = zeros((3, m))
+
+    # Derivative of LGP
+    Lp = zeros((m,))
+    dx = zeros((m,))
+
+    # Compute the zeros of the N+1 Legendre Polynomial
+    # using the recursion relation and the Newton-Raphson method
+
+    # Iterate until new points are uniformly within epsilon of old
+    # points
+    k = slice(m)
+    k0 = 0
+    kp1 = 1
+    for _ix in range(max_iter):
+        L[k0, k] = 1
+        L[kp1, k] = xo[k]
+
+        for jj in range(2, n + 1):
+            km1 = k0
+            k0 = kp1
+            kp1 = np.mod(k0 + 1, 3)
+            L[kp1, k] = ((2 * jj - 1) * xo[k] * L[
+                         k0, k] - (jj - 1) * L[km1, k]) / jj
+
+        Lp[k] = n * (L[k0, k] - xo[k] * L[kp1, k]) / (1 - xo[k] ** 2)
+
+        dx[k] = L[kp1, k] / Lp[k]
+        xo[k] = xo[k] - dx[k]
+        k, = np.nonzero((abs(dx) > releps * np.abs(xo)))
+        if len(k) == 0:
+            break
+    else:
+        warnings.warn('Too many iterations!')
+
+    x = -xo
+    w = 2. / ((1 - x ** 2) * (Lp ** 2))
+    return _expand_roots(x, w, n, m)
+
+
+def _expand_roots(x, w, n, m):
+    if (m + m) > n:
+        x[m - 1] = 0.0
+    if not ((m + m) == n):
+        m = m - 1
+    x = np.hstack((x, -x[m - 1::-1]))
+    w = np.hstack((w, w[m - 1::-1]))
+    return x, w
 
 
 def p_roots(n, method='newton', a=-1, b=1):
@@ -579,104 +686,10 @@ def p_roots(n, method='newton', a=-1, b=1):
     if not method.startswith('n'):
         x, w = ort.p_roots(n)
     else:
-
-        m = int(np.fix((n + 1) / 2))
-
-        mm = 4 * m - 1
-        t = (np.pi / (4 * n + 2)) * np.arange(3, mm + 1, 4)
-        nn = (1 - (1 - 1 / n) / (8 * n * n))
-        xo = nn * np.cos(t)
-
         if method.endswith('1'):
-
-            # Compute the zeros of the N+1 Legendre Polynomial
-            # using the recursion relation and the Newton-Raphson method
-
-            # Legendre-Gauss Polynomials
-            L = zeros((3, m))
-
-            # Derivative of LGP
-            Lp = zeros((m,))
-            dx = zeros((m,))
-
-            releps = 1e-15
-            max_iter = 100
-            # Compute the zeros of the N+1 Legendre Polynomial
-            # using the recursion relation and the Newton-Raphson method
-
-            # Iterate until new points are uniformly within epsilon of old
-            # points
-            k = slice(m)
-            k0 = 0
-            kp1 = 1
-            for _ix in range(max_iter):
-                L[k0, k] = 1
-                L[kp1, k] = xo[k]
-
-                for jj in range(2, n + 1):
-                    km1 = k0
-                    k0 = kp1
-                    kp1 = np.mod(k0 + 1, 3)
-                    L[kp1, k] = ((2 * jj - 1) * xo[k] * L[
-                                 k0, k] - (jj - 1) * L[km1, k]) / jj
-
-                Lp[k] = n * (L[k0, k] - xo[k] * L[kp1, k]) / (1 - xo[k] ** 2)
-
-                dx[k] = L[kp1, k] / Lp[k]
-                xo[k] = xo[k] - dx[k]
-                k, = np.nonzero((abs(dx) > releps * np.abs(xo)))
-                if len(k) == 0:
-                    break
-            else:
-                warnings.warn('Too many iterations!')
-
-            x = -xo
-            w = 2. / ((1 - x ** 2) * (Lp ** 2))
+            x, w = _p_roots_newton1(n)
         else:
-            # Algorithm given by Davis and Rabinowitz in 'Methods
-            # of Numerical Integration', page 365, Academic Press, 1975.
-
-            e1 = n * (n + 1)
-
-            for _j in range(2):
-                pkm1 = 1
-                pk = xo
-                for k in range(2, n + 1):
-                    t1 = xo * pk
-                    pkp1 = t1 - pkm1 - (t1 - pkm1) / k + t1
-                    pkm1 = pk
-                    pk = pkp1
-
-                den = 1. - xo * xo
-                d1 = n * (pkm1 - xo * pk)
-                dpn = d1 / den
-                d2pn = (2. * xo * dpn - e1 * pk) / den
-                d3pn = (4. * xo * d2pn + (2 - e1) * dpn) / den
-                d4pn = (6. * xo * d3pn + (6 - e1) * d2pn) / den
-                u = pk / dpn
-                v = d2pn / dpn
-                h = (-u * (1 + (.5 * u) * (v + u *
-                                           (v * v - u * d3pn / (3 * dpn)))))
-                p = (pk + h * (dpn + (.5 * h) * (d2pn + (h / 3) *
-                                                 (d3pn + .25 * h * d4pn))))
-                dp = dpn + h * (d2pn + (.5 * h) * (d3pn + h * d4pn / 3))
-                h = h - p / dp
-                xo = xo + h
-
-            x = -xo - h
-            fx = (d1 - h * e1 * (pk + (h / 2) *
-                                 (dpn + (h / 3) * (d2pn + (h / 4) *
-                                                   (d3pn + (.2 * h) * d4pn)))))
-            w = 2 * (1 - x ** 2) / (fx ** 2)
-
-        if (m + m) > n:
-            x[m - 1] = 0.0
-
-        if not ((m + m) == n):
-            m = m - 1
-
-        x = np.hstack((x, -x[m - 1::-1]))
-        w = np.hstack((w, w[m - 1::-1]))
+            x, w = _p_roots_newton(n)
 
     if (a != -1) | (b != 1):
         # Linear map from[-1,1] to [a,b]
