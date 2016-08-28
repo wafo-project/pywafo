@@ -76,7 +76,7 @@ def clencurt(fun, a, b, n0=5, trace=False, args=()):
     af = a.ravel()
     bf = b.ravel()
 
-    Na = np.prod(a_shape)
+    na = np.prod(a_shape)
 
     s = np.r_[0:n + 1]
     s2 = np.r_[0:n + 1:2]
@@ -121,7 +121,7 @@ def clencurt(fun, a, b, n0=5, trace=False, args=()):
 
     abserr = (bf - af) * np.abs(c[n / 2, :])
 
-    if Na > 1:
+    if na > 1:
         abserr = np.reshape(abserr, a_shape)
         Q = np.reshape(Q, a_shape)
     return Q, abserr
@@ -162,32 +162,32 @@ def romberg(fun, a, b, releps=1e-3, abseps=1e-3):
     True
     '''
     h = b - a
-    hMin = 1.0e-9
+    h_min = 1.0e-9
     # Max size of extrapolation table
-    tableLimit = max(min(np.round(np.log2(h / hMin)), 30), 3)
+    table_limit = max(min(np.round(np.log2(h / h_min)), 30), 3)
 
-    rom = zeros((2, tableLimit))
+    rom = zeros((2, table_limit))
 
     rom[0, 0] = h * (fun(a) + fun(b)) / 2
     ipower = 1
-    fp = ones(tableLimit) * 4
+    fp = ones(table_limit) * 4
 
-    # Ih1 = 0
-    Ih2 = 0.
-    Ih4 = rom[0, 0]
-    abserr = Ih4
+    # ih1 = 0
+    ih2 = 0.
+    ih4 = rom[0, 0]
+    abserr = ih4
     # epstab = zeros(1,decdigs+7)
     # newflg = 1
-    # [res,abserr,epstab,newflg] = dea(newflg,Ih4,abserr,epstab)
+    # [res,abserr,epstab,newflg] = dea(newflg,ih4,abserr,epstab)
     two = 1
     one = 0
-    for i in range(1, tableLimit):
+    for i in range(1, table_limit):
         h *= 0.5
-        Un5 = np.sum(fun(a + np.arange(1, 2 * ipower, 2) * h)) * h
+        un5 = np.sum(fun(a + np.arange(1, 2 * ipower, 2) * h)) * h
 
         #     trapezoidal approximations
-        # T2n = 0.5 * (Tn + Un) = 0.5*Tn + Un5
-        rom[two, 0] = 0.5 * rom[one, 0] + Un5
+        # T2n = 0.5 * (Tn + Un) = 0.5*Tn + un5
+        rom[two, 0] = 0.5 * rom[one, 0] + un5
 
         fp[i] = 4 * fp[i - 1]
         #   Richardson extrapolation
@@ -195,13 +195,13 @@ def romberg(fun, a, b, releps=1e-3, abseps=1e-3):
             rom[two, k + 1] = (rom[two, k] +
                                (rom[two, k] - rom[one, k]) / (fp[k] - 1))
 
-        Ih1 = Ih2
-        Ih2 = Ih4
-        Ih4 = rom[two, i]
+        ih1 = ih2
+        ih2 = ih4
+        ih4 = rom[two, i]
 
         if (2 <= i):
-            res, abserr = dea3(Ih1, Ih2, Ih4)
-            # Ih4 = res
+            res, abserr = dea3(ih1, ih2, ih4)
+            # ih4 = res
             if (abserr <= max(abseps, releps * abs(res))):
                 break
 
@@ -887,7 +887,8 @@ class _Gaussq(object):
     qrule
     gaussq2d
     '''
-    def _get_dx(self, wfun, jacob, alpha, beta):
+    @staticmethod
+    def _get_dx(wfun, jacob, alpha, beta):
         if wfun in [1, 2, 3, 7]:
             dx = jacob
         elif wfun == 4:
@@ -904,9 +905,10 @@ class _Gaussq(object):
             raise ValueError('unknown option')
         return dx.ravel()
 
-    def _points_and_weights(self, gn, wfun, alpha, beta):
+    @staticmethod
+    def _points_and_weights(gn, wfun, alpha, beta):
         global _POINTS_AND_WEIGHTS
-        name = 'wfun%d_%d_%g_%g' % (wfun, gn, alpha, beta)
+        name = 'wfun{:d}_{:d}_{:g}_{:g}'.format(wfun, gn, alpha, beta)
         x_and_w = _POINTS_AND_WEIGHTS.setdefault(name, [])
         if len(x_and_w) == 0:
             x_and_w.extend(qrule(gn, wfun, alpha, beta))
@@ -930,7 +932,8 @@ class _Gaussq(object):
             plt.clf()
             plt.plot(np.hstack(self.x_trace), np.hstack(self.y_trace), '+')
 
-    def _get_jacob(self, wfun, A, B):
+    @staticmethod
+    def _get_jacob(wfun, A, B):
         if wfun in [2, 3]:
             nk = np.size(A)
             jacob = ones((nk, 1))
@@ -940,6 +943,7 @@ class _Gaussq(object):
                 jacob = jacob * 2
         return jacob
 
+    @staticmethod
     def _warn(self, k, a_shape):
         nk = len(k)
         if nk > 1:
@@ -952,7 +956,8 @@ class _Gaussq(object):
             tmptxt = 'Integral did not converge--singularity likely!'
         warnings.warn(tmptxt)
 
-    def _initialize(self, wfun, a, b, args):
+    @staticmethod
+    def _initialize(wfun, a, b, args):
         args = np.broadcast_arrays(*np.atleast_1d(a, b, *args))
         a_shape = args[0].shape
         args = [np.reshape(x, (-1, 1)) for x in args]
