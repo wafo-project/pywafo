@@ -7,7 +7,7 @@ import fractions
 import numpy as np
 from numpy import (
     meshgrid,
-    abs, amax, any, logical_and, arange, linspace, atleast_1d,
+    amax, logical_and, arange, linspace, atleast_1d,
     asarray, ceil, floor, frexp, hypot,
     sqrt, arctan2, sin, cos, exp, log, log1p, mod, diff,
     finfo, inf, pi, interp, isscalar, zeros, ones, linalg,
@@ -39,7 +39,7 @@ __all__ = ['now', 'spaceline', 'narg_smallest', 'args_flat', 'is_numlike',
            'betaloge', 'gravity', 'nextpow2', 'discretize', 'polar2cart',
            'cart2polar', 'meshgrid', 'ndgrid', 'trangood', 'tranproc',
            'plot_histgrm', 'num2pistr', 'test_docstrings', 'lazywhere',
-           'lazyselect'
+           'lazyselect',
            'piecewise',
            'valarray', 'check_random_state']
 
@@ -269,8 +269,8 @@ def lazyselect(condlist, choicelist, arrays, default=0):
     arrays = np.broadcast_arrays(*arrays)
     tcode = np.mintypecode([a.dtype.char for a in arrays])
     out = valarray(np.shape(arrays[0]), value=default, typecode=tcode)
-    for index in range(len(condlist)):
-        func, cond = choicelist[index], condlist[index]
+    for index, cond in enumerate(condlist):
+        func = choicelist[index]
         if np.all(cond is False):
             continue
         cond, _ = np.broadcast_arrays(cond, arrays[0])
@@ -669,8 +669,8 @@ class Bunch(object):
         self.__dict__.update(kwargs)
 
 
-def printf(format, *args):  # @ReservedAssignment
-    sys.stdout.write(format % args)
+def printf(format_, *args):
+    sys.stdout.write(format_ % args)
 
 
 def sub_dict_select(somedict, somekeys):
@@ -1612,8 +1612,8 @@ def mctp2rfc(fmM, fMm=None):
                     # end
                 # end
                 fx = 0.0
-                if (max(abs(e)) > 1e-6 and
-                        max(abs(NN)) > 1e-6 * max(MA[0], mA[0])):
+                if (max(np.abs(e)) > 1e-6 and
+                        max(np.abs(NN)) > 1e-6 * max(MA[0], mA[0])):
                     PMm = _get_PMm(AA1, MA, nA)
 
                     A = PMm
@@ -1722,7 +1722,7 @@ def _findrfc2(y, h, method=0):
                 t1, y1 = (t0, y0) if y0 > yi else (ti, yi)
 
         # Update y if y0 is a turning point
-        if abs(z0 - z1) == 2:
+        if np.abs(z0 - z1) == 2:
             j += 1
             t[j] = t0
 
@@ -1731,7 +1731,7 @@ def _findrfc2(y, h, method=0):
     # end
 
     # Update y if last y0 is greater than (or equal) threshold
-    if cmpfun1(h, abs(y0 - y[t[j]])):
+    if cmpfun1(h, np.abs(y0 - y[t[j]])):
         j += 1
         t[j] = t0
     return t[:j + 1]
@@ -1965,28 +1965,20 @@ def findtc(x_in, v=None, kind=None):
 
     first_is_down_crossing = (x[v_ind[0]] > x[v_ind[0] + 1])
     if first_is_down_crossing:
-        for i in range(n_tc):
-            # trough
-            j = 2 * i
-            ind[j] = x[v_ind[j] + 1:v_ind[j + 1] + 1].argmin()
-            # crest
-            ind[j + 1] = x[v_ind[j + 1] + 1:v_ind[j + 2] + 1].argmax()
+        f1, f2 = np.argmin, np.argmax
+    else:
+        f1, f2 = np.argmax, np.argmin
 
-        if (2 * n_tc + 1 < n_c) and (kind in (None, 'tw')):
-            # trough
-            ind[n_c - 2] = x[v_ind[n_c - 2] + 1:v_ind[n_c - 1]+1].argmin()
+    for i in range(n_tc):
+        # trough or crest
+        j = 2 * i
+        ind[j] = f1(x[v_ind[j] + 1:v_ind[j + 1] + 1])
+        # crest or trough
+        ind[j + 1] = f2(x[v_ind[j + 1] + 1:v_ind[j + 2] + 1])
 
-    else:  # the first is a up-crossing
-        for i in range(n_tc):
-            # crest
-            j = 2 * i
-            ind[j] = x[v_ind[j] + 1:v_ind[j + 1] + 1].argmax()
-            # trough
-            ind[j + 1] = x[v_ind[j + 1] + 1:v_ind[j + 2] + 1].argmin()
-
-        if (2 * n_tc + 1 < n_c) and (kind in (None, 'cw')):
-            # crest
-            ind[n_c - 2] = x[v_ind[n_c - 2] + 1:v_ind[n_c - 1]+1].argmax()
+    if (2 * n_tc + 1 < n_c) and (kind in (None, 'tw', 'cw')):
+        # trough or crest
+        ind[n_c - 2] = f1(x[v_ind[n_c - 2] + 1:v_ind[n_c - 1]+1])
 
     return v_ind[:n_c - 1] + ind + 1, v_ind
 
@@ -2081,7 +2073,7 @@ def findoutliers(x, zcrit=0.0, dcrit=None, ddcrit=None, verbose=False):
 
     def _find_consecutive_equal_values(dxn, zcrit):
 
-        mask_small = (abs(dxn) <= zcrit)
+        mask_small = (np.abs(dxn) <= zcrit)
         i_small = np.flatnonzero(mask_small)
         if verbose:
             if zcrit == 0.:
@@ -2130,7 +2122,7 @@ def findoutliers(x, zcrit=0.0, dcrit=None, ddcrit=None, verbose=False):
     indg, = nonzero(indg)
 
     if verbose:
-        print('Found the total of %d spurious points' % ind.size)
+        print('Found the total of %d spurious points' % np.size(ind))
 
     return ind, indg
 
@@ -2174,8 +2166,7 @@ def common_shape(*args, ** kwds):
     '''
     shape = kwds.get('shape')
     x0 = 1 if shape is None else np.ones(shape)
-    x1 = np.broadcast(x0, *args)
-    return tuple(x1.shape)
+    return tuple(np.broadcast(x0, *args).shape)
 
 
 def argsreduce(condition, * args):
@@ -2275,15 +2266,15 @@ def stirlerr(n):
     n500 = 500 < n1
     y[n500] = (S0 - S1 / nn[n500]) / n1[n500]
     n80 = logical_and(80 < n1, n1 <= 500)
-    if any(n80):
+    if np.any(n80):
         y[n80] = (S0 - (S1 - S2 / nn[n80]) / nn[n80]) / n1[n80]
     n35 = logical_and(35 < n1, n1 <= 80)
-    if any(n35):
+    if np.any(n35):
         nn35 = nn[n35]
         y[n35] = (S0 - (S1 - (S2 - S3 / nn35) / nn35) / nn35) / n1[n35]
 
     n15 = logical_and(15 < n1, n1 <= 35)
-    if any(n15):
+    if np.any(n15):
         nn15 = nn[n15]
         y[n15] = (
             S0 - (S1 - (S2 - (S3 - S4 / nn15) / nn15) / nn15) / nn15) / n1[n15]
@@ -2426,7 +2417,7 @@ def binomln(z, w):
     Example
     -------
 
-    >>> abs(binomln(3,2)- 1.09861229)<1e-7
+    >>> np.abs(binomln(3,2)- 1.09861229)<1e-7
     array([ True], dtype=bool)
 
     See also
@@ -2463,7 +2454,7 @@ def betaloge(z, w):
     Example
     -------
     >>> import wafo.misc as wm
-    >>> abs(wm.betaloge(3,2)+2.48490665)<1e-7
+    >>> np.abs(wm.betaloge(3,2)+2.48490665)<1e-7
     array([ True], dtype=bool)
 
     See also
@@ -2545,7 +2536,7 @@ def nextpow2(x):
     if (t > 1):
         f, n = frexp(t)
     else:
-        f, n = frexp(abs(x))
+        f, n = frexp(np.abs(x))
 
     if (f == 0.5):
         n = n - 1
@@ -2615,7 +2606,7 @@ def _discretize_linear(fun, a, b, tol=0.005, n=5):
         x = linspace(a, b, n)
         y = fun(x)
         y00 = interp(x, x0, y0)
-        err = 0.5 * amax(abs((y00 - y) / (abs(y00 + y) + _TINY)))
+        err = 0.5 * amax(np.abs((y00 - y) / (np.abs(y00 + y) + _TINY)))
     return x, y
 
 
@@ -2644,7 +2635,7 @@ def _discretize_adaptive(fun, a, b, tol=0.005, n=5):
             fy = fun(y)
 
             fy0 = interp(y, x, fx)
-            erri = 0.5 * (abs((fy0 - fy) / (abs(fy0 + fy) + _TINY)))
+            erri = 0.5 * (np.abs((fy0 - fy) / (np.abs(fy0 + fy) + _TINY)))
 
             err = erri.max()
 
@@ -2794,7 +2785,7 @@ def trangood(x, f, min_n=None, min_x=None, max_x=None, max_n=inf):
     xn = xo[-1]
     x0 = xo[0]
     L = float(xn - x0)
-    if ((nf < min_n) or (max_n < nf) or any(abs(ddx) > 10 * _EPS * (L))):
+    if ((nf < min_n) or (max_n < nf) or np.any(np.abs(ddx) > 10 * _EPS * (L))):
         # pab 07.01.2001: Always choose the stepsize df so that
         # it is an exactly representable number.
         # This is important when calculating numerical derivatives and is
@@ -3145,10 +3136,10 @@ def num2pistr(x, n=3, numerator_max=10, denominator_max=10):
     True
     '''
     def _denominator_text(den):
-        return '' if abs(den) == 1 else '/%d' % den
+        return '' if np.abs(den) == 1 else '/%d' % den
 
     def _numerator_text(num):
-        if abs(num) == 1:
+        if np.abs(num) == 1:
             return '-' if num == -1 else ''
         return '{:d}'.format(num)
     frac = fractions.Fraction.from_float(x / pi).limit_denominator(int(1e+13))

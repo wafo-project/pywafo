@@ -2,7 +2,7 @@ from __future__ import absolute_import, division
 import numpy as np
 # from math import pow
 # from numpy import zeros,dot
-from numpy import (pi, abs, size, convolve, linalg, concatenate, sqrt)
+from numpy import (pi, convolve, linalg, concatenate, sqrt)
 from scipy.sparse import spdiags
 from scipy.sparse.linalg import spsolve, expm
 from scipy.signal import medfilt
@@ -132,14 +132,14 @@ class SavitzkyGolay(object):
 
     def smooth_last(self, signal, k=0):
         coeff = self._coeff
-        n = size(coeff - 1) // 2
+        n = np.size((coeff - 1) // 2
         y = np.squeeze(signal)
         if n == 0:
             return y
         if y.ndim > 1:
             coeff.shape = (-1, 1)
-        first_vals = y[0] - abs(y[n:0:-1] - y[0])
-        last_vals = y[-1] + abs(y[-2:-n - 2:-1] - y[-1])
+        first_vals = y[0] - np.abs(y[n:0:-1] - y[0])
+        last_vals = y[-1] + np.abs(y[-2:-n - 2:-1] - y[-1])
         y = concatenate((first_vals, y, last_vals))
         return (y[-2 * n - 1 - k:-k] * coeff).sum(axis=0)
 
@@ -147,9 +147,8 @@ class SavitzkyGolay(object):
         return self.smooth(signal)
 
     def smooth(self, signal):
-        x = np.asarray(signal)
-        if x.dtype != np.float64 and x.dtype != np.float32:
-            x = x.astype(np.float64)
+        dtype = np.result_type(signal, np.float)
+        x = np.asarray(signal, dtype=dtype)
 
         coeffs = self._coeff
         mode, axis = self.mode, self.axis
@@ -180,13 +179,13 @@ class SavitzkyGolay(object):
             the smoothed signal (or it's n-th derivative).
         """
         coeff = self._coeff
-        n = size(coeff - 1) // 2
+        n = np.size(coeff - 1) // 2
         y = np.squeeze(signal)
         if n == 0:
             return y
         if pad:
-            first_vals = y[0] - abs(y[n:0:-1] - y[0])
-            last_vals = y[-1] + abs(y[-2:-n - 2:-1] - y[-1])
+            first_vals = y[0] - np.abs(y[n:0:-1] - y[0])
+            last_vals = y[-1] + np.abs(y[-2:-n - 2:-1] - y[-1])
             y = concatenate((first_vals, y, last_vals))
             n *= 2
         d = y.ndim
@@ -424,8 +423,8 @@ class _Filter(object):
 
     @staticmethod
     def _studentized_residuals(r, I, h):
-        median_abs_deviation = np.median(abs(r[I] - np.median(r[I])))
-        return abs(r / (1.4826 * median_abs_deviation) / sqrt(1 - h))
+        median_abs_deviation = np.median(np.abs(r[I] - np.median(r[I])))
+        return np.abs(r / (1.4826 * median_abs_deviation) / sqrt(1 - h))
 
     def robust_weights(self, r, I, h):
         """Return weights for robust smoothing."""
@@ -458,10 +457,10 @@ class _Filter(object):
 
     def check_smooth_parameter(self, s):
         if self.auto_smooth:
-            if abs(np.log10(s) - np.log10(self.s_min)) < self.errp:
+            if np.abs(np.log10(s) - np.log10(self.s_min)) < self.errp:
                 warnings.warn('''s = %g: the lower bound for s has been reached.
             Put s as an input variable if required.''' % s)
-            elif abs(np.log10(s) - np.log10(self.s_max)) < self.errp:
+            elif np.abs(np.log10(s) - np.log10(self.s_max)) < self.errp:
                 warnings.warn('''s = %g: the Upper bound for s has been reached.
             Put s as an input variable if required.''' % s)
 
@@ -723,8 +722,8 @@ def test_smoothn_1d():
     y[np.r_[70, 75, 80]] = np.array([5.5, 5, 6])
     z = smoothn(y)  # Regular smoothing
     zr = smoothn(y, robust=True)  # Robust smoothing
-    plt.subplot(121),
-    unused_h = plt.plot(x, y, 'r.', x, z, 'k', linewidth=2)
+    _h0 = plt.subplot(121),
+    _h = plt.plot(x, y, 'r.', x, z, 'k', linewidth=2)
     plt.title('Regular smoothing')
     plt.subplot(122)
     plt.plot(x, y, 'r.', x, zr, 'k', linewidth=2)
@@ -735,18 +734,18 @@ def test_smoothn_1d():
 def test_smoothn_2d():
 
     # import mayavi.mlab as plt
-    xp = np.r_[0:1:.02]
+    xp = np.r_[0:1:0.02]
     [x, y] = np.meshgrid(xp, xp)
     f = np.exp(x + y) + np.sin((x - 2 * y) * 3)
     fn = f + np.random.randn(*f.shape) * 0.5
-    fs, s = smoothn(fn, fulloutput=True)  # @UnusedVariable
+    _fs, s = smoothn(fn, fulloutput=True)
     fs2 = smoothn(fn, s=2 * s)
-    plt.subplot(131),
-    plt.contourf(xp, xp, fn)
-    plt.subplot(132),
-    plt.contourf(xp, xp, fs2)
-    plt.subplot(133),
-    plt.contourf(xp, xp, f)
+    _h = plt.subplot(131),
+    _h = plt.contourf(xp, xp, fn)
+    _h = plt.subplot(132),
+    _h = plt.contourf(xp, xp, fs2)
+    _h = plt.subplot(133),
+    _h = plt.contourf(xp, xp, f)
     plt.show('hold')
 
 
@@ -1048,7 +1047,7 @@ class Kalman(object):
 
     def _update_covariance(self, P, K):
         return P - np.dot(K, np.dot(self.H, P))
-        return np.dot(np.eye(len(P)) - K * self.H, P)
+        # return np.dot(np.eye(len(P)) - K * self.H, P)
 
     def _filter_main(self, z, u):
         ''' This is the code which implements the discrete Kalman filter:
@@ -1187,7 +1186,7 @@ def test_kalman_sine():
     x = np.zeros((n, m))
 
     for i, zi in enumerate(z):
-        x[i] = filt(zi, u=0).ravel()
+        x[i] = np.ravel(filt(zi, u=0))
 
     _hz = plt.plot(z, 'r.', label='observations')
     # a-posteriori state estimates:
@@ -1321,7 +1320,8 @@ class HampelFilter(object):
         self.adaptive = adaptive
         self.fulloutput = fulloutput
 
-    def _check(self, dx):
+    @staticmethod
+    def _check(dx):
         if not np.isscalar(dx):
             raise ValueError('DX must be a scalar.')
         if dx < 0:
@@ -1357,8 +1357,8 @@ class HampelFilter(object):
             while S0Rel > self.adaptive:
                 Y0Tmp[j], S0Tmp[j] = localwindow(X, Y, DXTmp[j], i)
                 if j > 0:
-                    S0Rel = abs((S0Tmp[j - 1] - S0Tmp[j]) /
-                                (S0Tmp[j - 1] + S0Tmp[j]) / 2)
+                    S0Rel = np.abs((S0Tmp[j - 1] - S0Tmp[j]) /
+                                   (S0Tmp[j - 1] + S0Tmp[j]) / 2)
                 j += 1
 
             Y0[i] = Y0Tmp[j - 2]

@@ -62,12 +62,11 @@ class PlotData(object):
     >>> h1 = d2()
 
     # Plot with confidence interval
-    >>> d3 = PlotData(np.sin(x), x)
-    >>> d3.children = [PlotData(np.vstack([np.sin(x)*0.9,
-    ...                                    np.sin(x)*1.2]).T, x)]
-    >>> d3.plot_args_children = [':r']
-
-    >>> h = d3.plot()
+    >>> ci = PlotData(np.vstack([np.sin(x)*0.9, np.sin(x)*1.2]).T, x,
+    ...               plot_args=[':r'])
+    >>> d3 = PlotData(np.sin(x), x, children=[ci])
+    >>> h = d3.plot() # plot data, CI red dotted line
+    >>> h = d3.plot(plot_args_children=['b--']) # CI with blue dashed line
 
     '''
 
@@ -165,9 +164,10 @@ class PlotData(object):
     def integrate(self, a=None, b=None, **kwds):
         '''
         >>> x = np.linspace(0,5,60)
-        >>> d = PlotData(np.sin(x), x)
-        >>> d.dataCI = np.vstack((d.data*.9,d.data*1.1)).T
-        >>> d.integrate(0,np.pi/2, return_ci=True)
+        >>> y = np.sin(x)
+        >>> ci = PlotData(np.vstack((y*.9, y*1.1)).T, x)
+        >>> d = PlotData(y, x, children=[ci])
+        >>> d.integrate(0, np.pi/2, return_ci=True)
         array([ 0.99940055,  0.85543644,  1.04553343])
         >>> np.allclose(d.integrate(0, 5, return_ci=True),
         ...    d.integrate(return_ci=True))
@@ -187,12 +187,18 @@ class PlotData(object):
             b = x[-1]
         ix = np.flatnonzero((a < x) & (x < b))
         xi = np.hstack((a, x.take(ix), b))
-        fi = np.hstack((self.eval_points(a), self.data.take(ix),
-                        self.eval_points(b)))
+        if self.data.ndim > 1:
+            fi = np.vstack((self.eval_points(a),
+                            self.data[ix, :],
+                            self.eval_points(b))).T
+        else:
+            fi = np.hstack((self.eval_points(a), self.data.take(ix),
+                            self.eval_points(b)))
         res = fun(fi, xi, **kwds)
         if return_ci:
-            return np.hstack(
-                (res, fun(self.dataCI[ix, :].T, xi[1:-1], **kwds)))
+            res_ci = [child.integrate(a, b, method=method)
+                      for child in self.children]
+            return np.hstack((res, res_ci))
         return res
 
     def plot(self, *args, **kwds):
@@ -205,15 +211,13 @@ class PlotData(object):
         if not plotflag and self.children is not None:
             axis.hold('on')
             tmp = []
-            child_args = kwds.pop(
-                'plot_args_children',
-                tuple(
-                    self.plot_args_children))
+            child_args = kwds.pop('plot_args_children',
+                                  tuple(self.plot_args_children))
             child_kwds = dict(self.plot_kwds_children).copy()
             child_kwds.update(kwds.pop('plot_kwds_children', {}))
             child_kwds['axis'] = axis
             for child in self.children:
-                tmp1 = child(*child_args, **child_kwds)
+                tmp1 = child.plot(*child_args, **child_kwds)
                 if tmp1 is not None:
                     tmp.append(tmp1)
             if len(tmp) == 0:
@@ -267,8 +271,8 @@ class AxisLabels:
         return self.__str__()
 
     def __str__(self):
-        return '%s\n%s\n%s\n%s\n' % (
-            self.title, self.xlab, self.ylab, self.zlab)
+        txt = 'AxisLabels(title={}, xlab={}, ylab={}, zlab={})'
+        return txt.format(self.title, self.xlab, self.ylab, self.zlab)
 
     def copy(self):
         newcopy = empty_copy(self)
@@ -318,11 +322,6 @@ class Plotter_1d(object):
         if plotmethod is None:
             plotmethod = 'plot'
         self.plotmethod = plotmethod
-        # self.plotbackend = plotbackend
-#        try:
-#            self.plotfun = getattr(plotbackend, plotmethod)
-#        except:
-#            pass
 
     def show(self, *args, **kwds):
         plt.show(*args, **kwds)
@@ -350,72 +349,65 @@ class Plotter_1d(object):
 
     def _plot(self, axis, plotflag, wdata, *args, **kwds):
         x = wdata.args
-        data = transformdata(x, wdata.data, plotflag)
+        data = transformdata_1d(x, wdata.data, plotflag)
         dataCI = getattr(wdata, 'dataCI', ())
+        if dataCI:
+            dataCI = transformdata_1d(x, dataCI, plotflag)
         h1 = plot1d(axis, x, data, dataCI, plotflag, *args, **kwds)
         return h1
     __call__ = plot
 
 
-def plot1d(axis, args, data, dataCI, plotflag, *varargin, **kwds):
+def set_plot_scale(axis, f_max, plotflag):
+    scale = plotscale(plotflag)
+    log_x_scale = 'x' in scale
+    log_y_scale = 'y' in scale
+    log_z_scale = 'z' in scale
+    if log_x_scale:
+        axis.set(xscale='log')
+    if log_y_scale:
+        axis.set(yscale='log')
+    if log_z_scale:
+        axis.set(zscale='log')
+    trans_flag = np.mod(plotflag // 10, 10)
+    log_scale = log_x_scale or log_y_scale or log_z_scale
+    if log_scale or (trans_flag == 5 and not log_scale):
+        ax = list(axis.axis())
+        if trans_flag == 8 and not log_scale:
+            ax[3] = 11 * np.log10(f_max)
+            ax[2] = ax[3] - 40
+        else:
+            ax[3] = 1.15 * f_max
+            ax[2] = ax[3] * 1e-4
+        axis.axis(ax)
 
+
+def plot1d(axis, args, data, dataCI, plotflag, *varargin, **kwds):
+    h = []
     plottype = np.mod(plotflag, 10)
     if plottype == 0:  # No plotting
-        return []
-    elif plottype == 1:
-        H = axis.plot(args, data, *varargin, **kwds)
-    elif plottype == 2:
-        H = axis.step(args, data, *varargin, **kwds)
-    elif plottype == 3:
-        H = axis.stem(args, data, *varargin, **kwds)
+        return h
+    fun = {1: 'plot', 2: 'step', 3: 'stem', 5: 'bar'}.get(plottype)
+    if fun is not None:
+        plotfun = getattr(axis, fun)
+        h.extend(plotfun(args, data, *varargin, **kwds))
+        if np.any(dataCI) and plottype < 3:
+            axis.hold(True)
+            h.extend(plotfun(args, dataCI, 'r--'))
     elif plottype == 4:
-        H = axis.errorbar(args, data,
+        h = axis.errorbar(args, data,
                           yerr=[dataCI[:, 0] - data,
                                 dataCI[:, 1] - data],
                           *varargin, **kwds)
-    elif plottype == 5:
-        H = axis.bar(args, data, *varargin, **kwds)
     elif plottype == 6:
-        level = 0
-        if np.isfinite(level):
-            H = axis.fill_between(args, data, level, *varargin, **kwds)
-        else:
-            H = axis.fill_between(args, data, *varargin, **kwds)
+        h = axis.fill_between(args, data, 0, *varargin, **kwds)
     elif plottype == 7:
-        H = axis.plot(args, data, *varargin, **kwds)
-        H = axis.fill_between(args, dataCI[:, 0], dataCI[:, 1],
-                              alpha=0.2, color='r')
-
-    scale = plotscale(plotflag)
-    logXscale = 'x' in scale
-    logYscale = 'y' in scale
-    logZscale = 'z' in scale
-
-    if logXscale:
-        axis.set(xscale='log')
-    if logYscale:
-        axis.set(yscale='log')
-    if logZscale:
-        axis.set(zscale='log')
-
-    transFlag = np.mod(plotflag // 10, 10)
-    logScale = logXscale or logYscale or logZscale
-    if logScale or (transFlag == 5 and not logScale):
-        ax = list(axis.axis())
-        fmax1 = data.max()
-        if transFlag == 5 and not logScale:
-            ax[3] = 11 * np.log10(fmax1)
-            ax[2] = ax[3] - 40
-        else:
-            ax[3] = 1.15 * fmax1
-            ax[2] = ax[3] * 1e-4
-
-        axis.axis(ax)
-
-    if np.any(dataCI) and plottype < 3:
-        axis.hold(True)
-        plot1d(axis, args, dataCI, (), plotflag, 'r--')
-    return H
+        h = axis.plot(args, data, *varargin, **kwds)
+        h.extend(axis.fill_between(args, dataCI[:, 0], dataCI[:, 1],
+                                   alpha=0.2, color='r'))
+    fmax1 = data.max()
+    set_plot_scale(axis, fmax1, plotflag)
+    return h
 
 
 def plotscale(plotflag):
@@ -462,6 +454,10 @@ def plotscale(plotflag):
     'ylog'
     >>> plotscale(10000)
     'zlog'
+    >>> plotscale(1100)
+    'xylog'
+    >>> plotscale(11100)
+    'xyzlog'
 
      See also
      ---------
@@ -480,25 +476,41 @@ def plotscale(plotflag):
     return scales[scaleId]
 
 
-def transformdata(x, f, plotflag):
-    transFlag = np.mod(plotflag // 10, 10)
-    if transFlag == 0:
-        data = f
-    elif transFlag == 1:
-        data = 1 - f
-    elif transFlag == 2:
-        data = cumtrapz(f, x)
-    elif transFlag == 3:
-        data = 1 - cumtrapz(f, x)
-    if transFlag in (4, 5):
-        if transFlag == 4:
-            data = -np.log1p(-cumtrapz(f, x))
-        else:
-            if any(f < 0):
-                raise ValueError('Invalid plotflag: Data or dataCI is ' +
-                                 'negative, but must be positive')
-            data = 10 * np.log10(f)
-    return data
+def plotflag2plottype_1d(plotflag):
+    plottype = np.mod(plotflag, 10)
+    return ['', 'plot', 'step', 'stem', 'errorbar', 'bar'][plottype]
+
+
+def plotflag2transform_id(plotflag):
+    transform_id = np.mod(plotflag // 10, 10)
+    return ['f', '1-f',
+            'cumtrapz(f)', '1-cumtrapz(f)',
+            'log(f)', 'log(1-f)'
+            'log(cumtrapz(f))', 'log(cumtrapz(f))',
+            'log10(f)'][transform_id]
+
+
+def transform_id2plotflag2(transform_id):
+    return {'': 0, 'None': 0, 'f': 0, '1-f': 1,
+            'cumtrapz(f)': 2, '1-cumtrapz(f)': 3,
+            'log(f)': 4, 'log(1-f)': 5,
+            'log(cumtrapz(f))': 6, 'log(1-cumtrapz(f))': 7,
+            '10log10(f)': 8}[transform_id] * 10
+
+
+def transformdata_1d(x, f, plotflag):
+    transform_id = np.mod(plotflag // 10, 10)
+    transform = [lambda f, x: f,
+                 lambda f, x: 1 - f,
+                 lambda f, x: cumtrapz(f, x),
+                 lambda f, x: 1 - cumtrapz(f, x),
+                 lambda f, x: np.log(f),
+                 lambda f, x: np.log1p(-f),
+                 lambda f, x: np.log(cumtrapz(f, x)),
+                 lambda f, x: np.log1p(-cumtrapz(f, x)),
+                 lambda f, x: 10*np.log10(f)
+                 ][transform_id]
+    return transform(f, x)
 
 
 class Plotter_2d(Plotter_1d):
@@ -589,14 +601,15 @@ def test_plotdata():
     x = np.linspace(0, np.pi, 9)
     xi = np.linspace(0, np.pi, 4*9)
 
-    d = PlotData(np.sin(x)/2, x, xlab='x', ylab='sin', title='sinus',
+    d = PlotData(np.sin(x)/2, x, dataCI=[], xlab='x', ylab='sin', title='sinus',
                  plot_args=['r.'])
     di = PlotData(d.eval_points(xi, method='cubic'), xi)
     unused_hi = di.plot()
     unused_h = d.plot()
     f = di.to_cdf()
+
     for i in range(4):
-        _ = f.plot(plotflag=i)
+        _ = di.plot(plotflag=i)
     d.show('hold')
 
 
@@ -607,5 +620,5 @@ def test_docstrings():
 
 
 if __name__ == '__main__':
-    test_docstrings()
-    # test_plotdata()
+    # test_docstrings()
+    test_plotdata()
