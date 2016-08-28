@@ -5,7 +5,7 @@ import scipy.signal
 # import scipy.sparse.linalg  # @UnusedImport
 import scipy.sparse as sparse
 from numpy import ones, zeros, prod, sin, diff, pi, inf, vstack, linspace
-from scipy.interpolate import PiecewisePolynomial, interp1d
+from scipy.interpolate import BPoly, interp1d
 
 from wafo import polynomial as pl
 
@@ -1010,16 +1010,17 @@ class StinemanInterp(object):
         return yi
 
 
-class StinemanInterp2(PiecewisePolynomial):
+class StinemanInterp2(BPoly):
 
     def __init__(self, x, y, yp=None, method='parabola', monotone=False):
         if yp is None:
             yp = slopes(x, y, method, monotone=monotone)
         yyp = [z for z in zip(y, yp)]
-        super(StinemanInterp2, self).__init__(x, yyp)
+        bpoly = BPoly.from_derivatives(x, yyp)
+        super(StinemanInterp2, self).__init__(bpoly.c, x)
 
 
-class CubicHermiteSpline(PiecewisePolynomial):
+class CubicHermiteSpline(BPoly):
 
     '''
     Piecewise Cubic Hermite Interpolation using Catmull-Rom
@@ -1030,10 +1031,12 @@ class CubicHermiteSpline(PiecewisePolynomial):
         if yp is None:
             yp = slopes(x, y, method, monotone=False)
         yyp = [z for z in zip(y, yp)]
-        super(CubicHermiteSpline, self).__init__(x, yyp, orders=3)
+        bpoly = BPoly.from_derivatives(x, yyp, orders=3)
+        super(CubicHermiteSpline, self).__init__(bpoly.c, x)
+        # super(CubicHermiteSpline, self).__init__(x, yyp, orders=3)
 
 
-class Pchip(PiecewisePolynomial):
+class Pchip(BPoly):
 
     """PCHIP 1-d monotonic cubic interpolation
 
@@ -1130,7 +1133,9 @@ class Pchip(PiecewisePolynomial):
         if yp is None:
             yp = slopes(x, y, method=method, monotone=True)
         yyp = [z for z in zip(y, yp)]
-        super(Pchip, self).__init__(x, yyp, orders=3)
+        bpoly = BPoly.from_derivatives(x, yyp, orders=3)
+        super(Pchip, self).__init__(bpoly.c, x)
+        # super(Pchip, self).__init__(x, yyp, orders=3)
 
 
 def interp3(x, y, z, v, xi, yi, zi, method='cubic'):
