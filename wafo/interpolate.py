@@ -618,7 +618,8 @@ class SmoothSpline(PPform):
 
         return coefs, x
 
-    def _compute_u(self, p, D, dydx, dx, dx1, n):
+    @staticmethod
+    def _compute_u(p, D, dydx, dx, dx1, n):
         if p is None or p != 0:
             data = [dx[1:n - 1], 2 * (dx[:n - 2] + dx[1:n - 1]), dx[:n - 2]]
             R = sparse.spdiags(data, [-1, 0, 1], n - 2, n - 2)
@@ -1345,7 +1346,7 @@ def test_pp():
 
 def test_docstrings():
     import doctest
-    print('Testing docstrings in %s' % __file__)
+    print('Testing docstrings in {}'.formate(__file__))
     doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
 
 

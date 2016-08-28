@@ -168,7 +168,7 @@ class PlotData(object):
         >>> ci = PlotData(np.vstack((y*.9, y*1.1)).T, x)
         >>> d = PlotData(y, x, children=[ci])
         >>> d.integrate(0, np.pi/2, return_ci=True)
-        array([ 0.99940055,  0.85543644,  1.04553343])
+        array([ 0.99940055,  0.89946049,  1.0993406 ])
         >>> np.allclose(d.integrate(0, 5, return_ci=True),
         ...    d.integrate(return_ci=True))
         True
