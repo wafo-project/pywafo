@@ -198,7 +198,7 @@ class PlotData(object):
         if return_ci:
             res_ci = [child.integrate(a, b, method=method)
                       for child in self.children]
-            return np.hstack((res, res_ci))
+            return np.hstack((res, np.ravel(res_ci)))
         return res
 
     def plot(self, *args, **kwds):
@@ -601,8 +601,8 @@ def test_plotdata():
     x = np.linspace(0, np.pi, 9)
     xi = np.linspace(0, np.pi, 4*9)
 
-    d = PlotData(np.sin(x)/2, x, dataCI=[], xlab='x', ylab='sin', title='sinus',
-                 plot_args=['r.'])
+    d = PlotData(np.sin(x)/2, x, dataCI=[], xlab='x', ylab='sin',
+                 title='sinus', plot_args=['r.'])
     di = PlotData(d.eval_points(xi, method='cubic'), xi)
     unused_hi = di.plot()
     unused_h = d.plot()
@@ -620,5 +620,5 @@ def test_docstrings():
 
 
 if __name__ == '__main__':
-    # test_docstrings()
-    test_plotdata()
+    test_docstrings()
+    # test_plotdata()

@@ -132,7 +132,7 @@ class SavitzkyGolay(object):
 
     def smooth_last(self, signal, k=0):
         coeff = self._coeff
-        n = np.size((coeff - 1) // 2
+        n = (np.size(coeff) - 1) // 2
         y = np.squeeze(signal)
         if n == 0:
             return y
