@@ -2282,17 +2282,35 @@ def stirlerr(n):
     return y
 
 
-def getshipchar(value=None, property="max_deadweight",  # @ReservedAssignment
-                **kwds):
+def _get_max_deadweight(**ship_property):
+    names = ship_property.keys()
+    _assert(len(names) == 1, 'Only one keyword allowed!')
+    name = names[0]
+    value = np.array(ship_property[name])
+    valid_props = dict(le='length', be='beam', dr='draught',
+                       ma='max_deadweigth',
+                       se='service_speed', pr='propeller_diameter')
+    prop = valid_props[name[:2]]
+    prop2max_dw = dict(length=lambda x: (x / 3.45) ** (2.5),
+                       beam=lambda x: ((x / 1.78) ** (1 / 0.27)),
+                       draught=lambda x: ((x / 0.8) ** (1 / 0.24)),
+                       service_speed=lambda x: ((x / 1.14) ** (1 / 0.21)),
+                       propeller_diameter=lambda x: (((x / 0.12) ** (4 / 3) /
+                                                      3.45) ** (2.5)),
+                       max_deadweight=lambda x: x
+                       )
+    max_deadweight = prop2max_dw.get(prop, lambda x: x)(value)
+    return max_deadweight, prop
+
+
+def getshipchar(**ship_property):
     '''
     Return ship characteristics from value of one ship-property
 
     Parameters
     ----------
-    value : scalar
-        value to use in the estimation.
-    property : string
-        defining the ship property used in the estimation. Options are:
+    **ship_property : scalar
+        the ship property used in the estimation. Options are:
            'max_deadweight','length','beam','draft','service_speed',
            'propeller_diameter'.
            The length was found from statistics of 40 vessels of size 85 to
@@ -2328,7 +2346,7 @@ def getshipchar(value=None, property="max_deadweight",  # @ReservedAssignment
     ...        'draughtSTD': 2.1120000000000001,
     ...        'max_deadweight': 30969.0,
     ...        'propeller_diameter': 6.761165385916601}
-    >>> wm.getshipchar(10,'service_speed') == true_sc
+    >>> wm.getshipchar(service_speed=10) == true_sc
     True
     >>> sc = wm.getshipchar(service_speed=10)
     >>> sc == true_sc
@@ -2343,24 +2361,8 @@ def getshipchar(value=None, property="max_deadweight",  # @ReservedAssignment
     "Source level model for propeller blade rate radiation for the world's
     merchant fleet", Bolt Beranek and Newman Technical Memorandum No. 458.
     '''
-    if value is None:
-        names = list(kwds)
-        _assert(len(names) == 1, 'Only one keyword allowed!')
-        property = names[0]  # @ReservedAssignment
-        value = kwds[property]
-    value = np.array(value)
-    valid_props = dict(l='length', b='beam', d='draught', m='max_deadweigth',
-                       s='service_speed', p='propeller_diameter')
-    prop = valid_props[property[0]]
 
-    prop2max_dw = dict(length=lambda x: (x / 3.45) ** (2.5),
-                       beam=lambda x: ((x / 1.78) ** (1 / 0.27)),
-                       draught=lambda x: ((x / 0.8) ** (1 / 0.24)),
-                       service_speed=lambda x: ((x / 1.14) ** (1 / 0.21)),
-                       propeller_diameter=lambda x: (((x / 0.12) ** (4 / 3) /
-                                                      3.45) ** (2.5)))
-
-    max_deadweight = prop2max_dw.get(prop, lambda x: x)(value)
+    max_deadweight, prop = _get_max_deadweight(**ship_property)
     propertySTD = prop + 'STD'
 
     length = np.round(3.45 * max_deadweight ** 0.40)
