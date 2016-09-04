@@ -24,14 +24,15 @@ dea3 = nd.dea3
 
 
 class PolyBasis(object):
-
-    def derivative(self, t, k, n=1):
+    @staticmethod
+    def derivative(t, k, n=1):
         c = np.zeros(k + 1)
         c[k] = 1
         dc = polynomial.polyder(c, m=n)
         return polynomial.polyval(t, dc)
 
-    def eval(self, t, c):
+    @staticmethod
+    def eval(t, c):
         return polynomial.polyval(t, c)
 
     def __call__(self, t, k):
@@ -40,15 +41,16 @@ poly_basis = PolyBasis()
 
 
 class ChebyshevBasis(object):
-
-    def derivative(self, t, k, n=1):
+    @staticmethod
+    def derivative(t, k, n=1):
         c = np.zeros(k + 1)
         c[k] = 1
         cheb = Chebyshev(c)
         dcheb = cheb.deriv(m=n)
         return chebval(t, dcheb.coef)
 
-    def eval(self, t, c):
+    @staticmethod
+    def eval(t, c):
         return chebval(t, c)
 
     def __call__(self, t, k):
@@ -70,44 +72,44 @@ def richardson(Q, k):
 
 def evans_webster_weights(omega, gg, dgg, x, basis, *args, **kwds):
 
-        def Psi(t, k):
-            return dgg(t, *args, **kwds) * basis(t, k)
+    def Psi(t, k):
+        return dgg(t, *args, **kwds) * basis(t, k)
 
-        j_w = 1j * omega
-        nn = len(x)
-        A = np.zeros((nn, nn),  dtype=complex)
-        F = np.zeros((nn,), dtype=complex)
+    j_w = 1j * omega
+    nn = len(x)
+    A = np.zeros((nn, nn),  dtype=complex)
+    F = np.zeros((nn,), dtype=complex)
 
-        dbasis = basis.derivative
-        lim_gg = Limit(gg)
-        b1 = np.exp(j_w*lim_gg(1, *args, **kwds))
-        if np.isnan(b1):
-            b1 = 0.0
-        a1 = np.exp(j_w*lim_gg(-1, *args, **kwds))
-        if np.isnan(a1):
-            a1 = 0.0
+    dbasis = basis.derivative
+    lim_gg = Limit(gg)
+    b1 = np.exp(j_w*lim_gg(1, *args, **kwds))
+    if np.isnan(b1):
+        b1 = 0.0
+    a1 = np.exp(j_w*lim_gg(-1, *args, **kwds))
+    if np.isnan(a1):
+        a1 = 0.0
 
-        lim_Psi = Limit(Psi)
-        for k in range(nn):
-            F[k] = basis(1, k)*b1 - basis(-1, k)*a1
-            A[k] = (dbasis(x, k, n=1) + j_w * lim_Psi(x, k))
+    lim_Psi = Limit(Psi)
+    for k in range(nn):
+        F[k] = basis(1, k)*b1 - basis(-1, k)*a1
+        A[k] = (dbasis(x, k, n=1) + j_w * lim_Psi(x, k))
 
-        LS = linalg.lstsq(A, F)
-        return LS[0]
+    LS = linalg.lstsq(A, F)
+    return LS[0]
 
 
 def osc_weights(omega, g, dg, x, basis, ab, *args, **kwds):
+    def gg(t):
+        return g(scale * t + offset, *args, **kwds)
+
+    def dgg(t):
+        return scale * dg(scale * t + offset, *args, **kwds)
+
     w = []
 
     for a, b in zip(ab[::2], ab[1::2]):
         scale = (b - a) / 2
         offset = (a + b) / 2
-
-        def gg(t):
-            return g(scale * t + offset, *args, **kwds)
-
-        def dgg(t):
-            return scale * dg(scale * t + offset, *args, **kwds)
 
         w.append(evans_webster_weights(omega, gg, dgg, x, basis))
 
@@ -131,7 +133,8 @@ class QuadOsc(object):
         self.precision = precision
         self.full_output = full_output
 
-    def _change_interval_to_0_1(self, f, g, dg, a, b):
+    @staticmethod
+    def _change_interval_to_0_1(f, g, dg, a, b):
         def f1(t, *args, **kwds):
             den = 1-t
             return f(a + t / den, *args, **kwds) / den ** 2
@@ -142,9 +145,10 @@ class QuadOsc(object):
         def dg1(t, *args, **kwds):
             den = 1-t
             return dg(a + t / den, *args, **kwds) / den ** 2
-        return f1, g2, dg1, 0., 1.
+        return f1, g1, dg1, 0., 1.
 
-    def _change_interval_to_m1_0(self, f, g, dg, a, b):
+    @staticmethod
+    def _change_interval_to_m1_0(f, g, dg, a, b):
         def f2(t, *args, **kwds):
             den = 1 + t
             return f(b + t / den, *args, **kwds) / den ** 2
@@ -157,7 +161,8 @@ class QuadOsc(object):
             return dg(b + t / den, *args, **kwds) / den ** 2
         return f2, g2, dg2, -1.0, 0.0
 
-    def _change_interval_to_m1_1(self, f, g, dg, a, b):
+    @staticmethod
+    def _change_interval_to_m1_1(f, g, dg, a, b):
         def f2(t, *args, **kwds):
             den = (1 - t**2)
             return f(t / den, *args, **kwds) * (1+t**2) / den ** 2
@@ -197,42 +202,43 @@ class QuadOsc(object):
     def __call__(self, omega, *args, **kwds):
         f, g, dg, a, b, reverse = self._get_functions()
 
-        Q, err = self._quad_osc(f, g, dg, a, b, omega, *args, **kwds)
+        val, err = self._quad_osc(f, g, dg, a, b, omega, *args, **kwds)
 
         if reverse:
-            Q = -Q
+            val = -val
         if self.full_output:
-            return Q, err
-        return Q
+            return val, err
+        return val
 
-    def _get_best_estimate(self, k, Q0, Q1, Q2):
+    @staticmethod
+    def _get_best_estimate(k, q0, q1, q2):
         if k >= 5:
-            Qv = np.hstack((Q0[k], Q1[k], Q2[k]))
-            Qw = np.hstack((Q0[k - 1], Q1[k - 1], Q2[k - 1]))
+            qv = np.hstack((q0[k], q1[k], q2[k]))
+            qw = np.hstack((q0[k - 1], q1[k - 1], q2[k - 1]))
         elif k >= 3:
-            Qv = np.hstack((Q0[k], Q1[k]))
-            Qw = np.hstack((Q0[k - 1], Q1[k - 1]))
+            qv = np.hstack((q0[k], q1[k]))
+            qw = np.hstack((q0[k - 1], q1[k - 1]))
         else:
-            Qv = np.atleast_1d(Q0[k])
-            Qw = Q0[k - 1]
-        errors = np.atleast_1d(abs(Qv - Qw))
+            qv = np.atleast_1d(q0[k])
+            qw = q0[k - 1]
+        errors = np.atleast_1d(abs(qv - qw))
         j = np.nanargmin(errors)
-        return Qv[j], errors[j]
+        return qv[j], errors[j]
 
-    def _extrapolate(self, k, Q0, Q1, Q2):
+    def _extrapolate(self, k, q0, q1, q2):
         if k >= 4:
-            Q1[k], _err1 = dea3(Q0[k - 2], Q0[k - 1], Q0[k])
-            Q2[k], _err2 = dea3(Q1[k - 2], Q1[k - 1], Q1[k])
+            q1[k], _err1 = dea3(q0[k - 2], q0[k - 1], q0[k])
+            q2[k], _err2 = dea3(q1[k - 2], q1[k - 1], q1[k])
         elif k >= 2:
-            Q1[k], _err1 = dea3(Q0[k - 2], Q0[k - 1], Q0[k])
+            q1[k], _err1 = dea3(q0[k - 2], q0[k - 1], q0[k])
         #         # Richardson extrapolation
         #         if k >= 4:
-        #             Q1[k] = richardson(Q0, k)
-        #             Q2[k] = richardson(Q1, k)
+        #             q1[k] = richardson(q0, k)
+        #             q2[k] = richardson(q1, k)
         #         elif k >= 2:
-        #             Q1[k] = richardson(Q0, k)
-        Q, err = self._get_best_estimate(k, Q0, Q1, Q2)
-        return Q, err
+        #             q1[k] = richardson(q0, k)
+        q, err = self._get_best_estimate(k, q0, q1, q2)
+        return q, err
 
     def _quad_osc(self, f, g, dg, a, b, omega, *args, **kwds):
         if a == b:
@@ -355,7 +361,8 @@ class AdaptiveLevin(object):
         self.endpoints = endpoints
         self.full_output = full_output
 
-    def aLevinTQ(self, omega, ff, gg, dgg, x, s, basis, *args, **kwds):
+    @staticmethod
+    def aLevinTQ(omega, ff, gg, dgg, x, s, basis, *args, **kwds):
 
         def Psi(t, k):
             return dgg(t, *args, **kwds) * basis(t, k)
@@ -439,7 +446,8 @@ class AdaptiveLevin(object):
             return val, info
         return val
 
-    def _get_num_points(self, s, prec, betam):
+    @staticmethod
+    def _get_num_points(s, prec, betam):
         return 1 if s > 1 else int(prec / max(np.log10(betam + 1), 1) + 1)
 
     def _QaL(self, s, a, b, omega, *args, **kwds):
