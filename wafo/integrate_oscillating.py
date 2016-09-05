@@ -116,11 +116,11 @@ def osc_weights(omega, g, dg, x, basis, ab, *args, **kwds):
     return np.asarray(w).ravel()
 
 
-class QuadOsc(object):
+class _Integrator(object):
     info = namedtuple('info', ['error_estimate', 'n'])
 
-    def __init__(self, f, g, dg=None, a=-1, b=1, basis=chebyshev_basis, s=15,
-                 precision=10, endpoints=False, maxiter=17, full_output=False):
+    def __init__(self, f, g, dg=None, a=-1, b=1, basis=chebyshev_basis, s=1,
+                 precision=10, endpoints=True, full_output=False):
         self.f = f
         self.g = g
         self.dg = nd.Derivative(g) if dg is None else dg
@@ -129,9 +129,17 @@ class QuadOsc(object):
         self.b = b
         self.s = s
         self.endpoints = endpoints
-        self.maxiter = maxiter
         self.precision = precision
         self.full_output = full_output
+
+
+class QuadOsc(_Integrator):
+    def __init__(self, f, g, dg=None, a=-1, b=1, basis=chebyshev_basis, s=15,
+                 precision=10, endpoints=False, full_output=False, maxiter=17):
+        self.maxiter = maxiter
+        super(QuadOsc, self).__init__(f, g, dg=dg, a=a, b=b, basis=basis, s=s,
+                                      precision=precision, endpoints=endpoints,
+                                      full_output=full_output)
 
     @staticmethod
     def _change_interval_to_0_1(f, g, dg, a, b):
@@ -344,22 +352,8 @@ def chebyshev_roots(M, delta=None):
     return x
 
 
-class AdaptiveLevin(object):
+class AdaptiveLevin(_Integrator):
     '''Return integral for the Levin-type and adaptive Levin-type methods'''
-    info = namedtuple('info', ['error_estimate', 'n'])
-
-    def __init__(self, f, g, dg=None, a=-1, b=1, basis=chebyshev_basis, s=1,
-                 precision=10, endpoints=True, full_output=False):
-        self.f = f
-        self.g = g
-        self.dg = nd.Derivative(g) if dg is None else dg
-        self.basis = basis
-        self.a = a
-        self.b = b
-        self.s = s
-        self.precision = precision
-        self.endpoints = endpoints
-        self.full_output = full_output
 
     @staticmethod
     def aLevinTQ(omega, ff, gg, dgg, x, s, basis, *args, **kwds):
@@ -510,16 +504,10 @@ class EvansWebster(AdaptiveLevin):
 
     def __init__(self, f, g, dg=None, a=-1, b=1, basis=chebyshev_basis, s=8,
                  precision=10, endpoints=False, full_output=False):
-        self.f = f
-        self.g = g
-        self.dg = nd.Derivative(g) if dg is None else dg
-        self.basis = basis
-        self.a = a
-        self.b = b
-        self.s = s
-        self.endpoints = endpoints
-        self.precision = precision
-        self.full_output = full_output
+        super(EvansWebster,
+              self).__init__(f, g, dg=dg, a=a, b=b, basis=basis, s=s,
+                             precision=precision, endpoints=endpoints,
+                             full_output=full_output)
 
     def aLevinTQ(self, omega, ff, gg, dgg, x, s, basis, *args, **kwds):
         w = evans_webster_weights(omega, gg, dgg, x, basis, *args, **kwds)
@@ -530,55 +518,6 @@ class EvansWebster(AdaptiveLevin):
 
     def _get_num_points(self, s, prec, betam):
         return 8 if s > 1 else int(prec / max(np.log10(betam + 1), 1) + 1)
-
-#     def _QaL(self, s, a, b, omega, *args, **kwds):
-#         '''if s>1,the integral is computed by Q_s^L'''
-#         scale = (b - a) / 2
-#         offset = (a + b) / 2
-#         prec = self.precision  # desired precision
-#
-#         def ff(t, *args, **kwds):
-#             return scale * self.f(scale * t + offset, *args, **kwds)
-#
-#         def gg(t, *args, **kwds):
-#             return self.g(scale * t + offset, *args, **kwds)
-#
-#         def dgg(t, *args, **kwds):
-#             return scale * self.dg(scale * t + offset, *args, **kwds)
-#         dg_a = abs(omega * dgg(-1, *args, **kwds))
-#         dg_b = abs(omega * dgg(1, *args, **kwds))
-#         g_a = abs(omega * gg(-1, *args, **kwds))
-#         g_b = abs(omega * gg(1, *args, **kwds))
-#         delta, alpha = min(dg_a, dg_b), min(g_a, g_b)
-#
-#         betam = delta   # * scale
-#         if self.endpoints:
-#             if (delta < 10 or alpha <= 10 or s > 1):
-#                 points = chebyshev_extrema
-#             else:
-#                 points = adaptive_levin_points
-#         elif (delta < 10 or alpha <= 10 or s > 1):
-#             points = chebyshev_roots
-#         else:
-#             points = tanh_sinh_open_nodes
-#
-#         m = 8 if s > 1 else int(prec / max(np.log10(betam + 1), 1) + 1)
-#         abseps = 10*10.0**-prec
-#         num_collocation_point_list = 2*m*np.arange(1, 6, 2)
-#         # range(num_points, num_points+3, 2)
-#         basis = self.basis
-#         Q = 1e+300
-#         n = 0
-#         for num_collocation_points in num_collocation_point_list:
-#             Q_old = Q
-#             x = points(num_collocation_points-1, betam)
-#             Q = self.aLevinTQ(omega, ff, gg, dgg, x, s, basis, *args, **kwds)
-#             n += num_collocation_points
-#             err = np.abs(Q-Q_old)
-#             if err <= abseps:
-#                 break
-#         info = self.info(err, n)
-#         return Q, info
 
 
 if __name__ == '__main__':
