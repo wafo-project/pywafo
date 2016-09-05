@@ -235,10 +235,10 @@ class QuadOsc(_Integrator):
 
     def _extrapolate(self, k, q0, q1, q2):
         if k >= 4:
-            q1[k], _err1 = dea3(q0[k - 2], q0[k - 1], q0[k])
-            q2[k], _err2 = dea3(q1[k - 2], q1[k - 1], q1[k])
+            q1[k] = dea3(q0[k - 2], q0[k - 1], q0[k])[0]
+            q2[k] = dea3(q1[k - 2], q1[k - 1], q1[k])[0]
         elif k >= 2:
-            q1[k], _err1 = dea3(q0[k - 2], q0[k - 1], q0[k])
+            q1[k] = dea3(q0[k - 2], q0[k - 1], q0[k])[0]
         #         # Richardson extrapolation
         #         if k >= 4:
         #             q1[k] = richardson(q0, k)
