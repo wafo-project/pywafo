@@ -32,7 +32,8 @@ class PolyBasis(object):
     def eval(t, c):
         return polynomial.polyval(t, c)
 
-    def _coefficients(self, k):
+    @staticmethod
+    def _coefficients(k):
         c = np.zeros(k + 1)
         c[k] = 1
         return c
