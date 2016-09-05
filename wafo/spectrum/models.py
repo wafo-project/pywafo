@@ -47,7 +47,7 @@ from .core import SpecData1D, SpecData2D
 
 __all__ = ['Bretschneider', 'Jonswap', 'Torsethaugen', 'Wallop', 'McCormick',
            'OchiHubble', 'Tmaspec', 'jonswap_peakfact', 'jonswap_seastate',
-           'spreading', 'w2k', 'k2w', 'phi1']
+           'Spreading', 'w2k', 'k2w', 'phi1']
 
 _EPS = finfo(float).eps
 
@@ -1034,7 +1034,7 @@ class Torsethaugen(ModelSpectrum):
 
             print('Hm0 = %g' % Hm0)
             print('Ns, Ms = %g, %g  Nw, Mw = %g, %g' % (Ns, Ms, Nw, Mw))
-            print('gammas = %g gammaw = ' % (gammas, gammaw))
+            print('gammas = %g gammaw = %g' % (gammas, gammaw))
             print('Rps = %g Rpw = %g' % (Rps, Rpw))
             print('Hps = %g Hpw = %g' % (Hps, Hpw))
             print('Tps = %g Tpw = %g' % (Tps, Tpw))
@@ -1600,7 +1600,7 @@ class Spreading(object):
         phi0 : real scalar
             Parameter defining the actual principal direction of D.
         '''
-        S, TH, phi0, unused_Nt = self.chk_input(theta, w, wc)
+        S, TH, phi0 = self.chk_input(theta, w, wc)[:3]
 
         gammaln = sp.gammaln
 
@@ -1630,7 +1630,7 @@ class Spreading(object):
         phi0 : real scalar
             Parameter defining the actual principal direction of D.
         '''
-        [X, TH, phi0, unused_Nt] = self.chk_input(theta, w, wc)
+        X, TH, phi0 = self.chk_input(theta, w, wc)[:3]
 
         D = (1 - X ** 2.) / (1. - (2. * cos(TH) - X) * X) / (2. * pi)
         return D, phi0
@@ -1659,7 +1659,7 @@ class Spreading(object):
             Parameter defining the actual principal direction of D.
         '''
 
-        [par, TH, phi0, Nt] = self.chk_input(theta, w, wc)
+        par, TH, phi0, Nt = self.chk_input(theta, w, wc)
 
         D1 = par ** 2. / 2.
 
@@ -1700,7 +1700,7 @@ class Spreading(object):
             Parameter defining the actual principal direction of D.
         '''
 
-        [B, TH, phi0, unused_Nt] = self.chk_input(theta, w, wc)
+        B, TH, phi0 = self.chk_input(theta, w, wc)[:3]
         NB = tanh(pi * B)  # % Normalization factor.
         NB = where(NB == 0, 1.0, NB)  # Avoid division by zero
 
@@ -1730,7 +1730,7 @@ class Spreading(object):
             Parameter defining the actual principal direction of D.
         '''
 
-        [K, TH, phi0, unused_Nt] = self.chk_input(theta, w, wc)
+        K, TH, phi0 = self.chk_input(theta, w, wc)[:3]
 
         D = exp(K * (cos(TH) - 1.)) / (2 * pi * sp.ive(0, K))
         return D, phi0
@@ -1758,7 +1758,7 @@ class Spreading(object):
             Parameter defining the actual principal direction of D.
         '''
 
-        [A, TH, phi0, unused_Nt] = self.chk_input(theta, w, wc)
+        A, TH, phi0 = self.chk_input(theta, w, wc)[:3]
         D = ((-A <= TH) & (TH <= A)) / (2. * A)
         return D, phi0
 
@@ -1794,7 +1794,8 @@ class Spreading(object):
         fourierfun = self._fourierdispatch.get(self.type[0])
         return fourierfun(r1)
 
-    def fourier2x(self, r1):
+    @staticmethod
+    def fourier2x(r1):
         ''' Returns the solution of r1 = x.
         '''
         X = r1
@@ -1802,7 +1803,8 @@ class Spreading(object):
             raise ValueError('POISSON spreading: X value must be less than 1')
         return X
 
-    def fourier2a(self, r1):
+    @staticmethod
+    def fourier2a(r1):
         ''' Returns the solution of R1 = sin(A)/A.
         '''
         A0 = flipud(linspace(0, pi + 0.1, 1025))
@@ -1833,7 +1835,8 @@ class Spreading(object):
         warnings.warn('Newton raphson method did not converge.')
         return A.clip(min=1e-16)  # Avoid division by zero
 
-    def fourier2k(self, r1):
+    @staticmethod
+    def fourier2k(r1):
         '''
         Returns the solution of R1 = besseli(1,K)/besseli(0,K),
         '''
@@ -1967,12 +1970,14 @@ class Spreading(object):
             s_par = s_par[newaxis, :]
         return s_par
 
-    def _donelan(self, wn):
+    @staticmethod
+    def _donelan(wn):
         ''' High frequency decay of B of sech2 paramater
         '''
         return 10.0 ** (-0.4 + 0.8393 * exp(-0.567 * log(wn ** 2)))
 
-    def _r1ofsech2(self, B):
+    @staticmethod
+    def _r1ofsech2(B):
         ''' R1OFSECH2   Computes R1 = pi./(2*B.*sinh(pi./(2*B)))
         '''
         realmax = finfo(float).max
@@ -2111,7 +2116,7 @@ def _test_spreading():
 
     D2 = Spreading('cos2s', theta0=lambda w: w * plb.pi / 6.0)
     d1 = D2(theta, w)[0]
-    _t = plb.contour(d1.squeeze())
+    plb.contour(d1.squeeze())
 
     pi = plb.pi
     D = Spreading('wrap_norm', s_a=10.0)
