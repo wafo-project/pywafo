@@ -346,7 +346,7 @@ def test_parse_kwargs():
 
 
 def test_getshipchar():
-    sc = getshipchar(10, 'service_speed')
+    sc = getshipchar(service_speed=10)
     true_sc = dict(beam=29,
                    beamSTD=2.9,
                    draught=9.6,
