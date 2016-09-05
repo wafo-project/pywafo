@@ -25,38 +25,43 @@ dea3 = nd.dea3
 
 class PolyBasis(object):
     @staticmethod
-    def derivative(t, k, n=1):
-        c = np.zeros(k + 1)
-        c[k] = 1
-        dc = polynomial.polyder(c, m=n)
-        return polynomial.polyval(t, dc)
+    def _derivative(c, m):
+        return polynomial.polyder(c, m)
 
     @staticmethod
     def eval(t, c):
         return polynomial.polyval(t, c)
+
+    def _coefficients(self, k):
+        c = np.zeros(k + 1)
+        c[k] = 1
+        return c
+
+    def derivative(self, t, k, n=1):
+        c = self._coefficients(k)
+        dc = self._derivative(c, m=n)
+        return self.eval(t, dc)
 
     def __call__(self, t, k):
         return t**k
 poly_basis = PolyBasis()
 
 
-class ChebyshevBasis(object):
+class ChebyshevBasis(PolyBasis):
+
     @staticmethod
-    def derivative(t, k, n=1):
-        c = np.zeros(k + 1)
-        c[k] = 1
+    def _derivative(c, m):
         cheb = Chebyshev(c)
-        dcheb = cheb.deriv(m=n)
-        return chebval(t, dcheb.coef)
+        dcheb = cheb.deriv(m=m)
+        return dcheb.coef
 
     @staticmethod
     def eval(t, c):
         return chebval(t, c)
 
     def __call__(self, t, k):
-        c = np.zeros(k + 1)
-        c[k] = 1
-        return chebval(t, c)
+        c = self._coefficients(k)
+        return self.eval(t, c)
 chebyshev_basis = ChebyshevBasis()
 
 
