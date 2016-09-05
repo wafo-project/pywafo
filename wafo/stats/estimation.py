@@ -276,7 +276,8 @@ class Profile(object):
         self.ylabel = 'Profile log' + like_txt
         self.xlabel = 'phat[{}]'.format(np.ravel(self.i_fixed)[0])
 
-    def _loglike_max(self, fit_dist, method):
+    @staticmethod
+    def _loglike_max(fit_dist, method):
         if method.startswith('ml'):
             Lmax = fit_dist.LLmax
         elif method.startswith('mps'):
@@ -286,14 +287,16 @@ class Profile(object):
                 "PROFILE is only valid for ML- or MPS- estimators")
         return Lmax
 
-    def _default_i_fixed(self, fit_dist):
+    @staticmethod
+    def _default_i_fixed(fit_dist):
         try:
             i0 = 1 - np.isfinite(fit_dist.par_fix).argmax()
         except:
             i0 = 0
         return i0
 
-    def _get_not_fixed_mask(self, fit_dist):
+    @staticmethod
+    def _get_not_fixed_mask(fit_dist):
         if fit_dist.par_fix is None:
             isnotfixed = np.ones(fit_dist.par.shape, dtype=bool)
         else:
@@ -316,7 +319,8 @@ class Profile(object):
         isfree[self.i_fixed] = False
         self.i_free = nonzero(isfree)
 
-    def _local_link(self, fix_par, par):
+    @staticmethod
+    def _local_link(fix_par, par):
         """
         Return fixed distribution parameter
         """
@@ -1214,7 +1218,8 @@ class FitDistribution(rv_frozen):
         args = args[:-2] + (loc, scale)
         return args
 
-    def _warn_if_no_success(self, warnflag):
+    @staticmethod
+    def _warn_if_no_success(warnflag):
         if warnflag == 1:
             warnings.warn("The maximum number of iterations was exceeded.")
         elif warnflag == 2:
@@ -1432,7 +1437,8 @@ class FitDistribution(rv_frozen):
         limits = np.arange(mn, mx, d)
         return limits
 
-    def _staircase(self, x, y):
+    @staticmethod
+    def _staircase(x, y):
         xx = x.reshape(-1, 1).repeat(3, axis=1).ravel()[1:-1]
         yy = y.reshape(-1, 1).repeat(3, axis=1)
         # yy[0,0] = 0.0 # pdf
