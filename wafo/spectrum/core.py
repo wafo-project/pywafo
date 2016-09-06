@@ -5,7 +5,7 @@ import numpy as np
 from numpy import (pi, inf, zeros, ones, where, nonzero,
                    flatnonzero, ceil, sqrt, exp, log, arctan2,
                    tanh, cosh, sinh, random, atleast_1d,
-                   minimum, diff, isnan, any, r_, conj, mod,
+                   minimum, diff, isnan, r_, conj, mod,
                    hstack, vstack, interp, ravel, finfo, linspace,
                    arange, array, nan, newaxis, sign)
 from numpy.fft import fft
@@ -56,7 +56,7 @@ def _set_seed(iseed):
     if iseed is not None:
         try:
             random.set_state(iseed)
-        except:
+        except KeyError:
             random.seed(iseed)
 
 
@@ -592,7 +592,8 @@ class SpecData1D(PlotData):
             print('theoretical. Solution:')
             raise ValueError('use larger dt or sparser grid for spectrum.')
 
-    def _check_cov_matrix(self, acfmat, nt, dt):
+    @staticmethod
+    def _check_cov_matrix(acfmat, nt, dt):
         eps0 = 0.0001
         if nt + 1 >= 5:
             cc2 = acfmat[0, 0] - acfmat[4, 0] * (acfmat[4, 0] / acfmat[0, 0])
@@ -751,7 +752,7 @@ class SpecData1D(PlotData):
             Correct it with resample, for example.'''
             raise ValueError(txt)
         d_w = abs(diff(freq, n=2, axis=0))
-        if any(d_w > 1.0e-8):
+        if np.any(d_w > 1.0e-8):
             txt = '''Not equidistant frequencies/wave numbers in spectrum.
             Correct it with resample, for example.'''
             raise ValueError(txt)
@@ -995,18 +996,18 @@ class SpecData1D(PlotData):
             Hw12 = Hw1 - Hw2
             maxHw12 = max(abs(Hw12))
             if trace == 1:
-                plotbackend.figure(1),
+                plotbackend.figure(1)
                 plotbackend.semilogy(freq, Hw1, 'r')
                 plotbackend.title('Hw')
-                plotbackend.figure(2),
+                plotbackend.figure(2)
                 plotbackend.semilogy(freq, abs(Hw12), 'r')
                 plotbackend.title('Hw-HwOld')
 
                 # pause(3)
-                plotbackend.figure(1),
+                plotbackend.figure(1)
                 plotbackend.semilogy(freq, Hw1, 'b')
                 plotbackend.title('Hw')
-                plotbackend.figure(2),
+                plotbackend.figure(2)
                 plotbackend.semilogy(freq, abs(Hw12), 'b')
                 plotbackend.title('Hw-HwOld')
                 # figtile
@@ -1079,7 +1080,7 @@ class SpecData1D(PlotData):
 
         S = self.copy()
         S.normalize()
-        m, unused_mtxt = self.moment(nr=4, even=True)
+        m = self.moment(nr=4, even=True)[0]
         A = sqrt(m[0] / m[1])
 
         if paramt is None:
@@ -1103,7 +1104,7 @@ class SpecData1D(PlotData):
         if verbose:
             print('The level u for Gaussian process = %g' % u)
 
-        unused_t0, tn, Nt = paramt
+        tn, Nt = paramt[1:]
         t = linspace(0, tn / A, Nt)  # normalized times
 
         # Transform amplitudes to Gaussian levels:
@@ -1210,7 +1211,7 @@ class SpecData1D(PlotData):
 
         S = self.copy()
         S.normalize()
-        m, unused_mtxt = self.moment(nr=2, even=True)
+        m = self.moment(nr=2, even=True)[0]
         A = sqrt(m[0] / m[1])
 
         if self.tr is None:
@@ -1303,7 +1304,8 @@ class SpecData1D(PlotData):
         pdf.options = opts
         return pdf
 
-    def _covinput_t_pdf(self, pt, R):
+    @staticmethod
+    def _covinput_t_pdf(pt, R):
         """
         Return covariance matrix for Tc or Tt period problems
 
@@ -1764,7 +1766,7 @@ class SpecData1D(PlotData):
          (indI(3)=Nt+1);  for i\in (indI(3)+1,indI(4)], Y(i)>0 (deriv. X''(tn))
          (indI(4)=Nt+2);  for i\in (indI(4)+1,indI(5)], Y(i)<0 (deriv. X'(ts))
         '''
-        R0, _R1, R2, _R3, R4 = R[:, :5].T
+        R0, R2, R4 = R[:, :5:2].T
         covinput = self._covinput_mmt_pdf
         Ntime = len(R0)
         Nx0 = max(1, len(hg))
@@ -2121,7 +2123,8 @@ class SpecData1D(PlotData):
         # end
         return pdf, err, terr, options
 
-    def _covinput_mmt_pdf(self, BIG, R, tn, ts, tnold=-1):
+    @staticmethod
+    def _covinput_mmt_pdf(BIG, R, tn, ts, tnold=-1):
         """
         COVINPUT Sets up the covariance matrix
 
@@ -2340,7 +2343,8 @@ class SpecData1D(PlotData):
 
         return dens
 
-    def _cleanup(self, *files):
+    @staticmethod
+    def _cleanup(*files):
         '''Removes files from harddisk if they exist'''
         for f in files:
             if os.path.exists(f):
@@ -3095,7 +3099,7 @@ class SpecData1D(PlotData):
             xs = acf.sim(ns=ns, cases=Nstep)
             for iy in range(1, xs.shape[-1]):
                 ts = TimeSeries(xs[:, iy], xs[:, 0].ravel())
-                g, _tmp = ts.trdata(method, **opt)
+                g = ts.trdata(method, **opt)[0]
                 test1.append(g.dist2gauss())
             if verbose:
                 print('finished %d of %d ' % (ix + 1, rep))
@@ -3304,7 +3308,7 @@ class SpecData1D(PlotData):
         wnNew = Cnf2dt / dt  # % New Nyquist frequency
         dWn = wnNew - wnOld
         doInterpolate = dWn > 0 or w[1] > 0 or (
-            nfft != n) or dt != dTold or any(abs(diff(w, axis=0)) > 1.0e-8)
+            nfft != n) or dt != dTold or np.any(abs(diff(w, axis=0)) > 1.0e-8)
 
         if doInterpolate > 0:
             S1 = self.data
@@ -3341,7 +3345,7 @@ class SpecData1D(PlotData):
             wnc = wnNew
             # specfun = lambda xi : stineman_interp(xi, w, S1)
             specfun = interpolate.interp1d(w, S1, kind='cubic')
-            x, unused_y = discretize(specfun, 0, wnc)
+            x = discretize(specfun, 0, wnc)[0]
             dwMin = minimum(min(diff(x)), dwMin)
 
             newNfft = 2 ** nextpow2(ceil(wnNew / dwMin)) + 1
@@ -3396,7 +3400,7 @@ class SpecData1D(PlotData):
         >>> np.allclose(Sn.moment(2)[0], [1.0, 1.0])
         True
         '''
-        mom, unused_mtext = self.moment(nr=4, even=True)
+        mom = self.moment(nr=4, even=True)[0]
         m0 = mom[0]
         m2 = mom[1]
         m4 = mom[2]
@@ -3448,7 +3452,7 @@ class SpecData1D(PlotData):
         array([ 0.73062845,  0.34476034,  0.68277527,  2.90817052])
         '''
 
-        m, unused_mtxt = self.moment(nr=4, even=False)
+        m = self.moment(nr=4, even=False)[0]
         if isinstance(factors, str):
             factors = [factors]
         fact_dict = dict(alpha=0, eps2=1, eps4=3, qp=3, Qp=3)
@@ -3594,7 +3598,7 @@ class SpecData1D(PlotData):
 
         nfact = atleast_1d(nfact)
 
-        if any((nfact > 14) | (nfact < 0)):
+        if np.any((nfact > 14) | (nfact < 0)):
             raise ValueError('Factor outside range (0,...,14)')
 
         # vari = self.freqtype
@@ -3656,7 +3660,7 @@ class SpecData1D(PlotData):
         # if nargout>1,
         # covariance between the moments:
         # COV(mi,mj |T=t0) = int f^(i+j)*S(f)^2 df/T
-        mij, unused_mijtxt = self.moment(nr=8, even=False, j=1)
+        mij = self.moment(nr=8, even=False, j=1)[0]
         for ix, tmp in enumerate(mij):
             mij[ix] = tmp / T / ((2. * pi) ** (ix - 1.0))
 
