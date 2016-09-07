@@ -293,9 +293,9 @@ class LevinQuadrature(unittest.TestCase):
             self.assert_(info.error_estimate < 1e-8)
 
     def test_exp_zdcos2t_dcos2t_exp_jw_cos_t_b_dcos2t(self):
-        x1 = -20
-        y1 = 20
-        z1 = 20
+        x1 = 20
+        y1 = 50
+        z1 = 10
         beta = np.abs(np.arctan(y1/x1))
         R = np.sqrt(x1**2+y1**2)
 
@@ -351,7 +351,8 @@ class LevinQuadrature(unittest.TestCase):
         zdg = zeros_dg(beta)
         ab = (a, ) + zdg + (b, )
         true_val, _err = mp.quadts(ftot, ab, maxdegree=9, error=True)
-        if False:
+        # true_val3, err3 = mp.quadgl(ftot, ab, maxdegree=9, error=True)
+        if True:
             import matplotlib.pyplot as plt
             t = np.linspace(a, b, 5*513)
             plt.subplot(2, 1, 1)
@@ -376,15 +377,16 @@ class LevinQuadrature(unittest.TestCase):
             plt.show('hold')
         # true_val = 0.00253186684281+0.004314054498j
         # s = 15
-        for quadfun in [QuadOsc, EvansWebster, AdaptiveLevin]:
+        for quadfun in [QuadOsc]:  # , EvansWebster]:  # ,  AdaptiveLevin]:
             # EvansWebster]:  # , AdaptiveLevin, ]:
             quad = quadfun(f, g, dg, a, b, precision=10, endpoints=False,
                            full_output=True)
             val, _info = quad(omega, beta, z1)  # @UnusedVariable
-            # assert_allclose(val, complex(true_val), rtol=1e-3)
+            print(quadfun.__name__)
+            assert_allclose(val, complex(true_val), rtol=1e-3)
             # s = 1 if s<=1 else s//2
             pass
-        assert(False)
+        # assert(False)
 
 
 if __name__ == "__main__":
