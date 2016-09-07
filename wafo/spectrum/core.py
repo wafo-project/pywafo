@@ -56,7 +56,7 @@ def _set_seed(iseed):
     if iseed is not None:
         try:
             random.set_state(iseed)
-        except KeyError:
+        except (KeyError, TypeError):
             random.seed(iseed)
 
 
