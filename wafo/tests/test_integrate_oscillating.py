@@ -358,17 +358,21 @@ class LevinQuadrature(unittest.TestCase):
             f2 = f(t, beta, z1)*np.exp(1j*R*g(t, beta, z1))
 
             true_val2 = np.trapz(f2, t)
-            plt.plot(t, f2.real, t, f2.imag, 'r')
-            plt.title('integral=%g+1j%g, '
+            plt.plot(t, f2.real, label='f.real')
+            plt.plot(t, f2.imag, 'r', label='f.imag')
+            plt.title('integral=%g+1j%g,\n'
                       '(%g+1j%g)' % (true_val2.real, true_val2.imag,
                                      true_val.real, true_val.imag))
+            plt.legend(loc='best', framealpha=0.5)
             plt.subplot(2, 1, 2)
-            plt.plot(t, dg(t, beta, z1), 'r')
-            plt.plot(t, g(t, beta, z1))
+            plt.plot(t, dg(t, beta, z1), 'r',
+                     label='dg(t,b={},z={})'.format(beta, z1))
+            plt.plot(t, g(t, beta, z1), label='g(t,b,z)')
             plt.hlines(0, a, b)
             plt.axis([a, b, -5, 5])
             plt.title('beta=%g' % beta)
             print(np.trapz(f2, t))
+            plt.legend(loc='best', framealpha=0.5)
             plt.show('hold')
         # true_val = 0.00253186684281+0.004314054498j
         # s = 15
@@ -380,6 +384,7 @@ class LevinQuadrature(unittest.TestCase):
             # assert_allclose(val, complex(true_val), rtol=1e-3)
             # s = 1 if s<=1 else s//2
             pass
+        assert(False)
 
 
 if __name__ == "__main__":
