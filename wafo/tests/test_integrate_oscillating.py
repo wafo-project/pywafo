@@ -352,7 +352,7 @@ class LevinQuadrature(unittest.TestCase):
         ab = (a, ) + zdg + (b, )
         true_val, _err = mp.quadts(ftot, ab, maxdegree=9, error=True)
         # true_val3, err3 = mp.quadgl(ftot, ab, maxdegree=9, error=True)
-        if True:
+        if False:
             import matplotlib.pyplot as plt
             t = np.linspace(a, b, 5*513)
             plt.subplot(2, 1, 1)
