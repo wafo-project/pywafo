@@ -546,7 +546,7 @@ class SmoothSpline(PPform):
             self.linear_extrapolate(output=False)
 
     def _compute_coefs(self, xx, yy, p=None, var=1):
-        x, y = np.atleast_1d(xx, yy)
+        x, y, var = np.atleast_1d(xx, yy, var)
         x = x.ravel()
         dx = np.diff(x)
         must_sort = (dx < 0).any()
@@ -573,7 +573,7 @@ class SmoothSpline(PPform):
 
         dydx = np.diff(y) / dx
 
-        if (n == 2):  # % straight line
+        if (n == 2):  # straight line
             coefs = np.vstack([dydx.ravel(), y[0, :]])
         else:
 

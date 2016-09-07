@@ -7,7 +7,7 @@ from __future__ import absolute_import
 from .core import TrData
 from .models import TrHermite, TrOchi, TrLinear
 from ..stats import edf, skew, kurtosis
-from ..interpolate import SmoothSpline
+from ..interpolate import SmoothSpline, interp1d
 from scipy.special import ndtri as invnorm
 from scipy.integrate import cumtrapz
 import warnings
@@ -109,6 +109,7 @@ class TransformEstimator(object):
             if (dy <= 0).any():
                 dy[dy > 0] = eps
                 gvar = -(np.hstack((dy, 0)) + np.hstack((0, dy))) / 2 + eps
+                gvar = interp1d(tr.args, gvar)(tr_raw.args)
                 pp_tr = SmoothSpline(tr_raw.args, tr_raw.data, p=1,
                                      lin_extrap=self.linextrap,
                                      var=ix * gvar)
