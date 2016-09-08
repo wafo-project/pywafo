@@ -2283,8 +2283,8 @@ def stirlerr(n):
 
 
 def _get_max_deadweight(**ship_property):
-    names = ship_property.keys()
-    _assert(len(names) == 1, 'Only one keyword allowed!')
+    names = list(ship_property)
+    _assert(len(ship_property) == 1, 'Only one ship property allowed!')
     name = names[0]
     value = np.array(ship_property[name])
     valid_props = dict(le='length', be='beam', dr='draught',
