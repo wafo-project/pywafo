@@ -14,6 +14,7 @@ from . import polynomial
 from . import stats
 from . import interpolate
 from . import dctpack
+from . import wave_theory
 try:
     from . import fig
 except ImportError:

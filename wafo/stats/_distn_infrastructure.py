@@ -4,7 +4,7 @@ from scipy.stats._distn_infrastructure import (_skew,  # @UnusedImport
     _kurtosis,  _ncx2_log_pdf,  # @IgnorePep8 @UnusedImport
     _ncx2_pdf,  _ncx2_cdf)  # @UnusedImport @IgnorePep8
 from .estimation import FitDistribution
-from ._constants import _XMAX
+from ._constants import _XMAX, _XMIN
 from wafo.misc import lazyselect as _lazyselect
 from wafo.misc import lazywhere as _lazywhere
 
@@ -250,9 +250,8 @@ def link(self, x, logSF, theta, i):
 
 
 def _link(self, x, logSF, theta, i):
-    msg = ('Link function not implemented for the %s distribution' %
-           self.name)
-    raise NotImplementedError(msg)
+    msg = 'Link function not implemented for the {} distribution'
+    raise NotImplementedError(msg.format(self.name))
 
 
 def nlogps(self, theta, x):
@@ -303,7 +302,7 @@ def nlogps(self, theta, x):
         prb = np.hstack((1.0, self.sf(x, *args), 0.0))
         dprb = -np.diff(prb)
 
-    logD = log(dprb)
+    logD = log(dprb + _XMIN)
     dx = np.diff(x, axis=0)
     tie = (dx == 0)
     if any(tie):

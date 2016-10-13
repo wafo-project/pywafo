@@ -3,6 +3,7 @@ Misc
 '''
 from __future__ import absolute_import, division
 import sys
+from . import numba_misc
 import fractions
 import numpy as np
 from numpy import (
@@ -10,8 +11,8 @@ from numpy import (
     amax, logical_and, arange, linspace, atleast_1d,
     asarray, ceil, floor, frexp, hypot,
     sqrt, arctan2, sin, cos, exp, log, log1p, mod, diff,
-    finfo, inf, pi, interp, isscalar, zeros, ones, linalg,
-    r_, sign, unique, hstack, vstack, nonzero, where, extract)
+    inf, pi, interp, isscalar, zeros, ones, linalg,
+    sign, unique, hstack, vstack, nonzero, where, extract)
 from scipy.special import gammaln
 from scipy.integrate import trapz, simps
 import warnings
@@ -26,9 +27,10 @@ try:
 except ImportError:
     warnings.warn('c_library not found. Check its compilation.')
     clib = None
-floatinfo = finfo(float)
-_TINY = np.finfo(float).tiny
-_EPS = np.finfo(float).eps
+
+floatinfo = np.finfo(float)
+_TINY = floatinfo.tiny
+_EPS = floatinfo.eps
 
 __all__ = ['now', 'spaceline', 'narg_smallest', 'args_flat', 'is_numlike',
            'JITImport', 'DotDict', 'Bunch', 'printf', 'sub_dict_select',
@@ -839,33 +841,7 @@ def _findcross(xn, method='clib'):
     if clib is not None and method == 'clib':
         ind, m = clib.findcross(xn, 0.0)
         return ind[:m]
-
-    n = len(xn)
-    iz, = (xn == 0).nonzero()
-    if len(iz) > 0:
-        # Trick to avoid turning points on the crossinglevel.
-        if iz[0] == 0:
-            if len(iz) == n:
-                warnings.warn('All values are equal to crossing level!')
-                return zeros(0, dtype=np.int)
-
-            diz = diff(iz)
-            if len(diz) > 0 and (diz > 1).any():
-                ix = iz[(diz > 1).argmax()]
-            else:
-                ix = iz[-1]
-
-            # x(ix) is a up crossing if  x(1:ix) = v and x(ix+1) > v.
-            # x(ix) is a downcrossing if x(1:ix) = v and x(ix+1) < v.
-            xn[0:ix + 1] = -xn[ix + 1]
-            iz = iz[ix + 1::]
-
-        for ix in iz.tolist():
-            xn[ix] = xn[ix - 1]
-
-    # indices to local level crossings ( without turningpoints)
-    ind, = (xn[:n - 1] * xn[1:] < 0).nonzero()
-    return ind
+    return numba_misc.findcross(xn)
 
 
 def xor(a, b):
@@ -947,17 +923,17 @@ def findcross(x, v=0.0, kind=None, method='clib'):
             ind = ind[t_0::2]
         elif kind in ('dw', 'uw', 'tw', 'cw'):
             # make sure the first is a level v down-crossing
-            #   if wdef=='dw' or wdef=='tw'
+            #   if kind=='dw' or kind=='tw'
             # or make sure the first is a level v up-crossing
-            #    if wdef=='uw' or wdef=='cw'
+            #    if kind=='uw' or kind=='cw'
 
             first_is_down_crossing = int(xn[ind[0]] > xn[ind[0] + 1])
             if xor(first_is_down_crossing, kind in ('dw', 'tw')):
                 ind = ind[1::]
 
             # make sure the number of troughs and crests are according to the
-            # wavedef, i.e., make sure length(ind) is odd if dw or uw
-            # and even if tw or cw
+            # wavedef, i.e., make sure length(ind) is odd if kind is dw or uw
+            # and even if kind is tw or cw
             is_odd = mod(ind.size, 2)
             if xor(is_odd, kind in ('dw', 'uw')):
                 ind = ind[:-1]
@@ -1107,7 +1083,7 @@ def findrfc_astm(tp):
         sig_rfc[:,1] Cycles mean value
         sig_rfc[:,2] Cycle type, half (=0.5) or full (=1.0)
     """
-
+    return numba_misc.findrfc_astm(tp)
     y1 = atleast_1d(tp).ravel()
     sig_rfc, cnr = clib.findrfc3_astm(y1)
     # the sig_rfc was constructed too big in rainflow.rf3, so
@@ -1185,80 +1161,11 @@ def findrfc(tp, h=0.0, method='clib'):
 
     if clib is not None and method == 'clib':
         ind, ix = clib.findrfc(y, h)
-    elif method == '2':
-        ix = -1
-        ind = _findrfc2(y, h)
     else:
-        ind, ix = _findrfc(y, h)
+        ind = numba_misc.findrfc(y, h, method)
+        ix = len(ind)
 
     return np.sort(ind[:ix]) + t_start
-
-
-def _findrfc(y, h):
-    # TODO: merge rfcfilter and _findrfc
-    t_start = 0
-
-    n = len(y)
-    NC = np.floor(n / 2) - 1
-    ind = zeros(n, dtype=np.int)
-    NC = np.int(NC)
-    ix = 0
-    for i in range(NC):
-        Tmi = t_start + 2 * i
-        Tpl = t_start + 2 * i + 2
-        xminus = y[2 * i]
-        xplus = y[2 * i + 2]
-
-        if(i != 0):
-            j = i - 1
-            while ((j >= 0) and (y[2 * j + 1] <= y[2 * i + 1])):
-                if (y[2 * j] < xminus):
-                    xminus = y[2 * j]
-                    Tmi = t_start + 2 * j
-                j -= 1
-        if (xminus >= xplus):
-            if (y[2 * i + 1] - xminus >= h):
-                ind[ix] = Tmi
-                ix += 1
-                ind[ix] = (t_start + 2 * i + 1)
-                ix += 1
-            # goto L180 continue
-        else:
-            j = i + 1
-            while (j < NC):
-                if (y[2 * j + 1] >= y[2 * i + 1]):
-                    break  # goto L170
-                if((y[2 * j + 2] <= xplus)):
-                    xplus = y[2 * j + 2]
-                    Tpl = (t_start + 2 * j + 2)
-                j += 1
-            else:
-                if ((y[2 * i + 1] - xminus) >= h):
-                    ind[ix] = Tmi
-                    ix += 1
-                    ind[ix] = (t_start + 2 * i + 1)
-                    ix += 1
-                # iy = i
-                continue
-
-            # goto L180
-            # L170:
-            if (xplus <= xminus):
-                if ((y[2 * i + 1] - xminus) >= h):
-                    ind[ix] = Tmi
-                    ix += 1
-                    ind[ix] = (t_start + 2 * i + 1)
-                    ix += 1
-            elif ((y[2 * i + 1] - xplus) >= h):
-                ind[ix] = (t_start + 2 * i + 1)
-                ix += 1
-                ind[ix] = Tpl
-                ix += 1
-
-        # L180:
-        # iy=i
-    #  /* for i */
-    return ind, ix
 
 
 def _raise_kind_error(kind):
@@ -1399,118 +1306,124 @@ def mctp2tc(f_Mm, utc, param, f_mM=None):
     MCTP2TC  Calculates frequencies for the  upcrossing troughs and crests
     using Markov chain of turning points.
 
-    CALL: f_tc = mctp2tc(f_Mm,utc,param);
-
-    where
-
-    f_tc  = the matrix with frequences of upcrossing troughs and crests,
+    Parameters
+    ----------
     f_Mm  = the frequency matrix for the Max2min cycles,
     utc   = the reference level,
     param = a vector defining the discretization used to compute f_Mm,
             note that f_mM has to be computed on the same grid as f_mM.
-
-    optional call: f_tc = mctp2tc(f_Mm,utc,param,f_mM)
-
     f_mM  = the frequency matrix for the min2Max cycles.
+
+    Returns
+    -------
+    f_tc  = the matrix with frequences of upcrossing troughs and crests,
+
     """
-    raise NotImplementedError('')
-#     if f_mM is None:
-#         f_mM = np.copy(f_Mm)
-#
-#     u = np.linspace(*param)
-#     udisc = np.fliplr(u)
-#     ntc = np.sum(udisc >= utc)
-#     n = len(f_Mm)
-#     if ntc > n-1:
-#         raise IndexError('index for mean-level out of range, stop')
-#     if param[2]-1 < ntc or ntc < 2 :
-#         raise ValueError('the reference level out of range, stop')
-#
-#     # normalization of frequency matrices
-#
-#     for i in range(n):
-#         rowsum = np.sum(f_Mm[i])
-#         if rowsum!=0:
-#             f_Mm[i] = f_Mm[i] /rowsum
-#
-#     P = np.fliplr(f_Mm)
-#
-#     Ph = np.rot90(np.fliplr(f_mM), -1)
-#     for i in range(n):
-#         rowsum = np.sum(Ph[i])
-#         if rowsum!=0:
-#            Ph[i] = Ph[i] / rowsum
-#
-#     Ph = np.fliplr(Ph)
-#
-#     F = np.zeros((n, n))
-#     F[:ntc-1,:(n-ntc)] = f_mM[:ntc-1, :(n-ntc)]
-#     F = cmat2nt(F)
-#
-#     for i in range(1, ntc):
-#         for j in range(ntc, n-1):
-#
-#         if i<ntc:
-#             Ap = P[i:ntc-1,i+1:ntc]
-#             Bp = Ph[i+1:ntc,i:ntc-1]
-#             dim_p = ntc-i
-#             tempp=zeros((dim_p, 1))
-#             I=np.eye(np.shape(Ap))
-#             if i==2:
-#                 e = Ph[i+1:ntc,0]
-#             else:
-#                 e = np.sum(Ph[i+1:ntc, 1:i-1], axis=1)
-#
-#             if max(abs(e)) > 1e-10
-#                 if dim_p == 1:
-#                     tempp[0] = (Ap/(1-Bp*Ap)*e);
-#                 else:
-#                     tempp = Ap*((I-Bp*Ap)\e)
-#                 # end
-#             # end
-#         # end
-#
-#         if j>ntc
-#
-#           Am=P(ntc:j-1,ntc+1:j); Bm=Ph(ntc+1:j,ntc:j-1);
-#           dim_m=j-ntc;
-#           tempm=zeros(dim_m,1);
-#           Im=eye(size(Am));
-#           if j==n-1
-#             em=P(ntc:j-1,n);
-#           else
-#             em=sum(P(ntc:j-1,j+1:n),2);
-#           end
-#           if max(abs(em))>1e-10
-#             if dim_m==1
-#               tempm(1,1)=(Bm/(1-Am*Bm)*em);
-#             else
-#               tempm=Bm*((Im-Am*Bm)\em);
-#             end
-#           end
-#         end
-#
-#         if (j>ntc) && (i<ntc)
-#           F(i,n-j+1)=F(i,n-j+1)+tempp'*freqPVL(i:ntc-1,n-ntc:-1:n-j+1)*tempm;
-#           F(i,n-j+1)=F(i,n-j+1)+tempp'*freqPVL(i:ntc-1,n-j:-1:1)*ones(n-j,1);
-#           F(i,n-j+1)=F(i,n-j+1)+ones(1,i-1)*freqPVL(1:i-1,n-ntc:-1:n-j+1)*tempm;
-#         end
-#         if (j==ntc) && (i<ntc)
-#           F(i,n-j+1)=F(i,n-j+1)+tempp'*freqPVL(i:ntc-1,n-j:-1:1)*ones(n-j,1);
-#           for k=1:ntc
-#             F(i,n-k+1)=F(i,n-ntc+1);
-#           end
-#         end
-#         if (j>ntc) && (i==ntc)
-#           F(i,n-j+1)=F(i,n-j+1)+ones(1,i-1)*freqPVL(1:i-1,n-ntc:-1:n-j+1)*tempm;
-#           for k=ntc:n
-#             F(k,n-j+1)=F(ntc,n-j+1);
-#           end
-#         end
-#       end
-#     end
-#
-#     return nt2cmat(F);
+    # raise NotImplementedError('')
+    if f_mM is None:
+        f_mM = np.copy(f_Mm)
+
+    u = np.linspace(*param)
+    udisc = np.fliplr(u)
+    ntc = np.sum(udisc >= utc)
+    n = len(f_Mm)
+    if ntc > n-1:
+        raise IndexError('index for mean-level out of range, stop')
+    if param[2]-1 < ntc or ntc < 2:
+        raise ValueError('the reference level out of range, stop')
+
+    # normalization of frequency matrices
+
+    for i in range(n):
+        rowsum = np.sum(f_Mm[i])
+        if rowsum != 0:
+            f_Mm[i] = f_Mm[i] / rowsum
+
+    P = np.fliplr(f_Mm)
+
+    Ph = np.rot90(np.fliplr(f_mM), -1)
+    for i in range(n):
+        rowsum = np.sum(Ph[i])
+        if rowsum != 0:
+            Ph[i] = Ph[i] / rowsum
+
+    Ph = np.fliplr(Ph)
+
+    F = np.zeros((n, n))
+    F[:ntc-1, :(n-ntc)] = f_mM[:ntc-1, :(n-ntc)]
+    F = cmat2nt(F)
+
+    for i in range(1, ntc):
+        for j in range(ntc, n-1):
+            if i < ntc:
+                Ap = P[i:ntc-1, i+1:ntc]
+                Bp = Ph[i+1:ntc, i:ntc-1]
+                dim_p = ntc-i
+                tempp = zeros((dim_p, 1))
+                I = np.eye(np.shape(Ap))
+                if i == 2:
+                    e = Ph[i+1:ntc, 0]
+                else:
+                    e = np.sum(Ph[i+1:ntc, 1:i-1], axis=1)
+
+                if max(abs(e)) > 1e-10:
+                    if dim_p == 1:
+                        tempp[0] = (Ap/(1-Bp*Ap)*e)
+                    else:
+                        tempp = np.dot(Ap,
+                                       linalg.lstsq(I-np.dot(Bp, Ap), e)[0])
+
+                    # end
+                # end
+            # end
+            elif j > ntc:
+                Am = P[ntc:j-1, ntc+1:j]
+                Bm = Ph[ntc+1:j, ntc:j-1]
+                dim_m = j-ntc
+                tempm = zeros((dim_m, 1))
+                Im = np.eye(np.shape(Am))
+                if j == n-1:
+                    em = P[ntc:j-1, n]
+                else:
+                    em = np.sum(P[ntc:j-1, j+1:n], axis=1)
+                # end
+                if max(abs(em)) > 1e-10:
+                    if dim_m == 1:
+                        tempm[0, 0] = (Bm/(1-Am*Bm)*em)
+                    else:
+                        tempm = np.dot(Bm,
+                                       linalg.lstsq(Im-np.dot(Am, Bm), em)[0])
+                    # end
+                # end
+            # end
+
+            if (j > ntc) and (i < ntc):
+                a = np.dot(np.dot(tempp.T, f_mM[i:ntc-1, n-ntc:-1:n-j+1]),
+                           tempm)
+                b = np.dot(np.dot(tempp.T, f_mM[i:ntc-1, n-j:-1:1]),
+                           ones((n-j, 1)))
+                c = np.dot(np.dot(ones((1, i-1)), f_mM[1:i-1, n-ntc:-1:n-j+1]),
+                           tempm)
+                F[i, n-j+1] = F[i, n-j+1] + a + b + c
+            # end
+            if (j == ntc) and (i < ntc):
+                b = np.dot(np.dot(tempp.T, f_mM[i:ntc-1, n-j:-1:1]),
+                           ones((n-j, 1)))
+                F[i, n-j+1] = F[i, n-j+1] + b
+                for k in range(ntc):
+                    F[i, n-k+1] = F[i, n-ntc+1]
+                # end
+            # end
+            if (j > ntc) and (i == ntc):
+                c = np.dot(np.dot(ones((1, i-1)), f_mM[1:i-1, n-ntc:-1:n-j+1]),
+                           tempm)
+                F[i, n-j+1] = F[i, n-j+1]+c
+                for k in range(ntc, n):
+                    F[k, n-j+1] = F[ntc, n-j+1]
+                # end
+            # end
+        # end
+    # end
 
     # fmax=max(max(F));
     #  contour (u,u,flipud(F),...
@@ -1520,6 +1433,7 @@ def mctp2tc(f_Mm, utc, param, f_mM=None):
     #  ylabel('crest'), xlabel('trough')
     #  axis('square')
     # if mlver>1, commers, end
+    return nt2cmat(F)
 
 
 def mctp2rfc(fmM, fMm=None):
@@ -1567,8 +1481,6 @@ def mctp2rfc(fmM, fMm=None):
             norm = MA[j]
             if norm != 0:
                 PMm[j, :] = PMm[j, :] / norm
-                # end
-            # end
         PMm = np.fliplr(PMm)
         return PMm
 
@@ -1665,78 +1577,6 @@ def mctp2rfc(fmM, fMm=None):
     return f_rfc
 
 
-def _findrfc2(y, h, method=0):
-    n = len(y)
-    t = zeros(n, dtype=np.int)
-    j = 0
-    t0 = 0
-    y0 = y[t0]
-    z0 = 0
-
-    def a_le_b(a, b):
-        return a <= b
-
-    def a_lt_b(a, b):
-        return a < b
-
-    if method == 0:
-        cmpfun1 = a_le_b
-        cmpfun2 = a_lt_b
-    else:
-        cmpfun1 = a_lt_b
-        cmpfun2 = a_le_b
-
-    # The rainflow filter
-    for tim1, yi in enumerate(y[1::]):
-        fpi = y0 + h
-        fmi = y0 - h
-        ti = tim1 + 1
-        # yi = y[ti]
-
-        if z0 == 0:
-            if cmpfun1(yi, fmi):
-                z1 = -1
-            elif cmpfun1(fpi, yi):
-                z1 = +1
-            else:
-                z1 = 0
-            t1, y1 = (t0, y0) if z1 == 0 else (ti, yi)
-        else:
-            if (((z0 == +1) & cmpfun1(yi, fmi)) |
-                    ((z0 == -1) & cmpfun2(yi, fpi))):
-                z1 = -1
-            elif (((z0 == +1) & cmpfun2(fmi, yi)) |
-                  ((z0 == -1) & cmpfun1(fpi, yi))):
-                z1 = +1
-            else:
-                warnings.warn('Something wrong, i=%d' % tim1)
-
-            # Update y1
-            if z1 != z0:
-                t1, y1 = ti, yi
-            elif z1 == -1:
-                # y1 = min([y0 xi])
-                t1, y1 = (t0, y0) if y0 < yi else (ti, yi)
-            elif z1 == +1:
-                # y1 = max([y0 xi])
-                t1, y1 = (t0, y0) if y0 > yi else (ti, yi)
-
-        # Update y if y0 is a turning point
-        if np.abs(z0 - z1) == 2:
-            j += 1
-            t[j] = t0
-
-        # Update t0, y0, z0
-        t0, y0, z0 = t1, y1, z1
-    # end
-
-    # Update y if last y0 is greater than (or equal) threshold
-    if cmpfun1(h, np.abs(y0 - y[t[j]])):
-        j += 1
-        t[j] = t0
-    return t[:j + 1]
-
-
 def rfcfilter(x, h, method=0):
     """
     Rainflow filter a signal.
@@ -1786,9 +1626,8 @@ def rfcfilter(x, h, method=0):
     --------
     findrfc
     """
-    # TODO merge rfcfilter and findrfc
     y = atleast_1d(x).ravel()
-    ix = _findrfc2(y, h, method)
+    ix = numba_misc.findrfc(y, h, method)
     return y[ix]
 
 
@@ -1865,15 +1704,15 @@ def findtp(x, h=0.0, kind=None):
         # the Nieslony approach always put the first loading point as the first
         # turning point.
         # add the first turning point is the first of the signal
-        if x[ind[0]] != x[0]:
+        if ind[0] != 0:
             ind = np.r_[0, ind, n - 1]
         else:  # only add the last point of the signal
             ind = np.r_[ind, n - 1]
     else:
         if x[ind[0]] > x[ind[1]]:  # adds indices to  first and last value
-            ind = r_[0, ind, n - 1]
+            ind = np.r_[0, ind, n - 1]
         else:  # adds index to the last value
-            ind = r_[ind, n - 1]
+            ind = np.r_[ind, n - 1]
 
     if h > 0.0:
         ind1 = findrfc(x[ind], h)

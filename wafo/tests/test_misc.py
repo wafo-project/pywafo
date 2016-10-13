@@ -1,13 +1,15 @@
 from six import iteritems
 from numpy.testing import (run_module_suite, assert_equal, assert_almost_equal,
                            assert_array_equal, assert_array_almost_equal,
-                           TestCase, assert_,  assert_raises,)
+                           TestCase, assert_, assert_raises,)
 
 import numpy as np
 from numpy import array, cos, exp, linspace, pi, sin, diff, arange, ones
 from wafo.data import sea
+import wafo
 from wafo.misc import (JITImport, Bunch, detrendma, DotDict, findcross, ecross,
                        findextrema, findrfc, rfcfilter, findtp, findtc,
+                       findrfc_astm,
                        findoutliers, common_shape, argsreduce, stirlerr,
                        getshipchar, betaloge,
                        gravity, nextpow2, discretize, polar2cart,
@@ -17,6 +19,64 @@ from wafo.misc import (JITImport, Bunch, detrendma, DotDict, findcross, ecross,
                        parse_kwargs)
 
 
+def test_disufq():
+    d_inf = [[0., -144.3090093, -269.37681737, -375.20342419, -461.78882978,
+              -529.13303412, -577.23603722, -606.09783908, -615.7184397,
+              -606.09783908, -577.23603722, -529.13303412, -461.78882978,
+              -375.20342419, -269.37681737, -144.3090093, 0., 0., 0., 0.,
+              0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+             [0.00000000e+00, 0.00000000e+00, 5.65917684e-01, 2.82958842e+00,
+              7.92284757e+00, 1.69775305e+01, 3.11254726e+01, 5.14985092e+01,
+              7.92284757e+01, 1.15447207e+02, 1.61286540e+02, 2.17878308e+02,
+              2.86354348e+02, 3.67846494e+02, 4.63486583e+02, 5.74406449e+02,
+              7.01737928e+02, 8.46612855e+02, 8.46046937e+02, 8.43783266e+02,
+              8.38690007e+02, 8.29635324e+02, 8.15487382e+02, 7.95114345e+02,
+              7.67384379e+02, 7.31165647e+02, 6.85326315e+02, 6.28734546e+02,
+              5.60258507e+02, 4.78766360e+02, 3.83126272e+02, 2.72206406e+02]]
+
+    # depth = 10
+    d_10 = [[-3.43299449, -144.58425201, -269.97386241, -376.2314858,
+             -463.35503499, -531.34450329, -580.19988853, -609.92118976,
+             -620.50840653, -611.96153858, -584.28058577, -537.46554798,
+             -471.51642516, -386.43321726, -282.21592426, -158.8601612, 0., 0.,
+             0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+            [0., 0., 0.87964472, 3.30251807, 8.7088916, 18.1892694,
+             32.87215973, 53.88831991, 82.36912798,
+             119.44619211, 166.25122204, 223.91597801, 293.57224772,
+             376.35183479, 473.38655268, 585.80822113, 714.74866403,
+             861.33970818, 846.05101255, 843.78326617, 838.69000702,
+             829.63532408, 815.48738199, 795.11434539, 767.38437889,
+             731.16564714, 685.32631478, 628.73454642, 560.25850671,
+             478.76636028, 383.12627176, 272.20640579]]
+
+    g = 9.81
+    n = 32
+    amp = np.ones(n) + 1j * 1
+    f = np.linspace(0., 3.0, n // 2 + 1)
+    nmin = 2
+    nmax = n // 2 + 1
+    cases = 1
+    ns = n
+    w = 2.0 * pi * f
+    from wafo import c_library
+
+    d_truth = [d_10, d_inf]
+    for i, water_depth in enumerate([10.0, 10000000]):
+        kw = wafo.wave_theory.dispersion_relation.w2k(w, 0., water_depth, g)[0]
+        data2 = wafo.numba_misc.disufq(amp.real, amp.imag, w, kw, water_depth,
+                                       g, nmin, nmax, cases, ns)
+        data = c_library.disufq(amp.real, amp.imag, w, kw, water_depth, g,
+                                nmin, nmax, cases, ns)
+
+        # print(data[0])
+        # print(data[1])
+        # deep water
+        assert_array_almost_equal(data, data2)
+        assert_array_almost_equal(data, d_truth[i])
+
+    # assert(False)
+
+
 def test_JITImport():
     np = JITImport('numpy')
     assert_equal(1.0, np.exp(0))
@@ -24,8 +84,8 @@ def test_JITImport():
 
 def test_bunch():
     d = Bunch(test1=1, test2=3)
-    assert_equal(1, d.test1)
-    assert_equal(3, d.test2)
+    assert_equal(1, getattr(d, 'test1'))
+    assert_equal(3, getattr(d, 'test2'))
 
 
 def test_dotdict():
@@ -195,15 +255,18 @@ def test_findrfc():
              219, 221, 223, 225, 226, 228, 230, 231, 233, 235, 237, 238, 240,
              241, 243, 245, 247, 248]))
     _ti, tp = t[ind], x[ind]
-    ind1 = findrfc(tp, 0.3)
-    assert_array_almost_equal(
-        ind1,
-        np.array([0,  9, 32, 53, 74, 95, 116, 137]))
-    assert_array_almost_equal(
-        tp[ind1],
-        np.array(
-            [-0.00743352, 1.08753972, -1.07206545, 1.09550837, -1.07940458,
-             1.07849396, -1.0995006, 1.08094452]))
+    for method in ['clib', 2, 1, 0]:
+        ind1 = findrfc(tp, 0.3, method=method)
+        if method in [1, 0]:
+            ind1 = ind1[:-1]
+        assert_array_almost_equal(
+            ind1,
+            np.array([0, 9, 32, 53, 74, 95, 116, 137]))
+        assert_array_almost_equal(
+            tp[ind1],
+            np.array(
+                [-0.00743352, 1.08753972, -1.07206545, 1.09550837, -1.07940458,
+                 1.07849396, -1.0995006, 1.08094452]))
 
 
 def test_rfcfilter():
@@ -228,7 +291,7 @@ def test_rfcfilter():
     assert_array_almost_equal(
         ind,
         np.array(
-            [1,  3,  4,  6,  7,  9, 11, 13, 14, 16, 18, 19, 21,
+            [1, 3, 4, 6, 7, 9, 11, 13, 14, 16, 18, 19, 21,
              23, 25, 26, 28, 29, 31, 33, 35, 36, 38, 39, 41, 43,
              45, 46, 48, 50, 51, 53, 55, 56, 58, 60, 61, 63, 65,
              67, 68, 70, 71, 73, 75, 77, 78, 80, 81, 83, 85, 87,
@@ -247,6 +310,24 @@ def test_rfcfilter():
         np.array(
             [-0.00743352, 1.08753972, -1.07206545, 1.09550837, -1.07940458,
              1.07849396, -1.0995006, 1.08094452, 0.11983423]))
+
+    tp3 = findrfc_astm(tp)
+    assert_array_almost_equal((77, 3), tp3.shape)
+    # print(tp3[-5:])
+    assert_array_almost_equal(tp3[-5:],
+                              [[0.01552179, 0.42313414, 1.],
+                               [1.09750448, -0.00199612, 0.5],
+                               [1.09022256, -0.00927804, 0.5],
+                               [0.48055514, 0.60038938, 0.5],
+                               [0.03200274, 0.15183698, 0.5]])
+    assert_array_almost_equal(tp3[:5],
+                              [[0.03578165, 0.28906389, 1.],
+                               [0.03602834, 0.56726584, 1.],
+                               [0.03816623, 0.76461446, 1.],
+                               [0.0638364, 0.92381302, 1.],
+                               [0.07759006, 0.99628738, 1.]])
+
+    # assert(False)
 
 
 def test_findtp():
@@ -291,9 +372,9 @@ def test_findoutliers():
     zcrit = 0
     [inds, indg] = findoutliers(xx[:, 1], zcrit, dcrit, ddcrit, verbose=False)
     assert_array_almost_equal(inds[np.r_[0, 1, 2, -3, -2, -1]],
-                              np.array([6,   7,   8, 9509, 9510, 9511]))
+                              np.array([6, 7, 8, 9509, 9510, 9511]))
     assert_array_almost_equal(indg[np.r_[0, 1, 2, -3, -2, -1]],
-                              np.array([0,   1,   2, 9521, 9522, 9523]))
+                              np.array([0, 1, 2, 9521, 9522, 9523]))
 
 
 def test_common_shape():
@@ -310,7 +391,7 @@ def test_common_shape():
 
 
 def test_argsreduce():
-    A = linspace(0, 19, 20).reshape((4, 5))
+    A = np.reshape(linspace(0, 19, 20), (4, 5))
     B = 2
     C = range(5)
     cond = np.ones(A.shape)
@@ -320,8 +401,8 @@ def test_argsreduce():
     [A2, B2, C2] = argsreduce(cond, A, B, C)
     assert_equal(B2.shape, (15,))
     assert_array_equal(A2,
-                       np.array([0.,  1.,  2.,  3.,  4.,  5.,  6.,  7.,
-                                8.,  9., 15., 16., 17., 18., 19.]))
+                       np.array([0., 1., 2., 3., 4., 5., 6., 7.,
+                                 8., 9., 15., 16., 17., 18., 19.]))
     assert_array_equal(
         B2, np.array([2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]))
     assert_array_equal(
@@ -392,10 +473,10 @@ def test_discretize():
              1.96349541, 2.15984495, 2.35619449, 2.55254403, 2.74889357,
              2.94524311, 3.14159265]))
     assert_array_almost_equal(
-        y, np.array([1.00000000e+00,  9.80785280e-01,
+        y, np.array([1.00000000e+00, 9.80785280e-01,
                      9.23879533e-01,
-                     8.31469612e-01,  7.07106781e-01,  5.55570233e-01,
-                     3.82683432e-01,  1.95090322e-01,  6.12323400e-17,
+                     8.31469612e-01, 7.07106781e-01, 5.55570233e-01,
+                     3.82683432e-01, 1.95090322e-01, 6.12323400e-17,
                      -1.95090322e-01, -3.82683432e-01, -5.55570233e-01,
                      -7.07106781e-01, -8.31469612e-01, -9.23879533e-01,
                      -9.80785280e-01, -1.00000000e+00]))
@@ -413,9 +494,9 @@ def test_discretize_adaptive():
     assert_array_almost_equal(
         y,
         np.array(
-            [1.00000000e+00,  9.80785280e-01,  9.23879533e-01,
-             8.31469612e-01,  7.07106781e-01,  5.55570233e-01,
-             3.82683432e-01,  1.95090322e-01,  6.12323400e-17,
+            [1.00000000e+00, 9.80785280e-01, 9.23879533e-01,
+             8.31469612e-01, 7.07106781e-01, 5.55570233e-01,
+             3.82683432e-01, 1.95090322e-01, 6.12323400e-17,
              -1.95090322e-01, -3.82683432e-01, -5.55570233e-01,
              -7.07106781e-01, -8.31469612e-01, -9.23879533e-01,
              -9.80785280e-01, -1.00000000e+00]))
@@ -435,13 +516,13 @@ def test_polar2cart_n_cart2polar():
     assert_array_almost_equal(
         y,
         np.array(
-            [0.00000000e+00,  8.22972951e-01,  1.62349735e+00,
-             2.37973697e+00,  3.07106356e+00,  3.67861955e+00,
-             4.18583239e+00,  4.57886663e+00,  4.84700133e+00,
-             4.98292247e+00,  4.98292247e+00,  4.84700133e+00,
-             4.57886663e+00,  4.18583239e+00,  3.67861955e+00,
-             3.07106356e+00,  2.37973697e+00,  1.62349735e+00,
-             8.22972951e-01,  6.12323400e-16]))
+            [0.00000000e+00, 8.22972951e-01, 1.62349735e+00,
+             2.37973697e+00, 3.07106356e+00, 3.67861955e+00,
+             4.18583239e+00, 4.57886663e+00, 4.84700133e+00,
+             4.98292247e+00, 4.98292247e+00, 4.84700133e+00,
+             4.57886663e+00, 4.18583239e+00, 3.67861955e+00,
+             3.07106356e+00, 2.37973697e+00, 1.62349735e+00,
+             8.22972951e-01, 6.12323400e-16]))
     ti, ri = cart2polar(x, y)
     assert_array_almost_equal(
         ti,
@@ -474,6 +555,7 @@ def test_tranproc():
 
 
 class TestPiecewise(TestCase):
+
     def test_condition_is_single_bool_list(self):
         assert_raises(ValueError, piecewise, [True, False], [1], [0, 0])
 
@@ -523,7 +605,7 @@ class TestPiecewise(TestCase):
         x = np.linspace(-2.5, 2.5, 6)
         vals = piecewise([x < 0, x >= 0], [lambda x: -x, lambda x: x], (x,))
         assert_array_equal(vals,
-                           [2.5,  1.5,  0.5,  0.5,  1.5,  2.5])
+                           [2.5, 1.5, 0.5, 0.5, 1.5, 2.5])
 
     def test_abs_function_with_scalar(self):
         x = np.array(-2.5)
@@ -533,22 +615,22 @@ class TestPiecewise(TestCase):
     def test_otherwise_condition(self):
         x = np.linspace(-2.5, 2.5, 6)
         vals = piecewise([x < 0, ], [lambda x: -x, lambda x: x], (x,))
-        assert_array_equal(vals, [2.5,  1.5,  0.5,  0.5,  1.5,  2.5])
+        assert_array_equal(vals, [2.5, 1.5, 0.5, 0.5, 1.5, 2.5])
 
     def test_passing_further_args_to_fun(self):
         def fun0(x, y, scale=1.):
-            return -x*y/scale
+            return -x * y / scale
 
         def fun1(x, y, scale=1.):
-            return x*y/scale
+            return x * y / scale
         x = np.linspace(-2.5, 2.5, 6)
         vals = piecewise([x < 0, ], [fun0, fun1], (x,), args=(2.,), scale=2.)
-        assert_array_equal(vals, [2.5,  1.5,  0.5,  0.5,  1.5,  2.5])
+        assert_array_equal(vals, [2.5, 1.5, 0.5, 0.5, 1.5, 2.5])
 
     def test_step_function(self):
         x = np.linspace(-2.5, 2.5, 6)
         vals = piecewise([x < 0, x >= 0], [-1, 1], x)
-        assert_array_equal(vals, [-1., -1., -1.,  1.,  1.,  1.])
+        assert_array_equal(vals, [-1., -1., -1., 1., 1., 1.])
 
     def test_step_function_with_scalar(self):
         x = 1
@@ -560,11 +642,11 @@ class TestPiecewise(TestCase):
         X, Y = np.meshgrid(x, x)
         vals = piecewise(
             [X * Y < 0, ], [lambda x, y: -x * y, lambda x, y: x * y], (X, Y))
-        assert_array_equal(vals, [[4.,  2., -0.,  2.,  4.],
-                                  [2.,  1., -0.,  1.,  2.],
-                                  [-0., -0.,  0.,  0.,  0.],
-                                  [2.,  1.,  0.,  1.,  2.],
-                                  [4.,  2.,  0.,  2.,  4.]])
+        assert_array_equal(vals, [[4., 2., -0., 2., 4.],
+                                  [2., 1., -0., 1., 2.],
+                                  [-0., -0., 0., 0., 0.],
+                                  [2., 1., 0., 1., 2.],
+                                  [4., 2., 0., 2., 4.]])
 
     def test_fill_value_and_function_with_two_args(self):
         x = np.linspace(-2, 2, 5)
@@ -573,11 +655,11 @@ class TestPiecewise(TestCase):
                          [lambda x, y: -x * y, lambda x, y: x * y], (X, Y),
                          fill_value=np.nan)
         nan = np.nan
-        assert_array_equal(vals, [[4.,   2.,  nan,   2.,   4.],
-                                  [2.,   1.,  nan,   1.,   2.],
-                                  [nan,  nan,  nan,  nan,  nan],
-                                  [2.,   1.,  nan,   1.,   2.],
-                                  [4.,   2.,  nan,   2.,   4.]])
+        assert_array_equal(vals, [[4., 2., nan, 2., 4.],
+                                  [2., 1., nan, 1., 2.],
+                                  [nan, nan, nan, nan, nan],
+                                  [2., 1., nan, 1., 2.],
+                                  [4., 2., nan, 2., 4.]])
 
     def test_fill_value2_and_function_with_two_args(self):
         x = np.linspace(-2, 2, 5)
@@ -586,11 +668,11 @@ class TestPiecewise(TestCase):
                          [lambda x, y: -x * y, lambda x, y: x * y, np.nan],
                          (X, Y))
         nan = np.nan
-        assert_array_equal(vals, [[4.,   2.,  nan,   2.,   4.],
-                                  [2.,   1.,  nan,   1.,   2.],
-                                  [nan,  nan,  nan,  nan,  nan],
-                                  [2.,   1.,  nan,   1.,   2.],
-                                  [4.,   2.,  nan,   2.,   4.]])
+        assert_array_equal(vals, [[4., 2., nan, 2., 4.],
+                                  [2., 1., nan, 1., 2.],
+                                  [nan, nan, nan, nan, nan],
+                                  [2., 1., nan, 1., 2.],
+                                  [4., 2., nan, 2., 4.]])
 
 
 class TestRotationMatrix(TestCase):

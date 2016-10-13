@@ -12,7 +12,7 @@ import warnings
 
 from wafo.plotbackend import plotbackend as plt
 from wafo.misc import ecross, findcross, argsreduce
-from wafo.stats._constants import _EPS, _XMAX
+from wafo.stats._constants import _EPS, _XMAX, _XMIN
 from wafo.stats._distn_infrastructure import rv_frozen, rv_continuous
 from scipy._lib.six import string_types
 import numdifftools as nd  # @UnresolvedImport
@@ -22,8 +22,8 @@ from scipy import optimize
 
 import numpy as np
 from scipy.special import expm1, log1p
-from numpy import (alltrue, arange, zeros, log, sqrt, exp,
-                   any, asarray, nan, pi, isfinite)
+from numpy import (arange, zeros, log, sqrt, exp,
+                   asarray, nan, pi, isfinite)
 from numpy import flatnonzero as nonzero
 
 
@@ -33,7 +33,7 @@ __all__ = ['Profile', 'FitDistribution']
 floatinfo = np.finfo(float)
 
 arr = asarray
-all = alltrue  # @ReservedAssignment
+# all = alltrue  # @ReservedAssignment
 
 
 def _burr_link(x, logsf, phat, ix):
@@ -291,7 +291,7 @@ class Profile(object):
     def _default_i_fixed(fit_dist):
         try:
             i0 = 1 - np.isfinite(fit_dist.par_fix).argmax()
-        except:
+        except Exception:
             i0 = 0
         return i0
 
@@ -365,7 +365,7 @@ class Profile(object):
         self.data = np.ones_like(pvec) * nan
         k1 = (pvec >= p_opt).argmax()
 
-        for size, step in ((-1, -1), (pvec.size, 1)):
+        for size, step in ((-1, -1), (np.size(pvec), 1)):
             phatfree = self._par[self.i_free].copy()
             for ix in range(k1, size, step):
                 Lmax, phatfree = self._profile_optimum(phatfree, pvec[ix])
@@ -384,7 +384,7 @@ class Profile(object):
         self.args = pvec[ix]
         cond = self.data == -np.inf
 
-        if any(cond):
+        if np.any(cond):
             ind, = cond.nonzero()
             self.data.put(ind, floatinfo.min / 2.0)
             ind1 = np.where(ind == 0, ind, ind - 1)
@@ -1163,10 +1163,10 @@ class FitDistribution(rv_frozen):
             prb = np.hstack((1.0, dist.sf(x, *args), 0.0))
             dprb = -np.diff(prb)
 
-        logD = log(dprb)
+        logD = log(dprb + _XMIN)
         dx = np.diff(x, axis=0)
         tie = (dx == 0)
-        if any(tie):
+        if np.any(tie):
             # TODO : implement this method for treating ties in data:
             # Assume measuring error is delta. Then compute
             # yL = F(xi - delta, theta)
@@ -1257,7 +1257,8 @@ class FitDistribution(rv_frozen):
         numpar = self.dist.numargs + 2
         par_cov = zeros((numpar, numpar))
         # self._penalty = 0
-        somefixed = (self.par_fix is not None) and any(isfinite(self.par_fix))
+        somefixed = ((self.par_fix is not None) and
+                     np.any(isfinite(self.par_fix)))
 
         H = np.asmatrix(self._hessian(self._fitfun, self.par, self.data))
         # H = -nd.Hessian(lambda par: self._fitfun(par, self.data),
@@ -1265,7 +1266,7 @@ class FitDistribution(rv_frozen):
         self.H = H
         try:
             if somefixed:
-                allfixed = all(isfinite(self.par_fix))
+                allfixed = np.all(isfinite(self.par_fix))
                 if allfixed:
                     self.par_cov[:, :] = 0
                 else:
@@ -1326,7 +1327,7 @@ class FitDistribution(rv_frozen):
 
     def profile_probability(self, log_sf, **kwds):
         '''
-        Profile Log- likelihood or Product Spacing-function for quantile.
+        Profile Log- likelihood or Product Spacing-function for probability.
 
         Examples
         --------
@@ -1344,7 +1345,7 @@ class FitDistribution(rv_frozen):
         '''
         return ProfileProbability(self, log_sf, **kwds)
 
-    def plotfitsummary(self):
+    def plotfitsummary(self, axes=None, fig=None):
         ''' Plot various diagnostic plots to asses the quality of the fit.
 
         PLOTFITSUMMARY displays probability plot, density plot, residual
@@ -1355,17 +1356,18 @@ class FitDistribution(rv_frozen):
         Other distribution types will introduce curvature in the residual
         plots.
         '''
-        plt.subplot(2, 2, 1)
+        if axes is None:
+            fig, axes = plt.subplots(2, 2, figsize=(11, 8))
+            fig.subplots_adjust(hspace=0.4, wspace=0.4)
+            # plt.subplots_adjust(hspace=0.4, wspace=0.4)
         # self.plotecdf()
-        self.plotesf()
-        plt.subplot(2, 2, 2)
-        self.plotepdf()
-        plt.subplot(2, 2, 3)
-        self.plotresq()
-        plt.subplot(2, 2, 4)
-        self.plotresprb()
+        plot_funs = (self.plotesf, self.plotepdf,
+                     self.plotresq, self.plotresprb)
+        for axis, plot in zip(axes.ravel(), plot_funs):
+            plot(axis=axis)
 
-        plt.subplots_adjust(hspace=0.4, wspace=0.4)
+        if fig is None:
+            fig = plt.gcf()
         fixstr = ''
         if self.par_fix is not None:
             numfix = len(self.i_fixed)
@@ -1380,13 +1382,12 @@ class FitDistribution(rv_frozen):
         subtxt = 'Fit method: {0:s}, Fit p-value: {1:2.2f} {2:s}, phat=[{3:s}]'
         par_txt = ('{:1.2g}, '*len(self.par))[:-2].format(*self.par)
         try:
-            plt.figtext(0.05, 0.01, subtxt.format(self.method.upper(),
-                                                  self.pvalue, fixstr,
-                                                  par_txt))
-        except:
+            fig.text(0.05, 0.01, subtxt.format(self.method.upper(),
+                                               self.pvalue, fixstr, par_txt))
+        except Exception:
             pass
 
-    def plotesf(self, symb1='r-', symb2='b.'):
+    def plotesf(self, symb1='r-', symb2='b.', axis=None):
         '''  Plot Empirical and fitted Survival Function
 
         The purpose of the plot is to graphically assess whether
@@ -1394,16 +1395,33 @@ class FitDistribution(rv_frozen):
         If so the empirical CDF should resemble the model CDF.
         Other distribution types will introduce deviations in the plot.
         '''
+        if axis is None:
+            axis = plt.gca()
         n = len(self.data)
         sf = (arange(n, 0, -1)) / n
-        plt.semilogy(
-            self.data, sf, symb2, self.data, self.sf(self.data), symb1)
-        # plt.plot(self.data,sf,'b.',self.data,self.sf(self.data),'r-')
-        plt.xlabel('x')
-        plt.ylabel('F(x) (%s)' % self.dist.name)
-        plt.title('Empirical SF plot')
+        axis.semilogy(self.data, sf, symb2,
+                      self.data, self.sf(self.data), symb1)
 
-    def plotecdf(self, symb1='r-', symb2='b.'):
+        if True:
+            i0 = 2
+            low = int(np.log10(1/n)-0.7) - 1
+            log_sf = np.log(np.logspace(low, -0.5, 7)[::-1])
+            T = self.isf(np.exp(log_sf))
+            ci = []
+            t = []
+            for Ti, log_sfi in zip(T, log_sf):
+                try:
+                    Lx = self.profile_probability(log_sfi, i=i0)
+                    ci.append(np.exp(Lx.get_bounds(alpha=0.05)))
+                    t.append(Ti)
+                except:
+                    pass
+            axis.semilogy(t, ci, 'r--')
+        axis.set_xlabel('x')
+        axis.set_ylabel('F(x) (%s)' % self.dist.name)
+        axis.set_title('Empirical SF plot')
+
+    def plotecdf(self, symb1='r-', symb2='b.', axis=None):
         '''  Plot Empirical and fitted Cumulative Distribution Function
 
         The purpose of the plot is to graphically assess whether
@@ -1411,13 +1429,15 @@ class FitDistribution(rv_frozen):
         If so the empirical CDF should resemble the model CDF.
         Other distribution types will introduce deviations in the plot.
         '''
+        if axis is None:
+            axis = plt.gca()
         n = len(self.data)
         F = (arange(1, n + 1)) / n
-        plt.plot(self.data, F, symb2,
-                 self.data, self.cdf(self.data), symb1)
-        plt.xlabel('x')
-        plt.ylabel('F(x) (%s)' % self.dist.name)
-        plt.title('Empirical CDF plot')
+        axis.plot(self.data, F, symb2,
+                  self.data, self.cdf(self.data), symb1)
+        axis.set_xlabel('x')
+        axis.set_ylabel('F(x) ({})'.format(self.dist.name))
+        axis.set_title('Empirical CDF plot')
 
     def _get_grid(self, odd=False):
         x = np.atleast_1d(self.data)
@@ -1452,7 +1472,7 @@ class FitDistribution(rv_frozen):
         pdf, x = np.histogram(self.data, bins=limits, normed=True)
         return self._staircase(x, pdf)
 
-    def plotepdf(self, symb1='r-', symb2='b-'):
+    def plotepdf(self, symb1='r-', symb2='b-', axis=None):
         '''Plot Empirical and fitted Probability Density Function
 
         The purpose of the plot is to graphically assess whether
@@ -1460,19 +1480,21 @@ class FitDistribution(rv_frozen):
         If so the histogram should resemble the model density.
         Other distribution types will introduce deviations in the plot.
         '''
+        if axis is None:
+            axis = plt.gca()
         x, pdf = self._get_empirical_pdf()
         ymax = pdf.max()
-        # plt.hist(self.data,normed=True,fill=False)
-        plt.plot(self.data, self.pdf(self.data), symb1,
-                 x, pdf, symb2)
-        ax = list(plt.axis())
-        ax[3] = min(ymax * 1.3, ax[3])
-        plt.axis(ax)
-        plt.xlabel('x')
-        plt.ylabel('f(x) (%s)' % self.dist.name)
-        plt.title('Density plot')
+        # axis.hist(self.data,normed=True,fill=False)
+        axis.plot(self.data, self.pdf(self.data), symb1,
+                  x, pdf, symb2)
+        axis1 = list(axis.axis())
+        axis1[3] = min(ymax * 1.3, axis1[3])
+        axis.axis(axis1)
+        axis.set_xlabel('x')
+        axis.set_ylabel('f(x) (%s)' % self.dist.name)
+        axis.set_title('Density plot')
 
-    def plotresq(self, symb1='r-', symb2='b.'):
+    def plotresq(self, symb1='r-', symb2='b.', axis=None):
         '''PLOTRESQ displays a residual quantile plot.
 
         The purpose of the plot is to graphically assess whether
@@ -1480,18 +1502,20 @@ class FitDistribution(rv_frozen):
         plot will be linear. Other distribution types will introduce
         curvature in the plot.
         '''
+        if axis is None:
+            axis = plt.gca()
         n = len(self.data)
         eprob = (arange(1, n + 1) - 0.5) / n
         y = self.ppf(eprob)
         y1 = self.data[[0, -1]]
-        plt.plot(self.data, y, symb2, y1, y1, symb1)
-        plt.xlabel('Empirical')
-        plt.ylabel('Model (%s)' % self.dist.name)
-        plt.title('Residual Quantile Plot')
-        plt.axis('tight')
-        plt.axis('equal')
+        axis.plot(self.data, y, symb2, y1, y1, symb1)
+        axis.set_xlabel('Empirical')
+        axis.set_ylabel('Model (%s)' % self.dist.name)
+        axis.set_title('Residual Quantile Plot')
+        axis.axis('tight')
+        axis.axis('equal')
 
-    def plotresprb(self, symb1='r-', symb2='b.'):
+    def plotresprb(self, symb1='r-', symb2='b.', axis=None):
         ''' PLOTRESPRB displays a residual probability plot.
 
         The purpose of the plot is to graphically assess whether
@@ -1499,17 +1523,19 @@ class FitDistribution(rv_frozen):
         plot will be linear. Other distribution types will introduce curvature
         in the plot.
         '''
+        if axis is None:
+            axis = plt.gca()
         n = len(self.data)
         # ecdf = (0.5:n-0.5)/n;
         ecdf = arange(1, n + 1) / (n + 1)
         mcdf = self.cdf(self.data)
         p1 = [0, 1]
-        plt.plot(ecdf, mcdf, symb2, p1, p1, symb1)
-        plt.xlabel('Empirical')
-        plt.ylabel('Model (%s)' % self.dist.name)
-        plt.title('Residual Probability Plot')
-        plt.axis('equal')
-        plt.axis([0, 1, 0, 1])
+        axis.plot(ecdf, mcdf, symb2, p1, p1, symb1)
+        axis.set_xlabel('Empirical')
+        axis.set_ylabel('Model (%s)' % self.dist.name)
+        axis.set_title('Residual Probability Plot')
+        axis.axis('equal')
+        axis.axis([0, 1, 0, 1])
 
     def _pvalue(self, theta, x, unknown_numpar=None):
         ''' Return P-value for the fit using Moran's negative log Product
@@ -1521,7 +1547,7 @@ class FitDistribution(rv_frozen):
         '''
         dx = np.diff(x, axis=0)
         tie = (dx == 0)
-        if any(tie):
+        if np.any(tie):
             warnings.warn(
                 'P-value is on the conservative side (i.e. too large) due to' +
                 ' ties in the data!')

@@ -5,9 +5,10 @@ k2w - Translates from wave number to frequency
 w2k - Translates from frequency to wave number
 """
 import warnings
-# import numpy as np
+import numpy as np
+from wafo.misc import lazywhere
 from numpy import (atleast_1d, sqrt, ones_like, zeros_like, arctan2, where,
-                   tanh, any, sin, cos, sign, inf,
+                   tanh, sin, cos, sign, inf,
                    flatnonzero, finfo, cosh, abs)
 
 __all__ = ['k2w', 'w2k']
@@ -75,7 +76,7 @@ def k2w(k1, k2=0e0, h=inf, g=9.81, u1=0e0, u2=0e0):
     w = where(k > 0, ku1 + ku2 + sqrt(gi * k * tanh(k * hi)), 0.0)
 
     cond = (w < 0)
-    if any(cond):
+    if np.any(cond):
         txt0 = '''
                Waves and current are in opposite directions
                making some of the frequencies negative.
@@ -171,13 +172,15 @@ def w2k(w, theta=0.0, h=inf, g=9.81, count_limit=100):
     while (ix.size > 0 and count < count_limit):
         ki = k[ix]
         kh = ki * hi[ix]
+        coshkh2 = lazywhere(np.abs(kh) < 350, (kh, ),
+                            lambda kh: cosh(kh) ** 2.0, fillvalue=np.inf)
         hn[ix] = (ki * tanh(kh) - wi[ix] ** 2.0 / gi) / \
-            (tanh(kh) + kh / (cosh(kh) ** 2.0))
+                 (tanh(kh) + kh / coshkh2)
         knew = ki - hn[ix]
         # Make sure that the current guess is not zero.
         # When Newton's Method suggests steps that lead to zero guesses
         # take a step 9/10ths of the way to zero:
-        ksmall = find(abs(knew) == 0)
+        ksmall = find(np.abs(knew) == 0)
         if ksmall.size > 0:
             knew[ksmall] = ki[ksmall] / 10.0
             hn[ix[ksmall]] = ki[ksmall] - knew[ksmall]
@@ -186,7 +189,7 @@ def w2k(w, theta=0.0, h=inf, g=9.81, count_limit=100):
         # disp(['Iteration ',num2str(count),'  Number of points left:  '
         # num2str(length(ix)) ]),
 
-        ix = find((abs(hn) > sqrt(eps) * abs(k)) * abs(hn) > sqrt(eps))
+        ix = find((np.abs(hn) > sqrt(eps) * np.abs(k)) * np.abs(hn) > sqrt(eps))
         count += 1
 
     if count == count_limit:
