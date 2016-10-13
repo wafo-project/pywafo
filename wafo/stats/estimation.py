@@ -1404,7 +1404,7 @@ class FitDistribution(rv_frozen):
 
         if True:
             i0 = 2
-            low = int(np.log10(1/n)-0.7) - 1
+            low = int(np.log10(1.0/n)-0.7) - 1
             log_sf = np.log(np.logspace(low, -0.5, 7)[::-1])
             T = self.isf(np.exp(log_sf))
             ci = []

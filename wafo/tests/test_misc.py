@@ -270,21 +270,22 @@ def test_findrfc():
 
 
 def test_rfcfilter():
+
     # 1. Filtered signal y is the turning points of x.
     x = sea()
-    y = rfcfilter(x[:, 1], h=0, method=1)
+    y = rfcfilter(x[:, 1], h=0.0, method=1)
     assert_array_almost_equal(
         y[0:5],
         np.array([-1.2004945, 0.83950546, -0.09049454,
                   -0.02049454, -0.09049454]))
 
     # 2. This removes all rainflow cycles with range less than 0.5.
-    y1 = rfcfilter(x[:, 1], h=0.5)
+    y1 = rfcfilter(x[:, 1], h=0.5, method=0)
     assert_array_almost_equal(
         y1[0:5],
         np.array([-1.2004945, 0.83950546, -0.43049454,
                   0.34950546, -0.51049454]))
-
+    # return
     t = linspace(0, 7 * pi, 250)
     x = sin(t) + 0.1 * sin(50 * t)
     ind = findextrema(x)

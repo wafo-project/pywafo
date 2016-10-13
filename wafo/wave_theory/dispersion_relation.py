@@ -189,7 +189,8 @@ def w2k(w, theta=0.0, h=inf, g=9.81, count_limit=100):
         # disp(['Iteration ',num2str(count),'  Number of points left:  '
         # num2str(length(ix)) ]),
 
-        ix = find((np.abs(hn) > sqrt(eps) * np.abs(k)) * np.abs(hn) > sqrt(eps))
+        ix = find((np.abs(hn) > sqrt(eps) * np.abs(k)) *
+                  np.abs(hn) > sqrt(eps))
         count += 1
 
     if count == count_limit:

@@ -3,7 +3,7 @@ Misc
 '''
 from __future__ import absolute_import, division
 import sys
-from . import numba_misc
+from wafo import numba_misc
 import fractions
 import numpy as np
 from numpy import (
@@ -1127,11 +1127,14 @@ def findrfc(tp, h=0.0, method='clib'):
     >>> ind1 = wm.findrfc(tp, 0.3)
     >>> np.allclose(ind1, [  0,   9,  32,  53,  74,  95, 116, 137])
     True
-    >>> ind2 = wm.findrfc(tp, 0.3, method='2')
-    >>> np.allclose(ind2, [  0,   9,  32,  53,  74,  95, 116, 137])
+    >>> ind2 = wm.findrfc(tp, 0.3, method=0)
+    >>> np.allclose(ind2, [  0,   9,  32,  53,  74,  95, 116, 137, 146])
     True
-    >>> ind3 = wm.findrfc(tp, 0.3, method='3')
-    >>> np.allclose(ind2, [  0,   9,  32,  53,  74,  95, 116, 137])
+    >>> ind3 = wm.findrfc(tp, 0.3, method=1)
+    >>> np.allclose(ind3, [  0,   9,  32,  53,  74,  95, 116, 137, 146])
+    True
+    >>> ind3 = wm.findrfc(tp, 0.3, method=2)
+    >>> np.allclose(ind3, [  0,   9,  32,  53,  74,  95, 116, 137])
     True
 
 
