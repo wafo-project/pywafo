@@ -185,14 +185,14 @@ def piecewise(condlist, funclist, xi=None, fill_value=0.0, args=(), **kw):
 
     def check_shapes(condlist, funclist):
         nc, nf = len(condlist), len(funclist)
-        if nc not in [nf-1, nf]:
+        if nc not in [nf - 1, nf]:
             raise ValueError("function list and condition list" +
                              " must be the same length")
 
     check_shapes(condlist, funclist)
 
     condlist = np.broadcast_arrays(*condlist)
-    if len(condlist) == len(funclist)-1:
+    if len(condlist) == len(funclist) - 1:
         condlist.append(otherwise_condition(condlist))
     if xi is None:
         arrays = ()
@@ -1094,14 +1094,14 @@ def findrfc_astm(tp):
         sig_rfc[:,2] Cycle type, half (=0.5) or full (=1.0)
     """
     return numba_misc.findrfc_astm(tp)
-    y1 = atleast_1d(tp).ravel()
-    sig_rfc, cnr = clib.findrfc3_astm(y1)
-    # the sig_rfc was constructed too big in rainflow.rf3, so
-    # reduce the sig_rfc array as done originally by a matlab mex c function
-    n = len(sig_rfc)
-    # sig_rfc = sig_rfc.__getslice__(0, n - cnr[0])
-    # sig_rfc holds the actual rainflow counted cycles, not the indices
-    return sig_rfc[:n - cnr[0]]
+#     y1 = atleast_1d(tp).ravel()
+#     sig_rfc, cnr = clib.findrfc3_astm(y1)
+#     # the sig_rfc was constructed too big in rainflow.rf3, so
+#     # reduce the sig_rfc array as done originally by a matlab mex c function
+#     n = len(sig_rfc)
+#     # sig_rfc = sig_rfc.__getslice__(0, n - cnr[0])
+#     # sig_rfc holds the actual rainflow counted cycles, not the indices
+#     return sig_rfc[:n - cnr[0]]
 
 
 def findrfc(tp, h=0.0, method='clib'):
@@ -1236,15 +1236,15 @@ def nt2cmat(nt, kind=1):
     """
     n = len(nt)  # Number of discrete levels
     if kind == 1:
-        I = np.r_[0:n-1]
+        I = np.r_[0:n - 1]
         J = np.r_[1:n]
         c = nt[I+1][:, J-1] - nt[I][:, J-1] - nt[I+1][:, J] + nt[I][:, J]
-        c2 = np.vstack((c, np.zeros((n-1))))
+        c2 = np.vstack((c, np.zeros((n - 1))))
         cmat = np.hstack((np.zeros((n, 1)), c2))
     elif kind == 11:  # same as def=1 but using for-loop
         cmat = np.zeros((n, n))
         j = np.r_[1:n]
-        for i in range(n-1):
+        for i in range(n - 1):
             cmat[i, j] = nt[i+1, j-1] - nt[i, j-1] - nt[i+1, j] + nt[i, j]
     else:
         _raise_kind_error(kind)
@@ -1303,12 +1303,12 @@ def cmat2nt(cmat, kind=1):
     if kind == 1:
         csum = np.cumsum
         flip = np.fliplr
-        nt[1:n, :n-1] = flip(csum(flip(csum(cmat[:-1, 1:], axis=0)), axis=1))
+        nt[1:n, :n - 1] = flip(csum(flip(csum(cmat[:-1, 1:], axis=0)), axis=1))
     elif kind == 11:  # same as def=1 but using for-loop
         # j = np.r_[1:n]
         for i in range(1, n):
-            for j in range(n-1):
-                nt[i, j] = np.sum(cmat[:i, j+1:n])
+            for j in range(n - 1):
+                nt[i, j] = np.sum(cmat[:i, j + 1:n])
     else:
         _raise_kind_error(kind)
     return nt
@@ -1340,9 +1340,9 @@ def mctp2tc(f_Mm, utc, param, f_mM=None):
     udisc = np.fliplr(u)
     ntc = np.sum(udisc >= utc)
     n = len(f_Mm)
-    if ntc > n-1:
+    if ntc > n - 1:
         raise IndexError('index for mean-level out of range, stop')
-    if param[2]-1 < ntc or ntc < 2:
+    if param[2] - 1 < ntc or ntc < 2:
         raise ValueError('the reference level out of range, stop')
 
     # normalization of frequency matrices
@@ -1363,25 +1363,25 @@ def mctp2tc(f_Mm, utc, param, f_mM=None):
     Ph = np.fliplr(Ph)
 
     F = np.zeros((n, n))
-    F[:ntc-1, :(n-ntc)] = f_mM[:ntc-1, :(n-ntc)]
+    F[:ntc - 1, :(n - ntc)] = f_mM[:ntc - 1, :(n - ntc)]
     F = cmat2nt(F)
 
     for i in range(1, ntc):
-        for j in range(ntc, n-1):
+        for j in range(ntc, n - 1):
             if i < ntc:
-                Ap = P[i:ntc-1, i+1:ntc]
-                Bp = Ph[i+1:ntc, i:ntc-1]
-                dim_p = ntc-i
+                Ap = P[i:ntc - 1, i + 1:ntc]
+                Bp = Ph[i + 1:ntc, i:ntc - 1]
+                dim_p = ntc - i
                 tempp = zeros((dim_p, 1))
                 I = np.eye(np.shape(Ap))
                 if i == 2:
-                    e = Ph[i+1:ntc, 0]
+                    e = Ph[i + 1:ntc, 0]
                 else:
-                    e = np.sum(Ph[i+1:ntc, 1:i-1], axis=1)
+                    e = np.sum(Ph[i + 1:ntc, 1:i - 1], axis=1)
 
                 if max(abs(e)) > 1e-10:
                     if dim_p == 1:
-                        tempp[0] = (Ap/(1-Bp*Ap)*e)
+                        tempp[0] = (Ap / (1 - Bp * Ap) * e)
                     else:
                         rh = I - np.dot(Bp, Ap)
                         tempp = np.dot(Ap, linalg.solve(rh, e))
@@ -1390,49 +1390,52 @@ def mctp2tc(f_Mm, utc, param, f_mM=None):
                 # end
             # end
             elif j > ntc:
-                Am = P[ntc:j-1, ntc+1:j]
-                Bm = Ph[ntc+1:j, ntc:j-1]
-                dim_m = j-ntc
+                Am = P[ntc:j - 1, ntc + 1:j]
+                Bm = Ph[ntc + 1:j, ntc:j - 1]
+                dim_m = j - ntc
                 tempm = zeros((dim_m, 1))
                 Im = np.eye(np.shape(Am))
-                if j == n-1:
-                    em = P[ntc:j-1, n]
+                if j == n - 1:
+                    em = P[ntc:j - 1, n]
                 else:
-                    em = np.sum(P[ntc:j-1, j+1:n], axis=1)
+                    em = np.sum(P[ntc:j - 1, j + 1:n], axis=1)
                 # end
                 if max(abs(em)) > 1e-10:
                     if dim_m == 1:
-                        tempm[0, 0] = (Bm/(1-Am*Bm)*em)
+                        tempm[0, 0] = (Bm / (1 - Am * Bm) * em)
                     else:
-                        tempm = np.dot(Bm,
-                                       linalg.lstsq(Im-np.dot(Am, Bm), em)[0])
+                        rh = Im - np.dot(Am, Bm)
+                        tempm = np.dot(Bm, linalg.lstsq(rh, em)[0])
                     # end
                 # end
             # end
 
             if (j > ntc) and (i < ntc):
-                a = np.dot(np.dot(tempp.T, f_mM[i:ntc-1, n-ntc:-1:n-j+1]),
+                a = np.dot(np.dot(tempp.T,
+                                  f_mM[i:ntc - 1, n - ntc:-1:n - j + 1]),
                            tempm)
-                b = np.dot(np.dot(tempp.T, f_mM[i:ntc-1, n-j:-1:1]),
-                           ones((n-j, 1)))
-                c = np.dot(np.dot(ones((1, i-1)), f_mM[1:i-1, n-ntc:-1:n-j+1]),
+                b = np.dot(np.dot(tempp.T, f_mM[i:ntc - 1, n - j:-1:1]),
+                           ones((n - j, 1)))
+                c = np.dot(np.dot(ones((1, i - 1)),
+                                  f_mM[1:i - 1, n - ntc:-1:n - j + 1]),
                            tempm)
-                F[i, n-j+1] = F[i, n-j+1] + a + b + c
+                F[i, n - j + 1] = F[i, n - j + 1] + a + b + c
             # end
             if (j == ntc) and (i < ntc):
-                b = np.dot(np.dot(tempp.T, f_mM[i:ntc-1, n-j:-1:1]),
-                           ones((n-j, 1)))
-                F[i, n-j+1] = F[i, n-j+1] + b
+                b = np.dot(np.dot(tempp.T, f_mM[i:ntc - 1, n - j:-1:1]),
+                           ones((n - j, 1)))
+                F[i, n - j + 1] = F[i, n - j + 1] + b
                 for k in range(ntc):
-                    F[i, n-k+1] = F[i, n-ntc+1]
+                    F[i, n - k + 1] = F[i, n - ntc + 1]
                 # end
             # end
             if (j > ntc) and (i == ntc):
-                c = np.dot(np.dot(ones((1, i-1)), f_mM[1:i-1, n-ntc:-1:n-j+1]),
+                c = np.dot(np.dot(ones((1, i - 1)),
+                                  f_mM[1:i - 1, n - ntc:-1:n - j + 1]),
                            tempm)
-                F[i, n-j+1] = F[i, n-j+1]+c
+                F[i, n - j + 1] = F[i, n - j + 1] + c
                 for k in range(ntc, n):
-                    F[k, n-j+1] = F[ntc, n-j+1]
+                    F[k, n - j + 1] = F[ntc, n - j + 1]
                 # end
             # end
         # end
@@ -1830,7 +1833,7 @@ def findtc(x_in, v=None, kind=None):
 
     if (2 * n_tc + 1 < n_c) and (kind in (None, 'tw', 'cw')):
         # trough or crest
-        ind[n_c - 2] = f1(x[v_ind[n_c - 2] + 1:v_ind[n_c - 1]+1])
+        ind[n_c - 2] = f1(x[v_ind[n_c - 2] + 1:v_ind[n_c - 1] + 1])
 
     return v_ind[:n_c - 1] + ind + 1, v_ind
 
@@ -3109,7 +3112,8 @@ def test_docstrings():
     # np.set_printoptions(precision=6)
     import doctest
     print('Testing docstrings in %s' % __file__)
-    doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE|doctest.ELLIPSIS)
+    doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE |
+                    doctest.ELLIPSIS)
 
 
 if __name__ == "__main__":

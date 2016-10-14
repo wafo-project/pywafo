@@ -1407,7 +1407,7 @@ class FitDistribution(rv_frozen):
         except Exception:
             pass
 
-    def plotesf(self, symb1='r-', symb2='b.', axis=None):
+    def plotesf(self, symb1='r-', symb2='b.', axis=None, plot_ci=False):
         '''  Plot Empirical and fitted Survival Function
 
         The purpose of the plot is to graphically assess whether
@@ -1422,7 +1422,7 @@ class FitDistribution(rv_frozen):
         axis.semilogy(self.data, sf, symb2,
                       self.data, self.sf(self.data), symb1)
 
-        if True:
+        if plot_ci:
             low = int(np.log10(1.0/n)-0.7) - 1
             sf1 = np.logspace(low, -0.5, 7)[::-1]
             ci1 = self.ci_sf(sf, alpha=0.05, i=2)
