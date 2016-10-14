@@ -73,7 +73,6 @@ def test_disufq():
         # deep water
         assert_array_almost_equal(data, data2)
         assert_array_almost_equal(data, d_truth[i])
-
     # assert(False)
 
 

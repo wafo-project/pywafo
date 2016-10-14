@@ -1345,6 +1345,26 @@ class FitDistribution(rv_frozen):
         '''
         return ProfileProbability(self, log_sf, **kwds)
 
+    def ci_sf(self, sf, alpha=0.05, i=2):
+        ci = []
+        for log_sfi in np.atleast_1d(np.log(sf)).ravel():
+            try:
+                Lp = self.profile_probability(log_sfi, i=i)
+                ci.append(np.exp(Lp.get_bounds(alpha=alpha)))
+            except Exception:
+                ci.append((np.nan, np.nan))
+        return np.array(ci)
+
+    def ci_quantile(self, x, alpha=0.05, i=2):
+        ci = []
+        for xi in np.atleast_1d(x).ravel():
+            try:
+                Lx = self.profile_quantile(xi, i=2)
+                ci.append(Lx.get_bounds(alpha=alpha))
+            except Exception:
+                ci.append((np.nan, np.nan))
+        return np.array(ci)
+
     def plotfitsummary(self, axes=None, fig=None):
         ''' Plot various diagnostic plots to asses the quality of the fit.
 
@@ -1403,20 +1423,10 @@ class FitDistribution(rv_frozen):
                       self.data, self.sf(self.data), symb1)
 
         if True:
-            i0 = 2
             low = int(np.log10(1.0/n)-0.7) - 1
-            log_sf = np.log(np.logspace(low, -0.5, 7)[::-1])
-            T = self.isf(np.exp(log_sf))
-            ci = []
-            t = []
-            for Ti, log_sfi in zip(T, log_sf):
-                try:
-                    Lx = self.profile_probability(log_sfi, i=i0)
-                    ci.append(np.exp(Lx.get_bounds(alpha=0.05)))
-                    t.append(Ti)
-                except:
-                    pass
-            axis.semilogy(t, ci, 'r--')
+            sf1 = np.logspace(low, -0.5, 7)[::-1]
+            ci1 = self.ci_sf(sf, alpha=0.05, i=2)
+            axis.semilogy(self.isf(sf1), ci1, 'r--')
         axis.set_xlabel('x')
         axis.set_ylabel('F(x) (%s)' % self.dist.name)
         axis.set_title('Empirical SF plot')

@@ -21,7 +21,6 @@ from numdifftools.extrapolation import dea3  # @UnusedImport
 from wafo.plotbackend import plotbackend
 from collections import Callable
 import numbers
-
 try:
     from wafo import c_library as clib  # @UnresolvedImport
 except ImportError:
@@ -54,6 +53,17 @@ def check_random_state(seed):
     If seed is an int, return a new RandomState instance seeded with seed.
     If seed is already a RandomState instance, return it.
     Otherwise raise ValueError.
+
+    Example
+    -------
+    >>> check_random_state(seed=None)
+    <mtrand.RandomState object at ...
+    >>> check_random_state(seed=1)
+    <mtrand.RandomState object at ...
+    >>> check_random_state(seed=np.random.RandomState(1))
+    <mtrand.RandomState object at ...
+
+    check_random_state(seed=2.5)
     """
     if seed is None or seed is np.random:
         return np.random.mtrand._rand
@@ -61,8 +71,8 @@ def check_random_state(seed):
         return np.random.RandomState(seed)
     if isinstance(seed, np.random.RandomState):
         return seed
-    raise ValueError('%r cannot be used to seed a numpy.random.RandomState'
-                     ' instance' % seed)
+    msg = '{} cannot be used to seed a numpy.random.RandomState instance'
+    raise ValueError(msg.format(seed))
 
 
 def valarray(shape, value=np.NaN, typecode=None):
@@ -1373,8 +1383,8 @@ def mctp2tc(f_Mm, utc, param, f_mM=None):
                     if dim_p == 1:
                         tempp[0] = (Ap/(1-Bp*Ap)*e)
                     else:
-                        tempp = np.dot(Ap,
-                                       linalg.lstsq(I-np.dot(Bp, Ap), e)[0])
+                        rh = I - np.dot(Bp, Ap)
+                        tempp = np.dot(Ap, linalg.solve(rh, e))
 
                     # end
                 # end
@@ -3099,7 +3109,7 @@ def test_docstrings():
     # np.set_printoptions(precision=6)
     import doctest
     print('Testing docstrings in %s' % __file__)
-    doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
+    doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE|doctest.ELLIPSIS)
 
 
 if __name__ == "__main__":
