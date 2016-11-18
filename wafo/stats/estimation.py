@@ -329,18 +329,21 @@ class Profile(object):
     def _correct_Lmax(self, Lmax, free_par, fix_par):
 
         if Lmax > self.Lmax:  # foundNewphat = True
-
-            dL = self.Lmax - Lmax
-            self.alpha_cross_level -= dL
+            par_old = str(self._par)
+            dL = Lmax - self.Lmax
+            self.alpha_cross_level += dL
             self.Lmax = Lmax
             par = self._par.copy()
             par[self.i_free] = free_par
             par[self.i_fixed] = fix_par
             self.best_par = par
             self._par = par
+
             warnings.warn(
                 'The fitted parameters does not provide the optimum fit. ' +
-                'Something wrong with fit (par = {})'.format(str(par)))
+                'Something wrong with fit ' +
+                '(par = {}, par_old= {}, dl = {})'.format(str(par), par_old,
+                                                          dL))
 
     def _profile_optimum(self, phatfree0, p_opt):
         phatfree = optimize.fmin(self._profile_fun, phatfree0, args=(p_opt,),
@@ -438,17 +441,16 @@ class Profile(object):
     def _search_pmin(self, phatfree0, p_min0, p_opt):
         phatfree = phatfree0.copy()
 
-        dp = (p_opt - p_min0)/40
-        if dp < 1e-2:
-            dp = 0.1
-        p_min_opt = p_opt - dp
+        dp = np.maximum((p_opt - p_min0)/40, 0.01)*10
         Lmax, phatfree = self._profile_optimum(phatfree, p_opt)
-        for _j in range(50):
+        p_min_opt = p_min0
+        for j in range(51):
             p_min = p_opt - dp
             Lmax, phatfree = self._profile_optimum(phatfree, p_min)
+            # print((dp, p_min, p_min_opt, Lmax))
             if np.isnan(Lmax):
                 dp *= 0.33
-            elif Lmax < self.alpha_cross_level - self.alpha_Lrange * 5:
+            elif Lmax < self.alpha_cross_level - self.alpha_Lrange*5*(j+1):
                 p_min_opt = p_min
                 dp *= 0.33
             elif Lmax < self.alpha_cross_level:
@@ -456,6 +458,10 @@ class Profile(object):
                 break
             else:
                 dp *= 1.67
+        else:
+            msg = 'Exceeded max iterations. (p_min0={}, p_min={}, p={})'
+            warnings.warn(msg.format(p_min0, p_min_opt, p_opt))
+        # print('search_pmin iterations={}'.format(j))
         return p_min_opt
 
     def _search_pmax(self, phatfree0, p_max0, p_opt):
@@ -464,14 +470,14 @@ class Profile(object):
         dp = (p_max0 - p_opt)/40
         if dp < 1e-2:
             dp = 0.1
-        p_max_opt = p_opt + dp
         Lmax, phatfree = self._profile_optimum(phatfree, p_opt)
-        for _j in range(50):
+        p_max_opt = p_opt
+        for j in range(51):
             p_max = p_opt + dp
             Lmax, phatfree = self._profile_optimum(phatfree, p_max)
             if np.isnan(Lmax):
                 dp *= 0.33
-            elif Lmax < self.alpha_cross_level - self.alpha_Lrange * 2:
+            elif Lmax < self.alpha_cross_level - self.alpha_Lrange*5*(j+1):
                 p_max_opt = p_max
                 dp *= 0.33
             elif Lmax < self.alpha_cross_level:
@@ -479,6 +485,10 @@ class Profile(object):
                 break
             else:
                 dp *= 1.67
+        else:
+            msg = 'Exceeded max iterations. (p={}, p_max={}, p_max0 = {})'
+            warnings.warn(msg.format(p_opt, p_max_opt, p_max0))
+        # print('search_pmax iterations={}'.format(j))
         return p_max_opt
 
     def _profile_fun(self, free_par, fix_par):
@@ -498,9 +508,8 @@ class Profile(object):
         '''Return confidence interval for profiled parameter
         '''
         if alpha < self.alpha:
-            warnings.warn(
-                'Might not be able to return bounds with alpha less than %g' %
-                self.alpha)
+            msg = 'Might not be able to return bounds with alpha less than {}'
+            warnings.warn(msg.format(self.alpha))
         cross_level = self.Lmax - 0.5 * chi2isf(alpha, 1)
         ind = findcross(self.data, cross_level)
         n = len(ind)
@@ -511,8 +520,8 @@ class Profile(object):
 
         elif n == 1:
             x0 = ecross(self.args, self.data, ind, cross_level)
-            isUpcrossing = self.data[ind] > self.data[ind + 1]
-            if isUpcrossing:
+            is_upcrossing = self.data[ind] < self.data[ind + 1]
+            if is_upcrossing:
                 bounds = (x0, self.pmax)
                 warnings.warn('Upper bound is larger')
             else:
@@ -1399,12 +1408,19 @@ class FitDistribution(rv_frozen):
                 fixstr = 'Fixed: phat[{0:s}] = {1:s} '.format(phatistr,
                                                               phatvstr)
 
-        subtxt = 'Fit method: {0:s}, Fit p-value: {1:2.2f} {2:s}, phat=[{3:s}]'
+        subtxt = ('Fit method: {0:s}, Fit p-value: {1:2.2f} {2:s}, ' +
+                  'phat=[{3:s}], {4:s}')
         par_txt = ('{:1.2g}, '*len(self.par))[:-2].format(*self.par)
         try:
-            fig.text(0.05, 0.01, subtxt.format(self.method.upper(),
-                                               self.pvalue, fixstr, par_txt))
+            LL_txt = 'Lps_max={:2.2g}, Ll_max={:2.2g}'.format(self.LPSmax,
+                                                              self.LLmax)
         except Exception:
+            LL_txt = 'Lps_max={}, Ll_max={}'.format(self.LPSmax, self.LLmax)
+        try:
+            fig.text(0.05, 0.01, subtxt.format(self.method.upper(),
+                                               self.pvalue, fixstr, par_txt,
+                                               LL_txt))
+        except AttributeError:
             pass
 
     def plotesf(self, symb1='r-', symb2='b.', axis=None, plot_ci=False):

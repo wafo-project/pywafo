@@ -302,20 +302,20 @@ def rotation_matrix(heading, pitch, roll):
            [ 0.,  1.,  0.],
            [ 0.,  0.,  1.]])
 
-    >>> np.all(np.abs(rotation_matrix(heading=180, pitch=0, roll=0)-
-    ... np.array([[ -1.000000e+00,  -1.224647e-16,   0.000000e+00],
-    ...       [  1.224647e-16,  -1.000000e+00,   0.000000e+00],
-    ...       [ -0.000000e+00,   0.000000e+00,   1.000000e+00]]))<1e-7)
+    >>> np.allclose(rotation_matrix(heading=180, pitch=0, roll=0),
+    ...      [[ -1.,   0.,   0.],
+    ...       [  0.,  -1.,   0.],
+    ...       [  0.,   0.,   1.]])
     True
-    >>> np.all(np.abs(rotation_matrix(heading=0, pitch=180, roll=0)-
-    ... np.array([[ -1.000000e+00,   0.000000e+00,   1.224647e-16],
-    ...       [ -0.000000e+00,   1.000000e+00,   0.000000e+00],
-    ...       [ -1.224647e-16,  -0.000000e+00,  -1.000000e+00]]))<1e-7)
+    >>> np.allclose(rotation_matrix(heading=0, pitch=180, roll=0),
+    ...      [[ -1.,  0.,   0.],
+    ...       [  0.,  1.,   0.],
+    ...       [  0.,  0.,  -1.]])
     True
-    >>> np.all(np.abs(rotation_matrix(heading=0, pitch=0, roll=180)-
-    ... np.array([[  1.000000e+00,   0.000000e+00,   0.000000e+00],
-    ...       [  0.000000e+00,  -1.000000e+00,  -1.224647e-16],
-    ...       [ -0.000000e+00,   1.224647e-16,  -1.000000e+00]]))<1e-7)
+    >>> np.allclose(rotation_matrix(heading=0, pitch=0, roll=180),
+    ...      [[  1.,  0.,   0.],
+    ...       [ 0.,  -1.,   0.],
+    ...       [ 0.,   0.,  -1.]])
     True
     '''
     data = np.diag(np.ones(3))  # No transform if H=P=R=0
@@ -369,14 +369,14 @@ def rotate_2d(x, y, angle_deg):
 
     Examples
     --------
-    >>> rotate_2d(x=1, y=0, angle_deg=0)
-    (1.0, 0.0)
-    >>> rotate_2d(x=1, y=0, angle_deg=90)
-    (6.123233995736766e-17, 1.0)
-    >>> rotate_2d(x=1, y=0, angle_deg=180)
-    (-1.0, 1.2246467991473532e-16)
-    >>> rotate_2d(x=1, y=0, angle_deg=360)
-    (1.0, -2.4492935982947064e-16)
+    >>> np.allclose(rotate_2d(x=1, y=0, angle_deg=0), (1.0, 0.0))
+    True
+    >>> np.allclose(rotate_2d(x=1, y=0, angle_deg=90), (0, 1.0))
+    True
+    >>> np.allclose(rotate_2d(x=1, y=0, angle_deg=180), (-1.0, 0))
+    True
+    >>> np.allclose(rotate_2d(x=1, y=0, angle_deg=360), (1.0, 0))
+    True
     '''
     angle_rad = angle_deg * pi / 180
     ch = cos(angle_rad)
@@ -2455,7 +2455,8 @@ def _discretize_linear(fun, a, b, tol=0.005, n=5):
     err0 = inf
     err = 10000
     nmax = 2 ** 20
-    while (err != err0 and err > tol and n < nmax):
+    num_tries = 0
+    while (num_tries < 5 and err > tol and n < nmax):
         err0 = err
         x0 = x
         y0 = y
@@ -2464,6 +2465,7 @@ def _discretize_linear(fun, a, b, tol=0.005, n=5):
         y = fun(x)
         y00 = interp(x, x0, y0)
         err = 0.5 * amax(np.abs((y00 - y) / (np.abs(y00 + y) + _TINY)))
+        num_tries += int(abs (err - err0) <= tol/2)
     return x, y
 
 
@@ -2479,9 +2481,9 @@ def _discretize_adaptive(fun, a, b, tol=0.005, n=5):
     erri = hstack((zeros((n2, 1)), ones((n2, 1)))).ravel()
     err = erri.max()
     err0 = inf
-    # while (err != err0 and err > tol and n < nmax):
+    num_tries = 0
     for j in range(50):
-        if err != err0 and np.any(erri > tol):
+        if num_tries < 5 and np.any(erri > tol):
             err0 = err
             # find top errors
 
@@ -2490,10 +2492,9 @@ def _discretize_adaptive(fun, a, b, tol=0.005, n=5):
             y = (vstack(((x[I] + x[I - 1]) / 2,
                          (x[I + 1] + x[I]) / 2)).T).ravel()
             fy = fun(y)
-
             fy0 = interp(y, x, fx)
-            erri = 0.5 * (np.abs((fy0 - fy) / (np.abs(fy0 + fy) + _TINY)))
 
+            erri = 0.5 * (np.abs((fy0 - fy) / (np.abs(fy0 + fy) + _TINY)))
             err = erri.max()
 
             x = hstack((x, y))
@@ -2502,7 +2503,7 @@ def _discretize_adaptive(fun, a, b, tol=0.005, n=5):
             x = x[I]
             erri = hstack((zeros(len(fx)), erri))[I]
             fx = hstack((fx, fy))[I]
-
+            num_tries += int(abs (err - err0) <= tol/2)
         else:
             break
     else:

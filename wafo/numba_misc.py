@@ -8,7 +8,7 @@ from numba import jit, float64, int64, int32, int8, void
 import numpy as np
 
 
-@jit(int32(int32[:], int8[:]))
+@jit(int64(int64[:], int8[:]))
 def _findcross(ind, y):
     ix, dcross, start, v = 0, 0, 0, 0
     n = len(y)
@@ -44,7 +44,7 @@ def _findcross(ind, y):
 def findcross(xn):
     '''Return indices to zero up and downcrossings of a vector
     '''
-    ind = np.empty(len(xn), dtype=np.int32)
+    ind = np.empty(len(xn), dtype=np.int64)
     m = _findcross(ind, xn)
     return ind[:m]
 
