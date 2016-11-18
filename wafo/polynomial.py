@@ -21,7 +21,7 @@ from __future__ import absolute_import
 import warnings  # @UnusedImport
 from functools import reduce
 from numpy.polynomial import polyutils as pu
-from .plotbackend import plotbackend as plt
+from wafo.plotbackend import plotbackend as plt
 import numpy as np
 from numpy import (newaxis, arange, pi)
 from scipy.fftpack import dct, idct as _idct
@@ -70,33 +70,33 @@ def polyint(p, m=1, k=None):
     Examples
     --------
     The defining property of the antiderivative:
-
-    >>> p = np.poly1d([1,1,1])
-    >>> P = np.polyint(p)
+    >>> import wafo.polynomial as wp
+    >>> p = wp.poly1d([1,1,1])
+    >>> P = wp.polyint(p)
     >>> P
     poly1d([ 0.33333333,  0.5       ,  1.        ,  0.        ])
-    >>> np.polyder(P) == p
+    >>> wp.polyder(P) == p
     True
 
     The integration constants default to zero, but can be specified:
 
-    >>> P = np.polyint(p, 3)
+    >>> P = wp.polyint(p, 3)
     >>> P(0)
     0.0
-    >>> np.polyder(P)(0)
+    >>> wp.polyder(P)(0)
     0.0
-    >>> np.polyder(P, 2)(0)
+    >>> wp.polyder(P, 2)(0)
     0.0
-    >>> P = np.polyint(p, 3, k=[6, 5, 3])
+    >>> P = wp.polyint(p, 3, k=[6, 5, 3])
     >>> P
     poly1d([ 0.01666667,  0.04166667,  0.16666667,  3. ,  5. , 3. ])
 
     Note that 3 = 6 / 2!, and that the constants are given in the order of
     integrations. Constant of the highest-order polynomial term comes first:
 
-    >>> np.polyder(P, 2)(0)
+    >>> wp.polyder(P, 2)(0)
     6.0
-    >>> np.polyder(P, 1)(0)
+    >>> wp.polyder(P, 1)(0)
     5.0
     >>> P(0)
     3.0
@@ -160,9 +160,9 @@ def polyder(p, m=1):
     Examples
     --------
     The derivative of the polynomial :math:`x^3 + x^2 + x^1 + 1` is:
-
-    >>> p = np.poly1d([1,1,1,1])
-    >>> p2 = np.polyder(p)
+    >>> import wafo.polynomial as wp
+    >>> p = wp.poly1d([1,1,1,1])
+    >>> p2 = wp.polyder(p)
     >>> p2
     poly1d([3, 2, 1])
 
@@ -179,11 +179,11 @@ def polyder(p, m=1):
 
     The fourth-order derivative of a 3rd-order polynomial is zero:
 
-    >>> np.polyder(p, 2)
+    >>> wp.polyder(p, 2)
     poly1d([6, 2])
-    >>> np.polyder(p, 3)
+    >>> wp.polyder(p, 3)
     poly1d([6])
-    >>> np.polyder(p, 4)
+    >>> wp.polyder(p, 4)
     poly1d([ 0.])
 
     """
@@ -234,15 +234,16 @@ def polydeg(x, y):
 
     Example:
     -------
+    >>> import wafo.polynomial as wp
     >>> x = np.linspace(0,10,300)
     >>> noise = 0.05 * np.random.randn(x.size)
     >>> noise = 0.05 * np.sin(100*x)
     >>> y = np.sin(x ** 3 / 100) ** 2 + noise
-    >>> n = polydeg(x,y)
+    >>> n = wp.polydeg(x,y)
     >>> n
     21
 
-    ys = orthofit(x,y,n);
+    ys = wp.orthofit(x,y,n);
     plt.plot(x, y, '.', x, ys, 'k')
 
     See also
@@ -350,16 +351,17 @@ def ortho2poly(p):
     Examples
     --------
     >>> import numpy as np
+    >>> import wafo.polynomial as wp
     >>> x = np.array([0.0, 1.0, 2.0, 3.0,  4.0,  5.0])
     >>> y = np.array([0.0, 0.8, 0.9, 0.1, -0.8, -1.0])
-    >>> p = orthofit(x, y, 3)
+    >>> p = wp.orthofit(x, y, 3)
     >>> p
     array([[ 0.        , -0.30285714, -0.16071429,  0.08703704],
            [ 0.        ,  2.5       ,  2.5       ,  2.5       ],
            [ 0.        ,  0.        ,  2.91666667,  2.13333333]])
-    >>> ortho2poly(p)
+    >>> wp.ortho2poly(p)
     array([ 0.08703704, -0.81349206,  1.69312169, -0.03968254])
-    >>> np.polyfit(x, y, 3)
+    >>> wp.polyfit(x, y, 3)
     array([ 0.08703704, -0.81349206,  1.69312169, -0.03968254])
 
     References
@@ -410,10 +412,11 @@ def orthofit(x, y, n):
 
     Example:
     -------
+    >>> import wafo.polynomial as wp
     >>> x = np.linspace(0,10,300);
     >>> y = np.sin(x**3/100)**2 + 0.05*np.random.randn(x.size)
-    >>> p = orthofit(x, y, 25)
-    >>> ys = orthoval(p, x)
+    >>> p = wp.orthofit(x, y, 25)
+    >>> ys = wp.orthoval(p, x)
 
     plot(x, y,'.',x, ys, 'k')
 
@@ -481,15 +484,16 @@ def polyreloc(p, x, y=0.0):
     Example
     -------
     >>> import numpy as np
+    >>> import wafo.polynomial as wp
     >>> p = np.arange(6); p.shape = (2,-1)
-    >>> np.polyval(p,0)
+    >>> wp.polyval(p,0)
     array([3, 4, 5])
-    >>> np.polyval(p,1)
+    >>> wp.polyval(p,1)
     array([3, 5, 7])
     >>> r = polyreloc(p,-1) # move to the left along x-axis
-    >>> np.polyval(r,-1)    # = polyval(p,0)
+    >>> wp.polyval(r,-1)    # = polyval(p,0)
     array([3, 4, 5])
-    >>> np.polyval(r,0)     # = polyval(p,1)
+    >>> wp.polyval(r,0)     # = polyval(p,1)
     array([3, 5, 7])
     """
 
@@ -534,15 +538,16 @@ def polyrescl(p, x, y=1.0):
     Example
     -------
     >>> import numpy as np
+    >>> import wafo.polynomial as wp
     >>> p = np.arange(6); p.shape = (2,-1)
-    >>> np.polyval(p,0)
+    >>> wp.polyval(p,0)
     array([3, 4, 5])
-    >>> np.polyval(p,1)
+    >>> wp.polyval(p,1)
     array([3, 5, 7])
-    >>> r = polyrescl(p,2)  # scale by 2 along x-axis
-    >>> np.polyval(r,0)     # = polyval(p,0)
+    >>> r = wp.polyrescl(p,2)  # scale by 2 along x-axis
+    >>> wp.polyval(r,0)     # = polyval(p,0)
     array([ 3.,  4.,  5.])
-    >>> np.polyval(r,2)     # = polyval(p,1)
+    >>> wp.polyval(r,2)     # = polyval(p,1)
     array([ 3.,  5.,  7.])
     """
 
@@ -577,11 +582,12 @@ def polytrim(p):
 
     Example
     -------
+    >>> import wafo.polynomial as wp
     >>> p = [0,1,2]
-    >>> polytrim(p)
+    >>> wp.polytrim(p)
     array([1, 2])
     >>> p1 = [[0,0],[1,2],[3,4]]
-    >>> polytrim(p1)
+    >>> wp.polytrim(p1)
     array([[1, 2],
            [3, 4]])
     """
@@ -620,7 +626,8 @@ def poly2hstr(p, variable='x'):
 
     Examples
     --------
-    >>> poly2hstr([1, 1, 2], 's' )
+    >>> import wafo.polynomial as wp
+    >>> wp.poly2hstr([1, 1, 2], 's' )
     '(s + 1)*s + 2'
 
     See also
@@ -710,7 +717,8 @@ def poly2str(p, variable='x'):
 
     Examples
     --------
-    >>> poly2str([1, 1, 2], 's' )
+    >>> import wafo.polynomial as wp
+    >>> wp.poly2str([1, 1, 2], 's' )
     's**2 + s + 2'
     """
     thestr = "0"
@@ -787,11 +795,12 @@ def polyshift(py, a=-1, b=1):
 
     Example
     -------
+    >>> import wafo.polynomial as wp
     >>> py = [1, 0]
-    >>> px = polyshift(py,0,5)
-    >>> polyval(px,[0, 2.5, 5])  #% This is the same as the line below
+    >>> px = wp.polyshift(py,0,5)
+    >>> wp.polyval(px,[0, 2.5, 5])  #% This is the same as the line below
     array([-1.,  0.,  1.])
-    >>> polyval(py,[-1, 0, 1 ])
+    >>> wp.polyval(py,[-1, 0, 1 ])
     array([-1,  0,  1])
     """
 
@@ -830,11 +839,12 @@ def polyishift(px, a=-1, b=1):
 
     Example
     -------
+    >>> import wafo.polynomial as wp
     >>> px = [1, 0]
-    >>> py = polyishift(px,0,5);
-    >>> polyval(px,[0, 2.5, 5])  #% This is the same as the line below
+    >>> py = wp.polyishift(px,0,5);
+    >>> wp.polyval(px,[0, 2.5, 5])  #% This is the same as the line below
     array([ 0. ,  2.5,  5. ])
-    >>> polyval(py,[-1, 0, 1])
+    >>> wp.polyval(py,[-1, 0, 1])
     array([ 0. ,  2.5,  5. ])
     """
     if (a == -1) & (b == 1):
@@ -892,9 +902,10 @@ def poly2cheb(p, a=-1, b=1):
     Examples
     --------
     >>> import numpy as np
+    >>> import wafo.polynomial as wp
     >>> p = np.arange(5)
-    >>> ck = poly2cheb(p)
-    >>> cheb2poly(ck)
+    >>> ck = wp.poly2cheb(p)
+    >>> wp.cheb2poly(ck)
     array([ 1.,  2.,  3.,  4.])
 
     Reference
@@ -934,11 +945,11 @@ def cheb2poly(ck, a=-1, b=1):
     Examples
     --------
     >>> import numpy as np
+    >>> import wafo.polynomial as wp
     >>> p = np.arange(5)
-    >>> ck = poly2cheb(p)
-    >>> cheb2poly(ck)
+    >>> ck = wp.poly2cheb(p)
+    >>> wp.cheb2poly(ck)
     array([ 1.,  2.,  3.,  4.])
-
 
     References
     ----------
@@ -990,8 +1001,9 @@ def chebextr(n):
 
     Examples
     --------
-    >>> x = chebextr(4)
-    >>> chebpoly(4,x)
+    >>> import wafo.polynomial as wp
+    >>> x = wp.chebextr(4)
+    >>> wp.chebpoly(4,x)
     array([ 1., -1.,  1., -1.,  1.])
 
 
@@ -1021,15 +1033,16 @@ def chebroot(n, kind=1):
     Examples
     --------
     >>> import numpy as np
-    >>> x = chebroot(3)
-    >>> np.abs(chebpoly(3,x))<1e-15
-    array([ True,  True,  True], dtype=bool)
-    >>> chebpoly(3)
+    >>> import wafo.polynomial as wp
+    >>> x = wp.chebroot(3)
+    >>> np.allclose(wp.chebpoly(3,x), [0, 0, 0])
+    True
+    >>> wp.chebpoly(3)
     array([ 4.,  0., -3.,  0.])
-    >>> x2 = chebroot(4,kind=2)
-    >>> np.abs(chebpoly(4,x2,kind=2))<1e-15
-    array([ True,  True,  True,  True], dtype=bool)
-    >>> chebpoly(4,kind=2)
+    >>> x2 = wp.chebroot(4, kind=2)
+    >>> np.allclose(wp.chebpoly(4,x2,kind=2), [0, 0, 0, 0])
+    True
+    >>> wp.chebpoly(4,kind=2)
     array([ 16.,   0., -12.,   0.,   1.])
 
 
@@ -1071,15 +1084,16 @@ def chebpoly(n, x=None, kind=1):
     Examples
     --------
     >>> import numpy as np
-    >>> x = chebroot(3)
-    >>> np.abs(chebpoly(3,x))<1e-15
-    array([ True,  True,  True], dtype=bool)
-    >>> chebpoly(3)
+    >>> import wafo.polynomial as wp
+    >>> x = wp.chebroot(3)
+    >>> np.allclose(wp.chebpoly(3,x), [0, 0, 0])
+    True
+    >>> wp.chebpoly(3)
     array([ 4.,  0., -3.,  0.])
-    >>> x2 = chebroot(4,kind=2)
-    >>> np.abs(chebpoly(4,x2,kind=2))<1e-15
-    array([ True,  True,  True,  True], dtype=bool)
-    >>> chebpoly(4,kind=2)
+    >>> x2 = wp.chebroot(4,kind=2)
+    >>> np.allclose(wp.chebpoly(4,x2,kind=2), [0, 0, 0, 0])
+    True
+    >>> wp.chebpoly(4,kind=2)
     array([ 16.,   0., -12.,   0.,   1.])
 
 
@@ -1131,14 +1145,15 @@ def chebfit(fun, n=10, a=-1, b=1, trace=False):
     Fit exp(x)
 
     >>> import matplotlib.pyplot as plt
+    >>> import wafo.polynomial as wp
     >>> a = 0; b = 2
-    >>> ck = chebfit(np.exp,7,a,b);
+    >>> ck = wp.chebfit(np.exp,7,a,b);
     >>> x = np.linspace(0,4);
-    >>> x1 = chebroot(9)*(b-a)/2+(b+a)/2
-    >>> ck1 = chebfit(np.exp(x1))
+    >>> x1 = wp.chebroot(9)*(b-a)/2+(b+a)/2
+    >>> ck1 = wp.chebfit(np.exp(x1))
 
-    h=plt.plot(x, np.exp(x), 'r', x, chebval(x,ck,a,b), 'g.')
-    h = plt.plot(x,np.exp(x), 'r', x, chebval(x,ck1,a,b),'g.')
+    h=plt.plot(x, np.exp(x), 'r', x, wp.chebval(x,ck,a,b), 'g.')
+    h = plt.plot(x,np.exp(x), 'r', x, wp.chebval(x,ck1,a,b),'g.')
     plt.close()
 
     See also
@@ -1209,22 +1224,23 @@ def chebfit_dct(f, n=(10, ), domain=None):
     Fit exponential function
 
     >>> import matplotlib.pyplot as plt
+    >>> import wafo.polynomial as wp
     >>> domain = (0, 2)
-    >>> ck = chebfit_dct(np.exp, 7, domain)
+    >>> ck = wp.chebfit_dct(np.exp, 7, domain)
     >>> np.allclose(ck, [3.44152387e+00,   3.07252345e+00,   7.38000848e-01,
     ...                  1.20520053e-01,   1.48805268e-02,   1.47579673e-03,
     ...                  1.21719524e-04])
     True
-    >>> x1 = map_to_interval(chebroot(9), *domain)
-    >>> ck1 = chebfit(np.exp(x1))
+    >>> x1 = wp.map_to_interval(wp.chebroot(9), *domain)
+    >>> ck1 = wp.chebfit(np.exp(x1))
     >>> np.allclose(ck1, [5.40019009e-07,   8.69418381e-06,   1.22261037e-04,
     ...                   1.47582673e-03,   1.48805283e-02,   1.20520053e-01,
     ...                   7.38000848e-01,   3.07252345e+00,   3.44152387e+00])
     True
 
     x = np.linspace(0,4)
-    h = plt.plot(x, np.exp(x), 'r', x, chebvalnd(ck, x,ck,a,b), 'g.')
-    h = plt.plot(x, np.exp(x), 'r', x, chebvalnd(ck1, x,ck1,a,b),'b.')
+    h = plt.plot(x, np.exp(x), 'r', x, wp.chebvalnd(ck, x,ck,a,b), 'g.')
+    h = plt.plot(x, np.exp(x), 'r', x, wp.chebvalnd(ck1, x,ck1,a,b),'b.')
     plt.close()
 
     See also
@@ -1280,11 +1296,12 @@ def idct(x, n=None):
     Examples
     --------
     >>> import numpy as np
+    >>> import wafo.polynomial as wp
     >>> x = np.arange(5)*1.0
-    >>> np.abs(x-idct(dct(x)))<1e-14
-    array([ True,  True,  True,  True,  True], dtype=bool)
-    >>> np.abs(x-dct(idct(x)))<1e-14
-    array([ True,  True,  True,  True,  True], dtype=bool)
+    >>> np.allclose(idct(dct(x)), x)
+    True
+    >>> np.allclose(dct(idct(x)), x)
+    True
 
     Reference
     ---------
@@ -1358,18 +1375,19 @@ def chebval(x, ck, a=-1, b=1, kind=1, fill=None):
     --------
     Plot Chebychev polynomial of the first kind and order 4:
     >>> import matplotlib.pyplot as plt
+    >>> import wafo.polynomial as wp
     >>> x = np.linspace(-1,1)
     >>> ck = np.zeros(5); ck[-1]=1
-    >>> y = chebval(x,ck)
+    >>> y = wp.chebval(x,ck)
 
-    h = plt.plot(x, y, x, chebpoly(4,x),'.')
+    h = plt.plot(x, y, x, wp.chebpoly(4,x),'.')
     plt.close()
 
     Fit exponential function:
     >>> import matplotlib.pyplot as plt
-    >>> ck = chebfit(np.exp,7,0,2)
+    >>> ck = wp.chebfit(np.exp,7,0,2)
     >>> x = np.linspace(0,4);
-    >>> y2 = chebval(x,ck,0,2)
+    >>> y2 = wp.chebval(x,ck,0,2)
 
     h=plt.plot(x, y2, 'g', x, np.exp(x))
     plt.close()
@@ -1417,10 +1435,11 @@ def chebder(ck, a=-1, b=1):
 
     Fit exponential function:
     >>> import matplotlib.pyplot as plt
-    >>> ck = chebfit(np.exp,7,0,2)
+    >>> import wafo.polynomial as wp
+    >>> ck = wp.chebfit(np.exp,7,0,2)
     >>> x = np.linspace(0,4)
-    >>> ck2 = chebder(ck,0,2)
-    >>> y = chebval(x,ck2,0,2)
+    >>> ck2 = wp.chebder(ck,0,2)
+    >>> y = wp.chebval(x,ck2,0,2)
 
     h = plt.plot(x, y, 'g', x, np.exp(x), 'r')
     plt.close()
@@ -1470,12 +1489,13 @@ def chebint(ck, a=-1, b=1):
     --------
     Fit exponential function:
     >>> import matplotlib.pyplot as plt
-    >>> ck = chebfit(np.exp,7,0,2)
+    >>> import wafo.polynomial as wp
+    >>> ck = wp.chebfit(np.exp, 7, 0, 2)
     >>> x = np.linspace(0,4)
-    >>> ck2 = chebint(ck,0,2);
-    >>> y =chebval(x,ck2,0,2)
+    >>> ck2 = wp.chebint(ck, 0, 2);
+    >>> y = wp.chebval(x, ck2, 0, 2)
 
-    h=plt.plot(x,y,'g',x,np.exp(x),'r.')
+    h = plt.plot(x, y, 'g', x, np.exp(x), 'r.')
     plt.close()
 
     See also
@@ -1713,14 +1733,15 @@ def padefit(c, m=None):
     Pade approximation to exp(x)
     >>> import scipy.special as sp
     >>> import matplotlib.pyplot as plt
-    >>> c = poly1d(1./sp.gamma(np.r_[6+1:0:-1]))
-    >>> [p, q] = padefit(c)
+    >>> import wafo.polynomial as wp
+    >>> c = wp.poly1d(1./sp.gamma(np.r_[6+1:0:-1]))
+    >>> [p, q] = wp.padefit(c)
     >>> p; q
     poly1d([ 0.00277778,  0.03333333,  0.2       ,  0.66666667,  1.        ])
     poly1d([ 0.03333333, -0.33333333,  1.        ])
 
     x = np.linspace(0,4)
-    h = plt.plot(x,c(x),x,p(x)/q(x),'g-', x,np.exp(x),'r.')
+    h = plt.plot(x, c(x), x, p(x)/q(x), 'g-', x,np.exp(x), 'r.')
     plt.close()
 
     See also
@@ -1781,13 +1802,14 @@ def padefitlsq(fun, m, k, a=-1, b=1, trace=False, x=None, end_points=True):
 
     Pade approximation to exp(x) between 0 and 2
     >>> import matplotlib.pyplot as plt
-    >>> [c1, c2] = padefitlsq(np.exp,3,3,0,2)
+    >>> import wafo.polynomial as wp
+    >>> [c1, c2] = wp.padefitlsq(np.exp,3,3,0,2)
     >>> c1; c2
     poly1d([ 0.01443847,  0.128842  ,  0.55284547,  0.99999962])
     poly1d([-0.0049658 ,  0.07610473, -0.44716929,  1.        ])
 
     x = np.linspace(0,4)
-    h = plt.plot(x, polyval(c1,x)/polyval(c2,x),'g')
+    h = plt.plot(x, wp.polyval(c1,x)/wp.polyval(c2,x),'g')
     h = plt.plot(x, np.exp(x), 'r')
 
     See also
