@@ -2465,7 +2465,7 @@ def _discretize_linear(fun, a, b, tol=0.005, n=5):
         y = fun(x)
         y00 = interp(x, x0, y0)
         err = 0.5 * amax(np.abs((y00 - y) / (np.abs(y00 + y) + _TINY)))
-        num_tries += int(abs (err - err0) <= tol/2)
+        num_tries += int(abs(err - err0) <= tol/2)
     return x, y
 
 
@@ -2503,7 +2503,7 @@ def _discretize_adaptive(fun, a, b, tol=0.005, n=5):
             x = x[I]
             erri = hstack((zeros(len(fx)), erri))[I]
             fx = hstack((fx, fy))[I]
-            num_tries += int(abs (err - err0) <= tol/2)
+            num_tries += int(abs(err - err0) <= tol/2)
         else:
             break
     else:
