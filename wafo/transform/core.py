@@ -38,7 +38,7 @@ class TrCommon(object):
     """
 
     def __init__(self, mean=0.0, var=1.0, skew=0.16, kurt=3.04, *args, **kwds):
-        sigma = kwds.get('sigma', None)
+        sigma = kwds.get('sigma')
         if sigma is None:
             sigma = sqrt(var)
         self.mean = mean
@@ -183,8 +183,8 @@ class TrData(PlotData, TrCommon):
         super(TrData, self).__init__(*args, **options)
         self.ymean = kwds.get('ymean', 0e0)
         self.ysigma = kwds.get('ysigma', 1e0)
-        self.mean = kwds.get('mean', None)
-        self.sigma = kwds.get('sigma', None)
+        self.mean = kwds.get('mean')
+        self.sigma = kwds.get('sigma')
 
         if self.mean is None:
             # self.mean = np.mean(self.args)

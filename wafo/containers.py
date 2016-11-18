@@ -83,7 +83,7 @@ class PlotData(object):
 
         self.labels = AxisLabels(**kwds)
         if not self.plotter:
-            self.setplotter(kwds.get('plotmethod', None))
+            self.setplotter(kwds.get('plotmethod'))
 
     def copy(self):
         newcopy = empty_copy(self)
@@ -206,7 +206,7 @@ class PlotData(object):
         if axis is None:
             axis = plt.gca()
         tmp = None
-        default_plotflag = self.plot_kwds.get('plotflag', None)
+        default_plotflag = self.plot_kwds.get('plotflag')
         plotflag = kwds.get('plotflag', default_plotflag)
         if not plotflag and self.children is not None:
             axis.hold('on')
