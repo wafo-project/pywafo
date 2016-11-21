@@ -442,8 +442,8 @@ class LevelCrossings(PlotData):
         max_L = max(L)
         maxi = max(abs(r_[min_L, max_L])) * epsilon
         mini = -maxi
-
-        u = linspace(mini, maxi, 101)
+        nu = 101
+        u = linspace(mini, maxi, nu)
         G = cdfnorm(u)  # (1 + erf(u / sqrt(2))) / 2
         G = G * (1 - G)
 
@@ -451,7 +451,7 @@ class LevelCrossings(PlotData):
         factor1 = 1. / sqrt(1 - x ** 2)
         factor2 = 1. / (1 + x)
         integral = zeros(u.shape, dtype=float)
-        for i in range(len(integral)):
+        for i in range(nu):
             y = factor1 * exp(-u[i] * u[i] * factor2)
             integral[i] = trapz(y, x)
         # end

@@ -629,11 +629,44 @@ def poly2hstr(p, variable='x'):
     >>> import wafo.polynomial as wp
     >>> wp.poly2hstr([1, 1, 2], 's' )
     '(s + 1)*s + 2'
+    >>> wp.poly2hstr([2, 1, 2, 1], 's' )
+    '((2*s + 1)*s + 2)*s + 1'
+    >>> wp.poly2hstr([2, 0, 2, 1], 's' )
+    '(2*s**2 + 2)*s + 1'
 
     See also
     --------
     poly2str
     """
+    def _append_coef(s, coef, expon, var):
+        # Is it the first term?
+        isfirst = s == ''
+        # Add sign, but we don't need a leading plus-sign.
+        if isfirst:
+            if coef < 0:
+                s = '-'  # Unary minus.
+        else:
+            sgn = '-' if coef < 0 else '+'
+            s = '{0:s} {1:s} '.format(s, sgn)
+        # We need the coefficient only if it is different from 1 or -1 or
+        # when it is the constant term.
+        needcoef = ((abs(coef) != 1) | (expon == 0) & isfirst) | 1 - isfirst
+        # Append the coefficient if it is different from one or when it is
+        # the constant term.
+        if needcoef:
+            s = '{0:s}{1:.20g}'.format(s, abs(coef))
+        # We need the variable except in the constant term.
+        needvar = expon != 0
+        # Append variable if necessary.
+        if needvar:
+            # Append a multiplication sign if necessary.
+            if needcoef:
+                if 1 - isfirst:
+                    s = '({0:s})'.format(s)
+                s = '{0:s}*'.format(s)
+            s = '{0:s}{1:s}'.format(s, var)
+        return s
+
     var = variable
 
     coefs = polytrim(np.atleast_1d(p))
@@ -649,44 +682,9 @@ def poly2hstr(p, variable='x'):
         else:
             # Append exponent if necessary.
             if ix > 1:
-                exponstr = '%.0f' % ix
-                s = '%s**%s' % (s, exponstr)
+                s = '{0:s}**{1:d}'.format(s, ix)
                 ix = 1
-            # Is it the first term?
-            isfirst = s == ''
-
-            # We need the coefficient only if it is different from 1 or -1 or
-            # when it is the constant term.
-            needcoef = ((abs(coef) != 1) |
-                        (expon == 0) & isfirst) | 1 - isfirst
-
-            # We need the variable except in the constant term.
-            needvar = (expon != 0)
-
-            # Add sign, but we don't need a leading plus-sign.
-            if isfirst:
-                if coef < 0:
-                    s = '-'  # % Unary minus.
-            else:
-                if coef < 0:
-                    s = '%s - ' % s  # % Binary minus (subtraction).
-                else:
-                    s = '%s + ' % s  # % Binary plus (addition).
-
-            # Append the coefficient if it is different from one or when it is
-            # the constant term.
-            if needcoef:
-                coefstr = '%.20g' % abs(coef)
-                s = '%s%s' % (s, coefstr)
-
-            # Append variable if necessary.
-            if needvar:
-                # Append a multiplication sign if necessary.
-                if needcoef:
-                    if 1 - isfirst:
-                        s = '(%s)' % s
-                    s = '%s*' % s
-                s = '%s%s' % (s, var)
+            s = _append_coef(s, coef, expon, var)
 
     # Now treat the special case where the polynomial is zero.
     if s == '':
@@ -720,7 +718,46 @@ def poly2str(p, variable='x'):
     >>> import wafo.polynomial as wp
     >>> wp.poly2str([1, 1, 2], 's' )
     's**2 + s + 2'
+    >>> wp.poly2str([2, 1, 2, 0, 1], 's' )
+    '2*s**4 + s**3 + 2*s**2 + 1'
     """
+
+    def _coefstr_0(coefstr, k):
+        if coefstr != '0':
+            newstr = '{0:s}'.format(coefstr)
+        else:
+            newstr = '0' if k == 0 else ''
+        return newstr
+
+    def _coefstr_1(coefstr, var):
+        if coefstr == '0':
+            newstr = ''
+        elif coefstr in ['b', '1']:
+            newstr = var
+        else:
+            newstr = '{0:s}*{1:s}'.format(coefstr, var)
+        return newstr
+
+    def _coefstr_n(coefstr, var, power):
+        if coefstr == '0':
+            newstr = ''
+        elif coefstr in ['b', '1']:
+            newstr = '{0:s}**{1:d}'.format(var, power)
+        else:
+            newstr = '{0:s}*{1:s}**{2:d}'.format(coefstr, var, power)
+        return newstr
+
+    def _add_strings(thestr, newstr, ck, k):
+        if k > 0:
+            if newstr != '':
+                sgn = '-' if ck < 0 else '+'
+                thestr = "{0:s} {1:s} {2:s}".format(thestr, sgn, newstr)
+        elif (k == 0) and (newstr != '') and (ck < 0):
+            thestr = "-{0:s}".format(newstr)
+        else:
+            thestr = newstr
+        return thestr
+
     thestr = "0"
     var = variable
 
@@ -729,41 +766,18 @@ def poly2str(p, variable='x'):
 
     N = len(coeffs) - 1
 
-    for k in range(N+1):
-        coefstr = '%.4g' % abs(coeffs[k])
+    for k, ck in enumerate(coeffs):
+        coefstr = '%.4g' % abs(ck)
         if coefstr[-4:] == '0000':
             coefstr = coefstr[:-5]
         power = (N - k)
         if power == 0:
-            if coefstr != '0':
-                newstr = '%s' % (coefstr,)
-            else:
-                newstr = '0' if k == 0 else ''
+            newstr = _coefstr_0(coefstr, k)
         elif power == 1:
-            if coefstr == '0':
-                newstr = ''
-            elif coefstr in ['b', '1']:
-                newstr = var
-            else:
-                newstr = '%s*%s' % (coefstr, var)
+            newstr = _coefstr_1(coefstr, var)
         else:
-            if coefstr == '0':
-                newstr = ''
-            elif coefstr in ['b', '1']:
-                newstr = '%s**%d' % (var, power,)
-            else:
-                newstr = '%s*%s**%d' % (coefstr, var, power)
-
-        if k > 0:
-            if newstr != '':
-                if coeffs[k] < 0:
-                    thestr = "%s - %s" % (thestr, newstr)
-                else:
-                    thestr = "%s + %s" % (thestr, newstr)
-        elif (k == 0) and (newstr != '') and (coeffs[k] < 0):
-            thestr = "-%s" % (newstr,)
-        else:
-            thestr = newstr
+            newstr = _coefstr_n(coefstr, var, power)
+        thestr = _add_strings(thestr, newstr, ck, k)
     return thestr
 
 
