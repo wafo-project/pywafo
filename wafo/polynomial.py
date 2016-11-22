@@ -35,7 +35,6 @@ __all__ = __all__ + ['pade', 'padefit', 'polyreloc', 'polyrescl', 'polytrim',
                      'chebder', 'chebint', 'Cheb1d', 'dct', 'idct']
 
 
-
 def polyint(p, m=1, k=None):
     """
     Return an antiderivative (indefinite integral) of a polynomial.
