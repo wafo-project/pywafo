@@ -740,19 +740,15 @@ def poly2str(p, variable='x'):
 
     def _coefstr_0(coefstr, k):
         if coefstr != '0':
-            newstr = '{0:s}'.format(coefstr)
-        else:
-            newstr = '0' if k == 0 else ''
-        return newstr
+            return '{0:s}'.format(coefstr)
+        return '0' if k == 0 else ''
 
     def _coefstr_1(coefstr, var):
         if coefstr == '0':
-            newstr = ''
-        elif coefstr in ['b', '1']:
-            newstr = var
-        else:
-            newstr = '{0:s}*{1:s}'.format(coefstr, var)
-        return newstr
+            return ''
+        if coefstr in ['b', '1']:
+            return var
+        return '{0:s}*{1:s}'.format(coefstr, var)
 
     def _coefstr_n(coefstr, var, power):
         if coefstr == '0':
