@@ -1637,24 +1637,26 @@ class Cheb1d(object):
         return self
 
     def __add__(self, other):
-        other = Cheb1d(other)
-        new = Cheb1d(self)
+        new, other = self._copy(other)
         new.coeffs = polyadd(self.coeffs, other.coeffs)
         return new
 
     def __radd__(self, other):
         return self.__add__(other)
 
-    def __sub__(self, other):
+    def _copy(self, other):
         other = Cheb1d(other)
         new = Cheb1d(self)
+        return new, other
+
+    def __sub__(self, other):
+        new, other = self._copy(other)
         new.coeffs = polysub(self.coeffs, other.coeffs)
         return new
 
     def __rsub__(self, other):
-        other = Cheb1d(other)
-        new = Cheb1d(self)
-        new.coeffs = polysub(other.coeffs, new.coeffs)
+        new = self.__sub__(other)
+        new.coeffs *= -1
         return new
 
     def __eq__(self, other):
@@ -1670,23 +1672,10 @@ class Cheb1d(object):
         raise ValueError("Attributes cannot be changed this way.")
 
     def __getattr__(self, key):
-        if key in ['c', 'coef', 'coefficients']:
-            return self.coeffs
-        elif key in ['o']:
-            return self.order
-        elif key in ['a']:
-            return self.a
-        elif key in ['b']:
-            return self.b
-        elif key in ['k']:
-            return self.kind
-        else:
-            try:
-                return self.__dict__[key]
-            except KeyError:
-                raise AttributeError(
-                    "'%s' has no attribute '%s'" %
-                    (self.__class__, key))
+        name = dict(c='coeffs', coef='coeffs', coefficients='coeffs',
+                    o='order', k='kind').get(key, key)
+        return getattr(self, name)
+        return self.__dict__[name]
 
     def __getitem__(self, val):
         if val > self.order:
