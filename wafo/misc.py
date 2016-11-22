@@ -1332,7 +1332,65 @@ def mctp2tc(f_Mm, utc, param, f_mM=None):
     f_tc  = the matrix with frequences of upcrossing troughs and crests,
 
     """
-    # raise NotImplementedError('')
+    def _check_ntc(ntc, n):
+        if ntc > n - 1:
+            raise IndexError('index for mean-level out of range, stop')
+
+    def _check_discretization(param, ntc):
+        if param[2] - 1 < ntc or ntc < 2:
+            raise ValueError('the reference level out of range, stop')
+
+    def _normalize_rows(arr):
+        n = len(arr)
+        for i in range(n):
+            rowsum = np.sum(arr[i])
+            if rowsum != 0:
+                arr[i] = arr[i] / rowsum
+        return arr
+
+    def _make_tempp(P, Ph, i, ntc):
+        Ap = P[i:ntc - 1, i + 1:ntc]
+        Bp = Ph[i + 1:ntc, i:ntc - 1]
+        dim_p = ntc - i
+        tempp = zeros((dim_p, 1))
+        I = np.eye(np.shape(Ap))
+        if i == 2:
+            e = Ph[i + 1:ntc, 0]
+        else:
+            e = np.sum(Ph[i + 1:ntc, 1:i - 1], axis=1)
+
+        if max(abs(e)) > 1e-10:
+            if dim_p == 1:
+                tempp[0] = (Ap / (1 - Bp * Ap) * e)
+            else:
+                rh = I - np.dot(Bp, Ap)
+                tempp = np.dot(Ap, linalg.solve(rh, e))
+
+            # end
+        # end
+        return tempp
+
+    def _make_tempm(P, Ph, j, ntc):
+        Am = P[ntc:j - 1, ntc + 1:j]
+        Bm = Ph[ntc + 1:j, ntc:j - 1]
+        dim_m = j - ntc
+        tempm = zeros((dim_m, 1))
+        Im = np.eye(np.shape(Am))
+        if j == n - 1:
+            em = P[ntc:j - 1, n]
+        else:
+            em = np.sum(P[ntc:j - 1, j + 1:n], axis=1)
+        # end
+        if max(abs(em)) > 1e-10:
+            if dim_m == 1:
+                tempm[0, 0] = (Bm / (1 - Am * Bm) * em)
+            else:
+                rh = Im - np.dot(Am, Bm)
+                tempm = np.dot(Bm, linalg.lstsq(rh, em)[0])
+            # end
+        # end
+        return tempm
+
     if f_mM is None:
         f_mM = np.copy(f_Mm)
 
@@ -1340,26 +1398,14 @@ def mctp2tc(f_Mm, utc, param, f_mM=None):
     udisc = np.fliplr(u)
     ntc = np.sum(udisc >= utc)
     n = len(f_Mm)
-    if ntc > n - 1:
-        raise IndexError('index for mean-level out of range, stop')
-    if param[2] - 1 < ntc or ntc < 2:
-        raise ValueError('the reference level out of range, stop')
+    _check_ntc(ntc, n)
+    _check_discretization(param, ntc)
 
     # normalization of frequency matrices
-
-    for i in range(n):
-        rowsum = np.sum(f_Mm[i])
-        if rowsum != 0:
-            f_Mm[i] = f_Mm[i] / rowsum
-
+    f_Mm = _normalize_rows(f_Mm)
     P = np.fliplr(f_Mm)
-
     Ph = np.rot90(np.fliplr(f_mM), -1)
-    for i in range(n):
-        rowsum = np.sum(Ph[i])
-        if rowsum != 0:
-            Ph[i] = Ph[i] / rowsum
-
+    Ph = _normalize_rows(Ph)
     Ph = np.fliplr(Ph)
 
     F = np.zeros((n, n))
@@ -1367,75 +1413,35 @@ def mctp2tc(f_Mm, utc, param, f_mM=None):
     F = cmat2nt(F)
 
     for i in range(1, ntc):
-        for j in range(ntc, n - 1):
-            if i < ntc:
-                Ap = P[i:ntc - 1, i + 1:ntc]
-                Bp = Ph[i + 1:ntc, i:ntc - 1]
-                dim_p = ntc - i
-                tempp = zeros((dim_p, 1))
-                I = np.eye(np.shape(Ap))
-                if i == 2:
-                    e = Ph[i + 1:ntc, 0]
-                else:
-                    e = np.sum(Ph[i + 1:ntc, 1:i - 1], axis=1)
-
-                if max(abs(e)) > 1e-10:
-                    if dim_p == 1:
-                        tempp[0] = (Ap / (1 - Bp * Ap) * e)
-                    else:
-                        rh = I - np.dot(Bp, Ap)
-                        tempp = np.dot(Ap, linalg.solve(rh, e))
-
-                    # end
-                # end
+        for j in range(ntc-1, n - 1):
+            if i < ntc-1:
+                tempp = _make_tempp(P, Ph, i, ntc)
+                b = np.dot(np.dot(tempp.T, f_mM[i:ntc - 1, n - j:-1:-1]),
+                           ones((n - j, 1)))
             # end
-            elif j > ntc:
-                Am = P[ntc:j - 1, ntc + 1:j]
-                Bm = Ph[ntc + 1:j, ntc:j - 1]
-                dim_m = j - ntc
-                tempm = zeros((dim_m, 1))
-                Im = np.eye(np.shape(Am))
-                if j == n - 1:
-                    em = P[ntc:j - 1, n]
-                else:
-                    em = np.sum(P[ntc:j - 1, j + 1:n], axis=1)
-                # end
-                if max(abs(em)) > 1e-10:
-                    if dim_m == 1:
-                        tempm[0, 0] = (Bm / (1 - Am * Bm) * em)
-                    else:
-                        rh = Im - np.dot(Am, Bm)
-                        tempm = np.dot(Bm, linalg.lstsq(rh, em)[0])
-                    # end
-                # end
+            if j > ntc-1:
+                tempm = _make_tempm(P,Ph, j, ntc)
+                c = np.dot(np.dot(ones((1, i - 1)),
+                                  f_mM[:i - 1, n - ntc:n - j + 1:-1]),
+                           tempm)
             # end
 
-            if (j > ntc) and (i < ntc):
+            if (j > ntc-1) and (i < ntc-1):
                 a = np.dot(np.dot(tempp.T,
                                   f_mM[i:ntc - 1, n - ntc:-1:n - j + 1]),
                            tempm)
-                b = np.dot(np.dot(tempp.T, f_mM[i:ntc - 1, n - j:-1:1]),
-                           ones((n - j, 1)))
-                c = np.dot(np.dot(ones((1, i - 1)),
-                                  f_mM[1:i - 1, n - ntc:-1:n - j + 1]),
-                           tempm)
                 F[i, n - j + 1] = F[i, n - j + 1] + a + b + c
             # end
-            if (j == ntc) and (i < ntc):
-                b = np.dot(np.dot(tempp.T, f_mM[i:ntc - 1, n - j:-1:1]),
-                           ones((n - j, 1)))
+            if (j == ntc-1) and (i < ntc-1):
                 F[i, n - j + 1] = F[i, n - j + 1] + b
                 for k in range(ntc):
                     F[i, n - k + 1] = F[i, n - ntc + 1]
                 # end
             # end
-            if (j > ntc) and (i == ntc):
-                c = np.dot(np.dot(ones((1, i - 1)),
-                                  f_mM[1:i - 1, n - ntc:-1:n - j + 1]),
-                           tempm)
+            if (j > ntc-1) and (i == ntc-1):
                 F[i, n - j + 1] = F[i, n - j + 1] + c
-                for k in range(ntc, n):
-                    F[k, n - j + 1] = F[ntc, n - j + 1]
+                for k in range(ntc-1, n):
+                    F[k, n - j + 1] = F[ntc-1, n - j + 1]
                 # end
             # end
         # end
