@@ -1899,7 +1899,7 @@ def padefitlsq(fun, m, k, a=-1, b=1, trace=False, x=None, end_points=True):
         if trace:
             plt.plot(x, fs, '+')
 
-    def _cond_plot2(x, fs, x, ys, ix, devmax):
+    def _cond_plot2(x, fs, ys, ix, devmax):
         if trace:
             print('Iteration=%d,  max error=%g' % (ix, devmax))
             plt.plot(x, fs, x, ee + fs)
@@ -1952,7 +1952,7 @@ def padefitlsq(fun, m, k, a=-1, b=1, trace=False, x=None, end_points=True):
             smallest_devmax = devmax
             c1 = cof[m::-1]
             c2 = cof[ncof:m:-1].tolist() + [1, ]
-        _cond_plot2(x, fs, x, ee + fs, ix, devmax)
+        _cond_plot2(x, fs, ee + fs, ix, devmax)
     return poly1d(c1), poly1d(c2)
 
 
