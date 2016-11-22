@@ -1337,7 +1337,7 @@ def mctp2tc(f_Mm, utc, param, f_mM=None):
             raise IndexError('index for mean-level out of range, stop')
 
     def _check_discretization(param, ntc):
-        if param[2] - 1 < ntc or ntc < 2:
+        if not (1 < ntc < param[2]):
             raise ValueError('the reference level out of range, stop')
 
     def _normalize_rows(arr):
