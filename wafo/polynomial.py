@@ -35,6 +35,7 @@ __all__ = __all__ + ['pade', 'padefit', 'polyreloc', 'polyrescl', 'polytrim',
                      'chebder', 'chebint', 'Cheb1d', 'dct', 'idct']
 
 
+
 def polyint(p, m=1, k=None):
     """
     Return an antiderivative (indefinite integral) of a polynomial.
@@ -102,9 +103,28 @@ def polyint(p, m=1, k=None):
     3.0
 
     """
+    def _polyintnd(p, m, k):
+        ix = arange(len(p), 0, -1)
+        if p.ndim > 1:
+            ix = ix[..., newaxis]
+            pieces = p.shape[-1]
+            k0 = k[0] * np.ones((1, pieces), dtype=int)
+        else:
+            k0 = [k[0]]
+        y = np.concatenate((p.__truediv__(ix), k0), axis=0)
+
+        val = polyint(y, m - 1, k=k[1:])
+        if truepoly:
+            return poly1d(val)
+        return val
+
+    def _check_order(m):
+        if m < 0:
+            msg = "Order of integral must be positive (see polyder)"
+            raise ValueError(msg)
+
     m = int(m)
-    if m < 0:
-        raise ValueError("Order of integral must be positive (see polyder)")
+    _check_order(m)
     if k is None:
         k = np.zeros(m, float)
     k = np.atleast_1d(k)
@@ -119,20 +139,7 @@ def polyint(p, m=1, k=None):
         if truepoly:
             return poly1d(p)
         return p
-    else:
-        ix = arange(len(p), 0, -1)
-        if p.ndim > 1:
-            ix = ix[..., newaxis]
-            pieces = p.shape[-1]
-            k0 = k[0] * np.ones((1, pieces), dtype=int)
-        else:
-            k0 = [k[0]]
-        y = np.concatenate((p.__truediv__(ix), k0), axis=0)
-
-        val = polyint(y, m - 1, k=k[1:])
-        if truepoly:
-            return poly1d(val)
-        return val
+    return _polyintnd(p, m, k)
 
 
 def polyder(p, m=1):
@@ -187,16 +194,7 @@ def polyder(p, m=1):
     poly1d([ 0.])
 
     """
-    m = int(m)
-    if m < 0:
-        raise ValueError("Order of derivative must be positive (see polyint)")
-    truepoly = isinstance(p, poly1d)
-    p = np.asarray(p)
-    if m == 0:
-        if truepoly:
-            return poly1d(p)
-        return p
-    else:
+    def _polydernd(p, m):
         n = len(p) - 1
         ix = arange(n, 0, -1)
         if p.ndim > 1:
@@ -206,6 +204,21 @@ def polyder(p, m=1):
         if truepoly:
             return poly1d(val)
         return val
+
+    def _check_order(m):
+        if m < 0:
+            msg = "Order of derivative must be positive (see polyint)"
+            raise ValueError(msg)
+
+    m = int(m)
+    _check_order(m)
+    truepoly = isinstance(p, poly1d)
+    p = np.asarray(p)
+    if m == 0:
+        if truepoly:
+            return poly1d(p)
+        return p
+    return _polydernd(p, m)
 
 
 def polydeg(x, y):
@@ -629,10 +642,12 @@ def poly2hstr(p, variable='x'):
     >>> import wafo.polynomial as wp
     >>> wp.poly2hstr([1, 1, 2], 's' )
     '(s + 1)*s + 2'
-    >>> wp.poly2hstr([2, 1, 2, 1], 's' )
-    '((2*s + 1)*s + 2)*s + 1'
+    >>> wp.poly2hstr([-2, 1, 2, -1], 's' )
+    '((-2*s + 1)*s + 2)*s - 1'
     >>> wp.poly2hstr([2, 0, 2, 1], 's' )
     '(2*s**2 + 2)*s + 1'
+    >>> wp.poly2hstr([0], 's' )
+    '0'
 
     See also
     --------
@@ -718,8 +733,10 @@ def poly2str(p, variable='x'):
     >>> import wafo.polynomial as wp
     >>> wp.poly2str([1, 1, 2], 's' )
     's**2 + s + 2'
-    >>> wp.poly2str([2, 1, 2, 0, 1], 's' )
-    '2*s**4 + s**3 + 2*s**2 + 1'
+    >>> wp.poly2str([-2, 1, 2, 0, 0], 's' )
+    '-2*s**4 + s**3 + 2*s**2'
+    >>> wp.poly2hstr([0], 's' )
+    '0'
     """
 
     def _coefstr_0(coefstr, k):
@@ -1109,7 +1126,8 @@ def chebpoly(n, x=None, kind=1):
     True
     >>> wp.chebpoly(4,kind=2)
     array([ 16.,   0., -12.,   0.,   1.])
-
+    >>> wp.chebpoly(0,kind=2)
+    array([ 1.])
 
     Reference
     ---------
@@ -1782,12 +1800,20 @@ def padefitlsq(fun, m, k, a=-1, b=1, trace=False, x=None, end_points=True):
 
     Parameters
     ----------
-    fun : callable or or a two column matrix
-           f=[x,f(x)]  where length(x)>(m+k+1)*8.
+    fun : callable or a vector
+        function to approximate. If fun and x are supplied as vectors the
+        vectors must satisfy: len(fun)=len(x) > (m+k+1)*8.
     m, k : integer
         number of coefficients of the numerator and denominater, respectively.
     a, b : real scalars
         evaluation limits, (default a=-1,b=1)
+    trace : bool
+        if True plot values and fitted function.
+    end_points : bool
+        if True     x = chebextr(npt - 1)
+        otherwise   x = chebroot(npt, kind=1).
+        Note set end_points to True if there are singularities close to the
+        endpoints.
 
     Returns
     -------
@@ -1804,10 +1830,6 @@ def padefitlsq(fun, m, k, a=-1, b=1, trace=False, x=None, end_points=True):
                k
               sum c2[k-i]*x**i
               i=0
-
-    If F is a two column matrix, [x f(x)], a good choice for x is:
-
-    x = cos(pi/(N-1)*(N-1:-1:0))*(b-a)/2+ (a+b)/2, where N = (m+k+1)*8;
 
     Note: c1 and c2 are ordered for direct use with polyval
 
@@ -1836,6 +1858,20 @@ def padefitlsq(fun, m, k, a=-1, b=1, trace=False, x=None, end_points=True):
     William T. Wetterling and Brian P. Flannery (1997)
     "Numerical recipes in Fortran 77", Vol. 1, pp 197-20
     """
+    def _points(npt, end_points):
+        if end_points:
+            # Use the location of the local extreme values of
+            # the Chebychev polynomial of the first kind of degree NPT-1.
+            return chebextr(npt - 1)
+        # Use the roots of the Chebychev polynomial of the first kind of
+        # degree NPT. Note this is useful if there are singularities close
+        # to the endpoints.
+        return chebroot(npt, kind=1)
+
+    def _check_size(fs, npt):
+        if len(fs) < npt:
+            warnings.warn('Check the result! Number of function values ' +
+                          'should be at least: {0:d}'.format(npt))
 
     NFAC = 8
     BIG = 1e30
@@ -1847,24 +1883,13 @@ def padefitlsq(fun, m, k, a=-1, b=1, trace=False, x=None, end_points=True):
     npt = NFAC * ncof
 
     if x is None:
-        if end_points:
-            # Use the location of the local extreme values of
-            # the Chebychev polynomial of the first kind of degree NPT-1.
-            x = map_to_interval(chebextr(npt - 1), a, b)
-        else:
-            # Use the roots of the Chebychev polynomial of the first kind of
-            # degree NPT. Note this is useful if there are singularities close
-            # to the endpoints.
-            x = map_to_interval(chebroot(npt, kind=1), a, b)
+        x = map_to_interval(_points(npt, end_points), a, b)
 
     if hasattr(fun, '__call__'):
         fs = fun(x)
     else:
         fs = fun
-        n = len(fs)
-        if n < npt:
-            warnings.warn('Check the result! Number of function values ' +
-                          'should be at least: %d' % npt)
+        _check_size(fs, npt)
 
     if trace:
         plt.plot(x, fs, '+')
@@ -1889,8 +1914,7 @@ def padefitlsq(fun, m, k, a=-1, b=1, trace=False, x=None, end_points=True):
             u[:, jx] = pow1
 
         [u1, w, v] = np.linalg.svd(u, full_matrices=False)
-        cof = np.where(w == 0, 0.0, np.dot(bb, u1) / w)
-        cof = np.dot(cof, v)
+        cof = np.dot(np.where(w == 0, 0.0, np.dot(bb, u1) / w), v)
 
         # Tabulate the deviations and revise the weights
         ee = polyval(cof[m::-1], x) / \
@@ -2142,6 +2166,18 @@ def chebfitnd(xi, f, deg, rcond=None, full=False, w=None):
     Examples
     --------
     """
+    def _check_shapes(z, ndims, sizes):
+        ndim = len(ndims)
+        if np.any(ndims != ndim) or z.ndim != ndim:
+            msg = "expected {0:d}D array for x1, x2,...,xn and f".format(ndim)
+            raise TypeError(msg)
+        if np.any(sizes == 0):
+            raise TypeError("expected non-empty vector for xi")
+
+    def _check_size(w, n):
+        if n != len(w):
+            raise TypeError("expected x and w to have same length")
+
     # xi = np.array(xi, copy=0) + 0.0
     z = np.array(f)
     degrees = np.asarray(deg, dtype=int)
@@ -2149,19 +2185,14 @@ def chebfitnd(xi, f, deg, rcond=None, full=False, w=None):
     order = np.product(orders)
 
     ndims = np.array([x.ndim for x in xi])
-    ndim = len(ndims)
     sizes = np.array([x.size for x in xi])
-    if np.any(ndims != ndim) or z.ndim != ndim:
-        raise TypeError("expected %dD array for x1, x2,...,xn and f" % ndim)
-    if np.any(sizes == 0):
-        raise TypeError("expected non-empty vector for xi")
+    _check_shapes(z, ndims, sizes)
 
     lhs = chebvandernd(degrees, *xi).reshape((-1, order))
     rhs = z.ravel()
     if w is not None:
         w = np.asarray(w).ravel() + 0.0
-        if len(lhs) != len(w):
-            raise TypeError("expected x and w to have same length")
+        _check_size(w, len(lhs))
         lhs = lhs * w
         rhs = rhs * w
 
@@ -2178,14 +2209,12 @@ def chebfitnd(xi, f, deg, rcond=None, full=False, w=None):
     c, resids, rank, s = np.linalg.lstsq(lhs/scl, rhs, rcond)
     c = (c/scl).reshape(orders)
 
-    if rank != order and not full:
-        msg = "The fit may be poorly conditioned"
-        warnings.warn(msg, pu.RankWarning)
-
     if full:
         return c, [resids, rank, s, rcond]
-    else:
-        return c
+    elif rank != order:
+        msg = "The fit may be poorly conditioned"
+        warnings.warn(msg, pu.RankWarning)
+    return c
 
 
 def chebvalnd(c, *xi):
