@@ -1674,7 +1674,7 @@ class Cheb1d(object):
     def __getattr__(self, key):
         name = dict(c='coeffs', coef='coeffs', coefficients='coeffs',
                     o='order', k='kind').get(key, key)
-        return getattr(self, name)
+        # return getattr(self, name)
         return self.__dict__[name]
 
     def __getitem__(self, val):
