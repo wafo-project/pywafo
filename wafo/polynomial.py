@@ -122,16 +122,23 @@ def polyint(p, m=1, k=None):
             msg = "Order of integral must be positive (see polyder)"
             raise ValueError(msg)
 
-    m = int(m)
-    _check_order(m)
-    if k is None:
-        k = np.zeros(m, float)
-    k = np.atleast_1d(k)
-    if len(k) == 1 and m > 1:
-        k = k[0] * np.ones(m, float)
-    if len(k) < m:
-        raise ValueError(
-            "k must be a scalar or a rank-1 array of length 1 or >m.")
+    def _check_integration_const(k, m):
+        if len(k) < m:
+            msg = "k must be a scalar or a rank-1 array of length 1 or >m."
+            raise ValueError(msg)
+
+    def _init(m, k):
+        m = int(m)
+        _check_order(m)
+        if k is None:
+            k = np.zeros(m, float)
+        k = np.atleast_1d(k)
+        if len(k) == 1 and m > 1:
+            k = k[0] * np.ones(m, float)
+        _check_integration_const(k, m)
+        return m, k
+
+    m, k = _init(m, k)
     truepoly = isinstance(p, poly1d)
     p = np.asarray(p)
     if m == 0:
@@ -508,18 +515,23 @@ def polyreloc(p, x, y=0.0):
     >>> wp.polyval(r,0)     # = polyval(p,1)
     array([3, 5, 7])
     """
+    def _reshape(r):
+        if r.ndim > 1 and r.shape[-1] == 1:
+            r.shape = (r.size,)
+        return r
+
+    def _relocate_with_horner(p, x, y):
+        r = np.atleast_1d(p).copy()
+        n = r.shape[0]
+        # Relocate polynomial using Horner's algorithm
+        for ii in range(n, 1, -1):
+            for i in range(1, ii):
+                r[i] = r[i] - x * r[i - 1]
+        r[-1] = r[-1] + y
+        return _reshape(r)
 
     truepoly = isinstance(p, poly1d)
-    r = np.atleast_1d(p).copy()
-    n = r.shape[0]
-
-    # Relocate polynomial using Horner's algorithm
-    for ii in range(n, 1, -1):
-        for i in range(1, ii):
-            r[i] = r[i] - x * r[i - 1]
-    r[-1] = r[-1] + y
-    if r.ndim > 1 and r.shape[-1] == 1:
-        r.shape = (r.size,)
+    r = _relocate_with_horner(p, x, y)
     if truepoly:
         r = poly1d(r)
     return r
@@ -1284,21 +1296,26 @@ def chebfit_dct(f, n=(10, ), domain=None):
     Approximations for Functions of a Single Independent Variable"
     Journal of the ACM (JACM), Vol. 12 ,  Issue 3, pp 295 - 314
     """
-    n = np.atleast_1d(n)
-    if np.any(n > 50):
-        warnings.warn('CHEBFIT should only be used for n<50')
+    def _check(n):
+        if np.any(n > 50):
+            warnings.warn('CHEBFIT should only be used for n<50')
 
-    if hasattr(f, '__call__'):
+    def _zip(n, domain):
         if domain is None:
             domain = (-1, 1) * len(n)
-        domain = np.atleast_2d(domain).reshape((-1, 2))
-        xi = [map_to_interval(chebroot(ni), d[0], d[1])
-              for ni, d in zip(n, domain)]
-        Xi = np.meshgrid(*xi)
-        ck = f(*Xi)
-    else:
-        ck = f
-        n = ck.shape
+        return zip(n, np.atleast_2d(domain).reshape((-1, 2)))
+
+    def _init_ck(f, n, domain):
+        n = np.atleast_1d(n)
+        _check(n)
+        if hasattr(f, '__call__'):
+            xi = [map_to_interval(chebroot(ni), d[0], d[1])
+                  for ni, d in _zip(n, domain)]
+            Xi = np.meshgrid(*xi)
+            return f(*Xi), n
+        return f, f.shape
+
+    ck, n = _init_ck(f, n, domain)
 
     ndim = len(n)
     for i in range(ndim):
@@ -1868,6 +1885,25 @@ def padefitlsq(fun, m, k, a=-1, b=1, trace=False, x=None, end_points=True):
             warnings.warn('Check the result! Number of function values ' +
                           'should be at least: {0:d}'.format(npt))
 
+    def _init(fun, a, b, x, end_points, npt):
+        if x is None:
+            x = map_to_interval(_points(npt, end_points), a, b)
+        if hasattr(fun, '__call__'):
+            fs = fun(x)
+        else:
+            fs = fun
+            _check_size(fs, npt)
+        return x, fs
+
+    def _cond_plot1(trace, x, fs):
+        if trace:
+            plt.plot(x, fs, '+')
+
+    def _cond_plot2(x, fs, x, ys, ix, devmax):
+        if trace:
+            print('Iteration=%d,  max error=%g' % (ix, devmax))
+            plt.plot(x, fs, x, ee + fs)
+
     NFAC = 8
     BIG = 1e30
     MAXIT = 5
@@ -1877,17 +1913,9 @@ def padefitlsq(fun, m, k, a=-1, b=1, trace=False, x=None, end_points=True):
     # Number of points where function is evaluated, i.e. fineness of mesh
     npt = NFAC * ncof
 
-    if x is None:
-        x = map_to_interval(_points(npt, end_points), a, b)
+    x, fs = _init(fun, a, b, x, end_points, npt)
 
-    if hasattr(fun, '__call__'):
-        fs = fun(x)
-    else:
-        fs = fun
-        _check_size(fs, npt)
-
-    if trace:
-        plt.plot(x, fs, '+')
+    _cond_plot1(trace, x, fs)
 
     wt = np.ones((npt))
     ee = np.ones((npt))
@@ -1924,10 +1952,7 @@ def padefitlsq(fun, m, k, a=-1, b=1, trace=False, x=None, end_points=True):
             smallest_devmax = devmax
             c1 = cof[m::-1]
             c2 = cof[ncof:m:-1].tolist() + [1, ]
-
-        if trace:
-            print('Iteration=%d,  max error=%g' % (ix, devmax))
-            plt.plot(x, fs, x, ee + fs)
+        _cond_plot2(x, fs, x, ee + fs, ix, devmax)
     return poly1d(c1), poly1d(c2)
 
 
@@ -2050,14 +2075,17 @@ def chebvandernd(deg, *xi):
     --------
     chebvander, chebvalnd, chebfitnd
     """
+    def _check_deg(ideg, is_valid, ndim):
+        if np.any(is_valid != 1):
+            raise ValueError("degrees must be non-negative integers")
+        if len(ideg) != ndim:
+            msg = 'length of deg must be the same as number of dimensions'
+            raise ValueError(msg)
+
     ideg = [int(d) for d in deg]
     is_valid = np.array([di == d and di >= 0 for di, d in zip(ideg, deg)])
-    if np.any(is_valid != 1):
-        raise ValueError("degrees must be non-negative integers")
     ndim = len(xi)
-    if len(ideg) != ndim:
-        msg = 'length of deg must be the same as number of dimensions'
-        raise ValueError(msg)
+    _check_deg(ideg, is_valid, ndim)
 
     xi = np.array(xi, copy=0) + 0.0
     chebvander = np.polynomial.chebyshev.chebvander
@@ -2161,7 +2189,9 @@ def chebfitnd(xi, f, deg, rcond=None, full=False, w=None):
     Examples
     --------
     """
-    def _check_shapes(z, ndims, sizes):
+    def _check_shapes(z, xi):
+        ndims = np.array([np.ndim(x) for x in xi])
+        sizes = np.array([np.size(x) for x in xi])
         ndim = len(ndims)
         if np.any(ndims != ndim) or z.ndim != ndim:
             msg = "expected {0:d}D array for x1, x2,...,xn and f".format(ndim)
@@ -2173,32 +2203,38 @@ def chebfitnd(xi, f, deg, rcond=None, full=False, w=None):
         if n != len(w):
             raise TypeError("expected x and w to have same length")
 
+    def _scale(lhs):
+        if issubclass(lhs.dtype.type, np.complexfloating):
+            scl = np.sqrt((np.square(lhs.real) +
+                           np.square(lhs.imag)).sum(axis=0))
+        else:
+            scl = np.sqrt(np.square(lhs).sum(axis=0))
+        scl[scl == 0] = 1
+        return scl
+
+    def _init(xi, z, w, degrees, order):
+        lhs = chebvandernd(degrees, *xi).reshape((-1, order))
+        rhs = z.ravel()
+        if w is not None:
+            w = np.asarray(w).ravel() + 0.0
+            _check_size(w, len(lhs))
+            lhs = lhs * w
+            rhs = rhs * w
+        scl = _scale(lhs)
+        return lhs, scl, rhs
+
     # xi = np.array(xi, copy=0) + 0.0
     z = np.array(f)
+    _check_shapes(z, xi)
+
     degrees = np.asarray(deg, dtype=int)
     orders = degrees + 1
     order = np.product(orders)
 
-    ndims = np.array([x.ndim for x in xi])
-    sizes = np.array([x.size for x in xi])
-    _check_shapes(z, ndims, sizes)
-
-    lhs = chebvandernd(degrees, *xi).reshape((-1, order))
-    rhs = z.ravel()
-    if w is not None:
-        w = np.asarray(w).ravel() + 0.0
-        _check_size(w, len(lhs))
-        lhs = lhs * w
-        rhs = rhs * w
+    lhs, rhs, scl = _init(xi, z, w, degrees, order)
 
     if rcond is None:
-        rcond = xi[0].size * np.finfo(x.dtype).eps
-
-    if issubclass(lhs.dtype.type, np.complexfloating):
-        scl = np.sqrt((np.square(lhs.real) + np.square(lhs.imag)).sum(axis=0))
-    else:
-        scl = np.sqrt(np.square(lhs).sum(axis=0))
-    scl[scl == 0] = 1
+        rcond = xi[0].size * np.finfo(xi[0].dtype).eps
 
     # Solve the least squares problem.
     c, resids, rank, s = np.linalg.lstsq(lhs/scl, rhs, rcond)
