@@ -1637,22 +1637,16 @@ class Cheb1d(object):
         return self
 
     def __add__(self, other):
-        new, other = self._copy(other)
+        other = Cheb1d(other)
+        new = Cheb1d(self)
         new.coeffs = polyadd(self.coeffs, other.coeffs)
         return new
 
     def __radd__(self, other):
         return self.__add__(other)
 
-    def _copy(self, other):
-        other = Cheb1d(other)
-        new = Cheb1d(self)
-        return new, other
-
     def __sub__(self, other):
-        new, other = self._copy(other)
-        new.coeffs = polysub(self.coeffs, other.coeffs)
-        return new
+        return self.__add__(-other)
 
     def __rsub__(self, other):
         new = self.__sub__(other)
