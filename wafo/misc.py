@@ -763,6 +763,9 @@ def detrendma(x, L):
     >>> y1 = wm.detrendma(y, 200)
     >>> np.allclose((y-y1), 1.7239972279640454)
     True
+    >>> x2 = np.linspace(1, 5, 5)
+    >>> np.allclose(wm.detrendma(x2, L=1), [-1, 0, 0, 0, 1])
+    True
 
     import pylab as plt
     h = plt.plot(x, y, x, y0, 'r', x, exp(x), 'k', x, tr, 'm')
@@ -785,10 +788,10 @@ def detrendma(x, L):
 
     mn = x1[0:2 * L + 1].mean(axis=0)
     y = np.empty_like(x1)
-    y[0:L] = x1[0:L] - mn
+    y[0:L+1] = x1[0:L+1] - mn
 
-    ix = np.r_[L:(n - L)]
-    trend = ((x1[ix + L] - x1[ix - L]) / (2 * L + 1)).cumsum(axis=0) + mn
+    ix = np.r_[L+1:(n - L)]
+    trend = ((x1[ix + L] - x1[ix - L]) / (2 * L)).cumsum(axis=0) + mn
     y[ix] = x1[ix] - trend
     y[n - L::] = x1[n - L::] - trend[-1]
     return y
@@ -1331,6 +1334,23 @@ def mctp2tc(f_Mm, utc, param, f_mM=None):
     -------
     f_tc  = the matrix with frequences of upcrossing troughs and crests,
 
+    Example
+    -------
+    >>> fmM = np.array([[ 0.0183,    0.0160,    0.0002,    0.0000,         0],
+    ...            [0.0178,    0.5405,    0.0952,         0,         0],
+    ...            [0.0002,    0.0813,         0,         0,         0],
+    ...            [0.0000,         0,         0,         0,         0],
+    ...            [     0,         0,         0,         0,         0]])
+    >>> param = (-1, 1, len(fmM))
+    >>> utc = 0
+    >>> f_tc = mctp2tc(fmM, utc, param)
+    >>> np.allclose(f_tc,
+    ...     [[ 0.0,   1.59878359e-02,  -1.87345256e-04,   0.0,   0.0],
+    ...      [ 0.0,   5.40312726e-01,   3.86782958e-04,   0.0,   0.0],
+    ...      [ 0.0,   0.0,   0.0,   0.0,   0.0],
+    ...      [ 0.0,   0.0,   0.0,   0.0,   0.0],
+    ...      [ 0.0,   0.0,   0.0,   0.0,   0.0]])
+    True
     """
     def _check_ntc(ntc, n):
         if ntc > n - 1:
@@ -1351,13 +1371,13 @@ def mctp2tc(f_Mm, utc, param, f_mM=None):
     def _make_tempp(P, Ph, i, ntc):
         Ap = P[i:ntc - 1, i + 1:ntc]
         Bp = Ph[i + 1:ntc, i:ntc - 1]
-        dim_p = ntc - i
+        dim_p = ntc - 1 - i
         tempp = zeros((dim_p, 1))
-        I = np.eye(np.shape(Ap))
-        if i == 2:
+        I = np.eye(len(Ap))
+        if i == 1:
             e = Ph[i + 1:ntc, 0]
         else:
-            e = np.sum(Ph[i + 1:ntc, 1:i - 1], axis=1)
+            e = np.sum(Ph[i + 1:ntc, :i - 1], axis=1)
 
         if max(abs(e)) > 1e-10:
             if dim_p == 1:
@@ -1370,20 +1390,20 @@ def mctp2tc(f_Mm, utc, param, f_mM=None):
         # end
         return tempp
 
-    def _make_tempm(P, Ph, j, ntc):
-        Am = P[ntc:j - 1, ntc + 1:j]
-        Bm = Ph[ntc + 1:j, ntc:j - 1]
-        dim_m = j - ntc
+    def _make_tempm(P, Ph, j, ntc, n):
+        Am = P[ntc-1:j, ntc:j+1]
+        Bm = Ph[ntc:j+1, ntc-1:j]
+        dim_m = j - ntc + 1
         tempm = zeros((dim_m, 1))
-        Im = np.eye(np.shape(Am))
+        Im = np.eye(len(Am))
         if j == n - 1:
-            em = P[ntc:j - 1, n]
+            em = P[ntc-1:j, n]
         else:
-            em = np.sum(P[ntc:j - 1, j + 1:n], axis=1)
+            em = np.sum(P[ntc-1:j, j + 1:n], axis=1)
         # end
         if max(abs(em)) > 1e-10:
             if dim_m == 1:
-                tempm[0, 0] = (Bm / (1 - Am * Bm) * em)
+                tempm[0] = (Bm / (1 - Am * Bm) * em)
             else:
                 rh = Im - np.dot(Am, Bm)
                 tempm = np.dot(Bm, linalg.lstsq(rh, em)[0])
@@ -1392,10 +1412,10 @@ def mctp2tc(f_Mm, utc, param, f_mM=None):
         return tempm
 
     if f_mM is None:
-        f_mM = np.copy(f_Mm)
+        f_mM = np.copy(f_Mm) * 1.0
 
     u = np.linspace(*param)
-    udisc = np.fliplr(u)
+    udisc = u[::-1]  # np.fliplr(u)
     ntc = np.sum(udisc >= utc)
     n = len(f_Mm)
     _check_ntc(ntc, n)
@@ -1404,7 +1424,7 @@ def mctp2tc(f_Mm, utc, param, f_mM=None):
     # normalization of frequency matrices
     f_Mm = _normalize_rows(f_Mm)
     P = np.fliplr(f_Mm)
-    Ph = np.rot90(np.fliplr(f_mM), -1)
+    Ph = np.rot90(np.fliplr(f_mM*1.0), -1)
     Ph = _normalize_rows(Ph)
     Ph = np.fliplr(Ph)
 
@@ -1416,32 +1436,31 @@ def mctp2tc(f_Mm, utc, param, f_mM=None):
         for j in range(ntc-1, n - 1):
             if i < ntc-1:
                 tempp = _make_tempp(P, Ph, i, ntc)
-                b = np.dot(np.dot(tempp.T, f_mM[i:ntc - 1, n - j:-1:-1]),
-                           ones((n - j, 1)))
+                b = np.dot(np.dot(tempp.T, f_mM[i:ntc - 1, n - j - 2::-1]),
+                           ones((n - j - 1, 1)))
             # end
             if j > ntc-1:
-                tempm = _make_tempm(P,Ph, j, ntc)
-                c = np.dot(np.dot(ones((1, i - 1)),
-                                  f_mM[:i - 1, n - ntc:n - j + 1:-1]),
+                tempm = _make_tempm(P, Ph, j, ntc, n)
+                c = np.dot(np.dot(ones((1, i)),
+                                  f_mM[:i, n - ntc-1:n - j - 2:-1]),
                            tempm)
             # end
-
             if (j > ntc-1) and (i < ntc-1):
                 a = np.dot(np.dot(tempp.T,
-                                  f_mM[i:ntc - 1, n - ntc:-1:n - j + 1]),
+                                  f_mM[i:ntc - 1, n - ntc - 1:-1:n - j + 1]),
                            tempm)
-                F[i, n - j + 1] = F[i, n - j + 1] + a + b + c
+                F[i, n - j - 1] = F[i, n - j - 1] + a + b + c
             # end
             if (j == ntc-1) and (i < ntc-1):
-                F[i, n - j + 1] = F[i, n - j + 1] + b
+                F[i, n - ntc] = F[i, n - ntc] + b
                 for k in range(ntc):
-                    F[i, n - k + 1] = F[i, n - ntc + 1]
+                    F[i, n - k - 1] = F[i, n - ntc]
                 # end
             # end
             if (j > ntc-1) and (i == ntc-1):
-                F[i, n - j + 1] = F[i, n - j + 1] + c
+                F[i, n - j - 1] = F[i, n - j - 1] + c
                 for k in range(ntc-1, n):
-                    F[k, n - j + 1] = F[ntc-1, n - j + 1]
+                    F[k, n - j - 1] = F[ntc-1, n - j - 1]
                 # end
             # end
         # end
@@ -1481,21 +1500,13 @@ def mctp2rfc(fmM, fMm=None):
     ...            [0.0000,         0,         0,         0,         0],
     ...            [     0,         0,         0,         0,         0]])
 
-    >>> np.abs(mctp2rfc(fmM)-np.array([[2.669981e-02, 7.799700e-03,
-    ...        4.906077e-07, 0.000000e+00, 0.000000e+00],
-    ...       [  9.599629e-03,   5.485009e-01,   9.539951e-02,   0.000000e+00,
-    ...          0.000000e+00],
-    ...       [  5.622974e-07,   8.149944e-02,   0.000000e+00,   0.000000e+00,
-    ...          0.000000e+00],
-    ...       [  0.000000e+00,   0.000000e+00,   0.000000e+00,   0.000000e+00,
-    ...          0.000000e+00],
-    ...       [  0.000000e+00,   0.000000e+00,   0.000000e+00,   0.000000e+00,
-    ...          0.000000e+00]]))<1.e-7
-    array([[ True,  True,  True,  True,  True],
-           [ True,  True,  True,  True,  True],
-           [ True,  True,  True,  True,  True],
-           [ True,  True,  True,  True,  True],
-           [ True,  True,  True,  True,  True]], dtype=bool)
+    >>> np.allclose(mctp2rfc(fmM),
+    ...    [[  2.669981e-02,   7.799700e-03,   4.906077e-07, 0.0, 0.0],
+    ...     [  9.599629e-03,   5.485009e-01,   9.539951e-02, 0.0, 0.0],
+    ...     [  5.622974e-07,   8.149944e-02,   0.0,          0.0, 0.0],
+    ...     [  0.0,   0.0,   0.0,   0.0, 0.0],
+    ...     [  0.0,   0.0,   0.0,   0.0, 0.0]], 1.e-7)
+    True
     '''
     def _get_PMm(AA1, MA, nA):
         PMm = AA1.copy()
