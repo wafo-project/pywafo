@@ -2604,6 +2604,18 @@ def accum(accmap, a, func=None, size=None, fill_value=0, dtype=None):
 
     """
 
+    def create_array_of_python_lists(accmap, a, size):
+        vals = np.empty(size, dtype='O')
+        for s in product(*[range(k) for k in size]):
+            vals[s] = []
+
+        for s in product(*[range(k) for k in a.shape]):
+            indx = tuple(accmap[s])
+            val = a[s]
+            vals[indx].append(val)
+
+        return vals
+
     # Check for bad arguments and handle the defaults.
     if accmap.shape[:a.ndim] != a.shape:
         raise ValueError(
@@ -2620,13 +2632,7 @@ def accum(accmap, a, func=None, size=None, fill_value=0, dtype=None):
     size = np.atleast_1d(size)
 
     # Create an array of python lists of values.
-    vals = np.empty(size, dtype='O')
-    for s in product(*[range(k) for k in size]):
-        vals[s] = []
-    for s in product(*[range(k) for k in a.shape]):
-        indx = tuple(accmap[s])
-        val = a[s]
-        vals[indx].append(val)
+    vals = create_array_of_python_lists(accmap, a, size)
 
     # Create the output array.
     out = np.empty(size, dtype=dtype)
