@@ -786,9 +786,9 @@ def detrendma(x, L):
     if n < 2 * L + 1:  # only able to remove the mean
         return x1 - x1.mean(axis=0)
 
-    mn = x1[0:2 * L + 1].mean(axis=0)
+    mn = x1[:2 * L + 1].mean(axis=0)
     y = np.empty_like(x1)
-    y[0:L+1] = x1[0:L+1] - mn
+    y[:L+1] = x1[:L+1] - mn
 
     ix = np.r_[L+1:(n - L)]
     trend = ((x1[ix + L] - x1[ix - L]) / (2 * L)).cumsum(axis=0) + mn
