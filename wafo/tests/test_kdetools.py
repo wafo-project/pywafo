@@ -473,7 +473,8 @@ class TestSmoothing(unittest.TestCase):
 
     def test_hscv(self):
         hs = self.gauss.hscv(self.data)
-        assert_allclose(hs, [0.16858959, 0.32739383, 0.3046287])
+        assert_allclose(hs, [0.16415302398711132, 0.32149483795883543,
+                             0.30767498300368956])
 
     def test_hstt(self):
         hs = self.gauss.hstt(self.data)

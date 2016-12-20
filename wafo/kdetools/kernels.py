@@ -787,13 +787,21 @@ class Kernel(object):
 
         h = np.asarray(h0, dtype=float)
 
-        nfft = inc * 2
-
         ax1, bx1 = self._get_grid_limits(A)
 
         kernel2 = Kernel('gauss')
         mu2, R, _Rdd = kernel2.stats()
         ste_constant2 = kernel2.get_ste_constant(n)
+
+        def _estimate_psi(c, xn, g2, n, numout=2):
+            inc = len(xn)
+            nfft = 2 * inc
+
+            kw0 = kernel2.deriv4_6_8_10(xn / g2, numout=numout+1)
+            kw6 = kw0[-2]
+            kw = np.r_[kw6, 0, kw6[-1:0:-1]]  # Apply fftshift to kw.
+            z = np.real(ifft(fft(c, nfft) * fft(kw)))     # convolution.
+            return np.sum(c * z[:inc]) / (n * (n - 1) * g2 ** (2*numout-1 + 4))
 
         for dim in range(d):
             s = sigmaA[dim]
@@ -814,18 +822,8 @@ class Kernel(object):
             g1 = (-2 * k40 / (mu2 * psi6NS * n)) ** (1.0 / 7)
             g2 = (-2 * k60 / (mu2 * psi8NS * n)) ** (1.0 / 9)
 
-            # Estimate psi6 given g2.
-            # kernel weights.
-            kw4, kw6 = kernel2.deriv4_6_8_10(xn / g2, numout=2)
-            kw = np.r_[kw6, 0, kw6[-1:0:-1]]  # Apply fftshift to kw.
-            z = np.real(ifft(fft(c, nfft) * fft(kw)))     # convolution.
-            psi6 = np.sum(c * z[:inc]) / (n * (n - 1) * g2 ** 7)
-
-            # Estimate psi4 given g1.
-            kw4 = kernel2.deriv4_6_8_10(xn / g1, numout=1)  # kernel weights.
-            kw = np.r_[kw4, 0, kw4[-1:0:-1]]  # Apply 'fftshift' to kw.
-            z = np.real(ifft(fft(c, nfft) * fft(kw)))  # convolution.
-            psi4 = np.sum(c * z[:inc]) / (n * (n - 1) * g1 ** 5)
+            psi6 = _estimate_psi(c, xn, g2, n, numout=2)
+            psi4 = _estimate_psi(c, xn, g1, n, numout=1)
 
             h1 = h[dim]
             h_old = 0
@@ -840,13 +838,7 @@ class Kernel(object):
                 gamma_ = ((2 * k40 * mu2 * psi4 * h1 ** 5) /
                           (-psi6 * R)) ** (1.0 / 7)
 
-                # Now estimate psi4 given gamma_.
-                # kernel weights.
-                kw4 = kernel2.deriv4_6_8_10(xn / gamma_, numout=1)
-                kw = np.r_[kw4, 0, kw4[-1:0:-1]]  # Apply 'fftshift' to kw.
-                z = np.real(ifft(fft(c, nfft) * fft(kw)))  # convolution.
-
-                psi4Gamma = np.sum(c * z[:inc]) / (n * (n - 1) * gamma_ ** 5)
+                psi4Gamma = _estimate_psi(c, xn, gamma_, n, numout=1)
 
                 # Step 4
                 h1 = (ste_constant2 / psi4Gamma) ** (1.0 / 5)
@@ -1130,6 +1122,16 @@ class Kernel(object):
         g1 = (-2. * k60 / (mu2 * psi8 * n)) ** (1. / 9.)
         g2 = (-2. * k100 / (mu2 * psi12 * n)) ** (1. / 13.)
 
+        def _estimate_psi(c, xn, g2, n, numout=2):
+            inc = len(xn)
+            nfft = 2 * inc
+
+            kw0 = kernel2.deriv4_6_8_10(xn / g2, numout=numout+1)
+            kw6 = kw0[-2]
+            kw = np.r_[kw6, 0, kw6[-1:0:-1]]  # Apply fftshift to kw.
+            z = np.real(ifft(fft(c, nfft) * fft(kw)))     # convolution.
+            return np.sum(c * z[:inc]) / (n * (n-1) * g2 ** (2*numout-1 + 4))
+
         for dim in range(d):
             s = sigmaA[dim]
             ax = ax1[dim] / s
@@ -1141,28 +1143,14 @@ class Kernel(object):
 
             c = gridcount(datan, xa)
 
-            kw4, kw6 = kernel2.deriv4_6_8_10(xn / g1, numout=2)
-            kw = np.r_[kw6, 0, kw6[-1:0:-1]]
-            z = np.real(ifft(fft(c, nfft) * fft(kw)))
-            psi6 = np.sum(c * z[:inc]) / (n ** 2 * g1 ** 7)
-
-            kw4, kw6, kw8, kw10 = kernel2.deriv4_6_8_10(xn / g2, numout=4)
-            kw = np.r_[kw10, 0, kw10[-1:0:-1]]
-            z = np.real(ifft(fft(c, nfft) * fft(kw)))
-            psi10 = np.sum(c * z[:inc]) / (n ** 2 * g2 ** 11)
+            psi6 = _estimate_psi(c, xn, g1, n, numout=2)
+            psi10 = _estimate_psi(c, xn, g2, n, numout=4)
 
             g3 = (-2. * k40 / (mu2 * psi6 * n)) ** (1. / 7.)
             g4 = (-2. * k80 / (mu2 * psi10 * n)) ** (1. / 11.)
 
-            kw4 = kernel2.deriv4_6_8_10(xn / g3, numout=1)
-            kw = np.r_[kw4, 0, kw4[-1:0:-1]]
-            z = np.real(ifft(fft(c, nfft) * fft(kw)))
-            psi4 = np.sum(c * z[:inc]) / (n ** 2 * g3 ** 5)
-
-            kw4, kw6, kw8 = kernel2.deriv4_6_8_10(xn / g3, numout=3)
-            kw = np.r_[kw8, 0, kw8[-1:0:-1]]
-            z = np.real(ifft(fft(c, nfft) * fft(kw)))
-            psi8 = np.sum(c * z[:inc]) / (n ** 2 * g4 ** 9)
+            psi4 = _estimate_psi(c, xn, g3, n, numout=1)
+            psi8 = _estimate_psi(c, xn, g4, n, numout=3)
 
             const = (441. / (64 * pi)) ** (1. / 18.) * \
                 (4 * pi) ** (-1. / 5.) * \
