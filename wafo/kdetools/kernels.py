@@ -898,14 +898,16 @@ class Kernel(object):
             prod = np.prod
             # L = 7
             logI = np.log(I)
-            f = 2 * pi ** (2 * L) * \
-                (a2 * exp(L * logI - I * pi ** 2 * t)).sum()
+
+            def fun(s, time):
+                return (2 * pi ** (2 * s) *
+                        (a2 * exp(s * logI - I * pi ** 2 * time)).sum())
+            f = fun(L, t)
             for s in range(L - 1, 1, -1):
                 K0 = prod(np.r_[1:2 * s:2]) / sqrt(2 * pi)
                 const = (1 + (1. / 2) ** (s + 1. / 2)) / 3
                 time = (2 * const * K0 / N / f) ** (2. / (3 + 2 * s))
-                f = 2 * pi ** (2 * s) * \
-                    (a2 * exp(s * logI - I * pi ** 2 * time)).sum()
+                f = fun(s, time)
             return t - (2 * N * sqrt(pi) * f) ** (-2. / 5)
 
         h = np.empty(d)
