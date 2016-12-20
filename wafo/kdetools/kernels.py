@@ -1105,8 +1105,6 @@ class Kernel(object):
         steps = len(hvec)
         score = np.zeros(steps)
 
-        nfft = inc * 2
-
         ax1, bx1 = self._get_grid_limits(A)
 
         kernel2 = Kernel('gauss')
@@ -1152,9 +1150,9 @@ class Kernel(object):
             psi4 = _estimate_psi(c, xn, g3, n, numout=1)
             psi8 = _estimate_psi(c, xn, g4, n, numout=3)
 
-            const = (441. / (64 * pi)) ** (1. / 18.) * \
-                (4 * pi) ** (-1. / 5.) * \
-                psi4 ** (-2. / 5.) * psi8 ** (-1. / 9.)
+            const = ((441. / (64 * pi)) ** (1. / 18.) *
+                     (4 * pi) ** (-1. / 5.) *
+                     psi4 ** (-2. / 5.) * psi8 ** (-1. / 9.))
 
             M = np.atleast_2d(datan)
 
