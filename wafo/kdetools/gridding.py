@@ -36,9 +36,9 @@ def accumsum(accmap, a, shape, dtype=None):
            [-1,  8,  9]])
     >>> # Sum the diagonals.
     >>> accmap = array([[0,1,2],[2,0,1],[1,2,0]])
-    >>> s = accumsum(accmap, a, (3,)
-    >>> s
-    array([ 9,  7, 15])
+    >>> s = accumsum(accmap, a, (3,))
+    >>> np.allclose(s.toarray().T, [ 9,  7, 15])
+    True
 
     """
     if dtype is None:
@@ -67,17 +67,17 @@ def accumsum2(accmap, a, shape):
     array([[ 1,  2,  3],
            [ 4, -1,  6],
            [-1,  8,  9]])
-    >>> # Sum the diagonals.
-    >>> accmap = array([[0,1,2],[2,0,1],[1,2,0]])
-    >>> s = accumsum2(accmap, a, (3,)
-    >>> s
-    array([ 9,  7, 15])
+
+    >>> accmap = array([[0,1,2],[2,0,1],[1,2,0]])  # Sum the diagonals.
+    >>> s = accumsum2(accmap, a, (3,))
+    >>> np.allclose(s, [ 9,  7, 15])
+    True
 
     """
     return np.bincount(accmap.ravel(), a.ravel(), np.array(shape).max())
 
 
-def accum(accmap, a, func=None, size=None, fill_value=0, dtype=None):
+def accum(accmap, a, func=None, shape=None, fill_value=0, dtype=None):
     """An accumulation function similar to Matlab's `accumarray` function.
 
     Parameters
@@ -99,8 +99,8 @@ def accum(accmap, a, func=None, size=None, fill_value=0, dtype=None):
         The accumulation function.  The function will be passed a list
         of values from `a` to be accumulated.
         If None, numpy.sum is assumed.
-    size : ndarray or None
-        The size of the output array.  If None, the size will be determined
+    shape : ndarray or None
+        The shape of the output array.  If None, the shape will be determined
         from `accmap`.
     fill_value : scalar
         The default value for elements of the output array.
@@ -113,7 +113,7 @@ def accum(accmap, a, func=None, size=None, fill_value=0, dtype=None):
     out : ndarray
         The accumulated results.
 
-        The shape of `out` is `size` if `size` is given.  Otherwise the
+        The shape of `out` is `shape` if `shape` is given.  Otherwise the
         shape is determined by the (lexicographically) largest indices of
         the output found in `accmap`.
 
@@ -126,32 +126,34 @@ def accum(accmap, a, func=None, size=None, fill_value=0, dtype=None):
     array([[ 1,  2,  3],
            [ 4, -1,  6],
            [-1,  8,  9]])
-    >>> # Sum the diagonals.
-    >>> accmap = array([[0,1,2],[2,0,1],[1,2,0]])
+    >>> accmap = array([[0,1,2],[2,0,1],[1,2,0]])  # Sum the diagonals.
     >>> s = accum(accmap, a)
     >>> s
     array([ 9,  7, 15])
-    >>> # A 2D output, from sub-arrays with shapes and positions like this:
-    >>> # [ (2,2) (2,1)]
-    >>> # [ (1,2) (1,1)]
+
+    # A 2D output, from sub-arrays with shapes and positions like this:
+    # [ (2,2) (2,1)]
+    # [ (1,2) (1,1)]
     >>> accmap = array([
     ...        [[0,0],[0,0],[0,1]],
     ...        [[0,0],[0,0],[0,1]],
     ...        [[1,0],[1,0],[1,1]]])
-    >>> # Accumulate using a product.
+
+    # Accumulate using a product.
     >>> accum(accmap, a, func=prod, dtype=float)
     array([[ -8.,  18.],
            [ -8.,   9.]])
-    >>> # Same accmap, but create an array of lists of values.
+
+    # Same accmap, but create an array of lists of values.
     >>> accum(accmap, a, func=lambda x: x, dtype='O')
     array([[[1, 2, 4, -1], [3, 6]],
            [[-1, 8], [9]]], dtype=object)
 
     """
 
-    def create_array_of_python_lists(accmap, a, size):
-        vals = np.empty(size, dtype='O')
-        for s in product(*[range(k) for k in size]):
+    def create_array_of_python_lists(accmap, a, shape):
+        vals = np.empty(shape, dtype='O')
+        for s in product(*[range(k) for k in shape]):
             vals[s] = []
 
         for s in product(*[range(k) for k in a.shape]):
@@ -172,16 +174,16 @@ def accum(accmap, a, func=None, size=None, fill_value=0, dtype=None):
     if accmap.shape == a.shape:
         accmap = np.expand_dims(accmap, -1)
     adims = tuple(range(a.ndim))
-    if size is None:
-        size = 1 + np.squeeze(np.apply_over_axes(np.max, accmap, axes=adims))
-    size = np.atleast_1d(size)
+    if shape is None:
+        shape = 1 + np.squeeze(np.apply_over_axes(np.max, accmap, axes=adims))
+    shape = np.atleast_1d(shape)
 
     # Create an array of python lists of values.
-    vals = create_array_of_python_lists(accmap, a, size)
+    vals = create_array_of_python_lists(accmap, a, shape)
 
     # Create the output array.
-    out = np.empty(size, dtype=dtype)
-    for s in np.product(*[range(k) for k in size]):
+    out = np.empty(shape, dtype=dtype)
+    for s in product(*[range(k) for k in shape]):
         if vals[s] == []:
             out[s] = fill_value
         else:
