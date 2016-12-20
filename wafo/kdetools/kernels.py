@@ -8,6 +8,7 @@ from abc import ABCMeta, abstractmethod
 import warnings
 import numpy as np
 from numpy import pi, sqrt, exp, percentile
+from numpy.fft import fft, ifft
 from scipy import optimize, linalg
 from scipy.special import gamma
 from wafo.misc import tranproc  # , trangood
@@ -564,6 +565,12 @@ class Kernel(object):
     def effective_support(self):
         return self.kernel.effective_support()
 
+    def get_amise_constant(self, n):
+        # R= int(mkernel(x)^2),  mu2= int(x^2*mkernel(x))
+        mu2, R = self.stats()[:2]
+        amise_constant = (8 * sqrt(pi) * R / (3 * mu2 ** 2 * n)) ** (1. / 5)
+        return amise_constant
+
     def hns(self, data):
         """Returns Normal Scale Estimate of Smoothing Parameter.
 
@@ -615,9 +622,7 @@ class Kernel(object):
         a = np.atleast_2d(data)
         n = a.shape[1]
 
-        # R= int(mkernel(x)^2),  mu2= int(x^2*mkernel(x))
-        mu2, R, _Rdd = self.stats()
-        amise_constant = (8 * sqrt(pi) * R / (3 * mu2 ** 2 * n)) ** (1. / 5)
+        amise_constant = self.get_amise_constant(n)
         iqr = iqrange(a, axis=1)  # interquartile range
         std_a = np.std(a, axis=1, ddof=1)
         # use of interquartile range guards against outliers.
@@ -737,6 +742,10 @@ class Kernel(object):
         cov_a = np.cov(a)
         return scale * linalg.sqrtm(cov_a).real * n ** (-1. / (d + 4))
 
+    def get_ste_constant(self, n):
+        mu2, R = self.stats()[:2]
+        return R / (mu2 ** (2) * n)
+
     def hste(self, data, h0=None, inc=128, maxit=100, releps=0.01, abseps=0.0):
         '''HSTE 2-Stage Solve the Equation estimate of smoothing parameter.
 
@@ -765,17 +774,12 @@ class Kernel(object):
          'Kernel smoothing'
           Chapman and Hall, pp 74--75
         '''
-        # TODO: NB: this routine can be made faster:
-        # TODO: replace the iteration in the end with a Newton Raphson scheme
 
         A = np.atleast_2d(data)
         d, n = A.shape
 
-        # R = int(mkernel(x)^2),  mu2 = int(x^2*mkernel(x))
-        mu2, R, _Rdd = self.stats()
-
-        amise_constant = (8 * sqrt(pi) * R / (3 * mu2 ** 2 * n)) ** (1. / 5)
-        ste_constant = R / (mu2 ** (2) * n)
+        amise_constant = self.get_amise_constant(n)
+        ste_constant = self.get_ste_constant(n)
 
         sigmaA = self.hns(A) / amise_constant
         if h0 is None:
@@ -784,21 +788,12 @@ class Kernel(object):
         h = np.asarray(h0, dtype=float)
 
         nfft = inc * 2
-        amin = A.min(axis=1)  # Find the minimum value of A.
-        amax = A.max(axis=1)  # Find the maximum value of A.
-        arange = amax - amin  # Find the range of A.
 
-        # xa holds the x 'axis' vector, defining a grid of x values where
-        # the k.d. function will be evaluated.
-
-        ax1 = amin - arange / 8.0
-        bx1 = amax + arange / 8.0
+        ax1, bx1 = self._get_grid_limits(A)
 
         kernel2 = Kernel('gauss')
         mu2, R, _Rdd = kernel2.stats()
-        ste_constant2 = R / (mu2 ** (2) * n)
-        fft = np.fft.fft
-        ifft = np.fft.ifft
+        ste_constant2 = kernel2.get_ste_constant(n)
 
         for dim in range(d):
             s = sigmaA[dim]
@@ -822,8 +817,7 @@ class Kernel(object):
             # Estimate psi6 given g2.
             # kernel weights.
             kw4, kw6 = kernel2.deriv4_6_8_10(xn / g2, numout=2)
-            # Apply fftshift to kw.
-            kw = np.r_[kw6, 0, kw6[-1:0:-1]]
+            kw = np.r_[kw6, 0, kw6[-1:0:-1]]  # Apply fftshift to kw.
             z = np.real(ifft(fft(c, nfft) * fft(kw)))     # convolution.
             psi6 = np.sum(c * z[:inc]) / (n * (n - 1) * g2 ** 7)
 
@@ -892,24 +886,11 @@ class Kernel(object):
         '''
         A = np.atleast_2d(data)
         d, n = A.shape
-
-        # R = int(mkernel(x)^2),  mu2 = int(x^2*mkernel(x))
-        mu2, R, _Rdd = self.stats()
-        ste_constant = R / (n * mu2 ** 2)
-
-        amin = A.min(axis=1)  # Find the minimum value of A.
-        amax = A.max(axis=1)  # Find the maximum value of A.
-        arange = amax - amin  # Find the range of A.
-
-        # xa holds the x 'axis' vector, defining a grid of x values where
-        # the k.d. function will be evaluated.
-
-        ax1 = amin - arange / 8.0
-        bx1 = amax + arange / 8.0
+        ste_constant = self.get_ste_constant(n)
+        ax1, bx1 = self._get_grid_limits(A)
 
         kernel2 = Kernel('gauss')
-        mu2, R, _Rdd = kernel2.stats()
-        ste_constant2 = R / (mu2 ** (2) * n)
+        ste_constant2 = kernel2.get_ste_constant(n)
 
         def fixed_point(t, N, I, a2):
             ''' this implements the function t-zeta*gamma^[L](t)'''
@@ -929,8 +910,7 @@ class Kernel(object):
 
         h = np.empty(d)
         for dim in range(d):
-            ax = ax1[dim]
-            bx = bx1[dim]
+            ax, bx = ax1[dim], bx1[dim]
             xa = np.linspace(ax, bx, inc)
             R = bx - ax
 
@@ -942,13 +922,11 @@ class Kernel(object):
             I = np.asfarray(np.arange(1, inc)) ** 2
             a2 = (a[1:] / 2) ** 2
 
-            def fun(t):
-                return fixed_point(t, N, I, a2)
             x = np.linspace(0, 0.1, 150)
             ai = x[0]
-            f0 = fun(ai)
+            f0 = fixed_point(ai, N, I, a2)
             for bi in x[1:]:
-                f1 = fun(bi)
+                f1 = fixed_point(bi, N, I, a2)
                 if f1 * f0 <= 0:
                     # print('ai = %g, bi = %g' % (ai,bi))
                     break
@@ -961,10 +939,12 @@ class Kernel(object):
 
             # use  fzero to solve the equation t=zeta*gamma^[5](t)
             try:
-                t_star = optimize.brentq(fun, a=ai, b=bi)
-            except:
+                t_star = optimize.brentq(lambda t: fixed_point(t, N, I, a2),
+                                         a=ai, b=bi)
+            except Exception as err:
                 t_star = 0.28 * N ** (-2. / 5)
-                warnings.warn('Failure in obtaining smoothing parameter')
+                warnings.warn('Failure in obtaining smoothing parameter'
+                              ' ({})'.format(str(err)))
 
             # smooth the discrete cosine transform of initial data using t_star
             # a_t = a*exp(-np.arange(inc)**2*pi**2*t_star/2)
@@ -1022,11 +1002,8 @@ class Kernel(object):
         A = np.atleast_2d(data)
         d, n = A.shape
 
-        # R= int(mkernel(x)^2),  mu2= int(x^2*mkernel(x))
-        mu2, R, _Rdd = self.stats()
-
-        amise_constant = (8 * sqrt(pi) * R / (3 * mu2 ** 2 * n)) ** (1. / 5)
-        ste_constant = R / (mu2 ** (2) * n)
+        amise_constant = self.get_amise_constant(n)
+        ste_constant = self.get_ste_constant(n)
 
         sigmaA = self.hns(A) / amise_constant
         if h0 is None:
@@ -1035,18 +1012,9 @@ class Kernel(object):
         h = np.asarray(h0, dtype=float)
 
         nfft = inc * 2
-        amin = A.min(axis=1)  # Find the minimum value of A.
-        amax = A.max(axis=1)  # Find the maximum value of A.
-        arange = amax - amin  # Find the range of A.
 
-        # xa holds the x 'axis' vector, defining a grid of x values where
-        # the k.d. function will be evaluated.
+        ax1, bx1 = self._get_grid_limits(A)
 
-        ax1 = amin - arange / 8.0
-        bx1 = amax + arange / 8.0
-
-        fft = np.fft.fft
-        ifft = np.fft.ifft
         for dim in range(d):
             s = sigmaA[dim]
             datan = A[dim] / s
@@ -1078,8 +1046,7 @@ class Kernel(object):
                 psi4 = delta * z.sum()
                 h1 = (ste_constant / psi4) ** (1. / 5)
 
-            if count >= maxit:
-                warnings.warn('The obtained value did not converge.')
+            _assert_warn(count < maxit, 'The obtained value did not converge.')
 
             h[dim] = h1 * s
         # end # for dim loop
@@ -1132,11 +1099,8 @@ class Kernel(object):
         A = np.atleast_2d(data)
         d, n = A.shape
 
-        # R= int(mkernel(x)^2),  mu2= int(x^2*mkernel(x))
-        mu2, R, _Rdd = self.stats()
-
-        amise_constant = (8 * sqrt(pi) * R / (3 * mu2 ** 2 * n)) ** (1. / 5)
-        ste_constant = R / (mu2 ** (2) * n)
+        amise_constant = self.get_amise_constant(n)
+        ste_constant = self.get_ste_constant(n)
 
         sigmaA = self.hns(A) / amise_constant
         if hvec is None:
@@ -1148,21 +1112,12 @@ class Kernel(object):
         score = np.zeros(steps)
 
         nfft = inc * 2
-        amin = A.min(axis=1)  # Find the minimum value of A.
-        amax = A.max(axis=1)  # Find the maximum value of A.
-        arange = amax - amin  # Find the range of A.
 
-        # xa holds the x 'axis' vector, defining a grid of x values where
-        # the k.d. function will be evaluated.
-
-        ax1 = amin - arange / 8.0
-        bx1 = amax + arange / 8.0
+        ax1, bx1 = self._get_grid_limits(A)
 
         kernel2 = Kernel('gauss')
-        mu2, R, _Rdd = kernel2.stats()
-        ste_constant2 = R / (mu2 ** (2) * n)
-        fft = np.fft.fft
-        ifft = np.fft.ifft
+        mu2 = kernel2.stats()[0]
+        ste_constant2 = kernel2.get_ste_constant(n)
 
         h = np.zeros(d)
         hvec = hvec * (ste_constant2 / ste_constant) ** (1. / 5.)
@@ -1220,8 +1175,9 @@ class Kernel(object):
                 sig1 = sqrt(2 * hvec[i] ** 2 + 2 * g ** 2)
                 sig2 = sqrt(hvec[i] ** 2 + 2 * g ** 2)
                 sig3 = sqrt(2 * g ** 2)
-                term2 = np.sum(kernel2(Y / sig1) / sig1 - 2 * kernel2(
-                    Y / sig2) / sig2 + kernel2(Y / sig3) / sig3)
+                term2 = np.sum(kernel2(Y / sig1) / sig1 -
+                               2 * kernel2(Y / sig2) / sig2 +
+                               kernel2(Y / sig3) / sig3)
 
                 score[i] = 1. / (n * hvec[i] * 2. * sqrt(pi)) + term2 / n ** 2
 
@@ -1239,6 +1195,11 @@ class Kernel(object):
         if fulloutput:
             return h * sigmaA, score, hvec
         return h * sigmaA
+
+    def _get_grid_limits(self, data):
+        min_a, max_a = data.min(axis=1),  data.max(axis=1)
+        offset = (max_a - min_a) / 8.0
+        return min_a - offset,  max_a + offset
 
     def hldpi(self, data, L=2, inc=128):
         '''HLDPI L-stage Direct Plug-In estimate of smoothing parameter.
@@ -1273,30 +1234,16 @@ class Kernel(object):
         A = np.atleast_2d(data)
         d, n = A.shape
 
-        # R= int(mkernel(x)^2),  mu2= int(x^2*mkernel(x))
-        mu2, R, _Rdd = self.stats()
-
-        amise_constant = (8 * sqrt(pi) * R / (3 * n * mu2 ** 2)) ** (1. / 5)
-        ste_constant = R / (n * mu2 ** 2)
+        amise_constant = self.get_amise_constant(n)
+        ste_constant = self.get_ste_constant(n)
 
         sigmaA = self.hns(A) / amise_constant
 
         nfft = inc * 2
-        amin = A.min(axis=1)  # Find the minimum value of A.
-        amax = A.max(axis=1)  # Find the maximum value of A.
-        arange = amax - amin  # Find the range of A.
-
-        # xa holds the x 'axis' vector, defining a grid of x values where
-        # the k.d. function will be evaluated.
-
-        ax1 = amin - arange / 8.0
-        bx1 = amax + arange / 8.0
+        ax1, bx1 = self._get_grid_limits(A)
 
         kernel2 = Kernel('gauss')
         mu2, _R, _Rdd = kernel2.stats()
-
-        fft = np.fft.fft
-        ifft = np.fft.ifft
 
         h = np.zeros(d)
         for dim in range(d):
@@ -1330,8 +1277,8 @@ class Kernel(object):
                     kw0 = kernel2.deriv4_6_8_10(xn / gi, numout=ix)
                     if ix > 1:
                         kw0 = kw0[-1]
-                    # Apply 'fftshift' to kw.
-                    kw = np.r_[kw0, 0, kw0[inc - 1:0:-1]]
+
+                    kw = np.r_[kw0, 0, kw0[inc - 1:0:-1]]  # Apply 'fftshift'
 
                     # Perform the convolution.
                     z = np.real(ifft(fft(c, nfft) * fft(kw)))
