@@ -449,6 +449,27 @@ class TestSmoothing(unittest.TestCase):
         assert_allclose(hs, [[3.25196193e-01, -2.68892467e-02, 3.18932448e-04],
                              [-2.68892467e-02, 3.91283306e-01, 2.38654678e-02],
                              [3.18932448e-04, 2.38654678e-02, 4.05123874e-01]])
+        hs = self.gauss.hmns(self.data[0])
+        assert_allclose(hs, self.gauss.hns(self.data[0]))
+
+        hs = wk.Kernel('epan').hmns(self.data)
+        assert_allclose(hs,
+                        [[8.363847e-01, -6.915749e-02, 8.202747e-04],
+                         [-6.915749e-02, 1.006357e+00, 6.138052e-02],
+                         [8.202747e-04, 6.138052e-02, 1.041954e+00]],
+                        rtol=1e-5)
+        hs = wk.Kernel('biwe').hmns(self.data[:2])
+        assert_allclose(hs, [[0.868428, -0.071705],
+                             [-0.071705, 1.04685]], rtol=1e-5)
+        hs = wk.Kernel('triwe').hmns(self.data[:2])
+        assert_allclose(hs, [[0.975375, -0.080535],
+                             [-0.080535, 1.17577]], rtol=1e-5)
+        self.assertRaises(NotImplementedError,
+                          wk.Kernel('biwe').hmns, self.data)
+        self.assertRaises(NotImplementedError,
+                          wk.Kernel('triwe').hmns, self.data)
+        self.assertRaises(NotImplementedError,
+                          wk.Kernel('triangular').hmns, self.data)
 
     def test_hscv(self):
         hs = self.gauss.hscv(self.data)

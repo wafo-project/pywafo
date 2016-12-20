@@ -1131,7 +1131,7 @@ class SpecData1D(PlotData):
                          title='Joint density of maximum and minimum')
         try:
             pl = [10, 30, 50, 70, 90, 95, 99, 99.9]
-            mmpdf.cl = qlevels(uvdens, pl, h, h)
+            mmpdf.cl = qlevels(uvdens, pl, xi=(h, h))
             mmpdf.pl = pl
         except:
             pass
