@@ -673,24 +673,19 @@ class Kernel(object):
         return self.hns(data) / 0.93
 
     def _hmns_scale(self, d):
-        name = self.name[:4].lower()
-        if name == 'epan':  # Epanechnikov kernel
-            a = (8.0 * (d + 4.0) * (2 * sqrt(pi)) ** d /
-                 sphere_volume(d)) ** (1. / (4.0 + d))
-        elif name == 'biwe':  # Bi-weight kernel
-            a = 2.7779
-            if d > 2:
-                raise NotImplementedError('Not implemented for d>2')
-        elif name == 'triw':  # Triweight
-            a = 3.12
-            if d > 2:
-                raise NotImplementedError('not implemented for d>2')
-        elif name == 'gaus':  # Gaussian kernel
-            a = (4.0 / (d + 2.0)) ** (1. / (d + 4.0))
-        else:
+        name = self.name
+        short_name = name[:4].lower()
+        scale_dict = dict(epan=(8.0 * (d + 4.0) * (2 * sqrt(pi)) ** d /
+                                sphere_volume(d)) ** (1. / (4.0 + d)),
+                          biwe=2.7779, triw=3.12,
+                          gaus=(4.0 / (d + 2.0)) ** (1. / (d + 4.0)))
+        if short_name not in scale_dict:
             raise NotImplementedError('Hmns bandwidth not implemented for '
                                       'kernel {}.'.format(name))
-        return a
+        if d > 2 and short_name in ['biwe', 'triw']:
+            raise NotImplementedError('Not implemented for d>2 and '
+                                      'kernel {}'.format(name))
+        return scale_dict[short_name]
 
     def hmns(self, data):
         """Returns Multivariate Normal Scale Estimate of Smoothing Parameter.
@@ -865,8 +860,7 @@ class Kernel(object):
             # Kernel other than Gaussian scale bandwidth
             h1 = h1 * (ste_constant / ste_constant2) ** (1.0 / 5)
 
-            if count >= maxit:
-                warnings.warn('The obtained value did not converge.')
+            _assert_warn(count < maxit, 'The obtained value did not converge.')
 
             h[dim] = h1
         # end for dim loop
