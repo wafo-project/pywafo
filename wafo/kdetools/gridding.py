@@ -12,6 +12,11 @@ from itertools import product
 __all__ = ['accum',  'gridcount']
 
 
+def _assert(cond, msg):
+    if not cond:
+        raise ValueError(msg)
+
+
 def bitget(int_type, offset):
     """Returns the value of the bit at the offset position in int_type.
 
@@ -24,7 +29,7 @@ def bitget(int_type, offset):
     return np.bitwise_and(int_type, 1 << offset) >> offset
 
 
-def accumsum(accmap, a, shape, dtype=None):
+def accumsum_sparse(accmap, a, shape, dtype=None):
     """
     Example
     -------
@@ -36,7 +41,7 @@ def accumsum(accmap, a, shape, dtype=None):
            [-1,  8,  9]])
     >>> # Sum the diagonals.
     >>> accmap = array([[0,1,2],[2,0,1],[1,2,0]])
-    >>> s = accumsum(accmap, a, (3,))
+    >>> s = accumsum_sparse(accmap, a, (3,))
     >>> np.allclose(s.toarray().T, [ 9,  7, 15])
     True
 
@@ -57,7 +62,7 @@ def accumsum(accmap, a, shape, dtype=None):
     return out
 
 
-def accumsum2(accmap, a, shape):
+def accumsum(accmap, a, shape):
     """
     Example
     -------
@@ -69,7 +74,7 @@ def accumsum2(accmap, a, shape):
            [-1,  8,  9]])
 
     >>> accmap = array([[0,1,2],[2,0,1],[1,2,0]])  # Sum the diagonals.
-    >>> s = accumsum2(accmap, a, (3,))
+    >>> s = accumsum(accmap, a, (3,))
     >>> np.allclose(s, [ 9,  7, 15])
     True
 
@@ -191,6 +196,46 @@ def accum(accmap, a, func=None, shape=None, fill_value=0, dtype=None):
     return out
 
 
+def _gridcount_nd(acfun, data, x, y, w, binx):
+    d, inc = x.shape
+    c_shape = np.repeat(inc, d)
+    nc = c_shape.prod()  # inc ** d
+
+    c = np.zeros((nc, ))
+    fact2 = np.asarray(np.reshape(inc * np.arange(d), (d, -1)), dtype=int)
+    fact1 = np.asarray(np.reshape(c_shape.cumprod() / inc, (d, -1)), dtype=int)
+    bt0 = [0, 0]
+    X1 = x.ravel()
+    for ir in range(2 ** (d - 1)):
+        bt0[0] = np.reshape(bitget(ir, np.arange(d)), (d, -1))
+        bt0[1] = 1 - bt0[0]
+        for ix in range(2):
+            one = np.mod(ix, 2)
+            two = np.mod(ix + 1, 2)
+            # Convert to linear index
+            # linear index to c
+            b1 = np.sum((binx + bt0[one]) * fact1, axis=0)
+            bt2 = bt0[two] + fact2
+            b2 = binx + bt2   # linear index to X
+            c += acfun(b1, np.abs(np.prod(X1[b2] - data, axis=0)) * y,
+                       shape=(nc, ))
+
+    c = np.reshape(c / w, c_shape, order='F')
+
+    T = np.arange(d).tolist()
+    T[1], T[0] = T[0], T[1]
+    # make sure c is stored in the same way as meshgrid
+    c = c.transpose(*T)
+    return c
+
+
+def _gridcount_1d(acfun, data, x, y, w, binx, inc):
+    x.shape = -1,
+    c = (acfun(binx, (x[binx + 1] - data) * y, shape=(inc, )) +
+         acfun(binx + 1, (data - x[binx]) * y, shape=(inc, ))).ravel()
+    return c / w
+
+
 def gridcount(data, X, y=1):
     '''
     Returns D-dimensional histogram using linear binning.
@@ -224,7 +269,6 @@ def gridcount(data, X, y=1):
     -------
     >>> import numpy as np
     >>> import wafo.kdetools as wk
-    >>> import pylab as plb
     >>> N = 20
     >>> data  = np.random.rayleigh(1,N)
     >>> data = np.array(
@@ -243,8 +287,9 @@ def gridcount(data, X, y=1):
     >>> np.allclose(np.trapz(pdf, x), 1)
     True
 
-    h = plb.plot(x,c,'.')   # 1D histogram
-    h1 = plb.plot(x, pdf) #  1D probability density plot
+    import matplotlib.pyplot as plt
+    h = plt.plot(x,c,'.')   # 1D histogram
+    h1 = plt.plot(x, pdf) #  1D probability density plot
 
     See also
     --------
@@ -256,70 +301,28 @@ def gridcount(data, X, y=1):
     'Kernel smoothing'
     Chapman and Hall, pp 182-192
     '''
-    dat = np.atleast_2d(data)
-    x = np.atleast_2d(X)
+    data2, x = np.atleast_2d(data, X)
     y = np.atleast_1d(y).ravel()
-    d = dat.shape[0]
-    d1, inc = x.shape
+    d, inc = x.shape
 
-    if d != d1:
-        raise ValueError('Dimension 0 of data and X do not match.')
+    _assert(d == data2.shape[0], 'Dimension 0 of data and X do not match.')
 
     dx = np.diff(x[:, :2], axis=1)
-    xlo = x[:, 0]
-    xup = x[:, -1]
+    xlo, xup = x[:, 0], x[:, -1]
 
-    datlo = dat.min(axis=1)
-    datup = dat.max(axis=1)
-    if ((datlo < xlo) | (xup < datup)).any():
-        raise ValueError('X does not include whole range of the data!')
+    datlo, datup = data2.min(axis=1), data2.max(axis=1)
+    _assert(not ((datlo < xlo) | (xup < datup)).any(),
+            'X does not include whole range of the data!')
 
-    csiz = np.repeat(inc, d)
-    use_sparse = False
-    if use_sparse:
-        acfun = accumsum  # faster than accum
-    else:
-        acfun = accumsum2  # accum
+    #  acfun = accumsum_sparse  # faster than accum
+    acfun = accumsum  # faster than accumsum_sparse
 
-    binx = np.asarray(np.floor((dat - xlo[:, np.newaxis]) / dx), dtype=int)
+    binx = np.asarray(np.floor((data2 - xlo[:, np.newaxis]) / dx), dtype=int)
     w = dx.prod()
     if d == 1:
-        x.shape = (-1,)
-        c = np.asarray((acfun(binx, (x[binx + 1] - dat) * y, shape=(inc, )) +
-                        acfun(binx + 1, (dat - x[binx]) * y, shape=(inc, ))) /
-                       w).ravel()
-    else:  # d>2
-
-        Nc = csiz.prod()
-        c = np.zeros((Nc,))
-
-        fact2 = np.asarray(np.reshape(inc * np.arange(d), (d, -1)), dtype=int)
-        fact1 = np.asarray(
-            np.reshape(csiz.cumprod() / inc, (d, -1)), dtype=int)
-        # fact1 = fact1(ones(n,1),:);
-        bt0 = [0, 0]
-        X1 = X.ravel()
-        for ir in range(2 ** (d - 1)):
-            bt0[0] = np.reshape(bitget(ir, np.arange(d)), (d, -1))
-            bt0[1] = 1 - bt0[0]
-            for ix in range(2):
-                one = np.mod(ix, 2)
-                two = np.mod(ix + 1, 2)
-                # Convert to linear index
-                # linear index to c
-                b1 = np.sum((binx + bt0[one]) * fact1, axis=0)
-                bt2 = bt0[two] + fact2
-                b2 = binx + bt2                     # linear index to X
-                c += acfun(b1, np.abs(np.prod(X1[b2] - dat, axis=0)) * y,
-                           shape=(Nc,))
-
-        c = np.reshape(c / w, csiz, order='F')
-
-        T = [i for i in range(d)]
-        T[1], T[0] = T[0], T[1]
-        # make sure c is stored in the same way as meshgrid
-        c = c.transpose(*T)
-    return c
+        return _gridcount_1d(acfun, data2, x, y, w, binx, inc)
+    # else:  # d>1
+    return _gridcount_nd(acfun, data2, x, y, w, binx)
 
 
 if __name__ == '__main__':
