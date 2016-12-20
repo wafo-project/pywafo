@@ -168,20 +168,25 @@ def accum(accmap, a, func=None, shape=None, fill_value=0, dtype=None):
 
         return vals
 
-    # Check for bad arguments and handle the defaults.
-    if accmap.shape[:a.ndim] != a.shape:
-        raise ValueError(
-            "The initial dimensions of accmap must be the same as a.shape")
-    if func is None:
-        func = np.sum
-    if dtype is None:
-        dtype = a.dtype
-    if accmap.shape == a.shape:
-        accmap = np.expand_dims(accmap, -1)
-    adims = tuple(range(a.ndim))
-    if shape is None:
-        shape = 1 + np.squeeze(np.apply_over_axes(np.max, accmap, axes=adims))
-    shape = np.atleast_1d(shape)
+    def _initialize(accmap, a, func, shape, dtype):
+        """Check for bad arguments and handle the defaults."""
+
+        _assert(accmap.shape[:a.ndim] == a.shape,
+                "The initial dimensions of accmap must be the same as a.shape")
+        if accmap.shape == a.shape:
+            accmap = np.expand_dims(accmap, -1)
+        if func is None:
+            func = np.sum
+        if dtype is None:
+            dtype = a.dtype
+        adims = tuple(range(a.ndim))
+        if shape is None:
+            shape = 1 + np.squeeze(np.apply_over_axes(np.max, accmap,
+                                                      axes=adims))
+        shape = np.atleast_1d(shape)
+        return accmap, shape, dtype, func
+
+    accmap, shape, dtype, func = _initialize(accmap, a, func, shape, dtype)
 
     # Create an array of python lists of values.
     vals = create_array_of_python_lists(accmap, a, shape)
