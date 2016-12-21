@@ -396,8 +396,8 @@ class _KernelGaussian(_Kernel):
         return (2 * pi * sigma) ** (d / 2.0)
 
     def deriv4_6_8_10(self, t, numout=4):
-        """Returns 4th, 6th, 8th and 10th derivatives of the kernel
-        function."""
+        """Returns 4th, 6th, 8th and 10th derivatives of the kernel function.
+        """
         phi0 = exp(-0.5 * t ** 2) / sqrt(2 * pi)
         p4 = [1, 0, -6, 0, +3]
         p4val = np.polyval(p4, t) * phi0
@@ -410,7 +410,8 @@ class _KernelGaussian(_Kernel):
             pnp2 = np.polyadd(-np.r_[pnp1, 0], np.polyder(pnp1))
             out.append(np.polyval(pnp2, t) * phi0)
             pn = pnp2
-        return out
+        return tuple(out)
+
 
 mkernel_gaussian = _KernelGaussian(r=4.0, stats=_stats_gaus)
 
@@ -789,19 +790,8 @@ class Kernel(object):
 
         ax1, bx1 = self._get_grid_limits(A)
 
-        kernel2 = Kernel('gauss')
-        mu2, R, _Rdd = kernel2.stats()
-        ste_constant2 = kernel2.get_ste_constant(n)
-
-        def _estimate_psi(c, xn, g2, n, numout=2):
-            inc = len(xn)
-            nfft = 2 * inc
-
-            kw0 = kernel2.deriv4_6_8_10(xn / g2, numout=numout+1)
-            kw6 = kw0[-2]
-            kw = np.r_[kw6, 0, kw6[-1:0:-1]]  # Apply fftshift to kw.
-            z = np.real(ifft(fft(c, nfft) * fft(kw)))     # convolution.
-            return np.sum(c * z[:inc]) / (n * (n - 1) * g2 ** (2*numout-1 + 4))
+        mu2, R = _GAUSS_KERNEL.stats()[:2]
+        ste_constant2 = _GAUSS_KERNEL.get_ste_constant(n)
 
         for dim in range(d):
             s = sigmaA[dim]
@@ -818,12 +808,12 @@ class Kernel(object):
             psi8NS = 105 / (32 * sqrt(pi) * s ** 9)
 
             # Step 2
-            k40, k60 = kernel2.deriv4_6_8_10(0, numout=2)
+            k40, k60 = _GAUSS_KERNEL.deriv4_6_8_10(0, numout=2)
             g1 = (-2 * k40 / (mu2 * psi6NS * n)) ** (1.0 / 7)
             g2 = (-2 * k60 / (mu2 * psi8NS * n)) ** (1.0 / 9)
 
-            psi6 = _estimate_psi(c, xn, g2, n, numout=2)
-            psi4 = _estimate_psi(c, xn, g1, n, numout=1)
+            psi4 = self._estimate_psi(c, xn, g1, n, order=4)
+            psi6 = self._estimate_psi(c, xn, g2, n, order=6)
 
             h1 = h[dim]
             h_old = 0
@@ -838,7 +828,7 @@ class Kernel(object):
                 gamma_ = ((2 * k40 * mu2 * psi4 * h1 ** 5) /
                           (-psi6 * R)) ** (1.0 / 7)
 
-                psi4Gamma = _estimate_psi(c, xn, gamma_, n, numout=1)
+                psi4Gamma = self._estimate_psi(c, xn, gamma_, n, order=4)
 
                 # Step 4
                 h1 = (ste_constant2 / psi4Gamma) ** (1.0 / 5)
@@ -1046,6 +1036,18 @@ class Kernel(object):
         # end # for dim loop
         return h
 
+    @staticmethod
+    def _estimate_psi(c, xn, g2, n, order=4):
+        # order = numout*2+2
+        numout = (order-2) // 2
+
+        inc = len(xn)
+        kw0 = _GAUSS_KERNEL.deriv4_6_8_10(xn / g2, numout=numout+1)
+        kw6 = kw0[-2]
+        kw = np.r_[kw6, 0, kw6[-1:0:-1]]  # Apply fftshift to kw.
+        z = np.real(ifft(fft(c, 2*inc) * fft(kw)))     # convolution.
+        return np.sum(c * z[:inc]) / (n * (n-1) * g2 ** (order+1))
+
     def hscv(self, data, hvec=None, inc=128, maxit=100, fulloutput=False):
         '''
         HSCV Smoothed cross-validation estimate of smoothing parameter.
@@ -1107,28 +1109,17 @@ class Kernel(object):
 
         ax1, bx1 = self._get_grid_limits(A)
 
-        kernel2 = Kernel('gauss')
-        mu2 = kernel2.stats()[0]
-        ste_constant2 = kernel2.get_ste_constant(n)
+        ste_constant2 = _GAUSS_KERNEL.get_ste_constant(n)
 
         h = np.zeros(d)
         hvec = hvec * (ste_constant2 / ste_constant) ** (1. / 5.)
 
-        k40, k60, k80, k100 = kernel2.deriv4_6_8_10(0, numout=4)
+        mu2 = _GAUSS_KERNEL.stats()[0]
+        k40, k60, k80, k100 = _GAUSS_KERNEL.deriv4_6_8_10(0, numout=4)
         psi8 = 105 / (32 * sqrt(pi))
         psi12 = 3465. / (512 * sqrt(pi))
         g1 = (-2. * k60 / (mu2 * psi8 * n)) ** (1. / 9.)
         g2 = (-2. * k100 / (mu2 * psi12 * n)) ** (1. / 13.)
-
-        def _estimate_psi(c, xn, g2, n, numout=2):
-            inc = len(xn)
-            nfft = 2 * inc
-
-            kw0 = kernel2.deriv4_6_8_10(xn / g2, numout=numout+1)
-            kw6 = kw0[-2]
-            kw = np.r_[kw6, 0, kw6[-1:0:-1]]  # Apply fftshift to kw.
-            z = np.real(ifft(fft(c, nfft) * fft(kw)))     # convolution.
-            return np.sum(c * z[:inc]) / (n * (n-1) * g2 ** (2*numout-1 + 4))
 
         for dim in range(d):
             s = sigmaA[dim]
@@ -1141,14 +1132,14 @@ class Kernel(object):
 
             c = gridcount(datan, xa)
 
-            psi6 = _estimate_psi(c, xn, g1, n, numout=2)
-            psi10 = _estimate_psi(c, xn, g2, n, numout=4)
+            psi6 = self._estimate_psi(c, xn, g1, n, order=6)
+            psi10 = self._estimate_psi(c, xn, g2, n, order=10)
 
             g3 = (-2. * k40 / (mu2 * psi6 * n)) ** (1. / 7.)
             g4 = (-2. * k80 / (mu2 * psi10 * n)) ** (1. / 11.)
 
-            psi4 = _estimate_psi(c, xn, g3, n, numout=1)
-            psi8 = _estimate_psi(c, xn, g4, n, numout=3)
+            psi4 = self._estimate_psi(c, xn, g3, n, order=4)
+            psi8 = self._estimate_psi(c, xn, g4, n, order=8)
 
             const = ((441. / (64 * pi)) ** (1. / 18.) *
                      (4 * pi) ** (-1. / 5.) *
@@ -1163,9 +1154,9 @@ class Kernel(object):
                 sig1 = sqrt(2 * hvec[i] ** 2 + 2 * g ** 2)
                 sig2 = sqrt(hvec[i] ** 2 + 2 * g ** 2)
                 sig3 = sqrt(2 * g ** 2)
-                term2 = np.sum(kernel2(Y / sig1) / sig1 -
-                               2 * kernel2(Y / sig2) / sig2 +
-                               kernel2(Y / sig3) / sig3)
+                term2 = np.sum(_GAUSS_KERNEL(Y / sig1) / sig1 -
+                               2 * _GAUSS_KERNEL(Y / sig2) / sig2 +
+                               _GAUSS_KERNEL(Y / sig3) / sig3)
 
                 score[i] = 1. / (n * hvec[i] * 2. * sqrt(pi)) + term2 / n ** 2
 
@@ -1283,6 +1274,9 @@ class Kernel(object):
     def eval_points(self, points):
         return self.kernel(np.atleast_2d(points))
     __call__ = eval_points
+
+
+_GAUSS_KERNEL = Kernel('gauss')
 
 
 def mkernel(X, kernel):
