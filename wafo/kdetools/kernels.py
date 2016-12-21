@@ -747,6 +747,10 @@ class Kernel(object):
         mu2, R = self.stats()[:2]
         return R / (mu2 ** (2) * n)
 
+    def _get_g(self, k_order_2, psi_order, n, order):
+        mu2 = _GAUSS_KERNEL.stats()[0]
+        return (-2. * k_order_2 / (mu2 * psi_order * n)) ** (1. / (order+1))
+
     def hste(self, data, h0=None, inc=128, maxit=100, releps=0.01, abseps=0.0):
         '''HSTE 2-Stage Solve the Equation estimate of smoothing parameter.
 
@@ -809,8 +813,8 @@ class Kernel(object):
 
             # Step 2
             k40, k60 = _GAUSS_KERNEL.deriv4_6_8_10(0, numout=2)
-            g1 = (-2 * k40 / (mu2 * psi6NS * n)) ** (1.0 / 7)
-            g2 = (-2 * k60 / (mu2 * psi8NS * n)) ** (1.0 / 9)
+            g1 = self._get_g(k40, psi6NS, n, order=6)
+            g2 = self._get_g(k60, psi8NS, n, order=8)
 
             psi4 = self._estimate_psi(c, xn, g1, n, order=4)
             psi6 = self._estimate_psi(c, xn, g2, n, order=6)
@@ -1114,12 +1118,11 @@ class Kernel(object):
         h = np.zeros(d)
         hvec = hvec * (ste_constant2 / ste_constant) ** (1. / 5.)
 
-        mu2 = _GAUSS_KERNEL.stats()[0]
         k40, k60, k80, k100 = _GAUSS_KERNEL.deriv4_6_8_10(0, numout=4)
         psi8 = 105 / (32 * sqrt(pi))
         psi12 = 3465. / (512 * sqrt(pi))
-        g1 = (-2. * k60 / (mu2 * psi8 * n)) ** (1. / 9.)
-        g2 = (-2. * k100 / (mu2 * psi12 * n)) ** (1. / 13.)
+        g1 = self._get_g(k60, psi8, n, order=8)
+        g2 = self._get_g(k100, psi12, n, order=12)
 
         for dim in range(d):
             s = sigmaA[dim]
@@ -1135,8 +1138,8 @@ class Kernel(object):
             psi6 = self._estimate_psi(c, xn, g1, n, order=6)
             psi10 = self._estimate_psi(c, xn, g2, n, order=10)
 
-            g3 = (-2. * k40 / (mu2 * psi6 * n)) ** (1. / 7.)
-            g4 = (-2. * k80 / (mu2 * psi10 * n)) ** (1. / 11.)
+            g3 = self._get_g(k40, psi6, n, order=6)
+            g4 = self._get_g(k80, psi10, n, order=10)
 
             psi4 = self._estimate_psi(c, xn, g3, n, order=4)
             psi8 = self._estimate_psi(c, xn, g4, n, order=8)
