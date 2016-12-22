@@ -498,11 +498,11 @@ class Kernel(object):
     >>> gauss = wk.Kernel('gaussian')
     >>> gauss.stats()
     (1, 0.28209479177387814, 0.21157109383040862)
-    >>> np.allclose(gauss.hscv(data), 0.21779575)
+    >>> np.allclose(gauss.hscv(data), 0.21555043)
     True
     >>> np.allclose(gauss.hstt(data), 0.16341135)
     True
-    >>> np.allclose(gauss.hste(data), 0.19179399)
+    >>> np.allclose(gauss.hste(data), 0.1968276)
     True
     >>> np.allclose(gauss.hldpi(data), 0.22502733)
     True
@@ -521,7 +521,7 @@ class Kernel(object):
     True
     >>> np.allclose(triweight.hos(data), 0.88, rtol=1e-2)
     True
-    >>> np.allclose(triweight.hste(data), 0.57, rtol=1e-2)
+    >>> np.allclose(triweight.hste(data), 0.588, rtol=1e-2)
     True
     >>> np.allclose(triweight.hscv(data), 0.648, rtol=1e-2)
     True
@@ -636,8 +636,8 @@ class Kernel(object):
         # the use of interquartile range is better if
         # the distribution is skew or have heavy tails
         # This lessen the chance of oversmoothing.
-        return np.where(iqr > 0,
-                        np.minimum(std_a, iqr / 1.349), std_a) * amise_constant
+        sigma = np.where(iqr > 0, np.minimum(std_a, iqr / 1.349), std_a)
+        return sigma * amise_constant
 
     def hos(self, data):
         """Returns Oversmoothing Parameter.
@@ -809,11 +809,9 @@ class Kernel(object):
 
             c = gridcount(A[dim], xa)
 
-            # Step 1
             psi6NS = _GAUSS_KERNEL.psi(6, s)
             psi8NS = _GAUSS_KERNEL.psi(8, s)
 
-            # Step 2
             k40, k60 = _GAUSS_KERNEL.deriv4_6_8_10(0, numout=2)
             g1 = self._get_g(k40, psi6NS, n, order=6)
             g2 = self._get_g(k60, psi8NS, n, order=8)
@@ -830,13 +828,11 @@ class Kernel(object):
                 count += 1
                 h_old = h1
 
-                # Step 3
                 gamma_ = ((2 * k40 * mu2 * psi4 * h1 ** 5) /
                           (-psi6 * R)) ** (1.0 / 7)
 
                 psi4Gamma = self._estimate_psi(c, xn, gamma_, n, order=4)
 
-                # Step 4
                 h1 = (ste_constant2 / psi4Gamma) ** (1.0 / 5)
 
             # Kernel other than Gaussian scale bandwidth
@@ -1255,50 +1251,50 @@ class Kernel(object):
     __call__ = eval_points
 
 
-def mkernel(X, kernel):
-    """MKERNEL Multivariate Kernel Function.
-
-    Paramaters
-    ----------
-    X : array-like
-        matrix  size d x n (d = # dimensions, n = # evaluation points)
-    kernel : string
-        defining kernel
-        'epanechnikov'  - Epanechnikov kernel.
-        'biweight'      - Bi-weight kernel.
-        'triweight'     - Tri-weight kernel.
-        'p1epanechnikov' - product of 1D Epanechnikov kernel.
-        'p1biweight'    - product of 1D Bi-weight kernel.
-        'p1triweight'   - product of 1D Tri-weight kernel.
-        'triangular'    - Triangular kernel.
-        'gaussian'      - Gaussian kernel
-        'rectangular'   - Rectangular kernel.
-        'laplace'       - Laplace kernel.
-        'logistic'      - Logistic kernel.
-    Note that only the first 4 letters of the kernel name is needed.
-
-    Returns
-    -------
-    z : ndarray
-        kernel function values evaluated at X
-
-    See also
-    --------
-    KDE
-
-    References
-    ----------
-    B. W. Silverman (1986)
-    'Density estimation for statistics and data analysis'
-     Chapman and Hall, pp. 43, 76
-
-    Wand, M. P. and Jones, M. C. (1995)
-    'Density estimation for statistics and data analysis'
-     Chapman and Hall, pp 31, 103,  175
-
-    """
-    fun = _MKERNEL_DICT[kernel[:4]]
-    return fun(np.atleast_2d(X))
+# def mkernel(X, kernel):
+#     """MKERNEL Multivariate Kernel Function.
+#
+#     Paramaters
+#     ----------
+#     X : array-like
+#         matrix  size d x n (d = # dimensions, n = # evaluation points)
+#     kernel : string
+#         defining kernel
+#         'epanechnikov'  - Epanechnikov kernel.
+#         'biweight'      - Bi-weight kernel.
+#         'triweight'     - Tri-weight kernel.
+#         'p1epanechnikov' - product of 1D Epanechnikov kernel.
+#         'p1biweight'    - product of 1D Bi-weight kernel.
+#         'p1triweight'   - product of 1D Tri-weight kernel.
+#         'triangular'    - Triangular kernel.
+#         'gaussian'      - Gaussian kernel
+#         'rectangular'   - Rectangular kernel.
+#         'laplace'       - Laplace kernel.
+#         'logistic'      - Logistic kernel.
+#     Note that only the first 4 letters of the kernel name is needed.
+#
+#     Returns
+#     -------
+#     z : ndarray
+#         kernel function values evaluated at X
+#
+#     See also
+#     --------
+#     KDE
+#
+#     References
+#     ----------
+#     B. W. Silverman (1986)
+#     'Density estimation for statistics and data analysis'
+#      Chapman and Hall, pp. 43, 76
+#
+#     Wand, M. P. and Jones, M. C. (1995)
+#     'Density estimation for statistics and data analysis'
+#      Chapman and Hall, pp 31, 103,  175
+#
+#     """
+#     fun = _MKERNEL_DICT[kernel[:4]]
+#     return fun(np.atleast_2d(X))
 
 
 if __name__ == '__main__':
