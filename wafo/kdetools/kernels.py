@@ -292,6 +292,15 @@ class _Kernel(object):
     def deriv4_6_8_10(self, t, numout=4):
         raise NotImplementedError('Method not implemented for this kernel!')
 
+    def get_ste_constant(self, n):
+        mu2, R = self.stats[:2]
+        return R / (mu2 ** (2) * n)
+
+    def get_amise_constant(self, n):
+        # R= int(mkernel(x)^2),  mu2= int(x^2*mkernel(x))
+        mu2, R = self.stats[:2]
+        return (8 * sqrt(pi) * R / (3 * mu2 ** 2 * n)) ** (1. / 5)
+
     def effective_support(self):
         """Return the effective support of kernel.
 
@@ -399,12 +408,8 @@ class _KernelGaussian(_Kernel):
         """Returns 4th, 6th, 8th and 10th derivatives of the kernel function.
         """
         phi0 = exp(-0.5 * t ** 2) / sqrt(2 * pi)
-        p4 = [1, 0, -6, 0, +3]
-        p4val = np.polyval(p4, t) * phi0
-        if numout == 1:
-            return p4val
-        out = [p4val]
-        pn = p4
+        pn = [1, 0, -6, 0, 3]
+        out = [np.polyval(pn, t) * phi0]
         for _i in range(numout - 1):
             pnp1 = np.polyadd(-np.r_[pn, 0], np.polyder(pn))
             pnp2 = np.polyadd(-np.r_[pnp1, 0], np.polyder(pnp1))
@@ -412,8 +417,15 @@ class _KernelGaussian(_Kernel):
             pn = pnp2
         return tuple(out)
 
+    def psi(self, r, sigma=1):
+        """Eq. 3.7 in Wand and Jones (1995)"""
+        rd2 = r // 2
+        psi_r = (-1) ** rd2 * np.prod(np.r_[rd2 + 1:r + 1]
+                                      ) / (sqrt(pi) * (2 * sigma) ** (r + 1))
+        return psi_r
 
 mkernel_gaussian = _KernelGaussian(r=4.0, stats=_stats_gaus)
+_GAUSS_KERNEL = mkernel_gaussian
 
 
 class _KernelLaplace(_Kernel):
@@ -560,17 +572,11 @@ class Kernel(object):
         """
         return self.kernel.stats
 
-    def deriv4_6_8_10(self, t, numout=4):
-        return self.kernel.deriv4_6_8_10(t, numout)
+#     def deriv4_6_8_10(self, t, numout=4):
+#         return self.kernel.deriv4_6_8_10(t, numout)
 
     def effective_support(self):
         return self.kernel.effective_support()
-
-    def get_amise_constant(self, n):
-        # R= int(mkernel(x)^2),  mu2= int(x^2*mkernel(x))
-        mu2, R = self.stats()[:2]
-        amise_constant = (8 * sqrt(pi) * R / (3 * mu2 ** 2 * n)) ** (1. / 5)
-        return amise_constant
 
     def hns(self, data):
         """Returns Normal Scale Estimate of Smoothing Parameter.
@@ -623,7 +629,7 @@ class Kernel(object):
         a = np.atleast_2d(data)
         n = a.shape[1]
 
-        amise_constant = self.get_amise_constant(n)
+        amise_constant = self.kernel.get_amise_constant(n)
         iqr = iqrange(a, axis=1)  # interquartile range
         std_a = np.std(a, axis=1, ddof=1)
         # use of interquartile range guards against outliers.
@@ -743,12 +749,8 @@ class Kernel(object):
         cov_a = np.cov(a)
         return scale * linalg.sqrtm(cov_a).real * n ** (-1. / (d + 4))
 
-    def get_ste_constant(self, n):
-        mu2, R = self.stats()[:2]
-        return R / (mu2 ** (2) * n)
-
     def _get_g(self, k_order_2, psi_order, n, order):
-        mu2 = _GAUSS_KERNEL.stats()[0]
+        mu2 = _GAUSS_KERNEL.stats[0]
         return (-2. * k_order_2 / (mu2 * psi_order * n)) ** (1. / (order+1))
 
     def hste(self, data, h0=None, inc=128, maxit=100, releps=0.01, abseps=0.0):
@@ -783,8 +785,8 @@ class Kernel(object):
         A = np.atleast_2d(data)
         d, n = A.shape
 
-        amise_constant = self.get_amise_constant(n)
-        ste_constant = self.get_ste_constant(n)
+        amise_constant = self.kernel.get_amise_constant(n)
+        ste_constant = self.kernel.get_ste_constant(n)
 
         sigmaA = self.hns(A) / amise_constant
         if h0 is None:
@@ -794,7 +796,7 @@ class Kernel(object):
 
         ax1, bx1 = self._get_grid_limits(A)
 
-        mu2, R = _GAUSS_KERNEL.stats()[:2]
+        mu2, R = _GAUSS_KERNEL.stats[:2]
         ste_constant2 = _GAUSS_KERNEL.get_ste_constant(n)
 
         for dim in range(d):
@@ -808,8 +810,8 @@ class Kernel(object):
             c = gridcount(A[dim], xa)
 
             # Step 1
-            psi6NS = -15 / (16 * sqrt(pi) * s ** 7)
-            psi8NS = 105 / (32 * sqrt(pi) * s ** 9)
+            psi6NS = _GAUSS_KERNEL.psi(6, s)
+            psi8NS = _GAUSS_KERNEL.psi(8, s)
 
             # Step 2
             k40, k60 = _GAUSS_KERNEL.deriv4_6_8_10(0, numout=2)
@@ -872,11 +874,10 @@ class Kernel(object):
         '''
         A = np.atleast_2d(data)
         d, n = A.shape
-        ste_constant = self.get_ste_constant(n)
+        ste_constant = self.kernel.get_ste_constant(n)
         ax1, bx1 = self._get_grid_limits(A)
 
-        kernel2 = Kernel('gauss')
-        ste_constant2 = kernel2.get_ste_constant(n)
+        ste_constant2 = _GAUSS_KERNEL.get_ste_constant(n)
 
         def fixed_point(t, N, I, a2):
             ''' this implements the function t-zeta*gamma^[L](t)'''
@@ -990,8 +991,8 @@ class Kernel(object):
         A = np.atleast_2d(data)
         d, n = A.shape
 
-        amise_constant = self.get_amise_constant(n)
-        ste_constant = self.get_ste_constant(n)
+        amise_constant = self.kernel.get_amise_constant(n)
+        ste_constant = self.kernel.get_ste_constant(n)
 
         sigmaA = self.hns(A) / amise_constant
         if h0 is None:
@@ -1041,16 +1042,13 @@ class Kernel(object):
         return h
 
     @staticmethod
-    def _estimate_psi(c, xn, g2, n, order=4):
+    def _estimate_psi(c, xn, gi, n, order=4):
         # order = numout*2+2
-        numout = (order-2) // 2
-
         inc = len(xn)
-        kw0 = _GAUSS_KERNEL.deriv4_6_8_10(xn / g2, numout=numout+1)
-        kw6 = kw0[-2]
-        kw = np.r_[kw6, 0, kw6[-1:0:-1]]  # Apply fftshift to kw.
+        kw0 = _GAUSS_KERNEL.deriv4_6_8_10(xn / gi, numout=(order-2)//2)[-1]
+        kw = np.r_[kw0, 0, kw0[-1:0:-1]]  # Apply fftshift to kw.
         z = np.real(ifft(fft(c, 2*inc) * fft(kw)))     # convolution.
-        return np.sum(c * z[:inc]) / (n * (n-1) * g2 ** (order+1))
+        return np.sum(c * z[:inc]) / (n ** 2 * gi ** (order+1))
 
     def hscv(self, data, hvec=None, inc=128, maxit=100, fulloutput=False):
         '''
@@ -1099,8 +1097,8 @@ class Kernel(object):
         A = np.atleast_2d(data)
         d, n = A.shape
 
-        amise_constant = self.get_amise_constant(n)
-        ste_constant = self.get_ste_constant(n)
+        amise_constant = self.kernel.get_amise_constant(n)
+        ste_constant = self.kernel.get_ste_constant(n)
 
         sigmaA = self.hns(A) / amise_constant
         if hvec is None:
@@ -1119,6 +1117,8 @@ class Kernel(object):
         hvec = hvec * (ste_constant2 / ste_constant) ** (1. / 5.)
 
         k40, k60, k80, k100 = _GAUSS_KERNEL.deriv4_6_8_10(0, numout=4)
+        # psi8 = _GAUSS_KERNEL.psi(8)
+        # psi12 = _GAUSS_KERNEL.psi(12)
         psi8 = 105 / (32 * sqrt(pi))
         psi12 = 3465. / (512 * sqrt(pi))
         g1 = self._get_g(k60, psi8, n, order=8)
@@ -1216,16 +1216,12 @@ class Kernel(object):
         A = np.atleast_2d(data)
         d, n = A.shape
 
-        amise_constant = self.get_amise_constant(n)
-        ste_constant = self.get_ste_constant(n)
+        amise_constant = self.kernel.get_amise_constant(n)
+        ste_constant = self.kernel.get_ste_constant(n)
 
         sigmaA = self.hns(A) / amise_constant
 
-        nfft = inc * 2
         ax1, bx1 = self._get_grid_limits(A)
-
-        kernel2 = Kernel('gauss')
-        mu2, _R, _Rdd = kernel2.stats()
 
         h = np.zeros(d)
         for dim in range(d):
@@ -1239,35 +1235,15 @@ class Kernel(object):
 
             c = gridcount(datan, xa)
 
-            r = 2 * L + 4
-            rd2 = L + 2
-
-            # Eq. 3.7 in Wand and Jones (1995)
-            psi_r = (-1) ** (rd2) * np.prod(
-                np.r_[rd2 + 1:r + 1]) / (sqrt(pi) * (2 * s) ** (r + 1))
-            psi = psi_r
+            psi = _GAUSS_KERNEL.psi(r=2 * L + 4, sigma=s)
             if L > 0:
                 # High order derivatives of the Gaussian kernel
-                Kd = kernel2.deriv4_6_8_10(0, numout=L)
+                Kd = _GAUSS_KERNEL.deriv4_6_8_10(0, numout=L)
 
                 # L-stage iterations to estimate PSI_4
                 for ix in range(L, 0, -1):
-                    gi = (-2 * Kd[ix - 1] /
-                          (mu2 * psi * n)) ** (1. / (2 * ix + 5))
-
-                    # Obtain the kernel weights.
-                    kw0 = kernel2.deriv4_6_8_10(xn / gi, numout=ix)
-                    if ix > 1:
-                        kw0 = kw0[-1]
-
-                    kw = np.r_[kw0, 0, kw0[inc - 1:0:-1]]  # Apply 'fftshift'
-
-                    # Perform the convolution.
-                    z = np.real(ifft(fft(c, nfft) * fft(kw)))
-
-                    psi = np.sum(c * z[:inc]) / (n ** 2 * gi ** (2 * ix + 3))
-                    # end
-                # end
+                    gi = self._get_g(Kd[ix - 1], psi, n, order=2*ix + 4)
+                    psi = self._estimate_psi(c, xn, gi, n, order=2*ix+2)
             h[dim] = (ste_constant / psi) ** (1. / 5)
         return h
 
@@ -1277,9 +1253,6 @@ class Kernel(object):
     def eval_points(self, points):
         return self.kernel(np.atleast_2d(points))
     __call__ = eval_points
-
-
-_GAUSS_KERNEL = Kernel('gauss')
 
 
 def mkernel(X, kernel):
