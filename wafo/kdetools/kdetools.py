@@ -34,7 +34,7 @@ except ImportError:
     warnings.warn('fig import only supported on Windows')
 
 __all__ = ['TKDE', 'KDE', 'kde_demo1', 'kde_demo2', 'test_docstrings',
-           'KRegression', 'KDEgauss']
+           'KRegression', 'BKRegression']
 
 
 def _assert(cond, msg):
@@ -439,6 +439,13 @@ class TKDE(_KDE):
         self.L2 = L2
         super(TKDE, self).__init__(data, hs, kernel, alpha, xmin, xmax, inc)
 
+#     @property
+#     def dataset(self):
+#         return self._dataset
+#
+#     @dataset.setter
+#     def dataset(self, data):
+
     def _initialize(self):
         self._check_xmin()
         tdataset = self._dat2gaus(self.dataset)
@@ -761,7 +768,7 @@ class KDE(_KDE):
 
     def _eval_grid(self, *args, **kwds):
 
-        grd = meshgrid(*args) if len(args) > 1 else list(args)
+        grd = meshgrid(*args)
         shape0 = grd[0].shape
         d = len(grd)
         for i in range(d):
@@ -838,82 +845,7 @@ class KDE(_KDE):
         return self._loop_over_points(self.dataset, points, y, r)
 
 
-class KDEgauss(KDE):
-
-    """ Kernel-Density Estimator base class.
-
-    data : (# of dims, # of data)-array
-        datapoints to estimate from
-    hs : array-like (optional)
-        smooting parameter vector/matrix.
-        (default compute from data using kernel.get_smoothing function)
-    kernel :  kernel function object.
-        kernel must have get_smoothing method
-    alpha : real scalar (optional)
-        sensitivity parameter               (default 0 regular KDE)
-        A good choice might be alpha = 0.5 ( or 1/D)
-        alpha = 0      Regular  KDE (hs is constant)
-        0 < alpha <= 1 Adaptive KDE (Make hs change)
-    xmin, xmax  : vectors
-        specifying the default argument range for the kde.eval_grid methods.
-        For the kde.eval_grid_fast methods the values must cover the range of
-        the data.
-        (default min(data)-range(data)/4, max(data)-range(data)/4)
-        If a single value of xmin or xmax is given, then the boundary is the
-        the same for all dimensions.
-    inc :  scalar integer (default 512)
-        defining the default dimension of the output from kde.eval_grid methods
-        (For kde.eval_grid_fast: A value below 50 is very fast to compute but
-        may give some inaccuracies. Values between 100 and 500 give very
-        accurate results)
-
-    Members
-    -------
-    d : int
-        number of dimensions
-    n : int
-        number of datapoints
-
-    Methods
-    -------
-    kde.eval_grid_fast(x0, x1,..., xd) : array
-        evaluate the estimated pdf on meshgrid(x0, x1,..., xd)
-    kde(x0, x1,..., xd) : array
-        same as kde.eval_grid_fast(x0, x1,..., xd)
-    """
-    def _eval_grid_fast(self, *args, **kwds):
-        X = np.vstack(args)
-        d, inc = X.shape
-        # dx = X[:, 1] - X[:, 0]
-        R = X.max(axis=-1) - X.min(axis=-1)
-
-        t_star = (self.hs / R) ** 2
-        I = (np.asfarray(np.arange(0, inc)) * pi) ** 2
-        In = []
-        for i in range(d):
-            In.append(I * t_star[i] * 0.5)
-
-        r = kwds.get('r', 0)
-        fun = self._moment_fun(r)
-
-        Inc = meshgrid(*In) if d > 1 else In
-        kw = np.zeros((inc,) * d)
-        for i in range(d):
-            kw += exp(-Inc[i]) * fun(Inc[i])
-
-        y = kwds.get('y', 1.0)
-        d, n = self.dataset.shape
-        # Find the binned kernel weights, c.
-        c = gridcount(self.dataset, X, y=y)
-        # Perform the convolution.
-        at = dctn(c) * kw / n
-        z = idctn(at) * (at.size-1) / np.prod(R)
-        return z * (z > 0.0)
-
-    __call__ = _KDE.eval_grid_fast
-
-
-class KRegression(_KDE):
+class KRegression(object):   # _KDE):
 
     """ Kernel-Regression
 
@@ -1325,17 +1257,17 @@ def kde_demo2():
     x = np.linspace(1.5e-2, 5, 55)
 
     kde = KDE(data)
-    f = kde(output='plot', title='Ordinary KDE (hs={0:g})'.format(kde.hs))
+    f = kde(output='plot', title='Ordinary KDE (hs={0:})'.format(kde.hs))
     plt.figure(0)
     f.plot()
 
     plt.plot(x, st.rayleigh.pdf(x, scale=1), ':')
 
     # plotnorm((data).^(L2))  # gives a straight line => L2 = 0.5 reasonable
-
-    tkde = TKDE(data, L2=0.5)
+    hs = Kernel('gauss').get_smoothing(data**0.5)
+    tkde = TKDE(data, hs=hs, L2=0.5)
     ft = tkde(x, output='plot',
-              title='Transformation KDE (hs={0:g})'.format(tkde.tkde.hs))
+              title='Transformation KDE (hs={0:})'.format(tkde.tkde.hs))
     plt.figure(1)
     ft.plot()
 
@@ -1507,7 +1439,6 @@ def _logitinv(x):
 
 def _get_data(n=100, symmetric=False, loc1=1.1, scale1=0.6, scale2=1.0):
     st = scipy.stats
-    # from sg_filter import SavitzkyGolay
     dist = st.norm
 
     norm1 = scale2 * (dist.pdf(-loc1, loc=-loc1, scale=scale1) +
@@ -1575,8 +1506,8 @@ def kreg_demo3(x, y, fun1, hs=None, fun='hisj', plotlog=False):
     df = np.diff(fiii)
     eerr = np.abs((yiii - fiii)).std() + 0.5 * (df[:-1] * df[1:] < 0).sum() / n
     err = (fiii - fit).std()
-    msg = '{} err={1:1.3f},eerr={2:1.3f}, n={:d}, hs={:1.3f}, hs1={:1.3f}, '\
-        'hs2={:1.3f}'
+    msg = '{0} err={1:1.3f},eerr={2:1.3f}, n={3:d}, hs={4:}, hs1={5:}, '\
+        'hs2={6:}'
     title = (msg.format(fun, err, eerr, n, hs, hs1, hs2))
     f = kreg(xiii, output='plotobj', title=title, plotflag=1)
 
@@ -1684,8 +1615,8 @@ def kreg_demo3(x, y, fun1, hs=None, fun='hisj', plotlog=False):
                      label='{:d} CI2'.format(int(100 * (1 - alpha))))
     plt.plot(xiii, fun1(xiii), 'r', label='True model')
     plt.scatter(xi, yi, label='data')
-    print('maxp = {:g}'.format(np.nanmax(f.data)))
-    print('hs = {:g}'.format(kreg.tkde.tkde.hs))
+    print('maxp = {}'.format(np.nanmax(f.data)))
+    print('hs = {}'.format(kreg.tkde.tkde.hs))
     plt.legend()
     h = plt.gca()
     if plotlog:
@@ -1875,7 +1806,7 @@ def check_bkregression():
 
     fig.tile(range(0, k))
     plt.ioff()
-    plt.show()
+    plt.show('hold')
 
 
 def _get_regression_smooting(x, y, fun='hste'):
@@ -1999,8 +1930,8 @@ def smoothed_bin_prb(x, y, hs, hopt, alpha=0.05, color='r', label='',
 
     f.aicc = aicc
     f.fun = kreg
-    f.labels.title = ('perr={:1.3f},aicc={:1.3f}, n={:d}, '
-                      'hs={:1.3f}'.format(f.prediction_error_avg, aicc, n, hs))
+    ttl = "perr={0:1.3f}, aicc={1:1.3f}, n={2:d}, hs={3}"
+    f.labels.title = ttl.format(f.prediction_error_avg, aicc, n, hs)
 
     return f
 
@@ -2033,114 +1964,17 @@ def regressionbin(x, y, alpha=0.05, color='r', label=''):
     return fbest
 
 
-def kde_gauss_demo(n=50):
-    """KDEDEMO Demonstrate the KDEgauss.
-
-    KDEDEMO1 shows the true density (dotted) compared to KDE based on 7
-    observations (solid) and their individual kernels (dashed) for 3
-    different values of the smoothing parameter, hs.
-
-    """
-
-    st = scipy.stats
-    # x = np.linspace(-4, 4, 101)
-    # data = np.random.normal(loc=0, scale=1.0, size=n)
-    # data = np.random.exponential(scale=1.0, size=n)
-#    n1 = 128
-#    I = (np.arange(n1)*pi)**2 *0.01*0.5
-#    kw = exp(-I)
-#    plt.plot(idctn(kw))
-#    return
-    dist = st.norm
-    # dist = st.expon
-    data = dist.rvs(loc=0, scale=1.0, size=n)
-    d, _N = np.atleast_2d(data).shape
-
-    if d == 1:
-        plot_options = [dict(color='red', label='KDE hste'),
-                        dict(color='green', label='TKDE hisj'),
-                        dict(color='black', label='KDEgauss hste')]
-    else:
-        plot_options = [dict(colors='red'), dict(colors='green'),
-                        dict(colors='black')]
-
-    plt.figure(1)
-    t0 = time.time()
-    kde0 = KDE(data, kernel=Kernel('gauss', 'hste'))
-    f0 = kde0.eval_grid_fast(output='plot', ylab='Density', r=0)
-    t1 = time.time()
-    total1 = t1-t0
-
-    f0.plot('.', **plot_options[0])
-    if dist.name != 'norm':
-        kde1 = TKDE(data, kernel=Kernel('gauss', 'hisj'), L2=.5)
-        f1 = kde1.eval_grid_fast(output='plot', ylab='Density', r=0)
-        f1.plot(**plot_options[1])
-    else:
-        kde1 = kde0
-        f1 = f0
-    t1 = time.time()
-    kde2 = KDEgauss(data)
-    f2 = kde2(output='plot', ylab='Density', r=0)
-    t2 = time.time()
-    total2 = t2-t1
-
-    x = f2.args
-    f2.plot(**plot_options[2])
-
-    fmax = dist.pdf(x, 0, 1).max()
-    if d == 1:
-        plt.plot(x, dist.pdf(x, 0, 1), 'k:', label='True pdf')
-        plt.axis([x.min(), x.max(), 0, fmax])
-    plt.legend()
-    plt.show()
-    print(fmax / f2.data.max())
-    try:
-        print('hs0={:s} hs1={:s} hs2={:s}'.format(str(kde0.hs.tolist()),
-                                                  str(kde1.tkde.hs.tolist()),
-                                                  str(kde2.hs.tolist())))
-    except:
-        pass
-    print('inc0 = {:d}, inc1 = {:d}, inc2 = {:d}'.format(kde0.inc, kde1.inc,
-                                                         kde2.inc))
-    print(np.trapz(f0.data, f0.args), np.trapz(f2.data, f2.args))
-    print(total1, total2)
-
-
-def test_kde():
-    data = np.array([
-        0.75355792, 0.72779194, 0.94149169, 0.07841119, 2.32291887,
-        1.10419995, 0.77055114, 0.60288273, 1.36883635, 1.74754326,
-        1.09547561, 1.01671133, 0.73211143, 0.61891719, 0.75903487,
-        1.8919469, 0.72433808, 1.92973094, 0.44749838, 1.36508452])
-
-    x = np.linspace(0.01, max(data + 1), 10)
-    kde = TKDE(data, hs=0.5, L2=0.5)
-    _f = kde(x)
-    # f = array([1.03982714, 0.45839018, 0.39514782, 0.32860602, 0.26433318,
-    #   0.20717946,  0.15907684,  0.1201074 ,  0.08941027,  0.06574882])
-
-    _f1 = kde.eval_grid(x)
-    # array([ 1.03982714,  0.45839018,  0.39514782,  0.32860602,  0.26433318,
-    #        0.20717946,  0.15907684,  0.1201074 ,  0.08941027,  0.06574882])
-
-    _f2 = kde.eval_grid_fast(x)
-    # array([ 1.06437223,  0.46203314,  0.39593137,  0.32781899,  0.26276433,
-    #        0.20532206,  0.15723498,  0.11843998,  0.08797755,  0.        ])
-
-
 if __name__ == '__main__':
-    if True:
+    if False:
         test_docstrings(__file__)
     else:
-        # test_kde()
+        kde_demo2()
         # check_bkregression()
         # check_regression_bin()
         # check_kreg_demo3()
         # check_kreg_demo4()
 
-        # kde_demo2()
         # kreg_demo1(fast=True)
-        kde_gauss_demo(n=50)
+
         # kreg_demo2(n=120,symmetric=True,fun='hste', plotlog=True)
         plt.show('hold')
