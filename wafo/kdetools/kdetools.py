@@ -18,6 +18,7 @@ import numpy as np
 import scipy.stats
 from scipy import interpolate, linalg, special
 from numpy import pi, sqrt, atleast_2d, exp, meshgrid
+from numpy.fft import fftn, ifftn
 from wafo.misc import nextpow2
 from wafo.containers import PlotData
 from wafo.dctpack import dctn, idctn  # , dstn, idstn
@@ -39,6 +40,11 @@ __all__ = ['TKDE', 'KDE', 'kde_demo1', 'kde_demo2', 'test_docstrings',
 def _assert(cond, msg):
     if not cond:
         raise ValueError(msg)
+
+
+def _assert_warn(cond, msg):
+    if not cond:
+        warnings.warn(msg)
 
 
 def _invnorm(q):
@@ -690,27 +696,20 @@ class KDE(_KDE):
     h1 = plb.plot(x, f) #  1D probability density plot
     t = np.trapz(f, x)
     """
-
-    def _eval_grid_fast(self, *args, **kwds):
-        X = np.vstack(args)
-        d, inc = X.shape
-        dx = X[:, 1] - X[:, 0]
-
+    @staticmethod
+    def _make_grid(dx, d, inc):
         Xn = []
-        nfft0 = 2 * inc
-        nfft = (nfft0,) * d
-        x0 = np.linspace(-inc, inc, nfft0 + 1)
+        x0 = np.linspace(-inc, inc, 2 * inc + 1)
         for i in range(d):
             Xn.append(x0[:-1] * dx[i])
 
-        Xnc = meshgrid(*Xn)  # if d > 1 else Xn
+        Xnc = meshgrid(*Xn)
 
-        shape0 = Xnc[0].shape
         for i in range(d):
             Xnc[i].shape = (-1,)
+        return Xnc
 
-        Xn = np.dot(self._inv_hs, np.vstack(Xnc))
-
+    def _kernel_weights(self, Xn, dx, d, inc):
         # Obtain the kernel weights.
         kw = self.kernel(Xn)
         norm_fact0 = (kw.sum() * dx.prod() * self.n)
@@ -723,13 +722,24 @@ class KDE(_KDE):
             norm_fact = norm_fact0
 
         kw = kw / norm_fact
+        return kw
+
+    def _eval_grid_fast(self, *args, **kwds):
+        X = np.vstack(args)
+        d, inc = X.shape
+        dx = X[:, 1] - X[:, 0]
+
+        Xnc = self._make_grid(dx, d, inc)
+
+        Xn = np.dot(self._inv_hs, np.vstack(Xnc))
+        kw = self._kernel_weights(Xn, dx, d, inc)
+
         r = kwds.get('r', 0)
         if r != 0:
             kw *= np.vstack(Xnc) ** r if d > 1 else Xnc[0] ** r
+        shape0 = (2 * inc, ) * d
         kw.shape = shape0
         kw = np.fft.ifftshift(kw)
-        fftn = np.fft.fftn
-        ifftn = np.fft.ifftn
 
         y = kwds.get('y', 1.0)
         if self.alpha > 0:
@@ -738,14 +748,7 @@ class KDE(_KDE):
         # Find the binned kernel weights, c.
         c = gridcount(self.dataset, X, y=y)
         # Perform the convolution.
-        z = np.real(ifftn(fftn(c, s=nfft) * fftn(kw)))
-#        opt = dict(type=1, norm=None)
-#        z = idctn(dctn(c, shape=(inc,)*d, **opt) * dctn(kw[:inc], **opt),
-#                  **opt)/(inc-1)/2
-#         # if r is odd
-#         op2 = dict(type=3, norm=None)
-#         z3 = idstn(dctn(c, shape=(inc,)*d, **op2) * dstn(kw[1:inc+1], **op2),
-#                    **op2)/(inc-1)/2
+        z = np.real(ifftn(fftn(c, s=shape0) * fftn(kw)))
 
         ix = (slice(0, inc),) * d
         if r == 0:

@@ -294,7 +294,7 @@ class _Kernel(object):
 
     def get_ste_constant(self, n):
         mu2, R = self.stats[:2]
-        return R / (mu2 ** (2) * n)
+        return R / (n * mu2 ** 2)
 
     def get_amise_constant(self, n):
         # R= int(mkernel(x)^2),  mu2= int(x^2*mkernel(x))
@@ -572,9 +572,6 @@ class Kernel(object):
         """
         return self.kernel.stats
 
-#     def deriv4_6_8_10(self, t, numout=4):
-#         return self.kernel.deriv4_6_8_10(t, numout)
-
     def effective_support(self):
         return self.kernel.effective_support()
 
@@ -749,8 +746,8 @@ class Kernel(object):
         cov_a = np.cov(a)
         return scale * linalg.sqrtm(cov_a).real * n ** (-1. / (d + 4))
 
-    def _get_g(self, k_order_2, psi_order, n, order):
-        mu2 = _GAUSS_KERNEL.stats[0]
+    @staticmethod
+    def _get_g(k_order_2, mu2, psi_order, n, order):
         return (-2. * k_order_2 / (mu2 * psi_order * n)) ** (1. / (order+1))
 
     def hste(self, data, h0=None, inc=128, maxit=100, releps=0.01, abseps=0.0):
@@ -813,8 +810,8 @@ class Kernel(object):
             psi8NS = _GAUSS_KERNEL.psi(8, s)
 
             k40, k60 = _GAUSS_KERNEL.deriv4_6_8_10(0, numout=2)
-            g1 = self._get_g(k40, psi6NS, n, order=6)
-            g2 = self._get_g(k60, psi8NS, n, order=8)
+            g1 = self._get_g(k40, mu2, psi6NS, n, order=6)
+            g2 = self._get_g(k60, mu2, psi8NS, n, order=8)
 
             psi4 = self._estimate_psi(c, xn, g1, n, order=4)
             psi6 = self._estimate_psi(c, xn, g2, n, order=6)
@@ -917,10 +914,6 @@ class Kernel(object):
                     break
                 else:
                     ai = bi
-            # y = np.asarray([fun(j) for j in x])
-            # plt.figure(1)
-            # plt.plot(x,y)
-            # plt.show()
 
             # use  fzero to solve the equation t=zeta*gamma^[5](t)
             try:
@@ -996,8 +989,6 @@ class Kernel(object):
 
         h = np.asarray(h0, dtype=float)
 
-        nfft = inc * 2
-
         ax1, bx1 = self._get_grid_limits(A)
 
         for dim in range(d):
@@ -1022,7 +1013,7 @@ class Kernel(object):
 
                 kw4 = self.kernel(xn / h1) / (n * h1 * self.norm_factor(d=1))
                 kw = np.r_[kw4, 0, kw4[-1:0:-1]]  # Apply 'fftshift' to kw.
-                f = np.real(ifft(fft(c, nfft) * fft(kw)))  # convolution.
+                f = np.real(ifft(fft(c, 2*inc) * fft(kw)))  # convolution.
 
                 # Estimate psi4=R(f'') using simple finite differences and
                 # quadrature.
@@ -1113,12 +1104,13 @@ class Kernel(object):
         hvec = hvec * (ste_constant2 / ste_constant) ** (1. / 5.)
 
         k40, k60, k80, k100 = _GAUSS_KERNEL.deriv4_6_8_10(0, numout=4)
+        mu2 = _GAUSS_KERNEL.stats[0]
         # psi8 = _GAUSS_KERNEL.psi(8)
         # psi12 = _GAUSS_KERNEL.psi(12)
         psi8 = 105 / (32 * sqrt(pi))
         psi12 = 3465. / (512 * sqrt(pi))
-        g1 = self._get_g(k60, psi8, n, order=8)
-        g2 = self._get_g(k100, psi12, n, order=12)
+        g1 = self._get_g(k60, mu2, psi8, n, order=8)
+        g2 = self._get_g(k100, mu2, psi12, n, order=12)
 
         for dim in range(d):
             s = sigmaA[dim]
@@ -1134,8 +1126,8 @@ class Kernel(object):
             psi6 = self._estimate_psi(c, xn, g1, n, order=6)
             psi10 = self._estimate_psi(c, xn, g2, n, order=10)
 
-            g3 = self._get_g(k40, psi6, n, order=6)
-            g4 = self._get_g(k80, psi10, n, order=10)
+            g3 = self._get_g(k40, mu2, psi6, n, order=6)
+            g4 = self._get_g(k80, mu2, psi10, n, order=10)
 
             psi4 = self._estimate_psi(c, xn, g3, n, order=4)
             psi8 = self._estimate_psi(c, xn, g4, n, order=8)
@@ -1218,6 +1210,7 @@ class Kernel(object):
         sigmaA = self.hns(A) / amise_constant
 
         ax1, bx1 = self._get_grid_limits(A)
+        mu2 = _GAUSS_KERNEL.stats[0]
 
         h = np.zeros(d)
         for dim in range(d):
@@ -1238,7 +1231,7 @@ class Kernel(object):
 
                 # L-stage iterations to estimate PSI_4
                 for ix in range(L, 0, -1):
-                    gi = self._get_g(Kd[ix - 1], psi, n, order=2*ix + 4)
+                    gi = self._get_g(Kd[ix - 1], mu2, psi, n, order=2*ix + 4)
                     psi = self._estimate_psi(c, xn, gi, n, order=2*ix+2)
             h[dim] = (ste_constant / psi) ** (1. / 5)
         return h
@@ -1251,50 +1244,50 @@ class Kernel(object):
     __call__ = eval_points
 
 
-# def mkernel(X, kernel):
-#     """MKERNEL Multivariate Kernel Function.
-#
-#     Paramaters
-#     ----------
-#     X : array-like
-#         matrix  size d x n (d = # dimensions, n = # evaluation points)
-#     kernel : string
-#         defining kernel
-#         'epanechnikov'  - Epanechnikov kernel.
-#         'biweight'      - Bi-weight kernel.
-#         'triweight'     - Tri-weight kernel.
-#         'p1epanechnikov' - product of 1D Epanechnikov kernel.
-#         'p1biweight'    - product of 1D Bi-weight kernel.
-#         'p1triweight'   - product of 1D Tri-weight kernel.
-#         'triangular'    - Triangular kernel.
-#         'gaussian'      - Gaussian kernel
-#         'rectangular'   - Rectangular kernel.
-#         'laplace'       - Laplace kernel.
-#         'logistic'      - Logistic kernel.
-#     Note that only the first 4 letters of the kernel name is needed.
-#
-#     Returns
-#     -------
-#     z : ndarray
-#         kernel function values evaluated at X
-#
-#     See also
-#     --------
-#     KDE
-#
-#     References
-#     ----------
-#     B. W. Silverman (1986)
-#     'Density estimation for statistics and data analysis'
-#      Chapman and Hall, pp. 43, 76
-#
-#     Wand, M. P. and Jones, M. C. (1995)
-#     'Density estimation for statistics and data analysis'
-#      Chapman and Hall, pp 31, 103,  175
-#
-#     """
-#     fun = _MKERNEL_DICT[kernel[:4]]
-#     return fun(np.atleast_2d(X))
+def mkernel(X, kernel):
+    """MKERNEL Multivariate Kernel Function.
+
+    Paramaters
+    ----------
+    X : array-like
+        matrix  size d x n (d = # dimensions, n = # evaluation points)
+    kernel : string
+        defining kernel
+        'epanechnikov'  - Epanechnikov kernel.
+        'biweight'      - Bi-weight kernel.
+        'triweight'     - Tri-weight kernel.
+        'p1epanechnikov' - product of 1D Epanechnikov kernel.
+        'p1biweight'    - product of 1D Bi-weight kernel.
+        'p1triweight'   - product of 1D Tri-weight kernel.
+        'triangular'    - Triangular kernel.
+        'gaussian'      - Gaussian kernel
+        'rectangular'   - Rectangular kernel.
+        'laplace'       - Laplace kernel.
+        'logistic'      - Logistic kernel.
+    Note that only the first 4 letters of the kernel name is needed.
+
+    Returns
+    -------
+    z : ndarray
+        kernel function values evaluated at X
+
+    See also
+    --------
+    KDE
+
+    References
+    ----------
+    B. W. Silverman (1986)
+    'Density estimation for statistics and data analysis'
+     Chapman and Hall, pp. 43, 76
+
+    Wand, M. P. and Jones, M. C. (1995)
+    'Density estimation for statistics and data analysis'
+     Chapman and Hall, pp 31, 103,  175
+
+    """
+    fun = _MKERNEL_DICT[kernel[:4]]
+    return fun(np.atleast_2d(X))
 
 
 if __name__ == '__main__':
