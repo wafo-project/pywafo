@@ -1144,24 +1144,11 @@ class BKRegression(object):
                                    plot_kwds=dict(alpha=0.2, color=color)),
                           prb_e]
 
-        # empirical oversmooths the data
-#        p_s = prb_s.eval_points(self.x)
-#        dp_s = np.diff(prb_s.data)
-# k = (dp_s[:-1]*dp_s[1:]<0).sum() # numpeaks
-#        p_e = self.y
-#        n_s = interpolate.interp1d(x_s, c_s)(self.x)
-#        plo, pup = self.prb_ci(n_s, p_s, alpha)
-#        sigmai = (pup-plo)
-#        aicc = (((p_e-p_s)/sigmai)**2).sum()+ 2*k*(k+1)/np.maximum(n-k+1,1)
-
         p_e = prb_e.eval_points(x_s)
         p_s = prb_s.data
         dp_s = np.sign(np.diff(p_s))
         k = (dp_s[:-1] != dp_s[1:]).sum()  # numpeaks
 
-        # sigmai = (pup-plo)+_EPS
-        # aicc = (((p_e-p_s)/sigmai)**2).sum()+ 2*k*(k+1)/np.maximum(n_e-k+1,1)
-        # + np.abs((p_e-pup).clip(min=0)-(p_e-plo).clip(max=0)).sum()
         sigmai = _logit(pup) - _logit(plo) + _EPS
         aicc = ((((_logit(p_e) - _logit(p_s)) / sigmai) ** 2).sum() +
                 2 * k * (k + 1) / np.maximum(n_e - k + 1, 1) +
@@ -1169,10 +1156,6 @@ class BKRegression(object):
                        (p_e - plo).clip(max=0)).sum())
 
         prb_s.aicc = aicc
-        # prb_s.labels.title = ''
-        # prb_s.labels.title='perr=%1.3f,aicc=%1.3f, n=%d, hs=%1.3f' %
-        # (prb_s.prediction_error_avg,aicc,n,hs)
-
         return prb_s
 
     def prb_search_best(self, prb_e=None, hsvec=None, hsfun='hste',
@@ -1192,7 +1175,7 @@ class BKRegression(object):
             prb_e = self.prb_empirical(
                 hs_e=self.hs_e, alpha=alpha, color=color)
         if hsvec is None:
-            hsmax = self._get_max_smoothing(hsfun)[0]  # @UnusedVariable
+            hsmax = self._get_max_smoothing(hsfun)[0]
             hsmax = max(hsmax, self.hs_e)
             hsvec = np.linspace(hsmax * 0.2, hsmax, 55)
 
