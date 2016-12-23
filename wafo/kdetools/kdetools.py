@@ -681,8 +681,8 @@ class KDE(_KDE):
     array([ 0.17252055,  0.41014271,  0.61349072,  0.57023834,  0.37198073,
             0.21409279,  0.12738463,  0.07460326,  0.03956191,  0.01887164])
     >>> kde.eval_grid_fast(x)
-    array([ 0.21720891,  0.43308789,  0.59017626,  0.55847998,  0.39681482,
-            0.23987473,  0.13113066,  0.06062029,  0.02160104,  0.00559028])
+    array([ 0.20729484,  0.39865044,  0.53716945,  0.5169322 ,  0.39060223,
+            0.26441126,  0.16388801,  0.08388527,  0.03227164,  0.00883579])
 
     >>> kde0 = wk.KDE(data, hs=0.5, alpha=0.0)
     >>> kde0.eval_points(x)
@@ -759,7 +759,7 @@ class KDE(_KDE):
 
         y = kwds.get('y', 1.0)
         if self.alpha > 0:
-            warnings.warn('alpha parameter is not used for binned!')
+            warnings.warn('alpha parameter is not used for binned kde!')
 
         # Find the binned kernel weights, c.
         c = gridcount(self.dataset, X, y=y)
@@ -1960,7 +1960,7 @@ def regressionbin(x, y, alpha=0.05, color='r', label=''):
 
 
 if __name__ == '__main__':
-    if False:
+    if True:
         test_docstrings(__file__)
     else:
         # kde_demo5()
