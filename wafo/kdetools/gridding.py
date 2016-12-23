@@ -29,7 +29,7 @@ def bitget(int_type, offset):
     return np.bitwise_and(int_type, 1 << offset) >> offset
 
 
-def accumsum_sparse(accmap, a, shape, dtype=None):
+def accumsum_sparse(accmap, a, shape=None, dtype=None):
     """
     Example
     -------
@@ -42,12 +42,21 @@ def accumsum_sparse(accmap, a, shape, dtype=None):
     >>> # Sum the diagonals.
     >>> accmap = array([[0,1,2],[2,0,1],[1,2,0]])
     >>> s = accumsum_sparse(accmap, a, (3,))
-    >>> np.allclose(s.toarray().T, [ 9,  7, 15])
+    >>> np.allclose(s.toarray(), [ 9,  7, 15])
     True
 
+     # group vals by idx and sum
+    >>> vals = array([12.0, 3.2, -15, 88, 12.9])
+    >>> idx = array([1,    0,    1,  4,   1  ])
+    >>> np.allclose(accumsum_sparse(idx, vals).toarray(),
+    ...   [3.2, 9.9, 0, 0, 88.])
+    True
     """
     if dtype is None:
         dtype = a.dtype
+    if shape is None:
+        shape = 1 + np.squeeze(np.apply_over_axes(np.max, accmap,
+                                                  axes=tuple(range(a.ndim))))
     shape = np.atleast_1d(shape)
     if len(shape) > 1:
         binx = accmap[:, 0]
@@ -58,12 +67,13 @@ def accumsum_sparse(accmap, a, shape, dtype=None):
         binx = accmap.ravel()
         zero = np.zeros(len(binx))
         out = sparse.coo_matrix(
-            (a.ravel(), (binx, zero)), shape=(shape, 1), dtype=dtype).tocsr()
+            (a.ravel(), (binx, zero)), shape=(shape, 1), dtype=dtype).tocsr().T
     return out
 
 
-def accumsum(accmap, a, shape):
+def accumsum(accmap, a, shape=None):
     """
+
     Example
     -------
     >>> from numpy import array
@@ -74,11 +84,21 @@ def accumsum(accmap, a, shape):
            [-1,  8,  9]])
 
     >>> accmap = array([[0,1,2],[2,0,1],[1,2,0]])  # Sum the diagonals.
-    >>> s = accumsum(accmap, a, (3,))
-    >>> np.allclose(s, [ 9,  7, 15])
+    >>> np.allclose(accumsum(accmap, a, (3,)), [ 9,  7, 15])
+    True
+    >>> accmap = array([[0,1,2],[0,1,2],[0,1,2]])  # Sum the columns.
+    >>> np.allclose(accumsum(accmap, a, (3,)), [4, 9, 18])
     True
 
+    # group vals by idx and sum
+    >>> vals = array([12.0, 3.2, -15, 88, 12.9])
+    >>> idx = array([1,    0,    1,  4,   1  ])
+    >>> np.allclose(accumsum(idx, vals), [3.2, 9.9, 0, 0, 88.])
+    True
     """
+    if shape is None:
+        shape = 1 + np.squeeze(np.apply_over_axes(np.max, accmap,
+                                                  axes=tuple(range(a.ndim))))
     return np.bincount(accmap.ravel(), a.ravel(), np.array(shape).max())
 
 
@@ -148,6 +168,9 @@ def accum(accmap, a, func=None, shape=None, fill_value=0, dtype=None):
     >>> accum(accmap, a, func=prod, dtype=float)
     array([[ -8.,  18.],
            [ -8.,   9.]])
+    >>> accum(accmap, a, dtype=float)
+    array([[ 6.,  9.],
+           [ 7.,  9.]])
 
     # Same accmap, but create an array of lists of values.
     >>> accum(accmap, a, func=lambda x: x, dtype='O')
@@ -210,7 +233,7 @@ def _gridcount_nd(acfun, data, x, y, w, binx):
     fact2 = np.asarray(np.reshape(inc * np.arange(d), (d, -1)), dtype=int)
     fact1 = np.asarray(np.reshape(c_shape.cumprod() / inc, (d, -1)), dtype=int)
     bt0 = [0, 0]
-    X1 = x.ravel()
+    x1 = x.ravel()
     for ir in range(2 ** (d - 1)):
         bt0[0] = np.reshape(bitget(ir, np.arange(d)), (d, -1))
         bt0[1] = 1 - bt0[0]
@@ -222,7 +245,7 @@ def _gridcount_nd(acfun, data, x, y, w, binx):
             b1 = np.sum((binx + bt0[one]) * fact1, axis=0)
             bt2 = bt0[two] + fact2
             b2 = binx + bt2   # linear index to X
-            c += acfun(b1, np.abs(np.prod(X1[b2] - data, axis=0)) * y,
+            c += acfun(b1, np.abs(np.prod(x1[b2] - data, axis=0)) * y,
                        shape=(nc, ))
 
     c = np.reshape(c / w, c_shape, order='F')
@@ -247,13 +270,18 @@ def gridcount(data, X, y=1):
 
     Parameters
     ----------
-    data = column vectors with D-dimensional data, shape D x Nd
-    X    = row vectors defining discretization, shape D x N
-            Must include the range of the data.
+    data : array-like
+        column vectors with D-dimensional data, shape D x Nd
+    X : array-like
+        row vectors defining discretization in each dimension, shape D x N.
+        The discretization must include the range of the data.
+    y : array-like
+        response data. Scalar or vector of size Nd.
 
     Returns
     -------
-    c    = gridcount,  shape N x N x ... x N
+    c : ndarray
+        gridcount,  shape N x N x ... x N
 
     GRIDCOUNT obtains the grid counts using linear binning.
     There are 2 strategies: simple- or linear- binning.
@@ -298,7 +326,7 @@ def gridcount(data, X, y=1):
 
     See also
     --------
-    bincount, accum, kdebin
+    bincount, accum, kde
 
     Reference
     ----------
@@ -306,28 +334,27 @@ def gridcount(data, X, y=1):
     'Kernel smoothing'
     Chapman and Hall, pp 182-192
     '''
-    data2, x = np.atleast_2d(data, X)
+    dataset, x = np.atleast_2d(data, X)
     y = np.atleast_1d(y).ravel()
     d, inc = x.shape
 
-    _assert(d == data2.shape[0], 'Dimension 0 of data and X do not match.')
+    _assert(d == dataset.shape[0], 'Dimension 0 of data and X do not match.')
 
-    dx = np.diff(x[:, :2], axis=1)
     xlo, xup = x[:, 0], x[:, -1]
 
-    datlo, datup = data2.min(axis=1), data2.max(axis=1)
+    datlo, datup = dataset.min(axis=1), dataset.max(axis=1)
     _assert(not ((datlo < xlo) | (xup < datup)).any(),
             'X does not include whole range of the data!')
 
     #  acfun = accumsum_sparse  # faster than accum
     acfun = accumsum  # faster than accumsum_sparse
 
-    binx = np.asarray(np.floor((data2 - xlo[:, np.newaxis]) / dx), dtype=int)
+    dx = np.diff(x[:, :2], axis=1)
+    binx = np.asarray(np.floor((dataset - xlo[:, np.newaxis]) / dx), dtype=int)
     w = dx.prod()
     if d == 1:
-        return _gridcount_1d(acfun, data2, x, y, w, binx, inc)
-    # else:  # d>1
-    return _gridcount_nd(acfun, data2, x, y, w, binx)
+        return _gridcount_1d(acfun, dataset, x, y, w, binx, inc)
+    return _gridcount_nd(acfun, dataset, x, y, w, binx)
 
 
 if __name__ == '__main__':

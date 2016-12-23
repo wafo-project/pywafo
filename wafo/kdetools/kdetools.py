@@ -247,7 +247,7 @@ class _KDE(object):
         if len(args) == 0:
             args = self.get_args()
         self.args = args
-        return self._eval_grid_fun(self._eval_grid_fast, *args, **kwds)
+        return self.eval_grid_fun(self._eval_grid_fast, *args, **kwds)
 
     def _eval_grid_fast(self, *args, **kwds):
         pass
@@ -273,7 +273,7 @@ class _KDE(object):
         if len(args) == 0:
             args = self.get_args()
         self.args = args
-        return self._eval_grid_fun(self._eval_grid, *args, **kwds)
+        return self.eval_grid_fun(self._eval_grid, *args, **kwds)
 
     def _eval_grid(self, *args, **kwds):
         pass
@@ -301,7 +301,7 @@ class _KDE(object):
             self._add_contour_levels(wdata)
         return wdata
 
-    def _eval_grid_fun(self, eval_grd, *args, **kwds):
+    def eval_grid_fun(self, eval_grd, *args, **kwds):
         output = kwds.pop('output', 'value')
         f = eval_grd(*args, **kwds)
         if output == 'value':
@@ -434,9 +434,11 @@ class TKDE(_KDE):
     t = np.trapz(f, x)
     """
 
-    def __init__(self, data, hs=None, kernel=None, alpha=0.0, xmin=None,
-                 xmax=None, inc=512, L2=None):
+    def __init__(self, data, hs=None, kernel=None, alpha=0.0,
+                 xmin=None, xmax=None, inc=512, L2=None):
         self.L2 = L2
+#         self.dataset = data
+#         self.tkde =
         super(TKDE, self).__init__(data, hs, kernel, alpha, xmin, xmax, inc)
 
 #     @property
@@ -445,6 +447,8 @@ class TKDE(_KDE):
 #
 #     @dataset.setter
 #     def dataset(self, data):
+#         self._dataset = atleast_2d(data)
+#         self._tdataset = self._dat2gaus(self._dataset)
 
     def _initialize(self):
         self._check_xmin()
@@ -455,7 +459,8 @@ class TKDE(_KDE):
         xmax = self.xmax
         if xmax is not None:
             xmax = self._dat2gaus(np.reshape(xmax, (-1, 1)))
-        self.tkde = KDE(tdataset, self.hs, self.kernel, self.alpha, xmin, xmax,
+        self.tkde = KDE(tdataset, self.hs, self.kernel, self.alpha,
+                        np.ravel(xmin), np.ravel(xmax),
                         self.inc)
         if self.inc is None:
             self.inc = self.tkde.inc
@@ -467,7 +472,7 @@ class TKDE(_KDE):
             L2 = np.atleast_1d(self.L2) * np.ones(self.d)
             self.xmin = np.where(L2 != 1,
                                  np.maximum(self.xmin, amin / 100.0),
-                                 self.xmin).reshape((-1, 1))
+                                 self.xmin)
 
     def _dat2gaus(self, points):
         if self.L2 is None:
@@ -527,7 +532,7 @@ class TKDE(_KDE):
            The values evaluated at meshgrid(*args).
 
         """
-        return self._eval_grid_fun(self._eval_grid_fast, *args, **kwds)
+        return self.eval_grid_fun(self._eval_grid_fast, *args, **kwds)
 
     def _interpolate(self, points, f, *args, **kwds):
         ipoints = meshgrid(*args)  # if self.d > 1 else args
@@ -754,7 +759,7 @@ class KDE(_KDE):
 
         y = kwds.get('y', 1.0)
         if self.alpha > 0:
-            y = y / self._lambda**d
+            warnings.warn('alpha parameter is not used for binned!')
 
         # Find the binned kernel weights, c.
         c = gridcount(self.dataset, X, y=y)
@@ -922,16 +927,16 @@ class KRegression(object):   # _KDE):
 
         self.tkde = TKDE(data, hs=hs, kernel=kernel,
                          alpha=alpha, xmin=xmin, xmax=xmax, inc=inc, L2=L2)
-        self.y = y
+        self.y = np.atleast_1d(y)
         self.p = p
 
     def eval_grid_fast(self, *args, **kwds):
         self._grdfun = self.tkde.eval_grid_fast
-        return self.tkde._eval_grid_fun(self._eval_gridfun, *args, **kwds)
+        return self.tkde.eval_grid_fun(self._eval_gridfun, *args, **kwds)
 
     def eval_grid(self, *args, **kwds):
         self._grdfun = self.tkde.eval_grid
-        return self.tkde._eval_grid_fun(self._eval_gridfun, *args, **kwds)
+        return self.tkde.eval_grid_fun(self._eval_gridfun, *args, **kwds)
 
     def _eval_gridfun(self, *args, **kwds):
         grdfun = self._grdfun
@@ -1017,7 +1022,30 @@ class BKRegression(object):
         xi = np.linspace(xmin - sml, xmax + sml, ni)
         return xi
 
-    def prb_ci(self, n, p, alpha=0.05, **kwds):
+    def _wilson_score(self, n, p, alpha):
+        # Wilson score
+        z0 = -_invnorm(alpha / 2)
+        den = 1 + (z0 ** 2. / n)
+        xc = (p + (z0 ** 2) / (2 * n)) / den
+        halfwidth = (z0 * sqrt((p * (1 - p) / n) +
+                               (z0 ** 2 / (4 * (n ** 2))))) / den
+        plo = xc - halfwidth.clip(min=0)  # wilson score
+        pup = xc + halfwidth.clip(max=1.0)  # wilson score
+        return plo, pup
+
+    def _credible_interval(self, n, p, alpha):
+        # Jeffreys intervall a=b=0.5
+        # st.beta.isf(alpha/2, y+a, n-y+b) y = n*p, n-y = n*(1-p)
+        a = self.a
+        b = self.b
+        st = scipy.stats
+        pup = np.where(p == 1, 1,
+                       st.beta.isf(alpha / 2, n * p + a, n * (1 - p) + b))
+        plo = np.where(p == 0, 0,
+                       st.beta.isf(1 - alpha / 2, n * p + a, n * (1 - p) + b))
+        return plo, pup
+
+    def prb_ci(self, n, p, alpha=0.05):
         """Return Confidence Interval for the binomial probability p.
 
         Parameters
@@ -1040,25 +1068,9 @@ class BKRegression(object):
 
         """
         if self.method.startswith('w'):
-            # Wilson score
-            z0 = -_invnorm(alpha / 2)
-            den = 1 + (z0 ** 2. / n)
-            xc = (p + (z0 ** 2) / (2 * n)) / den
-            halfwidth = (z0 * sqrt((p * (1 - p) / n) +
-                                   (z0 ** 2 / (4 * (n ** 2))))) / den
-            plo = (xc - halfwidth).clip(min=0)  # wilson score
-            pup = (xc + halfwidth).clip(max=1.0)  # wilson score
+            plo, pup = self._wilson_score(n, p, alpha)
         else:
-            # Jeffreys intervall a=b=0.5
-            # st.beta.isf(alpha/2, y+a, n-y+b) y = n*p, n-y = n*(1-p)
-            a = self.a
-            b = self.b
-            st = scipy.stats
-            pup = np.where(p == 1, 1,
-                           st.beta.isf(alpha / 2, n * p + a, n * (1 - p) + b))
-            plo = np.where(p == 0, 0,
-                           st.beta.isf(1 - alpha / 2,
-                                       n * p + a, n * (1 - p) + b))
+            plo, pup = self._credible_interval(n, p, alpha)
         return plo, pup
 
     def prb_empirical(self, xi=None, hs_e=None, alpha=0.05, color='r', **kwds):
@@ -1088,12 +1100,12 @@ class BKRegression(object):
         y = self.y
 
         c = gridcount(x, xi)  # + self.a + self.b # count data
-        if (y == 1).any():
+        if np.any(y == 1):
             c0 = gridcount(x[y == 1], xi)  # + self.a # count success
         else:
             c0 = np.zeros(np.shape(xi))
         prb = np.where(c == 0, 0, c0 / (c + _TINY))  # assume prb==0 for c==0
-        CI = np.vstack(self.prb_ci(c, prb, alpha, **kwds))
+        CI = np.vstack(self.prb_ci(c, prb, alpha))
 
         prb_e = PlotData(prb, xi, plotmethod='plot', plot_args=['.'],
                          plot_kwds=dict(markersize=6, color=color, picker=5))
@@ -1213,7 +1225,7 @@ def kde_demo1():
     for ix, h in enumerate(hVec):
         plt.figure(ix)
         kde = KDE(data, hs=h, kernel=kernel)
-        f2 = kde(x, output='plot', title='h_s = {0:2.2f}'.format(h),
+        f2 = kde(x, output='plot', title='h_s = {0:2.2f}'.format(float(h)),
                  ylab='Density')
         f2.plot('k-')
 
@@ -1278,8 +1290,8 @@ def kde_demo3():
     plt.plot(data[0], data[1], '.')
 
     # plotnorm((data).^(L2)) % gives a straight line => L2 = 0.5 reasonable
-
-    tkde = TKDE(data, L2=0.5)
+    hs = Kernel('gauss').get_smoothing(data**0.5)
+    tkde = TKDE(data, hs=hs, L2=0.5)
     ft = tkde.eval_grid_fast(
         output='plot', title='Transformation KDE', plotflag=1)
 
@@ -1312,13 +1324,13 @@ def kde_demo4(N=50):
     f1 = kde1(output='plot', label='Ordinary KDE', plotflag=1)
 
     plt.figure(0)
-    f.plot('r', label='hns={0:g}'.format(kde.hs))
+    f.plot('r', label='hns={0}'.format(kde.hs))
     # plt.figure(2)
-    f1.plot('b', label='hisj={0:g}'.format(kde1.hs))
-    x = np.linspace(-4, 4)
-    for loc in [-5, 5]:
-        plt.plot(x + loc, st.norm.pdf(x, 0, scale=1) / 2, 'k:',
-                 label='True density')
+    f1.plot('b', label='hisj={0}'.format(kde1.hs))
+    x = np.linspace(-9, 9)
+    plt.plot(x, (st.norm.pdf(x, loc=-5, scale=1) +
+                 st.norm.pdf(x, loc=5, scale=1)) / 2, 'k:',
+             label='True density')
     plt.legend()
 
 
@@ -1335,11 +1347,11 @@ def kde_demo5(N=500):
                       st.norm.rvs(loc=-5, scale=1, size=(2, N,))))
     kde = KDE(data, kernel=Kernel('gauss', 'hns'))
     f = kde(output='plot', plotflag=1,
-            title='Ordinary KDE (hns={0:s}'.format(str(kde.hs.tolist())))
+            title='Ordinary KDE, hns={0:s}'.format(str(list(kde.hs))))
 
     kde1 = KDE(data, kernel=Kernel('gauss', 'hisj'))
     f1 = kde1(output='plot', plotflag=1,
-              title='Ordinary KDE (hisj={0:s})'.format(str(kde1.hs.tolist())))
+              title='Ordinary KDE, hisj={0:s}'.format(str(list(kde1.hs))))
 
     plt.figure(0)
     plt.clf()
@@ -1766,9 +1778,9 @@ def check_bkregression():
     plt.ion()
     k = 0
     for _i, n in enumerate([50, 100, 300, 600]):
-        x, y, fun1 = _get_data(
-            n, symmetric=True, loc1=0.1, scale1=0.6, scale2=0.75)
-        bkreg = BKRegression(x, y)
+        x, y, fun1 = _get_data(n, symmetric=True, loc1=0.1,
+                               scale1=0.6, scale2=0.75)
+        bkreg = BKRegression(x, y, a=0.05, b=0.05)
         fbest = bkreg.prb_search_best(
             hsfun='hste', alpha=0.05, color='g', label='Transit_D')
 
@@ -1951,8 +1963,8 @@ if __name__ == '__main__':
     if False:
         test_docstrings(__file__)
     else:
-        kde_demo2()
-        # check_bkregression()
+        # kde_demo5()
+        check_bkregression()
         # check_regression_bin()
         # check_kreg_demo3()
         # check_kreg_demo4()
