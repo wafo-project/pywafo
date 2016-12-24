@@ -295,8 +295,9 @@ class TestRegression(unittest.TestCase):
 
         bkreg = wk.BKRegression(x, y, a=0.05, b=0.05)
         fbest = bkreg.prb_search_best(hsfun='hste', alpha=0.05, color='g')
-        # print(fbest.data[::10])
+        print(fbest.data[::10].tolist())
         assert_allclose(fbest.data[::10],
+                        
                         [1.80899736e-15, 0,  6.48351162e-16,  6.61404311e-15,
                          1.10010120e-12, 1.36709203e-10,  1.11994766e-08,
                          5.73040143e-07, 1.68974054e-05,  2.68633448e-04,
@@ -308,7 +309,7 @@ class TestRegression(unittest.TestCase):
                          5.98536245e-02,  1.48687767e-02,  2.49075176e-03,
                          2.68633448e-04,  1.68974054e-05,  5.73040143e-07,
                          1.11994760e-08,  1.36708818e-10,  1.09965904e-12,
-                         5.43806309e-15, 0.0, 0, 0])
+                         5.43806309e-15, 0.0, 0, 0], atol=1e-10)
 
 if __name__ == "__main__":
     # import sys;sys.argv = ['', 'Test.testName']
