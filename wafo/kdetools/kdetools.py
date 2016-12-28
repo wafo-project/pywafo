@@ -137,7 +137,7 @@ class _KDE(object):
         return args
 
     def eval_grid_fast(self, *args, **kwds):
-        """Evaluate the estimated pdf on a grid.
+        """Evaluate the estimated pdf on a grid using fft.
 
         Parameters
         ----------
@@ -1113,8 +1113,8 @@ class BKRegression(object):
         plo, pup = self.prb_ci(c_s, prb_s.data, alpha)
 
         prb_s.dataCI = np.vstack((plo, pup)).T
-        prb_s.prediction_error_avg = np.trapz(
-            pup - plo, x_s) / (x_s[-1] - x_s[0])
+        prb_s.prediction_error_avg = (np.trapz(pup - plo, x_s) /
+                                      (x_s[-1] - x_s[0]))
 
         if label:
             prb_s.plot_kwds['label'] = label
