@@ -12,20 +12,17 @@ import wafo.kdetools.gridding as wkg
 
 
 class TestKdeTools(unittest.TestCase):
-
-    def setUp(self):
-
+    @staticmethod
+    def test_gridcount_1d():
         # N = 20
         # data = np.random.rayleigh(1, size=(N,))
-        self.data = array([0.75355792, 0.72779194, 0.94149169, 0.07841119,
-                           2.32291887, 1.10419995, 0.77055114, 0.60288273,
-                           1.36883635, 1.74754326, 1.09547561, 1.01671133,
-                           0.73211143, 0.61891719, 0.75903487, 1.8919469,
-                           0.72433808, 1.92973094, 0.44749838, 1.36508452])
-        self.x = np.linspace(0, max(self.data) + 1, 10)
+        data = array([0.75355792, 0.72779194, 0.94149169, 0.07841119,
+                      2.32291887, 1.10419995, 0.77055114, 0.60288273,
+                      1.36883635, 1.74754326, 1.09547561, 1.01671133,
+                      0.73211143, 0.61891719, 0.75903487, 1.8919469,
+                      0.72433808, 1.92973094, 0.44749838, 1.36508452])
+        x = np.linspace(0, max(data) + 1, 10)
 
-    def test_gridcount_1D(self):
-        data, x = self.data, self.x
         dx = x[1] - x[0]
         c = wkg.gridcount(data, x)
         assert_allclose(c, [0.78762626, 1.77520717, 7.99190087, 4.04054449,
@@ -34,7 +31,8 @@ class TestKdeTools(unittest.TestCase):
         t = np.trapz(c / dx / len(data), x)
         assert_allclose(t, 0.9803093435140049)
 
-    def test_gridcount_2D(self):
+    @staticmethod
+    def test_gridcount_2d():
         N = 20
         # data = np.random.rayleigh(1, size=(2, N))
         data = array([
@@ -61,7 +59,8 @@ class TestKdeTools(unittest.TestCase):
         t = np.trapz(np.trapz(c / (dx**2 * N), x), x)
         assert_allclose(t, 0.9011618785736376)
 
-    def test_gridcount_3D(self):
+    @staticmethod
+    def test_gridcount_3d():
         N = 20
         # data = np.random.rayleigh(1, size=(3, N))
         data = np.array([
@@ -96,7 +95,8 @@ class TestKdeTools(unittest.TestCase):
         t = np.trapz(np.trapz(np.trapz(c / dx**3 / N, x), x), x)
         assert_allclose(t, 0.5164999727560187)
 
-    def test_gridcount_4D(self):
+    @staticmethod
+    def test_gridcount_4d():
 
         N = 20
         # data = np.random.rayleigh(1, size=(2, N))
