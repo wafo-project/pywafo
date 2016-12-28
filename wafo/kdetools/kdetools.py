@@ -1355,8 +1355,9 @@ def kreg_demo1(hs=None, fast=False, fun='hisj'):
         -0.08348306, 0.00812816, -0.00908206, 0.14528945, 0.02901065])
     x = np.linspace(0, 1, N)
 
-    y0 = 2 * np.exp(-x ** 2 / (2 * 0.3 ** 2)) + \
-        3 * np.exp(-(x - 1) ** 2 / (2 * 0.7 ** 2))
+    var_1 = 0.3 ** 2
+    var_2 = 0.7 ** 2
+    y0 = np.exp(-x ** 2 / (2 * var_1)) + 1.3*np.exp(-(x - 1) ** 2 / (2 * var_2))
     y = y0 + ei
     kernel = Kernel('gauss', fun=fun)
     hopt = kernel.hisj(x)
