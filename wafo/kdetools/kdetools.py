@@ -605,7 +605,6 @@ class KDE(_KDE):
     t = np.trapz(f, x)
     """
 
-
     def __init__(self, data, hs=None, kernel=None, alpha=0.0, xmin=None,
                  xmax=None, inc=512):
         super(KDE, self).__init__(data, kernel, xmin, xmax)
