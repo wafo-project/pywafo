@@ -17,16 +17,14 @@ import warnings
 import numpy as np
 import scipy.stats
 from scipy import interpolate, linalg, special
-from numpy import pi, sqrt, atleast_2d, exp, meshgrid
+from numpy import sqrt, atleast_2d, meshgrid
 from numpy.fft import fftn, ifftn
 from wafo.misc import nextpow2
 from wafo.containers import PlotData
-from wafo.dctpack import dctn, idctn  # , dstn, idstn
 from wafo.plotbackend import plotbackend as plt
 from wafo.testing import test_docstrings
 from wafo.kdetools.kernels import iqrange, qlevels, Kernel
 from wafo.kdetools.gridding import gridcount
-import time
 
 try:
     from wafo import fig
@@ -35,6 +33,11 @@ except ImportError:
 
 __all__ = ['TKDE', 'KDE', 'kde_demo1', 'kde_demo2', 'test_docstrings',
            'KRegression', 'BKRegression']
+
+_TINY = np.finfo(float).machar.tiny
+# _REALMIN = np.finfo(float).machar.xmin
+_REALMAX = np.finfo(float).machar.xmax
+_EPS = np.finfo(float).eps
 
 
 def _assert(cond, msg):
@@ -49,6 +52,15 @@ def _assert_warn(cond, msg):
 
 def _invnorm(q):
     return special.ndtri(q)
+
+
+def _logit(p):
+    pc = p.clip(min=0, max=1)
+    return (np.log(pc) - np.log1p(-pc)).clip(min=-40, max=40)
+
+
+# def _logitinv(x):
+#     return 1.0 / (np.exp(-x) + 1)
 
 
 class _KDE(object):
@@ -337,9 +349,9 @@ class TKDE(_KDE):
         self.L2 = L2
         super(TKDE, self).__init__(data, kernel, xmin, xmax)
 
-        tdataset = self._dat2gaus(self.dataset)
-        txmin = np.ravel(self._dat2gaus(np.reshape(self.xmin, (-1, 1))))
-        txmax = np.ravel(self._dat2gaus(np.reshape(self.xmax, (-1, 1))))
+        tdataset = self._transform(self.dataset)
+        txmin = np.ravel(self._transform(np.reshape(self.xmin, (-1, 1))))
+        txmax = np.ravel(self._transform(np.reshape(self.xmax, (-1, 1))))
         self.tkde = KDE(tdataset, hs, self.kernel, alpha, txmin, txmax, inc)
 
     def _check_xmin(self, xmin):
@@ -365,11 +377,10 @@ class TKDE(_KDE):
     def hs(self, hs):
         self.tkde.hs = hs
 
-    def _dat2gaus(self, points):
+    def _transform(self, points):
         if self.L2 is None:
             return points  # default no transformation
 
-        # default no transformation
         L2 = np.atleast_1d(self.L2) * np.ones(self.d)
 
         tpoints = copy.copy(points)
@@ -377,11 +388,10 @@ class TKDE(_KDE):
             tpoints[i] = np.log(points[i]) if v2 == 0 else points[i] ** v2
         return tpoints
 
-    def _gaus2dat(self, tpoints):
+    def _inverse_transform(self, tpoints):
         if self.L2 is None:
             return tpoints  # default no transformation
 
-        # default no transformation
         L2 = np.atleast_1d(self.L2) * np.ones(self.d)
 
         points = copy.copy(tpoints)
@@ -442,7 +452,7 @@ class TKDE(_KDE):
     def _get_targs(self, args):
         targs = []
         if len(args):
-            targs0 = self._dat2gaus(list(args))
+            targs0 = self._transform(list(args))
             xmin = [min(t) for t in targs0]
             xmax = [max(t) for t in targs0]
             targs = self.tkde.get_args(xmin, xmax)
@@ -456,7 +466,7 @@ class TKDE(_KDE):
         targs = self._get_targs(args)
         tf = self.tkde.eval_grid_fast(*targs)
 
-        self.args = self._gaus2dat(list(self.tkde.args))
+        self.args = self._inverse_transform(list(self.tkde.args))
         points = meshgrid(*self.args)
         f = self._scale_pdf(tf, points)
         if len(args):
@@ -466,7 +476,7 @@ class TKDE(_KDE):
     def _eval_grid(self, *args, **kwds):
         if self.L2 is None:
             return self.tkde.eval_grid(*args, **kwds)
-        targs = self._dat2gaus(list(args))
+        targs = self._transform(list(args))
         tf = self.tkde.eval_grid(*targs, **kwds)
         points = meshgrid(*args)
         f = self._scale_pdf(tf, points)
@@ -495,7 +505,7 @@ class TKDE(_KDE):
         if self.L2 is None:
             return self.tkde.eval_points(points)
 
-        tpoints = self._dat2gaus(points)
+        tpoints = self._transform(points)
         tf = self.tkde.eval_points(tpoints)
         f = self._scale_pdf(tf, points)
         return f
@@ -939,8 +949,6 @@ class BKRegression(object):
         self.kreg = KRegression(*args, **kwds)
         # defines bin width (i.e. smoothing) in empirical estimate
         self.hs_e = None
-#        self.x = self.kreg.tkde.dataset
-#        self.y = self.kreg.y
 
     def _set_smoothing(self, hs):
         self.kreg.tkde.hs = hs
@@ -1380,20 +1388,6 @@ def kreg_demo1(hs=None, fast=False, fun='hisj'):
     print(kreg.tkde.tkde._inv_hs)
     print(kreg.tkde.tkde.hs)
 
-_TINY = np.finfo(float).machar.tiny
-_REALMIN = np.finfo(float).machar.xmin
-_REALMAX = np.finfo(float).machar.xmax
-_EPS = np.finfo(float).eps
-
-
-def _logit(p):
-    pc = p.clip(min=0, max=1)
-    return (np.log(pc) - np.log1p(-pc)).clip(min=-40, max=40)
-
-
-def _logitinv(x):
-    return 1.0 / (np.exp(-x) + 1)
-
 
 def _get_data(n=100, symmetric=False, loc1=1.1, scale1=0.6, scale2=1.0):
     st = scipy.stats
@@ -1419,322 +1413,6 @@ def _get_data(n=100, symmetric=False, loc1=1.1, scale1=0.6, scale2=1.0):
         x = xi[i]
         y = yi[i]
     return x, y, fun1
-
-
-def kreg_demo2(n=100, hs=None, symmetric=False, fun='hisj', plotlog=False):
-    x, y, fun1 = _get_data(n, symmetric)
-    kreg_demo3(x, y, fun1, hs=None, fun='hisj', plotlog=False)
-
-
-def kreg_demo3(x, y, fun1, hs=None, fun='hisj', plotlog=False):
-    st = scipy.stats
-
-    alpha = 0.1
-    z0 = -_invnorm(alpha / 2)
-
-    n = x.size
-    hopt, hs1, hs2 = _get_regression_smooting(x, y, fun='hos')
-    if hs is None:
-        hs = hopt
-
-    forward = _logit
-    reverse = _logitinv
-    # forward = np.log
-    # reverse = np.exp
-
-    xmin, xmax = x.min(), x.max()
-    ni = max(2 * int((xmax - xmin) / hopt) + 3, 5)
-    print(ni)
-    print(xmin, xmax)
-    sml = hopt * 0.1
-    xi = np.linspace(xmin - sml, xmax + sml, ni)
-    xiii = np.linspace(xmin - sml, xmax + sml, 4 * ni + 1)
-
-    c = gridcount(x, xi)
-    if (y == 1).any():
-        c0 = gridcount(x[y == 1], xi)
-    else:
-        c0 = np.zeros(np.shape(xi))
-    yi = np.where(c == 0, 0, c0 / c)
-
-    kreg = KRegression(x, y, hs=hs, p=0)
-    fiii = kreg(xiii)
-    yiii = interpolate.interp1d(xi, yi)(xiii)
-    fit = fun1(xiii).clip(max=1.0)
-    df = np.diff(fiii)
-    eerr = np.abs((yiii - fiii)).std() + 0.5 * (df[:-1] * df[1:] < 0).sum() / n
-    err = (fiii - fit).std()
-    msg = '{0} err={1:1.3f},eerr={2:1.3f}, n={3:d}, hs={4:}, hs1={5:}, '\
-        'hs2={6:}'
-    title = (msg.format(fun, err, eerr, n, hs, hs1, hs2))
-    f = kreg(xiii, output='plotobj', title=title, plotflag=1)
-
-    # yi[yi==0] = 1.0/(c[c!=0].min()+4)
-    # yi[yi==1] = 1-1.0/(c[c!=0].min()+4)
-    # yi[yi==0] = fi[yi==0]
-    # yi[yi==0] = np.exp(stineman_interp(xi[yi==0], xi[yi>0],np.log(yi[yi>0])))
-    # yi[yi==0] = fun1(xi[yi==0])
-    try:
-        yi[yi == 0] = yi[yi > 0].min() / sqrt(n)
-    except:
-        yi[yi == 0] = 1. / n
-    yi[yi == 1] = 1 - (1 - yi[yi < 1].max()) / sqrt(n)
-
-    logity = forward(yi)
-
-    gkreg = KRegression(xi, logity, hs=hs, xmin=xmin - hopt, xmax=xmax + hopt)
-    fg = gkreg.eval_grid(
-        xi, output='plotobj', title='Kernel regression', plotflag=1)
-    sa = (fg.data - logity).std()
-    sa2 = iqrange(fg.data - logity) / 1.349
-    # print('sa=%g %g' % (sa, sa2))
-    sa = min(sa, sa2)
-
-#    plt.figure(1)
-#    plt.plot(xi, slogity-logity,'r.')
-# plt.plot(xi, logity-,'b.')
-#    plt.plot(xi, fg.data-logity, 'b.')
-#    plt.show()
-#    return
-
-    fg = gkreg.eval_grid(
-        xiii, output='plotobj', title='Kernel regression', plotflag=1)
-    pi = reverse(fg.data)
-
-    dx = xi[1] - xi[0]
-    ckreg = KDE(x, hs=hs)
-    # ci = ckreg.eval_grid_fast(xi)*n*dx
-    ciii = ckreg.eval_grid_fast(xiii) * dx * x.size  # n*(1+symmetric)
-
-#    sa1 = np.sqrt(1./(ciii*pi*(1-pi)))
-#    plo3 = reverse(fg.data-z0*sa)
-#    pup3 = reverse(fg.data+z0*sa)
-    fg.data = pi
-    pi = f.data
-
-    # ref Casella and Berger (1990) "Statistical inference" pp444
-#    a = 2*pi + z0**2/(ciii+1e-16)
-#    b = 2*(1+z0**2/(ciii+1e-16))
-#    plo2 = ((a-sqrt(a**2-2*pi**2*b))/b).clip(min=0,max=1)
-#    pup2 = ((a+sqrt(a**2-2*pi**2*b))/b).clip(min=0,max=1)
-    # Jeffreys intervall a=b=0.5
-    # st.beta.isf(alpha/2, x+a, n-x+b)
-    ab = 0.07  # 0.055
-    pi1 = pi  # fun1(xiii)
-    pup2 = np.where(pi == 1,
-                    1,
-                    st.beta.isf(alpha / 2,
-                                ciii * pi1 + ab,
-                                ciii * (1 - pi1) + ab))
-    plo2 = np.where(pi == 0,
-                    0,
-                    st.beta.isf(1 - alpha / 2,
-                                ciii * pi1 + ab,
-                                ciii * (1 - pi1) + ab))
-
-    averr = np.trapz(pup2 - plo2, xiii) / \
-        (xiii[-1] - xiii[0]) + 0.5 * (df[:-1] * df[1:] < 0).sum()
-
-    # f2 = kreg_demo4(x, y, hs, hopt)
-    # Wilson score
-    den = 1 + (z0 ** 2. / ciii)
-    xc = (pi1 + (z0 ** 2) / (2 * ciii)) / den
-    halfwidth = (z0 * sqrt((pi1 * (1 - pi1) / ciii) +
-                           (z0 ** 2 / (4 * (ciii ** 2))))) / den
-    plo = (xc - halfwidth).clip(min=0)  # wilson score
-    pup = (xc + halfwidth).clip(max=1.0)  # wilson score
-    # pup = (pi + z0*np.sqrt(pi*(1-pi)/ciii)).clip(min=0,max=1) # dont use
-    # plo = (pi - z0*np.sqrt(pi*(1-pi)/ciii)).clip(min=0,max=1)
-
-    # mi = kreg.eval_grid(x)
-    # sigma = (stineman_interp(x, xiii, pup)-stineman_interp(x, xiii, plo))/4
-    # aic = np.abs((y-mi)/sigma).std()+ 0.5*(df[:-1]*df[1:]<0).sum()/n
-    # aic = np.abs((yiii-fiii)/(pup-plo)).std() + \
-    #                0.5*(df[:-1]*df[1:]<0).sum() + \
-    #            ((yiii-pup).clip(min=0)-(yiii-plo).clip(max=0)).sum()
-
-    k = (df[:-1] * df[1:] < 0).sum()  # numpeaks
-    sigmai = (pup - plo)
-    aic = (((yiii - fiii) / sigmai) ** 2).sum() + \
-        2 * k * (k + 1) / np.maximum(ni - k + 1, 1) + \
-        np.abs((yiii - pup).clip(min=0) - (yiii - plo).clip(max=0)).sum()
-
-    # aic = (((yiii-fiii)/sigmai)**2).sum()+ 2*k*(k+1)/(ni-k+1) + \
-    #        np.abs((yiii-pup).clip(min=0)-(yiii-plo).clip(max=0)).sum()
-
-    # aic = averr + ((yiii-pup).clip(min=0)-(yiii-plo).clip(max=0)).sum()
-
-    fg.plot(label='KReg grid aic={:2.3f}'.format(aic))
-    f.plot(label='KReg averr={:2.3f} '.format(averr))
-    labtxt = '%d CI' % (int(100 * (1 - alpha)))
-    plt.fill_between(xiii, pup, plo, alpha=0.20,
-                     color='r', linestyle='--', label=labtxt)
-    plt.fill_between(xiii, pup2, plo2, alpha=0.20, color='b', linestyle=':',
-                     label='{:d} CI2'.format(int(100 * (1 - alpha))))
-    plt.plot(xiii, fun1(xiii), 'r', label='True model')
-    plt.scatter(xi, yi, label='data')
-    print('maxp = {}'.format(np.nanmax(f.data)))
-    print('hs = {}'.format(kreg.tkde.tkde.hs))
-    plt.legend()
-    h = plt.gca()
-    if plotlog:
-        plt.setp(h, yscale='log')
-    # plt.show()
-    return hs1, hs2
-
-
-def kreg_demo4(x, y, hs, hopt, alpha=0.05):
-    st = scipy.stats
-
-    n = x.size
-    xmin, xmax = x.min(), x.max()
-    ni = max(2 * int((xmax - xmin) / hopt) + 3, 5)
-
-    sml = hopt * 0.1
-    xi = np.linspace(xmin - sml, xmax + sml, ni)
-    xiii = np.linspace(xmin - sml, xmax + sml, 4 * ni + 1)
-
-    kreg = KRegression(x, y, hs=hs, p=0)
-
-    dx = xi[1] - xi[0]
-    ciii = kreg.tkde.eval_grid_fast(xiii) * dx * x.size
-#    ckreg = KDE(x,hs=hs)
-# ciiii = ckreg.eval_grid_fast(xiii)*dx* x.size #n*(1+symmetric)
-
-    f = kreg(xiii, output='plotobj')  # , plot_kwds=dict(plotflag=7))
-    pi = f.data
-
-    # Jeffreys intervall a=b=0.5
-    # st.beta.isf(alpha/2, x+a, n-x+b)
-    ab = 0.07  # 0.5
-    pi1 = pi
-    pup = np.where(pi1 == 1, 1, st.beta.isf(
-        alpha / 2, ciii * pi1 + ab, ciii * (1 - pi1) + ab))
-    plo = np.where(pi1 == 0, 0, st.beta.isf(
-        1 - alpha / 2, ciii * pi1 + ab, ciii * (1 - pi1) + ab))
-
-    # Wilson score
-    # z0 = -_invnorm(alpha/2)
-#    den = 1+(z0**2./ciii);
-#    xc=(pi1+(z0**2)/(2*ciii))/den;
-#    halfwidth=(z0*sqrt((pi1*(1-pi1)/ciii)+(z0**2/(4*(ciii**2)))))/den
-# plo2 = (xc-halfwidth).clip(min=0) # wilson score
-# pup2 = (xc+halfwidth).clip(max=1.0) # wilson score
-    # f.dataCI = np.vstack((plo,pup)).T
-    f.prediction_error_avg = np.trapz(pup - plo, xiii) / (xiii[-1] - xiii[0])
-    fiii = f.data
-
-    c = gridcount(x, xi)
-    if (y == 1).any():
-        c0 = gridcount(x[y == 1], xi)
-    else:
-        c0 = np.zeros(np.shape(xi))
-    yi = np.where(c == 0, 0, c0 / c)
-
-    f.children = [PlotData([plo, pup], xiii, plotmethod='fill_between',
-                           plot_kwds=dict(alpha=0.2, color='r')),
-                  PlotData(yi, xi, plotmethod='scatter',
-                           plot_kwds=dict(color='r', s=5))]
-
-    yiii = interpolate.interp1d(xi, yi)(xiii)
-    df = np.diff(fiii)
-    k = (df[:-1] * df[1:] < 0).sum()  # numpeaks
-    sigmai = (pup - plo)
-    aicc = (((yiii - fiii) / sigmai) ** 2).sum() + \
-        2 * k * (k + 1) / np.maximum(ni - k + 1, 1) + \
-        np.abs((yiii - pup).clip(min=0) - (yiii - plo).clip(max=0)).sum()
-
-    f.aicc = aicc
-    f.labels.title = ('perr={:1.3f},aicc={:1.3f}, n={:d}, '
-                      'hs={:1.3f}'.format(f.prediction_error_avg, aicc, n, hs))
-
-    return f
-
-
-def check_kreg_demo3():
-
-    plt.ion()
-    k = 0
-    for n in [50, 100, 300, 600, 4000]:
-        x, y, fun1 = _get_data(
-            n, symmetric=True, loc1=1.0, scale1=0.6, scale2=1.25)
-        k0 = k
-
-        for fun in ['hisj', ]:
-            hsmax, _hs1, _hs2 = _get_regression_smooting(x, y, fun=fun)
-            for hi in np.linspace(hsmax * 0.25, hsmax, 9):
-                plt.figure(k)
-                k += 1
-                unused = kreg_demo3(x, y, fun1, hs=hi, fun=fun, plotlog=False)
-
-            # kreg_demo2(n=n,symmetric=True,fun='hste', plotlog=False)
-        # fig.tile(range(k0, k))
-    plt.ioff()
-    plt.show()
-
-
-def check_kreg_demo4():
-    plt.ion()
-    # test_docstrings()
-    # kde_demo2()
-    # kreg_demo1(fast=True)
-    # kde_gauss_demo()
-    # kreg_demo2(n=120,symmetric=True,fun='hste', plotlog=True)
-    k = 0
-    for _i, n in enumerate([100, 300, 600, 4000]):
-        x, y, fun1 = _get_data(
-            n, symmetric=True, loc1=0.1, scale1=0.6, scale2=0.75)
-        # k0 = k
-        hopt1, _h1, _h2 = _get_regression_smooting(x, y, fun='hos')
-        hopt2, _h1, _h2 = _get_regression_smooting(x, y, fun='hste')
-        hopt = sqrt(hopt1 * hopt2)
-        # hopt = _get_regression_smooting(x,y,fun='hos')[0]
-        for _j, fun in enumerate(['hste']):  # , 'hisj', 'hns', 'hstt'
-            hsmax, _hs1, _hs2 = _get_regression_smooting(x, y, fun=fun)
-
-            fmax = kreg_demo4(x, y, hsmax + 0.1, hopt)
-            for hi in np.linspace(hsmax * 0.1, hsmax, 55):
-                f = kreg_demo4(x, y, hi, hopt)
-                if f.aicc <= fmax.aicc:
-                    fmax = f
-            plt.figure(k)
-            k += 1
-            fmax.plot()
-            plt.plot(x, fun1(x), 'r')
-
-            # kreg_demo2(n=n,symmetric=True,fun='hste', plotlog=False)
-    fig.tile(range(0, k))
-    plt.ioff()
-    plt.show()
-
-
-def check_regression_bin():
-    plt.ion()
-    # test_docstrings()
-    # kde_demo2()
-    # kreg_demo1(fast=True)
-    # kde_gauss_demo()
-    # kreg_demo2(n=120,symmetric=True,fun='hste', plotlog=True)
-    k = 0
-    for _i, n in enumerate([100, 300, 600, 4000]):
-        x, y, fun1 = _get_data(
-            n, symmetric=True, loc1=0.1, scale1=0.6, scale2=0.75)
-        fbest = regressionbin(x, y, alpha=0.05, color='g', label='Transit_D')
-
-        figk = plt.figure(k)
-        ax = figk.gca()
-        k += 1
-        fbest.labels.title = 'N = {:d}'.format(n)
-        fbest.plot(axis=ax)
-        ax.plot(x, fun1(x), 'r')
-        ax.legend(frameon=False, markerscale=4)
-        # ax = plt.gca()
-        ax.set_yticklabels(ax.get_yticks() * 100.0)
-        ax.grid(True)
-
-    fig.tile(range(0, k))
-    plt.ioff()
-    plt.show()
 
 
 def check_bkregression():
@@ -1767,172 +1445,11 @@ def check_bkregression():
     plt.show('hold')
 
 
-def _get_regression_smooting(x, y, fun='hste'):
-    hs1 = Kernel('gauss', fun=fun).get_smoothing(x)
-    # hx = np.median(np.abs(x-np.median(x)))/0.6745*(4.0/(3*n))**0.2
-    if (y == 1).any():
-        hs2 = Kernel('gauss', fun=fun).get_smoothing(x[y == 1])
-        # hy = np.median(np.abs(y-np.mean(y)))/0.6745*(4.0/(3*n))**0.2
-    else:
-        hs2 = 4 * hs1
-        # hy = 4*hx
-
-    # hy2 = Kernel('gauss', fun=fun).get_smoothing(y)
-    # kernel = Kernel('gauss',fun=fun)
-    # hopt = (hs1+2*hs2)/3
-    # hopt = (hs1+4*hs2)/5 #kernel.get_smoothing(x)
-    # hopt = hs2
-    hopt = sqrt(hs1 * hs2)
-    return hopt, hs1, hs2
-
-
-def empirical_bin_prb(x, y, hopt, color='r'):
-    """Returns empirical binomial probabiltity.
-
-    Parameters
-    ----------
-    x : ndarray
-        position ve
-    y : ndarray
-        binomial response variable (zeros and ones)
-
-    Returns
-    -------
-    P(x) : PlotData object
-        empirical probability
-
-    """
-    xmin, xmax = x.min(), x.max()
-    ni = max(2 * int((xmax - xmin) / hopt) + 3, 5)
-
-    sml = hopt  # *0.1
-    xi = np.linspace(xmin - sml, xmax + sml, ni)
-
-    c = gridcount(x, xi)
-    if (y == 1).any():
-        c0 = gridcount(x[y == 1], xi)
-    else:
-        c0 = np.zeros(np.shape(xi))
-    yi = np.where(c == 0, 0, c0 / c)
-    return PlotData(yi, xi, plotmethod='scatter',
-                    plot_kwds=dict(color=color, s=5))
-
-
-def smoothed_bin_prb(x, y, hs, hopt, alpha=0.05, color='r', label='',
-                     bin_prb=None):
-    '''
-    Parameters
-    ----------
-    x,y
-    hs : smoothing parameter
-    hopt : spacing in empirical_bin_prb
-    alpha : confidence level
-    color : color of plot object
-    bin_prb : PlotData object with empirical bin prb
-    '''
-    if bin_prb is None:
-        bin_prb = empirical_bin_prb(x, y, hopt, color)
-
-    xi = bin_prb.args
-    yi = bin_prb.data
-    ni = len(xi)
-    dxi = xi[1] - xi[0]
-
-    n = x.size
-
-    xiii = np.linspace(xi[0], xi[-1], 10 * ni + 1)
-
-    kreg = KRegression(x, y, hs=hs, p=0)
-    # expected number of data in each bin
-    ciii = kreg.tkde.eval_grid_fast(xiii) * dxi * n
-
-    f = kreg(xiii, output='plotobj')  # , plot_kwds=dict(plotflag=7))
-    pi = f.data
-
-    st = scipy.stats
-    # Jeffreys intervall a=b=0.5
-    # st.beta.isf(alpha/2, x+a, n-x+b)
-    ab = 0.07  # 0.5
-    pi1 = pi
-    pup = np.where(pi1 == 1, 1, st.beta.isf(
-        alpha / 2, ciii * pi1 + ab, ciii * (1 - pi1) + ab))
-    plo = np.where(pi1 == 0, 0, st.beta.isf(
-        1 - alpha / 2, ciii * pi1 + ab, ciii * (1 - pi1) + ab))
-
-    # Wilson score
-    # z0 = -_invnorm(alpha/2)
-#    den = 1+(z0**2./ciii);
-#    xc=(pi1+(z0**2)/(2*ciii))/den;
-#    halfwidth=(z0*sqrt((pi1*(1-pi1)/ciii)+(z0**2/(4*(ciii**2)))))/den
-# plo2 = (xc-halfwidth).clip(min=0) # wilson score
-# pup2 = (xc+halfwidth).clip(max=1.0) # wilson score
-    # f.dataCI = np.vstack((plo,pup)).T
-    f.prediction_error_avg = np.trapz(pup - plo, xiii) / (xiii[-1] - xiii[0])
-    fiii = f.data
-
-    f.plot_kwds['color'] = color
-    f.plot_kwds['linewidth'] = 2
-    if label:
-        f.plot_kwds['label'] = label
-    f.children = [PlotData([plo, pup], xiii, plotmethod='fill_between',
-                           plot_kwds=dict(alpha=0.2, color=color)),
-                  bin_prb]
-
-    yiii = interpolate.interp1d(xi, yi)(xiii)
-    df = np.diff(fiii)
-    k = (df[:-1] * df[1:] < 0).sum()  # numpeaks
-    sigmai = (pup - plo)
-    aicc = (((yiii - fiii) / sigmai) ** 2).sum() + \
-        2 * k * (k + 1) / np.maximum(ni - k + 1, 1) + \
-        np.abs((yiii - pup).clip(min=0) - (yiii - plo).clip(max=0)).sum()
-
-    f.aicc = aicc
-    f.fun = kreg
-    ttl = "perr={0:1.3f}, aicc={1:1.3f}, n={2:d}, hs={3}"
-    f.labels.title = ttl.format(f.prediction_error_avg, aicc, n, hs)
-
-    return f
-
-
-def regressionbin(x, y, alpha=0.05, color='r', label=''):
-    """Return kernel regression estimate for binomial data.
-
-    Parameters
-    ----------
-    x : arraylike
-        positions
-    y : arraylike
-        of 0 and 1
-
-    """
-
-    hopt1, _h1, _h2 = _get_regression_smooting(x, y, fun='hos')
-    hopt2, _h1, _h2 = _get_regression_smooting(x, y, fun='hste')
-    hopt = sqrt(hopt1 * hopt2)
-
-    fbest = smoothed_bin_prb(x, y, hopt2 + 0.1, hopt, alpha, color, label)
-    bin_prb = fbest.children[-1]
-    for fun in ['hste']:  # , 'hisj', 'hns', 'hstt'
-        hsmax, _hs1, _hs2 = _get_regression_smooting(x, y, fun=fun)
-        for hi in np.linspace(hsmax * 0.1, hsmax, 55):
-            f = smoothed_bin_prb(x, y, hi, hopt, alpha, color, label, bin_prb)
-            if f.aicc <= fbest.aicc:
-                fbest = f
-                # hbest = hi
-    return fbest
-
-
 if __name__ == '__main__':
-    if False:
+    if True:
         test_docstrings(__file__)
     else:
         # kde_demo5()
-        # check_bkregression()
-        # check_regression_bin()
-        check_kreg_demo3()
-        # check_kreg_demo4()
-
+        check_bkregression()
         # kreg_demo1(fast=True)
-
-        # kreg_demo2(n=120,symmetric=True,fun='hste', plotlog=True)
         plt.show('hold')

@@ -9,7 +9,7 @@ import numpy as np
 from numpy.testing import assert_allclose
 import wafo.objects as wo
 import wafo.kdetools as wk
-import scipy.stats as st
+# import scipy.stats as st
 
 
 class TestKde(unittest.TestCase):
@@ -232,21 +232,22 @@ class TestRegression(unittest.TestCase):
                          2.9906144224522406, 2.9906534916935743])
 
     def test_BKRegression(self):
-        from wafo.kdetools.kdetools import _get_data
-        n = 51
-        loc1 = 0.1
-        scale1 = 0.6
-        scale2 = 0.75
+        # from wafo.kdetools.kdetools import _get_data
+        # n = 51
+        # loc1 = 0.1
+        # scale1 = 0.6
+        # scale2 = 0.75
         # x, y, fun1 = _get_data(n, symmetric=True, loc1=loc1,
         #                       scale1=scale1, scale2=scale2)
         # print(x.tolist())
         # print(y.tolist())
-#        dist = st.norm
-#         norm1 = scale2 * (dist.pdf(-loc1, loc=-loc1, scale=scale1) +
-#                           dist.pdf(-loc1, loc=loc1, scale=scale1))
-#         def fun1(x):
-#             return ((dist.pdf(x, loc=-loc1, scale=scale1) +
-#                      dist.pdf(x, loc=loc1, scale=scale1)) / norm1).clip(max=1.0)
+        # dist = st.norm
+        #  norm1 = scale2 * (dist.pdf(-loc1, loc=-loc1, scale=scale1) +
+        #                    dist.pdf(-loc1, loc=loc1, scale=scale1))
+        #  def fun1(x):
+        #      return (((dist.pdf(x, loc=-loc1, scale=scale1) +
+        #               dist.pdf(x, loc=loc1, scale=scale1)) /
+        #               norm1).clip(max=1.0))
         x = [-2.9784022156693037, -2.923269270862857, -2.640625797489305,
              -2.592465150170373, -2.5777471766751514, -2.5597898266706323,
              -2.5411937415815604, -2.501753472506631, -2.4939048380402378,
@@ -297,7 +298,7 @@ class TestRegression(unittest.TestCase):
         fbest = bkreg.prb_search_best(hsfun='hste', alpha=0.05, color='g')
         print(fbest.data[::10].tolist())
         assert_allclose(fbest.data[::10],
-                        
+
                         [1.80899736e-15, 0,  6.48351162e-16,  6.61404311e-15,
                          1.10010120e-12, 1.36709203e-10,  1.11994766e-08,
                          5.73040143e-07, 1.68974054e-05,  2.68633448e-04,
