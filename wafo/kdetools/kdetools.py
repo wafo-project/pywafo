@@ -154,9 +154,6 @@ class _KDE(object):
             The values evaluated at meshgrid(*args).
 
         """
-        if len(args) == 0:
-            args = self.get_args()
-        self.args = args
         return self.eval_grid_fun(self._eval_grid_fast, *args, **kwds)
 
     def _eval_grid_fast(self, *args, **kwds):
@@ -180,9 +177,6 @@ class _KDE(object):
             The values evaluated at meshgrid(*args).
 
         """
-        if len(args) == 0:
-            args = self.get_args()
-        self.args = args
         return self.eval_grid_fun(self._eval_grid, *args, **kwds)
 
     def _eval_grid(self, *args, **kwds):
@@ -212,6 +206,9 @@ class _KDE(object):
         return wdata
 
     def eval_grid_fun(self, eval_grd, *args, **kwds):
+        if len(args) == 0:
+            args = self.get_args()
+        self.args = args
         output = kwds.pop('output', 'value')
         f = eval_grd(*args, **kwds)
         if output == 'value':
@@ -824,7 +821,7 @@ class KDE(_KDE):
         return self._loop_over_points(self.dataset, points, y, r)
 
 
-class KRegression(object):   # _KDE):
+class KRegression(object):
 
     """ Kernel-Regression
 
@@ -942,13 +939,29 @@ class BKRegression(object):
         Setting a=b=0.5 gives Jeffreys interval.
     '''
 
-    def __init__(self, *args, **kwds):
-        self.method = kwds.pop('method', 'beta')
-        self.a = max(kwds.pop('a', 0.5), _TINY)
-        self.b = max(kwds.pop('b', 0.5), _TINY)
-        self.kreg = KRegression(*args, **kwds)
+    def __init__(self, data, y, method='beta', a=0.05, b=0.05, p=0, hs_e=None,
+                 hs=None, kernel=None, alpha=0.0, xmin=None, xmax=None,
+                 inc=128, L2=None):
+        self.method = method
+        self.a = max(a, _TINY)
+        self.b = max(b, _TINY)
+        self.kreg = KRegression(data, y, p=p, hs=hs, kernel=kernel,
+                                alpha=alpha, xmin=xmin, xmax=xmax, inc=inc,
+                                L2=L2)
         # defines bin width (i.e. smoothing) in empirical estimate
-        self.hs_e = None
+        self.hs_e = hs_e
+
+    @property
+    def hs_e(self):
+        return self._hs_e
+
+    @hs_e.setter
+    def hs_e(self, hs_e):
+        if hs_e is None:
+            hs1 = self._get_max_smoothing('hste')[0]
+            hs2 = self._get_max_smoothing('hos')[0]
+            hs_e = sqrt(hs1 * hs2)
+        self._hs_e = hs_e
 
     def _set_smoothing(self, hs):
         self.kreg.tkde.hs = hs
@@ -981,10 +994,6 @@ class BKRegression(object):
 
     def get_grid(self, hs_e=None):
         if hs_e is None:
-            if self.hs_e is None:
-                hs1 = self._get_max_smoothing('hste')[0]
-                hs2 = self._get_max_smoothing('hos')[0]
-                self.hs_e = sqrt(hs1 * hs2)
             hs_e = self.hs_e
         x = self.x
         xmin, xmax = x.min(), x.max()
@@ -1007,8 +1016,7 @@ class BKRegression(object):
     def _credible_interval(self, n, p, alpha):
         # Jeffreys intervall a=b=0.5
         # st.beta.isf(alpha/2, y+a, n-y+b) y = n*p, n-y = n*(1-p)
-        a = self.a
-        b = self.b
+        a, b = self.a, self.b
         st = scipy.stats
         pup = np.where(p == 1, 1,
                        st.beta.isf(alpha / 2, n * p + a, n * (1 - p) + b))
@@ -1027,22 +1035,10 @@ class BKRegression(object):
             estimated probability of success in each trial
         alpha : scalar
             confidence level
-        method : {'beta', 'wilson'}
-            method is one of the following
-            'beta', return Bayesian Credible interval using beta-distribution.
-            'wilson', return Wilson score interval
-        a, b : scalars
-            parameters of the beta distribution defining the apriori
-            distribution of p, i.e.,
-            the Bayes estimator for p: p = (y+a)/(n+a+b).
-            Setting a=b=0.5 gives Jeffreys interval.
-
         """
         if self.method.startswith('w'):
-            plo, pup = self._wilson_score(n, p, alpha)
-        else:
-            plo, pup = self._credible_interval(n, p, alpha)
-        return plo, pup
+            return self._wilson_score(n, p, alpha)
+        return self._credible_interval(n, p, alpha)
 
     def prb_empirical(self, xi=None, hs_e=None, alpha=0.05, color='r', **kwds):
         """Returns empirical binomial probabiltity.
@@ -1155,11 +1151,9 @@ class BKRegression(object):
 
         """
         if prb_e is None:
-            prb_e = self.prb_empirical(
-                hs_e=self.hs_e, alpha=alpha, color=color)
+            prb_e = self.prb_empirical(alpha=alpha, color=color)
         if hsvec is None:
-            hsmax = self._get_max_smoothing(hsfun)[0]
-            hsmax = max(hsmax, self.hs_e)
+            hsmax = max(self._get_max_smoothing(hsfun)[0], self.hs_e)
             hsvec = np.linspace(hsmax * 0.2, hsmax, 55)
 
         hs_best = hsvec[-1] + 0.1
@@ -1371,18 +1365,22 @@ def kreg_demo1(hs=None, fast=False, fun='hisj'):
     if fast:
         kreg.__call__ = kreg.eval_grid_fast
 
-    f = kreg(output='plot', title='Kernel regression', plotflag=1)
+    f = kreg(x, output='plot', title='Kernel regression', plotflag=1)
     plt.figure(0)
     f.plot(label='p=0')
 
     kreg.p = 1
-    f1 = kreg(output='plot', title='Kernel regression', plotflag=1)
+    f1 = kreg(x, output='plot', title='Kernel regression', plotflag=1)
     f1.plot(label='p=1')
     # print(f1.data)
     plt.plot(x, y, '.', label='data')
     plt.plot(x, y0, 'k', label='True model')
-    plt.legend()
+    from statsmodels.nonparametric.kernel_regression import KernelReg
+    kreg2 = KernelReg(y, x, ('c'))
+    y2 = kreg2.fit(x)
+    plt.plot(x, y2[0], 'm', label='statsmodel')
 
+    plt.legend()
     plt.show()
 
     print(kreg.tkde.tkde._inv_hs)
@@ -1446,10 +1444,10 @@ def check_bkregression():
 
 
 if __name__ == '__main__':
-    if True:
+    if False:
         test_docstrings(__file__)
     else:
         # kde_demo5()
-        check_bkregression()
-        # kreg_demo1(fast=True)
+        # check_bkregression()
+        kreg_demo1(hs=0.04, fast=True)
         plt.show('hold')

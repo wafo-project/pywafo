@@ -215,10 +215,23 @@ class TestRegression(unittest.TestCase):
               0.0317357805015679, -0.0736187558312158, 0.04791463883941161,
               0.0660021138871709, -0.1049359954387588, 0.0034961490852392463]
         # print(ei.tolist())
-
-        y = 2*np.exp(-x**2/(2*0.3**2))+3*np.exp(-(x-1)**2/(2*0.7**2)) + ei
+        y0 = 2*np.exp(-x**2/(2*0.3**2))+3*np.exp(-(x-1)**2/(2*0.7**2))
+        y = y0 + ei
         kreg = wk.KRegression(x, y)
         f = kreg(output='plotobj', title='Kernel regression', plotflag=1)
+
+        kreg.p = 1
+        f1 = kreg(output='plot', title='Kernel regression', plotflag=1)
+
+#         import matplotlib.pyplot as plt
+#         plt.figure(0)
+#         f.plot(label='p=0')
+#         f1.plot(label='p=1')
+#         # print(f1.data)
+#         plt.plot(x, y, '.', label='data')
+#         plt.plot(x, y0, 'k', label='True model')
+#         plt.legend()
+#         plt.show('hold')
 
         assert_allclose(f.data[::5],
                         [3.14313544673463, 3.14582567119112, 3.149199078830904,
@@ -230,6 +243,18 @@ class TestRegression(unittest.TestCase):
                          2.96350144269953, 2.976399025328952, 2.9836554385038,
                          2.987516554300354, 2.9894470264681, 2.990311688080114,
                          2.9906144224522406, 2.9906534916935743])
+
+        print(f1.data[::5].tolist())
+        assert_allclose(f1.data[::5],
+                        [2.7832831899382, 2.83222307174095, 2.891112685251379,
+                         2.9588984473431, 3.03155510969298, 3.1012027219652127,
+                         3.1565263737763, 3.18517573180120, 3.177939796091202,
+                         3.13336188049535, 3.06057968378847, 2.978164236442354,
+                         2.9082732327128, 2.867790922237915, 2.861643209932334,
+                         2.88347067948676, 2.92123931823944, 2.96263190368498,
+                         2.9985444322015, 3.0243198029657, 3.038629147365635,
+                         3.04171702362464, 3.03475567689171, 3.020239732466334,
+                         3.002434232424511, 2.987257365211814])
 
     def test_BKRegression(self):
         # from wafo.kdetools.kdetools import _get_data
