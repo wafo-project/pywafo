@@ -85,7 +85,8 @@ Contents.m              : Contents file for Matlab
 from __future__ import absolute_import, division
 import numpy as np
 from numpy.fft import fft
-from .dctpack import dct
+from wafo.dctpack import dct
+from wafo.polynomial import map_from_interval, map_to_interval
 # from scipy.fftpack.realtransforms import dct
 
 
@@ -97,8 +98,8 @@ class _ExampleFunctions(object):
     ----------
     x,y : array-like
         evaluate the function in the points (x,y)
-    id : scalar int (default 0)
-        id defining which test function to use. Options are
+    i : scalar int (default 0)
+        defining which test function to use. Options are
         0: franke
         1: half_sphere
         2: poly_degree20
@@ -132,10 +133,11 @@ class _ExampleFunctions(object):
         Maple: 0.40696958949155611906
         '''
         exp = np.exp
-        return (3. / 4 * exp(-((9. * x - 2)**2 + (9. * y - 2)**2) / 4) +
-                3. / 4 * exp(-(9. * x + 1)**2 / 49 - (9. * y + 1) / 10) +
-                1. / 2 * exp(-((9. * x - 7)**2 + (9. * y - 3)**2) / 4) -
-                1. / 5 * exp(-(9. * x - 4)**2 - (9. * y - 7)**2))
+        x9, y9 = 9. * x, 9. * y
+        return (3. / 4 * exp(-((x9 - 2)**2 + (y9 - 2)**2) / 4) +
+                3. / 4 * exp(-(x9 + 1)**2 / 49 - (y9 + 1) / 10) +
+                1. / 2 * exp(-((x9 - 7)**2 + (y9 - 3)**2) / 4) -
+                1. / 5 * exp(-(x9 - 4)**2 - (y9 - 7)**2))
 
     @staticmethod
     def half_sphere(x, y):
@@ -192,7 +194,7 @@ class _ExampleFunctions(object):
         The value of the definite integral on the square [-1,1] x [-1,1]
         is 4.
         '''
-        return np.ones(np.shape(x))
+        return np.ones(np.shape(x+y))
 
     @staticmethod
     def exp_xy(x, y):
@@ -274,12 +276,12 @@ class _ExampleFunctions(object):
         arg_z = 1. / arg_z
         return np.exp(-arg_z)
 
-    def __call__(self, x, y, id=0):  # @ReservedAssignment
+    def __call__(self, x, y, i=0):
         s = self
         test_function = [s.franke, s.half_sphere, s.poly_degree20, s.exp_fun1,
                          s.exp_fun100, s.cos30, s.constant, s.exp_xy, s.runge,
                          s.abs_cubed, s.gauss, s.exp_inv]
-        return test_function[id](x, y)
+        return test_function[i](x, y)
 example_functions = _ExampleFunctions()
 
 
@@ -315,8 +317,8 @@ def padua_points(n, domain=(-1, 1, -1, 1)):
     a, b, c, d = domain
     t0 = [np.pi] if n == 0 else np.linspace(0, np.pi, n + 1)
     t1 = np.linspace(0, np.pi, n + 2)
-    zn = (a + b + (b - a) * np.cos(t0)) / 2
-    zn1 = (c + d + (d - c) * np.cos(t1)) / 2
+    zn = map_to_interval(np.cos(t0), a, b)
+    zn1 = map_to_interval(np.cos(t1), c, d)
 
     Pad1, Pad2 = np.meshgrid(zn, zn1)
     ix = _find_m(n)
@@ -357,6 +359,30 @@ def padua_fit(Pad, fun, *args):
     coefficents: coefficient matrix
     abs_err   : interpolation error estimate
 
+    Example
+    ------
+    >>> import numpy as np
+    >>> import wafo.padua as wp
+    >>> domain = [0, 1, 0, 1]
+    >>> a, b, c, d = domain
+    >>> points = wp.padua_points(21, domain)
+    >>> C0f, abs_error = wp.padua_fit(points, wp.example_functions.franke)
+    >>> x1 = np.linspace(a, b, 100)
+    >>> x2 = np.linspace(c, d, 101)
+    >>> val = wp.padua_val(x1, x2, C0f, domain, use_meshgrid=True)
+    >>> X1, X2 = np.meshgrid(x1, x2)
+    >>> true_val = wp.example_functions.franke(X1, X2)
+
+    >>> np.allclose(val, true_val, atol=10*abs_error)
+    True
+    >>> np.allclose(np.abs(val-true_val).max(), 0.0073174614275738296)
+    True
+    >>> np.allclose(abs_error, 0.0022486904061664046)
+    True
+
+    import matplotlib.pyplot as  plt
+    plt.contour(x1, x2, val)
+
     '''
 
     N = np.shape(Pad)[1]
@@ -387,7 +413,6 @@ def padua_fit(Pad, fun, *args):
 
 
 def paduavals2coefs(f):
-    useFFTwhenNisMoreThan = 100
     m = len(f)
     n = int(round(-1.5 + np.sqrt(.25 + 2 * m)))
     x = padua_points(n)
@@ -401,16 +426,15 @@ def paduavals2coefs(f):
     G = np.zeros(idx.max() + 1)
     G[idx] = 4 * w * f
 
-    if (n < useFFTwhenNisMoreThan):
+    use_dct = 100 < n
+    if use_dct:
+        C = np.rot90(dct(dct(G.T).T))  # , axis=1)
+    else:
         t1 = np.r_[0:n + 1].reshape(-1, 1)
         Tn1 = np.cos(t1 * t1.T * np.pi / n)
         t2 = np.r_[0:n + 2].reshape(-1, 1)
         Tn2 = np.cos(t2 * t2.T * np.pi / (n + 1))
         C = np.dot(Tn2, np.dot(G, Tn1))
-    else:
-
-        # dct = @(c) chebtech2.coeffs2vals(c);
-        C = np.rot90(dct(dct(G.T).T))  # , axis=1)
 
     C[0] = .5 * C[0]
     C[:, 1] = .5 * C[:, 1]
@@ -427,7 +451,7 @@ def paduavals2coefs(f):
 def padua_fit2(Pad, fun, *args):
     N = np.shape(Pad)[1]
     # recover the degree n from N = (n+1)(n+2)/2
-    _n = int(round(-3 + np.sqrt(1 + 8 * N)) / 2)
+    # _n = int(round(-3 + np.sqrt(1 + 8 * N)) / 2)
     C0f = fun(Pad[0], Pad[1], *args)
     return paduavals2coefs(C0f)
 
@@ -477,21 +501,28 @@ def padua_val(X, Y, coefficients, domain=(-1, 1, -1, 1), use_meshgrid=False):
      fxy : array-like
          evaluation of the interpolation polynomial at the target points
     '''
+    def transform(tn, x, a, b):
+        xn = map_from_interval(x, a, b).clip(min=-1, max=1).reshape(1, -1)
+        tx = np.cos(tn * np.arccos(xn)) * np.sqrt(2)
+        tx[0] = 1
+        return tx
+
     X, Y = np.atleast_1d(X, Y)
     original_shape = X.shape
-    min, max = np.minimum, np.maximum  # @ReservedAssignment
     a, b, c, d = domain
     n = np.shape(coefficients)[1]
 
-    X1 = min(max(2 * (X.ravel() - a) / (b - a) - 1, -1), 1).reshape(1, -1)
-    X2 = min(max(2 * (Y.ravel() - c) / (d - c) - 1, -1), 1).reshape(1, -1)
     tn = np.r_[0:n][:, None]
-    TX1 = np.cos(tn * np.arccos(X1))
-    TX2 = np.cos(tn * np.arccos(X2))
-    TX1[1:n + 1] = TX1[1:n + 1] * np.sqrt(2)
-    TX2[1:n + 1] = TX2[1:n + 1] * np.sqrt(2)
+    tx1 = transform(tn, X.ravel(), a, b)
+    tx2 = transform(tn, Y.ravel(), c, d)
+
     if use_meshgrid:  # eval on meshgrid points
-        return np.dot(TX1.T, np.dot(coefficients, TX2)).T
+        return np.dot(tx1.T, np.dot(coefficients, tx2)).T
     # scattered points
-    val = np.sum(np.dot(TX1.T, coefficients) * TX2.T, axis=1)
+    val = np.sum(np.dot(tx1.T, coefficients) * tx2.T, axis=1)
     return val.reshape(original_shape)
+
+
+if __name__ == '__main__':
+    from wafo.testing import test_docstrings
+    test_docstrings(__file__)
