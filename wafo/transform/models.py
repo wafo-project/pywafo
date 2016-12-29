@@ -353,7 +353,7 @@ class TrHermite(TrCommon2):
             # Find the real root of the monic polynomial
             A0 = (q1 - q0) ** (1. / 3.)
             B0 = -(q1 + q0) ** (1. / 3.)
-            return A0 + B0 - x0  #  real root
+            return A0 + B0 - x0  # real root
             # The other complex roots are given by
             # x= -(A0+B0)/2+(A0-B0)*sqrt(3)/2-x0
             # x=-(A0+B0)/2+(A0-B0)*sqrt(-3)/2-x0
