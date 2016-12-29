@@ -72,6 +72,14 @@ class _KDE(object):
         self.kernel = kernel if kernel else Kernel('gauss')
 
     @property
+    def inc(self):
+        return self._inc
+
+    @inc.setter
+    def inc(self, inc):
+        self._inc = inc
+
+    @property
     def dataset(self):
         return self._dataset
 
@@ -120,21 +128,6 @@ class _KDE(object):
 
     def _check_xmax(self, xmax):
         return xmax
-
-    def get_args(self, xmin=None, xmax=None):
-        sxmin = self.xmin
-        if xmin is not None:
-            sxmin = np.minimum(xmin, sxmin)
-
-        sxmax = self.xmax
-        if xmax is not None:
-            sxmax = np.maximum(xmax, sxmax)
-
-        args = []
-        inc = self.inc
-        for i in range(self.d):
-            args.append(np.linspace(sxmin[i], sxmax[i], inc))
-        return args
 
     def eval_grid_fast(self, *args, **kwds):
         """Evaluate the estimated pdf on a grid using fft.
@@ -204,6 +197,21 @@ class _KDE(object):
         if self.d > 1:
             self._add_contour_levels(wdata)
         return wdata
+
+    def get_args(self, xmin=None, xmax=None):
+        sxmin = self.xmin
+        if xmin is not None:
+            sxmin = np.minimum(xmin, sxmin)
+
+        sxmax = self.xmax
+        if xmax is not None:
+            sxmax = np.maximum(xmax, sxmax)
+
+        args = []
+        inc = self.inc
+        for i in range(self.d):
+            args.append(np.linspace(sxmin[i], sxmax[i], inc))
+        return args
 
     def eval_grid_fun(self, eval_grd, *args, **kwds):
         if len(args) == 0:
@@ -1355,9 +1363,9 @@ def kreg_demo1(hs=None, fast=False, fun='hisj'):
         -0.08348306, 0.00812816, -0.00908206, 0.14528945, 0.02901065])
     x = np.linspace(0, 1, N)
 
-    var_1 = 0.3 ** 2
-    var_2 = 0.7 ** 2
-    y0 = np.exp(-x ** 2 / (2 * var_1)) + 1.3*np.exp(-(x - 1) ** 2 / (2 * var_2))
+    va_1 = 0.3 ** 2
+    va_2 = 0.7 ** 2
+    y0 = np.exp(-x ** 2 / (2 * va_1)) + 1.3*np.exp(-(x - 1) ** 2 / (2 * va_2))
     y = y0 + ei
     kernel = Kernel('gauss', fun=fun)
     hopt = kernel.hisj(x)
