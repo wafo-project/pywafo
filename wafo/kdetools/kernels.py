@@ -9,8 +9,9 @@ import warnings
 import numpy as np
 from numpy import pi, sqrt, exp, percentile
 from numpy.fft import fft, ifft
-from scipy import optimize, linalg
+from scipy import optimize
 from scipy.special import gamma
+from scipy.linalg import sqrtm
 from wafo.misc import tranproc  # , trangood
 from wafo.kdetools.gridding import gridcount
 from wafo.dctpack import dct
@@ -289,8 +290,8 @@ class _Kernel(object):
     def kernel(self, x):
         return self._kernel(np.atleast_2d(x))
 
-    def deriv4_6_8_10(self, t, numout=4):
-        raise NotImplementedError('Method not implemented for this kernel!')
+#     def deriv4_6_8_10(self, t, numout=4):
+#         raise NotImplementedError('Method not implemented for this kernel!')
 
     def get_ste_constant(self, n):
         mu2, R = self.stats[:2]
@@ -542,7 +543,7 @@ class Kernel(object):
 
     """
 
-    def __init__(self, name, fun='hste'):  # 'hns'):
+    def __init__(self, name, fun='hste'):
         self.kernel = _MKERNEL_DICT[name[:4]]
         self.get_smoothing = getattr(self, fun)
 
@@ -681,7 +682,7 @@ class Kernel(object):
         """
         return self.hns(data) / 0.93
 
-    def _hmns_scale(self, d):
+    def _hmns_scale(self, n, d):
         name = self.name
         short_name = name[:4].lower()
         scale_dict = dict(epan=(8.0 * (d + 4.0) * (2 * sqrt(pi)) ** d /
@@ -694,7 +695,7 @@ class Kernel(object):
         if d > 2 and short_name in ['biwe', 'triw']:
             raise NotImplementedError('Not implemented for d>2 and '
                                       'kernel {}'.format(name))
-        return scale_dict[short_name]
+        return scale_dict[short_name] * n ** (-1. / (d + 4))
 
     def hmns(self, data):
         """Returns Multivariate Normal Scale Estimate of Smoothing Parameter.
@@ -742,9 +743,7 @@ class Kernel(object):
         d, n = a.shape
         if d == 1:
             return self.hns(data)
-        scale = self._hmns_scale(d)
-        cov_a = np.cov(a)
-        return scale * linalg.sqrtm(cov_a).real * n ** (-1. / (d + 4))
+        return self._hmns_scale(n, d) * np.real(sqrtm(np.cov(a)))
 
     @staticmethod
     def _get_g(k_order_2, mu2, psi_order, n, order):
@@ -1069,7 +1068,7 @@ class Kernel(object):
           True
 
          import matplotlib.pyplot as plt
-         plt.plot(hvec,score)
+         plt.plot(hvec, score)
 
          See also:
          hste, hbcv, hboot, hos, hldpi, hlscv, hstt, kde, kdefun
