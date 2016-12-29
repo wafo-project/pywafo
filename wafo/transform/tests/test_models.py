@@ -2,6 +2,7 @@ from wafo.transform.models import TrHermite, TrOchi, TrLinear
 import numpy as np
 from numpy.testing import assert_array_almost_equal
 
+
 def test_trhermite():
 
     std = 7. / 4

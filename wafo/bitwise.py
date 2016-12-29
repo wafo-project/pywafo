@@ -77,21 +77,14 @@ def setbits(bitlist):
     >>> setbits([1,0])
     1
     """
-#    return bitlist[7]<<7 | bitlist[6]<<6 | bitlist[5]<<5 | bitlist[4]<<4 | \
-#    bitlist[3]<<3 | bitlist[2]<<2 | bitlist[1]<<1 | bitlist[0]
     val = 0
     for i, j in enumerate(bitlist):
         val |= j << i
     return val
 
-
-def test_docstrings():
-    import doctest
-    print('Testing docstrings in %s' % __file__)
-    doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
-
 if __name__ == '__main__':
-    test_docstrings()
+    from wafo.testing import test_docstrings
+    test_docstrings(__file__)
 
 #    t = set(np.arange(8),1,1)
 #    t=get(0x84,np.arange(0,8))

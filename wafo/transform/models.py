@@ -15,6 +15,8 @@ import warnings
 from .core import TrCommon, TrData
 __all__ = ['TrHermite', 'TrLinear', 'TrOchi']
 
+_EPS = np.finfo(float).eps
+
 _example = '''
     >>> import numpy as np
     >>> import wafo.spectrum.models as sm
@@ -32,6 +34,16 @@ _example = '''
     >>> g2 = tm.<generic>(mean=me, var=va, skew=sk, kurt=ku, ysigma=std)
     >>> xs = g2.gauss2dat(ys[:,1:]) # Transformed to the real world
     '''
+
+
+def _assert(cond, msg):
+    if not cond:
+        raise ValueError(msg)
+
+
+def _assert_warn(cond, msg):
+    if not cond:
+        warnings.warn(msg)
 
 
 class TrCommon2(TrCommon):
@@ -132,91 +144,119 @@ class TrHermite(TrCommon2):
 
     def __init__(self, *args, **kwds):
         super(TrHermite, self).__init__(*args, **kwds)
-        self.pardef = kwds.get('pardef', 1)
         self._c3 = None
         self._c4 = None
         self._forward = None
         self._backward = None
         self._x_limit = None
+        self.pardef = kwds.get('pardef', 1)
         self.set_poly()
 
-    def _poly_par_from_stats(self):
-        skew = self.skew
-        ga2 = self.kurt - 3.0
-        if ga2 <= 0:
-            self._c4 = ga2 / 24.
-            self._c3 = skew / 6.
-        elif self.pardef == 2:
-            # Winterstein 1988 parametrization
-            if skew ** 2 > 8 * (ga2 + 3.) / 9.:
-                warnings.warn('Kurtosis too low compared to the skewness')
+    @property
+    def pardef(self):
+        return self._pardef
 
-            self._c4 = (sqrt(1. + 1.5 * ga2) - 1.) / 18.
-            self._c3 = skew / (6. * (1 + 6. * self._c4))
+    @pardef.setter
+    def pardef(self, pardef):
+        self._pardef = pardef
+        if pardef == 2:
+            self._softening_parameters = self._winterstein1988
         else:
-            # Winterstein et. al. 1994 parametrization intended to
-            # apply for the range:  0 <= ga2 < 12 and 0<= skew^2 < 2*ga2/3
-            if skew ** 2 > 2 * (ga2) / 3:
-                warnings.warn('Kurtosis too low compared to the skewness')
+            self._softening_parameters = self._winterstein1994
 
-            if (ga2 < 0) or (12 < ga2):
-                warnings.warn('Kurtosis must be between 0 and 12')
+    def _check_c3_c4(self, c3, c4):
+        _assert(np.isfinite(c3) and np.isfinite(c4),
+                'Unable to calculate the polynomial')
+        if abs(c4) < sqrt(_EPS):
+            c4 = 0.0
+        return c4
 
-            self._c3 = skew / 6 * \
-                (1 - 0.015 * abs(skew) + 0.3 * skew ** 2) / (1 + 0.2 * ga2)
-            if ga2 == 0.:
-                self._c4 = 0.0
-            else:
-                expon = 1. - 0.1 * (ga2 + 3.) ** 0.8
-                c41 = (1. - 1.43 * skew ** 2. / ga2) ** (expon)
-                self._c4 = 0.1 * ((1. + 1.25 * ga2) ** (1. / 3.) - 1.) * c41
+    def _winterstein1988(self, skew, excess_kurtosis):
+        """Winterstein 1988 parametrization"""
 
-        if not np.isfinite(self._c3) or not np.isfinite(self._c4):
-            raise ValueError('Unable to calculate the polynomial')
+        _assert_warn(skew ** 2 <= 8 * (excess_kurtosis + 3.) / 9,
+                     'Kurtosis too low compared to the skewness')
+        c4 = (sqrt(1. + 1.5 * excess_kurtosis) - 1.) / 18.
+        c3 = skew / (6. * (1 + 6. * c4))
+        c4 = self._check_c3_c4(c3, c4)
+        return c3, c4
+
+    def _winterstein1994(self, skew, excess_kurtosis):
+        """Winterstein et. al. 1994 parametrization
+
+        intended to apply for the range:
+
+         0 <= excess_kurtosis < 12 and 0<= skew^2 < 2*excess_kurtosis/3
+        """
+        _assert_warn(skew ** 2 <= 2 * (excess_kurtosis) / 3,
+                     'Kurtosis too low compared to the skewness')
+        _assert_warn(0 <= excess_kurtosis < 12,
+                     'Kurtosis must be between 0 and 12')
+        c3 = (skew / 6 * (1 - 0.015 * abs(skew) + 0.3 * skew ** 2) /
+              (1 + 0.2 * excess_kurtosis))
+        if excess_kurtosis == 0.:
+            c4 = 0.0
+        else:
+            expon = 1. - 0.1 * (excess_kurtosis + 3.) ** 0.8
+            c41 = (1. - 1.43 * skew ** 2. / excess_kurtosis) ** (expon)
+            c4 = 0.1 * ((1. + 1.25 * excess_kurtosis) ** (1. / 3.) - 1.) * c41
+        c4 = self._check_c3_c4(c3, c4)
+        return c3, c4
+
+    def _hardening_parameters(self, skew, excess_kurtosis):
+        c4 = excess_kurtosis / 24.
+        c3 = skew / 6.
+        c4 = self._check_c3_c4(c3, c4)
+        return c3, c4
+
+    def _set_x_limit(self, root, polynom):
+        """Compute where it is possible to invert the polynomial"""
+        if self.kurt <= 3.:
+            self._x_limit = root
+        else:
+            self._x_limit = self.sigma * polynom(root) + self.mean
+        txt1 = '''
+    The polynomial is not a strictly increasing function.
+    The derivative of g(x) is infinite at x = %g''' % self._x_limit
+        warnings.warn(txt1)
+
+    def _check_monotonicity(self, p):
+        dp = p.deriv(m=1)  # derivative
+        roots = dp.r       # roots of the derivative
+        roots = roots[where(abs(imag(roots)) < _EPS)]  # Keep only real roots
+        if roots.size > 0:
+            self._set_x_limit(roots, p)
+
+    def _set_hardening_model(self):
+        skew, excess_kurtosis = self.skew, self.kurt - 3.0
+        c3, c4 = self._hardening_parameters(skew, excess_kurtosis)
+        p = np.poly1d([-c4, -c3, 1. + 3. * c4, c3])
+        self._forward = p
+        self._backward = lambda yn: self._poly_inv(self._forward, yn)
+        # Check if it is a strictly increasing function.
+        self._check_monotonicity(p)
+
+    def _set_softening_model(self):
+        skew, excess_kurtosis = self.skew, self.kurt - 3.0
+        c3, c4 = self._softening_parameters(skew, excess_kurtosis)
+
+        Km1 = np.sqrt(1. + 2. * c3 ** 2 + 6 * c4 ** 2)
+        # backward G
+        p = np.poly1d(np.r_[c4, c3, 1. - 3. * c4, -c3] / Km1)
+        self._backward = p
+        self._forward = lambda yn: self._poly_inv(self._backward, yn)
+
+        # Check if it is a strictly increasing function.
+        self._check_monotonicity(p)
 
     def set_poly(self):
         '''
         Set poly function from stats (i.e., mean, sigma, skew and kurt)
         '''
-
-        if self._c3 is None:
-            self._poly_par_from_stats()
-        eps = np.finfo(float).eps
-        c3 = self._c3
-        c4 = self._c4
-        ma = self.mean
-        sa = self.sigma
-        if abs(c4) < sqrt(eps):
-            c4 = 0.0
-
-        #  gdef = self.kurt-3.0
-        if self.kurt < 3.0:
-            p = np.poly1d([-c4, -c3, 1. + 3. * c4, c3])  # forward, g
-            self._forward = p
-            self._backward = None
+        if self.kurt <= 3.0:
+            self._set_hardening_model()
         else:
-            Km1 = np.sqrt(1. + 2. * c3 ** 2 + 6 * c4 ** 2)
-            # backward G
-            p = np.poly1d(np.r_[c4, c3, 1. - 3. * c4, -c3] / Km1)
-            self._forward = None
-            self._backward = p
-
-        # Check if it is a strictly increasing function.
-        dp = p.deriv(m=1)  # % Derivative
-        r = dp.r  # % Find roots of the derivative
-        r = r[where(abs(imag(r)) < eps)]  # Keep only real roots
-
-        if r.size > 0:
-            # Compute where it is possible to invert the polynomial
-            if self.kurt < 3.:
-                self._x_limit = r
-            else:
-                self._x_limit = sa * p(r) + ma
-            txt1 = '''
-                The polynomial is not a strictly increasing function.
-                The derivative of g(x) is infinite at x = %g''' % self._x_limit
-            warnings.warn(txt1)
-        return
+            self._set_softening_model()
 
     def check_forward(self, x):
         if self._x_limit is not None:
@@ -262,6 +302,18 @@ class TrHermite(TrCommon2):
             xn = self._backward(yn)
         return self.sigma * xn + self.mean
 
+
+    def _solve_quadratic(self, p, xn):
+        # Quadratic: Solve a*u**2+b*u+c = xn
+        coefs = p.coeffs
+        a = coefs[0]
+        b = coefs[1]
+        c = coefs[2] - xn
+        t = 0.5 * (b + sign(b) * sqrt(b ** 2 - 4 * a * c))
+    # so1 = t/a # largest solution
+        so2 = -c / t # smallest solution
+        return so2
+
     def _poly_inv(self, p, xn):
         '''
         Invert polynomial
@@ -269,32 +321,27 @@ class TrHermite(TrCommon2):
         if p.order < 2:
             return xn
         elif p.order == 2:
-            # Quadratic: Solve a*u**2+b*u+c = xn
-            coefs = p.coeffs
-            a = coefs[0]
-            b = coefs[1]
-            c = coefs[2] - xn
-            t = 0.5 * (b + sign(b) * sqrt(b ** 2 - 4 * a * c))
-            # so1 = t/a # largest solution
-            so2 = -c / t  # smallest solution
-            return so2
+            return self._solve_quadratic(p, xn)
         elif p.order == 3:
-            # Solve
-            # K*(c4*u^3+c3*u^2+(1-3*c4)*u-c3) = xn = (x-ma)/sa
-            # -c4*xn^3-c3*xn^2+(1+3*c4)*xn+c3 = u
-            coefs = p.coeffs[1::] / p.coeffs[0]
-            a = coefs[0]
-            b = coefs[1]
-            c = coefs[2] - xn / p.coeffs[0]
+            return self._solve_third_order(p, xn)
 
-            x0 = a / 3.
-            # substitue xn = z-x0  and divide by c4 => z^3 + 3*p1*z+2*q0  = 0
-            p1 = b / 3 - x0 ** 2
-            # p1 = (b-a**2/3)/3
+    def _solve_third_order(self, p, xn):
+        # Solve
+        # K*(c4*u^3+c3*u^2+(1-3*c4)*u-c3) = xn = (x-ma)/sa
+        # -c4*xn^3-c3*xn^2+(1+3*c4)*xn+c3 = u
+        coefs = p.coeffs[1::] / p.coeffs[0]
+        a = coefs[0]
+        b = coefs[1]
+        c = coefs[2] - xn / p.coeffs[0]
 
-            # q0 = (c + x0*(2.*x0/3.-b))/2.
-            # q0 = x0**3 -a*b/6 +c/2
-            q0 = x0 * (x0 ** 2 - b / 2) + c / 2
+        x0 = a / 3.
+        # substitue xn = z-x0  and divide by c4 => z^3 + 3*p1*z+2*q0  = 0
+        p1 = b / 3 - x0 ** 2
+        # p1 = (b-a**2/3)/3
+
+        # q0 = (c + x0*(2.*x0/3.-b))/2.
+        # q0 = x0**3 -a*b/6 +c/2
+        q0 = x0 * (x0 ** 2 - b / 2) + c / 2
 # z^3+3*p1*z+2*q0=0
 
 #            c3 = self._c3
@@ -305,23 +352,23 @@ class TrHermite(TrCommon2):
 # p1  = b1-1.-x0**2.
 #            Km1 = np.sqrt(1.+2.*c3**2+6*c4**2)
 #            q0 = x0**3-1.5*b1*(x0+xn*Km1)
-            # q0 = x0**3-1.5*b1*(x0+xn)
-            if self._x_limit is not None:  # % Three real roots
-                d = sqrt(-p1)
-                theta1 = arccos(-q0 / d ** 3) / 3
-                th2 = np.r_[0, -2 * pi / 3, 2 * pi / 3]
-                x1 = abs(2 * d * cos(theta1[ceil(len(xn) / 2)] + th2) - x0)
-                ix = x1.argmin()  # % choose the smallest solution
-                return 2. * d * cos(theta1 + th2[ix]) - x0
-            else:                # %Only one real root exist
-                q1 = sqrt((q0) ** 2 + p1 ** 3)
-                # Find the real root of the monic polynomial
-                A0 = (q1 - q0) ** (1. / 3.)
-                B0 = -(q1 + q0) ** (1. / 3.)
-                return A0 + B0 - x0  # % real root
-                # The other complex roots are given by
-                # x= -(A0+B0)/2+(A0-B0)*sqrt(3)/2-x0
-                # x=-(A0+B0)/2+(A0-B0)*sqrt(-3)/2-x0
+        # q0 = x0**3-1.5*b1*(x0+xn)
+        if self._x_limit is not None:  # % Three real roots
+            d = sqrt(-p1)
+            theta1 = arccos(-q0 / d ** 3) / 3
+            th2 = np.r_[0, -2 * pi / 3, 2 * pi / 3]
+            x1 = abs(2 * d * cos(theta1[ceil(len(xn) / 2)] + th2) - x0)
+            ix = x1.argmin()  # choose the smallest solution
+            return 2. * d * cos(theta1 + th2[ix]) - x0
+        else:                # Only one real root exist
+            q1 = sqrt((q0) ** 2 + p1 ** 3)
+            # Find the real root of the monic polynomial
+            A0 = (q1 - q0) ** (1. / 3.)
+            B0 = -(q1 + q0) ** (1. / 3.)
+            return A0 + B0 - x0  #  real root
+            # The other complex roots are given by
+            # x= -(A0+B0)/2+(A0-B0)*sqrt(3)/2-x0
+            # x=-(A0+B0)/2+(A0-B0)*sqrt(-3)/2-x0
 
 
 class TrLinear(TrCommon2):
