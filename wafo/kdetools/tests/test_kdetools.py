@@ -9,6 +9,7 @@ import numpy as np
 from numpy.testing import assert_allclose
 import wafo.objects as wo
 import wafo.kdetools as wk
+from wafo.kdetools.tests.data import DATA2D
 # import scipy.stats as st
 
 
@@ -165,16 +166,7 @@ class TestKde(unittest.TestCase):
     def test_KDE2D(self):
         # N = 20
         # data = np.random.rayleigh(1, size=(2, N))
-        data = np.array([
-            [0.38103275, 0.35083136, 0.90024207, 1.88230239, 0.96815399,
-             0.57392873, 1.63367908, 1.20944125, 2.03887811, 0.81789145,
-             0.69302049, 1.40856592, 0.92156032, 2.14791432, 2.04373821,
-             0.69800708, 0.58428735, 1.59128776, 2.05771405, 0.87021964],
-            [1.44080694, 0.39973751, 1.331243, 2.48895822, 1.18894158,
-             1.40526085, 1.01967897, 0.81196474, 1.37978932, 2.03334689,
-             0.870329, 1.25106862, 0.5346619, 0.47541236, 1.51930093,
-             0.58861519, 1.19780448, 0.81548296, 1.56859488, 1.60653533]])
-
+        data = DATA2D
         x = np.linspace(0, max(np.ravel(data)) + 1, 3)
 
         kde0 = wk.KDE(data, hs=0.5, alpha=0.0, inc=512)
