@@ -132,12 +132,14 @@ class _ExampleFunctions(object):
 
         Maple: 0.40696958949155611906
         '''
-        exp = np.exp
+        def _exp(x, y, loc, scale, p2=2):
+            return np.exp(- (x-loc[0])**2/scale[0] - (y-loc[1])**p2/scale[1])
+        # exp = np.exp
         x9, y9 = 9. * x, 9. * y
-        return (3. / 4 * exp(-((x9 - 2)**2 + (y9 - 2)**2) / 4) +
-                3. / 4 * exp(-(x9 + 1)**2 / 49 - (y9 + 1) / 10) +
-                1. / 2 * exp(-((x9 - 7)**2 + (y9 - 3)**2) / 4) -
-                1. / 5 * exp(-(x9 - 4)**2 - (y9 - 7)**2))
+        return (3. / 4 * _exp(x9, y9, [2, 2], [4, 4]) +
+                3. / 4 * _exp(x9, y9, [-1, -1], [49, 10], p2=1) +
+                1. / 2 * _exp(x9, y9, [7, 3], [4, 4]) -
+                1. / 5 * _exp(x9, y9, [4, 7], [1, 1]))
 
     @staticmethod
     def half_sphere(x, y):
@@ -449,7 +451,7 @@ def paduavals2coefs(f):
 
 # TODO: padua_fit2 does not work correctly yet.
 def padua_fit2(Pad, fun, *args):
-    N = np.shape(Pad)[1]
+    # N = np.shape(Pad)[1]
     # recover the degree n from N = (n+1)(n+2)/2
     # _n = int(round(-3 + np.sqrt(1 + 8 * N)) / 2)
     C0f = fun(Pad[0], Pad[1], *args)
