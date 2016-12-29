@@ -302,7 +302,6 @@ class TrHermite(TrCommon2):
             xn = self._backward(yn)
         return self.sigma * xn + self.mean
 
-
     def _solve_quadratic(self, p, xn):
         # Quadratic: Solve a*u**2+b*u+c = xn
         coefs = p.coeffs
@@ -310,8 +309,8 @@ class TrHermite(TrCommon2):
         b = coefs[1]
         c = coefs[2] - xn
         t = 0.5 * (b + sign(b) * sqrt(b ** 2 - 4 * a * c))
-    # so1 = t/a # largest solution
-        so2 = -c / t # smallest solution
+        # so1 = t/a # largest solution
+        so2 = -c / t  # smallest solution
         return so2
 
     def _poly_inv(self, p, xn):
