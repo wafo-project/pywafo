@@ -279,14 +279,8 @@ class TrHermite(TrCommon2):
             raise ValueError('Transforming derivatives is not implemented!')
         xn = atleast_1d(x)
         self.check_forward(xn)
-
         xn = (xn - self.mean) / self.sigma
-
-        if self._forward is None:
-            # Inverting the polynomial
-            yn = self._poly_inv(self._backward, xn)
-        else:
-            yn = self._forward(xn)
+        yn = self._forward(xn)
         return yn * self.ysigma + self.ymean
 
     def _gauss2dat(self, y, *yi):
@@ -294,12 +288,7 @@ class TrHermite(TrCommon2):
             raise ValueError('Transforming derivatives is not implemented!')
         yn = (atleast_1d(y) - self.ymean) / self.ysigma
         # self.check_forward(y)
-
-        if self._backward is None:
-            # Inverting the polynomial
-            xn = self._poly_inv(self._forward, yn)
-        else:
-            xn = self._backward(yn)
+        xn = self._backward(yn)
         return self.sigma * xn + self.mean
 
     def _solve_quadratic(self, p, xn):
