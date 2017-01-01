@@ -1527,7 +1527,7 @@ class FitDistribution(rv_frozen):
                 'P-value is on the conservative side (i.e. too large) due to' +
                 ' ties in the data!')
 
-        T = self.dist.nlogps(theta, x)
+        T = self._nlogps(theta, x)
 
         n = len(x)
         np1 = n + 1
