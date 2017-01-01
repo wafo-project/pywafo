@@ -287,7 +287,7 @@ def _nlogps_and_penalty(self, x, scale, args):
     n_bad = np.sum(cond0)
     if n_bad > 0:
         x = argsreduce(~cond0, x)[0]
-    log_dprb = _log_dprb(x, args, scale)
+    log_dprb = _log_dprb(self, x, args, scale)
     finite_log_dprb = np.isfinite(log_dprb)
     n_bad += np.sum(~finite_log_dprb, axis=0)
     if n_bad > 0:
