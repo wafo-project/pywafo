@@ -219,42 +219,85 @@ def freeze(self, *args, **kwds):
     return rv_frozen(self, *args, **kwds)
 
 
-def link(self, x, logSF, theta, i):
-    '''
-    Return theta[i] as function of quantile, survival probability and
-        theta[j] for j!=i.
+# def link(self, x, logSF, theta, i):
+#     '''
+#     Return theta[i] as function of quantile, survival probability and
+#         theta[j] for j!=i.
+#
+#     Parameters
+#     ----------
+#     x : quantile
+#     logSF : logarithm of the survival probability
+#     theta : list
+#         all distribution parameters including location and scale.
+#
+#     Returns
+#     -------
+#     theta[i] : real scalar
+#         fixed distribution parameter theta[i] as function of x, logSF and
+#         theta[j] where j != i.
+#
+#     LINK is a function connecting the fixed distribution parameter theta[i]
+#     with the quantile (x) and the survival probability (SF) and the
+#     remaining free distribution parameters theta[j] for j!=i, i.e.:
+#         theta[i] = link(x, logSF, theta, i),
+#     where logSF = log(Prob(X>x; theta)).
+#
+#     See also
+#     estimation.Profile
+#     '''
+#     return self._link(x, logSF, theta, i)
+#
+#
+# def _link(self, x, logSF, theta, i):
+#     msg = 'Link function not implemented for the {} distribution'
+#     raise NotImplementedError(msg.format(self.name))
 
-    Parameters
-    ----------
-    x : quantile
-    logSF : logarithm of the survival probability
-    theta : list
-        all distribution parameters including location and scale.
 
-    Returns
-    -------
-    theta[i] : real scalar
-        fixed distribution parameter theta[i] as function of x, logSF and
-        theta[j] where j != i.
-
-    LINK is a function connecting the fixed distribution parameter theta[i]
-    with the quantile (x) and the survival probability (SF) and the
-    remaining free distribution parameters theta[j] for j!=i, i.e.:
-        theta[i] = link(x, logSF, theta, i),
-    where logSF = log(Prob(X>x; theta)).
-
-    See also
-    estimation.Profile
-    '''
-    return self._link(x, logSF, theta, i)
+def _resolve_ties(self, log_dprb, x, args, scale):
+    dx = np.diff(x, axis=0)
+    tie = dx == 0
+    if any(tie):  # TODO : implement this method for treating ties in data:
+        # Assume measuring error is delta. Then compute
+        # yL = F(xi-delta,theta)
+        # yU = F(xi+delta,theta)
+        # and replace
+        # logDj = log((yU-yL)/(r-1)) for j = i+1,i+2,...i+r-1
+        # The following is OK when only minimization of T is wanted
+        i_tie, = np.nonzero(tie)
+        log_dprb[i_tie + 1] = log(self._pdf(x[i_tie], *args)) - log(scale)
+    return log_dprb
 
 
-def _link(self, x, logSF, theta, i):
-    msg = 'Link function not implemented for the {} distribution'
-    raise NotImplementedError(msg.format(self.name))
+def _log_dprb(self, x, args, scale, lowertail=True):
+
+    if lowertail:
+        prb = np.hstack((0.0, self.cdf(x, *args), 1.0))
+        dprb = np.diff(prb)
+    else:
+        prb = np.hstack((1.0, self.sf(x, *args), 0.0))
+        dprb = -np.diff(prb)
+    log_dprb = log(dprb + _XMIN)
+    log_dprb = _resolve_ties(self, log_dprb, x, args, scale)
+    return log_dprb
 
 
-def nlogps(self, theta, x):
+def _nlogps_and_penalty(self, x, scale, args):
+    cond0 = ~self._support_mask(x)
+    n_bad = np.sum(cond0)
+    if n_bad > 0:
+        x = argsreduce(~cond0, x)[0]
+    log_dprb = _log_dprb(x, args, scale)
+    finite_log_dprb = np.isfinite(log_dprb)
+    n_bad += np.sum(~finite_log_dprb, axis=0)
+    if n_bad > 0:
+        penalty = 100.0 * np.log(_XMAX) * n_bad
+        return -np.sum(log_dprb[finite_log_dprb], axis=0) + penalty
+
+    return -np.sum(log_dprb, axis=0)
+
+
+def _penalized_nlogps(self, theta, x):
     """ Moran's negative log Product Spacings statistic
 
         where theta are the parameters (including loc and scale)
@@ -279,53 +322,35 @@ def nlogps(self, theta, x):
     product of spacings.",
     IMS Lecture Notes Monograph Series 2006, Vol. 52, pp. 272-283
     """
+    loc, scale, args = _unpack_loc_scale(theta)
+    if not self._argcheck(*args) or scale <= 0:
+        return inf
+    x = asarray((x - loc) / scale)
+    return _nlogps_and_penalty(self, x, scale, args)
 
+
+def _unpack_loc_scale(theta):
     try:
         loc = theta[-2]
         scale = theta[-1]
         args = tuple(theta[:-2])
     except IndexError:
         raise ValueError("Not enough input arguments.")
-    if not self._argcheck(*args) or scale <= 0:
-        return inf
-    x = asarray((x - loc) / scale)
-    cond0 = (x < self.a) | (self.b < x)
-    Nbad = np.sum(cond0)
-    if Nbad > 0:
+    return loc, scale, args
+
+
+def _nnlf_and_penalty(self, x, args):
+    cond0 = ~self._support_mask(x)
+    n_bad = sum(cond0)
+    if n_bad > 0:
         x = argsreduce(~cond0, x)[0]
-
-    lowertail = True
-    if lowertail:
-        prb = np.hstack((0.0, self.cdf(x, *args), 1.0))
-        dprb = np.diff(prb)
-    else:
-        prb = np.hstack((1.0, self.sf(x, *args), 0.0))
-        dprb = -np.diff(prb)
-
-    logD = log(dprb + _XMIN)
-    dx = np.diff(x, axis=0)
-    tie = (dx == 0)
-    if any(tie):
-        # TODO : implement this method for treating ties in data:
-        # Assume measuring error is delta. Then compute
-        # yL = F(xi-delta,theta)
-        # yU = F(xi+delta,theta)
-        # and replace
-        # logDj = log((yU-yL)/(r-1)) for j = i+1,i+2,...i+r-1
-
-        # The following is OK when only minimization of T is wanted
-        i_tie, = np.nonzero(tie)
-        tiedata = x[i_tie]
-        logD[i_tie + 1] = log(self._pdf(tiedata, *args)) - log(scale)
-
-    finiteD = np.isfinite(logD)
-    nonfiniteD = 1 - finiteD
-    Nbad += np.sum(nonfiniteD, axis=0)
-    if Nbad > 0:
-        T = -np.sum(logD[finiteD], axis=0) + 100.0 * np.log(_XMAX) * Nbad
-    else:
-        T = -np.sum(logD, axis=0)
-    return T
+    logpdf = self._logpdf(x, *args)
+    finite_logpdf = np.isfinite(logpdf)
+    n_bad += np.sum(~finite_logpdf, axis=0)
+    if n_bad > 0:
+        penalty = n_bad * log(_XMAX) * 100
+        return -np.sum(logpdf[finite_logpdf], axis=0) + penalty
+    return -np.sum(logpdf, axis=0)
 
 
 def _penalized_nnlf(self, theta, x, penalty=None):
@@ -333,29 +358,12 @@ def _penalized_nnlf(self, theta, x, penalty=None):
     i.e., - sum (log pdf(x, theta), axis=0)
        where theta are the parameters (including loc and scale)
     '''
-    try:
-        loc = theta[-2]
-        scale = theta[-1]
-        args = tuple(theta[:-2])
-    except IndexError:
-        raise ValueError("Not enough input arguments.")
+    loc, scale, args = _unpack_loc_scale(theta)
     if not self._argcheck(*args) or scale <= 0:
         return inf
     x = asarray((x-loc) / scale)
-    N = len(x)
-    cond0 = (x < self.a) | (self.b < x)
-    Nbad = sum(cond0)
-    if Nbad > 0:
-        x = argsreduce(~cond0, x)[0]
-    logpdf = self._logpdf(x, *args)
-    finite_logpdf = np.isfinite(logpdf)
-    Nbad += np.sum(~finite_logpdf, axis=0)
-    logscale = N * log(scale)
-    if Nbad > 0:
-        if penalty is None:
-            penalty = Nbad * log(_XMAX) * 100
-        return -np.sum(logpdf[finite_logpdf], axis=0) + penalty + logscale
-    return -np.sum(logpdf, axis=0) + logscale
+    n_log_scale = len(x) * log(scale)
+    return _nnlf_and_penalty(self, x, args) + n_log_scale
 
 
 def _reduce_func(self, args, options):
@@ -387,7 +395,7 @@ def _reduce_func(self, args, options):
             x0.append(args[n])
     method = kwds.pop('method', 'ml').lower()
     if method.startswith('mps'):
-        fitfun = self.nlogps
+        fitfun = self._penalized_nlogps
     else:
         fitfun = self._penalized_nnlf
 
@@ -609,9 +617,9 @@ def _open_support_mask(self, x):
 rv_generic.freeze = freeze
 rv_discrete.freeze = freeze
 rv_continuous.freeze = freeze
-rv_continuous.link = link
-rv_continuous._link = _link
-rv_continuous.nlogps = nlogps
+#rv_continuous.link = link
+#rv_continuous._link = _link
+rv_continuous._penalized_nlogps = _penalized_nlogps
 rv_continuous._penalized_nnlf = _penalized_nnlf
 rv_continuous._reduce_func = _reduce_func
 rv_continuous.fit = fit

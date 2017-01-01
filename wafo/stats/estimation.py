@@ -1119,43 +1119,8 @@ class FitDistribution(rv_frozen):
         return -H
 
     def _nnlf(self, theta, x):
-        return self.dist._penalized_nnlf(theta, x, self._penalty)
+        return self.dist._penalized_nnlf(theta, x)
 
-    def _log_dprb(self, x, args, scale, dist):
-        lowertail = True
-        if lowertail:
-            prb = np.hstack((0.0, dist.cdf(x, *args), 1.0))
-            dprb = np.diff(prb)
-        else:
-            prb = np.hstack((1.0, dist.sf(x, *args), 0.0))
-            dprb = -np.diff(prb)
-
-        log_dprb = log(dprb + _XMIN)
-
-        dx = np.diff(x, axis=0)
-        tie = dx == 0
-        if np.any(tie):
-            # TODO : implement this method for treating ties in data:
-            # Assume measuring error is delta. Then compute
-            # yL = F(xi - delta, theta)
-            # yU = F(xi + delta, theta)
-            # and replace
-            # logDj = log((yU-yL)/(r-1)) for j = i+1,i+2,...i+r-1
-            # The following is OK when only minimization of T is wanted
-            i_tie, = np.nonzero(tie)
-            tiedata = x[i_tie]
-            log_dprb[i_tie + 1] = log(dist._pdf(tiedata, *args)) - log(scale)
-        return log_dprb
-
-    def _compute_penalty(self, Nbad, finiteD):
-        nonfiniteD = 1 - finiteD
-        Nbad += np.sum(nonfiniteD, axis=0)
-        if Nbad > 0:
-            if self._penalty is None:
-                penalty = 100.0 * log(_XMAX) * Nbad
-            else:
-                penalty = 0.0
-        return penalty
 
     def _nlogps(self, theta, x):
         """ Moran's negative log Product Spacings statistic
@@ -1182,33 +1147,7 @@ class FitDistribution(rv_frozen):
         product of spacings.",
         IMS Lecture Notes Monograph Series 2006, Vol. 52, pp. 272-283
         """
-        def parse_theta(theta, dist):
-            n = 2 if isinstance(dist, rv_continuous) else 1
-            try:
-                loc = theta[-n]
-                scale = theta[-1]
-                args = tuple(theta[:-n])
-            except IndexError:
-                raise ValueError("Not enough input arguments.")
-            if not isinstance(dist, rv_continuous):
-                scale = 1
-            return args, loc, scale
-
-        dist = self.dist
-        args, loc, scale = parse_theta(theta, dist)
-        if not dist._argcheck(*args) or scale <= 0:
-            return np.inf
-        x = asarray((x - loc) / scale)
-        cond0 = (x < dist.a) | (dist.b < x)
-        Nbad = np.sum(cond0)
-        if Nbad > 0:
-            x = argsreduce(~cond0, x)[0]
-
-        log_dprb = self._log_dprb(x, args, scale, dist)
-
-        finiteD = np.isfinite(log_dprb)
-        penalty = self._compute_penalty(Nbad, finiteD)
-        return -np.sum(log_dprb[finiteD], axis=0) + penalty
+        return self.dist._penalized_nlogps(theta, x)
 
     @staticmethod
     def _get_optimizer(kwds):
@@ -1246,7 +1185,6 @@ class FitDistribution(rv_frozen):
             warnings.warn("Did not converge")
 
     def _fit(self, *args, **kwds):
-        self._penalty = None
         data = self.data
 
         args = self._fit_start(data, args, kwds)
@@ -1276,7 +1214,7 @@ class FitDistribution(rv_frozen):
         '''
         numpar = self.dist.numargs + 2
         par_cov = zeros((numpar, numpar))
-        # self._penalty = 0
+
         somefixed = ((self.par_fix is not None) and
                      np.any(isfinite(self.par_fix)))
 
