@@ -26,12 +26,23 @@ class TestKde(unittest.TestCase):
                               0.72433808, 1.92973094, 0.44749838, 1.36508452])
         self.x = np.linspace(0, max(self.data) + 1, 10)
 
+    def test_default_bandwidth_and_inc(self):
+        kde0 = wk.KDE(self.data, hs=-1, alpha=0.0, inc=None)
+        print(kde0.hs.tolist(), kde0.inc)
+        assert_allclose(kde0.hs, 0.19682759537327105)
+        assert_allclose(kde0.inc, 64)
+
     def test0_KDE1D(self):
         data, x = self.data, self.x
 
         kde0 = wk.KDE(data, hs=0.5, alpha=0.0, inc=16)
 
         fx = kde0.eval_grid(x)
+        assert_allclose(fx, [0.2039735,  0.40252503,  0.54595078,
+                             0.52219649,  0.3906213, 0.26381501,  0.16407362,
+                             0.08270612,  0.02991145,  0.00720821])
+
+        fx = kde0.eval_points(x)
         assert_allclose(fx, [0.2039735,  0.40252503,  0.54595078,
                              0.52219649,  0.3906213, 0.26381501,  0.16407362,
                              0.08270612,  0.02991145,  0.00720821])
@@ -88,6 +99,11 @@ class TestKde(unittest.TestCase):
         assert_allclose(f, [1.03982714,  0.45839018,  0.39514782,  0.32860602,
                             0.26433318, 0.20717946,  0.15907684,  0.1201074,
                             0.08941027,  0.06574882])
+        f = kde.eval_points(x)
+        assert_allclose(f, [1.03982714,  0.45839018,  0.39514782,  0.32860602,
+                            0.26433318, 0.20717946,  0.15907684,  0.1201074,
+                            0.08941027,  0.06574882])
+
         assert_allclose(np.trapz(f, x), 0.94787730659349068)
         f = kde.eval_grid_fast(x)
         assert_allclose(f, [1.0401892415290148, 0.45838973393693677,
@@ -170,17 +186,28 @@ class TestKde(unittest.TestCase):
         x = np.linspace(0, max(np.ravel(data)) + 1, 3)
 
         kde0 = wk.KDE(data, hs=0.5, alpha=0.0, inc=512)
-
         assert_allclose(kde0.eval_grid(x, x),
                         [[3.27260963e-02, 4.21654678e-02, 5.85338634e-04],
                          [6.78845466e-02, 1.42195839e-01, 1.41676003e-03],
                          [1.39466746e-04, 4.26983850e-03, 2.52736185e-05]])
 
+        f0 = kde0.eval_grid_fast(x, x, output='plot')
         t = [[0.0443506097653615, 0.06433530873456418, 0.0041353838654317856],
              [0.07218297149063724, 0.1235819591878892, 0.009288890372002473],
              [0.001613328022214066, 0.00794857884864038, 0.0005874786787715641]
              ]
-        assert_allclose(kde0.eval_grid_fast(x, x), t)
+        assert_allclose(f0.data, t)
+
+    def test_2d_default_bandwidth(self):
+        # N = 20
+        # data = np.random.rayleigh(1, size=(2, N))
+        data = DATA2D
+        kde0 = wk.KDE(data, kernel=wk.Kernel('epan', 'hmns'), inc=512)
+
+        assert_allclose(kde0.hs, [[0.8838122391117693, 0.08341940479019105],
+                                  [0.08341940479019104, 0.7678179747855731]])
+        self.assertRaises(ValueError, kde0.eval_points, [1, 2, 3])
+        assert_allclose(kde0.eval_points([1, 2]), 0.11329600006973661)
 
 
 class TestRegression(unittest.TestCase):
