@@ -412,27 +412,6 @@ class TKDE(_KDE):
         Check the KDE for spurious spikes''')
         return pdf
 
-    def eval_grid_fast2(self, *args, **kwds):
-        """Evaluate the estimated pdf on a grid.
-
-        Parameters
-        ----------
-        arg_0,arg_1,... arg_d-1 : vectors
-           Alternatively, if no vectors is passed in then
-            arg_i = gauss2dat(linspace(dat2gauss(self.xmin[i]),
-                                       dat2gauss(self.xmax[i]), self.inc))
-        output : string optional
-            'value' if value output
-            'data' if object output
-
-        Returns
-        -------
-        values : array-like
-           The values evaluated at meshgrid(*args).
-
-        """
-        return self.eval_grid_fun(self._eval_grid_fast, *args, **kwds)
-
     def _interpolate(self, points, f, *args, **kwds):
         ipoints = meshgrid(*args)  # if self.d > 1 else args
         for i in range(self.d):

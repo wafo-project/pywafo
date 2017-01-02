@@ -32,9 +32,9 @@ def kde_demo1():
     data = np.random.normal(loc=0, scale=1.0, size=7)
     kernel = Kernel('gauss')
     hs = kernel.hns(data)
-    hVec = [hs / 2, hs, 2 * hs]
+    h_vec = [hs / 2, hs, 2 * hs]
 
-    for ix, h in enumerate(hVec):
+    for ix, h in enumerate(h_vec):
         plt.figure(ix)
         kde = KDE(data, hs=h, kernel=kernel)
         f2 = kde(x, output='plot', title='h_s = {0:2.2f}'.format(float(h)),
@@ -176,7 +176,8 @@ def kde_demo5(N=500):
 
 
 def kreg_demo1(hs=None, fast=False, fun='hisj'):
-    """"""
+    """Compare KRegression to KernelReg from statsmodels.nonparametric
+    """
     N = 100
     # ei = np.random.normal(loc=0, scale=0.075, size=(N,))
     ei = np.array([
@@ -236,6 +237,9 @@ def kreg_demo1(hs=None, fast=False, fun='hisj'):
 
 
 def _get_data(n=100, symmetric=False, loc1=1.1, scale1=0.6, scale2=1.0):
+    """
+    Return test data for binomial regression demo.
+    """
     st = scipy.stats
     dist = st.norm
 
@@ -262,6 +266,9 @@ def _get_data(n=100, symmetric=False, loc1=1.1, scale1=0.6, scale2=1.0):
 
 
 def check_bkregression():
+    """
+    Check binomial regression
+    """
     plt.ion()
     k = 0
     for _i, n in enumerate([50, 100, 300, 600]):
