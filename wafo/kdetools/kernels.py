@@ -483,7 +483,9 @@ class Kernel(object):
         'rectangular'   - Rectangular kernel.
         'laplace'       - Laplace kernel.
         'logistic'      - Logistic kernel.
-    Note that only the first 4 letters of the kernel name is needed.
+        Note that only the first 4 letters of the kernel name is needed.
+    fun : string
+        defining smoothing function/bandwidth.
 
     Examples
     --------
