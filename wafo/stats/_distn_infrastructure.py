@@ -3,10 +3,10 @@ from scipy.stats._distn_infrastructure import *  # @UnusedWildImport
 from scipy.stats._distn_infrastructure import (_skew,  # @UnusedImport
     _kurtosis,  _ncx2_log_pdf,  # @IgnorePep8 @UnusedImport
     _ncx2_pdf,  _ncx2_cdf)  # @UnusedImport @IgnorePep8
-from .estimation import FitDistribution
+from .estimation import FitDistribution, rv_frozen  # @Reimport
 from ._constants import _XMAX, _XMIN
-from wafo.misc import lazyselect as _lazyselect
-from wafo.misc import lazywhere as _lazywhere
+from wafo.misc import lazyselect as _lazyselect  # @UnusedImport
+from wafo.misc import lazywhere as _lazywhere  # @UnusedImport
 
 _doc_default_example = """\
 Examples
@@ -70,137 +70,6 @@ Accurate confidence interval with profile loglikelihood
 """
 
 
-# Frozen RV class
-class rv_frozen(object):
-    ''' Frozen continous or discrete 1D Random Variable object (RV)
-
-    Methods
-    -------
-    rvs(size=1)
-        Random variates.
-    pdf(x)
-        Probability density function.
-    cdf(x)
-        Cumulative density function.
-    sf(x)
-        Survival function (1-cdf --- sometimes more accurate).
-    ppf(q)
-        Percent point function (inverse of cdf --- percentiles).
-    isf(q)
-        Inverse survival function (inverse of sf).
-    stats(moments='mv')
-        Mean('m'), variance('v'), skew('s'), and/or kurtosis('k').
-    moment(n)
-        n-th order non-central moment of distribution.
-    entropy()
-        (Differential) entropy of the RV.
-    interval(alpha)
-        Confidence interval with equal areas around the median.
-    expect(func, lb, ub, conditional=False)
-        Calculate expected value of a function with respect to the
-        distribution.
-    '''
-    def __init__(self, dist, *args, **kwds):
-        # create a new instance
-        self.dist = dist  # .__class__(**dist._ctor_param)
-        shapes, loc, scale = self.dist._parse_args(*args, **kwds)
-        if isinstance(dist, rv_continuous):
-            self.par = shapes + (loc, scale)
-        else:  # rv_discrete
-            self.par = shapes + (loc,)
-        self.a = self.dist.a
-        self.b = self.dist.b
-        self.shapes = self.dist.shapes
-    # @property
-    # def shapes(self):
-    #     return self.dist.shapes
-
-    @property
-    def random_state(self):
-        return self.dist._random_state
-
-    @random_state.setter
-    def random_state(self, seed):
-        self.dist._random_state = check_random_state(seed)
-
-    def pdf(self, x):
-        ''' Probability density function at x of the given RV.'''
-        return self.dist.pdf(x, *self.par)
-
-    def logpdf(self, x):
-        return self.dist.logpdf(x, *self.par)
-
-    def cdf(self, x):
-        '''Cumulative distribution function at x of the given RV.'''
-        return self.dist.cdf(x, *self.par)
-
-    def logcdf(self, x):
-        return self.dist.logcdf(x, *self.par)
-
-    def ppf(self, q):
-        '''Percent point function (inverse of cdf) at q of the given RV.'''
-        return self.dist.ppf(q, *self.par)
-
-    def isf(self, q):
-        '''Inverse survival function at q of the given RV.'''
-        return self.dist.isf(q, *self.par)
-
-    def rvs(self, size=None, random_state=None):
-        kwds = {'size': size, 'random_state': random_state}
-        return self.dist.rvs(*self.par, **kwds)
-
-    def sf(self, x):
-        '''Survival function (1-cdf) at x of the given RV.'''
-        return self.dist.sf(x, *self.par)
-
-    def logsf(self, x):
-        return self.dist.logsf(x, *self.par)
-
-    def stats(self, moments='mv'):
-        ''' Some statistics of the given RV'''
-        kwds = dict(moments=moments)
-        return self.dist.stats(*self.par, **kwds)
-
-    def median(self):
-        return self.dist.median(*self.par)
-
-    def mean(self):
-        return self.dist.mean(*self.par)
-
-    def var(self):
-        return self.dist.var(*self.par)
-
-    def std(self):
-        return self.dist.std(*self.par)
-
-    def moment(self, n):
-        return self.dist.moment(n, *self.par)
-
-    def entropy(self):
-        return self.dist.entropy(*self.par)
-
-    def pmf(self, k):
-        '''Probability mass function at k of the given RV'''
-        return self.dist.pmf(k, *self.par)
-
-    def logpmf(self, k):
-        return self.dist.logpmf(k, *self.par)
-
-    def interval(self, alpha):
-        return self.dist.interval(alpha, *self.par)
-
-    def expect(self, func=None, lb=None, ub=None, conditional=False, **kwds):
-        if isinstance(self.dist, rv_continuous):
-            a, loc, scale = self.par[:-2], self.par[:-2], self.par[-1]
-            return self.dist.expect(func, a, loc, scale, lb, ub, conditional,
-                                    **kwds)
-
-        a, loc = self.par[:-1], self.par[-1]
-        if kwds:
-            raise ValueError("Discrete expect does not accept **kwds.")
-        return self.dist.expect(func, a, loc, lb, ub, conditional)
-
-
 def freeze(self, *args, **kwds):
     """Freeze the distribution for the given arguments.
 
@@ -217,41 +86,6 @@ def freeze(self, *args, **kwds):
 
     """
     return rv_frozen(self, *args, **kwds)
-
-
-# def link(self, x, logSF, theta, i):
-#     '''
-#     Return theta[i] as function of quantile, survival probability and
-#         theta[j] for j!=i.
-#
-#     Parameters
-#     ----------
-#     x : quantile
-#     logSF : logarithm of the survival probability
-#     theta : list
-#         all distribution parameters including location and scale.
-#
-#     Returns
-#     -------
-#     theta[i] : real scalar
-#         fixed distribution parameter theta[i] as function of x, logSF and
-#         theta[j] where j != i.
-#
-#     LINK is a function connecting the fixed distribution parameter theta[i]
-#     with the quantile (x) and the survival probability (SF) and the
-#     remaining free distribution parameters theta[j] for j!=i, i.e.:
-#         theta[i] = link(x, logSF, theta, i),
-#     where logSF = log(Prob(X>x; theta)).
-#
-#     See also
-#     estimation.Profile
-#     '''
-#     return self._link(x, logSF, theta, i)
-#
-#
-# def _link(self, x, logSF, theta, i):
-#     msg = 'Link function not implemented for the {} distribution'
-#     raise NotImplementedError(msg.format(self.name))
 
 
 def _resolve_ties(self, log_dprb, x, args, scale):
@@ -293,7 +127,6 @@ def _nlogps_and_penalty(self, x, scale, args):
     if n_bad > 0:
         penalty = 100.0 * np.log(_XMAX) * n_bad
         return -np.sum(log_dprb[finite_log_dprb], axis=0) + penalty
-
     return -np.sum(log_dprb, axis=0)
 
 
@@ -353,7 +186,7 @@ def _nnlf_and_penalty(self, x, args):
     return -np.sum(logpdf, axis=0)
 
 
-def _penalized_nnlf(self, theta, x, penalty=None):
+def _penalized_nnlf(self, theta, x):
     ''' Return negative loglikelihood function,
     i.e., - sum (log pdf(x, theta), axis=0)
        where theta are the parameters (including loc and scale)
@@ -617,8 +450,7 @@ def _open_support_mask(self, x):
 rv_generic.freeze = freeze
 rv_discrete.freeze = freeze
 rv_continuous.freeze = freeze
-#rv_continuous.link = link
-#rv_continuous._link = _link
+
 rv_continuous._penalized_nlogps = _penalized_nlogps
 rv_continuous._penalized_nnlf = _penalized_nnlf
 rv_continuous._reduce_func = _reduce_func
