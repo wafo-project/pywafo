@@ -339,7 +339,6 @@ class TestRegression(unittest.TestCase):
         fbest = bkreg.prb_search_best(hsfun='hste', alpha=0.05, color='g')
         # print(fbest.data[::10].tolist())
         assert_allclose(fbest.data[::10],
-
                         [1.80899736e-15, 0,  6.48351162e-16,  6.61404311e-15,
                          1.10010120e-12, 1.36709203e-10,  1.11994766e-08,
                          5.73040143e-07, 1.68974054e-05,  2.68633448e-04,
