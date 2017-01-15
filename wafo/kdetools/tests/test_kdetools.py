@@ -26,12 +26,23 @@ class TestKde(unittest.TestCase):
                               0.72433808, 1.92973094, 0.44749838, 1.36508452])
         self.x = np.linspace(0, max(self.data) + 1, 10)
 
+    def test_default_bandwidth_and_inc(self):
+        kde0 = wk.KDE(self.data, hs=-1, alpha=0.0, inc=None)
+        print(kde0.hs.tolist(), kde0.inc)
+        assert_allclose(kde0.hs, 0.19682759537327105)
+        assert_allclose(kde0.inc, 64)
+
     def test0_KDE1D(self):
         data, x = self.data, self.x
 
         kde0 = wk.KDE(data, hs=0.5, alpha=0.0, inc=16)
 
         fx = kde0.eval_grid(x)
+        assert_allclose(fx, [0.2039735,  0.40252503,  0.54595078,
+                             0.52219649,  0.3906213, 0.26381501,  0.16407362,
+                             0.08270612,  0.02991145,  0.00720821])
+
+        fx = kde0.eval_points(x)
         assert_allclose(fx, [0.2039735,  0.40252503,  0.54595078,
                              0.52219649,  0.3906213, 0.26381501,  0.16407362,
                              0.08270612,  0.02991145,  0.00720821])
@@ -88,14 +99,16 @@ class TestKde(unittest.TestCase):
         assert_allclose(f, [1.03982714,  0.45839018,  0.39514782,  0.32860602,
                             0.26433318, 0.20717946,  0.15907684,  0.1201074,
                             0.08941027,  0.06574882])
+        f = kde.eval_points(x)
+        assert_allclose(f, [1.03982714,  0.45839018,  0.39514782,  0.32860602,
+                            0.26433318, 0.20717946,  0.15907684,  0.1201074,
+                            0.08941027,  0.06574882])
+        f = kde.eval_grid(x)
+        assert_allclose(f, [1.03982714,  0.45839018,  0.39514782,  0.32860602,
+                            0.26433318, 0.20717946,  0.15907684,  0.1201074,
+                            0.08941027,  0.06574882])
         assert_allclose(np.trapz(f, x), 0.94787730659349068)
         f = kde.eval_grid_fast(x)
-        assert_allclose(f, [1.0401892415290148, 0.45838973393693677,
-                            0.39514689240671547, 0.32860531818532457,
-                            0.2643330110605783, 0.20717975528556506,
-                            0.15907696844388747, 0.12010770443337843,
-                            0.08941129458260941, 0.06574899139165799])
-        f = kde.eval_grid_fast2(x)
         assert_allclose(f, [1.0401892415290148, 0.45838973393693677,
                             0.39514689240671547, 0.32860531818532457,
                             0.2643330110605783, 0.20717975528556506,
@@ -170,17 +183,28 @@ class TestKde(unittest.TestCase):
         x = np.linspace(0, max(np.ravel(data)) + 1, 3)
 
         kde0 = wk.KDE(data, hs=0.5, alpha=0.0, inc=512)
-
         assert_allclose(kde0.eval_grid(x, x),
                         [[3.27260963e-02, 4.21654678e-02, 5.85338634e-04],
                          [6.78845466e-02, 1.42195839e-01, 1.41676003e-03],
                          [1.39466746e-04, 4.26983850e-03, 2.52736185e-05]])
 
+        f0 = kde0.eval_grid_fast(x, x, output='plot')
         t = [[0.0443506097653615, 0.06433530873456418, 0.0041353838654317856],
              [0.07218297149063724, 0.1235819591878892, 0.009288890372002473],
              [0.001613328022214066, 0.00794857884864038, 0.0005874786787715641]
              ]
-        assert_allclose(kde0.eval_grid_fast(x, x), t)
+        assert_allclose(f0.data, t)
+
+    def test_2d_default_bandwidth(self):
+        # N = 20
+        # data = np.random.rayleigh(1, size=(2, N))
+        data = DATA2D
+        kde0 = wk.KDE(data, kernel=wk.Kernel('epan', 'hmns'), inc=512)
+
+        assert_allclose(kde0.hs, [[0.8838122391117693, 0.08341940479019105],
+                                  [0.08341940479019104, 0.7678179747855731]])
+        self.assertRaises(ValueError, kde0.eval_points, [1, 2, 3])
+        assert_allclose(kde0.eval_points([1, 2]), 0.11329600006973661)
 
 
 class TestRegression(unittest.TestCase):
@@ -313,9 +337,8 @@ class TestRegression(unittest.TestCase):
 
         bkreg = wk.BKRegression(x, y, a=0.05, b=0.05)
         fbest = bkreg.prb_search_best(hsfun='hste', alpha=0.05, color='g')
-        print(fbest.data[::10].tolist())
+        # print(fbest.data[::10].tolist())
         assert_allclose(fbest.data[::10],
-
                         [1.80899736e-15, 0,  6.48351162e-16,  6.61404311e-15,
                          1.10010120e-12, 1.36709203e-10,  1.11994766e-08,
                          5.73040143e-07, 1.68974054e-05,  2.68633448e-04,
@@ -328,6 +351,27 @@ class TestRegression(unittest.TestCase):
                          2.68633448e-04,  1.68974054e-05,  5.73040143e-07,
                          1.11994760e-08,  1.36708818e-10,  1.09965904e-12,
                          5.43806309e-15, 0.0, 0, 0], atol=1e-10)
+        bkreg = wk.BKRegression(x, y, method='wilson')
+        fbest = bkreg.prb_search_best(hsfun='hste', alpha=0.05, color='g')
+        assert_allclose(fbest.data[::10],
+                        [3.2321397702105376e-15, 4.745626420805898e-17,
+                         6.406118940191104e-16, 5.648884668051452e-16,
+                         3.499875381296387e-16, 1.0090442883241678e-13,
+                         4.264723863193633e-11, 9.29288388831705e-09,
+                         9.610074789043923e-07, 4.086642453634508e-05,
+                         0.0008305202502773989, 0.00909121197102206,
+                         0.05490768364395013, 0.1876637145781381,
+                         0.4483015169104682, 0.8666709816557657,
+                         0.9916656713022183, 0.9996648903706271,
+                         0.999990921956741, 0.9999909219567404,
+                         0.999664890370625, 0.9916656713022127,
+                         0.8666709816557588, 0.4483015169104501,
+                         0.18766371457812697, 0.054907683643947366,
+                         0.009091211971022042, 0.0008305202502770367,
+                         4.086642453593762e-05, 9.610074786590158e-07,
+                         9.292883469982049e-09, 4.264660017463372e-11,
+                         1.005284921271869e-13, -0.0, -0.0, -0.0, -0.0, -0.0],
+                        atol=1e-10)
 
 if __name__ == "__main__":
     # import sys;sys.argv = ['', 'Test.testName']

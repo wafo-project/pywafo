@@ -9,11 +9,11 @@ Author:  Per A. Brodtkorb 2008
 
 from __future__ import division, absolute_import
 import warnings
-
+from scipy.stats import rv_continuous
+from scipy.stats._distn_infrastructure import check_random_state
 from wafo.plotbackend import plotbackend as plt
 from wafo.misc import ecross, findcross
 from wafo.stats._constants import _EPS
-from wafo.stats._distn_infrastructure import rv_frozen, rv_continuous
 from scipy._lib.six import string_types
 import numdifftools as nd  # @UnresolvedImport
 from scipy import special
@@ -34,6 +34,26 @@ floatinfo = np.finfo(float)
 
 arr = asarray
 # all = alltrue  # @ReservedAssignment
+
+
+def _assert_warn(cond, msg):
+    if not cond:
+        warnings.warn(msg)
+
+
+def _assert(cond, msg):
+    if not cond:
+        raise ValueError(msg)
+
+
+def _assert_index(cond, msg):
+    if not cond:
+        raise IndexError(msg)
+
+
+def _assert_not_implemented(cond, msg):
+    if not cond:
+        raise NotImplementedError(msg)
 
 
 def _burr_link(x, logsf, phat, ix):
@@ -90,43 +110,43 @@ def _genpareto_link(x, logsf, phat, ix):
     # Stuart Coles (2004)
     # "An introduction to statistical modelling of extreme values".
     # Springer series in statistics
+    _assert_not_implemented(ix != 0, 'link(x,logsf,phat,i) where i=0 is '
+                            'not implemented!')
     c, loc, scale = phat
+    if c == 0:
+        return _expon_link(x, logsf, phat[1:], ix-1)
     if ix == 2:
         # Reorganizing w.r.t.scale, Eq. 4.13 and 4.14, pp 81 in
         # Coles (2004) gives
         #   link = -(x-loc)*c/expm1(-c*logsf)
-        if c != 0.0:
-            phati = (x - loc) * c / expm1(-c * logsf)
-        else:
-            phati = -(x - loc) / logsf
-    elif ix == 1:
-        if c != 0:
-            phati = x + scale * expm1(c * logsf) / c
-        else:
-            phati = x + scale * logsf
-    elif ix == 0:
-        raise NotImplementedError(
-            'link(x,logsf,phat,i) where i=0 is not implemented!')
-    else:
-        raise IndexError('Index to the fixed parameter is out of bounds')
-    return phati
+        return (x - loc) * c / expm1(-c * logsf)
+    if ix == 1:
+        return x + scale * expm1(c * logsf) / c
+    raise IndexError('Index to the fixed parameter is out of bounds')
+
+
+def _gumbel_r_link(x, logsf, phat, ix):
+    loc, scale = phat
+    loglogP = log(-log(-expm1(logsf)))
+    if ix == 1:
+        return -(x - loc) / loglogP
+    if ix == 1:
+        return x + scale * loglogP
+    raise IndexError('Index to the fixed parameter is out of bounds')
 
 
 def _genextreme_link(x, logsf, phat, ix):
+    _assert_not_implemented(ix != 0, 'link(x,logsf,phat,i) where i=0 is not '
+                            'implemented!')
     c, loc, scale = phat
+    if c == 0:
+        return _gumbel_r_link(x, logsf, phat[1:], ix-1)
     loglogP = log(-log(-expm1(logsf)))
     if ix == 2:
         #   link = -(x-loc)*c/expm1(c*log(-logP))
-        if c != 0.0:
-            return -(x - loc) * c / expm1(c * loglogP)
-        return -(x - loc) / loglogP
+        return -(x - loc) * c / expm1(c * loglogP)
     if ix == 1:
-        if c != 0:
-            return x + scale * expm1(c * loglogP) / c
-        return x + scale * loglogP
-    if ix == 0:
-        raise NotImplementedError(
-            'link(x,logsf,phat,i) where i=0 is not implemented!')
+        return x + scale * expm1(c * loglogP) / c
     raise IndexError('Index to the fixed parameter is out of bounds')
 
 
@@ -168,6 +188,7 @@ LINKS = dict(expon=_expon_link,
              frechet_r=_weibull_min_link,
              genpareto=_genpareto_link,
              genexpon=_genexpon_link,
+             gumbel_r=_gumbel_r_link,
              rayleigh=_rayleigh_link,
              trunclayleigh=_trunclayleigh_link,
              genextreme=_genextreme_link,
@@ -259,7 +280,7 @@ class Profile(object):
 
         self._set_indexes(fit_dist, i)
         method = fit_dist.method.lower()
-        self._set_plot_labels(fit_dist, method)
+        self._set_plot_labels(method)
 
         Lmax = self._loglike_max(fit_dist, method)
         self.Lmax = Lmax
@@ -268,13 +289,16 @@ class Profile(object):
 
         self._set_profile()
 
-    def _set_plot_labels(self, fit_dist, method):
+    def _set_plot_labels(self, method, title='', xlabel=''):
+        if not title:
+            title = '{:s} params'.format(self.fit_dist.dist.name)
+        if not xlabel:
+            xlabel = 'phat[{}]'.format(np.ravel(self.i_fixed)[0])
         percent = 100 * (1.0 - self.alpha)
-        self.title = '{:g}% CI for {:s} params'.format(percent,
-                                                       fit_dist.dist.name)
+        self.title = '{:g}% CI for {:s}'.format(percent, title)
         like_txt = 'likelihood' if method == 'ml' else 'product spacing'
         self.ylabel = 'Profile log' + like_txt
-        self.xlabel = 'phat[{}]'.format(np.ravel(self.i_fixed)[0])
+        self.xlabel = xlabel
 
     @staticmethod
     def _loglike_max(fit_dist, method):
@@ -400,7 +424,17 @@ class Profile(object):
                 warnings.warn(str(err))
 
     def _get_variance(self):
-        return self.fit_dist.par_cov[self.i_fixed, :][:, self.i_fixed]
+        invfun = getattr(self, '_myinvfun', None)
+        if invfun is not None:
+            i_notfixed = self.i_notfixed
+            pcov = self.fit_dist.par_cov[i_notfixed, :][:, i_notfixed]
+            gradfun = nd.Gradient(invfun)
+            phatv = self._par
+            drl = gradfun(phatv[i_notfixed])
+            pvar = np.sum(np.dot(drl, pcov) * drl)
+            return pvar
+        pvar = self.fit_dist.par_cov[self.i_fixed, :][:, self.i_fixed]
+        return pvar
 
     def _approx_p_min_max(self, p_opt):
         pvar = self._get_variance()
@@ -414,9 +448,9 @@ class Profile(object):
         p_low, p_up = self._approx_p_min_max(p_opt)
         pmin, pmax = self.pmin, self.pmax
         if pmin is None:
-            pmin = self._search_pmin(phatfree0, p_low, p_opt)
+            pmin = self._search_p_min_max(phatfree0, p_low, p_opt, 'min')
         if pmax is None:
-            pmax = self._search_pmax(phatfree0, p_up, p_opt)
+            pmax = self._search_p_min_max(phatfree0, p_up, p_opt, 'max')
         return pmin, pmax
 
     def _adaptive_pvec(self, p_opt, pmin, pmax):
@@ -438,58 +472,43 @@ class Profile(object):
             return self._adaptive_pvec(p_opt, pmin, pmax)
         return np.linspace(self.pmin, self.pmax, self.n)
 
-    def _search_pmin(self, phatfree0, p_min0, p_opt):
-        phatfree = phatfree0.copy()
-
-        dp = np.maximum((p_opt - p_min0)/40, 0.01)*10
-        Lmax, phatfree = self._profile_optimum(phatfree, p_opt)
-        p_min_opt = p_min0
-        for j in range(51):
-            p_min = p_opt - dp
-            Lmax, phatfree = self._profile_optimum(phatfree, p_min)
-            # print((dp, p_min, p_min_opt, Lmax))
-            if np.isnan(Lmax):
-                dp *= 0.33
-            elif Lmax < self.alpha_cross_level - self.alpha_Lrange*5*(j+1):
-                p_min_opt = p_min
-                dp *= 0.33
-            elif Lmax < self.alpha_cross_level:
-                p_min_opt = p_min
-                break
-            else:
-                dp *= 1.67
+    def _update_p_opt(self, p_minmax_opt, dp, Lmax, p_minmax, j):
+        # print((dp, p_minmax, p_minmax_opt, Lmax))
+        converged = False
+        if np.isnan(Lmax):
+            dp *= 0.33
+        elif Lmax < self.alpha_cross_level - self.alpha_Lrange * 5 * (j + 1):
+            p_minmax_opt = p_minmax
+            dp *= 0.33
+        elif Lmax < self.alpha_cross_level:
+            p_minmax_opt = p_minmax
+            converged = True
         else:
-            msg = 'Exceeded max iterations. (p_min0={}, p_min={}, p={})'
-            warnings.warn(msg.format(p_min0, p_min_opt, p_opt))
+            dp *= 1.67
+        return p_minmax_opt, dp, converged
+
+    def _search_p_min_max(self, phatfree0, p_minmax0, p_opt, direction):
+        phatfree = phatfree0.copy()
+        sign = dict(min=-1, max=1)[direction]
+        dp = np.maximum(sign*(p_minmax0 - p_opt) / 40, 0.01) * 10
+        Lmax, phatfree = self._profile_optimum(phatfree, p_opt)
+        p_minmax_opt = p_minmax0
+        j = 0
+        converged = False
+        # for j in range(51):
+        while j < 51 and not converged:
+            j += 1
+            p_minmax = p_opt + sign * dp
+            Lmax, phatfree = self._profile_optimum(phatfree, p_minmax)
+            p_minmax_opt, dp, converged = self._update_p_opt(p_minmax_opt, dp,
+                                                             Lmax, p_minmax, j)
+        _assert_warn(j < 50, 'Exceeded max iterations. '
+                     '(p_{0}0={1}, p_{0}={2}, p={3})'.format(direction,
+                                                             p_minmax0,
+                                                             p_minmax_opt,
+                                                             p_opt))
         # print('search_pmin iterations={}'.format(j))
-        return p_min_opt
-
-    def _search_pmax(self, phatfree0, p_max0, p_opt):
-        phatfree = phatfree0.copy()
-
-        dp = (p_max0 - p_opt)/40
-        if dp < 1e-2:
-            dp = 0.1
-        Lmax, phatfree = self._profile_optimum(phatfree, p_opt)
-        p_max_opt = p_opt
-        for j in range(51):
-            p_max = p_opt + dp
-            Lmax, phatfree = self._profile_optimum(phatfree, p_max)
-            if np.isnan(Lmax):
-                dp *= 0.33
-            elif Lmax < self.alpha_cross_level - self.alpha_Lrange*5*(j+1):
-                p_max_opt = p_max
-                dp *= 0.33
-            elif Lmax < self.alpha_cross_level:
-                p_max_opt = p_max
-                break
-            else:
-                dp *= 1.67
-        else:
-            msg = 'Exceeded max iterations. (p={}, p_max={}, p_max0 = {})'
-            warnings.warn(msg.format(p_opt, p_max_opt, p_max0))
-        # print('search_pmax iterations={}'.format(j))
-        return p_max_opt
+        return p_minmax_opt
 
     def _profile_fun(self, free_par, fix_par):
         ''' Return negative of loglike or logps function
@@ -504,35 +523,38 @@ class Profile(object):
         par[self.i_fixed] = self._local_link(fix_par, par)
         return self.fit_dist.fitfun(par)
 
-    def get_bounds(self, alpha=0.05):
-        '''Return confidence interval for profiled parameter
-        '''
-        if alpha < self.alpha:
-            msg = 'Might not be able to return bounds with alpha less than {}'
-            warnings.warn(msg.format(self.alpha))
-        cross_level = self.Lmax - 0.5 * chi2isf(alpha, 1)
-        ind = findcross(self.data, cross_level)
-        n = len(ind)
+    def _check_bounds(self, cross_level, ind, n):
         if n == 0:
-            warnings.warn('''Number of crossings is zero, i.e.,
-            upper and lower bound is not found!''')
-            bounds = (self.pmin, self.pmax)
-
+            warnings.warn('Number of crossings is zero, i.e., upper and lower '
+                          'bound is not found!')
+            bounds = self.pmin, self.pmax
         elif n == 1:
             x0 = ecross(self.args, self.data, ind, cross_level)
             is_upcrossing = self.data[ind] < self.data[ind + 1]
             if is_upcrossing:
-                bounds = (x0, self.pmax)
+                bounds = x0, self.pmax
                 warnings.warn('Upper bound is larger')
             else:
-                bounds = (self.pmin, x0)
+                bounds = self.pmin, x0
                 warnings.warn('Lower bound is smaller')
-
-        elif n == 2:
-            bounds = ecross(self.args, self.data, ind, cross_level)
         else:
             warnings.warn('Number of crossings too large! Something is wrong!')
             bounds = ecross(self.args, self.data, ind[[0, -1]], cross_level)
+        return bounds
+
+    def get_bounds(self, alpha=0.05):
+        '''Return confidence interval for profiled parameter
+        '''
+        _assert_warn(self.alpha <= alpha, 'Might not be able to return bounds '
+                     'with alpha less than {}'.format(self.alpha))
+
+        cross_level = self.Lmax - 0.5 * chi2isf(alpha, 1)
+        ind = findcross(self.data, cross_level)
+        n = len(ind)
+        if n == 2:
+            bounds = ecross(self.args, self.data, ind, cross_level)
+        else:
+            bounds = self._check_bounds(cross_level, ind, n)
         return bounds
 
     def plot(self, axis=None):
@@ -561,8 +583,25 @@ class Profile(object):
 
 
 def plot_all_profiles(phats, plot=None):
-    if plot is not None:
-        plt = plot
+    def _remove_title_or_ylabel(plt, n, j):
+        if j != 0:
+            plt.title('')
+        if j != n // 2:
+            plt.ylabel('')
+
+    def _profile(phats, k):
+        profile_phat_k = Profile(phats, i=k)
+        m = 0
+        while hasattr(profile_phat_k, 'best_par') and m < 7:
+            # iterate to find optimum phat!
+            phats.fit(*profile_phat_k.best_par)
+            profile_phat_k = Profile(phats, i=k)
+            m += 1
+
+        return profile_phat_k
+
+    if plot is None:
+        plot = plt
 
     if phats.par_fix:
         indices = phats.i_notfixed
@@ -571,20 +610,12 @@ def plot_all_profiles(phats, plot=None):
     n = len(indices)
     for j, k in enumerate(indices):
         plt.subplot(n, 1, j+1)
-        profile_phat_k = Profile(phats, i=k)
-        m = 0
-        while hasattr(profile_phat_k, 'best_par') and m < 7:
-            phats.fit(*profile_phat_k.best_par)
-            profile_phat_k = Profile(phats, i=k)
-            m += 1
+        profile_phat_k = _profile(phats, k)
         profile_phat_k.plot()
-        if j != 0:
-            plt.title('')
-        if j != n//2:
-            plt.ylabel('')
-    plt.subplots_adjust(hspace=0.5)
+        _remove_title_or_ylabel(plt, n, j)
+    plot.subplots_adjust(hspace=0.5)
     par_txt = ('{:1.2g}, '*len(phats.par))[:-2].format(*phats.par)
-    plt.suptitle('phat = [{}] (fit metod: {})'.format(par_txt, phats.method))
+    plot.suptitle('phat = [{}] (fit metod: {})'.format(par_txt, phats.method))
     return phats
 
 
@@ -681,21 +712,9 @@ class ProfileQuantile(Profile):
         prb = exp(self.log_sf)
         return self.fit_dist.dist.isf(prb, *mphat)
 
-    def _get_variance(self):
-        i_notfixed = self.i_notfixed
-        phatv = self._par
-        gradfun = nd.Gradient(self._myinvfun)
-        drl = gradfun(phatv[self.i_notfixed])
-        pcov = self.fit_dist.par_cov[i_notfixed, :][:, i_notfixed]
-        pvar = np.sum(np.dot(drl, pcov) * drl)
-        return pvar
-
-    def _set_plot_labels(self, fit_dist, method):
-        super(ProfileQuantile, self)._set_plot_labels(fit_dist, method)
-        percent = 100 * (1.0 - self.alpha)
-        self.title = '{:g}% CI for {:s} quantile'.format(percent,
-                                                         fit_dist.dist.name)
-        self.xlabel = 'x'
+    def _set_plot_labels(self, method, title='', xlabel='x'):
+        title = '{:s} quantile'.format(self.fit_dist.dist.name)
+        super(ProfileQuantile, self)._set_plot_labels(method, title, xlabel)
 
 
 class ProfileProbability(Profile):
@@ -783,27 +802,151 @@ class ProfileProbability(Profile):
         fix_par = self.link(self.x, fixed_log_sf, par, self.i_fixed)
         return fix_par
 
-    def _myprbfun(self, phatnotfixed):
+    def _myinvfun(self, phatnotfixed):
+        """_myprbfun"""
         mphat = self._par.copy()
         mphat[self.i_notfixed] = phatnotfixed
         logsf = self.fit_dist.dist.logsf(self.x, *mphat)
         return np.where(np.isfinite(logsf), logsf, np.nan)
 
-    def _get_variance(self):
-        i_notfixed = self.i_notfixed
-        phatv = self._par
-        gradfun = nd.Gradient(self._myprbfun)
-        drl = gradfun(phatv[self.i_notfixed])
-        pcov = self.fit_dist.par_cov[i_notfixed, :][:, i_notfixed]
-        pvar = np.sum(np.dot(drl, pcov) * drl)
-        return pvar
+    def _set_plot_labels(self, method, title='', xlabel=''):
+        title = '{:s} probability'.format(self.fit_dist.dist.name)
+        xlabel = 'log(sf)'
+        super(ProfileProbability, self)._set_plot_labels(method, title, xlabel)
 
-    def _set_plot_labels(self, fit_dist, method):
-        super(ProfileProbability, self)._set_plot_labels(fit_dist, method)
-        percent = 100 * (1.0 - self.alpha)
-        self.title = '{:g}% CI for {:s} probability'.format(percent,
-                                                            fit_dist.dist.name)
-        self.xlabel = 'log(sf)'
+
+# Frozen RV class
+class rv_frozen(object):
+    ''' Frozen continous or discrete 1D Random Variable object (RV)
+
+    Methods
+    -------
+    rvs(size=1)
+        Random variates.
+    pdf(x)
+        Probability density function.
+    cdf(x)
+        Cumulative density function.
+    sf(x)
+        Survival function (1-cdf --- sometimes more accurate).
+    ppf(q)
+        Percent point function (inverse of cdf --- percentiles).
+    isf(q)
+        Inverse survival function (inverse of sf).
+    stats(moments='mv')
+        Mean('m'), variance('v'), skew('s'), and/or kurtosis('k').
+    moment(n)
+        n-th order non-central moment of distribution.
+    entropy()
+        (Differential) entropy of the RV.
+    interval(alpha)
+        Confidence interval with equal areas around the median.
+    expect(func, lb, ub, conditional=False)
+        Calculate expected value of a function with respect to the
+        distribution.
+    '''
+    def __init__(self, dist, *args, **kwds):
+        # create a new instance
+        self.dist = dist  # .__class__(**dist._ctor_param)
+        shapes, loc, scale = self.dist._parse_args(*args, **kwds)
+        if isinstance(dist, rv_continuous):
+            self.par = shapes + (loc, scale)
+        else:  # rv_discrete
+            self.par = shapes + (loc,)
+        # a, b may be set in _argcheck, depending on *args, **kwds. Ouch.
+        self.dist._argcheck(*shapes)
+        self.a = self.dist.a
+        self.b = self.dist.b
+        self.shapes = self.dist.shapes
+
+    # @property
+    # def shapes(self):
+    #     return self.dist.shapes
+
+    @property
+    def random_state(self):
+        return self.dist._random_state
+
+    @random_state.setter
+    def random_state(self, seed):
+        self.dist._random_state = check_random_state(seed)
+
+    def pdf(self, x):
+        ''' Probability density function at x of the given RV.'''
+        return self.dist.pdf(x, *self.par)
+
+    def logpdf(self, x):
+        return self.dist.logpdf(x, *self.par)
+
+    def cdf(self, x):
+        '''Cumulative distribution function at x of the given RV.'''
+        return self.dist.cdf(x, *self.par)
+
+    def logcdf(self, x):
+        return self.dist.logcdf(x, *self.par)
+
+    def ppf(self, q):
+        '''Percent point function (inverse of cdf) at q of the given RV.'''
+        return self.dist.ppf(q, *self.par)
+
+    def isf(self, q):
+        '''Inverse survival function at q of the given RV.'''
+        return self.dist.isf(q, *self.par)
+
+    def rvs(self, size=None, random_state=None):
+        kwds = {'size': size, 'random_state': random_state}
+        return self.dist.rvs(*self.par, **kwds)
+
+    def sf(self, x):
+        '''Survival function (1-cdf) at x of the given RV.'''
+        return self.dist.sf(x, *self.par)
+
+    def logsf(self, x):
+        return self.dist.logsf(x, *self.par)
+
+    def stats(self, moments='mv'):
+        ''' Some statistics of the given RV'''
+        kwds = dict(moments=moments)
+        return self.dist.stats(*self.par, **kwds)
+
+    def median(self):
+        return self.dist.median(*self.par)
+
+    def mean(self):
+        return self.dist.mean(*self.par)
+
+    def var(self):
+        return self.dist.var(*self.par)
+
+    def std(self):
+        return self.dist.std(*self.par)
+
+    def moment(self, n):
+        return self.dist.moment(n, *self.par)
+
+    def entropy(self):
+        return self.dist.entropy(*self.par)
+
+    def pmf(self, k):
+        '''Probability mass function at k of the given RV'''
+        return self.dist.pmf(k, *self.par)
+
+    def logpmf(self, k):
+        return self.dist.logpmf(k, *self.par)
+
+    def interval(self, alpha):
+        return self.dist.interval(alpha, *self.par)
+
+    def expect(self, func=None, lb=None, ub=None, conditional=False, **kwds):
+        if isinstance(self.dist, rv_continuous):
+            a, loc, scale = self.par[:-2], self.par[:-2], self.par[-1]
+            return self.dist.expect(func, a, loc, scale, lb, ub, conditional,
+                                    **kwds)
+
+        a, loc = self.par[:-1], self.par[-1]
+        if kwds:
+            raise ValueError("Discrete expect does not accept **kwds.")
+        return self.dist.expect(func, a, loc, lb, ub, conditional)
 
 
 class FitDistribution(rv_frozen):
@@ -1015,7 +1158,7 @@ class FitDistribution(rv_frozen):
             t.append('%s = %s\n' % (par, str(getattr(self, par))))
         return ''.join(t)
 
-    def _reduce_func(self, args, kwds):
+    def _convert_fshapes2fnum(self, kwds):
         # First of all, convert fshapes params to fnum: eg for stats.beta,
         # shapes='a, b'. To fix `a`, can specify either `f1` or `fa`.
         # Convert the latter into the former.
@@ -1030,10 +1173,13 @@ class FitDistribution(rv_frozen):
                         raise ValueError("Duplicate entry for %s." % key)
                     else:
                         kwds[key] = val
+        return kwds
+
+    def _unpack_args_kwds(self, args, kwds):
+        kwds = self._convert_fshapes2fnum(kwds)
         args = list(args)
-        nargs = len(args)
         fixedn = []
-        names = ['f%d' % n for n in range(nargs - 2)] + ['floc', 'fscale']
+        names = ['f%d' % n for n in range(len(args) - 2)] + ['floc', 'fscale']
         x0 = []
         for n, key in enumerate(names):
             if key in kwds:
@@ -1041,7 +1187,12 @@ class FitDistribution(rv_frozen):
                 args[n] = kwds.pop(key)
             else:
                 x0.append(args[n])
+        return x0, args, fixedn
 
+    def _reduce_func(self, args, kwds):
+        x0, args, fixedn = self._unpack_args_kwds(args, kwds)
+
+        nargs = len(args)
         fitfun = self._fitfun
 
         if len(fixedn) == 0:
@@ -1055,7 +1206,7 @@ class FitDistribution(rv_frozen):
             def restore(args, theta):
                 # Replace with theta for all numbers not in fixedn
                 # This allows the non-fixed values to vary, but
-                #  we still call self.nnlf with all parameters.
+                # we still call self.nnlf with all parameters.
                 i = 0
                 for n in range(nargs):
                     if n not in fixedn:
@@ -1219,7 +1370,7 @@ class FitDistribution(rv_frozen):
 
         H = np.asmatrix(self._hessian(self._fitfun, self.par, self.data))
         # H = -nd.Hessian(lambda par: self._fitfun(par, self.data),
-        #               method='forward')(self.par)
+        #                 method='forward')(self.par)
         self.H = H
         try:
             if somefixed:
@@ -1322,6 +1473,29 @@ class FitDistribution(rv_frozen):
                 ci.append((np.nan, np.nan))
         return np.array(ci)
 
+    def _fit_summary_text(self):
+        fixstr = ''
+        if self.par_fix is not None:
+            numfix = len(self.i_fixed)
+            if numfix > 0:
+                format0 = ', '.join(['%d'] * numfix)
+                format1 = ', '.join(['%g'] * numfix)
+                phatistr = format0 % tuple(self.i_fixed)
+                phatvstr = format1 % tuple(self.par[self.i_fixed])
+                fixstr = 'Fixed: phat[{0:s}] = {1:s} '.format(phatistr,
+                                                              phatvstr)
+        subtxt = ('Fit method: {0:s}, Fit p-value: {1:2.2f} {2:s}, ' +
+                  'phat=[{3:s}], {4:s}')
+        par_txt = ('{:1.2g}, ' * len(self.par))[:-2].format(*self.par)
+        try:
+            LL_txt = 'Lps_max={:2.2g}, Ll_max={:2.2g}'.format(self.LPSmax,
+                                                              self.LLmax)
+        except Exception:
+            LL_txt = 'Lps_max={}, Ll_max={}'.format(self.LPSmax, self.LLmax)
+        txt = subtxt.format(self.method.upper(), self.pvalue, fixstr, par_txt,
+                            LL_txt)
+        return txt
+
     def plotfitsummary(self, axes=None, fig=None):
         ''' Plot various diagnostic plots to asses the quality of the fit.
 
@@ -1345,29 +1519,9 @@ class FitDistribution(rv_frozen):
 
         if fig is None:
             fig = plt.gcf()
-        fixstr = ''
-        if self.par_fix is not None:
-            numfix = len(self.i_fixed)
-            if numfix > 0:
-                format0 = ', '.join(['%d'] * numfix)
-                format1 = ', '.join(['%g'] * numfix)
-                phatistr = format0 % tuple(self.i_fixed)
-                phatvstr = format1 % tuple(self.par[self.i_fixed])
-                fixstr = 'Fixed: phat[{0:s}] = {1:s} '.format(phatistr,
-                                                              phatvstr)
-
-        subtxt = ('Fit method: {0:s}, Fit p-value: {1:2.2f} {2:s}, ' +
-                  'phat=[{3:s}], {4:s}')
-        par_txt = ('{:1.2g}, '*len(self.par))[:-2].format(*self.par)
         try:
-            LL_txt = 'Lps_max={:2.2g}, Ll_max={:2.2g}'.format(self.LPSmax,
-                                                              self.LLmax)
-        except Exception:
-            LL_txt = 'Lps_max={}, Ll_max={}'.format(self.LPSmax, self.LLmax)
-        try:
-            fig.text(0.05, 0.01, subtxt.format(self.method.upper(),
-                                               self.pvalue, fixstr, par_txt,
-                                               LL_txt))
+            txt = self._fit_summary_text()
+            fig.text(0.05, 0.01, txt)
         except AttributeError:
             pass
 
@@ -1560,8 +1714,8 @@ def test1():
     phat = FitDistribution(dist, R, floc=0.5, method='ml')
     phats = FitDistribution(dist, R, floc=0.5, method='mps')
     # import matplotlib.pyplot as plt
-    # plt.figure(0)
-    # plot_all_profiles(phat, plot=plt)
+    plt.figure(0)
+    plot_all_profiles(phat, plot=plt)
 
     plt.figure(1)
     phats.plotfitsummary()
@@ -1596,5 +1750,5 @@ def test1():
 
 
 if __name__ == '__main__':
-    test1()
-    # test_doctstrings()
+    # test1()
+    test_doctstrings()
