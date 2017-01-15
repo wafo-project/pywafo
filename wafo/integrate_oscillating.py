@@ -381,9 +381,9 @@ class AdaptiveLevin(_Integrator):
         for r, t in enumerate(x):
             for j in range(S[r - 1], S[r]):
                 order = ((j - S[r - 1]) % nu[r])  # derivative order
-                dff.f.n = order
+                dff.fun.n = order
                 F[j] = dff(t, *args, **kwds)
-                dPsi.f.n = order
+                dPsi.fun.n = order
                 for k in range(nn):
                     A[j, k] = (dbasis(t, k, n=order+1) + j_w * dPsi(t, k))
         k1 = np.flatnonzero(1-np.isfinite(F))
