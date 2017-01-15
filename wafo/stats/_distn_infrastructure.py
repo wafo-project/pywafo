@@ -425,6 +425,21 @@ def _reduce_func(self, args, options):
     return x0, func, restore, args
 
 
+def _get_optimizer(kwds):
+    optimizer = kwds.pop('optimizer', optimize.fmin)
+# convert string to function in scipy.optimize
+    if not callable(optimizer) and isinstance(optimizer, string_types):
+        if not optimizer.startswith('fmin_'):
+            optimizer = "fmin_" + optimizer
+        if optimizer == 'fmin_':
+            optimizer = 'fmin'
+        try:
+            optimizer = getattr(optimize, optimizer)
+        except AttributeError:
+            raise ValueError("%s is not a valid optimizer" % optimizer)
+    return optimizer
+
+
 def fit(self, data, *args, **kwargs):
     """
     Return ML/MPS estimate for shape, location, and scale parameters from data.
@@ -529,17 +544,7 @@ def fit(self, data, *args, **kwargs):
     args += (loc, scale)
     x0, func, restore, args = self._reduce_func(args, kwds)
 
-    optimizer = kwds.pop('optimizer', optimize.fmin)
-    # convert string to function in scipy.optimize
-    if not callable(optimizer) and isinstance(optimizer, string_types):
-        if not optimizer.startswith('fmin_'):
-            optimizer = "fmin_"+optimizer
-        if optimizer == 'fmin_':
-            optimizer = 'fmin'
-        try:
-            optimizer = getattr(optimize, optimizer)
-        except AttributeError:
-            raise ValueError("%s is not a valid optimizer" % optimizer)
+    optimizer = _get_optimizer(kwds)
 
     # by now kwds must be empty, since everybody took what they needed
     if kwds:
