@@ -11,8 +11,8 @@ from __future__ import division, absolute_import
 import warnings
 
 from wafo.plotbackend import plotbackend as plt
-from wafo.misc import ecross, findcross, argsreduce
-from wafo.stats._constants import _EPS, _XMAX, _XMIN
+from wafo.misc import ecross, findcross
+from wafo.stats._constants import _EPS
 from wafo.stats._distn_infrastructure import rv_frozen, rv_continuous
 from scipy._lib.six import string_types
 import numdifftools as nd  # @UnresolvedImport
@@ -1121,7 +1121,6 @@ class FitDistribution(rv_frozen):
     def _nnlf(self, theta, x):
         return self.dist._penalized_nnlf(theta, x)
 
-
     def _nlogps(self, theta, x):
         """ Moran's negative log Product Spacings statistic
 
@@ -1155,7 +1154,7 @@ class FitDistribution(rv_frozen):
         # convert string to function in scipy.optimize
         if not callable(optimizer) and isinstance(optimizer, string_types):
             if not optimizer.startswith('fmin_'):
-                optimizer = '_'.join(("fmin_", optimizer))
+                optimizer = '_'.join(("fmin", optimizer))
             try:
                 optimizer = getattr(optimize, optimizer)
             except AttributeError:
