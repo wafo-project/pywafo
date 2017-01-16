@@ -1235,32 +1235,33 @@ class FitDistribution(rv_frozen):
         """
         return self.dist._penalized_nlogps(theta, x)
 
+    def _invert_hessian(self, H):
+        par_cov = zeros(H.shape)
+        somefixed = ((self.par_fix is not None) and
+                     np.any(isfinite(self.par_fix)))
+        if somefixed:
+            allfixed = np.all(isfinite(self.par_fix))
+            if not allfixed:
+                pcov = -pinv2(H[self.i_notfixed, :][..., self.i_notfixed])
+                for row, ix in enumerate(list(self.i_notfixed)):
+                    par_cov[ix, self.i_notfixed] = pcov[row, :]
+        else:
+            par_cov = -pinv2(H)
+        return par_cov
+
     def _compute_cov(self):
         '''Compute covariance
         '''
-        numpar = self.dist.numargs + 2
-        par_cov = zeros((numpar, numpar))
-
-        somefixed = ((self.par_fix is not None) and
-                     np.any(isfinite(self.par_fix)))
 
         H = np.asmatrix(self._hessian(self._fitfun, self.par, self.data))
         # H = -nd.Hessian(lambda par: self._fitfun(par, self.data),
         #                 method='forward')(self.par)
         self.H = H
+
         try:
-            if somefixed:
-                allfixed = np.all(isfinite(self.par_fix))
-                if allfixed:
-                    self.par_cov[:, :] = 0
-                else:
-                    pcov = -pinv2(H[self.i_notfixed, :][..., self.i_notfixed])
-                    for row, ix in enumerate(list(self.i_notfixed)):
-                        par_cov[ix, self.i_notfixed] = pcov[row, :]
-            else:
-                par_cov = -pinv2(H)
+            par_cov = self._invert_hessian(H)
         except:
-            par_cov[:, :] = nan
+            par_cov = nan * np.ones(H.shape)
         return par_cov
 
     def fitfun(self, phat):
