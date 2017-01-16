@@ -1044,8 +1044,7 @@ class FitDistribution(rv_frozen):
     >>> sf_ci = profile_logsf.get_bounds(alpha=0.2)
     '''
 
-    def __init__(self, dist, data, args=(), method='ML', alpha=0.05,
-                 search=True, copydata=True, **kwds):
+    def __init__(self, dist, data, args=(), **kwds):
         extradoc = '''
     plotfitsummary()
          Plot various diagnostic plots to asses quality of fit.
@@ -1096,12 +1095,11 @@ class FitDistribution(rv_frozen):
 #        '''
         self.__doc__ = str(rv_frozen.__doc__) + extradoc
         self.dist = dist
-        self.method = method
-        self.alpha = alpha
         self.par_fix = None
-        self.search = search
-        self.copydata = copydata
-
+        self.alpha = kwds.pop('alpha', 0.05)
+        self.copydata = kwds.pop('copydata', True)
+        self.method = kwds.get('method', 'ml')
+        self.search = kwds.get('search', True)
         self.data = np.ravel(data)
         if self.copydata:
             self.data = self.data.copy()
@@ -1118,7 +1116,7 @@ class FitDistribution(rv_frozen):
         self.i_fixed = nonzero(isfinite(self.par_fix))
 
     def fit(self, *args, **kwds):
-        par, fixedn = self._fit(*args, **kwds.copy())
+        par, fixedn = self.dist._fit(self.data, *args, **kwds.copy())
         super(FitDistribution, self).__init__(self.dist, *par)
         self.par = arr(par)
         somefixed = len(fixedn) > 0
@@ -1157,68 +1155,6 @@ class FitDistribution(rv_frozen):
         for par in params:
             t.append('%s = %s\n' % (par, str(getattr(self, par))))
         return ''.join(t)
-
-    def _convert_fshapes2fnum(self, kwds):
-        # First of all, convert fshapes params to fnum: eg for stats.beta,
-        # shapes='a, b'. To fix `a`, can specify either `f1` or `fa`.
-        # Convert the latter into the former.
-        shapes = self.dist.shapes
-        if shapes:
-            shapes = shapes.replace(',', ' ').split()
-            for j, s in enumerate(shapes):
-                val = kwds.pop('f' + s, None) or kwds.pop('fix_' + s, None)
-                if val is not None:
-                    key = 'f%d' % j
-                    if key in kwds:
-                        raise ValueError("Duplicate entry for %s." % key)
-                    else:
-                        kwds[key] = val
-        return kwds
-
-    def _unpack_args_kwds(self, args, kwds):
-        kwds = self._convert_fshapes2fnum(kwds)
-        args = list(args)
-        fixedn = []
-        names = ['f%d' % n for n in range(len(args) - 2)] + ['floc', 'fscale']
-        x0 = []
-        for n, key in enumerate(names):
-            if key in kwds:
-                fixedn.append(n)
-                args[n] = kwds.pop(key)
-            else:
-                x0.append(args[n])
-        return x0, args, fixedn
-
-    def _reduce_func(self, args, kwds):
-        x0, args, fixedn = self._unpack_args_kwds(args, kwds)
-
-        nargs = len(args)
-        fitfun = self._fitfun
-
-        if len(fixedn) == 0:
-            func = fitfun
-            restore = None
-        else:
-            if len(fixedn) == nargs:
-                raise ValueError("All parameters fixed. " +
-                                 "There is nothing to optimize.")
-
-            def restore(args, theta):
-                # Replace with theta for all numbers not in fixedn
-                # This allows the non-fixed values to vary, but
-                # we still call self.nnlf with all parameters.
-                i = 0
-                for n in range(nargs):
-                    if n not in fixedn:
-                        args[n] = theta[i]
-                        i += 1
-                return args
-
-            def func(theta, x):
-                newtheta = restore(args[:], theta)
-                return fitfun(newtheta, x)
-
-        return x0, func, restore, args, fixedn
 
     @staticmethod
     def _hessian(nnlf, theta, data, eps=None):
@@ -1298,66 +1234,6 @@ class FitDistribution(rv_frozen):
         IMS Lecture Notes Monograph Series 2006, Vol. 52, pp. 272-283
         """
         return self.dist._penalized_nlogps(theta, x)
-
-    @staticmethod
-    def _get_optimizer(kwds):
-        optimizer = kwds.pop('optimizer', optimize.fmin)
-        # convert string to function in scipy.optimize
-        if not callable(optimizer) and isinstance(optimizer, string_types):
-            if not optimizer.startswith('fmin_'):
-                optimizer = '_'.join(("fmin", optimizer))
-            try:
-                optimizer = getattr(optimize, optimizer)
-            except AttributeError:
-                raise ValueError("%s is not a valid optimizer" % optimizer)
-        return optimizer
-
-    def _fit_start(self, data, args, kwds):
-        dist = self.dist
-        narg = len(args)
-        if narg > dist.numargs + 2:
-            raise ValueError("Too many input arguments.")
-        if (narg < dist.numargs + 2) or not ('loc' in kwds and
-                                             'scale' in kwds):
-            # get distribution specific starting locations
-            start = dist._fitstart(data)
-            args += start[narg:]
-        loc = kwds.pop('loc', args[-2])
-        scale = kwds.pop('scale', args[-1])
-        args = args[:-2] + (loc, scale)
-        return args
-
-    @staticmethod
-    def _warn_if_no_success(warnflag):
-        if warnflag == 1:
-            warnings.warn("The maximum number of iterations was exceeded.")
-        elif warnflag == 2:
-            warnings.warn("Did not converge")
-
-    def _fit(self, *args, **kwds):
-        data = self.data
-
-        args = self._fit_start(data, args, kwds)
-        x0, func, restore, args, fixedn = self._reduce_func(args, kwds)
-        if self.search:
-            optimizer = self._get_optimizer(kwds)
-            # by now kwds must be empty, since everybody took what they needed
-            if kwds:
-                raise TypeError("Unknown arguments: %s." % kwds)
-            output = optimizer(func, x0, args=(data,), full_output=True,
-                               disp=0)
-
-            if output[-1] != 0:
-                output = optimizer(func, output[0], args=(data,),
-                                   full_output=True)
-
-            vals = tuple(output[0])
-            self._warn_if_no_success(output[-1])
-        else:
-            vals = tuple(x0)
-        if restore is not None:
-            vals = restore(args, vals)
-        return vals, fixedn
 
     def _compute_cov(self):
         '''Compute covariance

@@ -199,11 +199,10 @@ def _penalized_nnlf(self, theta, x):
     return _nnlf_and_penalty(self, x, args) + n_log_scale
 
 
-def _reduce_func(self, args, options):
+def _convert_fshapes2num(self, kwds):
     # First of all, convert fshapes params to fnum: eg for stats.beta,
     # shapes='a, b'. To fix `a`, can specify either `f1` or `fa`.
     # Convert the latter into the former.
-    kwds = options  # .copy()
     if self.shapes:
         shapes = self.shapes.replace(',', ' ').split()
         for j, s in enumerate(shapes):
@@ -214,11 +213,14 @@ def _reduce_func(self, args, options):
                     raise ValueError("Duplicate entry for %s." % key)
                 else:
                     kwds[key] = val
+    return kwds
 
+
+def _unpack_args_kwds(self, args, kwds):
+    kwds = _convert_fshapes2num(self, kwds)
     args = list(args)
-    Nargs = len(args)
     fixedn = []
-    names = ['f%d' % n for n in range(Nargs - 2)] + ['floc', 'fscale']
+    names = ['f%d' % n for n in range(len(args) - 2)] + ['floc', 'fscale']
     x0 = []
     for n, key in enumerate(names):
         if key in kwds:
@@ -226,17 +228,25 @@ def _reduce_func(self, args, options):
             args[n] = kwds.pop(key)
         else:
             x0.append(args[n])
+    return x0, args, fixedn
+
+
+def _reduce_func(self, args, kwds):
     method = kwds.pop('method', 'ml').lower()
     if method.startswith('mps'):
         fitfun = self._penalized_nlogps
     else:
         fitfun = self._penalized_nnlf
 
+    x0, args, fixedn = _unpack_args_kwds(self, args, kwds)
+
+    nargs = len(args)
+
     if len(fixedn) == 0:
         func = fitfun
         restore = None
     else:
-        if len(fixedn) == Nargs:
+        if len(fixedn) == nargs:
             raise ValueError(
                 "All parameters fixed. There is nothing to optimize.")
 
@@ -245,7 +255,7 @@ def _reduce_func(self, args, options):
             # This allows the non-fixed values to vary, but
             #  we still call self.nnlf with all parameters.
             i = 0
-            for n in range(Nargs):
+            for n in range(nargs):
                 if n not in fixedn:
                     args[n] = theta[i]
                     i += 1
@@ -255,7 +265,7 @@ def _reduce_func(self, args, options):
             newtheta = restore(args[:], theta)
             return fitfun(newtheta, x)
 
-    return x0, func, restore, args
+    return x0, func, restore, args, fixedn
 
 
 def _get_optimizer(kwds):
@@ -263,14 +273,34 @@ def _get_optimizer(kwds):
 # convert string to function in scipy.optimize
     if not callable(optimizer) and isinstance(optimizer, string_types):
         if not optimizer.startswith('fmin_'):
-            optimizer = "fmin_" + optimizer
-        if optimizer == 'fmin_':
-            optimizer = 'fmin'
+                optimizer = '_'.join(("fmin", optimizer))
         try:
             optimizer = getattr(optimize, optimizer)
         except AttributeError:
-            raise ValueError("%s is not a valid optimizer" % optimizer)
+            raise ValueError("{} is not a valid optimizer".format(optimizer))
     return optimizer
+
+
+def _warn_if_no_success(warnflag):
+    if warnflag == 1:
+        warnings.warn("The maximum number of iterations was exceeded.")
+    elif warnflag == 2:
+        warnings.warn("Did not converge")
+
+
+def _fitstart(self, data, args, kwds):
+    narg = len(args)
+    if narg > self.numargs:
+        raise TypeError("Too many input arguments.")
+    start = [None] * 2
+    if (narg < self.numargs) or not ('loc' in kwds and 'scale' in kwds):
+        # get distribution specific starting locations
+        start = self._fitstart(data)
+        args += start[narg:-2]
+    loc = kwds.pop('loc', start[-2])
+    scale = kwds.pop('scale', start[-1])
+    args += loc, scale
+    return args, kwds
 
 
 def fit(self, data, *args, **kwargs):
@@ -311,11 +341,21 @@ def fit(self, data, *args, **kwargs):
 
         - fscale : hold scale parameter fixed to specified value.
 
+        - method : of estimation. Options are
+            'ml' : Maximum Likelihood method (default)
+            'mps': Maximum Product Spacing method
+
+        - alpha :  Confidence coefficent  (default=0.05)
+
+        - search : bool
+            If true search for best estimator (default),
+            otherwise return object with initial distribution parameters
+
         - optimizer : The optimizer to use.  The optimizer must take ``func``,
-          and starting position as the first two arguments,
-          plus ``args`` (for extra arguments to pass to the
-          function to be optimized) and ``disp=0`` to suppress
-          output as keyword arguments.
+            and starting position as the first two arguments,
+            plus ``args`` (for extra arguments to pass to the
+            function to be optimized) and ``disp=0`` to suppress
+            output as keyword arguments.
 
     Returns
     -------
@@ -361,33 +401,35 @@ def fit(self, data, *args, **kwargs):
     1
 
     """
-    Narg = len(args)
-    if Narg > self.numargs:
-        raise TypeError("Too many input arguments.")
+    vals, _ = self._fit(data, *args, **kwargs)
+    return vals
 
-    kwds = kwargs.copy()
-    start = [None]*2
-    if (Narg < self.numargs) or not ('loc' in kwds and
-                                     'scale' in kwds):
-        # get distribution specific starting locations
-        start = self._fitstart(data)
-        args += start[Narg:-2]
-    loc = kwds.pop('loc', start[-2])
-    scale = kwds.pop('scale', start[-1])
-    args += (loc, scale)
-    x0, func, restore, args = self._reduce_func(args, kwds)
 
-    optimizer = _get_optimizer(kwds)
+def _fit(self, data, *args, **kwargs):
+    args, kwds = _fitstart(self, data, args, kwargs.copy())
+    x0, func, restore, args, fixedn = self._reduce_func(args, kwds)
+    if kwds.pop('search', True):
+        optimizer = _get_optimizer(kwds)
 
-    # by now kwds must be empty, since everybody took what they needed
-    if kwds:
-        raise TypeError("Unknown arguments: %s." % kwds)
+        # by now kwds must be empty, since everybody took what they needed
+        if kwds:
+            raise TypeError("Unknown arguments: %s." % kwds)
 
-    vals = optimizer(func, x0, args=(ravel(data),), disp=0)
+        output = optimizer(func, x0, args=(ravel(data),), full_output=True,
+                           disp=0)
+        if output[-1] != 0:
+            output = optimizer(func, output[0], args=(ravel(data),),
+                               full_output=True)
+
+        _warn_if_no_success(output[-1])
+        vals = tuple(output[0])
+    else:
+        vals = tuple(x0)
+
     if restore is not None:
         vals = restore(args, vals)
     vals = tuple(vals)
-    return vals
+    return vals, fixedn
 
 
 def fit2(self, data, *args, **kwds):
@@ -460,6 +502,7 @@ rv_continuous._penalized_nlogps = _penalized_nlogps
 rv_continuous._penalized_nnlf = _penalized_nnlf
 rv_continuous._reduce_func = _reduce_func
 rv_continuous.fit = fit
+rv_continuous._fit = _fit
 rv_continuous.fit2 = fit2
 rv_continuous._support_mask = _support_mask
 rv_continuous._open_support_mask = _open_support_mask
