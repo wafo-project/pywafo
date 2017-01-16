@@ -208,9 +208,9 @@ def _convert_fshapes2num(self, kwds):
         for j, s in enumerate(shapes):
             val = kwds.pop('f' + s, None) or kwds.pop('fix_' + s, None)
             if val is not None:
-                key = 'f%d' % j
+                key = 'f{0:d}'.format(j)
                 if key in kwds:
-                    raise ValueError("Duplicate entry for %s." % key)
+                    raise ValueError("Duplicate entry for {0:s}.".format(key))
                 else:
                     kwds[key] = val
     return kwds
@@ -413,7 +413,7 @@ def _fit(self, data, *args, **kwargs):
 
         # by now kwds must be empty, since everybody took what they needed
         if kwds:
-            raise TypeError("Unknown arguments: %s." % kwds)
+            raise TypeError("Unknown arguments: {}.".format(kwds))
 
         output = optimizer(func, x0, args=(ravel(data),), full_output=True,
                            disp=0)
