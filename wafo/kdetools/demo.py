@@ -1,10 +1,10 @@
-'''
+"""
 Created on 2. jan. 2017
 
 @author: pab
-'''
-from __future__ import absolute_import, division
-import scipy.stats
+"""
+from __future__ import absolute_import, division, print_function
+import scipy.stats as st
 import numpy as np
 import warnings
 from wafo.plotbackend import plotbackend as plt
@@ -25,8 +25,10 @@ def kde_demo1():
     observations (solid) and their individual kernels (dashed) for 3
     different values of the smoothing parameter, hs.
 
+    Example
+    -------
+    >>> kde_demo1()
     """
-    st = scipy.stats
     x = np.linspace(-4, 4, 101)
     x0 = x / 2.0
     data = np.random.normal(loc=0, scale=1.0, size=7)
@@ -53,12 +55,15 @@ def kde_demo1():
 
 
 def kde_demo2():
-    '''Demonstrate the difference between transformation- and ordinary-KDE.
+    """Demonstrate the difference between transformation- and ordinary-KDE.
 
     KDEDEMO2 shows that the transformation KDE is a better estimate for
     Rayleigh distributed data around 0 than the ordinary KDE.
-    '''
-    st = scipy.stats
+
+     Example
+    -------
+    >>> kde_demo2()
+    """
     data = st.rayleigh.rvs(scale=1, size=300)
 
     x = np.linspace(1.5e-2, 5, 55)
@@ -84,12 +89,15 @@ def kde_demo2():
 
 
 def kde_demo3():
-    '''Demonstrate the difference between transformation and ordinary-KDE in 2D
+    """Demonstrate the difference between transformation and ordinary-KDE in 2D
 
     KDEDEMO3 shows that the transformation KDE is a better estimate for
     Rayleigh distributed data around 0 than the ordinary KDE.
-    '''
-    st = scipy.stats
+
+     Example
+    -------
+    >>> kde_demo3()
+    """
     data = st.rayleigh.rvs(scale=1, size=(2, 300))
 
     # x = np.linspace(1.5e-3, 5, 55)
@@ -116,14 +124,16 @@ def kde_demo3():
 
 
 def kde_demo4(N=50):
-    '''Demonstrate that the improved Sheather-Jones plug-in (hisj) is superior
+    """Demonstrate that the improved Sheather-Jones plug-in (hisj) is superior
        for 1D multimodal distributions
 
     KDEDEMO4 shows that the improved Sheather-Jones plug-in smoothing is a
     better compared to normal reference rules (in this case the hns)
-    '''
-    st = scipy.stats
 
+     Example
+    -------
+    >>> kde_demo4()
+    """
     data = np.hstack((st.norm.rvs(loc=5, scale=1, size=(N,)),
                       st.norm.rvs(loc=-5, scale=1, size=(N,))))
 
@@ -147,14 +157,16 @@ def kde_demo4(N=50):
 
 
 def kde_demo5(N=500):
-    '''Demonstrate that the improved Sheather-Jones plug-in (hisj) is superior
+    """Demonstrate that the improved Sheather-Jones plug-in (hisj) is superior
        for 2D multimodal distributions
 
     KDEDEMO5 shows that the improved Sheather-Jones plug-in smoothing is better
     compared to normal reference rules (in this case the hns)
-    '''
-    st = scipy.stats
 
+     Example
+    -------
+    >>> kde_demo5()
+    """
     data = np.hstack((st.norm.rvs(loc=5, scale=1, size=(2, N,)),
                       st.norm.rvs(loc=-5, scale=1, size=(2, N,))))
     kde = KDE(data, kernel=Kernel('gauss', 'hns'))
@@ -175,8 +187,12 @@ def kde_demo5(N=500):
     plt.plot(data[0], data[1], '.')
 
 
-def kreg_demo1(hs=None, fast=False, fun='hisj'):
+def kreg_demo1(hs=None, fast=True, fun='hisj'):
     """Compare KRegression to KernelReg from statsmodels.nonparametric
+
+     Example
+    -------
+    >>> kreg_demo1()
     """
     N = 100
     # ei = np.random.normal(loc=0, scale=0.075, size=(N,))
@@ -230,17 +246,16 @@ def kreg_demo1(hs=None, fast=False, fun='hisj'):
     plt.plot(x, y2[0], 'm', label='statsmodel')
 
     plt.legend()
-    plt.show()
+    # plt.show()
 
-    print(kreg.tkde.tkde._inv_hs)
-    print(kreg.tkde.tkde.hs)
+    # print(kreg.tkde.tkde._inv_hs)
+    # print(kreg.tkde.tkde.hs)
 
 
 def _get_data(n=100, symmetric=False, loc1=1.1, scale1=0.6, scale2=1.0):
     """
     Return test data for binomial regression demo.
     """
-    st = scipy.stats
     dist = st.norm
 
     norm1 = scale2 * (dist.pdf(-loc1, loc=-loc1, scale=scale1) +
@@ -268,8 +283,12 @@ def _get_data(n=100, symmetric=False, loc1=1.1, scale1=0.6, scale2=1.0):
 def check_bkregression():
     """
     Check binomial regression
+
+     Example
+    -------
+    >>> check_bkregression()
     """
-    plt.ion()
+    # plt.ion()
     k = 0
     for _i, n in enumerate([50, 100, 300, 600]):
         x, y, fun1 = _get_data(n, symmetric=True, loc1=0.1,
@@ -293,13 +312,15 @@ def check_bkregression():
         ax.set_yticklabels(ax.get_yticks() * 100.0)
         ax.grid(True)
 
-    fig.tile(range(0, k))
-    plt.ioff()
-    plt.show('hold')
+    # fig.tile(range(0, k))
+    # plt.ioff()
+    # plt.show('hold')
 
 
 if __name__ == '__main__':
+    from wafo.testing import test_docstrings
+    test_docstrings(__file__)
     # kde_demo5()
     # check_bkregression()
-    kreg_demo1(hs=0.04, fast=True)
-    plt.show('hold')
+    # kreg_demo1(hs=0.04, fast=True)
+    # plt.show('hold')

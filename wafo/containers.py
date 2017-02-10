@@ -7,7 +7,7 @@ import numpy as np
 from scipy.integrate.quadrature import cumtrapz  # @UnresolvedImport
 from scipy import interpolate
 from scipy import integrate
-from _warnings import warn
+
 __all__ = ['PlotData', 'AxisLabels']
 
 
@@ -71,7 +71,7 @@ class PlotData(object):
 
     '''
 
-    def __init__(self, data=None, args=None, *args2, **kwds):
+    def __init__(self, data=None, args=None, **kwds):
         self.data = data
         self.args = args
         self.date = now()
@@ -581,7 +581,11 @@ def plot2d(axis, wdata, plotflag, *args, **kwds):
     else:
         args1 = tuple((wdata.args,)) + (wdata.data,) + args
 
-    pltfun = [None, axis.contour, axis.mesh, axis.surf, axis.waterfal,
+    # TODO: mesh, surf waterfall plots are missing
+    mesh = None   # axis.mesh
+    surf = None  # axis.surf
+    waterfall = None  # axis.waterfall
+    pltfun = [None, axis.contour, mesh, surf, waterfall,
               axis.pcolor, axis.contour, axis.contour, axis.contour,
               axis.contour, axis.contourf][plotflag]
 
@@ -611,6 +615,7 @@ def plot2d(axis, wdata, plotflag, *args, **kwds):
         if plotflag == 10:
             axis.clabel(h)
             plt.colorbar(h)
+    return h
 
 
 def test_plotdata():
