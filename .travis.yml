@@ -35,7 +35,7 @@ before_install:
   - sudo apt-get install gfortran
 # Install packages
 install:
-  - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy nose pytest matplotlib pytest-pep8 pytest-cov mpmath pillow numba
+  - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy nose pytest matplotlib pytest-pep8 pytest-cov mpmath pillow numba statsmodels
   - pip install funcsigs
   - pip install numdifftools
   - pip install coveralls
