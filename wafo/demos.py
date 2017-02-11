@@ -1,15 +1,59 @@
-'''
+"""
 Created on 20. jan. 2011
 
 @author: pab
-'''
+"""
 import numpy as np
 from numpy import exp, meshgrid
 __all__ = ['peaks', 'humps', 'magic']
 
 
+def _magic_odd_order(n):
+    ix = np.arange(n) + 1
+    J, I = np.meshgrid(ix, ix)
+    A = np.mod(I + J - (n + 3) / 2, n)
+    B = np.mod(I + 2 * J - 2, n)
+    M = n * A + B + 1
+    return M
+
+
+def _magic_doubly_even_order(n):
+    M = np.arange(1, n * n + 1).reshape(n, n)
+    ix = np.mod(np.arange(n) + 1, 4) // 2
+    J, I = np.meshgrid(ix, ix)
+    iz = np.flatnonzero(I == J)
+    M.put(iz, n * n + 1 - M.flat[iz])
+    return M
+
+
+def _magic_even_order(n):
+    p = n // 2
+    M0 = magic(p)
+    M = np.hstack((np.vstack((M0, M0 + 3 * p * p)),
+                   np.vstack((M0 + 2 * p * p, M0 + p * p))))
+    if n > 2:
+        k = (n - 2) // 4
+        jvec = np.hstack((np.arange(k), np.arange(n - k + 1, n)))
+        for i in range(p):
+            for j in jvec:
+                temp = M[i][j]
+                M[i][j] = M[i + p][j]
+                M[i + p][j] = temp
+
+        i = k
+        j = 0
+        temp = M[i][j]
+        M[i][j] = M[i + p][j]
+        M[i + p][j] = temp
+        j = i
+        temp = M[i + p][j]
+        M[i + p][j] = M[i][j]
+        M[i][j] = temp
+    return M
+
+
 def magic(n):
-    '''
+    """
     Return magic square  for n of any orders > 2.
 
     A magic square has the property that the sum of every row and column,
@@ -38,54 +82,19 @@ def magic(n):
     ...    [30,  5, 34, 12, 14, 16],
     ...    [ 4, 36, 29, 13, 18, 11]])
     True
-    '''
+    """
     if (n < 3):
         raise ValueError('n must be greater than 2.')
 
-    if np.mod(n, 2) == 1:  # odd order
-        ix = np.arange(n) + 1
-        J, I = np.meshgrid(ix, ix)
-        A = np.mod(I + J - (n + 3) / 2, n)
-        B = np.mod(I + 2 * J - 2, n)
-        M = n * A + B + 1
-    elif np.mod(n, 4) == 0:  # doubly even order
-        M = np.arange(1, n * n + 1).reshape(n, n)
-        ix = np.mod(np.arange(n) + 1, 4) // 2
-        J, I = np.meshgrid(ix, ix)
-        iz = np.flatnonzero(I == J)
-        M.put(iz, n * n + 1 - M.flat[iz])
-    else:  # singly even order
-        p = n // 2
-        M0 = magic(p)
-
-        M = np.hstack((np.vstack((M0, M0 + 3 * p * p)),
-                       np.vstack((M0 + 2 * p * p, M0 + p * p))))
-
-        if n > 2:
-            k = (n - 2) // 4
-            Jvec = np.hstack((np.arange(k), np.arange(n - k + 1, n)))
-            for i in range(p):
-                for j in Jvec:
-                    temp = M[i][j]
-                    M[i][j] = M[i + p][j]
-                    M[i + p][j] = temp
-
-            i = k
-            j = 0
-            temp = M[i][j]
-            M[i][j] = M[i + p][j]
-            M[i + p][j] = temp
-
-            j = i
-            temp = M[i + p][j]
-            M[i + p][j] = M[i][j]
-            M[i][j] = temp
-
-    return M
+    if np.mod(n, 2) == 1:
+        return _magic_odd_order(n)
+    elif np.mod(n, 4) == 0:
+        return _magic_doubly_even_order(n)
+    return _magic_even_order(n)
 
 
 def peaks(x=None, y=None, n=51):
-    '''
+    """
     Return the "well" known MatLab (R) peaks function
     evaluated in the [-3,3] x,y range
 
@@ -96,7 +105,7 @@ def peaks(x=None, y=None, n=51):
 
     h = plt.contourf(x,y,z)
 
-    '''
+    """
     if x is None:
         x = np.linspace(-3, 3, n)
     if y is None:
@@ -112,7 +121,7 @@ def peaks(x=None, y=None, n=51):
 
 
 def humps(x=None):
-    '''
+    """
     Computes a function that has three roots, and some humps.
 
      Example
@@ -122,7 +131,7 @@ def humps(x=None):
     >>> y = humps(x)
 
     h = plt.plot(x,y)
-    '''
+    """
     if x is None:
         y = np.linspace(0, 1)
     else:
