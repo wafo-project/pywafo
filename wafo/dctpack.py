@@ -351,31 +351,17 @@ def shiftdim(x, n=None):
         return x.reshape((1,) * -n + x.shape)
 
 
-def test_shiftdim():
-    a = np.arange(6).reshape((1, 1, 3, 1, 2))
-
-    print(a.shape)
-    print(a.ndim)
-
-    print(range(a.ndim))
-    # move items 2 places to the left so that x0 <- x2, x1 <- x3, etc
-    print(np.roll(range(a.ndim), -2))
-    print(a.transpose(np.roll(range(a.ndim), -2)))  # transposition of the axes
-    # with a matrix 2x2, A.transpose((1,0)) would be the transpose of A
-    b = shiftdim(a)
-    print(b.shape)
-
-    c = shiftdim(b, -2)
-    print(c.shape)
-
-    print(c == a)
-
-
 def example_dct2():
+    """
+    Example
+    -------
+    >>> example_dct2()
+    """
     import scipy.ndimage as sn
     import matplotlib.pyplot as plt
     name = os.path.join(path, 'autumn.gif')
-    rgb = np.asarray(sn.imread(name), dtype=np.float16)
+    plt.figure(1)
+    rgb = np.asarray(sn.imread(name), dtype=np.float)
     # np.fft.fft(rgb)
     print(np.max(rgb), np.min(rgb))
     plt.set_cmap('jet')
@@ -384,27 +370,25 @@ def example_dct2():
     print(np.abs(rgb-irgb).max())
     plt.imshow(np.log(np.abs(J)))
     # plt.colorbar() #colormap(jet), colorbar
-    plt.show('hold')
+    # plt.show('hold')
+    plt.figure(2)
     v = np.percentile(np.abs(J.ravel()), 10.0)
     print(len(np.flatnonzero(J)), v)
     J[np.abs(J) < v] = 0
     print(len(np.flatnonzero(J)))
     plt.imshow(np.log(np.abs(J)))
-    plt.show('hold')
+    # plt.show('hold')
     K = idctn(J)
     print(np.abs(rgb-K).max())
-    plt.figure(1)
+    plt.figure(3)
     plt.imshow(rgb)
-    plt.figure(2)
+    plt.figure(4)
     plt.imshow(K, vmin=0, vmax=255)
-    plt.show('hold')
-
-
-def test_docstrings():
-    import doctest
-    print('Testing docstrings in %s' % __file__)
-    doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
 
 
 if __name__ == '__main__':
-    test_docstrings()
+    from wafo.testing import test_docstrings
+    test_docstrings(__file__)
+    # import matplotlib.pyplot as plt
+    # example_dct2()
+    # plt.show('hold')
