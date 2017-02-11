@@ -193,7 +193,7 @@ def demo_kalman_sine():
     _ht = plt.plot(truth, 'g-', label='true voltage')
     plt.legend()
     plt.title('Automobile Voltimeter Example')
-    plt.show('hold')
+
 
 #     for k in range(m):
 #         [M,P] = kf_predict(M,P,A,Q);
@@ -355,7 +355,7 @@ def demo_tide_filter():
         y4.append(tmp[0])
         y5.append(tmp[1])
     _y0 = medfilt(y4, 41)
-    print(filt.P)
+    # print(filt.P)
     # plot
 
     plt.plot(t, y, 'r.-', linewidth=2, label='raw data')
@@ -441,7 +441,7 @@ def demo_smoothn_on_cardioid():
     """
     Example
     -------
-    >>> demo_smoothn_cardoid()
+    >>> demo_smoothn_cardioid()
 
     >>> plt.close()
     """
