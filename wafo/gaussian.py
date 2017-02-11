@@ -9,17 +9,17 @@ import warnings
 import numpy as np
 
 try:
-    from . import mvn  # @UnresolvedImport
+    from wafo import mvn  # @UnresolvedImport
 except ImportError:
     warnings.warn('mvn not found. Check its compilation.')
     mvn = None
 try:
-    from . import mvnprdmod  # @UnresolvedImport
+    from wafo import mvnprdmod  # @UnresolvedImport
 except ImportError:
     warnings.warn('mvnprdmod not found. Check its compilation.')
     mvnprdmod = None
 try:
-    from . import rindmod  # @UnresolvedImport
+    from wafo import rindmod  # @UnresolvedImport
 except ImportError:
     warnings.warn('rindmod not found. Check its compilation.')
     rindmod = None
@@ -27,7 +27,7 @@ except ImportError:
 
 __all__ = ['Rind', 'rindmod', 'mvnprdmod', 'mvn', 'cdflomax', 'prbnormtndpc',
            'prbnormndpc', 'prbnormnd', 'cdfnorm2d', 'prbnorm2d', 'cdfnorm',
-           'invnorm', 'test_docstring']
+           'invnorm']
 
 
 class Rind(object):
@@ -1028,12 +1028,9 @@ def bvd(lo, up, r):
     return cdfnorm2d(-lo, -up, r)
 
 
-def test_docstrings():
-    import doctest
-    doctest.testmod()
-
 if __name__ == '__main__':
-    test_docstrings()
+    from wafo.testing import test_docstrings
+    test_docstrings(__file__)
 # if __name__ == '__main__':
 #    if False: #True: #
 #        test_rind()
