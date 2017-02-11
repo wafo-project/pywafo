@@ -351,11 +351,27 @@ def shiftdim(x, n=None):
         return x.reshape((1,) * -n + x.shape)
 
 
-def example_dct2():
+def example_dct2(debug=True):
     """
     Example
     -------
-    >>> example_dct2()
+    >>> import numpy as np
+    >>> out = example_dct2(debug=False)
+    >>> out['nnz_dct_rgb'] == 1096200
+    True
+    >>> np.allclose(out['diff_rgb_rgb_10'], 1.2524607233242335)
+    True
+    >>> out['nnz_dct_rgb_10']==986580
+    True
+    >>> out['min_rgb'] == 0.0
+    True
+    >>> out['max_rgb'] == 251.0
+    True
+    >>> np.allclose(out['percentile_dct_rgb_10'], 1.3451573865136308)
+    True
+    >>> np.allclose(out['diff_rgb_irgb'], 1.4850343177386094e-12)
+    True
+
     """
     import scipy.ndimage as sn
     import matplotlib.pyplot as plt
@@ -363,28 +379,31 @@ def example_dct2():
     plt.figure(1)
     rgb = np.asarray(sn.imread(name), dtype=np.float)
     # np.fft.fft(rgb)
-    print(np.max(rgb), np.min(rgb))
+    out = dict(max_rgb=np.max(rgb), min_rgb=np.min(rgb))
     plt.set_cmap('jet')
     J = dctn(rgb)
     irgb = idctn(J)
-    print(np.abs(rgb-irgb).max())
+    out['diff_rgb_irgb'] = np.abs(rgb-irgb).max()
     plt.imshow(np.log(np.abs(J)))
     # plt.colorbar() #colormap(jet), colorbar
     # plt.show('hold')
     plt.figure(2)
     v = np.percentile(np.abs(J.ravel()), 10.0)
-    print(len(np.flatnonzero(J)), v)
+    out['nnz_dct_rgb'] = len(np.flatnonzero(J))
+    out['percentile_dct_rgb_10'] = v
     J[np.abs(J) < v] = 0
-    print(len(np.flatnonzero(J)))
+    out['nnz_dct_rgb_10'] = len(np.flatnonzero(J))
     plt.imshow(np.log(np.abs(J)))
     # plt.show('hold')
-    K = idctn(J)
-    print(np.abs(rgb-K).max())
+    rgb_10 = idctn(J)
+    out['diff_rgb_rgb_10'] = np.abs(rgb-rgb_10).max()
     plt.figure(3)
     plt.imshow(rgb)
     plt.figure(4)
-    plt.imshow(K, vmin=0, vmax=255)
-
+    plt.imshow(rgb_10, vmin=0, vmax=255)
+    if debug:
+        print(out)
+    return out
 
 if __name__ == '__main__':
     from wafo.testing import test_docstrings
