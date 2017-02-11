@@ -204,11 +204,6 @@ def w2k(w, theta=0.0, h=inf, g=9.81, count_limit=100):
     return k1, k2
 
 
-def test_docstrings():
-    import doctest
-    print('Testing docstrings in %s' % __file__)
-    doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
-
-
 if __name__ == '__main__':
-    test_docstrings()
+    from wafo.testing import test_docstrings
+    test_docstrings(__file__)

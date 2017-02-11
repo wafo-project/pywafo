@@ -132,10 +132,6 @@ def humps(x=None):
         2 * y - 5.2
 
 
-def test_docstrings():
-    import doctest
-    print('Testing docstrings in %s' % __file__)
-    doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
-
 if __name__ == '__main__':
-    test_docstrings()
+    from wafo.testing import test_docstrings
+    test_docstrings(__file__)
