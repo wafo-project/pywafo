@@ -637,29 +637,35 @@ def smoothn(data, s=None, weight=None, robust=False, z0=None, tolz=1e-3,
      2-D example
     >>> xp = np.r_[0:1:.02]
     >>> [x,y] = np.meshgrid(xp,xp)
-    >>> f = np.exp(x+y) + np.sin((x-2*y)*3);
-    >>> fn = f + np.random.randn(*f.shape)*0.5;
-    >>> fs = smoothn(fn);
+    >>> f = np.exp(x+y) + np.sin((x-2*y)*3)
+    >>> fn = f + np.random.randn(*f.shape)*0.5
+    >>> fs = smoothn(fn)
 
     h=plt.subplot(121),
-    h=plt.contourf(xp,xp,fn)
+    h=plt.contourf(xp, xp, fn)
     h=plt.subplot(122)
-    h=plt.contourf(xp,xp,fs)
+    h=plt.contourf(xp, xp, fs)
 
-     2-D example with missing data
-    n = 256;
-    y0 = peaks(n);
-    y = y0 + rand(size(y0))*2;
-    I = randperm(n^2);
-    y(I(1:n^2*0.5)) = NaN;  lose 1/2 of data
-    y(40:90,140:190) = NaN;  create a hole
-    z = smoothn(y);  smooth data
-    subplot(2,2,1:2), imagesc(y), axis equal off
-    title('Noisy corrupt data')
-    subplot(223), imagesc(z), axis equal off
-    title('Recovered data ...')
-    subplot(224), imagesc(y0), axis equal off
-    title('... compared with original data')
+    2-D example with missing data
+    >>> import wafo.demos as wd
+    >>> n = 256
+    >>> x0, y0, z0 = wd.peaks(n)
+    >>> z = z0 + rand(size(y0))*2
+
+    I = randperm(n**2)
+    z[I(1:n^2*0.5)] = np.NaN;  # lose 1/2 of data
+    z[40:90, 140:190] = np.NaN;  # create a hole
+    zs = smoothn(z)
+
+    plt.subplot(2,2,1)
+    plt.imagesc(y)  # , axis equal off
+    plt.title('Noisy corrupt data')
+    plt.subplot(223)
+    plt.imagesc(z)   # , axis equal off
+    plt.title('Recovered data ...')
+    plt.subplot(224)
+    plt.imagesc(y0)  # , axis equal off
+    plt.title('... compared with original data')
 
      3-D example
     [x,y,z] = meshgrid(-2:.2:2);
@@ -671,14 +677,6 @@ def smoothn(data, s=None, weight=None, robust=False, z0=None, tolz=1e-3,
     subplot(122), slice(x,y,z,v,xslice,yslice,zslice,'cubic')
     title('Smoothed data')
 
-    Cardioid
-
-    t = linspace(0,2*pi,1000);
-    x = 2*cos(t).*(1-cos(t)) + randn(size(t))*0.1;
-    y = 2*sin(t).*(1-cos(t)) + randn(size(t))*0.1;
-    z = smoothn(complex(x,y));
-    plot(x,y,'r.',real(z),imag(z),'k','linewidth',2)
-    axis equal tight
 
      Cellular vortical flow
     [x,y] = meshgrid(linspace(0,1,24));
@@ -697,7 +695,9 @@ def smoothn(data, s=None, weight=None, robust=False, z0=None, tolz=1e-3,
     subplot(122), quiver(x,y,real(Vs),imag(Vs)), axis square
     title('Smoothed velocity field')
 
-    See also SMOOTH, SMOOTH3, DCTN, IDCTN.
+    See also
+    -------
+    SmoothNd
 
     -- Damien Garcia -- 2009/03, revised 2010/11
     Visit
