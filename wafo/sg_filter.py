@@ -650,8 +650,8 @@ def smoothn(data, s=None, weight=None, robust=False, z0=None, tolz=1e-3,
     >>> import wafo.demos as wd
     >>> n = 256
     >>> x0, y0, z0 = wd.peaks(n)
-    >>> z = z0 + rand(size(y0))*2
 
+    z = z0 + rand(size(y0))*2
     I = randperm(n**2)
     z[I(1:n^2*0.5)] = np.NaN;  # lose 1/2 of data
     z[40:90, 140:190] = np.NaN;  # create a hole
