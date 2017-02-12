@@ -14,6 +14,9 @@ from wafo.dctpack import dctn, idctn
 __all__ = ['SavitzkyGolay', 'Kalman', 'HodrickPrescott', 'smoothn',
            'HampelFilter', 'SmoothNd']
 
+# noise = np.random.randn(2**8)/10
+noise = [-0.0490483773397234, 0.07101522794824691, 0.043129450693516064, 0.07858516767729644, -0.04489848540755172, -0.012710090966021995, 0.022967442347004003, -0.1593564930543959, 0.14752458454255937, -0.1220055819473534, -0.030151822649201642, 0.009880871420067841, 0.0401050562035102, -0.10931262882008379, -0.14550620919429919, -0.06632845063372966, 0.07773893951749064, -0.009527784302072342, 0.06002486046176557, 0.11972670522904964, -0.14436696992162384, 0.06009486605688445, -0.05802790838575894, 0.16964239368289297, 0.09088881573238144, -0.003398259264109856, 0.059830811447018004, -0.08189024981767952, -0.05455483548325317, 0.056651518536760745, -0.05211609539593189, -0.07848323826083178, -0.03921692262168154, -0.04755275276447492, -0.05855172473750038, 0.06480280696345982, -0.05237889271019207, -0.05891912551792037, -0.04045907452295067, -0.09058522124919187, 0.1406515441218336, 0.15557979603588584, -0.09096515320242772, 0.1724190189462715, -0.04978942687488187, -0.0855435866249914, 0.09439718859306868, -0.14758639479507882, -0.07225230856508442, 0.008364508824556314, 0.06704423745152435, -0.01718113731784587, 0.07473943576290255, 0.028133087670974395, 0.026270590730899095, 0.13175770484080895, -0.01821821552644416, 0.11325945472394446, 0.04694754851273185, -0.23899404962137366, -0.1528175431702195, 0.151870532421663, -0.07353204927616248, 0.11604199430172217, -0.09111623325687843, -0.11887366073405607, -0.029872397510562025, 0.047672685028458936, -0.18340065977268627, 0.06896217941210328, 0.042997912112300564, 0.15416998299846174, -0.0386283794526545, 0.14070600624229804, 0.020984623041646142, -0.1892741373898864, 0.03253519397457513, -0.06182705494266229, -0.1326495728975159, 0.026234150321195537, 0.0550541170409239, 0.029275813927566702, 0.042742104678489906, -0.2170004668366198, -0.00035991761313413197, -0.0638872684868346, -0.11769436550364845, -0.017792813824766808, -0.022786402363044914, -0.10668279890162544, 0.05979507681729831, -0.1008100479486818, 0.0703474638610785, 0.1630534776572414, 0.06682406484481357, -0.0527228810042394, -0.046515310355062636, 0.04609515154732255, 0.11503753838360875, 0.11517599661346192, -0.05596425736274815, -0.06149119758833357, 0.10599964719188917, -0.012076380140185552, 0.0436828262270732, -0.03910174791470852, -0.03263251315745414, -0.012513843545007558, 0.004590611827089213, 0.0762719171282112, 0.06497715695411535, -0.003280826953794463, 0.13524154885565484, -0.020441364843140027, -0.09488214173137496, 0.1385755359902911, -0.23883052310744746, -0.10110537386421652, -0.1588981058869149, 0.06645444828058467, -0.2103306051703948, 0.15215327561190056, -0.03582175680076989, 0.013593833383013293, -0.11542058494732854, -0.05613268116816099, 0.012711037661355899, 0.04242805633100794, -0.011799315325220794, 0.12141794601099387, 0.054285270560662645, 0.07549385527022169, -0.04549437694653443, 0.11009856942530691, 0.05233482224379645, -0.042246830306136955, -0.1737197924666796, -0.10589427330127077, 0.04895472597843757, 0.06756519832636187, 0.083376600742245, -0.07502859751328732, -0.09493802498812245, -0.01058967186080922, -0.23759763247649018, 0.08439637862616411, -0.2021754550870607, 0.07365816800912013, 0.07435401663661081, 0.047992791325423556, -0.005250092450514997, 0.1693610927865244, 0.030338113772413154, -0.18010537945928004, 0.01744129379023785, 0.1902505975745975, -0.004598733688659104, 0.13663542585715657, -0.04100719174496187, -0.15406303185009937, -0.05297118247908407, 0.04435144348234146, 0.022377061632995063, 0.05491057192661079, -0.08473062163887303, -0.03907641665824873, 0.008686833182075315, -0.06053451866471732, -0.051735892949367854, -0.1902071038920444, 0.11508817132666356, 0.08903045262390544, -0.028537865059606825, -0.07160660523436188, 0.05994760363400714, 0.03637820115278829, 0.027604828657436364, 0.04168122074675033, -0.021707671111253164, 0.06770739385070886, -0.04848505599153394, -0.14377853380839264, 0.17448368721141166, -0.05972663746675887, -0.1615729579782888, -0.09508063624538736, -0.05501964872264433, -0.14370852991216054, -0.1025241548369181, -0.14751000180775747, -0.05402976681470177, -0.05847606145915367, 0.015603559358987138, 0.040327317968149784, 0.015596571983936361, 0.08721780106901023, 0.13669912032986667, -0.07070030973798198, 0.04821782065785363, 0.05266507025196321, -0.013775127999269254, 0.07032239356769251, 0.04685048562398681, 0.004648720572365418, -0.19364418622487742, 0.013662994215276983, 0.04703494294810789, 0.04863794676207257, -0.09883919097676001, -0.004798538894290822, -0.22183503742087135, 0.062096556899520906, 0.07098373434409047, -0.05335639719762188, -0.09150459514627822, -0.1329311651202703, -0.037376442133682145, 0.1238732233009325, -0.01232052797514208, 0.007151238520555889, -0.04772828461473576, -0.029830395387364726, -0.03277336781995001, 0.09964048194066656, 0.09306408040020697, -0.03761782769337173, 0.07059549032551317, -0.15490333414875848, 0.12599077783991805, 0.23520519946427365, 0.021640305946603107, 0.014851729969403227, -0.039035437601777224, -0.12087588583684257, -0.07207855860199022, -0.002800081649022032, 0.2543907308881692, -0.07966223382328289, -0.1014419766425384, -0.11243061225437859, -0.08744845956375621, -0.05540140267769189, -0.04995531421885231, -0.13274847220288336, 0.06435474943034288, 0.015640361472736924, -0.11210644205346465, -0.04080648821849449, -0.011452694652695428, 0.22044736923317904, 0.024322228245949113, 0.09622705616884256, 0.05793212184654495, -0.10620553812614748, 0.06762504431789758, 0.19135075519983785]  # @IgnorePep8
+
 
 def _assert(cond, msg):
     if not cond:
@@ -92,12 +95,28 @@ class SavitzkyGolay(object):
 
     Examples
     --------
+    >>> import wafo.sg_filter as ws
     >>> t = np.linspace(-4, 4, 500)
     >>> noise = np.random.normal(0, 0.05, t.shape)
     >>> noise = np.sqrt(0.05)*np.sin(100*t)
     >>> y = np.exp( -t**2 ) + noise
     >>> ysg = SavitzkyGolay(n=20, degree=2).smooth(y)
     >>> np.allclose(ysg[:3], [ 0.01345312,  0.01164172,  0.00992839])
+    True
+    >>> ysm = SavitzkyGolay(n=20, degree=2, mode='mirror').smooth(y)
+    >>> np.allclose(ysm[:3], [-0.01604804, -0.00592883,  0.0035858 ])
+    True
+    >>> ysc = SavitzkyGolay(n=20, degree=2, mode='constant').smooth(y)
+    >>> np.allclose(ysc[:3], [-0.00279797,  0.00519541,  0.00666146])
+    True
+    >>> ysn = SavitzkyGolay(n=20, degree=2, mode='nearest').smooth(y)
+    >>> np.allclose(ysn[:3], [ 0.08711171,  0.0846945 ,  0.07587448])
+    True
+    >>> ysw = SavitzkyGolay(n=20, degree=2, mode='wrap').smooth(y)
+    >>> np.allclose(ysw[:3], [-0.00208422, -0.00201491,  0.00201772])
+    True
+    >>> np.allclose(SavitzkyGolay(n=20, degree=2).smooth_last(y),
+    ...             0.004921382626100505)
     True
 
     import matplotlib.pyplot as plt
@@ -132,7 +151,7 @@ class SavitzkyGolay(object):
                                                     degree, deriv=diff_order,
                                                     delta=delta)
 
-    def smooth_last(self, signal, k=0):
+    def smooth_last(self, signal, k=1):
         coeff = self._coeff
         n = (np.size(coeff) - 1) // 2
         y = np.squeeze(signal)
@@ -422,11 +441,11 @@ class _Filter(object):
     def check_smooth_parameter(self, s):
         if self.auto_smooth:
             if np.abs(np.log10(s) - np.log10(self.s_min)) < self.errp:
-                warnings.warn('''s = %g: the lower bound for s has been reached.
-            Put s as an input variable if required.''' % s)
+                warnings.warn("""s = %g: the lower bound for s has been reached.
+            Put s as an input variable if required.""" % s)
             elif np.abs(np.log10(s) - np.log10(self.s_max)) < self.errp:
-                warnings.warn('''s = %g: the Upper bound for s has been reached.
-            Put s as an input variable if required.''' % s)
+                warnings.warn("""s = %g: the Upper bound for s has been reached.
+            Put s as an input variable if required.""" % s)
 
     def gcv(self, p, aow, DCTy, y, Wtot):
         # Search the smoothing parameter s that minimizes the GCV score
@@ -536,8 +555,8 @@ class SmoothNd(object):
             z, s, converged = _filter(z, s)
 
         if not converged:
-            msg = '''Maximum number of iterations (%d) has been exceeded.
-            Increase MaxIter option or decrease TolZ value.''' % (self.maxiter)
+            msg = """Maximum number of iterations (%d) has been exceeded.
+            Increase MaxIter option or decrease TolZ value.""" % (self.maxiter)
             warnings.warn(msg)
 
         _filter.check_smooth_parameter(s)
@@ -549,7 +568,7 @@ class SmoothNd(object):
 
 def smoothn(data, s=None, weight=None, robust=False, z0=None, tolz=1e-3,
             maxiter=100, fulloutput=False):
-    '''
+    """
     SMOOTHN fast and robust spline smoothing for 1-D to N-D data.
 
     Parameters
@@ -594,11 +613,19 @@ def smoothn(data, s=None, weight=None, robust=False, z0=None, tolz=1e-3,
 
     1-D example
     >>> import matplotlib.pyplot as plt
-    >>> x = np.linspace(0,100,2**8)
-    >>> y = np.cos(x/10)+(x/50)**2 + np.random.randn(*x.shape)/10
+    >>> import wafo.sg_filter as ws
+    >>> x = np.linspace(0, 100, 2**8)
+    >>> noise = np.random.randn(2**8)/10
+    >>> noise = ws.noise
+    >>> y = np.cos(x/10)+(x/50)**2 + noise
     >>> y[np.r_[70, 75, 80]] = np.array([5.5, 5, 6])
-    >>> z = smoothn(y) # Regular smoothing
-    >>> zr = smoothn(y,robust=True) #  Robust smoothing
+    >>> y[181] = np.nan
+    >>> z = ws.smoothn(y) # Regular smoothing
+    >>> np.allclose(z[:3], [ 0.99517904,  0.99372346,  0.99079798])
+    True
+    >>> zr = ws.smoothn(y,robust=True) #  Robust smoothing
+    >>> np.allclose(zr[:3], [ 1.01190564,  1.00976197,  1.00513244])
+    True
 
     h=plt.subplot(121),
     h = plt.plot(x,y,'r.',x,z,'k',linewidth=2)
@@ -676,13 +703,13 @@ def smoothn(data, s=None, weight=None, robust=False, z0=None, tolz=1e-3,
     Visit
     http://www.biomecardio.com/matlab/smoothn.html
     for more details about SMOOTHN
-    '''
+    """
     return SmoothNd(s, weight, robust, z0, tolz, maxiter, fulloutput)(data)
 
 
 class HodrickPrescott(object):
 
-    '''Smooth data with a Hodrick-Prescott filter.
+    """Smooth data with a Hodrick-Prescott filter.
 
     The Hodrick-Prescott filter removes high frequency noise from data.
     It has the advantage of preserving the original shape and
@@ -698,9 +725,10 @@ class HodrickPrescott(object):
 
     Examples
     --------
+    >>> import wafo.sg_filter as ws
     >>> t = np.linspace(-4, 4, 500)
     >>> y = np.exp( -t**2 ) + np.random.normal(0, 0.05, t.shape)
-    >>> ysg = HodrickPrescott(w=10000)(y)
+    >>> ysg = ws.HodrickPrescott(w=10000)(y)
 
     import matplotlib.pyplot as plt
     h = plt.plot(t, y, label='Noisy signal')
@@ -719,7 +747,7 @@ class HodrickPrescott(object):
         Journal of money, credit and banking, 1997, 29 (1), pp 1-16.
     .. [3] Kim Hyeongwoo, Hodrick-Prescott filter,
         2004, www.auburn.edu/~hzk0001/hpfilter.pdf
-    '''
+    """
 
     def __init__(self, w=100):
         self.w = w
@@ -746,7 +774,7 @@ class HodrickPrescott(object):
 
 class Kalman(object):
 
-    '''
+    """
     Kalman filter object - updates a system state vector estimate based upon an
               observation, using a discrete Kalman filter.
 
@@ -848,6 +876,7 @@ class Kalman(object):
 
     Example (Automobile Voltimeter):
     -------
+    >>> import wafo.sg_filter as ws
     # Define the system as a constant of 12 volts:
     >>> V0 = 12
     >>> h = 1      # voltimeter measure the voltage itself
@@ -855,7 +884,7 @@ class Kalman(object):
     >>> r = 0.1**2 # variance of measurement error
     >>> b = 0      # no system input
     >>> u = 0      # no system input
-    >>> filt = Kalman(R=r, A=1, Q=q, H=h, B=b)
+    >>> filt = ws.Kalman(R=r, A=1, Q=q, H=h, B=b)
 
     # Generate random voltages and watch the filter operate.
     >>> n = 50
@@ -876,7 +905,7 @@ class Kalman(object):
     h1 = plt.title('Automobile Voltimeter Example')
     plt.show()
 
-    '''
+    """
 
     def __init__(self, R, x=None, P=None, A=None, B=0, Q=None, H=None):
         self.R = R  # Estimated error in measurements.
@@ -965,8 +994,8 @@ class Kalman(object):
         # return np.dot(np.eye(len(P)) - K * self.H, P)
 
     def _filter_main(self, z, u):
-        ''' This is the code which implements the discrete Kalman filter:
-        '''
+        """ This is the code which implements the discrete Kalman filter:
+        """
         P = self._predict_covariance(self.P)
         x = self._predict_state(self.x, u)
 
