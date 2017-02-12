@@ -441,7 +441,7 @@ def demo_smoothn_on_cardioid():
     """
     Example
     -------
-    >>> demo_smoothn_cardioid()
+    >>> demo_smoothn_on_cardioid()
 
     >>> plt.close()
     """
@@ -485,4 +485,3 @@ if __name__ == '__main__':
 #     # demo_smoothn_on_1d_cos()
 #     demo_smoothn_on_cardioid()
 #     plt.show('hold')
-
