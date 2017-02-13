@@ -2,8 +2,8 @@ import numpy as np
 from scipy.sparse.linalg import expm
 from scipy.signal import medfilt
 from wafo.plotbackend import plotbackend as plt
-from wafo.sg_filter import (SavitzkyGolay, smoothn, Kalman, HodrickPrescott,
-                            HampelFilter)
+from wafo.sg_filter._core import (SavitzkyGolay, smoothn, Kalman,
+                                  HodrickPrescott, HampelFilter)
 
 
 def demo_savitzky_on_noisy_chirp():
