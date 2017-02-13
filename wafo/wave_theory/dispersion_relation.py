@@ -198,9 +198,9 @@ def w2k(w, theta=0.0, h=inf, g=9.81, count_limit=100):
         ix = find((np.abs(hn) > sqrt(eps) * np.abs(k)) *
                   np.abs(hn) > sqrt(eps))
         count += 1
-
+    max_err = np.max(hn[ix]) if np.any(ix) else 0
     _assert_warn(count < count_limit, 'W2K did not converge. '
-                 'Maximum error in the last step was: %13.8f' % max(hn[ix]))
+                 'Maximum error in the last step was: %13.8f' % max_err)
 
     k.shape = oshape
 
