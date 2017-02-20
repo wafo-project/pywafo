@@ -176,7 +176,7 @@ class CovData1D(PlotData):
             nugget effect to ensure that round off errors do not result in
             negative spectral estimates. Good choice might be 10^-12.
         trunc : scalar, real
-            truncates all spectral values where S/max(S) < trunc
+            truncates all spectral values where spec/max(spec) < trunc
                       0 <= trunc <1   This is to ensure that high frequency
                       noise is not added to the spectrum.  (default 1e-5)
         fast : bool
@@ -185,7 +185,7 @@ class CovData1D(PlotData):
 
         Returns
         --------
-        S : SpecData1D object
+        spec : SpecData1D object
             spectral density
 
          NB! This routine requires that the covariance is evenly spaced
@@ -205,14 +205,14 @@ class CovData1D(PlotData):
         >>> S0 = R0.tospecdata()
 
         >>> Sj = sm.Jonswap()
-        >>> S = Sj.tospecdata()
-        >>> R2 = S.tocovdata()
+        >>> spec = Sj.tospecdata()
+        >>> R2 = spec.tocovdata()
         >>> S1 = R2.tospecdata()
-        >>> abs(S1.data-S.data).max() < 1e-4
+        >>> abs(S1.data-spec.data).max() < 1e-4
         True
 
         S1.plot('r-')
-        S.plot('b:')
+        spec.plot('b:')
         pylab.show()
 
         See also
@@ -252,26 +252,26 @@ class CovData1D(PlotData):
         nf = int(nfft // 2)  # number of frequencies
         acf = r_[acf, zeros(nfft - 2 * n + 2), acf[n - 2:0:-1]]
 
-        Rper = (fft(acf, nfft).real).clip(0)  # periodogram
-        RperMax = Rper.max()
-        Rper = where(Rper < trunc * RperMax, 0, Rper)
+        r_per = (fft(acf, nfft).real).clip(0)  # periodogram
+        r_per_max = r_per.max()
+        r_per = where(r_per < trunc * r_per_max, 0, r_per)
 
-        S = abs(Rper[0:(nf + 1)]) * dt / pi
+        spec = abs(r_per[0:(nf + 1)]) * dt / pi
         w = linspace(0, pi / dt, nf + 1)
-        So = _wafospec.SpecData1D(S, w, type=spectype, freqtype=ftype)
-        So.tr = self.tr
-        So.h = self.h
-        So.norm = self.norm
+        spec_out = _wafospec.SpecData1D(spec, w, type=spectype, freqtype=ftype)
+        spec_out.tr = self.tr
+        spec_out.h = self.h
+        spec_out.norm = self.norm
 
         if method != 'fft' and rate > 1:
-            So.args = linspace(0, pi / dt, nf * rate)
+            spec_out.args = linspace(0, pi / dt, nf * rate)
             if method == 'stineman':
-                So.data = stineman_interp(So.args, w, S)
+                spec_out.data = stineman_interp(spec_out.args, w, spec)
             else:
-                intfun = interpolate.interp1d(w, S, kind=method)
-                So.data = intfun(So.args)
-            So.data = So.data.clip(0)  # clip negative values to 0
-        return So
+                intfun = interpolate.interp1d(w, spec, kind=method)
+                spec_out.data = intfun(spec_out.args)
+            spec_out.data = spec_out.data.clip(0)  # clip negative values to 0
+        return spec_out
 
     def sampling_period(self):
         '''
@@ -303,7 +303,7 @@ class CovData1D(PlotData):
         Parameters
         ----------
         ns : scalar
-            number of simulated points.  (default length(S)-1=n-1).
+            number of simulated points.  (default length(spec)-1=n-1).
                      If ns>n-1 it is assummed that R(k)=0 for all k>n-1
         cases : scalar
             number of replicates (default=1)
@@ -336,8 +336,8 @@ class CovData1D(PlotData):
         Example:
         >>> import wafo.spectrum.models as sm
         >>> Sj = sm.Jonswap()
-        >>> S = Sj.tospecdata()   #Make spec
-        >>> R = S.tocovdata()
+        >>> spec = Sj.tospecdata()   #Make spec
+        >>> R = spec.tocovdata()
         >>> x = R.sim(ns=1000,dt=0.2)
 
         See also
@@ -365,7 +365,7 @@ class CovData1D(PlotData):
         n = acf.size
         acf.shape = (n, 1)
 
-        dT = self.sampling_period()
+        dt = self.sampling_period()
 
         x = zeros((ns, cases + 1))
 
@@ -391,10 +391,10 @@ class CovData1D(PlotData):
             acf = r_[acf, zeros((nfft - m2, 1)), acf[n - 1:1:-1, :]]
 
         # m2=2*n-2
-        S = fft(acf, nfft, axis=0).real  # periodogram
+        spec = fft(acf, nfft, axis=0).real  # periodogram
 
-        I = S.argmax()
-        k = flatnonzero(S < 0)
+        I = spec.argmax()
+        k = flatnonzero(spec < 0)
         if k.size > 0:
             _msg = '''
                 Not able to construct a nonnegative circulant vector from ACF.
@@ -404,7 +404,7 @@ class CovData1D(PlotData):
             # truncating negative values to zero to ensure that
             # that this noise is not added to the simulated timeseries
 
-            S[k] = 0.
+            spec[k] = 0.
 
             ix = flatnonzero(k > 2 * I)
             if ix.size > 0:
@@ -413,13 +413,13 @@ class CovData1D(PlotData):
                 # that high frequency noise is not added to
                 # the simulated timeseries.
                 ix0 = k[ix[0]]
-                S[ix0:-ix0] = 0.0
+                spec[ix0:-ix0] = 0.0
 
         trunc = 1e-5
-        maxS = S[I]
-        k = flatnonzero(S[I:-I] < maxS * trunc)
+        max_spec = spec[I]
+        k = flatnonzero(spec[I:-I] < max_spec * trunc)
         if k.size > 0:
-            S[k + I] = 0.
+            spec[k + I] = 0.
             # truncating small values to zero to ensure that
             # that high frequency noise is not added to
             # the simulated timeseries
@@ -430,18 +430,18 @@ class CovData1D(PlotData):
 
         # randn = np.random.randn
         epsi = randn(nfft, cases2) + 1j * randn(nfft, cases2)
-        Ssqr = sqrt(S / (nfft))  # sqrt(S(wn)*dw )
-        ephat = epsi * Ssqr  # [:,np.newaxis]
+        sqrt_spec = sqrt(spec / (nfft))  # sqrt(spec(wn)*dw )
+        ephat = epsi * sqrt_spec  # [:,np.newaxis]
         y = fft(ephat, nfft, axis=0)
         x[:, 1:cases + 1] = hstack((y[2:ns + 2, 0:cases2].real,
                                     y[2:ns + 2, 0:cases1].imag))
 
-        x[:, 0] = linspace(0, (ns - 1) * dT, ns)  # (0:dT:(dT*(np-1)))'
+        x[:, 0] = linspace(0, (ns - 1) * dt, ns)  # (0:dt:(dt*(np-1)))'
 
         if derivative:
-            Ssqr = Ssqr * \
-                r_[0:(nfft / 2 + 1), -(nfft / 2 - 1):0] * 2 * pi / nfft / dT
-            ephat = epsi * Ssqr  # [:,newaxis]
+            sqrt_spec = sqrt_spec * \
+                r_[0:(nfft / 2 + 1), -(nfft / 2 - 1):0] * 2 * pi / nfft / dt
+            ephat = epsi * sqrt_spec  # [:,newaxis]
             y = fft(ephat, nfft, axis=0)
             xder[:, 1:(cases + 1)] = hstack((y[2:ns + 2, 0:cases2].imag -
                                             y[2:ns + 2, 0:cases1].real))
@@ -486,24 +486,26 @@ class CovData1D(PlotData):
         else:
             return acf[:n]
 
-    def _split_cov(self, sigma, i_known, i_unknown):
+    @staticmethod
+    def _split_cov(sigma, i_known, i_unknown):
         '''
         Split covariance matrix between known/unknown observations
 
         Returns
         -------
-        Soo  covariance between known observations
-        S11 = covariance between unknown observations
-        S1o = covariance between known and unknown obs
+        soo  covariance between known observations
+        s1o = covariance between known and unknown obs
+        s11 = covariance between unknown observations
         '''
-        Soo, So1 = sigma[i_known][:, i_known], sigma[i_known][:, i_unknown]
-        S11 = sigma[i_unknown][:, i_unknown]
-        return Soo, So1, S11
+        soo, so1 = sigma[i_known][:, i_known], sigma[i_known][:, i_unknown]
+        s11 = sigma[i_unknown][:, i_unknown]
+        return soo, so1, s11
 
-    def _update_window(self, idx, i_unknown, num_x, num_acf,
+    @staticmethod
+    def _update_window(idx, i_unknown, num_x, num_acf,
                        overlap, nw, num_restored):
-        Nsig = len(idx)
-        start_max = num_x - Nsig
+        num_sig = len(idx)
+        start_max = num_x - num_sig
         if (nw == 0) and (num_restored < len(i_unknown)):
             # move to the next missing data
             start_ix = min(i_unknown[num_restored + 1] - overlap, start_max)
@@ -594,38 +596,38 @@ class CovData1D(PlotData):
         if method.startswith('exac'):
             # exact but slow. It also may not return any result
             if num_acf > 0.3 * num_x:
-                Sigma = toeplitz(hstack((acf, zeros(num_x - num_acf))))
+                sigma = toeplitz(hstack((acf, zeros(num_x - num_acf))))
             else:
                 acf[0] = acf[0] * 1.00001
-                Sigma = sptoeplitz(hstack((acf, zeros(num_x - num_acf))))
-            Soo, So1, S11 = self._split_cov(Sigma, i_known, i_unknown)
+                sigma = sptoeplitz(hstack((acf, zeros(num_x - num_acf))))
+            soo, so1, s11 = self._split_cov(sigma, i_known, i_unknown)
 
-            if issparse(Sigma):
-                So1 = So1.todense()
-                S11 = S11.todense()
-                S1o_Sooinv = spsolve(Soo + Soo.T, 2 * So1).T
+            if issparse(sigma):
+                so1 = so1.todense()
+                s11 = s11.todense()
+                s1o_sooinv = spsolve(soo + soo.T, 2 * so1).T
             else:
-                Sooinv_So1, _res, _rank, _s = lstsq(Soo + Soo.T, 2 * So1,
+                sooinv_so1, _res, _rank, _s = lstsq(soo + soo.T, 2 * so1,
                                                     cond=1e-4)
-                S1o_Sooinv = Sooinv_So1.T
-            mu1o = S1o_Sooinv.dot(x[i_known])
-            Sigma1o = S11 - S1o_Sooinv.dot(So1)
-            if (diag(Sigma1o) < 0).any():
+                s1o_sooinv = sooinv_so1.T
+            mu1o = s1o_sooinv.dot(x[i_known])
+            sigma1o = s11 - s1o_sooinv.dot(so1)
+            if (diag(sigma1o) < 0).any():
                 raise ValueError('Failed to converge to a solution')
 
-            mu1o_std = sqrt(diag(Sigma1o))
-            sample[:] = rndnormnd(mu1o, Sigma1o, cases=1).ravel()
+            mu1o_std = sqrt(diag(sigma1o))
+            sample[:] = rndnormnd(mu1o, sigma1o, cases=1).ravel()
 
         elif method.startswith('appr'):
             # approximating by only condition on the closest points
 
-            Nsig = min(2 * num_acf, num_x)
+            num_sig = min(2 * num_acf, num_x)
 
-            Sigma = toeplitz(hstack((acf, zeros(Nsig - num_acf))))
-            overlap = int(Nsig / 4)
+            sigma = toeplitz(hstack((acf, zeros(num_sig - num_acf))))
+            overlap = int(num_sig / 4)
             # indices to the points used
-            idx = r_[0:Nsig] + max(0, min(i_unknown[0] - overlap,
-                                          num_x - Nsig))
+            idx = r_[0:num_sig] + max(0, min(i_unknown[0] - overlap,
+                                             num_x - num_sig))
             mask_unknown = zeros(num_x, dtype=bool)
             # temporary storage of indices to missing points
             mask_unknown[i_unknown] = True
@@ -637,29 +639,29 @@ class CovData1D(PlotData):
             x2 = x.copy()
 
             while ns > 0:
-                Soo, So1, S11 = self._split_cov(Sigma, t_known, t_unknown)
-                if issparse(Soo):
-                    So1 = So1.todense()
-                    S11 = S11.todense()
-                    S1o_Sooinv = spsolve(Soo + Soo.T, 2 * So1).T
+                soo, so1, s11 = self._split_cov(sigma, t_known, t_unknown)
+                if issparse(soo):
+                    so1 = so1.todense()
+                    s11 = s11.todense()
+                    s1o_sooinv = spsolve(soo + soo.T, 2 * so1).T
                 else:
-                    Sooinv_So1, _res, _rank, _s = lstsq(Soo + Soo.T, 2 * So1,
+                    sooinv_so1, _res, _rank, _s = lstsq(soo + soo.T, 2 * so1,
                                                         cond=1e-4)
-                    S1o_Sooinv = Sooinv_So1.T
-                Sigma1o = S11 - S1o_Sooinv.dot(So1)
-                if (diag(Sigma1o) < 0).any():
+                    s1o_sooinv = sooinv_so1.T
+                sigma1o = s11 - s1o_sooinv.dot(so1)
+                if (diag(sigma1o) < 0).any():
                     raise ValueError('Failed to converge to a solution')
 
                 ix = slice((num_restored), (num_restored + ns))
                 # standard deviation of the expected surface
-                mu1o_std[ix] = np.maximum(mu1o_std[ix], sqrt(diag(Sigma1o)))
+                mu1o_std[ix] = np.maximum(mu1o_std[ix], sqrt(diag(sigma1o)))
 
                 # expected surface conditioned on the closest known
                 # observations from x
-                mu1o[ix] = S1o_Sooinv.dot(x2[idx[t_known]])
+                mu1o[ix] = s1o_sooinv.dot(x2[idx[t_known]])
                 # sample conditioned on the known observations from x
-                mu1os = S1o_Sooinv.dot(x[idx[t_known]])
-                sample[ix] = rndnormnd(mu1os, Sigma1o, cases=1)
+                mu1os = s1o_sooinv.dot(x[idx[t_known]])
+                sample[ix] = rndnormnd(mu1os, sigma1o, cases=1)
                 if idx[-1] == num_x - 1:
                     ns = 0  # no more points to simulate
                 else:
@@ -732,7 +734,7 @@ def main():
 
 if __name__ == '__main__':
     if False:  # True:  #
-        import doctest
-        doctest.testmod()
+        from wafo.testing import test_docstrings
+        test_docstrings(__file__)
     else:
         main()
