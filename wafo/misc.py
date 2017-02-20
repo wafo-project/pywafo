@@ -2916,7 +2916,7 @@ def _histogram(data, bins=None, range=None, normed=False, weights=None,
     """
     x = np.atleast_1d(data)
     if bins is None:
-        bins = np.ceil(4 * np.sqrt(np.sqrt(len(x))))
+        bins = int(np.ceil(4 * np.sqrt(np.sqrt(len(x)))))
     bin_, limits = np.histogram(data, bins=bins, range=range, normed=normed,
                                 weights=weights, density=density)
     xx, yy = _make_bars(limits, bin_)

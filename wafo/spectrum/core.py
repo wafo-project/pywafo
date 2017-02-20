@@ -578,7 +578,7 @@ class SpecData1D(PlotData):
         if dt is None:
             return dt_old, 1
         rate = max(round(dt_old * 1. / dt), 1.)
-        return dt, rate
+        return dt, int(rate)
 
     def _check_dt(self, dt):
         freq = self.args
@@ -659,9 +659,9 @@ class SpecData1D(PlotData):
         n_f = len(freq)
         if nt is None:
             nt = rate * (n_f - 1)
-        else:  # %check if Nt is ok
+        else:  # check if Nt is ok
             nt = minimum(nt, rate * (n_f - 1))
-
+        # nr, nt = int(nr), int(nt)
         spec = self.copy()
         spec.resample(dt)
 
