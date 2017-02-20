@@ -3126,13 +3126,6 @@ def fourier(data, t=None, period=None, m=None, n=None, method='trapz'):
     return a, b
 
 
-def test_docstrings():
-    # np.set_printoptions(precision=6)
-    import doctest
-    print('Testing docstrings in %s' % __file__)
-    doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE |
-                    doctest.ELLIPSIS)
-
-
 if __name__ == "__main__":
-    test_docstrings()
+    from wafo.testing import test_docstrings
+    test_docstrings(__file__)

@@ -926,7 +926,8 @@ class Kalman(object):
     def reset(self):
         self._filter = self._filter_first
 
-    def _none_or_atleast_2d(self, a):
+    @staticmethod
+    def _none_or_atleast_2d(a):
         if a is not None:
             return np.atleast_2d(a)
         return a
