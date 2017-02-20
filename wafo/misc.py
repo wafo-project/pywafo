@@ -1177,6 +1177,7 @@ def findrfc(tp, h=0.0, method='clib'):
 
     if clib is not None and method == 'clib':
         ind, ix = clib.findrfc(y, h)
+        ix = int(ix)
     else:
         ind = numba_misc.findrfc(y, h, method)
         ix = len(ind)

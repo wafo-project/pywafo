@@ -270,6 +270,7 @@ class LevelCrossings(PlotData):
         nim1 = 0
         x = []
         for xk, ni in zip(lcx2.tolist(), lcf2.tolist()):
+            ni = int(ni)
             x.append(ones(ni - nim1) * xk)
             nim1 = ni
 

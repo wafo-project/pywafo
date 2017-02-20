@@ -249,7 +249,7 @@ class CovData1D(PlotData):
         if method == 'fft':
             nfft *= rate
 
-        nf = nfft / 2  # number of frequencies
+        nf = int(nfft // 2)  # number of frequencies
         acf = r_[acf, zeros(nfft - 2 * n + 2), acf[n - 2:0:-1]]
 
         Rper = (fft(acf, nfft).real).clip(0)  # periodogram

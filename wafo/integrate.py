@@ -21,7 +21,7 @@ __all__ = ['dea3', 'clencurt', 'romberg',
            'gaussq', 'richardson', 'quadgr', 'qdemo']
 
 
-def clencurt(fun, a, b, n0=5, trace=False, args=()):
+def clencurt(fun, a, b, n0=5, trace=False):
     '''
     Numerical evaluation of an integral, Clenshaw-Curtis method.
 
@@ -70,7 +70,7 @@ def clencurt(fun, a, b, n0=5, trace=False, args=()):
     '''
 
     # make sure n is even
-    n = 2 * n0
+    n = 2 * int(n0)
     a, b = np.atleast_1d(a, b)
     a_shape = a.shape
     af = a.ravel()
@@ -110,16 +110,17 @@ def clencurt(fun, a, b, n0=5, trace=False, args=()):
     #               N+1
     #  c(k) = (2/N) sum  f''(n)*cos(pi*(2*k-2)*(n-1)/N), 1 <= k <= N/2+1.
     #               n=1
+    n0 = n // 2
     fft = np.fft.fft
     tmp = np.real(fft(f[:n, :], axis=0))
-    c = 2 / n * (tmp[0:n / 2 + 1, :] + np.cos(np.pi * s2) * f[n, :])
+    c = 2 / n * (tmp[0:n0 + 1, :] + np.cos(np.pi * s2) * f[n, :])
     c[0, :] = c[0, :] / 2
-    c[n / 2, :] = c[n / 2, :] / 2
+    c[n0, :] = c[n0, :] / 2
 
-    c = c[0:n / 2 + 1, :] / ((s2 - 1) * (s2 + 1))
+    c = c[0:n0 + 1, :] / ((s2 - 1) * (s2 + 1))
     Q = (af - bf) * np.sum(c, axis=0)
 
-    abserr = (bf - af) * np.abs(c[n / 2, :])
+    abserr = (bf - af) * np.abs(c[n0, :])
 
     if na > 1:
         abserr = np.reshape(abserr, a_shape)
@@ -1291,7 +1292,7 @@ def qdemo(f, a, b, kmax=9, plot_error=False):
             err_dic.setdefault(name, []).append(abs(q - true_val))
 
         name = 'Clenshaw-Curtis'
-        q, _ec3 = clencurt(f, a, b, (n - 1) / 2)
+        q, _ec3 = clencurt(f, a, b, (n - 1) // 2)
         vals_dic.setdefault(name, []).append(q[0])
         err_dic.setdefault(name, []).append(abs(q[0] - true_val))
 
