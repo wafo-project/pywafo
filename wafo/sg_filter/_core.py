@@ -248,7 +248,7 @@ def evar(y):
     sh0 = y.shape
 
     S = np.zeros(sh0)
-    sh1 = np.ones((d,))
+    sh1 = np.ones((d,), dtype=np.int64)
     cos = np.cos
     for i in range(d):
         ni = sh0[i]

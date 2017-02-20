@@ -17,7 +17,7 @@ def test_rind():
     n = 5
     Blo = -np.inf
     Bup = -1.2
-    indI = [-1, n - 1]  # Barriers
+    indI = np.array([-1, n - 1], dtype=int)  # Barriers
     m = np.zeros(n)
     rho = 0.3
     Sc = (np.ones((n, n)) - np.eye(n)) * rho + np.eye(n)

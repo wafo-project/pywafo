@@ -758,16 +758,16 @@ class SpecData1D(PlotData):
             raise ValueError(txt)
 
         if rate is None:
-            rate = 1  # %interpolation rate
+            rate = 1  # interpolation rate
         elif rate > 16:
             rate = 16
         else:  # make sure rate is a power of 2
             rate = 2 ** nextpow2(rate)
 
         if nt is None:
-            nt = rate * (n_f - 1)
+            nt = int(rate * (n_f - 1))
         else:  # check if Nt is ok
-            nt = minimum(nt, rate * (n_f - 1))
+            nt = int(minimum(nt, rate * (n_f - 1)))
 
         spec = self.copy()
 

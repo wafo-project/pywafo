@@ -91,8 +91,9 @@ class Rind(object):
             Cov(Xi,Xj) = 0.3 for i~=j and
             Cov(Xi,Xi) = 1   otherwise
     >>> import wafo.gaussian as wg
+    >>> import numpy as np
     >>> n = 5
-    >>> Blo =-np.inf; Bup=-1.2; indI=[-1, n-1]  # Barriers
+    >>> Blo =-np.inf; Bup=-1.2; indI=np.array([-1, n-1], dtype=int)  # Barriers
     >>> m = np.zeros(n); rho = 0.3;
     >>> Sc =(np.ones((n,n))-np.eye(n))*rho+np.eye(n)
     >>> rind = wg.Rind()
