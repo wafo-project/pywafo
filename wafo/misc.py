@@ -853,7 +853,7 @@ def _findcross(xn, method='clib'):
     '''
     if clib is not None and method == 'clib':
         ind, m = clib.findcross(xn, 0.0)
-        return ind[:m]
+        return ind[:int(m)]
     return numba_misc.findcross(xn)
 
 
@@ -2494,7 +2494,7 @@ def _discretize_adaptive(fun, a, b, tol=0.005, n=5):
     x = linspace(a, b, n)
     fx = fun(x)
 
-    n2 = (n - 1) / 2
+    n2 = (n - 1) // 2
     erri = hstack((zeros((n2, 1)), ones((n2, 1)))).ravel()
     err = erri.max()
     err0 = inf
