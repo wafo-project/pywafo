@@ -137,7 +137,7 @@ class SavitzkyGolay(object):
        Cambridge University Press ISBN-13: 9780521880688
     """
 
-    def __init__(self, n, degree=1, diff_order=0, delta=1.0,  axis=-1,
+    def __init__(self, n, degree=1, diff_order=0, delta=1.0, axis=-1,
                  mode='interp', cval=0.0):
         self.n = n
         self.degree = degree
@@ -250,7 +250,6 @@ def evar(y):
     S = np.zeros(sh0)
     sh1 = np.ones((d,))
     cos = np.cos
-    pi = np.pi
     for i in range(d):
         ni = sh0[i]
         sh1[i] = ni
@@ -314,7 +313,10 @@ class _Filter(object):
         return (np.array(y.shape) != 1).sum()
 
     @staticmethod
-    def _smoothness_limits(n):
+    def _smoothness_par(h):
+        return (((1 + sqrt(1 + 8 * h)) / 4. / h) ** 2 - 1) / 16
+
+    def _smoothness_limits(self, n):
         """
         Return upper and lower bound for the smoothness parameter
 
@@ -327,8 +329,8 @@ class _Filter(object):
         h_min = 1e-6 ** (2. / n)
         h_max = 0.99 ** (2. / n)
 
-        s_min = (((1 + sqrt(1 + 8 * h_max)) / 4. / h_max) ** 2 - 1) / 16
-        s_max = (((1 + sqrt(1 + 8 * h_min)) / 4. / h_min) ** 2 - 1) / 16
+        s_min = self._smoothness_par(h_max)
+        s_max = self._smoothness_par(h_min)
         return s_min, s_max
 
     @staticmethod
@@ -354,6 +356,8 @@ class _Filter(object):
         Lambda = self._lambda_tensor(y)
 
         def gamma(s):
+            if s is None:
+                return 1.0
             return 1. / (1 + s * Lambda ** 2)
         return gamma
 
@@ -450,30 +454,28 @@ class _Filter(object):
     def gcv(self, p, aow, DCTy, y, Wtot):
         # Search the smoothing parameter s that minimizes the GCV score
         s = 10.0 ** p
-        Gamma = self.gamma(s)
+        gamma_s = self.gamma(s)
         if aow > 0.9:
             # aow = 1 means that all of the data are equally weighted
             # very much faster: does not require any inverse DCT
-            residual = DCTy.ravel() * (Gamma.ravel() - 1)
+            residual = DCTy.ravel() * (gamma_s.ravel() - 1)
         else:
             # take account of the weights to calculate RSS:
             is_finite = self.is_finite
-            yhat = idctn(Gamma * DCTy)
+            yhat = idctn(gamma_s * DCTy)
             residual = sqrt(Wtot[is_finite]) * (y[is_finite] - yhat[is_finite])
 
-        TrH = Gamma.sum()
+        TrH = gamma_s.sum()
         RSS = linalg.norm(residual)**2  # Residual sum-of-squares
         GCVscore = RSS / self.nof / (1.0 - TrH / y.size) ** 2
         return GCVscore
 
-    def __call__(self, z, s):
+    def _smooth(self, z, s):
         auto_smooth = self.auto_smooth
         norm = linalg.norm
         y = self.y
         Wtot = self.Wtot
-        Gamma = 1
-        if s is not None:
-            Gamma = self.gamma(s)
+        gamma_s = self.gamma(s)
         # "amount" of weights (see the function GCVscore)
         aow = Wtot.sum() / y.size  # 0 < aow <= 1
         for nit in range(self.maxiter):
@@ -489,18 +491,23 @@ class _Filter(object):
                     args=(aow, DCTy, y, Wtot),
                     xtol=self.errp, full_output=False, disp=False)
                 s = 10 ** log10s
-                Gamma = self.gamma(s)
+                gamma_s = self.gamma(s)
             z0 = z
-            z = self.RF * idctn(Gamma * DCTy) + (1 - self.RF) * z
+            z = self.RF * idctn(gamma_s * DCTy) + (1 - self.RF) * z
             # if no weighted/missing data => tol=0 (no iteration)
             tol = norm(z0.ravel() - z.ravel()) / norm(z.ravel())
             converged = tol <= self.tolz or not self.is_weighted
             if converged:
                 break
+        return z, s, converged
+
+    def __call__(self, z, s):
+        z, s, converged = self._smooth(z, s)
         if self.robust:
             # -- Robust Smoothing: iteratively re-weighted process
             h = self._average_leverage(s, self.N)
-            self.Wtot = self.W * self.robust_weights(y - z, self.is_finite, h)
+            self.Wtot = self.W * self.robust_weights(self.y - z,
+                                                     self.is_finite, h)
             # re-initialize for another iterative weighted process
             self.is_weighted = True
         return z, s, converged
@@ -919,25 +926,58 @@ class Kalman(object):
     def reset(self):
         self._filter = self._filter_first
 
+    def _none_or_atleast_2d(self, a):
+        if a is not None:
+            return np.atleast_2d(a)
+        return a
+
+    @property
+    def A(self):
+        return self._a
+
+    @A.setter
+    def A(self, a):
+        self._a = self._none_or_atleast_2d(a)
+
     def _set_A(self, n):
         if self.A is None:
             self.A = np.eye(n)
-        self.A = np.atleast_2d(self.A)
+
+    @property
+    def Q(self):
+        return self._q
+
+    @Q.setter
+    def Q(self, q):
+        self._q = self._none_or_atleast_2d(q)
 
     def _set_Q(self, n):
         if self.Q is None:
             self.Q = np.zeros((n, n))
-        self.Q = np.atleast_2d(self.Q)
+
+    @property
+    def H(self):
+        return self._h
+
+    @H.setter
+    def H(self, h):
+        self._h = self._none_or_atleast_2d(h)
 
     def _set_H(self, n):
         if self.H is None:
             self.H = np.eye(n)
-        self.H = np.atleast_2d(self.H)
+
+    @property
+    def P(self):
+        return self._p
+
+    @P.setter
+    def P(self, p):
+        self._p = self._none_or_atleast_2d(p)
 
     def _set_P(self, HI):
         if self.P is None:
             self.P = np.dot(np.dot(HI, self.R), HI.T)
-        self.P = np.atleast_2d(self.P)
 
     def _init_first(self, n):
         self._set_A(n)
@@ -1165,7 +1205,7 @@ class HampelFilter(object):
         self.UB = Y0 + T * S0
         self.LB = Y0 - T * S0
         outliers = np.abs(Y - Y0) > T * S0  # possible outliers
-        np.putmask(YY, outliers, Y0)  # YY[outliers] = Y0[outliers]
+        np.putmask(YY, outliers, Y0)        # YY[outliers] = Y0[outliers]
         self.outliers = outliers
         self.num_outliers = outliers.sum()
         self.ADX = ADX
