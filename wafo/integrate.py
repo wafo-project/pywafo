@@ -21,8 +21,18 @@ __all__ = ['dea3', 'clencurt', 'romberg',
            'gaussq', 'richardson', 'quadgr', 'qdemo']
 
 
+def _assert(cond, msg):
+    if not cond:
+        raise ValueError(msg)
+
+
+def _assert_warn(cond, msg):
+    if not cond:
+        warnings.warn(msg)
+
+
 def clencurt(fun, a, b, n0=5, trace=False):
-    '''
+    """
     Numerical evaluation of an integral, Clenshaw-Curtis method.
 
     Parameters
@@ -67,7 +77,7 @@ def clencurt(fun, a, b, n0=5, trace=False):
 
     [2] Clenshaw, C.W. and Curtis, A.R. (1960),
     Numerische Matematik, Vol. 2, pp. 197--205
-    '''
+    """
 
     # make sure n is even
     n = 2 * int(n0)
@@ -129,7 +139,7 @@ def clencurt(fun, a, b, n0=5, trace=False):
 
 
 def romberg(fun, a, b, releps=1e-3, abseps=1e-3):
-    '''
+    """
     Numerical integration with the Romberg method
 
     Parameters
@@ -161,7 +171,7 @@ def romberg(fun, a, b, releps=1e-3, abseps=1e-3):
     True
     >>> err[0] < 1e-4
     True
-    '''
+    """
     h = b - a
     h_min = 1.0e-9
     # Max size of extrapolation table
@@ -274,7 +284,7 @@ def _h_roots_newton(n, releps=3e-14, max_iter=10):
 
 
 def h_roots(n, method='newton'):
-    '''
+    """
     Returns the roots (x) of the nth order Hermite polynomial,
     H_n(x), and weights (w) to use in Gaussian Quadrature over
     [-inf,inf] with weighting function exp(-x**2).
@@ -314,7 +324,7 @@ def h_roots(n, method='newton'):
 
     [2]. Stroud and Secrest (1966), 'gaussian quadrature formulas',
       prentice-hall, Englewood cliffs, n.j.
-    '''
+    """
 
     if not method.startswith('n'):
         return ort.h_roots(n)
@@ -374,7 +384,7 @@ def _j_roots_newton(n, alpha, beta, releps=3e-14, max_iter=10):
 
 
 def j_roots(n, alpha, beta, method='newton'):
-    '''
+    """
     Returns the roots of the nth order Jacobi polynomial, P^(alpha,beta)_n(x)
     and weights (w) to use in Gaussian Quadrature over [-1,1] with weighting
     function (1-x)**alpha (1+x)**beta with alpha,beta > -1.
@@ -417,15 +427,16 @@ def j_roots(n, alpha, beta, method='newton'):
 
     [2]. Stroud and Secrest (1966), 'gaussian quadrature formulas',
           prentice-hall, Englewood cliffs, n.j.
-    '''
-
+    """
+    _assert((-1 < alpha) & (-1 < beta),
+            'alpha and beta must be greater than -1')
     if not method.startswith('n'):
         return ort.j_roots(n, alpha, beta)
     return _j_roots_newton(n, alpha, beta)
 
 
 def la_roots(n, alpha=0, method='newton'):
-    '''
+    """
     Returns the roots (x) of the nth order generalized (associated) Laguerre
     polynomial, L^(alpha)_n(x), and weights (w) to use in Gaussian quadrature
     over [0,inf] with weighting function exp(-x) x**alpha with alpha > -1.
@@ -465,10 +476,8 @@ def la_roots(n, alpha=0, method='newton'):
 
     [2]. Stroud and Secrest (1966), 'gaussian quadrature formulas',
       prentice-hall, Englewood cliffs, n.j.
-    '''
-
-    if alpha <= -1:
-        raise ValueError('alpha must be greater than -1')
+    """
+    _assert(-1 < alpha, 'alpha must be greater than -1')
 
     if not method.startswith('n'):
         return ort.la_roots(n, alpha)
@@ -636,7 +645,7 @@ def _expand_roots(x, w, n, m):
 
 
 def p_roots(n, method='newton', a=-1, b=1):
-    '''
+    """
     Returns the roots (x) of the nth order Legendre polynomial, P_n(x),
     and weights (w) to use in Gaussian Quadrature over [-1,1] with weighting
     function 1.
@@ -682,7 +691,7 @@ def p_roots(n, method='newton', a=-1, b=1):
 
     [3] Stroud and Secrest (1966), 'gaussian quadrature formulas',
         prentice-hall, Englewood cliffs, n.j.
-    '''
+    """
 
     if not method.startswith('n'):
         x, w = ort.p_roots(n)
@@ -701,8 +710,62 @@ def p_roots(n, method='newton', a=-1, b=1):
     return x, w
 
 
+def q5_roots(n):
+    """
+    5      : p(x) = 1/sqrt((x-a)*(b-x)), a =-1,   b = 1 Chebyshev 1'st kind
+    """
+    jj = np.arange(1, n + 1)
+    wf = ones(n) * np.pi / n
+    bp = np.cos((2 * jj - 1) * np.pi / (2 * n))
+    return bp, wf
+
+
+def q6_roots(n):
+    """
+    6      : p(x) = sqrt((x-a)*(b-x)),   a =-1,   b = 1 Chebyshev 2'nd kind
+    """
+    jj = np.arange(1, n + 1)
+    xj = jj * np.pi / (n + 1)
+    wf = np.pi / (n + 1) * np.sin(xj) ** 2
+    bp = np.cos(xj)
+    return bp, wf
+
+
+def q7_roots(n):
+    """
+    7 : p(x) = sqrt((x-a)/(b-x)),   a = 0,   b = 1
+    """
+    jj = np.arange(1, n + 1)
+    xj = (jj - 0.5) * pi / (2 * n + 1)
+    bp = np.cos(xj) ** 2
+    wf = 2 * np.pi * bp / (2 * n + 1)
+    return bp, wf
+
+
+def q8_roots(n):
+    """
+    8 : p(x) = 1/sqrt(b-x),         a = 0,   b = 1
+    """
+    bp1, wf1 = p_roots(2 * n)
+    k, = np.where(0 <= bp1)
+    wf = 2 * wf1[k]
+    bp = 1 - bp1[k] ** 2
+    return bp, wf
+
+
+def q9_roots(n):
+    """
+     9 : p(x) = sqrt(b-x),           a = 0,   b = 1
+    """
+    bp1, wf1 = p_roots(2 * n + 1)
+    k, = np.where(0 < bp1)
+    wf = 2 * bp1[k] ** 2 * wf1[k]
+    bp = 1 - bp1[k] ** 2
+    return bp, wf
+
+
 def qrule(n, wfun=1, alpha=0, beta=0):
-    '''
+    """
     Return nodes and weights for Gaussian quadratures.
 
     Parameters
@@ -711,15 +774,15 @@ def qrule(n, wfun=1, alpha=0, beta=0):
         number of base points
     wfun : integer
         defining the weight function, p(x). (default wfun = 1)
-        1,11,21: p(x) = 1                       a =-1,   b = 1  Gauss-Legendre
-        2,12   : p(x) = exp(-x^2)               a =-inf, b = inf Hermite
-        3,13   : p(x) = x^alpha*exp(-x)         a = 0,   b = inf Laguerre
-        4,14   : p(x) = (x-a)^alpha*(b-x)^beta  a =-1,   b = 1 Jacobi
-        5      : p(x) = 1/sqrt((x-a)*(b-x)), a =-1,   b = 1 Chebyshev 1'st kind
-        6      : p(x) = sqrt((x-a)*(b-x)),   a =-1,   b = 1 Chebyshev 2'nd kind
-        7      : p(x) = sqrt((x-a)/(b-x)),   a = 0,   b = 1
-        8      : p(x) = 1/sqrt(b-x),         a = 0,   b = 1
-        9      : p(x) = sqrt(b-x),           a = 0,   b = 1
+        1 : p(x) = 1                       a =-1,   b = 1  Gauss-Legendre
+        2 : p(x) = exp(-x^2)               a =-inf, b = inf Hermite
+        3 : p(x) = x^alpha*exp(-x)         a = 0,   b = inf Laguerre
+        4 : p(x) = (x-a)^alpha*(b-x)^beta  a =-1,   b = 1 Jacobi
+        5 : p(x) = 1/sqrt((x-a)*(b-x)), a =-1,   b = 1 Chebyshev 1'st kind
+        6 : p(x) = sqrt((x-a)*(b-x)),   a =-1,   b = 1 Chebyshev 2'nd kind
+        7 : p(x) = sqrt((x-a)/(b-x)),   a = 0,   b = 1
+        8 : p(x) = 1/sqrt(b-x),         a = 0,   b = 1
+        9 : p(x) = sqrt(b-x),           a = 0,   b = 1
 
     Returns
     -------
@@ -761,54 +824,22 @@ def qrule(n, wfun=1, alpha=0, beta=0):
     ---------
     Abromowitz and Stegun (1954)
     (for method 5 to 9)
-    '''
+    """
 
-    if (alpha <= -1) | (beta <= -1):
-        raise ValueError('alpha and beta must be greater than -1')
+    if wfun == 3:  # Generalized Laguerre
+        return la_roots(n, alpha)
+    if wfun == 4:  # Gauss-Jacobi
+        return j_roots(n, alpha, beta)
 
-    if wfun == 1:  # Gauss-Legendre
-        [bp, wf] = p_roots(n)
-    elif wfun == 2:  # Hermite
-        [bp, wf] = h_roots(n)
-    elif wfun == 3:  # Generalized Laguerre
-        [bp, wf] = la_roots(n, alpha)
-    elif wfun == 4:  # Gauss-Jacobi
-        [bp, wf] = j_roots(n, alpha, beta)
-    elif wfun == 5:  # p(x)=1/sqrt((x-a)*(b-x)), a=-1 and b=1 (default)
-        jj = np.arange(1, n + 1)
-        wf = ones(n) * np.pi / n
-        bp = np.cos((2 * jj - 1) * np.pi / (2 * n))
+    _assert(0 < wfun < 10, 'unknown weight function')
 
-    elif wfun == 6:  # p(x)=sqrt((x-a)*(b-x)),   a=-1 and b=1
-        jj = np.arange(1, n + 1)
-        xj = jj * np.pi / (n + 1)
-        wf = np.pi / (n + 1) * np.sin(xj) ** 2
-        bp = np.cos(xj)
-
-    elif wfun == 7:  # p(x)=sqrt((x-a)/(b-x)),   a=0 and b=1
-        jj = np.arange(1, n + 1)
-        xj = (jj - 0.5) * pi / (2 * n + 1)
-        bp = np.cos(xj) ** 2
-        wf = 2 * np.pi * bp / (2 * n + 1)
-
-    elif wfun == 8:  # p(x)=1/sqrt(b-x),         a=0 and b=1
-        [bp1, wf1] = p_roots(2 * n)
-        k, = np.where(0 <= bp1)
-        wf = 2 * wf1[k]
-        bp = 1 - bp1[k] ** 2
-
-    elif wfun == 9:  # p(x)=np.sqrt(b-x),           a=0 and b=1
-        [bp1, wf1] = p_roots(2 * n + 1)
-        k, = np.where(0 < bp1)
-        wf = 2 * bp1[k] ** 2 * wf1[k]
-        bp = 1 - bp1[k] ** 2
-    else:
-        raise ValueError('unknown weight function')
-    return bp, wf
+    root_fun = [None, p_roots, h_roots, la_roots, j_roots, q5_roots, q6_roots,
+                q7_roots, q8_roots, q9_roots][wfun]
+    return root_fun(n)
 
 
 class _Gaussq(object):
-    '''
+    """
     Numerically evaluate integral, Gauss quadrature.
 
     Parameters
@@ -887,7 +918,7 @@ class _Gaussq(object):
     --------
     qrule
     gaussq2d
-    '''
+    """
     @staticmethod
     def _get_dx(wfun, jacob, alpha, beta):
         if wfun in [1, 2, 3, 7]:
@@ -945,7 +976,7 @@ class _Gaussq(object):
         return jacob
 
     @staticmethod
-    def _warn(self, k, a_shape):
+    def _warn(k, a_shape):
         nk = len(k)
         if nk > 1:
             if (nk == np.prod(a_shape)):
@@ -1031,8 +1062,115 @@ def richardson(Q, k):
 
 class _Quadgr(object):
 
+    def _change_variable_and_integrate(self, fun, a, b, abseps, max_iter):
+        isreal = np.isreal(a) & np.isreal(b) & ~np.isnan(a) & ~np.isnan(b)
+        _assert(isreal, 'Infinite intervals must be real.')
+        integrate = self._integrate
+        # Change of variable
+        if np.isfinite(a) & np.isinf(b):  # a to inf
+            Q, err = integrate(lambda t: fun(a + t / (1 - t)) / (1 - t) ** 2,
+                               0, 1, abseps, max_iter)
+        elif np.isinf(a) & np.isfinite(b):  # -inf to b
+            Q, err = integrate(lambda t: fun(b + t / (1 + t)) / (1 + t) ** 2,
+                               -1, 0, abseps, max_iter)
+        else:  # -inf to inf
+            Q1, err1 = integrate(lambda t: fun(t / (1 - t)) / (1 - t) ** 2,
+                                 0, 1, abseps / 2, max_iter)
+            Q2, err2 = integrate(lambda t: fun(t / (1 + t)) / (1 + t) ** 2,
+                                 -1, 0, abseps / 2, max_iter)
+            Q = Q1 + Q2
+            err = err1 + err2
+        return Q, err
+
+    def _nodes_and_weights(self):
+        # Gauss-Legendre quadrature (12-point)
+        xq = np.asarray(
+            [0.12523340851146894, 0.36783149899818018, 0.58731795428661748,
+             0.76990267419430469, 0.9041172563704748, 0.98156063424671924])
+        wq = np.asarray(
+            [0.24914704581340288, 0.23349253653835478, 0.20316742672306584,
+             0.16007832854334636, 0.10693932599531818, 0.047175336386511842])
+        xq = np.hstack((xq, -xq))
+        wq = np.hstack((wq, wq))
+        return xq, wq
+
+    def _get_best_estimate(self, Q0, Q1, Q2, k):
+        if k >= 6:
+            Qv = np.hstack((Q0[k], Q1[k], Q2[k]))
+            Qw = np.hstack((Q0[k - 1], Q1[k - 1], Q2[k - 1]))
+        elif k >= 4:
+            Qv = np.hstack((Q0[k], Q1[k]))
+            Qw = np.hstack((Q0[k - 1], Q1[k - 1]))
+        else:
+            Qv = np.atleast_1d(Q0[k])
+            Qw = Q0[k - 1]
+        # Estimate absolute error
+        errors = np.atleast_1d(abs(Qv - Qw))
+        j = errors.argmin()
+        err = errors[j]
+        Q = Qv[j]
+#         if k >= 2: # and not iscomplex:
+#             _val, err1 = dea3(Q0[k - 2], Q0[k - 1], Q0[k])
+        return Q, err
+
+    def _integrate(self, fun, a, b, abseps, max_iter):
+        dtype = np.result_type(fun(a), fun(b))
+
+        # Initiate vectors
+        Q0 = zeros(max_iter, dtype=dtype)  # Quadrature
+        Q1 = zeros(max_iter, dtype=dtype)  # First Richardson extrapolation
+        Q2 = zeros(max_iter, dtype=dtype)  # Second Richardson extrapolation
+
+        xq, wq = self._nodes_and_weights()
+        nq = len(xq)
+        # One interval
+        hh = (b - a) / 2             # Half interval length
+        x = (a + b) / 2 + hh * xq      # Nodes
+        # Quadrature
+        Q0[0] = hh * np.sum(wq * fun(x), axis=0)
+
+        # Successive bisection of intervals
+        for k in range(1, max_iter):
+
+            # Interval bisection
+            hh = hh / 2
+            x = np.hstack([x + a, x + b]) / 2
+            # Quadrature
+            Q0[k] = hh * np.sum(wq * np.sum(np.reshape(fun(x), (-1, nq)),
+                                            axis=0),
+                                axis=0)
+
+            # Richardson extrapolation
+            if k >= 5:
+                Q1[k] = richardson(Q0, k)
+                Q2[k] = richardson(Q1, k)
+            elif k >= 3:
+                Q1[k] = richardson(Q0, k)
+
+            Q, err = self._get_best_estimate(Q0, Q1, Q2, k)
+
+            # Convergence
+
+            converged = (err < abseps) | ~np.isfinite(Q)
+            if converged:
+                break
+
+        _assert_warn(converged, 'Max number of iterations reached without ' +
+                                'convergence.')
+        _assert_warn(np.isfinite(Q),
+                     'Integral approximation is Infinite or NaN.')
+
+        # The error estimate should not be zero
+        err = err + 2 * np.finfo(Q).eps
+        return Q, err
+
+    def _order_limits(self, a, b):
+        if np.real(a) > np.real(b):
+            return b, a, True
+        return a, b, False
+
     def __call__(self, fun, a, b, abseps=1e-5, max_iter=17):
-        '''
+        """
         Gauss-Legendre quadrature with Richardson extrapolation.
 
         [Q,ERR] = QUADGR(FUN,A,B,TOL) approximates the integral of a function
@@ -1078,7 +1216,7 @@ class _Quadgr(object):
         --------
         QUAD,
         QUADGK
-        '''
+        """
         # Author: jonas.lundgren@saabgroup.com, 2009. license BSD
         # Order limits (required if infinite limits)
         a = np.asarray(a)
@@ -1087,111 +1225,17 @@ class _Quadgr(object):
             Q = b - a
             err = b - a
             return Q, err
-        elif np.real(a) > np.real(b):
-            reverse = True
-            a, b = b, a
-        else:
-            reverse = False
+
+        a, b, reverse = self._order_limits(a, b)
 
         # Infinite limits
-        if np.isinf(a) | np.isinf(b):
-            # Check real limits
-            if ~ np.isreal(a) | ~np.isreal(b) | np.isnan(a) | np.isnan(b):
-                raise ValueError('Infinite intervals must be real.')
-
-            # Change of variable
-            if np.isfinite(a) & np.isinf(b):
-                # a to inf
-                Q, err = quadgr(lambda t: fun(a + t / (1 - t)) / (1 - t) ** 2,
-                                0, 1, abseps)
-            elif np.isinf(a) & np.isfinite(b):
-                # -inf to b
-                Q, err = quadgr(lambda t: fun(b + t / (1 + t)) / (1 + t) ** 2,
-                                -1, 0, abseps)
-            else:  # -inf to inf
-                Q1, err1 = quadgr(lambda t: fun(t / (1 - t)) / (1 - t) ** 2,
-                                  0, 1, abseps / 2)
-                Q2, err2 = quadgr(lambda t: fun(t / (1 + t)) / (1 + t) ** 2,
-                                  -1, 0, abseps / 2)
-                Q = Q1 + Q2
-                err = err1 + err2
-
-            # Reverse direction
-            if reverse:
-                Q = -Q
-            return Q, err
-
-        # Gauss-Legendre quadrature (12-point)
-        xq = np.asarray(
-            [0.12523340851146894, 0.36783149899818018, 0.58731795428661748,
-             0.76990267419430469, 0.9041172563704748, 0.98156063424671924])
-        wq = np.asarray(
-            [0.24914704581340288, 0.23349253653835478, 0.20316742672306584,
-             0.16007832854334636, 0.10693932599531818, 0.047175336386511842])
-        xq = np.hstack((xq, -xq))
-        wq = np.hstack((wq, wq))
-        nq = len(xq)
-        dtype = np.result_type(fun(a), fun(b))
-
-        # Initiate vectors
-        Q0 = zeros(max_iter, dtype=dtype)  # Quadrature
-        Q1 = zeros(max_iter, dtype=dtype)  # First Richardson extrapolation
-        Q2 = zeros(max_iter, dtype=dtype)  # Second Richardson extrapolation
-
-        # One interval
-        hh = (b - a) / 2             # Half interval length
-        x = (a + b) / 2 + hh * xq      # Nodes
-        # Quadrature
-        Q0[0] = hh * np.sum(wq * fun(x), axis=0)
-
-        # Successive bisection of intervals
-        for k in range(1, max_iter):
-
-            # Interval bisection
-            hh = hh / 2
-            x = np.hstack([x + a, x + b]) / 2
-            # Quadrature
-            Q0[k] = hh * np.sum(wq * np.sum(np.reshape(fun(x), (-1, nq)),
-                                            axis=0),
-                                axis=0)
-
-            # Richardson extrapolation
-            if k >= 5:
-                Q1[k] = richardson(Q0, k)
-                Q2[k] = richardson(Q1, k)
-            elif k >= 3:
-                Q1[k] = richardson(Q0, k)
-
-            # Estimate absolute error
-            if k >= 6:
-                Qv = np.hstack((Q0[k], Q1[k], Q2[k]))
-                Qw = np.hstack((Q0[k - 1], Q1[k - 1], Q2[k - 1]))
-            elif k >= 4:
-                Qv = np.hstack((Q0[k], Q1[k]))
-                Qw = np.hstack((Q0[k - 1], Q1[k - 1]))
-            else:
-                Qv = np.atleast_1d(Q0[k])
-                Qw = Q0[k - 1]
-
-            errors = np.atleast_1d(abs(Qv - Qw))
-            j = errors.argmin()
-            err = errors[j]
-            Q = Qv[j]
-            if k >= 2:  # and not iscomplex:
-                _val, err1 = dea3(Q0[k - 2], Q0[k - 1], Q0[k])
-
-            # Convergence
-            if (err < abseps) | ~np.isfinite(Q):
-                break
+        improper_integral = np.isinf(a) | np.isinf(b)
+        if improper_integral:
+            Q, err = self._change_variable_and_integrate(fun, a, b, abseps,
+                                                         max_iter)
         else:
-            warnings.warn('Max number of iterations reached without ' +
-                          'convergence.')
+            Q, err = self._integrate(fun, a, b, abseps, max_iter)
 
-        if ~ np.isfinite(Q):
-            warnings.warn('Integral approximation is Infinite or NaN.')
-
-        # The error estimate should not be zero
-        err = err + 2 * np.finfo(Q).eps
         # Reverse direction
         if reverse:
             Q = -Q
@@ -1211,7 +1255,7 @@ def boole(y, x):
 
 
 def qdemo(f, a, b, kmax=9, plot_error=False):
-    '''
+    """
     Compares different quadrature rules.
 
     Parameters
@@ -1270,7 +1314,7 @@ def qdemo(f, a, b, kmax=9, plot_error=False):
      129, 19.0855369552, 0.0000000320, 19.0864105817, 0.0008736585
      257, 19.0855369252, 0.0000000020, 19.0857553393, 0.0002184161
      513, 19.0855369233, 0.0000000001, 19.0855915273, 0.0000546041
-    '''
+    """
     true_val, _tol = intg.quad(f, a, b)
     print('true value = %12.8f' % (true_val,))
     neval = zeros(kmax, dtype=int)
@@ -1386,14 +1430,9 @@ def main():
     print(q, err)
 
 
-def test_docstrings():
-    np.set_printoptions(precision=7)
-    import doctest
-    doctest.testmod()
-
-
 if __name__ == '__main__':
-    test_docstrings()
+    from wafo.testing import test_docstrings
+    test_docstrings(__file__)
     # qdemo(np.exp, 0, 3, plot_error=True)
     # plt.show('hold')
     # main()
