@@ -991,20 +991,20 @@ class _Gaussq(object):
         args = np.broadcast_arrays(*np.atleast_1d(a, b, *args))
         a_shape = args[0].shape
         args = [np.reshape(x, (-1, 1)) for x in args]
-        A, B = args[:2]
+        a_out, b_out = args[:2]
         args = args[2:]
         if wfun in [2, 3]:
-            A = zeros((A.size, 1))
-        return A, B, args, a_shape
+            a_out = zeros((a_out.size, 1))
+        return a_out, b_out, args, a_shape
 
     def __call__(self, fun, a, b, releps=1e-3, abseps=1e-3, alpha=0, beta=0,
                  wfun=1, trace=False, args=(), max_iter=11):
         self.trace = trace
         gn = 2
 
-        A, B, args, a_shape = self._initialize(wfun, a, b, args)
+        aa, bb, args, a_shape = self._initialize(wfun, a, b, args)
 
-        jacob = self._get_jacob(wfun, A, B)
+        jacob = self._get_jacob(wfun, aa, bb)
         shift = int(wfun in [1, 4, 5, 6])
         dx = self._get_dx(wfun, jacob, alpha, beta)
 
@@ -1013,14 +1013,14 @@ class _Gaussq(object):
         # Break out of the iteration loop for three reasons:
         #  1) the last update is very small (compared to int and to releps)
         #  2) There are more than 11 iterations. This should NEVER happen.
-        dtype = np.result_type(fun((A+B)*0.5, *args))
+        dtype = np.result_type(fun((aa+bb)*0.5, *args))
         nk = np.prod(a_shape)  # # of integrals we have to compute
         k = np.arange(nk)
         opts = (nk, dtype)
         val, val_old, abserr = zeros(*opts), ones(*opts), zeros(*opts)
         for i in range(max_iter):
             xn, w = self._points_and_weights(gn, wfun, alpha, beta)
-            x = (xn + shift) * jacob[k, :] + A[k, :]
+            x = (xn + shift) * jacob[k, :] + aa[k, :]
 
             pari = [xi[k, :] for xi in args]
             y = fun(x, *pari)
