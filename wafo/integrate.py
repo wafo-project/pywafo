@@ -1114,7 +1114,7 @@ class _Quadgr(object):
         return Q, err
 
     def _integrate(self, fun, a, b, abseps, max_iter):
-        dtype = np.result_type(fun(a), fun(b))
+        dtype = np.result_type(fun((a+b)/2), fun((a+b)/4))
 
         # Initiate vectors
         Q0 = zeros(max_iter, dtype=dtype)  # Quadrature
