@@ -1,7 +1,7 @@
-from __future__ import absolute_import, division
+from __future__ import absolute_import, division, print_function
 import warnings
 import numpy as np
-from numpy import pi, sqrt, ones, zeros  # @UnresolvedImport
+from numpy import pi, sqrt, ones, zeros
 from scipy import integrate as intg
 import scipy.special.orthogonal as ort
 from scipy import special as sp
@@ -45,7 +45,7 @@ def clencurt(fun, a, b, n0=5, trace=False):
 
     Returns
     -------
-    Q     = evaluated integral
+    q_val     = evaluated integral
     tol   = Estimate of the approximation error
 
     Notes
@@ -128,14 +128,14 @@ def clencurt(fun, a, b, n0=5, trace=False):
     c[n0, :] = c[n0, :] / 2
 
     c = c[0:n0 + 1, :] / ((s2 - 1) * (s2 + 1))
-    Q = (af - bf) * np.sum(c, axis=0)
+    q_val = (af - bf) * np.sum(c, axis=0)
 
     abserr = (bf - af) * np.abs(c[n0, :])
 
     if na > 1:
         abserr = np.reshape(abserr, a_shape)
-        Q = np.reshape(Q, a_shape)
-    return Q, abserr
+        q_val = np.reshape(q_val, a_shape)
+    return q_val, abserr
 
 
 def romberg(fun, a, b, releps=1e-3, abseps=1e-3):
@@ -210,10 +210,10 @@ def romberg(fun, a, b, releps=1e-3, abseps=1e-3):
         ih2 = ih4
         ih4 = rom[two, i]
 
-        if (2 <= i):
+        if 2 <= i:
             res, abserr = dea3(ih1, ih2, ih4)
             # ih4 = res
-            if (abserr <= max(abseps, releps * abs(res))):
+            if abserr <= max(abseps, releps * abs(res)):
                 break
 
         # rom(1,1:i) = rom(2,1:i)
@@ -224,7 +224,6 @@ def romberg(fun, a, b, releps=1e-3, abseps=1e-3):
 
 
 def _h_roots_newton(n, releps=3e-14, max_iter=10):
-    C = [9.084064e-01, 5.214976e-02, 2.579930e-03, 3.986126e-03]
     # PIM4=0.7511255444649425
     PIM4 = np.pi ** (-1. / 4)
 
@@ -235,15 +234,14 @@ def _h_roots_newton(n, releps=3e-14, max_iter=10):
     # Initial approximations to the roots go into z.
     anu = 2.0 * n + 1
     rhs = np.arange(3, 4 * m, 4) * np.pi / anu
-    r3 = rhs ** (1. / 3)
-    r2 = r3 ** 2
-    theta = r3 * (C[0] + r2 * (C[1] + r2 * (C[2] + r2 * C[3])))
+    theta = _get_theta(rhs)
     z = sqrt(anu) * np.cos(theta)
 
     L = zeros((3, len(z)))
     k0 = 0
     kp1 = 1
-    for _its in range(max_iter):
+
+    for i in range(max_iter):  # @UnusedVariable
         # Newtons method carried out simultaneously on the roots.
         L[k0, :] = 0
         L[kp1, :] = PIM4
@@ -268,10 +266,11 @@ def _h_roots_newton(n, releps=3e-14, max_iter=10):
 
         z = z - dz  # Newtons formula.
 
-        if not np.any(abs(dz) > releps):
+        converged = not np.any(abs(dz) > releps)
+        if converged:
             break
-    else:
-        warnings.warn('too many iterations!')
+
+    _assert_warn(converged, 'Newton iteration did not converge!')
     w = 2. / pp ** 2
     return _expand_roots(z, w, n, m)
 #     x = np.empty(n)
@@ -341,7 +340,7 @@ def _j_roots_newton(n, alpha, beta, releps=3e-14, max_iter=10):
     L = zeros((3, len(z)))
     k0 = 0
     kp1 = 1
-    for _its in range(max_iter):
+    for i in range(max_iter):
         # Newton's method carried out simultaneously on the roots.
         tmp = 2 + alfbet
         L[k0, :] = 1
@@ -366,8 +365,7 @@ def _j_roots_newton(n, alpha, beta, releps=3e-14, max_iter=10):
         # relation involving the polynomials of one lower order.
 
         pp = ((n * (alpha - beta - tmp * z) * L[kp1, :] +
-              2 * (n + alpha) * (n + beta) * L[k0, :]) /
-              (tmp * (1 - z ** 2)))
+               2 * (n + alpha) * (n + beta) * L[k0, :]) / (tmp * (1 - z ** 2)))
         dz = L[kp1, :] / pp
         z = z - dz  # Newton's formula.
 
@@ -484,16 +482,20 @@ def la_roots(n, alpha=0, method='newton'):
     return _la_roots_newton(n, alpha)
 
 
-def _la_roots_newton(n, alpha, releps=3e-14, max_iter=10):
-
+def _get_theta(rhs):
+    r3 = rhs ** (1. / 3)
+    r2 = r3 ** 2
     C = [9.084064e-01, 5.214976e-02, 2.579930e-03, 3.986126e-03]
+    theta = r3 * (C[0] + r2 * (C[1] + r2 * (C[2] + r2 * C[3])))
+    return theta
+
+
+def _la_roots_newton(n, alpha, releps=3e-14, max_iter=10):
 
     # Initial approximations to the roots go into z.
     anu = 4.0 * n + 2.0 * alpha + 2.0
     rhs = np.arange(4 * n - 1, 2, -4) * np.pi / anu
-    r3 = rhs ** (1. / 3)
-    r2 = r3 ** 2
-    theta = r3 * (C[0] + r2 * (C[1] + r2 * (C[2] + r2 * C[3])))
+    theta = _get_theta(rhs)
     z = anu * np.cos(theta) ** 2
 
     dz = zeros(len(z))
@@ -515,8 +517,8 @@ def _la_roots_newton(n, alpha, releps=3e-14, max_iter=10):
             k0 = kp1
             kp1 = np.mod(kp1 + 1, 3)
 
-            L[kp1, k] = ((2 * jj - 1 + alpha - z[k]) * L[
-                         k0, k] - (jj - 1 + alpha) * L[km1, k]) / jj
+            L[kp1, k] = ((2 * jj - 1 + alpha - z[k]) * L[k0, k] -
+                         (jj - 1 + alpha) * L[km1, k]) / jj
         # end
         # L now contains the desired Laguerre polynomials.
         # We next compute pp, the derivatives with a standard
@@ -529,10 +531,11 @@ def _la_roots_newton(n, alpha, releps=3e-14, max_iter=10):
         z[k] = z[k] - dz[k]  # % Newton?s formula.
         # k = find((abs(dz) > releps.*z))
 
-        if not np.any(abs(dz) > releps):
+        converged = not np.any(abs(dz) > releps)
+        if converged:
             break
-    else:
-        warnings.warn('too many iterations!')
+
+    _assert_warn('too many iterations!')
 
     x = z
     w = -np.exp(sp.gammaln(alpha + n) - sp.gammaln(n)) / (pp * n * Lp)
@@ -616,8 +619,8 @@ def _p_roots_newton1(n, releps=1e-15, max_iter=100):
             km1 = k0
             k0 = kp1
             kp1 = np.mod(k0 + 1, 3)
-            L[kp1, k] = ((2 * jj - 1) * xo[k] * L[
-                         k0, k] - (jj - 1) * L[km1, k]) / jj
+            L[kp1, k] = ((2 * jj - 1) * xo[k] * L[k0, k] -
+                         (jj - 1) * L[km1, k]) / jj
 
         Lp[k] = n * (L[k0, k] - xo[k] * L[kp1, k]) / (1 - xo[k] ** 2)
 
@@ -637,7 +640,7 @@ def _p_roots_newton1(n, releps=1e-15, max_iter=100):
 def _expand_roots(x, w, n, m):
     if (m + m) > n:
         x[m - 1] = 0.0
-    if not ((m + m) == n):
+    if not (m + m) == n:
         m = m - 1
     x = np.hstack((x, -x[m - 1::-1]))
     w = np.hstack((w, w[m - 1::-1]))
@@ -919,22 +922,17 @@ class _Gaussq(object):
     qrule
     gaussq2d
     """
+
     @staticmethod
     def _get_dx(wfun, jacob, alpha, beta):
-        if wfun in [1, 2, 3, 7]:
-            dx = jacob
-        elif wfun == 4:
+        def fun1(x):
+            return x
+        if wfun == 4:
             dx = jacob ** (alpha + beta + 1)
-        elif wfun == 5:
-            dx = ones((np.size(jacob), 1))
-        elif wfun == 6:
-            dx = jacob ** 2
-        elif wfun == 8:
-            dx = sqrt(jacob)
-        elif wfun == 9:
-            dx = sqrt(jacob) ** 3
         else:
-            raise ValueError('unknown option')
+            dx = [None, fun1, fun1, fun1, None, lambda x: ones(np.shape(x)),
+                  lambda x: x ** 2, fun1, lambda x: sqrt(x),
+                  lambda x: sqrt(x) ** 3][wfun](jacob)
         return dx.ravel()
 
     @staticmethod
@@ -979,7 +977,7 @@ class _Gaussq(object):
     def _warn(k, a_shape):
         nk = len(k)
         if nk > 1:
-            if (nk == np.prod(a_shape)):
+            if nk == np.prod(a_shape):
                 tmptxt = 'All integrals did not converge'
             else:
                 tmptxt = '%d integrals did not converge' % (nk, )
@@ -1024,8 +1022,8 @@ class _Gaussq(object):
             xn, w = self._points_and_weights(gn, wfun, alpha, beta)
             x = (xn + shift) * jacob[k, :] + A[k, :]
 
-            pi = [xi[k, :] for xi in args]
-            y = fun(x, *pi)
+            pari = [xi[k, :] for xi in args]
+            y = fun(x, *pari)
             self._plot_trace(x, y)
             val[k] = np.sum(w * y, axis=1) * dx[k]  # do the integration
             if any(np.isnan(val)):
@@ -1068,21 +1066,22 @@ class _Quadgr(object):
         integrate = self._integrate
         # Change of variable
         if np.isfinite(a) & np.isinf(b):  # a to inf
-            Q, err = integrate(lambda t: fun(a + t / (1 - t)) / (1 - t) ** 2,
-                               0, 1, abseps, max_iter)
+            val, err = integrate(lambda t: fun(a + t / (1 - t)) / (1 - t) ** 2,
+                                 0, 1, abseps, max_iter)
         elif np.isinf(a) & np.isfinite(b):  # -inf to b
-            Q, err = integrate(lambda t: fun(b + t / (1 + t)) / (1 + t) ** 2,
-                               -1, 0, abseps, max_iter)
+            val, err = integrate(lambda t: fun(b + t / (1 + t)) / (1 + t) ** 2,
+                                 -1, 0, abseps, max_iter)
         else:  # -inf to inf
-            Q1, err1 = integrate(lambda t: fun(t / (1 - t)) / (1 - t) ** 2,
-                                 0, 1, abseps / 2, max_iter)
-            Q2, err2 = integrate(lambda t: fun(t / (1 + t)) / (1 + t) ** 2,
-                                 -1, 0, abseps / 2, max_iter)
-            Q = Q1 + Q2
+            val1, err1 = integrate(lambda t: fun(t / (1 - t)) / (1 - t) ** 2,
+                                   0, 1, abseps / 2, max_iter)
+            val2, err2 = integrate(lambda t: fun(t / (1 + t)) / (1 + t) ** 2,
+                                   -1, 0, abseps / 2, max_iter)
+            val = val1 + val2
             err = err1 + err2
-        return Q, err
+        return val, err
 
-    def _nodes_and_weights(self):
+    @staticmethod
+    def _nodes_and_weights():
         # Gauss-Legendre quadrature (12-point)
         xq = np.asarray(
             [0.12523340851146894, 0.36783149899818018, 0.58731795428661748,
@@ -1094,40 +1093,41 @@ class _Quadgr(object):
         wq = np.hstack((wq, wq))
         return xq, wq
 
-    def _get_best_estimate(self, Q0, Q1, Q2, k):
+    @staticmethod
+    def _get_best_estimate(vals0, vals1, vals2, k):
         if k >= 6:
-            Qv = np.hstack((Q0[k], Q1[k], Q2[k]))
-            Qw = np.hstack((Q0[k - 1], Q1[k - 1], Q2[k - 1]))
+            q_v = np.hstack((vals0[k], vals1[k], vals2[k]))
+            q_w = np.hstack((vals0[k - 1], vals1[k - 1], vals2[k - 1]))
         elif k >= 4:
-            Qv = np.hstack((Q0[k], Q1[k]))
-            Qw = np.hstack((Q0[k - 1], Q1[k - 1]))
+            q_v = np.hstack((vals0[k], vals1[k]))
+            q_w = np.hstack((vals0[k - 1], vals1[k - 1]))
         else:
-            Qv = np.atleast_1d(Q0[k])
-            Qw = Q0[k - 1]
+            q_v = np.atleast_1d(vals0[k])
+            q_w = vals0[k - 1]
         # Estimate absolute error
-        errors = np.atleast_1d(abs(Qv - Qw))
+        errors = np.atleast_1d(abs(q_v - q_w))
         j = errors.argmin()
         err = errors[j]
-        Q = Qv[j]
+        q_val = q_v[j]
 #         if k >= 2: # and not iscomplex:
-#             _val, err1 = dea3(Q0[k - 2], Q0[k - 1], Q0[k])
-        return Q, err
+#             _val, err1 = dea3(vals0[k - 2], vals0[k - 1], vals0[k])
+        return q_val, err
 
     def _integrate(self, fun, a, b, abseps, max_iter):
         dtype = np.result_type(fun((a+b)/2), fun((a+b)/4))
 
         # Initiate vectors
-        Q0 = zeros(max_iter, dtype=dtype)  # Quadrature
-        Q1 = zeros(max_iter, dtype=dtype)  # First Richardson extrapolation
-        Q2 = zeros(max_iter, dtype=dtype)  # Second Richardson extrapolation
+        val0 = zeros(max_iter, dtype=dtype)  # Quadrature
+        val1 = zeros(max_iter, dtype=dtype)  # First Richardson extrapolation
+        val2 = zeros(max_iter, dtype=dtype)  # Second Richardson extrapolation
 
-        xq, wq = self._nodes_and_weights()
-        nq = len(xq)
+        x0, w0 = self._nodes_and_weights()
+        nx0 = len(x0)
         # One interval
         hh = (b - a) / 2             # Half interval length
-        x = (a + b) / 2 + hh * xq      # Nodes
+        x = (a + b) / 2 + hh * x0      # Nodes
         # Quadrature
-        Q0[0] = hh * np.sum(wq * fun(x), axis=0)
+        val0[0] = hh * np.sum(w0 * fun(x), axis=0)
 
         # Successive bisection of intervals
         for k in range(1, max_iter):
@@ -1136,18 +1136,18 @@ class _Quadgr(object):
             hh = hh / 2
             x = np.hstack([x + a, x + b]) / 2
             # Quadrature
-            Q0[k] = hh * np.sum(wq * np.sum(np.reshape(fun(x), (-1, nq)),
-                                            axis=0),
-                                axis=0)
+            val0[k] = hh * np.sum(w0 * np.sum(np.reshape(fun(x), (-1, nx0)),
+                                              axis=0),
+                                  axis=0)
 
             # Richardson extrapolation
             if k >= 5:
-                Q1[k] = richardson(Q0, k)
-                Q2[k] = richardson(Q1, k)
+                val1[k] = richardson(val0, k)
+                val2[k] = richardson(val1, k)
             elif k >= 3:
-                Q1[k] = richardson(Q0, k)
+                val1[k] = richardson(val0, k)
 
-            Q, err = self._get_best_estimate(Q0, Q1, Q2, k)
+            Q, err = self._get_best_estimate(val0, val1, val2, k)
 
             # Convergence
 
@@ -1155,8 +1155,8 @@ class _Quadgr(object):
             if converged:
                 break
 
-        _assert_warn(converged, 'Max number of iterations reached without ' +
-                                'convergence.')
+        _assert_warn(converged, 'Max number of iterations reached without '
+                     'convergence.')
         _assert_warn(np.isfinite(Q),
                      'Integral approximation is Infinite or NaN.')
 
@@ -1164,7 +1164,8 @@ class _Quadgr(object):
         err = err + 2 * np.finfo(Q).eps
         return Q, err
 
-    def _order_limits(self, a, b):
+    @staticmethod
+    def _order_limits(a, b):
         if np.real(a) > np.real(b):
             return b, a, True
         return a, b, False
@@ -1254,6 +1255,44 @@ def boole(y, x):
                            14 * np.sum(y[4:n - 3:4]))
 
 
+def _display(neval, vals_dic, err_dic, plot_error):
+    # display results
+    kmax = len(neval)
+    names = sorted(vals_dic.keys())
+    num_cols = 2
+    formats = ['%4.0f, '] + ['%10.10f, '] * num_cols * 2
+    formats[-1] = formats[-1].split(',')[0]
+    formats_h = ['%4s, '] + ['%20s, '] * num_cols
+    formats_h[-1] = formats_h[-1].split(',')[0]
+    headers = ['evals'] + ['%12s %12s' % ('approx', 'error')] * num_cols
+    while len(names) > 0:
+        print(''.join(fi % t for (fi, t) in zip(formats_h,
+                                                ['ftn'] + names[:num_cols])))
+        print(' '.join(headers))
+        data = [neval]
+        for name in names[:num_cols]:
+            data.append(vals_dic[name])
+            data.append(err_dic[name])
+
+        data = np.vstack(tuple(data)).T
+        for k in range(kmax):
+            tmp = data[k].tolist()
+            print(''.join(fi % t for (fi, t) in zip(formats, tmp)))
+
+        if plot_error:
+            plt.figure(0)
+            for name in names[:num_cols]:
+                plt.loglog(neval, err_dic[name], label=name)
+
+        names = names[num_cols:]
+
+    if plot_error:
+        plt.xlabel('number of function evaluations')
+        plt.ylabel('error')
+        plt.legend()
+        plt.show('hold')
+
+
 def qdemo(f, a, b, kmax=9, plot_error=False):
     """
     Compares different quadrature rules.
@@ -1336,7 +1375,7 @@ def qdemo(f, a, b, kmax=9, plot_error=False):
             err_dic.setdefault(name, []).append(abs(q - true_val))
 
         name = 'Clenshaw-Curtis'
-        q, _ec3 = clencurt(f, a, b, (n - 1) // 2)
+        q = clencurt(f, a, b, (n - 1) // 2)[0]
         vals_dic.setdefault(name, []).append(q[0])
         err_dic.setdefault(name, []).append(abs(q[0] - true_val))
 
@@ -1359,38 +1398,7 @@ def qdemo(f, a, b, kmax=9, plot_error=False):
         vals_dic.setdefault(name, []).append(q)
         err_dic.setdefault(name, []).append(abs(q - true_val))
 
-    # display results
-    names = sorted(vals_dic.keys())
-    num_cols = 2
-    formats = ['%4.0f, ', ] + ['%10.10f, ', ] * num_cols * 2
-    formats[-1] = formats[-1].split(',')[0]
-    formats_h = ['%4s, ', ] + ['%20s, ', ] * num_cols
-    formats_h[-1] = formats_h[-1].split(',')[0]
-    headers = ['evals'] + ['%12s %12s' % ('approx', 'error')] * num_cols
-    while len(names) > 0:
-        print(''.join(fi % t for fi, t in zip(formats_h,
-                                              ['ftn'] + names[:num_cols])))
-        print(' '.join(headers))
-
-        data = [neval]
-        for name in names[:num_cols]:
-            data.append(vals_dic[name])
-            data.append(err_dic[name])
-        data = np.vstack(tuple(data)).T
-        for k in range(kmax):
-            tmp = data[k].tolist()
-            print(''.join(fi % t for fi, t in zip(formats, tmp)))
-        if plot_error:
-            plt.figure(0)
-            for name in names[:num_cols]:
-                plt.loglog(neval, err_dic[name], label=name)
-
-        names = names[num_cols:]
-    if plot_error:
-        plt.xlabel('number of function evaluations')
-        plt.ylabel('error')
-        plt.legend()
-        plt.show('hold')
+    _display(neval, vals_dic, err_dic, plot_error)
 
 
 def main():
