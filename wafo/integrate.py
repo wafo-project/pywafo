@@ -1230,7 +1230,7 @@ class _Quadgr(object):
         b = np.asarray(b)
         if a == b:
             q_val = b - a
-            err = b - a
+            err = np.abs(b - a)
             return q_val, err
 
         a, b, reverse = self._order_limits(a, b)
