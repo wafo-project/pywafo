@@ -1053,6 +1053,55 @@ def richardson(q_val, k):
 
 
 class _Quadgr(object):
+    """
+    Gauss-Legendre quadrature with Richardson extrapolation.
+
+    [q_val,ERR] = QUADGR(FUN,A,B,TOL) approximates the integral of a function
+    FUN from A to B with an absolute error tolerance TOL. FUN is a function
+    handle and must accept vector arguments. TOL is 1e-6 by default. q_val is
+    the integral approximation and ERR is an estimate of the absolute
+    error.
+
+    QUADGR uses a 12-point Gauss-Legendre quadrature. The error estimate is
+    based on successive interval bisection. Richardson extrapolation
+    accelerates the convergence for some integrals, especially integrals
+    with endpoint singularities.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> q_val, err = quadgr(np.log,0,1)
+    >>> q, err = quadgr(np.exp,0,9999*1j*np.pi)
+    >>> np.allclose(q, -2.0000000000122662), err < 1.0e-08
+    (True, True)
+
+    >>> q, err = quadgr(lambda x: np.sqrt(4-x**2), 0, 2, abseps=1e-12)
+    >>> np.allclose(q, 3.1415926535897811), err < 1.0e-12
+    (True, True)
+
+    >>> q, err = quadgr(lambda x: x**-0.75, 0, 1)
+    >>> np.allclose(q, 4), err < 1.e-13
+    (True, True)
+
+    >>> q, err = quadgr(lambda x: 1./np.sqrt(1-x**2), -1, 1)
+    >>> np.allclose(q, 3.141596056985029), err < 1.0e-05
+    (True, True)
+
+    >>> q, err = quadgr(lambda x: np.exp(-x**2), -np.inf, np.inf, 1e-9)
+    >>> np.allclose(q, np.sqrt(np.pi)), err < 1e-9
+    (True, True)
+
+    >>> q, err = quadgr(lambda x: np.cos(x)*np.exp(-x), 0, np.inf, 1e-9)
+    >>> np.allclose(q, 0.5), err < 1e-9
+    (True, True)
+
+    See also
+    --------
+    QUAD,
+    QUADGK
+    """
+    # Author: jonas.lundgren@saabgroup.com, 2009. license BSD
+    # Order limits (required if infinite limits)
 
     def _change_variable_and_integrate(self, fun, a, b, abseps, max_iter):
         isreal = np.isreal(a) & np.isreal(b) & ~np.isnan(a) & ~np.isnan(b)
@@ -1162,55 +1211,6 @@ class _Quadgr(object):
         return a, b, False
 
     def __call__(self, fun, a, b, abseps=1e-5, max_iter=17):
-        """
-        Gauss-Legendre quadrature with Richardson extrapolation.
-
-        [q_val,ERR] = QUADGR(FUN,A,B,TOL) approximates the integral of a function
-        FUN from A to B with an absolute error tolerance TOL. FUN is a function
-        handle and must accept vector arguments. TOL is 1e-6 by default. q_val is
-        the integral approximation and ERR is an estimate of the absolute
-        error.
-
-        QUADGR uses a 12-point Gauss-Legendre quadrature. The error estimate is
-        based on successive interval bisection. Richardson extrapolation
-        accelerates the convergence for some integrals, especially integrals
-        with endpoint singularities.
-
-        Examples
-        --------
-        >>> import numpy as np
-        >>> q_val, err = quadgr(np.log,0,1)
-        >>> q, err = quadgr(np.exp,0,9999*1j*np.pi)
-        >>> np.allclose(q, -2.0000000000122662), err < 1.0e-08
-        (True, True)
-
-        >>> q, err = quadgr(lambda x: np.sqrt(4-x**2), 0, 2, abseps=1e-12)
-        >>> np.allclose(q, 3.1415926535897811), err < 1.0e-12
-        (True, True)
-
-        >>> q, err = quadgr(lambda x: x**-0.75, 0, 1)
-        >>> np.allclose(q, 4), err < 1.e-13
-        (True, True)
-
-        >>> q, err = quadgr(lambda x: 1./np.sqrt(1-x**2), -1, 1)
-        >>> np.allclose(q, 3.141596056985029), err < 1.0e-05
-        (True, True)
-
-        >>> q, err = quadgr(lambda x: np.exp(-x**2), -np.inf, np.inf, 1e-9)
-        >>> np.allclose(q, np.sqrt(np.pi)), err < 1e-9
-        (True, True)
-
-        >>> q, err = quadgr(lambda x: np.cos(x)*np.exp(-x), 0, np.inf, 1e-9)
-        >>> np.allclose(q, 0.5), err < 1e-9
-        (True, True)
-
-        See also
-        --------
-        QUAD,
-        QUADGK
-        """
-        # Author: jonas.lundgren@saabgroup.com, 2009. license BSD
-        # Order limits (required if infinite limits)
         a = np.asarray(a)
         b = np.asarray(b)
         if a == b:
