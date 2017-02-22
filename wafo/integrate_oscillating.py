@@ -1,8 +1,8 @@
-'''
+"""
 Created on 20. aug. 2015
 
 @author: pab
-'''
+"""
 from __future__ import division
 import numpy as np
 import warnings
@@ -83,7 +83,7 @@ def evans_webster_weights(omega, gg, dgg, x, basis, *args, **kwds):
 
     j_w = 1j * omega
     nn = len(x)
-    A = np.zeros((nn, nn),  dtype=complex)
+    A = np.zeros((nn, nn), dtype=complex)
     F = np.zeros((nn,), dtype=complex)
 
     dbasis = basis.derivative
@@ -352,14 +352,14 @@ def tanh_sinh_open_nodes(M, delta=None, tol=_EPS):
     return tanh_sinh_nodes(M+1, delta, tol)[1:-1]
 
 
-def chebyshev_roots(M, delta=None):
-    k = np.arange(1, 2*M, 2) * 0.5
-    x = np.cos(k * np.pi / M)
+def chebyshev_roots(m, delta=None):
+    k = np.arange(1, 2*m, 2) * 0.5
+    x = np.cos(k * np.pi / m)
     return x
 
 
 class AdaptiveLevin(_Integrator):
-    '''Return integral for the Levin-type and adaptive Levin-type methods'''
+    """Return integral for the Levin-type and adaptive Levin-type methods"""
 
     @staticmethod
     def aLevinTQ(omega, ff, gg, dgg, x, s, basis, *args, **kwds):
@@ -373,7 +373,7 @@ class AdaptiveLevin(_Integrator):
         S = np.cumsum(np.hstack((nu, 0)))
         S[-1] = 0
         nn = int(S[-2])
-        A = np.zeros((nn, nn),  dtype=complex)
+        A = np.zeros((nn, nn), dtype=complex)
         F = np.zeros((nn,))
         dff = Limit(nda.Derivative(ff))
         dPsi = Limit(nda.Derivative(Psi))
@@ -451,7 +451,7 @@ class AdaptiveLevin(_Integrator):
         return 1 if s > 1 else int(prec / max(np.log10(betam + 1), 1) + 1)
 
     def _QaL(self, s, a, b, omega, *args, **kwds):
-        '''if s>1,the integral is computed by Q_s^L'''
+        """if s>1,the integral is computed by Q_s^L"""
         scale = (b - a) / 2
         offset = (a + b) / 2
         prec = self.precision  # desired precision
@@ -472,11 +472,11 @@ class AdaptiveLevin(_Integrator):
 
         betam = delta   # * scale
         if self.endpoints:
-            if (delta < 10 or alpha <= 10 or s > 1):
+            if delta < 10 or alpha <= 10 or s > 1:
                 points = chebyshev_extrema
             else:
                 points = adaptive_levin_points
-        elif (delta < 10 or alpha <= 10 or s > 1):
+        elif delta < 10 or alpha <= 10 or s > 1:
             points = chebyshev_roots
         else:
             points = open_levin_points  # tanh_sinh_open_nodes
@@ -506,7 +506,7 @@ class AdaptiveLevin(_Integrator):
 
 
 class EvansWebster(AdaptiveLevin):
-    '''Return integral for the Evans Webster method'''
+    """Return integral for the Evans Webster method"""
 
     def __init__(self, f, g, dg=None, a=-1, b=1, basis=chebyshev_basis, s=8,
                  precision=10, endpoints=False, full_output=False):
