@@ -96,8 +96,7 @@ def clencurt(fun, a, b, n=5, trace=False):
     else:
         x_0 = np.flipud(fun[:, 0])
         n_2 = len(x_0) - 1
-        if abs(x - x_0) > 1e-8:
-            raise ValueError(
+        _assert(abs(x - x_0) <= 1e-8,
                 'Input vector x must equal cos(pi*s/n_2)*(b-a)/2+(b+a)/2')
 
         f = np.flipud(fun[:, 1::])
@@ -545,7 +544,7 @@ def _p_roots_newton_start(n):
     return m, x
 
 
-def _p_roots_newton(n, ):
+def _p_roots_newton(n):
     """
     Algorithm given by Davis and Rabinowitz in 'Methods
     of Numerical Integration', page 365, Academic Press, 1975.
@@ -670,6 +669,12 @@ def p_roots(n, method='newton', a=-1, b=1):
     Integral of exp(x) from a = 0 to b = 3 is: exp(3)-exp(0)=
     >>> import numpy as np
     >>> nodes, weights = p_roots(11, a=0, b=3)
+    >>> np.allclose(np.sum(np.exp(nodes) * weights), 19.085536923187668)
+    True
+    >>> nodes, weights = p_roots(11, method='newton1', a=0, b=3)
+    >>> np.allclose(np.sum(np.exp(nodes) * weights), 19.085536923187668)
+    True
+    >>> nodes, weights = p_roots(11, method='eigenvalue', a=0, b=3)
     >>> np.allclose(np.sum(np.exp(nodes) * weights), 19.085536923187668)
     True
 
@@ -1094,6 +1099,12 @@ class _Quadgr(object):
     >>> q, err = quadgr(lambda x: np.cos(x)*np.exp(-x), 0, np.inf, 1e-9)
     >>> np.allclose(q, 0.5), err < 1e-9
     (True, True)
+    >>> q, err = quadgr(lambda x: np.cos(x)*np.exp(-x), np.inf, 0, 1e-9)
+    >>> np.allclose(q, -0.5), err < 1e-9
+    (True, True)
+    >>> q, err = quadgr(lambda x: np.cos(x)*np.exp(x), -np.inf, 0, 1e-9)
+    >>> np.allclose(q, 0.5), err < 1e-9
+    (True, True)
 
     See also
     --------
@@ -1280,7 +1291,6 @@ def _display(neval, vals_dic, err_dic, plot_error):
         plt.xlabel('number of function evaluations')
         plt.ylabel('error')
         plt.legend()
-        plt.show('hold')
 
 
 def qdemo(f, a, b, kmax=9, plot_error=False):
@@ -1308,7 +1318,7 @@ def qdemo(f, a, b, kmax=9, plot_error=False):
     Example
     -------
     >>> import numpy as np
-    >>> qdemo(np.exp,0,3)
+    >>> qdemo(np.exp,0,3, plot_error=True)
     true value =  19.08553692
      ftn,                Boole,            Chebychev
     evals       approx        error       approx        error
