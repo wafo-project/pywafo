@@ -915,7 +915,7 @@ class _Gaussq(object):
     (True, True)
 
     Integrate humps from 0 to 2 and from 1 to 4
-    >>> val4, err4 = gaussq(humps,A,B)
+    >>> val4, err4 = gaussq(humps, A, B, trace=True)
 
     See also
     --------
