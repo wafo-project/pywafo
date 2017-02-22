@@ -994,15 +994,15 @@ class _Gaussq(object):
             a_out = zeros((a_out.size, 1))
         return a_out, b_out, args, a_shape
 
-
-    def _revert_nans_with_old(self, val, val_old):
+    @staticmethod
+    def _revert_nans_with_old(val, val_old):
         if any(np.isnan(val)):
             val[np.isnan(val)] = val_old[np.isnan(val)]
 
-
-    def _update_error(self, i, abserr, val, val_old, k):
+    @staticmethod
+    def _update_error(i, abserr, val, val_old, k):
         if i > 1:
-            abserr[k] = abs(val_old[k] - val[k]) # absolute tolerance
+            abserr[k] = abs(val_old[k] - val[k])  # absolute tolerance
 
     def __call__(self, fun, a, b, releps=1e-3, abseps=1e-3, alpha=0, beta=0,
                  wfun=1, trace=False, args=(), max_iter=11):
