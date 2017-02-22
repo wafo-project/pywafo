@@ -1260,8 +1260,18 @@ def boole(y, x):
                            14 * np.sum(y[4:n - 3:4]))
 
 
-def _display(neval, vals_dic, err_dic, plot_error):
-    # display results
+def _plot_error(neval, err_dic, plot_error):
+    if plot_error:
+        plt.figure(0)
+        for name in err_dic:
+            plt.loglog(neval, err_dic[name], label=name)
+
+        plt.xlabel('number of function evaluations')
+        plt.ylabel('error')
+        plt.legend()
+
+
+def _print_values_and_errors(neval, vals_dic, err_dic):
     kmax = len(neval)
     names = sorted(vals_dic.keys())
     num_cols = 2
@@ -1284,17 +1294,13 @@ def _display(neval, vals_dic, err_dic, plot_error):
             tmp = data[k].tolist()
             print(''.join(fi % t for (fi, t) in zip(formats, tmp)))
 
-        if plot_error:
-            plt.figure(0)
-            for name in names[:num_cols]:
-                plt.loglog(neval, err_dic[name], label=name)
-
         names = names[num_cols:]
 
-    if plot_error:
-        plt.xlabel('number of function evaluations')
-        plt.ylabel('error')
-        plt.legend()
+
+def _display(neval, vals_dic, err_dic, plot_error):
+    # display results
+    _print_values_and_errors(neval, vals_dic, err_dic)
+    _plot_error(neval, err_dic, plot_error)
 
 
 def qdemo(f, a, b, kmax=9, plot_error=False):
@@ -1389,16 +1395,9 @@ def qdemo(f, a, b, kmax=9, plot_error=False):
         q = np.polynomial.chebyshev.chebval(x[-1], c_ki)
         vals_dic.setdefault(name, []).append(q)
         err_dic.setdefault(name, []).append(abs(q - true_val))
-        # c_k = chebfit(f,n,a,b)
-        # q  = chebval(b,chebint(c_k,a,b),a,b)
-        # qc2[k] = q; ec2[k] = abs(q - true)
 
         name = 'Gauss-Legendre'  # quadrature
         q = intg.fixed_quad(f, a, b, n=n)[0]
-        # [x, w]=qrule(n,1)
-        # x = (b-a)/2*x + (a+b)/2     % Transform base points X.
-        # w = (b-a)/2*w               % Adjust weigths.
-        # q = sum(feval(f,x)*w)
         vals_dic.setdefault(name, []).append(q)
         err_dic.setdefault(name, []).append(abs(q - true_val))
 
@@ -1443,8 +1442,8 @@ def main():
 
 
 if __name__ == '__main__':
-    from wafo.testing import test_docstrings
-    test_docstrings(__file__)
-    # qdemo(np.exp, 0, 3, plot_error=True)
-    # plt.show('hold')
+    # from wafo.testing import test_docstrings
+    # test_docstrings(__file__)
+    qdemo(np.exp, 0, 3, plot_error=True)
+    plt.show('hold')
     # main()
