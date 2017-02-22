@@ -1442,8 +1442,8 @@ def main():
 
 
 if __name__ == '__main__':
-    # from wafo.testing import test_docstrings
-    # test_docstrings(__file__)
-    qdemo(np.exp, 0, 3, plot_error=True)
-    plt.show('hold')
+    from wafo.testing import test_docstrings
+    test_docstrings(__file__)
+    # qdemo(np.exp, 0, 3, plot_error=True)
+    # plt.show('hold')
     # main()
