@@ -1084,6 +1084,10 @@ class _Quadgr(object):
     >>> np.allclose(q, 3.1415926535897811), err < 1.0e-12
     (True, True)
 
+    >>> q, err = quadgr(lambda x: np.sqrt(4-x**2), 0, 0, abseps=1e-12)
+    >>> np.allclose(q, 0), err < 1.0e-12
+    (True, True)
+
     >>> q, err = quadgr(lambda x: x**-0.75, 0, 1)
     >>> np.allclose(q, 4), err < 1.e-13
     (True, True)
