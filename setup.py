@@ -96,6 +96,8 @@ def setup_package_pyscaffold():
                          include_dirs=['wafo/source/mreg/'],
                          depends=(lib_rindmod_src))
 
+    config.add_data_dir(('data', 'wafo/data'))
+
     needs_sphinx = {'build_sphinx', 'upload_docs'}.intersection(sys.argv)
     sphinx = ['sphinx'] if needs_sphinx else []
     setup(setup_requires=['six', 'pyscaffold>=2.4rc1,<2.5a0'] + sphinx,
