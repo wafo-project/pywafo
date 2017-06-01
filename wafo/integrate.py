@@ -1159,7 +1159,7 @@ class _Quadgr(object):
         return nodes, weights
 
     @staticmethod
-    def _get_best_estimate(vals0, vals1, vals2, k):
+    def _get_best_estimate(k, vals0, vals1, vals2):
         if k >= 6:
             q_v = np.hstack((vals0[k], vals1[k], vals2[k]))
             q_w = np.hstack((vals0[k - 1], vals1[k - 1], vals2[k - 1]))
@@ -1176,6 +1176,16 @@ class _Quadgr(object):
         q_val = q_v[j]
 #         if k >= 2: # and not iscomplex:
 #             _val, err1 = dea3(vals0[k - 2], vals0[k - 1], vals0[k])
+        return q_val, err
+
+    def _extrapolate(self, k, val0, val1, val2):
+        # Richardson extrapolation
+        if k >= 5:
+            val1[k] = richardson(val0, k)
+            val2[k] = richardson(val1, k)
+        elif k >= 3:
+            val1[k] = richardson(val0, k)
+        q_val, err = self._get_best_estimate(k, val0, val1, val2)
         return q_val, err
 
     def _integrate(self, fun, a, b, abseps, max_iter):
@@ -1204,14 +1214,7 @@ class _Quadgr(object):
             val0[k] = np.sum(np.sum(np.reshape(fun(x), (-1, n)), axis=0) *
                              weights, axis=0) * d_x
 
-            # Richardson extrapolation
-            if k >= 5:
-                val1[k] = richardson(val0, k)
-                val2[k] = richardson(val1, k)
-            elif k >= 3:
-                val1[k] = richardson(val0, k)
-
-            q_val, err = self._get_best_estimate(val0, val1, val2, k)
+            q_val, err = self._extrapolate(k, val0, val1, val2)
 
             converged = (err < abseps) | ~np.isfinite(q_val)
             if converged:
