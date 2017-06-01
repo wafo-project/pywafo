@@ -10,11 +10,12 @@ from scipy.integrate import simps, trapz
 from wafo.plotbackend import plotbackend as plt
 from wafo.demos import humps
 from wafo.misc import dea3
-from wafo.dctpack import dct
+# from wafo.dctpack import dct
+from collections import defaultdict
 # from pychebfun import Chebfun
 
 _EPS = np.finfo(float).eps
-_NODES_AND_WEIGHTS = {}
+_NODES_AND_WEIGHTS = defaultdict(list)
 
 __all__ = ['dea3', 'clencurt', 'romberg',
            'h_roots', 'j_roots', 'la_roots', 'p_roots', 'qrule',
@@ -939,7 +940,7 @@ class _Gaussq(object):
     def _nodes_and_weights(num_nodes, wfun, alpha, beta):
         global _NODES_AND_WEIGHTS
         name = 'wfun{:d}_{:d}_{:g}_{:g}'.format(wfun, num_nodes, alpha, beta)
-        nodes_and_weights = _NODES_AND_WEIGHTS.setdefault(name, [])
+        nodes_and_weights = _NODES_AND_WEIGHTS[name]
         if len(nodes_and_weights) == 0:
             nodes_and_weights.extend(qrule(num_nodes, wfun, alpha, beta))
         nodes, weights = nodes_and_weights
