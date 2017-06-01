@@ -17,7 +17,7 @@ from numpy.polynomial import polynomial
 from wafo.misc import piecewise, findcross, ecross
 
 _FINFO = np.finfo(float)
-EPS = _FINFO(float).eps
+EPS = _FINFO.eps
 _EPS = EPS
 _TINY = _FINFO.tiny
 _HUGE = _FINFO.max
