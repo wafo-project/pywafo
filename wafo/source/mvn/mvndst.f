@@ -131,7 +131,7 @@ C f2py mvn.pyf mvndst.f -c --fcompiler=gnu95 --compiler=mingw32 -lmsvcr71
          VALUE = 0
          ERROR = 1
       ELSE
-         INFORM = INT(MVNDNT(N, CORREL, LOWER, UPPER, INFIN, INFIS, D, E))
+         INFORM = MVNDNT(N, CORREL, LOWER, UPPER, INFIN, INFIS, D, E)
          IF ( N-INFIS .EQ. 0 ) THEN
             VALUE = 1
             ERROR = 0
