@@ -1086,14 +1086,14 @@ class Pchip(BPoly):
     # Call the Scipy cubic spline interpolator
     >>> from scipy.interpolate import interpolate
     >>> function = interpolate.interp1d(x, y, kind='cubic')
-    >>> yvec1 = function(xvec)
+    >>> yvec1 = function(xvec); yvec1
     >>> np.allclose(yvec1, [-1.00000000e+00, -9.41911765e-01, -8.70588235e-01,
     ...        -7.87500000e-01,  -6.94117647e-01,  -5.91911765e-01,
     ...        -4.82352941e-01,  -3.66911765e-01,  -2.47058824e-01,
     ...        -1.24264706e-01,   2.49800181e-16,   1.24264706e-01,
     ...         2.47058824e-01,   3.66911765e-01,   4.82352941e-01,
     ...         5.91911765e-01,   6.94117647e-01,   7.87500000e-01,
-    ...         8.70588235e-01,   9.41911765e-01])
+    ...         8.70588235e-01,   9.41911765e-01], rtol=1e-3)
     True
 
 
@@ -1346,7 +1346,7 @@ def test_pp():
 
 def test_docstrings():
     import doctest
-    print('Testing docstrings in {}'.formate(__file__))
+    print('Testing docstrings in {}'.format(__file__))
     doctest.testmod(optionflags=doctest.NORMALIZE_WHITESPACE)
 
 

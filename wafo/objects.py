@@ -1181,11 +1181,12 @@ class TimeSeries(PlotData):
         >>> ts = wo.mat2timeseries(x)
         >>> S0 = ts.tospecdata(method='psd')
         >>> np.allclose(S0.data[21:25],
-        ...    ( 0.2543896 ,  0.26366755,  0.23372824,  0.19459349))
+        ...    (0.2543896 ,  0.26366755,  0.23372824,  0.19459349), rtol=1e-2)
         True
         >>> S = ts.tospecdata()
+
         >>> np.allclose(S.data[21:25],
-        ...    (0.00207876,  0.0025113 ,  0.00300008,  0.00351852))
+        ...    (0.00207876,  0.0025113 ,  0.00300008,  0.00351852), rtol=1e-2)
         True
         >>> h = S.plot()
 
