@@ -122,16 +122,16 @@ C f2py mvn.pyf mvndst.f -c --fcompiler=gnu95 --compiler=mingw32 -lmsvcr71
 *            if INFORM = 2, N > 500 or N < 1.
 *
       EXTERNAL MVNDFN
-      INTEGER N, INFIN(*), MAXPTS, INFORM, INFIS, IVLS, MVNDNT
+      INTEGER N, INFIN(*), MAXPTS, INFORM, INFIS, IVLS
       DOUBLE PRECISION CORREL(*), LOWER(*), UPPER(*), RELEPS, ABSEPS,
-     &                 ERROR, VALUE, E, D, MVNDFN
+     &                 ERROR, VALUE, E, D, MVNDNT, MVNDFN
       COMMON /DKBLCK/IVLS
       IF ( N .GT. 500 .OR. N .LT. 1 ) THEN
          INFORM = 2
          VALUE = 0
          ERROR = 1
       ELSE
-         INFORM = MVNDNT(N, CORREL, LOWER, UPPER, INFIN, INFIS, D, E)
+         INFORM = INT(MVNDNT(N, CORREL, LOWER, UPPER, INFIN, INFIS, D, E))
          IF ( N-INFIS .EQ. 0 ) THEN
             VALUE = 1
             ERROR = 0
