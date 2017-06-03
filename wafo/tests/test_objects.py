@@ -19,18 +19,26 @@ class TestTimeSeries(TestCase):
         x = wafo.data.sea()
         self.ts = wo.mat2timeseries(x)
 
-    def test_timeseries(self):
+    def test_sampling_period(self):
         ts = self.ts
         assert_array_almost_equal(ts.sampling_period(), 0.25)
 
-        S = ts.tospecdata()
+    def test_tospecdata(self):
+        S = self.ts.tospecdata(L=150)
+        print(S.data[:10].tolist())
         assert_array_almost_equal(S.data[:10],
-                                  [0.00913087,  0.00881073,  0.00791944,
-                                   0.00664244,  0.00522429, 0.00389816,
-                                   0.00282753,  0.00207843,  0.00162678,
-                                   0.0013916])
+                                  [0.0050789888306202345, 0.0049411187454784225,
+                                   0.004553923924951667, 0.003990722577978725,
+                                   0.00335482379127744, 0.002755110296973988,
+                                   0.002281782794825119, 0.0019941282234629933,
+                                   0.0019329154962902488, 0.002164040256079313])
 
-        rf = ts.tocovdata(lag=150)
+#                                   [0.00913087,  0.00881073,  0.00791944,
+#                                    0.00664244,  0.00522429, 0.00389816,
+#                                    0.00282753,  0.00207843,  0.00162678,
+#                                    0.0013916])
+    def test_tocovdata(self):
+        rf = self.ts.tocovdata(lag=150)
         assert_array_almost_equal(rf.data[:10],
                                   [0.22368637,  0.20838473,  0.17110733,
                                    0.12237803,  0.07024054, 0.02064859,
