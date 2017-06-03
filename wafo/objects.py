@@ -1179,14 +1179,15 @@ class TimeSeries(PlotData):
         >>> import wafo.objects as wo
         >>> x = wd.sea()
         >>> ts = wo.mat2timeseries(x)
-        >>> S0 = ts.tospecdata(method='psd')
+        >>> S0 = ts.tospecdata(method='psd', L=150)
         >>> np.allclose(S0.data[21:25],
-        ...    (0.2543896 ,  0.26366755,  0.23372824,  0.19459349), rtol=1e-2)
+        ...     [0.1948925209459276, 0.19124901618176282, 0.1705625876220829, 0.1471870958122376],
+        ...     rtol=1e-2)
         True
-        >>> S = ts.tospecdata()
-
+        >>> S = ts.tospecdata(L=150)
         >>> np.allclose(S.data[21:25],
-        ...    (0.00207876,  0.0025113 ,  0.00300008,  0.00351852), rtol=1e-2)
+        ...    [0.13991863694982026, 0.15264493584526717, 0.160156678854338, 0.1622894414741913],
+        ...    rtol=1e-2)
         True
         >>> h = S.plot()
 
