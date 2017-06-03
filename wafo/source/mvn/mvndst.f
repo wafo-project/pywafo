@@ -131,7 +131,8 @@ C f2py mvn.pyf mvndst.f -c --fcompiler=gnu95 --compiler=mingw32 -lmsvcr71
          VALUE = 0
          ERROR = 1
       ELSE
-         INFORM = MVNDNT(N, CORREL, LOWER, UPPER, INFIN, INFIS, D, E)
+         INFORM = INT(MVNDNT(N, CORREL, LOWER, UPPER, INFIN, INFIS,
+     &                       D, E))
          IF ( N-INFIS .EQ. 0 ) THEN
             VALUE = 1
             ERROR = 0
@@ -260,6 +261,8 @@ C f2py mvn.pyf mvndst.f -c --fcompiler=gnu95 --compiler=mingw32 -lmsvcr71
       DOUBLE PRECISION SUMSQ, AJ, BJ, SUM, SQTWPI, EPS, D, E
       DOUBLE PRECISION CVDIAG, AMIN, BMIN, DMIN, EMIN, YL, YU
       PARAMETER ( SQTWPI = 2.506628274631001D0, EPS = 1D-10 )
+      AMIN = 0
+      BMIN = 0
       IJ = 0
       II = 0
       INFIS = 0
