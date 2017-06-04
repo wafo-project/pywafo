@@ -572,7 +572,6 @@ class SmoothSpline(PPform):
             dx = np.diff(x)
         return x, y, dx
 
-
     def _init_poly_coefs(self, dx, dydx, n, p, D):
         dx1 = 1. / dx
         R = self._compute_r(dx, n)
@@ -587,7 +586,7 @@ class SmoothSpline(PPform):
 
     def _poly_coefs(self, y, dx, dydx, n, nd, p, D):
         p, u, dx1 = self._init_poly_coefs(dx, dydx, n, p, D)
-        
+
         zrs = zeros(nd)
         if p < 1:
             # faster than yi-6*(1-p)*Q*u
