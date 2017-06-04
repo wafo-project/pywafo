@@ -52,7 +52,7 @@ def findcross(xn):
 def _make_findrfc(cmp1, cmp2):
 
     @jit(int64(int64[:], float64[:], float64), nopython=True)
-    def findrfc2(t, y, h):
+    def local_findrfc(t, y, h):
         # cmp1, cmp2 = (a_le_b, a_lt_b) if method==0 else (a_lt_b, a_le_b)
 
         n = len(y)
@@ -105,7 +105,7 @@ def _make_findrfc(cmp1, cmp2):
             j += 1
             t[j] = t0
         return j + 1
-    return findrfc2
+    return local_findrfc
 
 
 @jit(int32(float64, float64), nopython=True)

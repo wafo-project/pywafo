@@ -241,7 +241,7 @@ def sgolay2d(z, window_size, order, derivative=None):
         zout[:size, :size] = band - np.abs(z[size:0:-1, :][:, size:0:-1] - band)
         # bottom right corner
         band = z[-1, -1]
-        zout[-size:, -size:] = band + np.abs(z[-2:-size - 2:-1, :][:,-2:-size - 2:-1] - band)
+        zout[-size:, -size:] = band + np.abs(z[-2:-size - 2:-1, :][:, -2:-size - 2:-1] - band)
         # top right corner
         band = zout[size, -size:]
         zout[:size, -size:] = band - np.abs(zout[2 * size:size:-1, -size:] - band)
@@ -251,8 +251,8 @@ def sgolay2d(z, window_size, order, derivative=None):
         return zout
 
     def _get_sign_and_dims(derivative):
-        sign = {None:1}.get(derivative, -1)
-        dims = {None:(0, ), 'col':(1, ), 'row':(2, ), 'both':(1, 2)}[derivative]
+        sign = {None: 1}.get(derivative, -1)
+        dims = {None: (0, ), 'col': (1, ), 'row': (2, ), 'both': (1, 2)}[derivative]
         return sign, dims
 
     def _build_matrix(order, window_size, size):
