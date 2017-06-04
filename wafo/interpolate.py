@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 from __future__ import absolute_import, division
 import numpy as np
-import scipy.signal
 # import scipy.sparse.linalg  # @UnusedImport
 import scipy.sparse as sparse
 from numpy import ones, zeros, prod, sin, diff, pi, inf, vstack, linspace
@@ -92,7 +91,7 @@ def savitzky_golay(y, window_size, order, deriv=0):
     half_window = (window_size - 1) // 2
     # precompute coefficients
     b = np.mat([[k ** i for i in order_range]
-               for k in range(-half_window, half_window + 1)])
+                for k in range(-half_window, half_window + 1)])
     m = np.linalg.pinv(b).A[deriv]
     # pad the signal at the extremes with
     # values taken from the signal itself
@@ -106,12 +105,15 @@ def _get_turnpoint(xvals):
     turnpoint = 0
     last = len(xvals)
     if xvals[0] < xvals[1]:  # x is increasing?
-        compare = lambda a, b: a < b
+        def compare(a, b):
+            return a < b
     else:  # no, x is decreasing
-        compare = lambda a, b: a > b
+        def compare(a, b):
+            return a > b
 
-    for i in range(1, last): # yes
-        if compare(xvals[i], xvals[i - 1]): # search where x starts to fall or rise
+    for i in range(1, last):  # yes
+        # search where x starts to fall or rise
+        if compare(xvals[i], xvals[i - 1]):
             turnpoint = i
             break
 
@@ -245,44 +247,52 @@ def sgolay2d(z, window_size, order, derivative=None):
     Z = np.zeros((new_shape))
     # top band
     band = z[0, :]
-    Z[:half_size, half_size:-half_size] = band - np.abs(np.flipud(z[1:half_size + 1, :]) - band)
+    Z[:half_size, half_size:-half_size] = band - \
+        np.abs(np.flipud(z[1:half_size + 1, :]) - band)
     # bottom band
     band = z[-1, :]
-    Z[-half_size:, half_size:-half_size] = band + np.abs(np.flipud(z[-half_size - 1:-1, :]) - band)
+    Z[-half_size:, half_size:-half_size] = band + \
+        np.abs(np.flipud(z[-half_size - 1:-1, :]) - band)
     # left band
     band = np.tile(z[:, 0].reshape(-1, 1), [1, half_size])
-    Z[half_size:-half_size, :half_size] = band - np.abs(np.fliplr(z[:, 1:half_size + 1]) - band)
+    Z[half_size:-half_size, :half_size] = band - \
+        np.abs(np.fliplr(z[:, 1:half_size + 1]) - band)
     # right band
     band = np.tile(z[:, -1].reshape(-1, 1), [1, half_size])
-    Z[half_size:-half_size, -half_size:] = band + np.abs(np.fliplr(z[:, -half_size - 1:-1]) - band)
+    Z[half_size:-half_size, -half_size:] = band + \
+        np.abs(np.fliplr(z[:, -half_size - 1:-1]) - band)
     # central band
     Z[half_size:-half_size, half_size:-half_size] = z
 
     # top left corner
     band = z[0, 0]
     Z[:half_size, :half_size] = band - \
-        np.abs(np.flipud(np.fliplr(z[1:half_size + 1, 1:half_size + 1])) - band)
+        np.abs(
+            np.flipud(np.fliplr(z[1:half_size + 1, 1:half_size + 1])) - band)
     # bottom right corner
     band = z[-1, -1]
     Z[-half_size:, -half_size:] = band + \
-        np.abs(np.flipud(np.fliplr(z[-half_size - 1:-1, -half_size - 1:-1])) - band)
+        np.abs(
+            np.flipud(np.fliplr(z[-half_size - 1:-1, -half_size - 1:-1])) - band)
 
     # top right corner
     band = Z[half_size, -half_size:]
     Z[:half_size, -half_size:] = band - \
-        np.abs(np.flipud(Z[half_size + 1:2 * half_size + 1, -half_size:]) - band)
+        np.abs(
+            np.flipud(Z[half_size + 1:2 * half_size + 1, -half_size:]) - band)
     # bottom left corner
     band = Z[-half_size:, half_size].reshape(-1, 1)
     Z[-half_size:, :half_size] = band - \
-        np.abs(np.fliplr(Z[-half_size:, half_size + 1:2 * half_size + 1]) - band)
+        np.abs(
+            np.fliplr(Z[-half_size:, half_size + 1:2 * half_size + 1]) - band)
 
     # solve system and convolve
-    sgn = {None:1}.get(derivative , -1)
-    dims = {None: (0,), 'col': (1,), 'row': (2,), 'both':(1, 2)}[derivative]
+    sgn = {None: 1}.get(derivative, -1)
+    dims = {None: (0,), 'col': (1,), 'row': (2,), 'both': (1, 2)}[derivative]
 
     res = tuple(fftconvolve(Z, sgn * np.linalg.pinv(A)[i].reshape((window_size, -1)), mode='valid')
                 for i in dims)
-    if len(dims)>1:
+    if len(dims) > 1:
         return res
     return res[0]
 
@@ -597,7 +607,8 @@ class SmoothSpline(PPform):
             di = di.T
             ci = ci.T
             ai = ai.T
-        coefs = vstack([val.ravel() for val in [di, ci, bi, ai] if val.size>0])
+        coefs = vstack([val.ravel()
+                        for val in [di, ci, bi, ai] if val.size > 0])
         return coefs
 
     def _compute_coefs(self, xx, yy, p=None, var=1):
@@ -643,7 +654,7 @@ class SmoothSpline(PPform):
         QQ = (6 * (1 - p)) * (QDQ) + p * R
         return QQ
 
-    def _compute_u(self,QQ,  p,  dydx, n):
+    def _compute_u(self, QQ, p, dydx, n):
         # Make sure it uses symmetric matrix solver
         ddydx = diff(dydx, axis=0)
         # sp.linalg.use_solver(useUmfpack=True)
@@ -715,7 +726,7 @@ def _catmull_rom_slope(x, y, dx, dydx, *args):
 
 
 def _cardinal_slope(x, y, dx, dydx, tension):
-    yp = (1-tension) * _catmull_rom_slope(x, y, dx, dydx)
+    yp = (1 - tension) * _catmull_rom_slope(x, y, dx, dydx)
     return yp
 
 
@@ -978,6 +989,7 @@ class StinemanInterp(object):
     --------
     slopes, Pchip
     '''
+
     def __init__(self, x, y, yp=None, method='parabola', monotone=False):
         if yp is None:
             yp = slopes(x, y, method, monotone=monotone)
@@ -1171,7 +1183,7 @@ def interp3(x, y, z, v, xi, yi, zi, method='cubic'):
 
 
 def somefunc(x, y, z):
-    return x**2 + y**2 - z**2 + x*y*z
+    return x**2 + y**2 - z**2 + x * y * z
 
 
 def test_interp3():
@@ -1214,7 +1226,6 @@ def test_smoothing_spline():
 
     plt.plot(x, y, x1, y1, '.', x1, dy1, 'ro', x1, y01, 'r-')
     plt.show('hold')
-    pass
     # tck = interpolate.splrep(x, y, s=len(x))
 
 
@@ -1232,7 +1243,7 @@ def compare_methods():
 
     # Initialize the interpolator slopes
     # Create the pchip slopes
-    m = slopes(x, y,  method='parabola', monotone=True)
+    m = slopes(x, y, method='parabola', monotone=True)
     m1 = slopes(x, y, method='parabola', monotone=False)
     m2 = slopes(x, y, method='catmul', monotone=False)
     m3 = pchip_slopes(x, y)
@@ -1290,8 +1301,8 @@ def demo_monoticity():
     yvec5 = Pchip(x, y, m3)(xvec)  # @UnusedVariable
 
     # Plot the results
-    plt.plot(x,    y,     'ro', label='Data')
-    plt.plot(xvec, yvec,  'b', label='Pchip')
+    plt.plot(x, y, 'ro', label='Data')
+    plt.plot(xvec, yvec, 'b', label='Pchip')
     plt.plot(xvec, yvec2, 'k', label='interp1d')
     plt.plot(xvec, yvec3, 'g', label='CHS')
     plt.plot(xvec, yvec4, 'm', label='Stineman')
