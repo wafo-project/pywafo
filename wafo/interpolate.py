@@ -572,17 +572,22 @@ class SmoothSpline(PPform):
             dx = np.diff(x)
         return x, y, dx
 
-    def _poly_coefs(self, y, dx, dydx, n, nd, p, var):
+
+    def _init_poly_coefs(self, dx, dydx, n, p, D):
         dx1 = 1. / dx
-        D = sparse.spdiags(var * ones(n), 0, n, n)  # The variance
         R = self._compute_r(dx, n)
         qdq = self._compute_qdq(D, dx1, n)
         if p is None or p < 0 or 1 < p:
             p = self._estimate_p(qdq, R)
         qq = self._compute_qq(p, qdq, R)
         u = self._compute_u(qq, p, dydx, n)
-        dx1.shape = (n - 1, -1)
-        dx.shape = (n - 1, -1)
+        dx1.shape = n - 1, -1
+        dx.shape = n - 1, -1
+        return p, u, dx1
+
+    def _poly_coefs(self, y, dx, dydx, n, nd, p, D):
+        p, u, dx1 = self._init_poly_coefs(dx, dydx, n, p, D)
+        
         zrs = zeros(nd)
         if p < 1:
             # faster than yi-6*(1-p)*Q*u
@@ -627,7 +632,8 @@ class SmoothSpline(PPform):
         if (n == 2):  # straight line
             coefs = np.vstack([dydx.ravel(), y[0, :]])
             return coefs, x
-        coefs = self._poly_coefs(y, dx, dydx, n, nd, p, var)
+        D = sparse.spdiags(var * ones(n), 0, n, n)  # The variance
+        coefs = self._poly_coefs(y, dx, dydx, n, nd, p, D)
         return coefs, x
 
     @staticmethod
