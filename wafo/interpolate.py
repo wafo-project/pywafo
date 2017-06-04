@@ -15,11 +15,16 @@ __all__ = [
     'StinemanInterp', 'CubicHermiteSpline']
 
 
-def _check_window_and_order(window_size, order):
+def _assert(cond, msg):
+    if not cond:
+        raise ValueError(msg)
+
+
+def _check_window_size(window_size, min_size):
     if window_size % 2 != 1 or window_size < 1:
-        raise TypeError("window_size size must be a positive odd number")
-    if window_size < order + 2:
-        raise TypeError("window_size is too small for the polynomials order")
+        raise TypeError("Window size must be a positive odd number")
+    if window_size < min_size:
+        raise TypeError("Window size is too small for the polynomials order")
 
 
 def savitzky_golay(y, window_size, order, deriv=0):
@@ -86,7 +91,7 @@ def savitzky_golay(y, window_size, order, deriv=0):
     window_size = np.abs(np.int(window_size))
     order = np.abs(np.int(order))
 
-    _check_window_and_order(window_size, order)
+    _check_window_size(window_size, min_size=order + 2)
     order_range = range(order + 1)
     half_window = (window_size - 1) // 2
     # precompute coefficients
@@ -213,84 +218,76 @@ def sgolay2d(z, window_size, order, derivative=None):
     h=plt.matshow(Zn)
     h=plt.matshow(Zf)
     """
+    def _pad_z(z, size):
+        # pad input array with appropriate values at the four borders
+        new_shape = z.shape[0] + 2 * size, z.shape[1] + 2 * size
+        zout = np.zeros((new_shape))
+        # top band
+        band = z[0, :]
+        zout[:size, size:-size] = band - np.abs(z[size:0:-1, :] - band)
+        # bottom band
+        band = z[-1, :]
+        zout[-size:, size:-size] = band + np.abs(z[-2:-size-2:-1, :] - band)
+        # left band
+        band = z[:, 0].reshape(-1, 1)
+        zout[size:-size, :size] = band - np.abs(z[:, size:0:-1] - band)
+        # right band
+        band = z[:, -1].reshape(-1, 1)
+        zout[size:-size, -size:] = band + np.abs(z[:, -2:-size - 2:-1] - band)
+        # central band
+        zout[size:-size, size:-size] = z
+        # top left corner
+        band = z[0, 0]
+        zout[:size, :size] = band - np.abs(z[size:0:-1, :][:, size:0:-1] - band)
+        # bottom right corner
+        band = z[-1, -1]
+        zout[-size:, -size:] = band + np.abs(z[-2:-size - 2:-1, :][:,-2:-size - 2:-1] - band)
+        # top right corner
+        band = zout[size, -size:]
+        zout[:size, -size:] = band - np.abs(zout[2 * size:size:-1, -size:] - band)
+        # bottom left corner
+        band = zout[-size:, size].reshape(-1, 1)
+        zout[-size:, :size] = band - np.abs(zout[-size:, 2 * size:size:-1] - band)
+        return zout
+
+    def _get_sign_and_dims(derivative):
+        sign = {None:1}.get(derivative, -1)
+        dims = {None:(0, ), 'col':(1, ), 'row':(2, ), 'both':(1, 2)}[derivative]
+        return sign, dims
+
+    def _build_matrix(order, window_size, size):
+        # exponents of the polynomial.
+        # p(x,y) = a0 + a1*x + a2*y + a3*x^2 + a4*y^2 + a5*x*y + ...
+        # this line gives a list of two item tuple. Each tuple contains
+        # the exponents of the k-th term. First element of tuple is for x
+        # second element for y.
+        # Ex. exps = [(0,0), (1,0), (0,1), (2,0), (1,1), (0,2), ...]
+        exps = [(k - n, n) for k in range(order + 1) for n in range(k + 1)]
+
+        # coordinates of points
+        ind = np.arange(-size, size + 1, dtype=np.float)
+        dx = np.repeat(ind, window_size)
+        dy = np.tile(ind, [window_size, 1]).reshape(window_size ** 2,)
+
+        # build matrix of system of equation
+        A = np.empty((window_size ** 2, len(exps)))
+        for i, exp in enumerate(exps):
+            A[:, i] = (dx ** exp[0]) * (dy ** exp[1])
+        return A
+
     # number of terms in the polynomial expression
-    n_terms = (order + 1) * (order + 2) / 2.0
+    n_terms = (order + 1) * (order + 2) // 2
+    _check_window_size(window_size, min_size=np.sqrt(n_terms))
+    size = window_size // 2  # half_size
 
-    if window_size % 2 == 0:
-        raise ValueError('window_size must be odd')
-
-    if window_size ** 2 < n_terms:
-        raise ValueError('order is too high for the window size')
-
-    half_size = window_size // 2
-
-    # exponents of the polynomial.
-    # p(x,y) = a0 + a1*x + a2*y + a3*x^2 + a4*y^2 + a5*x*y + ...
-    # this line gives a list of two item tuple. Each tuple contains
-    # the exponents of the k-th term. First element of tuple is for x
-    # second element for y.
-    # Ex. exps = [(0,0), (1,0), (0,1), (2,0), (1,1), (0,2), ...]
-    exps = [(k - n, n) for k in range(order + 1) for n in range(k + 1)]
-
-    # coordinates of points
-    ind = np.arange(-half_size, half_size + 1, dtype=np.float)
-    dx = np.repeat(ind, window_size)
-    dy = np.tile(ind, [window_size, 1]).reshape(window_size ** 2,)
-
-    # build matrix of system of equation
-    A = np.empty((window_size ** 2, len(exps)))
-    for i, exp in enumerate(exps):
-        A[:, i] = (dx ** exp[0]) * (dy ** exp[1])
-
-    # pad input array with appropriate values at the four borders
-    new_shape = z.shape[0] + 2 * half_size, z.shape[1] + 2 * half_size
-    Z = np.zeros((new_shape))
-    # top band
-    band = z[0, :]
-    Z[:half_size, half_size:-half_size] = band - \
-        np.abs(np.flipud(z[1:half_size + 1, :]) - band)
-    # bottom band
-    band = z[-1, :]
-    Z[-half_size:, half_size:-half_size] = band + \
-        np.abs(np.flipud(z[-half_size - 1:-1, :]) - band)
-    # left band
-    band = np.tile(z[:, 0].reshape(-1, 1), [1, half_size])
-    Z[half_size:-half_size, :half_size] = band - \
-        np.abs(np.fliplr(z[:, 1:half_size + 1]) - band)
-    # right band
-    band = np.tile(z[:, -1].reshape(-1, 1), [1, half_size])
-    Z[half_size:-half_size, -half_size:] = band + \
-        np.abs(np.fliplr(z[:, -half_size - 1:-1]) - band)
-    # central band
-    Z[half_size:-half_size, half_size:-half_size] = z
-
-    # top left corner
-    band = z[0, 0]
-    Z[:half_size, :half_size] = band - \
-        np.abs(
-            np.flipud(np.fliplr(z[1:half_size + 1, 1:half_size + 1])) - band)
-    # bottom right corner
-    band = z[-1, -1]
-    Z[-half_size:, -half_size:] = band + \
-        np.abs(
-            np.flipud(np.fliplr(z[-half_size - 1:-1, -half_size - 1:-1])) - band)
-
-    # top right corner
-    band = Z[half_size, -half_size:]
-    Z[:half_size, -half_size:] = band - \
-        np.abs(
-            np.flipud(Z[half_size + 1:2 * half_size + 1, -half_size:]) - band)
-    # bottom left corner
-    band = Z[-half_size:, half_size].reshape(-1, 1)
-    Z[-half_size:, :half_size] = band - \
-        np.abs(
-            np.fliplr(Z[-half_size:, half_size + 1:2 * half_size + 1]) - band)
-
+    mat = _build_matrix(order, window_size, size)
+    padded_z = _pad_z(z, size)
     # solve system and convolve
-    sgn = {None: 1}.get(derivative, -1)
-    dims = {None: (0,), 'col': (1,), 'row': (2,), 'both': (1, 2)}[derivative]
-
-    res = tuple(fftconvolve(Z, sgn * np.linalg.pinv(A)[i].reshape((window_size, -1)), mode='valid')
+    sign, dims = _get_sign_and_dims(derivative)
+    pinv = np.linalg.pinv
+    shape = window_size, -1
+    res = tuple(fftconvolve(padded_z, sign * np.reshape(pinv(mat)[i], shape),
+                            mode='valid')
                 for i in dims)
     if len(dims) > 1:
         return res
@@ -664,7 +661,7 @@ class SmoothSpline(PPform):
         ddydx = diff(dydx, axis=0)
         # sp.linalg.use_solver(useUmfpack=True)
         u = 2 * sparse.linalg.spsolve((QQ + QQ.T), ddydx)  # @UndefinedVariable
-        return u.reshape(n - 2, -1)
+        return np.reshape(u, (n - 2, -1))
 
 
 def _edge_case(m0, d1):
@@ -853,8 +850,7 @@ def stineman_interp(xi, x, y, yp=None):
     # Cast key variables as float.
     x = np.asarray(x, np.float_)
     y = np.asarray(y, np.float_)
-    assert x.shape == y.shape
-    # N = len(y)
+    _assert(x.shape == y.shape, 'Shapes of x and y must be equal!')
 
     if yp is None:
         yp = slopes(x, y)
@@ -1003,49 +999,7 @@ class StinemanInterp(object):
         self.yp = np.asarray(yp, np.float_)
 
     def __call__(self, xi):
-        xi = np.asarray(xi, np.float_)
-        x = self.x
-        y = self.y
-        yp = self.yp
-        # calculate linear slopes
-        dx = x[1:] - x[:-1]
-        dy = y[1:] - y[:-1]
-        s = dy / dx  # note length of s is N-1 so last element is #N-2
-
-        # find the segment each xi is in
-        # this line actually is the key to the efficiency of this
-        # implementation
-        idx = np.searchsorted(x[1:-1], xi)
-
-        # now we have generally: x[idx[j]] <= xi[j] <= x[idx[j]+1]
-        # except at the boundaries, where it may be that xi[j] < x[0] or xi[j]
-        # > x[-1]
-
-        # the y-values that would come out from a linear interpolation:
-        sidx = s.take(idx)
-        xidx = x.take(idx)
-        yidx = y.take(idx)
-        xidxp1 = x.take(idx + 1)
-        yo = yidx + sidx * (xi - xidx)
-
-        # the difference that comes when using the slopes given in yp
-        # using the yp slope of the left point
-        dy1 = (yp.take(idx) - sidx) * (xi - xidx)
-        # using the yp slope of the right point
-        dy2 = (yp.take(idx + 1) - sidx) * (xi - xidxp1)
-
-        dy1dy2 = dy1 * dy2
-        # The following is optimized for Python. The solution actually
-        # does more calculations than necessary but exploiting the power
-        # of numpy, this is far more efficient than coding a loop by hand
-        # in Python
-        dy1mdy2 = np.where(dy1dy2, dy1 - dy2, np.inf)
-        dy1pdy2 = np.where(dy1dy2, dy1 + dy2, np.inf)
-        yi = yo + dy1dy2 * np.choose(
-            np.array(np.sign(dy1dy2), np.int32) + 1,
-            ((2 * xi - xidx - xidxp1) / ((dy1mdy2) * (xidxp1 - xidx)), 0.0,
-             1 / (dy1pdy2)))
-        return yi
+        return stineman_interp(xi, self.x, self.y, self.yp)
 
 
 class StinemanInterp2(BPoly):
@@ -1335,7 +1289,7 @@ def test_func():
     y = pp(x)  # @UnusedVariable
 
     x = linspace(0, 2 * pi + pi / 4, 20)
-    y = sin(x) + np.random.randn(x.size)
+    y = sin(x) + np.random.randn(np.size(x))
     tck = interpolate.splrep(x, y, s=len(x))  # @UndefinedVariable
     xnew = linspace(0, 2 * pi, 100)
     ynew = interpolate.splev(xnew, tck, der=0)  # @UndefinedVariable
@@ -1358,7 +1312,6 @@ def test_func():
     self = interpolate.ppform.fromspline(*tck2)  # @UndefinedVariable
     plt.plot(t, self(t))
     plt.show('hold')
-    pass
 
 
 def test_pp():
