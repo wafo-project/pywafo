@@ -8,8 +8,8 @@ from numba import guvectorize, jit, float64, int64, int32, int8, void
 import numpy as np
 
 
-@guvectorize(['void(int64[:], int8[:], int64[:])'], '(n),(n)->(3)')
-def _find_first_cross(ind, y, out):
+@guvectorize(['void(int64[:], int8[:], int64[:])'], '(n),(n)->(), (), ()')
+def _find_first_cross(ind, y, ix, dcross, start):
     ix, dcross, start, v = 0, 0, 0, 0
     n = len(y)
     if y[0] < v:
