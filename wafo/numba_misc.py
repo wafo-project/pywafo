@@ -8,10 +8,8 @@ from numba import jit, float64, int64, int32, int8, void
 import numpy as np
 
 
-@jit(int64(int64[:], int8[:]))
-def _findcross(ind, y):
-    ix, dcross, start, v = 0, 0, 0, 0
-    n = len(y)
+@jit(void(int64, int64, int64, int64[:], int8[:], int64, int64))
+def _find_first_cross(ix, start, dcross, ind, y, v, n):
     if y[0] < v:
         dcross = -1  # first is a up-crossing
     elif y[0] > v:
@@ -30,6 +28,13 @@ def _findcross(ind, y):
                 ix += 1
                 dcross = 1  # The next crossing is a down-crossing
                 break
+
+
+@jit(int64(int64[:], int8[:]))
+def _findcross(ind, y):
+    ix, dcross, start, v = 0, 0, 0, 0
+    n = len(y)
+    _find_first_cross(ix, start, dcross, ind, y, v, n)
 
     for i in range(start, n - 1):
         if ((dcross == -1 and y[i] <= v and v < y[i + 1]) or
