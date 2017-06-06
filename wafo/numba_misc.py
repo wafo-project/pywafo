@@ -30,15 +30,12 @@ def _find_first_cross(ind, y, ix, dcross, start):
                 ix += 1
                 dcross = 1  # The next crossing is a down-crossing
                 break
-    out[0] = ix
-    out[1] = dcross
-    out[2] = start
 
 
 @jit(int64(int64[:], int8[:]))
 def _findcross(ind, y):
-    v = 0
-    ix, dcross, start = _find_first_cross(ind, y)
+    ix, dcross, start, v = 0, 0, 0, 0
+    _find_first_cross(ind, y, ix, dcross, start)
     n = len(y)
     for i in range(start, n - 1):
         if ((dcross == -1 and y[i] <= v and v < y[i + 1]) or
