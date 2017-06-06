@@ -8,8 +8,32 @@ from numba import guvectorize, jit, float64, int64, int32, int8, void
 import numpy as np
 
 
-@guvectorize(['void(int64[:], int8[:], int64[:])'], '(n),(n)->(), (), ()')
-def _find_first_cross(ind, y, ix, dcross, start):
+# @guvectorize(['void(int64[:], int8[:], int64[:])'], '(n),(n)->(), (), ()')
+# def _find_first_cross(ind, y, ix, dcross, start):
+#     ix, dcross, start, v = 0, 0, 0, 0
+#     n = len(y)
+#     if y[0] < v:
+#         dcross = -1  # first is a up-crossing
+#     elif y[0] > v:
+#         dcross = 1  # first is a down-crossing
+#     elif y[0] == v:
+#         # Find out what type of crossing we have next time..
+#         for i in range(1, n):
+#             start = i
+#             if y[i] < v:
+#                 ind[ix] = i - 1  # first crossing is a down crossing
+#                 ix += 1
+#                 dcross = -1  # The next crossing is a up-crossing
+#                 break
+#             elif y[i] > v:
+#                 ind[ix] = i - 1  # first crossing is a up-crossing
+#                 ix += 1
+#                 dcross = 1  # The next crossing is a down-crossing
+#                 break
+
+
+@jit(int64(int64[:], int8[:]))
+def _findcross(ind, y):
     ix, dcross, start, v = 0, 0, 0, 0
     n = len(y)
     if y[0] < v:
@@ -31,12 +55,6 @@ def _find_first_cross(ind, y, ix, dcross, start):
                 dcross = 1  # The next crossing is a down-crossing
                 break
 
-
-@jit(int64(int64[:], int8[:]))
-def _findcross(ind, y):
-    ix, dcross, start, v = 0, 0, 0, 0
-    _find_first_cross(ind, y, ix, dcross, start)
-    n = len(y)
     for i in range(start, n - 1):
         if ((dcross == -1 and y[i] <= v and v < y[i + 1]) or
                 (dcross == 1 and v <= y[i] and y[i + 1] < v)):
