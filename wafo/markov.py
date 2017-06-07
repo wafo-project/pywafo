@@ -27,14 +27,14 @@ def nt2fr(nt, kind=0):
     """
 
     n = len(nt)
-    fr_raw = (nt[:n-1, :][:, n-1]+nt[1:,:][:, 1:]-
-              nt[:n-1,:][:, 1:] - nt[1:,:][:, :n-1])
+    fr_raw = (nt[:n - 1, :][:, n - 1] + nt[1:, :][:, 1:] -
+              nt[:n - 1, :][:, 1:] - nt[1:, :][:, :n - 1])
 
     fr = np.zeros(np.shape(nt))
-    if kind==0:
-        fr[:n-1,:n-1] = fr_raw
+    if kind == 0:
+        fr[:n - 1, :n - 1] = fr_raw
     else:
-        fr[1:,1:] = fr_raw
+        fr[1:, 1:] = fr_raw
     return fr
 
 
@@ -61,7 +61,7 @@ def fr2nt(fr):
 
     m1 = np.cumsum(np.cumsum(fr, axis=1) - fr)
     m2 = np.zeros((n, n))
-    m2[1:, 1:] = m1[:n-2, :][:, 1:]
+    m2[1:, 1:] = m1[:n - 2, :][:, 1:]
     nt = np.fliplr(np.triu(np.fliplr(m2), 0))
 
     return nt
@@ -109,11 +109,11 @@ def _raw_iter(fun2rfc, frfc, fmM_0=None, k=1, epsilon=1e-5):
     for _i in range(k):
         fmM_old = fmM
         frfc = fun2rfc(fmM)
-        fmM = fmM_old+(frfc0-frfc)
+        fmM = fmM_old + (frfc0 - frfc)
         fmM = np.maximum(0, fmM)
         # check = [k-i+1,  sum(sum(abs(fmM_old-fmM))), sum(sum(frfc0))/sum(sum(fmM))];
         # disp(['iteration step, accuracy  ', num2str(check(1:2))])
-        converged = not np.sum(np.abs(fmM_old-fmM)) > epsilon
+        converged = not np.sum(np.abs(fmM_old - fmM)) > epsilon
         if converged:
             break
 
@@ -211,14 +211,23 @@ def nt2cmat(nt, kind=1):
     if kind == 1:
         I = np.r_[0:n - 1]
         J = np.r_[1:n]
-        c = nt[I+1][:, J-1] - nt[I][:, J-1] - nt[I+1][:, J] + nt[I][:, J]
+        c = nt[I + 1][:,
+                      J - 1] - nt[I][:,
+                                     J - 1] - nt[I + 1][:,
+                                                        J] + nt[I][:,
+                                                                   J]
         c2 = np.vstack((c, np.zeros((n - 1))))
         cmat = np.hstack((np.zeros((n, 1)), c2))
     elif kind == 11:  # same as def=1 but using for-loop
         cmat = np.zeros((n, n))
         j = np.r_[1:n]
         for i in range(n - 1):
-            cmat[i, j] = nt[i+1, j-1] - nt[i, j-1] - nt[i+1, j] + nt[i, j]
+            cmat[i,
+                 j] = nt[i + 1,
+                         j - 1] - nt[i,
+                                     j - 1] - nt[i + 1,
+                                                 j] + nt[i,
+                                                         j]
     else:
         _raise_kind_error(kind)
     return cmat
@@ -361,15 +370,15 @@ def mctp2tc(f_Mm, utc, param, f_mM=None):
         return tempp
 
     def _make_tempm(P, Ph, j, ntc, n):
-        Am = P[ntc-1:j, ntc:j+1]
-        Bm = Ph[ntc:j+1, ntc-1:j]
+        Am = P[ntc - 1:j, ntc:j + 1]
+        Bm = Ph[ntc:j + 1, ntc - 1:j]
         dim_m = j - ntc + 1
         tempm = np.zeros((dim_m, 1))
         Im = np.eye(len(Am))
         if j == n - 1:
-            em = P[ntc-1:j, n]
+            em = P[ntc - 1:j, n]
         else:
-            em = np.sum(P[ntc-1:j, j + 1:n], axis=1)
+            em = np.sum(P[ntc - 1:j, j + 1:n], axis=1)
         # end
         if max(abs(em)) > 1e-10:
             if dim_m == 1:
@@ -394,7 +403,7 @@ def mctp2tc(f_Mm, utc, param, f_mM=None):
     # normalization of frequency matrices
     f_Mm = _normalize_rows(f_Mm)
     P = np.fliplr(f_Mm)
-    Ph = np.rot90(np.fliplr(f_mM*1.0), -1)
+    Ph = np.rot90(np.fliplr(f_mM * 1.0), -1)
     Ph = _normalize_rows(Ph)
     Ph = np.fliplr(Ph)
 
@@ -403,34 +412,34 @@ def mctp2tc(f_Mm, utc, param, f_mM=None):
     F = cmat2nt(F)
 
     for i in range(1, ntc):
-        for j in range(ntc-1, n - 1):
-            if i < ntc-1:
+        for j in range(ntc - 1, n - 1):
+            if i < ntc - 1:
                 tempp = _make_tempp(P, Ph, i, ntc)
                 b = np.dot(np.dot(tempp.T, f_mM[i:ntc - 1, n - j - 2::-1]),
                            np.ones((n - j - 1, 1)))
             # end
-            if j > ntc-1:
+            if j > ntc - 1:
                 tempm = _make_tempm(P, Ph, j, ntc, n)
                 c = np.dot(np.dot(np.ones((1, i)),
-                                  f_mM[:i, n - ntc-1:n - j - 2:-1]),
+                                  f_mM[:i, n - ntc - 1:n - j - 2:-1]),
                            tempm)
             # end
-            if (j > ntc-1) and (i < ntc-1):
+            if (j > ntc - 1) and (i < ntc - 1):
                 a = np.dot(np.dot(tempp.T,
                                   f_mM[i:ntc - 1, n - ntc - 1:-1:n - j + 1]),
                            tempm)
                 F[i, n - j - 1] = F[i, n - j - 1] + a + b + c
             # end
-            if (j == ntc-1) and (i < ntc-1):
+            if (j == ntc - 1) and (i < ntc - 1):
                 F[i, n - ntc] = F[i, n - ntc] + b
                 for k in range(ntc):
                     F[i, n - k - 1] = F[i, n - ntc]
                 # end
             # end
-            if (j > ntc-1) and (i == ntc-1):
+            if (j > ntc - 1) and (i == ntc - 1):
                 F[i, n - j - 1] = F[i, n - j - 1] + c
-                for k in range(ntc-1, n):
-                    F[k, n - j - 1] = F[ntc-1, n - j - 1]
+                for k in range(ntc - 1, n):
+                    F[k, n - j - 1] = F[ntc - 1, n - j - 1]
                 # end
             # end
         # end
@@ -580,7 +589,7 @@ def mctp2rfc(fmM, fMm=None):
     return f_rfc
 
 
-def  mc2rfc(f_xy, paramv=None, paramu=None):
+def mc2rfc(f_xy, paramv=None, paramu=None):
     """
     MC2RFC  Calculates a rainflow matrix given a Markov chain with kernel f_xy;
            f_rfc = f_xy + F_mc(f_xy).
@@ -604,7 +613,6 @@ def  mc2rfc(f_xy, paramv=None, paramu=None):
     if paramv is None:
         paramv = (-1, 1, N)
 
-
     if paramu is None:
         paramu = paramv
 
@@ -615,43 +623,45 @@ def  mc2rfc(f_xy, paramv=None, paramu=None):
     Min_rfc = np.zeros((N, 1))
     norm = np.zeros((N, 1))
     for i in range(N):
-        Spm=Sminus[i] + Splus[i]-dd[i]
+        Spm = Sminus[i] + Splus[i] - dd[i]
         if Spm > 0:
-            Max_rfc[i]=(Splus[i]-dd[i])*(Splus[i]-dd[i])/(1-dd[i]/Spm)/Spm
-            Min_rfc[i]=(Sminus[i]-dd[i])*(Sminus[i]-dd[i])/(1-dd[i]/Spm)/Spm
-            norm[i]=Spm
+            Max_rfc[i] = (Splus[i] - dd[i]) * \
+                (Splus[i] - dd[i]) / (1 - dd[i] / Spm) / Spm
+            Min_rfc[i] = (Sminus[i] - dd[i]) * \
+                (Sminus[i] - dd[i]) / (1 - dd[i] / Spm) / Spm
+            norm[i] = Spm
         # end if
     # end for
 
-    #cross=zeros(N,1)
-    #for i=2:N
+    # cross=zeros(N,1)
+    # for i=2:N
     #   cross(N-i+1)=cross(N-i+2)+Sminus(N-i+2)-Splus(N-i+2)
-    #end
+    # end
 
-    f_rfc= np.zeros((N,N))
-    f_rfc[N-1, 1] = Max_rfc[N-1]
-    f_rfc[1, N-1] = Min_rfc[2]
+    f_rfc = np.zeros((N, N))
+    f_rfc[N - 1, 1] = Max_rfc[N - 1]
+    f_rfc[1, N - 1] = Min_rfc[2]
 
-    for k in range(2, N-1):
-        for i in range(1, k-1):
+    for k in range(2, N - 1):
+        for i in range(1, k - 1):
 
             #       AAe= f_xy(1:N-k,1:k-i)
             #       SAAe=sum(sum(AAe))
-            AA = f_xy[N-k:N-k+i, :][:, k-i:k]
-            #RAA = f_rfc(N-k+1:N-k+i,k-i+1:k)
-            RAA = f_rfc[N-k:N-k+i, :][:, k-i:k]
+            AA = f_xy[N - k:N - k + i, :][:, k - i:k]
+            # RAA = f_rfc(N-k+1:N-k+i,k-i+1:k)
+            RAA = f_rfc[N - k:N - k + i, :][:, k - i:k]
             nA = len(AA)
             # MA = Splus(N-k+1:N-k+i)
-            MA = Splus[N-k:N-k+i]
-            mA = Sminus[N-k:N-k+i]
-            normA = norm[N-k:N-k+i]
-            MA_rfc = Max_rfc[N-k:N-k+i]
+            MA = Splus[N - k:N - k + i]
+            mA = Sminus[N - k:N - k + i]
+            normA = norm[N - k:N - k + i]
+            MA_rfc = Max_rfc[N - k:N - k + i]
             # mA_rfc=Min_rfc(k-i+1:k)
             SA = np.sum(AA)
             SRA = np.sum(RAA)
             SMA_rfc = sum(MA_rfc)
             SMA = np.sum(MA)
-            DRFC = SA-SMA-SRA+SMA_rfc
+            DRFC = SA - SMA - SRA + SMA_rfc
 
             NT = MA_rfc[0] - np.sum(RAA[0, :])
 
@@ -662,50 +672,50 @@ def  mc2rfc(f_xy, paramv=None, paramu=None):
 
             NT = np.maximum(NT, 0)
 
-            if NT > 1e-6*MA_rfc[0]:
+            if NT > 1e-6 * MA_rfc[0]:
 
-                NN = MA - np.sum(AA,axis=1).T
-                e = (np.fliplr(mA)-np.sum(AA)).T
+                NN = MA - np.sum(AA, axis=1).T
+                e = (np.fliplr(mA) - np.sum(AA)).T
                 e = np.flipud(e)
-                AA = AA + np.flipud(np.rot90(AA,-1))
+                AA = AA + np.flipud(np.rot90(AA, -1))
                 AA = np.rot90(AA)
-                AA = AA - 0.5*np.diag(np.diag(AA))
-
+                AA = AA - 0.5 * np.diag(np.diag(AA))
 
                 for j in range(nA):
-                    if normA[j] !=0:
-                        AA[j,:] = AA[j, :] / normA[j]
+                    if normA[j] != 0:
+                        AA[j, :] = AA[j, :] / normA[j]
                         e[j] = e[j] / normA[j]
                     # end if
                 # end for
                 fx = 0.
 
-                if np.max(np.abs(e)) > 1e-7 and np.max(np.abs(NN)) > 1e-7*MA_rfc[0]:
+                if np.max(
+                        np.abs(e)) > 1e-7 and np.max(np.abs(NN)) > 1e-7 * MA_rfc[0]:
                     I = np.eye(np.shape(AA))
 
-                    if nA==1:
-                        fx = NN/(1-AA)*e
+                    if nA == 1:
+                        fx = NN / (1 - AA) * e
                     else:
                         # TODO CHECK this
-                        fx = NN*np.linalg.solve((I-AA), e)[0]  # (I-AA)\e
+                        fx = NN * np.linalg.solve((I - AA), e)[0]  # (I-AA)\e
                     # end
                 # end
 
-                f_rfc[N-k, k-i] = DRFC + fx
-            #end
+                f_rfc[N - k, k - i] = DRFC + fx
+            # end
         # end
-        m0 = np.maximum(0, Min_rfc[N]-sum(f_rfc[N-k+1:N, 0]))
-        M0 = np.maximum(0, Max_rfc[N-k]-sum(f_rfc[N-k, 1:k]));
-        f_rfc[N-k, 0] = min(m0, M0)
+        m0 = np.maximum(0, Min_rfc[N] - sum(f_rfc[N - k + 1:N, 0]))
+        M0 = np.maximum(0, Max_rfc[N - k] - sum(f_rfc[N - k, 1:k]))
+        f_rfc[N - k, 0] = min(m0, M0)
         #  n_loops_left=N-k+1
     # end for
 
     for k in range(1, N):
-        M0 = max(0, Max_rfc[0] -sum(f_rfc[0, N-k+1:N]))
-        m0 = max(0, Min_rfc[k] - sum(f_rfc[1:k, N-k]))
-        f_rfc[0, N-k] = min(m0, M0)
+        M0 = max(0, Max_rfc[0] - sum(f_rfc[0, N - k + 1:N]))
+        m0 = max(0, Min_rfc[k] - sum(f_rfc[1:k, N - k]))
+        f_rfc[0, N - k] = min(m0, M0)
     # end for
-    f_rfc = f_rfc + np.rot90(np.diag(dd),-1)
+    f_rfc = f_rfc + np.rot90(np.diag(dd), -1)
 
 #     clf
 #     subplot(1,2,2)
@@ -785,26 +795,26 @@ def mktestmat(param=(-1, 1, 32), x0=None, s=None, lam=1, numsubzero=0):
 #        Toolbox: Rainflow Cycles for Switching Processes V.1.0, 2-Oct-1997
 
     if x0 is None:
-        x0 = np.ones((2,)) * (param[1]+param[0])/2
+        x0 = np.ones((2,)) * (param[1] + param[0]) / 2
     if s is None:
-        s = (param[1]-param[0])/4
+        s = (param[1] - param[0]) / 4
 
     if np.isinf(numsubzero):
-        numsubzero = -(param[2]+1)
+        numsubzero = -(param[2] + 1)
 
     u = np.linspace(*param)
     n = param[2]
 
     # F - min-Max matrix
 
-    F = np.zeros((n,n))
-    S = 1/2*s**2*np.array([[lam**2+1, lam**2-1],
-                           [lam**2-1, lam**2+1]])
+    F = np.zeros((n, n))
+    S = 1 / 2 * s**2 * np.array([[lam**2 + 1, lam**2 - 1],
+                                 [lam**2 - 1, lam**2 + 1]])
     Sm1 = np.linalg.pinv(S)
-    for i in range(min(n-1-numsubzero, n)):
+    for i in range(min(n - 1 - numsubzero, n)):
         for j in range(max(i + numsubzero, 0), n):
             dx = np.array([u[i], u[j]]) - x0
-            F[i, j] = np.exp(-1/2*np.dot(np.dot(dx, Sm1), dx))
+            F[i, j] = np.exp(-1 / 2 * np.dot(np.dot(dx, Sm1), dx))
 
     Fh = F.T  # Time-reversible Max-min matrix
     return F, Fh
@@ -851,7 +861,7 @@ def cmatplot(cmat, ux=None, uy=None, method=1, clevels=None):
     F = cmat
     shape = np.shape(F)
     if ux is None:
-        ux = np.arange(shape[1]);  # Antalet kolumner
+        ux = np.arange(shape[1])  # Antalet kolumner
 
     if uy is None:
         uy = np.arange(shape[0])  # Antalet rader
@@ -860,32 +870,40 @@ def cmatplot(cmat, ux=None, uy=None, method=1, clevels=None):
         Fmax = np.max(F)
         if method in [5, 15]:
             clevels = Fmax * np.r_[0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1.0]
-        else: # 4, 14
-            clevels = Fmax*np.r_[0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.4, 0.6, 0.8]
+        else:  # 4, 14
+            clevels = Fmax * np.r_[0.005,
+                                   0.01,
+                                   0.02,
+                                   0.05,
+                                   0.1,
+                                   0.2,
+                                   0.4,
+                                   0.6,
+                                   0.8]
 
     # Make sure ux and uy are row vectors
-    ux = ux.ravel();
-    uy = uy.ravel();
+    ux = ux.ravel()
+    uy = uy.ravel()
 
     n = len(F)
 
     from matplotlib import pyplot as plt
     if method == 1:      # mesh
-        F = np.flipud(F.T); # Vrid cykelmatrisen for att plotta rett
+        F = np.flipud(F.T)  # Vrid cykelmatrisen for att plotta rett
         plt.mesh(ux, np.fliplr(uy), F)
         plt.xlabel('min')
         plt.ylabel('Max')
         # view(-37.5-90,30);
         #v = axis;
-        #plt.axis([min(ux) max(ux) min(uy) max(uy) v[5:6]]);
+        # plt.axis([min(ux) max(ux) min(uy) max(uy) v[5:6]]);
     elif method == 2:  # surf
         F = np.flipud(F.T)  # Vrid cykelmatrisen for att plotta rett
-        plt.surf(ux, np.fliplr(uy),F)
+        plt.surf(ux, np.fliplr(uy), F)
         plt.xlabel('min')
         plt.ylabel('Max')
         # view(-37.5-90,30);
         #v = axis;
-        #plt.axis([min(ux) max(ux) min(uy) max(uy) v(5:6)]);
+        # plt.axis([min(ux) max(ux) min(uy) max(uy) v(5:6)]);
 #     elseif method == 3  # pcolor
 #       F = flipud(F');
 #       F1 = [F zeros(length(uy),1); zeros(1,length(ux)+1)];
@@ -1087,6 +1105,7 @@ def cmatplot(cmat, ux=None, uy=None, method=1, clevels=None):
 #
 #     end % _cmatplot
 
+
 def arfm2mctp(Frfc):
     """
     ARFM2MCTP  Calculates the markov matrix given an asymmetric rainflow matrix.
@@ -1148,11 +1167,10 @@ def arfm2mctp(Frfc):
     # The cond. prob. pS1, pS2, pS3, pH1, pH2, pH3 are calculated using
     # the elementary cond. prob. C, E, R, D, E3, Ch, Eh, Rh, Dh, E3h.
 
-
     # T(1,:)=clock;
 
     N = np.sum(Frfc)
-    Frfc = Frfc/N;
+    Frfc = Frfc / N
 
     n = len(Frfc)  # Number of levels
 
@@ -1170,20 +1188,20 @@ def arfm2mctp(Frfc):
     # Probability of minimum and of maximun
 
     MIN = np.sum(np.triu(Frfc).T, axis=0) + np.sum(np.tril(Frfc), axis=0)
-    MAX = np.sum(np.triu(Frfc), axis=0)  + np.sum(np.tril(Frfc).T, axis=0)
+    MAX = np.sum(np.triu(Frfc), axis=0) + np.sum(np.tril(Frfc).T, axis=0)
 
     # Calculate rainflow matrix
 
-    F = np.zeros((n,n))
-    EYE = np.eye((n,n))
+    F = np.zeros((n, n))
+    EYE = np.eye((n, n))
 
     #fprintf(1,'Calculating row ');
-    for k in range(n-1):  # k = subdiagonal
-    #  fprintf(1,'-%1d',i);
+    for k in range(n - 1):  # k = subdiagonal
+        #  fprintf(1,'-%1d',i);
 
-      for i in range(n-k):  # i = minimum
+        for i in range(n - k):  # i = minimum
 
-        j = i + k + 1 # maximum;
+            j = i + k + 1  # maximum;
 
 #         pS = Frfc(i,j);  # Standing cycle
 #         pH = Frfc(j,i);  # Hanging cycle
