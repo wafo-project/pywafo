@@ -211,23 +211,14 @@ def nt2cmat(nt, kind=1):
     if kind == 1:
         I = np.r_[0:n - 1]
         J = np.r_[1:n]
-        c = nt[I + 1][:,
-                      J - 1] - nt[I][:,
-                                     J - 1] - nt[I + 1][:,
-                                                        J] + nt[I][:,
-                                                                   J]
+        c = nt[I + 1][:, J - 1] - nt[I][:, J - 1] - nt[I + 1][:, J] + nt[I][:, J]
         c2 = np.vstack((c, np.zeros((n - 1))))
         cmat = np.hstack((np.zeros((n, 1)), c2))
     elif kind == 11:  # same as def=1 but using for-loop
         cmat = np.zeros((n, n))
         j = np.r_[1:n]
         for i in range(n - 1):
-            cmat[i,
-                 j] = nt[i + 1,
-                         j - 1] - nt[i,
-                                     j - 1] - nt[i + 1,
-                                                 j] + nt[i,
-                                                         j]
+            cmat[i, j] = nt[i + 1, j - 1] - nt[i, j - 1] - nt[i + 1, j] + nt[i, j]
     else:
         _raise_kind_error(kind)
     return cmat
@@ -894,7 +885,7 @@ def cmatplot(cmat, ux=None, uy=None, method=1, clevels=None):
         plt.xlabel('min')
         plt.ylabel('Max')
         # view(-37.5-90,30);
-        #v = axis;
+        # v = axis;
         # plt.axis([min(ux) max(ux) min(uy) max(uy) v[5:6]]);
     elif method == 2:  # surf
         F = np.flipud(F.T)  # Vrid cykelmatrisen for att plotta rett
@@ -902,7 +893,7 @@ def cmatplot(cmat, ux=None, uy=None, method=1, clevels=None):
         plt.xlabel('min')
         plt.ylabel('Max')
         # view(-37.5-90,30);
-        #v = axis;
+        # v = axis;
         # plt.axis([min(ux) max(ux) min(uy) max(uy) v(5:6)]);
 #     elseif method == 3  # pcolor
 #       F = flipud(F');
@@ -1195,7 +1186,7 @@ def arfm2mctp(Frfc):
     F = np.zeros((n, n))
     EYE = np.eye((n, n))
 
-    #fprintf(1,'Calculating row ');
+    # fprintf(1,'Calculating row ');
     for k in range(n - 1):  # k = subdiagonal
         #  fprintf(1,'-%1d',i);
 

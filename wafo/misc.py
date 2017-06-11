@@ -11,7 +11,7 @@ from numpy import (
     amax, logical_and, arange, linspace, atleast_1d,
     asarray, ceil, floor, frexp, hypot,
     sqrt, arctan2, sin, cos, exp, log, log1p, mod, diff,
-    inf, pi, interp, isscalar, zeros, ones, linalg,
+    inf, pi, interp, isscalar, zeros, ones,
     sign, unique, hstack, vstack, nonzero, where, extract)
 from scipy.special import gammaln
 from scipy.integrate import trapz, simps
@@ -1185,432 +1185,6 @@ def findrfc(tp, h=0.0, method='clib'):
     return np.sort(ind[:ix]) + t_start
 
 
-def _raise_kind_error(kind):
-    if kind in (-1, 0):
-        raise NotImplementedError('kind = {} not yet implemented'.format(kind))
-    else:
-        raise ValueError('kind = {}: not a valid value of kind'.format(kind))
-
-
-def nt2cmat(nt, kind=1):
-    """
-    Return cycle matrix from a counting distribution.
-
-    Parameters
-    ----------
-    NT: 2D array
-        Counting distribution. [nxn]
-    kind     =  1: causes peaks to be projected upwards and troughs
-                   downwards to the closest discrete level (default).
-             =  0: causes peaks and troughs to be projected to
-                   the closest discrete level.
-             = -1: causes peaks to be projected downwards and the
-                   troughs upwards to the closest discrete level.
-
-    Returns
-    -------
-    cmat = Cycle matrix. [nxn]
-
-    Example
-    --------
-    >>> import numpy as np
-    >>> cmat0 = np.round(np.triu(np.random.rand(4, 4), 1)*10)
-    >>> cmat0 = np.array([[ 0.,  5.,  6.,  9.],
-    ...                   [ 0.,  0.,  1.,  7.],
-    ...                   [ 0.,  0.,  0.,  4.],
-    ...                   [ 0.,  0.,  0.,  0.]])
-
-    >>> nt = cmat2nt(cmat0)
-    >>> np.allclose(nt,
-    ...    [[  0.,   0.,   0.,   0.],
-    ...    [ 20.,  15.,   9.,   0.],
-    ...    [ 28.,  23.,  16.,   0.],
-    ...    [ 32.,  27.,  20.,   0.]])
-    True
-    >>> cmat = nt2cmat(nt)
-    >>> np.allclose(cmat, [[ 0.,  5.,  6.,  9.],
-    ...                    [ 0.,  0.,  1.,  7.],
-    ...                    [ 0.,  0.,  0.,  4.],
-    ...                    [ 0.,  0.,  0.,  0.]])
-    True
-
-    See also
-    --------
-    cmat2nt
-    """
-    n = len(nt)  # Number of discrete levels
-    if kind == 1:
-        I = np.r_[0:n - 1]
-        J = np.r_[1:n]
-        c = nt[I+1][:, J-1] - nt[I][:, J-1] - nt[I+1][:, J] + nt[I][:, J]
-        c2 = np.vstack((c, np.zeros((n - 1))))
-        cmat = np.hstack((np.zeros((n, 1)), c2))
-    elif kind == 11:  # same as def=1 but using for-loop
-        cmat = np.zeros((n, n))
-        j = np.r_[1:n]
-        for i in range(n - 1):
-            cmat[i, j] = nt[i+1, j-1] - nt[i, j-1] - nt[i+1, j] + nt[i, j]
-    else:
-        _raise_kind_error(kind)
-    return cmat
-
-
-def cmat2nt(cmat, kind=1):
-    """
-    CMAT2NT Calculates a counting distribution from a cycle matrix.
-
-    Parameters
-    ----------
-     cmat     = Cycle matrix. [nxn]
-     kind     =  1: causes peaks to be projected upwards and troughs
-                    downwards to the closest discrete level (default).
-              =  0: causes peaks and troughs to be projected to
-                    the closest discrete level.
-              = -1: causes peaks to be projected downwards and the
-                    troughs upwards to the closest discrete level.
-    Returns
-    -------
-    NT: n x n array
-        Counting distribution.
-
-    Example
-    -------
-    >>> import numpy as np
-    >>> cmat0 = np.round(np.triu(np.random.rand(4, 4), 1)*10)
-    >>> cmat0 = np.array([[ 0.,  5.,  6.,  9.],
-    ...                   [ 0.,  0.,  1.,  7.],
-    ...                   [ 0.,  0.,  0.,  4.],
-    ...                   [ 0.,  0.,  0.,  0.]])
-
-    >>> nt = cmat2nt(cmat0, kind=11)
-    >>> np.allclose(nt,
-    ...    [[  0.,   0.,   0.,   0.],
-    ...    [ 20.,  15.,   9.,   0.],
-    ...    [ 28.,  23.,  16.,   0.],
-    ...    [ 32.,  27.,  20.,   0.]])
-    True
-
-    >>> cmat = nt2cmat(nt, kind=11)
-    >>> np.allclose(cmat, [[ 0.,  5.,  6.,  9.],
-    ...                    [ 0.,  0.,  1.,  7.],
-    ...                    [ 0.,  0.,  0.,  4.],
-    ...                    [ 0.,  0.,  0.,  0.]])
-    True
-
-    See also
-    --------
-    nt2cmat
-    """
-    n = len(cmat)  # Number of discrete levels
-    nt = zeros((n, n))
-
-    if kind == 1:
-        csum = np.cumsum
-        flip = np.fliplr
-        nt[1:n, :n - 1] = flip(csum(flip(csum(cmat[:-1, 1:], axis=0)), axis=1))
-    elif kind == 11:  # same as def=1 but using for-loop
-        # j = np.r_[1:n]
-        for i in range(1, n):
-            for j in range(n - 1):
-                nt[i, j] = np.sum(cmat[:i, j + 1:n])
-    else:
-        _raise_kind_error(kind)
-    return nt
-
-
-def mctp2tc(f_Mm, utc, param, f_mM=None):
-    """
-    MCTP2TC  Calculates frequencies for the  upcrossing troughs and crests
-    using Markov chain of turning points.
-
-    Parameters
-    ----------
-    f_Mm  = the frequency matrix for the Max2min cycles,
-    utc   = the reference level,
-    param = a vector defining the discretization used to compute f_Mm,
-            note that f_mM has to be computed on the same grid as f_mM.
-    f_mM  = the frequency matrix for the min2Max cycles.
-
-    Returns
-    -------
-    f_tc  = the matrix with frequences of upcrossing troughs and crests,
-
-    Example
-    -------
-    >>> fmM = np.array([[ 0.0183,    0.0160,    0.0002,    0.0000,         0],
-    ...            [0.0178,    0.5405,    0.0952,         0,         0],
-    ...            [0.0002,    0.0813,         0,         0,         0],
-    ...            [0.0000,         0,         0,         0,         0],
-    ...            [     0,         0,         0,         0,         0]])
-    >>> param = (-1, 1, len(fmM))
-    >>> utc = 0
-    >>> f_tc = mctp2tc(fmM, utc, param)
-    >>> np.allclose(f_tc,
-    ...     [[ 0.0,   1.59878359e-02,  -1.87345256e-04,   0.0,   0.0],
-    ...      [ 0.0,   5.40312726e-01,   3.86782958e-04,   0.0,   0.0],
-    ...      [ 0.0,   0.0,   0.0,   0.0,   0.0],
-    ...      [ 0.0,   0.0,   0.0,   0.0,   0.0],
-    ...      [ 0.0,   0.0,   0.0,   0.0,   0.0]])
-    True
-    """
-    def _check_ntc(ntc, n):
-        if ntc > n - 1:
-            raise IndexError('index for mean-level out of range, stop')
-
-    def _check_discretization(param, ntc):
-        if not (1 < ntc < param[2]):
-            raise ValueError('the reference level out of range, stop')
-
-    def _normalize_rows(arr):
-        n = len(arr)
-        for i in range(n):
-            rowsum = np.sum(arr[i])
-            if rowsum != 0:
-                arr[i] = arr[i] / rowsum
-        return arr
-
-    def _make_tempp(P, Ph, i, ntc):
-        Ap = P[i:ntc - 1, i + 1:ntc]
-        Bp = Ph[i + 1:ntc, i:ntc - 1]
-        dim_p = ntc - 1 - i
-        tempp = zeros((dim_p, 1))
-        I = np.eye(len(Ap))
-        if i == 1:
-            e = Ph[i + 1:ntc, 0]
-        else:
-            e = np.sum(Ph[i + 1:ntc, :i - 1], axis=1)
-
-        if max(abs(e)) > 1e-10:
-            if dim_p == 1:
-                tempp[0] = (Ap / (1 - Bp * Ap) * e)
-            else:
-                rh = I - np.dot(Bp, Ap)
-                tempp = np.dot(Ap, linalg.solve(rh, e))
-
-            # end
-        # end
-        return tempp
-
-    def _make_tempm(P, Ph, j, ntc, n):
-        Am = P[ntc-1:j, ntc:j+1]
-        Bm = Ph[ntc:j+1, ntc-1:j]
-        dim_m = j - ntc + 1
-        tempm = zeros((dim_m, 1))
-        Im = np.eye(len(Am))
-        if j == n - 1:
-            em = P[ntc-1:j, n]
-        else:
-            em = np.sum(P[ntc-1:j, j + 1:n], axis=1)
-        # end
-        if max(abs(em)) > 1e-10:
-            if dim_m == 1:
-                tempm[0] = (Bm / (1 - Am * Bm) * em)
-            else:
-                rh = Im - np.dot(Am, Bm)
-                tempm = np.dot(Bm, linalg.lstsq(rh, em)[0])
-            # end
-        # end
-        return tempm
-
-    if f_mM is None:
-        f_mM = np.copy(f_Mm) * 1.0
-
-    u = np.linspace(*param)
-    udisc = u[::-1]  # np.fliplr(u)
-    ntc = np.sum(udisc >= utc)
-    n = len(f_Mm)
-    _check_ntc(ntc, n)
-    _check_discretization(param, ntc)
-
-    # normalization of frequency matrices
-    f_Mm = _normalize_rows(f_Mm)
-    P = np.fliplr(f_Mm)
-    Ph = np.rot90(np.fliplr(f_mM*1.0), -1)
-    Ph = _normalize_rows(Ph)
-    Ph = np.fliplr(Ph)
-
-    F = np.zeros((n, n))
-    F[:ntc - 1, :(n - ntc)] = f_mM[:ntc - 1, :(n - ntc)]
-    F = cmat2nt(F)
-
-    for i in range(1, ntc):
-        for j in range(ntc-1, n - 1):
-            if i < ntc-1:
-                tempp = _make_tempp(P, Ph, i, ntc)
-                b = np.dot(np.dot(tempp.T, f_mM[i:ntc - 1, n - j - 2::-1]),
-                           ones((n - j - 1, 1)))
-            # end
-            if j > ntc-1:
-                tempm = _make_tempm(P, Ph, j, ntc, n)
-                c = np.dot(np.dot(ones((1, i)),
-                                  f_mM[:i, n - ntc-1:n - j - 2:-1]),
-                           tempm)
-            # end
-            if (j > ntc-1) and (i < ntc-1):
-                a = np.dot(np.dot(tempp.T,
-                                  f_mM[i:ntc - 1, n - ntc - 1:-1:n - j + 1]),
-                           tempm)
-                F[i, n - j - 1] = F[i, n - j - 1] + a + b + c
-            # end
-            if (j == ntc-1) and (i < ntc-1):
-                F[i, n - ntc] = F[i, n - ntc] + b
-                for k in range(ntc):
-                    F[i, n - k - 1] = F[i, n - ntc]
-                # end
-            # end
-            if (j > ntc-1) and (i == ntc-1):
-                F[i, n - j - 1] = F[i, n - j - 1] + c
-                for k in range(ntc-1, n):
-                    F[k, n - j - 1] = F[ntc-1, n - j - 1]
-                # end
-            # end
-        # end
-    # end
-
-    # fmax=max(max(F));
-    #  contour (u,u,flipud(F),...
-    # fmax*[0.005 0.01 0.02 0.05 0.1 0.2 0.4 0.6 0.8])
-    #  axis([param(1) param(2) param(1) param(2)])
-    #  title('Crest-trough density')
-    #  ylabel('crest'), xlabel('trough')
-    #  axis('square')
-    # if mlver>1, commers, end
-    return nt2cmat(F)
-
-
-def mctp2rfc(fmM, fMm=None):
-    '''
-    Return Rainflow matrix given a Markov chain of turning points
-
-    computes f_rfc = f_mM + F_mct(f_mM).
-
-    Parameters
-    ----------
-    fmM =  the min2max Markov matrix,
-    fMm = the max2min Markov matrix,
-
-    Returns
-    -------
-    f_rfc = the rainflow matrix,
-
-    Example:
-    -------
-    >>> fmM = np.array([[ 0.0183,    0.0160,    0.0002,    0.0000,         0],
-    ...            [0.0178,    0.5405,    0.0952,         0,         0],
-    ...            [0.0002,    0.0813,         0,         0,         0],
-    ...            [0.0000,         0,         0,         0,         0],
-    ...            [     0,         0,         0,         0,         0]])
-
-    >>> np.allclose(mctp2rfc(fmM),
-    ...    [[  2.669981e-02,   7.799700e-03,   4.906077e-07, 0.0, 0.0],
-    ...     [  9.599629e-03,   5.485009e-01,   9.539951e-02, 0.0, 0.0],
-    ...     [  5.622974e-07,   8.149944e-02,   0.0,          0.0, 0.0],
-    ...     [  0.0,   0.0,   0.0,   0.0, 0.0],
-    ...     [  0.0,   0.0,   0.0,   0.0, 0.0]], 1.e-7)
-    True
-    '''
-    def _get_PMm(AA1, MA, nA):
-        PMm = AA1.copy()
-        for j in range(nA):
-            norm = MA[j]
-            if norm != 0:
-                PMm[j, :] = PMm[j, :] / norm
-        PMm = np.fliplr(PMm)
-        return PMm
-
-    if fMm is None:
-        fmM = np.atleast_1d(fmM)
-        fMm = fmM
-    else:
-        fmM, fMm = np.atleast_1d(fmM, fMm)
-    f_mM, f_Mm = fmM.copy(), fMm.copy()
-    N = max(f_mM.shape)
-    f_max = np.sum(f_mM, axis=1)
-    f_min = np.sum(f_mM, axis=0)
-    f_rfc = zeros((N, N))
-    f_rfc[N - 2, 0] = f_max[N - 2]
-    f_rfc[0, N - 2] = f_min[N - 2]
-    for k in range(2, N - 1):
-        for i in range(1, k):
-            AA = f_mM[N - 1 - k:N - 1 - k + i, k - i:k]
-            AA1 = f_Mm[N - 1 - k:N - 1 - k + i, k - i:k]
-            RAA = f_rfc[N - 1 - k:N - 1 - k + i, k - i:k]
-            nA = max(AA.shape)
-            MA = f_max[N - 1 - k:N - 1 - k + i]
-            mA = f_min[k - i:k]
-            SA = AA.sum()
-            SRA = RAA.sum()
-
-            DRFC = SA - SRA
-            NT = min(mA[0] - sum(RAA[:, 0]), MA[0] - sum(RAA[0, :]))  # check!
-            NT = max(NT, 0)  # ??check
-
-            if NT > 1e-6 * max(MA[0], mA[0]):
-                NN = MA - np.sum(AA, axis=1)  # T
-                e = (mA - np.sum(AA, axis=0))  # T
-                e = np.flipud(e)
-                PmM = np.rot90(AA.copy())
-                for j in range(nA):
-                    norm = mA[nA - 1 - j]
-                    if norm != 0:
-                        PmM[j, :] = PmM[j, :] / norm
-                        e[j] = e[j] / norm
-                    # end
-                # end
-                fx = 0.0
-                if (max(np.abs(e)) > 1e-6 and
-                        max(np.abs(NN)) > 1e-6 * max(MA[0], mA[0])):
-                    PMm = _get_PMm(AA1, MA, nA)
-
-                    A = PMm
-                    B = PmM
-
-                    if nA == 1:
-                        fx = NN * (A / (1 - B * A) * e)
-                    else:
-                        rh = np.eye(A.shape[0]) - np.dot(B, A)
-                        # least squares
-                        fx = np.dot(NN, np.dot(A, linalg.solve(rh, e)))
-                    # end
-                # end
-                f_rfc[N - 1 - k, k - i] = fx + DRFC
-
-                #  check2=[ DRFC  fx]
-                # pause
-            else:
-                f_rfc[N - 1 - k, k - i] = 0.0
-            # end
-        # end
-        m0 = max(0, f_min[0] - np.sum(f_rfc[N - k + 1:N, 0]))
-        M0 = max(0, f_max[N - 1 - k] - np.sum(f_rfc[N - 1 - k, 1:k]))
-        f_rfc[N - 1 - k, 0] = min(m0, M0)
-        #  n_loops_left=N-k+1
-    # end
-
-    for k in range(1, N):
-        M0 = max(0, f_max[0] - np.sum(f_rfc[0, N - k:N]))
-        m0 = max(0, f_min[N - 1 - k] - np.sum(f_rfc[1:k + 1, N - 1 - k]))
-        f_rfc[0, N - 1 - k] = min(m0, M0)
-    # end
-
-#    clf
-#    subplot(1,2,2)
-#    pcolor(levels(paramm),levels(paramM),flipud(f_mM))
-#      title('Markov matrix')
-#      ylabel('max'), xlabel('min')
-#    axis([paramm(1) paramm(2) paramM(1) paramM(2)])
-#    axis('square')
-#
-#    subplot(1,2,1)
-#    pcolor(levels(paramm),levels(paramM),flipud(f_rfc))
-#      title('Rainflow matrix')
-#      ylabel('max'), xlabel('rfc-min')
-#    axis([paramm(1) paramm(2) paramM(1) paramM(2)])
-#    axis('square')
-
-    return f_rfc
-
-
 def rfcfilter(x, h, method=0):
     """
     Rainflow filter a signal.
@@ -2431,7 +2005,7 @@ def discretize(fun, a, b, tol=0.005, n=5, method='linear'):
     tol : real, scalar
         absoute error tolerance
     n : scalar integer
-        number of values
+        number of values to start the discretization with.
     method : string
         defining method of gridding, options are 'linear' and 'adaptive'
 
@@ -2482,7 +2056,7 @@ def _discretize_linear(fun, a, b, tol=0.005, n=5):
         x = linspace(a, b, n)
         y = fun(x)
         y00 = interp(x, x0, y0)
-        err = 0.5 * amax(np.abs((y00 - y) / (np.abs(y00 + y) + _TINY)))
+        err = 0.5 * amax(np.abs(y00 - y) / (np.abs(y00) + np.abs(y) + _TINY + tol))
         num_tries += int(abs(err - err0) <= tol/2)
     return x, y
 
@@ -2500,27 +2074,32 @@ def _discretize_adaptive(fun, a, b, tol=0.005, n=5):
     err = erri.max()
     err0 = inf
     num_tries = 0
+    reltol = abstol = tol
     for j in range(50):
-        if num_tries < 5 and np.any(erri > tol):
+        if num_tries < 5 and err > tol:
             err0 = err
             # find top errors
 
-            I, = where(erri > tol)
+            ix, = where(erri > tol)
             # double the sample rate in intervals with the most error
-            y = (vstack(((x[I] + x[I - 1]) / 2,
-                         (x[I + 1] + x[I]) / 2)).T).ravel()
+            y = (vstack(((x[ix] + x[ix - 1]) / 2,
+                         (x[ix + 1] + x[ix]) / 2)).T).ravel()
             fy = fun(y)
             fy0 = interp(y, x, fx)
 
-            erri = 0.5 * (np.abs((fy0 - fy) / (np.abs(fy0 + fy) + _TINY)))
+            abserr = np.abs(fy0 - fy)
+            erri = 0.5 * (abserr / (np.abs(fy0) + np.abs(fy) + _TINY + tol))
+            # abserr = np.abs(fy0 - fy)
+            # converged = abserr <= np.maximum(abseps, releps * abs(fy))
+            # converged = abserr <= np.maximum(tol, tol * abs(fy))
             err = erri.max()
 
             x = hstack((x, y))
 
-            I = x.argsort()
-            x = x[I]
-            erri = hstack((zeros(len(fx)), erri))[I]
-            fx = hstack((fx, fy))[I]
+            ix = x.argsort()
+            x = x[ix]
+            erri = hstack((zeros(len(fx)), erri))[ix]
+            fx = hstack((fx, fy))[ix]
             num_tries += int(abs(err - err0) <= tol/2)
         else:
             break

@@ -18,8 +18,9 @@ from ..objects import TimeSeries, mat2timeseries
 from ..interpolate import stineman_interp
 from ..wave_theory.dispersion_relation import w2k  # , k2w
 from ..containers import PlotData, now
-from ..misc import sub_dict_select, nextpow2, discretize, JITImport, mctp2tc
-from ..misc import meshgrid, gravity, cart2polar, polar2cart, mctp2rfc
+from ..misc import sub_dict_select, nextpow2, discretize, JITImport
+from ..misc import meshgrid, gravity, cart2polar, polar2cart
+from ..markov import mctp2rfc, mctp2tc
 from ..kdetools import qlevels
 
 # from wafo.transform import TrData

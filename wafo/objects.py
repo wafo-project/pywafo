@@ -609,6 +609,23 @@ class LevelCrossings(PlotData):
         return estimate._trdata_lc(self, mean, sigma)
 
 
+class CycleMatrix(PlotData):
+    """
+    Container class for Cycle Matrix data objects in WAFO
+    """
+    def __init__(self, *args, **kwds):
+        self.kind = kwds.pop('kind', 'min2max')
+        self.sigma = kwds.pop('sigma', None)
+        self.mean = kwds.pop('mean', None)
+        self.time = kwds.pop('time', 1)
+
+        options = dict(title=self.kind + ' cycle matrix',
+                       xlab='min', ylab='max',
+                       plot_args=['b.'])
+        options.update(**kwds)
+        super(CycleMatrix, self).__init__(*args, **options)
+
+
 class CyclePairs(PlotData):
     '''
     Container class for Cycle Pairs data objects in WAFO
@@ -796,6 +813,249 @@ class CyclePairs(PlotData):
             ylab = 'Intensity [count/sec]'
         return LevelCrossings(dcount, levels, mean=self.mean, sigma=self.sigma,
                               ylab=ylab, intensity=intensity)
+
+    def _smoothcmat(F, method=1, h=None, NOsubzero=0, alpha=0.5):
+        """
+        SMOOTHCMAT Smooth a cycle matrix using (adaptive) kernel smoothing
+
+         CALL:  Fsmooth = smoothcmat(F,method);
+                Fsmooth = smoothcmat(F,method,[],NOsubzero);
+                Fsmooth = smoothcmat(F,2,h,NOsubzero,alpha);
+
+         Input:
+                F       = Cycle matrix.           [nxn]
+                method  = 1: Kernel estimator (constant bandwidth). (Default)
+                          2: Adaptiv kernel estimator (local bandwidth).
+                h       = Bandwidth (Optional, Default='automatic choice')
+              NOsubzero = Number of subdiagonals that are zero
+                          (Optional, Default = 0, only the diagonal is zero)
+                alpha   = Parameter for method (2) (Optional, Default=0.5).
+                          A number between 0 and 1.
+                          alpha=0 implies constant bandwidth (method 1).
+                          alpha=1 implies most varying bandwidth.
+
+         Output:
+         F       = Smoothed cycle matrix.   [nxn]
+         h       = Selected bandwidth.
+
+         See also
+         cc2cmat, tp2rfc, tp2mm, dat2tp
+        """
+        aut_h = h is None
+        if method not in [1, 2]:
+            raise ValueError('Input argument "method" should be 1 or 2')
+
+        n = len(F)  # Size of matrix
+        N = np.sum(F)  # Total number of cycles
+
+        Fsmooth = np.zeros((n,n))
+
+        if method == 1 or method == 2:  # Kernel estimator
+
+            d = 2   # 2-dim
+            x = np.arange(n)
+            I, J = np.meshgrid(x, x)
+
+            # Choosing bandwidth
+            # This choice is optimal if the sample is from a normal distr.
+            # The normal bandwidth usualy oversmooths,
+            # therefore we choose a slightly smaller bandwidth
+
+            if aut_h == 1:
+                h_norm = smoothcmat_hnorm(F,NOsubzero);
+                h = 0.7*h_norm  # Don't oversmooth
+
+            #h0 = N^(-1/(d+4));
+            #FF = F+F';
+            #mean_F = sum(sum(FF).*(1:n))/N/2;
+            #s2 = sum(sum(FF).*((1:n)-mean_F).^2)/N/2;
+            #s = sqrt(s2);       % Mean of std in each direction
+            #h_norm = s*h0;      % Optimal for Normal distr.
+            #h = h_norm;         % Test
+            # endif
+
+            # Calculating kernel estimate
+            # Kernel: 2-dim normal density function
+
+            for i in range(n-1):
+                for j in range(i+1,n):
+                    if F(i,j) != 0:
+                        F1 = exp(-1/(2*h**2)*((I-i)**2+(J-j)**2));  # Gaussian kernel
+                        F1 = F1+F1.T;                     # Mirror kernel in diagonal
+                        F1 = np.triu(F1,1+NOsubzero);       # Set to zero below and on diagonal
+                        F1 = F[i,j] * F1/np.sum(F1)   # Normalize
+                        Fsmooth = Fsmooth+F1;
+                    # endif
+                # endfor
+            # endfor
+        # endif method 1 or 2
+
+        if method == 2:
+            Fpilot = Fsmooth/N;
+            Fsmooth = np.zeros(n,n);
+            [I1,I2] = find(F>0);
+            logg = 0;
+            for i in range(len(I1)):  #  =1:length(I1):
+                logg = logg + F(I1(i),I2(i)) * log(Fpilot(I1(i),I2(i)));
+            #endfor
+            g = np.exp(logg/N);
+            lamda = (Fpilot/g)**(-alpha);
+
+            for i in range(n-1):  # = 1:n-1
+                for j in range(i+1, n): # = i+1:n
+                    if F[i,j] != 0:
+                        hi = h*lamda[i,j]
+                        F1 = np.exp(-1/(2*hi**2)*((I-i)**2+(J-j)**2));  # Gaussian kernel
+                        F1 = F1+F1.T;                  # Mirror kernel in diagonal
+                        F1 = np.triu(F1,1+NOsubzero);  # Set to zero below and on diagonal
+                        F1 = F[i,j] * F1/np.sum(F1);   # Normalize
+                        Fsmooth = Fsmooth+F1;
+                    # endif
+                # endfor
+            # endfor
+
+        #endif method 2
+        return Fsmooth,h
+
+    def cycle_matrix(self, param=(), ddef=1, method=0, h=None, NOsubzero=0, alpha=0.5):
+        """CC2CMAT Calculates the cycle count matrix from a cycle count.
+         using (0) Histogram, (1) Kernel smoothing, (2) Kernel smoothing.
+
+         CALL:  [F,h] = cc2cmat(param,cc,ddef,method,h,NOsubzero,alpha);
+
+         Input:
+           param     = Parameter vector, [a b n], defines the grid.
+           cc        = Cycle count with minima in column 1 and maxima in column 2. [nx2]
+           ddef      =  1: causes peaks to be projected upwards and troughs
+                           downwards to the closest discrete level (default).
+                     =  0: causes peaks and troughs to be projected
+                           the closest discrete level.
+                     = -1: causes peaks to be projected downwards and the
+                           troughs upwards to the closest discrete level.
+           method    =  0: Histogram. (Default)
+                        1: Kernel estimator (constant bandwidth).
+                        2: Adaptiv kernel estimator (local bandwidth).
+           h         = Bandwidth (Optional, Default='automatic choice')
+           NOsubzero = Number of subdiagonals that are set to zero
+                       (Optional, Default = 0, only the diagonal is zero)
+           alpha     = Parameter for method (2) (Optional, Default=0.5).
+                       A number between 0 and 1.
+                       alpha=0 implies constant bandwidth (method 1).
+                       alpha=1 implies most varying bandwidth.
+
+         Output:
+           F       = Estimated cycle matrix.
+           h       = Selected bandwidth.
+
+         See also
+         dcc2cmat, cc2dcc, smoothcmat
+        """
+
+        if not 0 <= method <= 2:
+            raise ValueError('Input argument "method" should be 0, 1 or 2')
+
+        u = np.linspace(*param)  # Discretization levels
+
+        n = param[2] # size of matrix
+
+        # Compute Histogram
+
+        dcp = self._discretize_cycle_pairs(param, ddef)
+        F = self._dcp2cmat(dcp, n)
+
+        # Smooth by using Kernel estimator ?
+
+        #if method >= 1:
+        #    F, h = smoothcmat(F,method, h, NOsubzero, alpha)
+
+        return CycleMatrix(F, u, u)
+
+    def _dcp2cmat(self, dcp, n):
+        """
+        DCP2CMAT  Calculates the cycle matrix for a discrete cycle pairs.
+
+        CALL:  F = dcc2cmat(dcc,n);
+
+        F      = Cycle matrix
+        dcc    = a two column matrix with a discrete cycle count.
+        n      = Number of discrete levels.
+
+        The discrete cycle count takes values from 1 to n.
+
+        A cycle count is transformed into a discrete cycle count by
+        using the function CC2DCC.
+
+        See also  cc2cmat, cc2dcc, cmatplot
+        """
+
+        F = np.zeros((n, n));
+        cp1, cp2 = dcp
+        for i, j in zip(cp1, cp2):
+            F[i, j] += 1
+        return F
+
+
+    def _discretize_cycle_pairs(self, param, ddef=1):
+        """
+        Discretize a cycle pairs.
+
+        Parameters
+        ----------
+        param = the parameter matrix.
+        ddef  = 1 causes peaks to be projected upwards and troughs
+                  downwards to the closest discrete level (default).
+              = 0 causes peaks and troughs to be projected to
+                  the closest discrete level.
+              =-1 causes peaks to be projected downwards and the
+                  troughs upwards to the closest discrete level.
+        Returns
+        -------
+        dcc   = a two column matrix with discrete classes.
+
+        Example:
+          x = load('sea.dat');
+          tp = dat2tp(x);
+          rfc = tp2rfc(tp);
+          param = [-2, 2, 41];
+          dcc = cc2dcc(param,rfc);
+          u = levels(param);
+          Frfc = dcc2cmat(dcc,param(3));
+          cmatplot(u,u,{Frfc}, 4);
+
+          close all;
+
+         See also  cc2cmat, dcc2cmat, dcc2cc
+        """
+        cp1, cp2 = np.copy(self.args), np.copy(self.data)
+
+        # Make so that minima is in first column
+        ix = np.flatnonzero(cp1>cp2)
+        if np.any(ix):
+            cp1[ix], cp2[ix] = cp2[ix], cp1[ix]
+
+        # Make discretization
+        a, b, n = param
+
+        delta = (b-a)/(n-1)  # Discretization step
+        cp1 = (cp1-a)/delta + 1
+        cp2 = (cp2-a)/delta + 1
+
+        if ddef == 0:
+            cp1 = np.clip(np.round(cp1), 0, n-1)
+            cp2 = np.clip(np.round(cp2), 0, n-1)
+        elif ddef == +1:
+            cp1 = np.clip(np.floor(cp1), 0, n-2)
+            cp2 = np.clip(np.ceil(cp2), 1, n-1)
+        elif ddef == -1:
+            cp1 = np.clip(np.ceil(cp1), 1, n-1)
+            cp2 = np.clip(np.floor(cp2), 0, n-2)
+        else:
+            raise ValueError('Undefined discretization definition, ddef = {}'.format(ddef))
+
+
+        if np.any(ix):
+            cp1[ix], cp2[ix] = cp2[ix], cp1[ix]
+        return np.asarray(cp1, type=int), np.asarray(cp2, type=int)
 
 
 class TurningPoints(PlotData):
