@@ -19,9 +19,9 @@ arr = asarray
 
 
 def now():
-    '''
+    """
     Return current date and time as a string
-    '''
+    """
     return strftime("%a, %d %b %Y %H:%M:%S", gmtime())
 
 
@@ -66,7 +66,7 @@ def _invnorm(q):
 
 
 def edf(x, method=2):
-    '''
+    """
     Returns Empirical Distribution Function (EDF).
 
     Parameters
@@ -87,7 +87,7 @@ def edf(x, method=2):
     >>> h = F.plot()
 
      See also edf, pdfplot, cumtrapz
-    '''
+    """
     z = atleast_1d(x)
     z.sort()
 
@@ -105,7 +105,7 @@ def edf(x, method=2):
 
 
 def edfcnd(x, c=None, method=2):
-    '''
+    """
     Returns empirical Distribution Function CoNDitioned that X>=c (EDFCND).
 
     Parameters
@@ -128,7 +128,7 @@ def edfcnd(x, c=None, method=2):
     >>> h = F.plot()
 
      See also edf, pdfplot, cumtrapz
-    '''
+    """
     z = atleast_1d(x)
     if c is None:
         c = floor(min(z.min(), 0))
@@ -146,7 +146,7 @@ def edfcnd(x, c=None, method=2):
 
 def reslife(data, u=None, umin=None, umax=None, nu=None, nmin=3, alpha=0.05,
             plotflag=False):
-    '''
+    """
     Return Mean Residual Life, i.e., mean excesses vs thresholds
 
     Parameters
@@ -196,7 +196,7 @@ def reslife(data, u=None, umin=None, umax=None, nu=None, nmin=3, alpha=0.05,
     ---------
     genpareto
     fitgenparrange, disprsnidx
-    '''
+    """
     if u is None:
         sd = np.sort(data)
         n = len(data)
@@ -252,7 +252,7 @@ def reslife(data, u=None, umin=None, umax=None, nu=None, nmin=3, alpha=0.05,
 def dispersion_idx(
     data, t=None, u=None, umin=None, umax=None, nu=None, nmin=10, tb=1,
         alpha=0.05, plotflag=False):
-    '''Return Dispersion Index vs threshold
+    """Return Dispersion Index vs threshold
 
     Parameters
     ----------
@@ -329,7 +329,7 @@ def dispersion_idx(
     Cunnane, C. (1979) Note on the poisson assumption in
     partial duration series model. Water Resource Research, 15\bold{(2)}
          :489--494.}
-    '''
+    """
 
     n = len(data)
     if t is None:
@@ -407,7 +407,7 @@ def dispersion_idx(
 
 
 def decluster(data, t=None, thresh=None, tmin=1):
-    '''
+    """
     Return declustered peaks over threshold values
 
     Parameters
@@ -442,7 +442,7 @@ def decluster(data, t=None, thresh=None, tmin=1):
     See also
     --------
     fitgenpar, findpot, extremalidx
-    '''
+    """
     if t is None:
         t = np.arange(len(data))
     i = findpot(data, t, thresh, tmin)
@@ -450,7 +450,7 @@ def decluster(data, t=None, thresh=None, tmin=1):
 
 
 def findpot(data, t=None, thresh=None, tmin=1):
-    '''
+    """
     Retrun indices to Peaks over threshold values
 
     Parameters
@@ -490,7 +490,7 @@ def findpot(data, t=None, thresh=None, tmin=1):
     See also
     --------
     fitgenpar, decluster, extremalidx
-    '''
+    """
     Data = arr(data)
     if t is None:
         ti = np.arange(len(Data))
@@ -538,36 +538,35 @@ def findpot(data, t=None, thresh=None, tmin=1):
     return Ie
 
 
-def _find_ok_peaks(Ye, Te, Tmin):
-    '''
-    Return indices to the largest maxima that are at least Tmin
-    distance apart.
-    '''
-    Ny = len(Ye)
+def _find_ok_peaks(y, t, t_min):
+    """
+    Return indices to the largest maxima that are at least t_min distance apart.
+    """
+    num_y = len(y)
 
-    I = np.argsort(-Ye)  # sort in descending order
+    i = np.argsort(-y)  # sort in descending order
 
-    Te1 = Te[I]
-    oOrder = zeros(Ny, dtype=int)
-    oOrder[I] = range(Ny)  # indices to the variables original location
+    tis = t[i]
+    o_order = zeros(num_y, dtype=int)
+    o_order[i] = range(num_y)  # indices to the variables original location
 
-    isTooClose = zeros(Ny, dtype=bool)
+    is_too_close = zeros(num_y, dtype=bool)
 
-    pool = zeros((Ny, 2))
-    T_range = np.hstack([-Tmin, Tmin])
-    K = 0
-    for i, ti in enumerate(Te1):
-        isTooClose[i] = np.any((pool[:K, 0] <= ti) & (ti <= pool[:K, 1]))
-        if not isTooClose[i]:
-            pool[K] = ti + T_range
-            K += 1
+    pool = zeros((num_y, 2))
+    t_range = np.hstack([-t_min, t_min])
+    k = 0
+    for i, ti in enumerate(tis):
+        is_too_close[i] = np.any((pool[:k, 0] <= ti) & (ti <= pool[:k, 1]))
+        if not is_too_close[i]:
+            pool[k] = ti + t_range
+            k += 1
 
-    iOK, = where(1 - isTooClose[oOrder])
-    return iOK
+    i_ok, = where(1 - is_too_close[o_order])
+    return i_ok
 
 
 def declustering_time(t):
-    '''
+    """
     Returns minimum distance between clusters.
 
     Parameters
@@ -589,7 +588,7 @@ def declustering_time(t):
     >>> tc = declustering_time(Ie)
     >>> tc
     21
-    '''
+    """
     t0 = arr(t)
     nt = len(t0)
     if nt < 2:
@@ -606,7 +605,7 @@ def declustering_time(t):
 
 
 def interexceedance_times(t):
-    '''
+    """
     Returns interexceedance times of data
 
     Parameters
@@ -624,12 +623,12 @@ def interexceedance_times(t):
     >>> interexceedance_times(t)
     array([1, 3, 5])
 
-    '''
+    """
     return np.diff(np.sort(t))
 
 
 def extremal_idx(ti):
-    '''
+    """
     Returns Extremal Index measuring the dependence of data
 
     Parameters
@@ -671,7 +670,7 @@ def extremal_idx(ti):
     Journal of the Royal Statistical society: Series B
     (Statistical Methodology) 54 (2), 545-556
     doi:10.1111/1467-9868.00401
-    '''
+    """
     t = arr(ti)
     tmax = t.max()
     if tmax <= 1:
@@ -693,7 +692,7 @@ def _logitinv(x):
 
 class RegLogit(object):
 
-    '''
+    """
     REGLOGIT Fit ordinal logistic regression model.
 
       CALL model = reglogit (options)
@@ -756,7 +755,7 @@ class RegLogit(object):
       b21.compare(b2)
 
      See also regglm, reglm, regnonlm
-    '''
+    """
 
     #% Original for MATLAB written by Gordon K Smyth <gks@maths.uq.oz.au>,
     #% U of Queensland, Australia, on Nov 19, 1990.  Last revision Aug 3,
@@ -840,7 +839,7 @@ class RegLogit(object):
         return y, X
 
     def fit(self, y, X=None, theta0=None, beta0=None):
-        '''
+        """
         Member variables
       .df           : degrees of freedom for error.
       .params       : estimated model parameters
@@ -858,7 +857,7 @@ class RegLogit(object):
       .d2L          : Hessian matrix (double derivative of log-likelihood)
       .dL           : First derivative of loglikelihood w.r.t. THETA and BETA.
 
-        '''
+        """
         self.family = 'multinomial'
         self.link = 'logit'
         y, X = self.check_xy(y, X)
@@ -1016,7 +1015,7 @@ class RegLogit(object):
             self.summary()
 
     def compare(self, object2):
-        ''' Compare  small LOGIT versus large one
+        """ Compare  small LOGIT versus large one
 
         CALL     [pvalue] = compare(object2)
 
@@ -1026,7 +1025,7 @@ class RegLogit(object):
         model, and the residuals from the larger model.
 
         See also fitls
-        '''
+        """
 
         try:
             if self.numvar > object2.numvar:
@@ -1156,7 +1155,7 @@ class RegLogit(object):
         #end % summary
 
     def predict(self, Xnew=None, alpha=0.05, fulloutput=False):
-        '''LOGIT/PREDICT Predict from a fitted LOGIT object
+        """LOGIT/PREDICT Predict from a fitted LOGIT object
 
          CALL [y,ylo,yup] = predict(Xnew,options)
 
@@ -1167,7 +1166,7 @@ class RegLogit(object):
          options  = options struct defining the calculation
                 .alpha : confidence coefficient (default 0.05)
                 .size  : size if binomial family (default 1).
-        '''
+        """
 
         [_mx, nx] = self.X.shape
         if Xnew is None:
@@ -1233,10 +1232,10 @@ class RegLogit(object):
         return y
 
     def loglike(self, beta, y, x, z, z1, numout=3):
-        '''
+        """
         [dev, dl, d2l, p] = loglike( y ,x,beta,z,z1)
         Calculates likelihood for the ordinal logistic regression model.
-        '''
+        """
         # Author: Gordon K. Smyth <gks@maths.uq.oz.au>
         zx = np.hstack((z, x))
         z1x = np.hstack((z1, x))
@@ -1248,10 +1247,10 @@ class RegLogit(object):
         p = g - g1
         dev = -2 * np.log(p).sum()
 
-        '''[dl, d2l] = derivatives of loglike(beta, y, x, z, z1)
+        """[dl, d2l] = derivatives of loglike(beta, y, x, z, z1)
         % Called by logistic_regression.  Calculates derivates of the
         % log-likelihood for ordinal logistic regression model.
-        '''
+        """
         # Author: Gordon K. Smyth <gks@maths.uq.oz.au>
         # Description: Derivates of log-likelihood in logistic regression
 

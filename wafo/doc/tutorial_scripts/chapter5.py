@@ -70,7 +70,7 @@ plt.semilogx(T, sT)
 plt.hold(True)
 # ws.edf(Hs).plot()
 Nmax = len(Hs)
-N = np.r_[1:Nmax+1]
+N = np.r_[1:Nmax + 1]
 
 plt.plot(Nmax/N, sorted(Hs, reverse=True), '.')
 plt.title('Return values in the Gumbel model')
@@ -107,7 +107,7 @@ XI = np.r_[1:len(xn):0.25] - .99
 N = len(XI)
 N = N - np.mod(N, 4*60*5)
 
-YI = si.interp1d(xn[:, 0],xn[:, 1], kind='linear')(XI)
+YI = si.interp1d(xn[:, 0], xn[:, 1], kind='linear')(XI)
 YI = YI.reshape(4*60*5, N/(4*60*5))  # Each column holds 5 minutes of
                                      # interpolated data.
 Y5 = (YI - YI.mean(axis=0)) / YI.std(axis=0)

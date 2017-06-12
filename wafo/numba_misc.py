@@ -1,8 +1,8 @@
-'''
+"""
 Created on 6. okt. 2016
 
 @author: pab
-'''
+"""
 from __future__ import absolute_import, division
 from numba import guvectorize, jit, float64, int64, int32, int8, void
 import numpy as np
@@ -66,8 +66,8 @@ def _findcross(ind, y):
 
 
 def findcross(xn):
-    '''Return indices to zero up and downcrossings of a vector
-    '''
+    """Return indices to zero up and downcrossings of a vector
+    """
     ind = np.empty(len(xn), dtype=np.int64)
     m = _findcross(ind, xn)
     return ind[:m]
@@ -150,9 +150,9 @@ _findrfc_lt = _make_findrfc(a_lt_b, a_le_b)
 def _findrfc(ind, y, h):
     n = len(y)
     t_start = 0
-    NC = n // 2 - 1
+    nc = n // 2 - 1
     ix = 0
-    for i in range(NC):
+    for i in range(nc):
         Tmi = t_start + 2 * i
         Tpl = t_start + 2 * i + 2
         xminus = y[2 * i]
@@ -174,7 +174,7 @@ def _findrfc(ind, y, h):
             # goto L180 continue
         else:
             j = i + 1
-            while (j < NC):
+            while (j < nc):
                 if (y[2 * j + 1] >= y[2 * i + 1]):
                     break  # goto L170
                 if((y[2 * j + 2] <= xplus)):

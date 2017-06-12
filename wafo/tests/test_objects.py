@@ -7,8 +7,7 @@ Created on 5. aug. 2010
 
 import unittest
 from numpy.testing import TestCase, assert_array_almost_equal
-import wafo.data  # @UnusedImport
-import numpy as np  # @UnusedImport
+import wafo.data
 import wafo.objects as wo
 import wafo.spectrum.models as sm
 import wafo.transform.models as tm

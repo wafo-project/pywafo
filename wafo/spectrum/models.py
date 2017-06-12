@@ -57,7 +57,7 @@ def sech(x):
 
 
 def _gengamspec(wn, N=5, M=4):
-    ''' Return Generalized gamma spectrum in dimensionless form
+    """ Return Generalized gamma spectrum in dimensionless form
 
     Parameters
     ----------
@@ -106,7 +106,7 @@ def _gengamspec(wn, N=5, M=4):
     Torsethaugen, K. (2004)
     "Simplified Double Peak Spectral Model for Ocean Waves"
     In Proc. 14th ISOPE
-    '''
+    """
     w = atleast_1d(wn)
     S = zeros_like(w)
 
@@ -132,7 +132,7 @@ class ModelSpectrum(object):
         self.type = 'ModelSpectrum'
 
     def tospecdata(self, w=None, wc=None, nw=257):
-        '''
+        """
         Return SpecData1D object from ModelSpectrum
 
         Parameter
@@ -148,7 +148,7 @@ class ModelSpectrum(object):
         -------
         S : SpecData1D object
             member attributes of model spectrum are copied to S.workspace
-        '''
+        """
 
         if w is None:
             if wc is None:
@@ -165,8 +165,8 @@ class ModelSpectrum(object):
         return S
 
     def chk_seastate(self):
-        ''' Check if seastate is valid
-        '''
+        """ Check if seastate is valid
+        """
 
         if self.Hm0 < 0:
             raise ValueError('Hm0 can not be negative!')
@@ -185,7 +185,7 @@ class ModelSpectrum(object):
 
 class Bretschneider(ModelSpectrum):
 
-    '''
+    """
     Bretschneider spectral density model
 
     Member variables
@@ -237,7 +237,7 @@ class Bretschneider(ModelSpectrum):
     --------
     Jonswap,
     Torsethaugen
-    '''
+    """
 
     def __init__(self, Hm0=7.0, Tp=11.0, N=5, M=4, chk_seastate=True, **kwds):
         self.type = 'Bretschneider'
@@ -249,8 +249,8 @@ class Bretschneider(ModelSpectrum):
             self.chk_seastate()
 
     def __call__(self, wi):
-        ''' Return Bretschnieder spectrum
-        '''
+        """ Return Bretschnieder spectrum
+        """
         w = atleast_1d(wi)
         if self.Hm0 > 0:
             wp = 2 * pi / self.Tp
@@ -262,7 +262,7 @@ class Bretschneider(ModelSpectrum):
 
 
 def jonswap_peakfact(Hm0, Tp):
-    ''' Jonswap peakedness factor, gamma, given Hm0 and Tp
+    """ Jonswap peakedness factor, gamma, given Hm0 and Tp
 
     Parameters
     ----------
@@ -313,7 +313,7 @@ def jonswap_peakfact(Hm0, Tp):
     See also
     --------
     jonswap
-    '''
+    """
     Hm0, Tp = atleast_1d(Hm0, Tp)
 
     x = Tp / sqrt(Hm0)
@@ -332,7 +332,7 @@ def jonswap_peakfact(Hm0, Tp):
 
 def jonswap_seastate(u10, fetch=150000., method='lewis', g=9.81,
                      output='dict'):
-    '''
+    """
     Return Jonswap seastate from windspeed and fetch
 
     Parameters
@@ -400,7 +400,7 @@ def jonswap_seastate(u10, fetch=150000., method='lewis', g=9.81,
     A parametric wave prediction model.
     J. phys. oceanogr. Vol 6, pp 200-228
 
-    '''
+    """
 
     # The following formulas are from Lewis and Allos 1990:
     zeta = g * fetch / (u10 ** 2)  # dimensionless fetch, Table 1
@@ -440,7 +440,7 @@ def jonswap_seastate(u10, fetch=150000., method='lewis', g=9.81,
 
 class Jonswap(ModelSpectrum):
 
-    '''
+    """
     Jonswap spectral density model
 
     Member variables
@@ -520,7 +520,7 @@ class Jonswap(ModelSpectrum):
      Measurements of Wind-Wave Growth and Swell Decay during the Joint
      North Sea Project (JONSWAP).
      Ergansungsheft, Reihe A(8), Nr. 12, Deutschen Hydrografischen Zeitschrift.
-    '''
+    """
 
     def __init__(self, Hm0=7.0, Tp=11.0, gamma=None, sigmaA=0.07, sigmaB=0.09,
                  Ag=None, N=5, M=4, method='integration', wnc=6.0,
@@ -552,17 +552,17 @@ class Jonswap(ModelSpectrum):
         gam = self.gamma
         outsideJonswapRange = Tp > 5 * sqrt(Hm0) or Tp < 3.6 * sqrt(Hm0)
         if outsideJonswapRange:
-            txt0 = '''
+            txt0 = """
             Hm0=%g,Tp=%g is outside the JONSWAP range.
             The validity of the spectral density is questionable.
-            ''' % (Hm0, Tp)
+            """ % (Hm0, Tp)
             warnings.warn(txt0)
 
         if gam < 1 or 7 < gam:
-            txt = '''
+            txt = """
             The peakedness factor, gamma, is possibly too large.
             The validity of the spectral density is questionable.
-            '''
+            """
             warnings.warn(txt)
 
     def _localspec(self, wn):
@@ -617,8 +617,8 @@ class Jonswap(ModelSpectrum):
         self.Ag = 1.0 / area
 
     def _pre_calculate_ag(self):
-        ''' PRECALCULATEAG Precalculate normalization.
-        '''
+        """ PRECALCULATEAG Precalculate normalization.
+        """
         if self.gamma == 1:
             self.Ag = 1.0
             self.method = 'parametric'
@@ -631,8 +631,8 @@ class Jonswap(ModelSpectrum):
             norm_ag()
 
     def peak_e_factor(self, wn):
-        ''' PEAKENHANCEMENTFACTOR
-        '''
+        """ PEAKENHANCEMENTFACTOR
+        """
         w = maximum(atleast_1d(wn), 0.0)
         sab = where(w > 1, self.sigmaB, self.sigmaA)
 
@@ -641,8 +641,8 @@ class Jonswap(ModelSpectrum):
         return Gf
 
     def __call__(self, wi):
-        ''' JONSWAP spectral density
-        '''
+        """ JONSWAP spectral density
+        """
         w = atleast_1d(wi)
         if (self.Hm0 > 0.0):
 
@@ -660,7 +660,7 @@ class Jonswap(ModelSpectrum):
 
 
 def phi1(wi, h, g=9.81):
-    ''' Factor transforming spectra to finite water depth spectra.
+    """ Factor transforming spectra to finite water depth spectra.
 
     Input
     -----
@@ -692,7 +692,7 @@ def phi1(wi, h, g=9.81):
      1 spectral form.'
       J. Geophys. Res., Vol 90, No. C1, pp 975-986
 
-    '''
+    """
     w = atleast_1d(wi)
     if h == inf:  # % special case infinite water depth
         return ones_like(w)
@@ -709,7 +709,7 @@ def phi1(wi, h, g=9.81):
 
 class Tmaspec(Jonswap):
 
-    ''' JONSWAP spectrum for finite water depth
+    """ JONSWAP spectrum for finite water depth
 
     Member variables
     ----------------
@@ -783,7 +783,7 @@ class Tmaspec(Jonswap):
     Ergansungsheft, Reihe A(8), Nr. 12, deutschen Hydrografischen
     Zeitschrift.
 
-    '''
+    """
 
     def __init__(self, Hm0=7.0, Tp=11.0, gamma=None, sigmaA=0.07, sigmaB=0.09,
                  Ag=None, N=5, M=4, method='integration', wnc=6.0,
@@ -808,7 +808,7 @@ class Tmaspec(Jonswap):
 
 class Torsethaugen(ModelSpectrum):
 
-    '''
+    """
     Torsethaugen  double peaked (swell + wind) spectrum model
 
     Member variables
@@ -881,7 +881,7 @@ class Torsethaugen(ModelSpectrum):
     'A two peak wave spectral model.'
     In proceedings OMAE, Glasgow
 
-    '''
+    """
 
     def __init__(self, Hm0=7, Tp=11, method='integration', wnc=6, gravity=9.81,
                  chk_seastate=True, **kwds):
@@ -899,26 +899,26 @@ class Torsethaugen(ModelSpectrum):
         self._init_spec()
 
     def __call__(self, w):
-        ''' TORSETHAUGEN spectral density
-        '''
+        """ TORSETHAUGEN spectral density
+        """
         return self.wind(w) + self.swell(w)
 
     def _chk_extra_param(self):
         Hm0 = self.Hm0
         Tp = self.Tp
         if Hm0 > 11 or Hm0 > max((Tp / 3.6) ** 2, (Tp - 2) * 12 / 11):
-            txt0 = '''Hm0 is outside the valid range.
-                    The validity of the spectral density is questionable'''
+            txt0 = """Hm0 is outside the valid range.
+                    The validity of the spectral density is questionable"""
             warnings.warn(txt0)
 
         if Tp > 20 or Tp < 3:
-            txt1 = '''Tp is outside the valid range.
-                    The validity of the spectral density is questionable'''
+            txt1 = """Tp is outside the valid range.
+                    The validity of the spectral density is questionable"""
             warnings.warn(txt1)
 
     def _init_spec(self):
-        ''' Initialize swell and wind part of Torsethaugen spectrum
-        '''
+        """ Initialize swell and wind part of Torsethaugen spectrum
+        """
         monitor = 0
         Hm0 = self.Hm0
         Tp = self.Tp
@@ -1050,7 +1050,7 @@ class Torsethaugen(ModelSpectrum):
 
 class McCormick(Bretschneider):
 
-    ''' McCormick spectral density model
+    """ McCormick spectral density model
 
     Member variables
     ----------------
@@ -1095,7 +1095,7 @@ class McCormick(Bretschneider):
     M.E. McCormick (1999)
     "Application of the Generic Spectral Formula to Fetch-Limited Seas"
     Marine Technology Society, Vol 33, No. 3, pp 27-32
-    '''
+    """
 
     def __init__(self, Hm0=7, Tp=11, Tz=None, M=None, chk_seastate=True):
         self.type = 'McCormick'
@@ -1122,7 +1122,7 @@ class McCormick(Bretschneider):
 
 class OchiHubble(ModelSpectrum):
 
-    ''' OchiHubble bimodal spectral density model.
+    """ OchiHubble bimodal spectral density model.
 
     Member variables
     ----------------
@@ -1171,7 +1171,7 @@ class OchiHubble(ModelSpectrum):
     'On six-parameter wave spectra.'
     In Proc. 15th Conf. Coastal Engng., Vol.1, pp301-328
 
-    '''
+    """
 
     def __init__(self, Hm0=7, par=1, chk_seastate=True):
         self.type = 'Ochi Hubble'
@@ -1253,7 +1253,7 @@ class OchiHubble(ModelSpectrum):
 
 class Wallop(Bretschneider):
 
-    '''Wallop spectral density model.
+    """Wallop spectral density model.
 
     Member variables
     ----------------
@@ -1304,7 +1304,7 @@ class Wallop(Bretschneider):
     Huang, N.E., Long, S.R., Tung, C.C, Yuen, Y. and Bilven, L.F. (1981)
     "A unified two parameter wave spectral model for a generous sea state"
     J. Fluid Mechanics, Vol.112, pp 203-224
-    '''
+    """
 
     def __init__(self, Hm0=7, Tp=11, N=None, chk_seastate=True):
         self.type = 'Wallop'
@@ -1325,7 +1325,7 @@ class Wallop(Bretschneider):
 
 
 class Spreading(object):
-    '''
+    """
     Directional spreading function.
 
     Parameters
@@ -1488,7 +1488,7 @@ class Spreading(object):
     NB! The generally strong frequency dependence in directional spread
     makes it questionable to run load tests of ships and structures with a
     directional spread independent of frequency (Krogstad and Barstow, 1999).
-    '''
+    """
 # Parameterization of B
 #    def = 2 Donelan et al freq. parametrization for 'sech2'
 #    def = 3 Banner freq. parametrization for 'sech2'
@@ -1560,10 +1560,10 @@ class Spreading(object):
         return atleast_1d(self.theta0).flatten()
 
     def chk_input(self, theta, w=1, wc=1):
-        ''' CHK_INPUT
+        """ CHK_INPUT
 
         CALL [s_par,TH,phi0,Nt] = inputchk(theta,w,wc)
-        '''
+        """
 
         wn = atleast_1d(w / wc)
         theta = theta.ravel()
@@ -1579,7 +1579,7 @@ class Spreading(object):
         return s, TH, phi0, Nt
 
     def cos2s(self, theta, w=1, wc=1):  # [D, phi0] =
-        ''' COS2S spreading function
+        """ COS2S spreading function
 
         cos2s(theta,w) =  N(S)*[cos((theta-theta0)/2)]^(2*S)  (0 < S)
 
@@ -1599,7 +1599,7 @@ class Spreading(object):
             The principal direction of D is always along the x-axis.
         phi0 : real scalar
             Parameter defining the actual principal direction of D.
-        '''
+        """
         S, TH, phi0 = self.chk_input(theta, w, wc)[:3]
 
         gammaln = sp.gammaln
@@ -1609,7 +1609,7 @@ class Spreading(object):
         return D, phi0
 
     def poisson(self, theta, w=1, wc=1):  # [D,phi0] =
-        ''' POISSON spreading function
+        """ POISSON spreading function
 
         poisson(theta,w) =   N(X)/(1-2*X*cos(theta-theta0)+X^2)  (0 < X < 1)
 
@@ -1629,14 +1629,14 @@ class Spreading(object):
             The principal direction of D is always along the x-axis.
         phi0 : real scalar
             Parameter defining the actual principal direction of D.
-        '''
+        """
         X, TH, phi0 = self.chk_input(theta, w, wc)[:3]
 
         D = (1 - X ** 2.) / (1. - (2. * cos(TH) - X) * X) / (2. * pi)
         return D, phi0
 
     def wrap_norm(self, theta, w=1, wc=1):
-        ''' Wrapped Normal spreading function
+        """ Wrapped Normal spreading function
 
         wnormal(theta,w) = N(D1)*[1 +
                         2*sum exp(-(n*D1)^2/2)*cos(n*(theta-theta0))]  (0 < D1)
@@ -1657,7 +1657,7 @@ class Spreading(object):
             The principal direction of D is always along the x-axis.
         phi0 : real scalar
             Parameter defining the actual principal direction of D.
-        '''
+        """
 
         par, TH, phi0, Nt = self.chk_input(theta, w, wc)
 
@@ -1678,7 +1678,7 @@ class Spreading(object):
         return D, phi0
 
     def sech2(self, theta, w=1, wc=1):
-        '''SECH2 directonal spreading function
+        """SECH2 directonal spreading function
 
             sech2(theta,w) = N(B)*0.5*B*sech(B*(theta-theta0))^2 (0 < B)
 
@@ -1698,7 +1698,7 @@ class Spreading(object):
             The principal direction of D is always along the x-axis.
         phi0 : real scalar
             Parameter defining the actual principal direction of D.
-        '''
+        """
 
         B, TH, phi0 = self.chk_input(theta, w, wc)[:3]
         NB = tanh(pi * B)  # % Normalization factor.
@@ -1708,7 +1708,7 @@ class Spreading(object):
         return D, phi0
 
     def mises(self, theta, w=1, wc=1):
-        '''Mises spreading function
+        """Mises spreading function
 
         mises(theta,w) =  N(K)*exp(K*cos(theta-theta0))       (0 < K)
 
@@ -1728,7 +1728,7 @@ class Spreading(object):
             The principal direction of D is always along the x-axis.
         phi0 : real scalar
             Parameter defining the actual principal direction of D.
-        '''
+        """
 
         K, TH, phi0 = self.chk_input(theta, w, wc)[:3]
 
@@ -1736,7 +1736,7 @@ class Spreading(object):
         return D, phi0
 
     def box(self, theta, w=1, wc=1):
-        ''' Box car spreading function
+        """ Box car spreading function
 
             box(theta,w) =  N(A)*I( -A < theta-theta0 < A)      (0 < A < pi)
 
@@ -1756,7 +1756,7 @@ class Spreading(object):
             The principal direction of D is always along the x-axis.
         phi0 : real scalar
             Parameter defining the actual principal direction of D.
-        '''
+        """
 
         A, TH, phi0 = self.chk_input(theta, w, wc)[:3]
         D = ((-A <= TH) & (TH <= A)) / (2. * A)
@@ -1765,7 +1765,7 @@ class Spreading(object):
 # Local sub functions
 
     def fourier2distpar(self, r1):
-        ''' Fourier coefficients to distribution parameter
+        """ Fourier coefficients to distribution parameter
 
         Parameters
         ----------
@@ -1790,14 +1790,14 @@ class Spreading(object):
                  Poisson spreading  : R1 = X
                  sech-2 spreading   : R1 = pi/(2*B*sinh(pi/(2*B))
                  Wrapped Normal     : R1 = exp(-D1^2/2)
-        '''
+        """
         fourierfun = self._fourierdispatch.get(self.type[0])
         return fourierfun(r1)
 
     @staticmethod
     def fourier2x(r1):
-        ''' Returns the solution of r1 = x.
-        '''
+        """ Returns the solution of r1 = x.
+        """
         X = r1
         if any(X >= 1):
             raise ValueError('POISSON spreading: X value must be less than 1')
@@ -1805,8 +1805,8 @@ class Spreading(object):
 
     @staticmethod
     def fourier2a(r1):
-        ''' Returns the solution of R1 = sin(A)/A.
-        '''
+        """ Returns the solution of R1 = sin(A)/A.
+        """
         A0 = flipud(linspace(0, pi + 0.1, 1025))
         funA = interp1d(sinc(A0 / pi), A0)
         A0 = funA(r1.ravel())
@@ -1837,9 +1837,9 @@ class Spreading(object):
 
     @staticmethod
     def fourier2k(r1):
-        '''
+        """
         Returns the solution of R1 = besseli(1,K)/besseli(0,K),
-        '''
+        """
         def fun0(x):
             return sp.ive(1, x) / sp.ive(0, x)
 
@@ -1858,8 +1858,8 @@ class Spreading(object):
         return K
 
     def fourier2b(self, r1):
-        ''' Returns the solution of R1 = pi/(2*B*sinh(pi/(2*B)).
-        '''
+        """ Returns the solution of R1 = pi/(2*B*sinh(pi/(2*B)).
+        """
         B0 = hstack((linspace(_EPS, 5, 513), linspace(5.0001, 100)))
         funB = interp1d(self._r1ofsech2(B0), B0)
 
@@ -1879,8 +1879,8 @@ class Spreading(object):
         return B
 
     def fourier2d(self, r1):
-        ''' Returns the solution of R1 = exp(-D**2/2).
-        '''
+        """ Returns the solution of R1 = exp(-D**2/2).
+        """
         r = clip(r1, 0., 1.0)
         return where(r <= 0, inf, sqrt(-2.0 * log(r)))
 
@@ -1936,7 +1936,7 @@ class Spreading(object):
         return atleast_1d(self.s_a)
 
     def spread_parameter_s(self, wn):
-        ''' Return spread parameter, S, equivalent for the COS2S function
+        """ Return spread parameter, S, equivalent for the COS2S function
 
         Parameters
         ----------
@@ -1947,7 +1947,7 @@ class Spreading(object):
         -------
         S   : ndarray
             spread parameter of COS2S functions
-        '''
+        """
 
         spread = dict(b=self._banner_spread,
                       d=self._donelan_spread,
@@ -1972,14 +1972,14 @@ class Spreading(object):
 
     @staticmethod
     def _donelan(wn):
-        ''' High frequency decay of B of sech2 paramater
-        '''
+        """ High frequency decay of B of sech2 paramater
+        """
         return 10.0 ** (-0.4 + 0.8393 * exp(-0.567 * log(wn ** 2)))
 
     @staticmethod
     def _r1ofsech2(B):
-        ''' R1OFSECH2   Computes R1 = pi./(2*B.*sinh(pi./(2*B)))
-        '''
+        """ R1OFSECH2   Computes R1 = pi./(2*B.*sinh(pi./(2*B)))
+        """
         realmax = finfo(float).max
         tiny = 1. / realmax
         x = clip(2. * B, tiny, realmax)
@@ -1988,7 +1988,7 @@ class Spreading(object):
                      -2. * xk / (exp(xk) * expm1(-2. * xk)))
 
     def tospecdata2d(self, specdata=None, theta=None, wc=0.52, nt=51):
-        '''
+        """
          MKDSPEC Make a directional spectrum
                  frequency spectrum times spreading function
 
@@ -2020,7 +2020,7 @@ class Spreading(object):
          h = SD.plot()
 
          See also  spreading, rotspec, jonswap, torsethaugen
-        '''
+        """
 
         if specdata is None:
             specdata = Jonswap().tospecdata()

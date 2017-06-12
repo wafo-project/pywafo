@@ -114,7 +114,7 @@ class TestQuadgr(unittest.TestCase):
 
     def test_integrand6(self):
         tol = 1e-9
-        Q, err = quadgr(lambda x: np.cos(x)*np.exp(-x), 0, np.inf, tol)
+        Q, err = quadgr(lambda x: np.cos(x) * np.exp(-x), 0, np.inf, tol)
         assert_array_almost_equal(Q, 0.5)
         self.assert_(err < tol)
         # (0.50000000000000044, 7.3296813063450372e-11)

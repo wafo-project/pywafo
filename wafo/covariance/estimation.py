@@ -1,8 +1,8 @@
-'''
+"""
 Created on 10. mai 2014
 
 @author: pab
-'''
+"""
 import numpy as np
 from numpy.fft import fft
 from wafo.misc import nextpow2
@@ -13,7 +13,7 @@ import warnings
 
 
 def sampling_period(t_vec):
-    '''
+    """
     Returns sampling interval
 
      Returns
@@ -24,7 +24,7 @@ def sampling_period(t_vec):
          [m] otherwise
 
      See also
-    '''
+    """
     dt1 = t_vec[1] - t_vec[0]
     n = len(t_vec) - 1
     t = t_vec[-1] - t_vec[0]
@@ -35,7 +35,7 @@ def sampling_period(t_vec):
 
 
 class CovarianceEstimator(object):
-    '''
+    """
     Class for estimating AutoCovariance from timeseries
 
     Parameters
@@ -61,7 +61,7 @@ class CovarianceEstimator(object):
         True if normalize output to one
     dt : scalar
         time-step between data points (default see sampling_period).
-    '''
+    """
     def __init__(self, lag=None, tr=None, detrend=None, window='boxcar',
                  flag='biased', norm=False, dt=None):
         self.lag = lag
@@ -84,24 +84,24 @@ class CovarianceEstimator(object):
         return lag
 
     def tocovdata(self, timeseries):
-        '''
+        """
         Return auto covariance function from data.
 
         Return
         -------
-        R : CovData1D object
+        acf : CovData1D object
             with attributes:
             data : ACF vector length L+1
             args : time lags  length L+1
             sigma : estimated large lag standard deviation of the estimate
-                     assuming x is a Gaussian process:
-                     if R(k)=0 for all lags k>q then an approximation
-                     of the variance for large samples due to Bartlett
-                     var(R(k))=1/N*(R(0)^2+2*R(1)^2+2*R(2)^2+ ..+2*R(q)^2)
+                    assuming x is a Gaussian process:
+                    if acf[k]=0 for all lags k>q then an approximation
+                    of the variance for large samples due to Bartlett
+                     var(acf[k])=1/N*(acf[0]**2+2*acf[1]**2+2*acf[2]**2+ ..+2*acf[q]**2)
                      for  k>q and where  N=length(x). Special case is
-                     white noise where it equals R(0)^2/N for k>0
+                     white noise where it equals acf[0]**2/N for k>0
             norm : bool
-                If false indicating that R is not normalized
+                If false indicating that auto_cov is not normalized
 
          Example:
          --------
@@ -112,7 +112,7 @@ class CovarianceEstimator(object):
          >>> acf = ts.tocovdata(150)
 
          h = acf.plot()
-        '''
+        """
         lag = self.lag
         window = self.window
         detrend = self.detrend
@@ -142,30 +142,30 @@ class CovarianceEstimator(object):
             x = detrend(x)
 
         nfft = 2 ** nextpow2(n)
-        Rper = abs(fft(x, nfft)) ** 2 / Ncens  # Raw periodogram
-        R = np.real(fft(Rper)) / nfft  # ifft = fft/nfft since Rper is real!
+        raw_periodogram = abs(fft(x, nfft)) ** 2 / Ncens
+        auto_cov = np.real(fft(raw_periodogram)) / nfft  # ifft = fft/nfft since raw_periodogram is real!
 
         if self.flag.startswith('unbiased'):
             # unbiased result, i.e. divide by n-abs(lag)
-            R = R[:Ncens] * Ncens / np.arange(Ncens, 1, -1)
+            auto_cov = auto_cov[:Ncens] * Ncens / np.arange(Ncens, 1, -1)
 
         if self.norm:
-            R = R / R[0]
+            auto_cov = auto_cov / auto_cov[0]
 
         if lag is None:
-            lag = self._estimate_lag(R, Ncens)
+            lag = self._estimate_lag(auto_cov, Ncens)
         lag = min(lag, n - 2)
         if isinstance(window, str) or type(window) is tuple:
             win = get_window(window, 2 * lag - 1)
         else:
             win = np.asarray(window)
-        R[:lag] = R[:lag] * win[lag - 1::]
-        R[lag] = 0
+        auto_cov[:lag] = auto_cov[:lag] * win[lag - 1::]
+        auto_cov[lag] = 0
         lags = slice(0, lag + 1)
         t = np.linspace(0, lag * dt, lag + 1)
-        acf = CovData1D(R[lags], t)
-        acf.sigma = np.sqrt(np.r_[0, R[0] ** 2,
-                            R[0] ** 2 + 2 * np.cumsum(R[1:] ** 2)] / Ncens)
+        acf = CovData1D(auto_cov[lags], t)
+        acf.sigma = np.sqrt(np.r_[0, auto_cov[0] ** 2,
+                            auto_cov[0] ** 2 + 2 * np.cumsum(auto_cov[1:] ** 2)] / Ncens)
         acf.children = [PlotData(-2. * acf.sigma[lags], t),
                         PlotData(2. * acf.sigma[lags], t)]
         acf.plot_args_children = ['r:']

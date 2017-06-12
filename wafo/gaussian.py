@@ -32,7 +32,7 @@ __all__ = ['Rind', 'rindmod', 'mvnprdmod', 'mvn', 'cdflomax', 'prbnormtndpc',
 
 class Rind(object):
 
-    '''
+    """
     RIND Computes multivariate normal expectations
 
     Parameters
@@ -152,10 +152,10 @@ class Rind(object):
     Wave Distributions",
     Methodology And Computing In Applied Probability, Volume 8, Number 1,
     pp. 65-91(27)
-    '''
+    """
 
     def __init__(self, **kwds):
-        '''
+        """
         Parameters
         ----------
         method : integer, optional
@@ -217,7 +217,7 @@ class Rind(object):
             number of times to use the regression equation to restrict
             integration area. Nc1c2 = 1,2 is recommended. (default 2)
             (note: works only for method >0)
-        '''
+        """
         self.method = 3
         self.xcscale = 0
         self.abseps = 0
@@ -238,7 +238,7 @@ class Rind(object):
         self.set_constants()
 
     def initialize(self, speed=None):
-        '''
+        """
         Initializes member variables according to speed.
 
         Parameter
@@ -259,7 +259,7 @@ class Rind(object):
         maxpts : Maximum number of function values allowed.
         quadno : Quadrature formulae used in integration of Xd(i)
                 implicitly determining # nodes
-        '''
+        """
         if speed is None:
             return
         self.speed = min(max(speed, 1), 13)
@@ -324,22 +324,22 @@ class Rind(object):
         if xc is None:
             xc = zeros((0, 1))
 
-        BIG, Blo, Bup, xc = atleast_2d(cov, ab, bb, xc)
-        Blo = Blo.copy()
-        Bup = Bup.copy()
+        big, b_lo, b_up, xc = atleast_2d(cov, ab, bb, xc)
+        b_lo = b_lo.copy()
+        b_up = b_up.copy()
 
-        Ntdc = BIG.shape[0]
+        Ntdc = big.shape[0]
         Nc = xc.shape[0]
         if nt is None:
             nt = Ntdc - Nc
 
-        unused_Mb, Nb = Blo.shape
+        unused_Mb, Nb = b_lo.shape
         Nd = Ntdc - nt - Nc
         Ntd = nt + Nd
 
         if indI is None:
             if Nb != Ntd:
-                raise ValueError('Inconsistent size of Blo and Bup')
+                raise ValueError('Inconsistent size of b_lo and b_up')
             indI = r_[-1:Ntd]
 
         Ex, indI = atleast_1d(m, indI)
@@ -354,22 +354,22 @@ class Rind(object):
         #            if INFIN(I) = 1, Ith limits are [Hlo(I), infinity);
         #            if INFIN(I) = 2, Ith limits are [Hlo(I), Hup(I)].
         infinity = 37
-        dev = sqrt(diag(BIG))  # std
+        dev = sqrt(diag(big))  # std
         ind = nonzero(indI[1:] > -1)[0]
         infin = repeat(2, len(indI) - 1)
-        infin[ind] = (2 - (Bup[0, ind] > infinity * dev[indI[ind + 1]]) -
-                      2 * (Blo[0, ind] < -infinity * dev[indI[ind + 1]]))
+        infin[ind] = (2 - (b_up[0, ind] > infinity * dev[indI[ind + 1]]) -
+                      2 * (b_lo[0, ind] < -infinity * dev[indI[ind + 1]]))
 
-        Bup[0, ind] = minimum(Bup[0, ind], infinity * dev[indI[ind + 1]])
-        Blo[0, ind] = maximum(Blo[0, ind], -infinity * dev[indI[ind + 1]])
+        b_up[0, ind] = minimum(b_up[0, ind], infinity * dev[indI[ind + 1]])
+        b_lo[0, ind] = maximum(b_lo[0, ind], -infinity * dev[indI[ind + 1]])
         ind2 = indI + 1
 
-        return rindmod.rind(BIG, Ex, xc, nt, ind2, Blo, Bup, infin, seed)
+        return rindmod.rind(big, Ex, xc, nt, ind2, b_lo, b_up, infin, seed)
 
 
 def test_rind():
-    ''' Small test function
-    '''
+    """ Small test function
+    """
     n = 5
     Blo = -inf
     Bup = -1.2
@@ -398,7 +398,7 @@ def test_rind():
 
 
 def cdflomax(x, alpha, m0):
-    '''
+    """
     Return CDF for local maxima for a zero-mean Gaussian process
 
     Parameters
@@ -449,14 +449,14 @@ def cdflomax(x, alpha, m0):
     See also
     --------
     spec2mom, spec2bw
-    '''
+    """
     c1 = 1.0 / (sqrt(1 - alpha ** 2)) * x / sqrt(m0)
     c2 = alpha * c1
     return cdfnorm(c1) - alpha * exp(-x ** 2 / 2 / m0) * cdfnorm(c2)
 
 
-def prbnormtndpc(rho, a, b, D=None, df=0, abseps=1e-4, IERC=0, HNC=0.24):
-    '''
+def prbnormtndpc(rho, a, b, d=None, df=0, abseps=1e-4, ierc=0, hnc=0.24):
+    """
     Return Multivariate normal or T probability with product correlation.
 
     Parameters
@@ -469,13 +469,13 @@ def prbnormtndpc(rho, a, b, D=None, df=0, abseps=1e-4, IERC=0, HNC=0.24):
         vector of lower and upper integration limits, respectively.
         Note: any values greater the 37 in magnitude, are considered as
         infinite values.
-    D : array-like
+    d : array-like
         vector of means (default zeros(size(rho)))
     df = Degrees of freedom, NDF<=0 gives normal probabilities (default)
     abseps = absolute error tolerance. (default 1e-4)
-    IERC   = 1 if strict error control based on fourth derivative
+    ierc   = 1 if strict error control based on fourth derivative
              0 if error control based on halving the intervals (default)
-    HNC   = start interval width of simpson rule (default 0.24)
+    hnc   = start interval width of simpson rule (default 0.24)
 
     Returns
     -------
@@ -529,20 +529,20 @@ def prbnormtndpc(rho, a, b, D=None, df=0, abseps=1e-4, IERC=0, HNC=0.24):
     Charles Dunnett (1989)
     "Multivariate normal probability integrals with product correlation
     structure", Applied statistics, Vol 38,No3, (Algorithm AS 251)
-    '''
+    """
 
-    if D is None:
-        D = zeros(len(rho))
+    if d is None:
+        d = zeros(len(rho))
     # Make sure integration limits are finite
-    A = np.clip(a - D, -100, 100)
-    B = np.clip(b - D, -100, 100)
+    aa = np.clip(a - d, -100, 100)
+    bb = np.clip(b - d, -100, 100)
 
-    return mvnprdmod.prbnormtndpc(rho, A, B, df, abseps, IERC, HNC)
+    return mvnprdmod.prbnormtndpc(rho, aa, bb, df, abseps, ierc, hnc)
 
 
 def prbnormndpc(rho, a, b, abserr=1e-4, relerr=1e-4, usesimpson=True,
                 usebreakpoints=False):
-    '''
+    """
     Return Multivariate Normal probabilities with product correlation
 
     Parameters
@@ -600,7 +600,7 @@ def prbnormndpc(rho, a, b, abserr=1e-4, relerr=1e-4, usesimpson=True,
     Dr.Ing thesis, Norwegian University of Science and Technolgy, NTNU,
     Trondheim, Norway.
 
-    '''
+    """
     # Call fortran implementation
     val, err, ier = mvnprdmod.prbnormndpc(rho, a, b, abserr, relerr,
                                           usebreakpoints, usesimpson)
@@ -612,7 +612,7 @@ def prbnormndpc(rho, a, b, abserr=1e-4, relerr=1e-4, usesimpson=True,
 
 _ERRORMESSAGE = {}
 _ERRORMESSAGE[0] = ''
-_ERRORMESSAGE[1] = '''
+_ERRORMESSAGE[1] = """
     Maximum number of subdivisions allowed has been achieved. one can allow
     more subdivisions by increasing the value of limit (and taking the
     according dimension adjustments into account). however, if this yields
@@ -623,32 +623,32 @@ _ERRORMESSAGE[1] = '''
     the vector points. If necessary an appropriate special-purpose
     integrator must be used, which is designed for handling the type of
     difficulty involved.
-    '''
-_ERRORMESSAGE[2] = '''
+    """
+_ERRORMESSAGE[2] = """
     the occurrence of roundoff error is detected, which prevents the requested
-    tolerance from being achieved. The error may be under-estimated.'''
+    tolerance from being achieved. The error may be under-estimated."""
 
-_ERRORMESSAGE[3] = '''
+_ERRORMESSAGE[3] = """
     Extremely bad integrand behaviour occurs at some points of the integration
-    interval.'''
-_ERRORMESSAGE[4] = '''
+    interval."""
+_ERRORMESSAGE[4] = """
     The algorithm does not converge. Roundoff error is detected in the
     extrapolation table. It is presumed that the requested tolerance cannot be
     achieved, and that the returned result is the best which can be obtained.
-    '''
-_ERRORMESSAGE[5] = '''
+    """
+_ERRORMESSAGE[5] = """
      The integral is probably divergent, or slowly convergent.
      It must be noted that divergence can occur with any other value of ier>0.
-     '''
-_ERRORMESSAGE[6] = '''the input is invalid because:
+     """
+_ERRORMESSAGE[6] = """the input is invalid because:
         1) npts2 < 2
         2) break points are specified outside the integration range
         3) (epsabs<=0 and epsrel<max(50*rel.mach.acc.,0.5d-28))
-        4) limit < npts2.'''
+        4) limit < npts2."""
 
 
 def prbnormnd(correl, a, b, abseps=1e-4, releps=1e-3, maxpts=None, method=0):
-    '''
+    """
     Multivariate Normal probability by Genz' algorithm.
 
 
@@ -713,7 +713,7 @@ def prbnormnd(correl, a, b, abseps=1e-4, releps=1e-3, maxpts=None, method=0):
     See also
     --------
     prbnormndpc, Rind
-    '''
+    """
 
     m, n = correl.shape
     Na = len(a)
@@ -787,7 +787,7 @@ _X20 = [-0.9931285991850949e+00, -0.9639719272779138e+00,
 
 
 def cdfnorm2d(b1, b2, r):
-    '''
+    """
     Returnc Bivariate Normal cumulative distribution function
 
     Parameters
@@ -831,7 +831,7 @@ def cdfnorm2d(b1, b2, r):
     Drezner, z and g.o. Wesolowsky, (1989),
     "On the computation of the bivariate normal integral",
     Journal of statist. comput. simul. 35, pp. 101-107,
-    '''
+    """
     # Translated into Python
     # Per A. Brodtkorb
     #
@@ -956,7 +956,7 @@ def fi(x):
 
 
 def prbnorm2d(a, b, r):
-    '''
+    """
     Returns Bivariate Normal probability
 
     Parameters
@@ -986,7 +986,7 @@ def prbnorm2d(a, b, r):
     cdfnorm2d,
     cdfnorm,
     prbnormndpc
-    '''
+    """
     infinity = 37
     lower = np.asarray(a)
     upper = np.asarray(b)

@@ -319,7 +319,7 @@ gh = wtm.TrHermite(mean=me, sigma=sa, skew=sk, kurt=ku, ysigma=sa)
 
 ysim_t = St.sim(ns=240, dt=0.5)
 xsim_t = ysim_t.copy()
-xsim_t[:,1] = gh.gauss2dat(ysim_t[:,1])
+xsim_t[:, 1] = gh.gauss2dat(ysim_t[:, 1])
 
 ts_y = wo.mat2timeseries(ysim_t)
 ts_x = wo.mat2timeseries(xsim_t)

@@ -28,7 +28,8 @@ def plot_varying_symbols(x, y, color='red', size=5):
 
 def damage_vs_S(S, beta, K):
     """
-    calculate the damage 1/N for a given stress S
+    Calculate the damage 1/N for a given stress S
+
     Parameters
     ----------
     S       : Stress [Pa]

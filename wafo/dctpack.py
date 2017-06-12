@@ -8,7 +8,7 @@ __all__ = ['dct', 'idct', 'dctn', 'idctn', 'dst', 'idst', 'dstn', 'idstn']
 
 
 def dct(x, type=2, n=None, axis=-1, norm='ortho'):  # @ReservedAssignment
-    '''
+    """
     Return the Discrete Cosine Transform of arbitrary type sequence x.
 
     Parameters
@@ -108,7 +108,7 @@ def dct(x, type=2, n=None, axis=-1, norm='ortho'):  # @ReservedAssignment
     'A Fast Cosine Transform in One and Two Dimensions', by J. Makhoul, `IEEE
     Transactions on acoustics, speech and signal processing` vol. 28(1),
     pp. 27-34, http://dx.doi.org/10.1109/TASSP.1980.1163351 (1980).
-    '''
+    """
     return _dct(x, type, n, axis, norm)
 
 
@@ -117,7 +117,7 @@ def dst(x, type=2, n=None, axis=-1, norm='ortho'):  # @ReservedAssignment
 
 
 def idct(x, type=2, n=None, axis=-1, norm='ortho'):  # @ReservedAssignment
-    '''
+    """
     Return the Inverse Discrete Cosine Transform of an arbitrary type sequence.
 
     Parameters
@@ -152,7 +152,7 @@ def idct(x, type=2, n=None, axis=-1, norm='ortho'):  # @ReservedAssignment
     IDCT of type 1 is the DCT of type 1, IDCT of type 2 is the DCT of type 3,
     and IDCT of type 3 is the DCT of type 2. For the definition of these types,
     see `dct`.
-    '''
+    """
     return _idct(x, type, n, axis, norm)
 
 
@@ -201,7 +201,7 @@ def _raw_dctn(y, type, shape, axes, norm, fun):  # @ReservedAssignment
 
 def dctn(x, type=2, shape=None, axes=None,  # @ReservedAssignment
          norm='ortho'):
-    '''
+    """
     Return the N-D Discrete Cosine Transform of array x.
 
     Parameters
@@ -271,7 +271,7 @@ def dctn(x, type=2, shape=None, axes=None,  # @ReservedAssignment
     See also
     --------
     idctn, dct, idct
-    '''
+    """
     y = np.atleast_1d(x)
     return _raw_dctn(y, type, shape, axes, norm, dct)
 
@@ -284,14 +284,14 @@ def dstn(x, type=2, shape=None, axes=None,  # @ReservedAssignment
 
 def idctn(x, type=2, shape=None, axes=None,  # @ReservedAssignment
           norm='ortho'):
-    '''Return inverse N-D Discrete Cosine Transform of array x.
+    """Return inverse N-D Discrete Cosine Transform of array x.
 
     For description of parameters see `dctn`.
 
     See Also
     --------
     dctn : for detailed information.
-    '''
+    """
     y = np.atleast_1d(x)
     return _raw_dctn(y, type, shape, axes, norm, idct)
 
@@ -317,7 +317,7 @@ def no_leading_ones(x):
 
 
 def shiftdim(x, n=None):
-    '''
+    """
     Shift dimensions
 
     Parameters
@@ -342,7 +342,7 @@ def shiftdim(x, n=None):
     See also
     --------
     reshape, squeeze
-    '''
+    """
     if n is None:
         return x.reshape(no_leading_ones(x.shape))
     elif n >= 0:
@@ -383,7 +383,7 @@ def example_dct2(debug=True):
     plt.set_cmap('jet')
     J = dctn(rgb)
     irgb = idctn(J)
-    out['diff_rgb_irgb'] = np.abs(rgb-irgb).max()
+    out['diff_rgb_irgb'] = np.abs(rgb - irgb).max()
     plt.imshow(np.log(np.abs(J)))
     # plt.colorbar() #colormap(jet), colorbar
     # plt.show('hold')

@@ -1,6 +1,6 @@
-'''
+"""
 Module extending the bitoperator capabilites of numpy
-'''
+"""
 
 from numpy import (bitwise_and, bitwise_or,
                    bitwise_not, binary_repr,  # @UnusedImport
