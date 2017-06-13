@@ -97,11 +97,11 @@ def _exponweib_link(x, logsf, phat, ix):
     if ix == 0:
         return - log_cdf / log(-expm1(-xn**c))
     if ix == 1:
-        return log(-log1p(- log_cdf**(1.0 / a))) / log(xn)
+        return log(-log1p(- log_cdf ** (1.0 / a))) / log(xn)
     if ix == 2:
-        return x - (-log1p(- log_cdf**(1.0/a))) ** (1.0 / c) * scale
+        return x - (-log1p(- log_cdf ** (1.0 / a))) ** (1.0 / c) * scale
     if ix == 3:
-        return (x - loc) / (-log1p(- log_cdf**(1.0/a))) ** (1.0 / c)
+        return (x - loc) / (-log1p(- log_cdf ** (1.0 / a))) ** (1.0 / c)
     raise IndexError('Index to the fixed parameter is out of bounds')
 
 
@@ -114,7 +114,7 @@ def _genpareto_link(x, logsf, phat, ix):
                             'not implemented!')
     c, loc, scale = phat
     if c == 0:
-        return _expon_link(x, logsf, phat[1:], ix-1)
+        return _expon_link(x, logsf, phat[1:], ix - 1)
     if ix == 2:
         # Reorganizing w.r.t.scale, Eq. 4.13 and 4.14, pp 81 in
         # Coles (2004) gives
@@ -140,7 +140,7 @@ def _genextreme_link(x, logsf, phat, ix):
                             'implemented!')
     c, loc, scale = phat
     if c == 0:
-        return _gumbel_r_link(x, logsf, phat[1:], ix-1)
+        return _gumbel_r_link(x, logsf, phat[1:], ix - 1)
     loglog_cdf = log(-log(-expm1(logsf)))
     return _genpareto_link(x, loglog_cdf, (-c, loc, scale), ix)
 
