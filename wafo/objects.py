@@ -915,7 +915,7 @@ class CyclePairs(PlotData):
             # endfor
 
         # endif method 2
-        return Fsmooth,h
+        return Fsmooth, h
 
     def cycle_matrix(self, param=(), ddef=1, method=0, h=None, NOsubzero=0, alpha=0.5):
         """CC2CMAT Calculates the cycle count matrix from a cycle count.
@@ -956,7 +956,7 @@ class CyclePairs(PlotData):
 
         u = np.linspace(*param)  # Discretization levels
 
-        n = param[2] # size of matrix
+        n = param[2]  # size of matrix
 
         # Compute Histogram
 
@@ -965,7 +965,7 @@ class CyclePairs(PlotData):
 
         # Smooth by using Kernel estimator ?
 
-        #if method >= 1:
+        # if method >= 1:
         #    F, h = smoothcmat(F,method, h, NOsubzero, alpha)
 
         return CycleMatrix(F, u, u)
@@ -988,7 +988,7 @@ class CyclePairs(PlotData):
         See also  cc2cmat, cc2dcc, cmatplot
         """
 
-        F = np.zeros((n, n));
+        F = np.zeros((n, n))
         cp1, cp2 = dcp
         for i, j in zip(cp1, cp2):
             F[i, j] += 1
