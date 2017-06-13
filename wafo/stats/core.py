@@ -143,6 +143,23 @@ def edfcnd(x, c=None, method=2):
 
     return F
 
+def _check_nmin(nmin, n):
+    nmin = max(nmin, 1)
+    if 2 * nmin > n:
+        warnings.warn('nmin possibly too large!')
+    return nmin
+
+def _check_umin_umax(data, umin, umax, nmin):
+    sd = np.sort(data)
+    sdmax, sdmin = sd[-nmin], sd[0]
+    umax = sdmax if umax is None else min(umax, sdmax)
+    umin = sdmin if umin is None else max(umin, sdmin)
+    return umin, umax
+
+def _check_nu(nu, nmin, n):
+    if nu is None:
+        nu = min(n - nmin, 100)
+    return nu
 
 def reslife(data, u=None, umin=None, umax=None, nu=None, nmin=3, alpha=0.05,
             plotflag=False):
@@ -198,27 +215,17 @@ def reslife(data, u=None, umin=None, umax=None, nu=None, nmin=3, alpha=0.05,
     fitgenparrange, disprsnidx
     """
     if u is None:
-        sd = np.sort(data)
         n = len(data)
-
-        nmin = max(nmin, 0)
-        if 2 * nmin > n:
-            warnings.warn('nmin possibly too large!')
-
-        sdmax, sdmin = sd[-nmin], sd[0]
-        umax = sdmax if umax is None else min(umax, sdmax)
-        umin = sdmin if umin is None else max(umin, sdmin)
-
-        if nu is None:
-            nu = min(n - nmin, 100)
-
+        nmin = _check_nmin(nmin, n)
+        umin, umax = _check_umin_umax(data, umin, umax, nmin)
+        nu = _check_nu(nu, nmin, n)
         u = linspace(umin, umax, nu)
 
     nu = len(u)
 
-    #mrl1 = valarray(nu)
-    #srl = valarray(nu)
-    #num = valarray(nu)
+    # mrl1 = valarray(nu)
+    # srl = valarray(nu)
+    # num = valarray(nu)
 
     mean_and_std = lambda data1: (data1.mean(), data1.std(), data1.size)
     dat = arr(data)
@@ -229,13 +236,13 @@ def reslife(data, u=None, umin=None, umax=None, nu=None, nmin=3, alpha=0.05,
     alpha2 = alpha / 2
 
     # Approximate P% confidence interval
-    #%Za = -invnorm(alpha2);   % known mean
+    # Za = -invnorm(alpha2);   % known mean
     Za = -_invt(alpha2, num - 1)  # unknown mean
     mrlu = mrl + Za * srl / sqrt(num)
     mrll = mrl - Za * srl / sqrt(num)
 
-    #options.CI = [mrll,mrlu];
-    #options.numdata = num;
+    # options.CI = [mrll,mrlu];
+    # options.numdata = num;
     titleTxt = 'Mean residual life with %d%s CI' % (100 * p, '%')
     res = PlotData(mrl, u, xlab='Threshold',
                    ylab='Mean Excess', title=titleTxt)
@@ -330,6 +337,16 @@ def dispersion_idx(
     partial duration series model. Water Resource Research, 15\bold{(2)}
          :489--494.}
     """
+    def _find_appropriate_threshold(u, di, di_low, di_up):
+        k1, = np.where((di_low < di) & (di < di_up))
+        if len(k1) > 0:
+            ok_u = u[k1]
+            b_di = di[k1].mean() < di[k1]
+            k = b_di.argmax()
+            b_u = ok_u[k]
+        else:
+            b_u = ok_u = None
+        return b_u, ok_u
 
     n = len(data)
     if t is None:
@@ -341,19 +358,9 @@ def dispersion_idx(
     t1[:] = np.floor(ti / tb)
 
     if u is None:
-        sd = np.sort(data)
-
-        nmin = max(nmin, 0)
-        if 2 * nmin > n:
-            warnings.warn('nmin possibly too large!')
-
-        sdmax, sdmin = sd[-nmin], sd[0]
-        umax = sdmax if umax is None else min(umax, sdmax)
-        umin = sdmin if umin is None else max(umin, sdmin)
-
-        if nu is None:
-            nu = min(n - nmin, 100)
-
+        nmin = _check_nmin(nmin, n)
+        umin, umax = _check_umin_umax(data, umin, umax, nmin)
+        nu = _check_nu(nu, nmin, n)
         u = linspace(umin, umax, nu)
 
     nu = len(u)
@@ -362,12 +369,12 @@ def dispersion_idx(
 
     d = arr(data)
 
-    mint = int(min(t1))  # ; % mint should be 0.
+    mint = int(min(t1))  # should be 0.
     maxt = int(max(t1))
     M = maxt - mint + 1
     occ = np.zeros(M)
 
-    for ix, tresh in enumerate(u.tolist()):
+    for ix, tresh in enumerate(u):
         excess = (d > tresh)
         lambda_ = excess.sum() / M
         for block in range(M):
@@ -375,31 +382,23 @@ def dispersion_idx(
 
         di[ix] = occ.var() / lambda_
 
-    p = 1 - alpha
+    p = 1.0 - alpha
 
-    diLo = _invchi2(1 - alpha / 2, M - 1) / (M - 1)
-    diUp = _invchi2(alpha / 2, M - 1) / (M - 1)
+    di_low = _invchi2(1 - alpha / 2, M - 1) / (M - 1)
+    di_up = _invchi2(alpha / 2, M - 1) / (M - 1)
 
-    # Find appropriate threshold
-    k1, = np.where((diLo < di) & (di < diUp))
-    if len(k1) > 0:
-        ok_u = u[k1]
-        b_di = (di[k1].mean() < di[k1])
-        k = b_di.argmax()
-        b_u = ok_u[k]
-    else:
-        b_u = ok_u = None
+    b_u, ok_u = _find_appropriate_threshold(u, di, di_low, di_up)
 
-    CItxt = '%d%s CI' % (100 * p, '%')
+    ci_txt = '{0:d}{1} CI'.format(100 * p, '%')
     titleTxt = 'Dispersion Index plot'
 
     res = PlotData(di, u, title=titleTxt,
                    labx='Threshold', laby='Dispersion Index')
-        #'caption',CItxt);
+        #'caption',ci_txt);
     res.workspace = dict(umin=umin, umax=umax, nu=nu, nmin=nmin, alpha=alpha)
     res.children = [
-        PlotData(vstack([diLo * ones(nu), diUp * ones(nu)]).T, u,
-                 xlab='Threshold', title=CItxt)]
+        PlotData(vstack([di_low * ones(nu), di_up * ones(nu)]).T, u,
+                 xlab='Threshold', title=ci_txt)]
     res.plot_args_children = ['--r']
     if plotflag:
         res.plot(di)
@@ -449,6 +448,27 @@ def decluster(data, t=None, thresh=None, tmin=1):
     return data[i], t[i]
 
 
+
+def _remove_index_to_data_too_close_to_each_other(ix_e, is_too_small, di_e, ti_e, tmin):
+    is_too_close = np.hstack((is_too_small[0], is_too_small[:-1] | is_too_small[1:],
+                              is_too_small[-1]))
+    # Find opening (no) and closing (nc) index for data beeing to close:
+    iy = findextrema(np.hstack([0, 0, is_too_small, 0]))
+    no = iy[:2] - 1
+    nc = iy[1::2]
+    for start, stop in zip(no, nc):
+        iz = slice(start, stop)
+        i_ok = _find_ok_peaks(di_e[iz], ti_e[iz], tmin)
+        if len(i_ok):
+            is_too_close[start + i_ok] = 0
+
+# Remove data which is too close to other data.
+    if is_too_close.any():
+        i_ok, = where(1 - is_too_close)
+        ix_e = ix_e[i_ok]
+    return ix_e
+
+
 def findpot(data, t=None, thresh=None, tmin=1):
     """
     Retrun indices to Peaks over threshold values
@@ -464,7 +484,7 @@ def findpot(data, t=None, thresh=None, tmin=1):
 
     Returns
     -------
-    Ie : ndarray
+    ix_e : ndarray
         indices to extreme values, i.e., all data > tresh which are at least
         tmin distance apart.
 
@@ -479,10 +499,10 @@ def findpot(data, t=None, thresh=None, tmin=1):
     >>> ytc, ttc = data[itc], t[itc]
     >>> ymin = 2*data.std()
     >>> tmin = 10 # sec
-    >>> I = findpot(data, t, ymin, tmin)
-    >>> yp, tp = data[I], t[I]
-    >>> Ie = findpot(yp, tp, ymin,tmin)
-    >>> ye, te = yp[Ie], tp[Ie]
+    >>> i = findpot(data, t, ymin, tmin)
+    >>> yp, tp = data[i], t[i]
+    >>> ix_e = findpot(yp, tp, ymin,tmin)
+    >>> ye, te = yp[ix_e], tp[ix_e]
     >>> h = pylab.plot(t,data,ttc,ytc,'ro',
     ...                t,zeros(len(t)),':',
     ...                te, ye,'k.',tp,yp,'+')
@@ -491,51 +511,33 @@ def findpot(data, t=None, thresh=None, tmin=1):
     --------
     fitgenpar, decluster, extremalidx
     """
-    Data = arr(data)
+    data = arr(data)
     if t is None:
-        ti = np.arange(len(Data))
+        t = np.arange(len(data))
     else:
-        ti = arr(t)
+        t = arr(t)
 
-    Ie, = where(Data > thresh)
-    Ye = Data[Ie]
-    Te = ti[Ie]
-    if len(Ye) <= 1:
-        return Ie
+    ix_e, = where(data > thresh)
+    di_e = data[ix_e]
+    ti_e = t[ix_e]
+    if len(di_e) <= 1:
+        return ix_e
 
-    dT = np.diff(Te)
-    notSorted = np.any(dT < 0)
-    if notSorted:
-        I = np.argsort(Te)
-        Te = Te[I]
-        Ie = Ie[I]
-        Ye = Ye[I]
-        dT = np.diff(Te)
+    dt = np.diff(ti_e)
+    not_sorted = np.any(dt < 0)
+    if not_sorted:
+        i = np.argsort(ti_e)
+        ti_e = ti_e[i]
+        ix_e = ix_e[i]
+        di_e = di_e[i]
+        dt = np.diff(ti_e)
 
-    isTooSmall = (dT <= tmin)
+    is_too_small = (dt <= tmin)
 
-    if np.any(isTooSmall):
-        isTooClose = np.hstack(
-            (isTooSmall[0], isTooSmall[:-1] | isTooSmall[1:], isTooSmall[-1]))
+    if np.any(is_too_small):
+        ix_e = _remove_index_to_data_too_close_to_each_other(ix_e, is_too_small, di_e, ti_e, tmin)
 
-        # Find opening (NO) and closing (NC) index for data beeing to close:
-        iy = findextrema(np.hstack([0, 0, isTooSmall, 0]))
-
-        NO = iy[::2] - 1
-        NC = iy[1::2]
-
-        for no, nc in zip(NO, NC):
-            iz = slice(no, nc)
-            iOK = _find_ok_peaks(Ye[iz], Te[iz], tmin)
-            if len(iOK):
-                isTooClose[no + iOK] = 0
-        # Remove data which is too close to other data.
-        if isTooClose.any():
-            # len(tooClose)>0:
-            iOK, = where(1 - isTooClose)
-            Ie = Ie[iOK]
-
-    return Ie
+    return ix_e
 
 
 def _find_ok_peaks(y, t, t_min):
@@ -874,9 +876,9 @@ class RegLogit(object):
             (y * 0 + 1) * np.arange(ymin + 1, ymax + 1))
         z = z[:, np.flatnonzero(z.any(axis=0))]
         z1 = z1[:, np.flatnonzero(z1.any(axis=0))]
-        [_mz, nz] = z.shape
-        [_mx, nx] = X.shape
-        [my, _ny] = y.shape
+        _mz, nz = z.shape
+        _mx, nx = X.shape
+        my, _ny = y.shape
 
         g = (z.sum(axis=0).cumsum() / my).reshape(-1, 1)
         theta00 = np.log(g / (1 - g)).ravel()
@@ -979,7 +981,7 @@ class RegLogit(object):
         self.params_std = se
         self.params_cov = pcov
         self.params_tstat = (self.params / self.params_std)
-        # % options.estdispersn %dispersion_parameter=='mean_deviance'
+        # options.estdispersn dispersion_parameter=='mean_deviance'
         if False:
             self.params_pvalue = 2. * _cdft(-abs(self.params_tstat), self.df)
             bcrit = -se * _invt(self.alpha / 2, self.df)
@@ -1281,7 +1283,6 @@ def _test_dispersion_idx():
     di, _u, _ok_u = dispersion_idx(data[Ie], t[Ie], tb=100)
     di.plot()  # a threshold around 1 seems appropriate.
     di.show()
-    pass
 
 
 def _test_findpot():
