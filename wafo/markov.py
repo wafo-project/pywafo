@@ -448,7 +448,7 @@ def mctp2tc(f_Mm, utc, param, f_mM=None):
 
 
 def mctp2rfc(fmM, fMm=None):
-    '''
+    """
     Return Rainflow matrix given a Markov chain of turning points
 
     computes f_rfc = f_mM + F_mct(f_mM).
@@ -477,7 +477,7 @@ def mctp2rfc(fmM, fMm=None):
     ...     [  0.0,   0.0,   0.0,   0.0, 0.0],
     ...     [  0.0,   0.0,   0.0,   0.0, 0.0]], 1.e-7)
     True
-    '''
+    """
     def _get_PMm(AA1, MA, nA):
         PMm = AA1.copy()
         for j in range(nA):
