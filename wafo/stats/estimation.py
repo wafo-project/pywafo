@@ -58,16 +58,16 @@ def _assert_not_implemented(cond, msg):
 
 def _burr_link(x, logsf, phat, ix):
     c, d, loc, scale = phat
-    logp = log(-expm1(logsf))
+    log_cdf = log(-expm1(logsf))
     xn = (x - loc) / scale
     if ix == 1:
-        return -logp / log1p(xn**(-c))
+        return -log_cdf / log1p(xn**(-c))
     if ix == 0:
-        return log1p(-exp(-logp / d)) / log(xn)
+        return log1p(-exp(-log_cdf / d)) / log(xn)
     if ix == 2:
-        return x - scale * exp(log1p(-exp(-logp / d)) / c)
+        return x - scale * exp(log1p(-exp(-log_cdf / d)) / c)
     if ix == 3:
-        return (x - loc) / exp(log1p(-exp(-logp / d)) / c)
+        return (x - loc) / exp(log1p(-exp(-log_cdf / d)) / c)
     raise IndexError('Index to the fixed parameter is out of bounds')
 
 
@@ -92,16 +92,16 @@ def _weibull_min_link(x, logsf, phat, ix):
 
 def _exponweib_link(x, logsf, phat, ix):
     a, c, loc, scale = phat
-    logP = -log(-expm1(logsf))
+    log_cdf = -log(-expm1(logsf))
     xn = (x - loc) / scale
     if ix == 0:
-        return - logP / log(-expm1(-xn**c))
+        return - log_cdf / log(-expm1(-xn**c))
     if ix == 1:
-        return log(-log1p(- logP**(1.0 / a))) / log(xn)
+        return log(-log1p(- log_cdf**(1.0 / a))) / log(xn)
     if ix == 2:
-        return x - (-log1p(- logP**(1.0/a))) ** (1.0 / c) * scale
+        return x - (-log1p(- log_cdf**(1.0/a))) ** (1.0 / c) * scale
     if ix == 3:
-        return (x - loc) / (-log1p(- logP**(1.0/a))) ** (1.0 / c)
+        return (x - loc) / (-log1p(- log_cdf**(1.0/a))) ** (1.0 / c)
     raise IndexError('Index to the fixed parameter is out of bounds')
 
 
@@ -127,11 +127,11 @@ def _genpareto_link(x, logsf, phat, ix):
 
 def _gumbel_r_link(x, logsf, phat, ix):
     loc, scale = phat
-    loglogP = log(-log(-expm1(logsf)))
+    loglog_cdf = log(-log(-expm1(logsf)))
     if ix == 1:
-        return -(x - loc) / loglogP
+        return -(x - loc) / loglog_cdf
     if ix == 1:
-        return x + scale * loglogP
+        return x + scale * loglog_cdf
     raise IndexError('Index to the fixed parameter is out of bounds')
 
 
@@ -141,13 +141,8 @@ def _genextreme_link(x, logsf, phat, ix):
     c, loc, scale = phat
     if c == 0:
         return _gumbel_r_link(x, logsf, phat[1:], ix-1)
-    loglogP = log(-log(-expm1(logsf)))
-    if ix == 2:
-        #   link = -(x-loc)*c/expm1(c*log(-logP))
-        return -(x - loc) * c / expm1(c * loglogP)
-    if ix == 1:
-        return x + scale * expm1(c * loglogP) / c
-    raise IndexError('Index to the fixed parameter is out of bounds')
+    loglog_cdf = log(-log(-expm1(logsf)))
+    return _genpareto_link(x, loglog_cdf, (-c, loc, scale), ix)
 
 
 def _genexpon_link(x, logsf, phat, ix):
