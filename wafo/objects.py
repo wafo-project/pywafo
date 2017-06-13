@@ -848,11 +848,11 @@ class CyclePairs(PlotData):
         n = len(F)  # Size of matrix
         N = np.sum(F)  # Total number of cycles
 
-        Fsmooth = np.zeros((n,n))
+        Fsmooth = np.zeros((n, n))
 
         if method == 1 or method == 2:  # Kernel estimator
 
-            d = 2   # 2-dim
+            d = 2  # 2-dim
             x = np.arange(n)
             I, J = np.meshgrid(x, x)
 
@@ -862,59 +862,59 @@ class CyclePairs(PlotData):
             # therefore we choose a slightly smaller bandwidth
 
             if aut_h == 1:
-                h_norm = smoothcmat_hnorm(F,NOsubzero);
-                h = 0.7*h_norm  # Don't oversmooth
+                h_norm = smoothcmat_hnorm(F, NOsubzero)
+                h = 0.7 * h_norm  # Don't oversmooth
 
-            #h0 = N^(-1/(d+4));
-            #FF = F+F';
-            #mean_F = sum(sum(FF).*(1:n))/N/2;
-            #s2 = sum(sum(FF).*((1:n)-mean_F).^2)/N/2;
-            #s = sqrt(s2);       % Mean of std in each direction
-            #h_norm = s*h0;      % Optimal for Normal distr.
-            #h = h_norm;         % Test
+            # h0 = N^(-1/(d+4));
+            # FF = F+F';
+            # mean_F = sum(sum(FF).*(1:n))/N/2;
+            # s2 = sum(sum(FF).*((1:n)-mean_F).^2)/N/2;
+            # s = sqrt(s2);       % Mean of std in each direction
+            # h_norm = s*h0;      % Optimal for Normal distr.
+            # h = h_norm;         % Test
             # endif
 
             # Calculating kernel estimate
             # Kernel: 2-dim normal density function
 
-            for i in range(n-1):
-                for j in range(i+1,n):
-                    if F(i,j) != 0:
-                        F1 = exp(-1/(2*h**2)*((I-i)**2+(J-j)**2));  # Gaussian kernel
-                        F1 = F1+F1.T;                     # Mirror kernel in diagonal
-                        F1 = np.triu(F1,1+NOsubzero);       # Set to zero below and on diagonal
-                        F1 = F[i,j] * F1/np.sum(F1)   # Normalize
-                        Fsmooth = Fsmooth+F1;
+            for i in range(n - 1):
+                for j in range(i + 1, n):
+                    if F[i, j] != 0:
+                        F1 = exp(-1 / (2 * h**2) * ((I - i)**2 + (J - j)**2))  # Gaussian kernel
+                        F1 = F1 + F1.T                     # Mirror kernel in diagonal
+                        F1 = np.triu(F1, 1 + NOsubzero)       # Set to zero below and on diagonal
+                        F1 = F[i, j] * F1 / np.sum(F1)   # Normalize
+                        Fsmooth = Fsmooth + F1
                     # endif
                 # endfor
             # endfor
         # endif method 1 or 2
 
         if method == 2:
-            Fpilot = Fsmooth/N;
-            Fsmooth = np.zeros(n,n);
-            [I1,I2] = find(F>0);
-            logg = 0;
-            for i in range(len(I1)):  #  =1:length(I1):
-                logg = logg + F(I1(i),I2(i)) * log(Fpilot(I1(i),I2(i)));
-            #endfor
-            g = np.exp(logg/N);
-            lamda = (Fpilot/g)**(-alpha);
+            Fpilot = Fsmooth / N
+            Fsmooth = np.zeros(n, n)
+            [I1, I2] = find(F > 0)
+            logg = 0
+            for i in range(len(I1)):  # =1:length(I1):
+                logg = logg + F(I1[i], I2[i]) * log(Fpilot(I1[i], I2[i]))
+            # endfor
+            g = np.exp(logg / N)
+            _lamda = (Fpilot / g)**(-alpha)
 
-            for i in range(n-1):  # = 1:n-1
-                for j in range(i+1, n): # = i+1:n
-                    if F[i,j] != 0:
-                        hi = h*lamda[i,j]
-                        F1 = np.exp(-1/(2*hi**2)*((I-i)**2+(J-j)**2));  # Gaussian kernel
-                        F1 = F1+F1.T;                  # Mirror kernel in diagonal
-                        F1 = np.triu(F1,1+NOsubzero);  # Set to zero below and on diagonal
-                        F1 = F[i,j] * F1/np.sum(F1);   # Normalize
-                        Fsmooth = Fsmooth+F1;
+            for i in range(n - 1):  # = 1:n-1
+                for j in range(i + 1, n):  # = i+1:n
+                    if F[i, j] != 0:
+                        hi = h * _lamda[i, j]
+                        F1 = np.exp(-1 / (2 * hi**2) * ((I - i)**2 + (J - j)**2))  # Gaussian kernel
+                        F1 = F1 + F1.T                  # Mirror kernel in diagonal
+                        F1 = np.triu(F1, 1 + NOsubzero)  # Set to zero below and on diagonal
+                        F1 = F[i, j] * F1 / np.sum(F1)   # Normalize
+                        Fsmooth = Fsmooth + F1
                     # endif
                 # endfor
             # endfor
 
-        #endif method 2
+        # endif method 2
         return Fsmooth,h
 
     def cycle_matrix(self, param=(), ddef=1, method=0, h=None, NOsubzero=0, alpha=0.5):
@@ -1029,29 +1029,28 @@ class CyclePairs(PlotData):
         cp1, cp2 = np.copy(self.args), np.copy(self.data)
 
         # Make so that minima is in first column
-        ix = np.flatnonzero(cp1>cp2)
+        ix = np.flatnonzero(cp1 > cp2)
         if np.any(ix):
             cp1[ix], cp2[ix] = cp2[ix], cp1[ix]
 
         # Make discretization
         a, b, n = param
 
-        delta = (b-a)/(n-1)  # Discretization step
-        cp1 = (cp1-a)/delta + 1
-        cp2 = (cp2-a)/delta + 1
+        delta = (b - a) / (n - 1)  # Discretization step
+        cp1 = (cp1 - a) / delta + 1
+        cp2 = (cp2 - a) / delta + 1
 
         if ddef == 0:
-            cp1 = np.clip(np.round(cp1), 0, n-1)
-            cp2 = np.clip(np.round(cp2), 0, n-1)
+            cp1 = np.clip(np.round(cp1), 0, n - 1)
+            cp2 = np.clip(np.round(cp2), 0, n - 1)
         elif ddef == +1:
-            cp1 = np.clip(np.floor(cp1), 0, n-2)
-            cp2 = np.clip(np.ceil(cp2), 1, n-1)
+            cp1 = np.clip(np.floor(cp1), 0, n - 2)
+            cp2 = np.clip(np.ceil(cp2), 1, n - 1)
         elif ddef == -1:
-            cp1 = np.clip(np.ceil(cp1), 1, n-1)
-            cp2 = np.clip(np.floor(cp2), 0, n-2)
+            cp1 = np.clip(np.ceil(cp1), 1, n - 1)
+            cp2 = np.clip(np.floor(cp2), 0, n - 2)
         else:
             raise ValueError('Undefined discretization definition, ddef = {}'.format(ddef))
-
 
         if np.any(ix):
             cp1[ix], cp2[ix] = cp2[ix], cp1[ix]

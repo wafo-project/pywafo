@@ -143,7 +143,8 @@ class CovarianceEstimator(object):
 
         nfft = 2 ** nextpow2(n)
         raw_periodogram = abs(fft(x, nfft)) ** 2 / Ncens
-        auto_cov = np.real(fft(raw_periodogram)) / nfft  # ifft = fft/nfft since raw_periodogram is real!
+        # ifft = fft/nfft since raw_periodogram is real!
+        auto_cov = np.real(fft(raw_periodogram)) / nfft
 
         if self.flag.startswith('unbiased'):
             # unbiased result, i.e. divide by n-abs(lag)
