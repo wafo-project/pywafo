@@ -1277,7 +1277,7 @@ def arfm2mctp(Frfc):
 #             z1H = -C1/2/C2 + sqrt((C1/2/C2)^2-C0/C2);
 #             z2H = -C1/2/C2 - sqrt((C1/2/C2)^2-C0/C2);
 #
-#             # fprintf(1,'2nd: i=%d, j=%d: z1S=%f,: z2S=%f, z1H=%f, z2H=%f\n',i,j,z1S,z2S,z1H,z2H);
+#             # fprintf(1,'2nd: i=%d, j=%d: z1S=%f,: z2S=%f, z1H=%f, z2H=%f\n',i,j,z1S,z2S,z1H,z2H)
 #
 #         else
 #
@@ -1378,12 +1378,14 @@ def arfm2mctp(Frfc):
 #               y = 0;
 #             else
 #               # Define coeficients for equation system
-#               a0 = pS*c0h*c0+pS*Rh^2*R-2*pS*Rh*R-E3h*Max*c0h*e0*Rh+E3h*Max*c0h*e0+2*pS*Rh+pS*R-pS*c0h*c0*Rh-pS-pS*Rh^2+E3h*Max*c0h*Dh*c0;
+#               a0 = (pS*c0h*c0+pS*Rh^2*R-2*pS*Rh*R-E3h*Max*c0h*e0*Rh+E3h*Max*c0h*e0+2*pS*Rh
+#                     +pS*R-pS*c0h*c0*Rh-pS-pS*Rh^2+E3h*Max*c0h*Dh*c0)
 #               a1 = pS*c1h*c0+E3h*Max*c1h*Dh*c0-E3h*Max*c1h*e0*Rh-pS*c1h*c0*Rh+E3h*Max*c1h*e0;
 #               a2 = pS*c0h*c1+E3h*Max*c0h*e1-pS*c0h*c1*Rh+E3h*Max*c0h*Dh*c1-E3h*Max*c0h*e1*Rh;
 #               a3 = -E3h*Max*c1h*e1*Rh+E3h*Max*c1h*Dh*c1+E3h*Max*c1h*e1+pS*c1h*c1-pS*c1h*c1*Rh;
 #
-#               b0 = pH*c0h*c0+pH*Rh*R^2-pH+pH*Rh-2*pH*Rh*R-pH*c0h*c0*R+Min*E3*e0h*c0-Min*E3*e0h*R*c0+Min*E3*D*c0h*c0+2*pH*R-pH*R^2;
+#               b0 = (pH*c0h*c0+pH*Rh*R^2-pH+pH*Rh-2*pH*Rh*R-pH*c0h*c0*R+Min*E3*e0h*c0
+#                    -Min*E3*e0h*R*c0+Min*E3*D*c0h*c0+2*pH*R-pH*R^2)
 #               b1 = Min*E3*D*c1h*c0+Min*E3*e1h*c0+pH*c1h*c0-Min*E3*e1h*R*c0-pH*c1h*c0*R;
 #               b2 = -pH*c0h*c1*R-Min*E3*e0h*R*c1+Min*E3*D*c0h*c1+Min*E3*e0h*c1+pH*c0h*c1;
 #               b3 = Min*E3*e1h*c1+Min*E3*D*c1h*c1-pH*c1h*c1*R-Min*E3*e1h*R*c1+pH*c1h*c1;
