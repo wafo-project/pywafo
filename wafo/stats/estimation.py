@@ -1,11 +1,11 @@
-'''
+"""
 Contains FitDistribution and Profile class, which are
 
 important classes for fitting to various Continous and Discrete Probability
 Distributions
 
 Author:  Per A. Brodtkorb 2008
-'''
+"""
 
 from __future__ import division, absolute_import
 import warnings
@@ -14,7 +14,7 @@ from scipy.stats._distn_infrastructure import check_random_state
 from wafo.plotbackend import plotbackend as plt
 from wafo.misc import ecross, findcross
 from wafo.stats._constants import _EPS
-from scipy._lib.six import string_types
+# from scipy._lib.six import string_types
 import numdifftools as nd  # @UnresolvedImport
 from scipy import special
 from scipy.linalg import pinv2
@@ -204,7 +204,7 @@ def norm_ppf(q):
 
 
 class Profile(object):
-    '''
+    """
     Profile Log- likelihood or Product Spacing-function for phat[i].
 
     Parameters
@@ -260,7 +260,7 @@ class Profile(object):
     >>> profile_phat_i.plot()
     >>> phat_ci = profile_phat_i.get_bounds(alpha=0.1)
 
-    '''
+    """
     def __init__(self, fit_dist, i=None, pmin=None, pmax=None, n=100,
                  alpha=0.05):
 
@@ -413,8 +413,8 @@ class Profile(object):
             cl = self.alpha_cross_level - self.alpha_Lrange / 2.0
             try:
                 t0 = ecross(self.args, self.data, ind1, cl)
-                self.data.put(ind, cl)
-                self.args.put(ind, t0)
+                np.put(self.data, ind, cl)
+                np.put(self.args, ind, t0)
             except IndexError as err:
                 warnings.warn(str(err))
 
@@ -460,8 +460,8 @@ class Profile(object):
         return pvec
 
     def _get_pvec(self, phatfree0, p_opt):
-        ''' return proper interval for the variable to profile
-        '''
+        """ return proper interval for the variable to profile
+        """
         if self.pmin is None or self.pmax is None:
             pmin, pmax = self._p_min_max(phatfree0, p_opt)
             return self._adaptive_pvec(p_opt, pmin, pmax)
@@ -506,12 +506,12 @@ class Profile(object):
         return p_minmax_opt
 
     def _profile_fun(self, free_par, fix_par):
-        ''' Return negative of loglike or logps function
+        """ Return negative of loglike or logps function
 
            free_par - vector of free parameters
            fix_par  - fixed parameter, i.e., either quantile (return level),
                       probability (return period) or distribution parameter
-        '''
+        """
         par = self._par.copy()
         par[self.i_free] = free_par
 
@@ -538,8 +538,8 @@ class Profile(object):
         return bounds
 
     def get_bounds(self, alpha=0.05):
-        '''Return confidence interval for profiled parameter
-        '''
+        """Return confidence interval for profiled parameter
+        """
         _assert_warn(self.alpha <= alpha, 'Might not be able to return bounds '
                      'with alpha less than {}'.format(self.alpha))
 
@@ -553,9 +553,9 @@ class Profile(object):
         return bounds
 
     def plot(self, axis=None):
-        '''
+        """
         Plot profile function for p_opt with 100(1-alpha)% confidence interval.
-        '''
+        """
         if axis is None:
             axis = plt.gca()
 
@@ -615,7 +615,7 @@ def plot_all_profiles(phats, plot=None):
 
 
 class ProfileQuantile(Profile):
-    '''
+    """
     Profile Log- likelihood or Product Spacing-function for quantile.
 
     Parameters
@@ -680,7 +680,7 @@ class ProfileQuantile(Profile):
     >>> profile_x = ProfileQuantile(phat, x)
     >>> profile_x.plot()
     >>> x_ci = profile_x.get_bounds(alpha=0.2)
-    '''
+    """
     def __init__(self, fit_dist, x, i=None, pmin=None, pmax=None, n=100,
                  alpha=0.05, link=None):
         self.x = x
@@ -713,7 +713,7 @@ class ProfileQuantile(Profile):
 
 
 class ProfileProbability(Profile):
-    ''' Profile Log- likelihood or Product Spacing-function probability.
+    """ Profile Log- likelihood or Product Spacing-function probability.
 
     Parameters
     ----------
@@ -776,7 +776,7 @@ class ProfileProbability(Profile):
     >>> profile_logsf = ProfileProbability(phat, np.log(sf))
     >>> profile_logsf.plot()
     >>> logsf_ci = profile_logsf.get_bounds(alpha=0.2)
-    '''
+    """
     def __init__(self, fit_dist, logsf, i=None, pmin=None, pmax=None, n=100,
                  alpha=0.05, link=None):
         self.x = fit_dist.isf(np.exp(logsf))
@@ -812,7 +812,7 @@ class ProfileProbability(Profile):
 
 # Frozen RV class
 class rv_frozen(object):
-    ''' Frozen continous or discrete 1D Random Variable object (RV)
+    """ Frozen continous or discrete 1D Random Variable object (RV)
 
     Methods
     -------
@@ -839,7 +839,7 @@ class rv_frozen(object):
     expect(func, lb, ub, conditional=False)
         Calculate expected value of a function with respect to the
         distribution.
-    '''
+    """
     def __init__(self, dist, *args, **kwds):
         # create a new instance
         self.dist = dist  # .__class__(**dist._ctor_param)
@@ -867,25 +867,25 @@ class rv_frozen(object):
         self.dist._random_state = check_random_state(seed)
 
     def pdf(self, x):
-        ''' Probability density function at x of the given RV.'''
+        """ Probability density function at x of the given RV."""
         return self.dist.pdf(x, *self.par)
 
     def logpdf(self, x):
         return self.dist.logpdf(x, *self.par)
 
     def cdf(self, x):
-        '''Cumulative distribution function at x of the given RV.'''
+        """Cumulative distribution function at x of the given RV."""
         return self.dist.cdf(x, *self.par)
 
     def logcdf(self, x):
         return self.dist.logcdf(x, *self.par)
 
     def ppf(self, q):
-        '''Percent point function (inverse of cdf) at q of the given RV.'''
+        """Percent point function (inverse of cdf) at q of the given RV."""
         return self.dist.ppf(q, *self.par)
 
     def isf(self, q):
-        '''Inverse survival function at q of the given RV.'''
+        """Inverse survival function at q of the given RV."""
         return self.dist.isf(q, *self.par)
 
     def rvs(self, size=None, random_state=None):
@@ -893,14 +893,14 @@ class rv_frozen(object):
         return self.dist.rvs(*self.par, **kwds)
 
     def sf(self, x):
-        '''Survival function (1-cdf) at x of the given RV.'''
+        """Survival function (1-cdf) at x of the given RV."""
         return self.dist.sf(x, *self.par)
 
     def logsf(self, x):
         return self.dist.logsf(x, *self.par)
 
     def stats(self, moments='mv'):
-        ''' Some statistics of the given RV'''
+        """ Some statistics of the given RV"""
         kwds = dict(moments=moments)
         return self.dist.stats(*self.par, **kwds)
 
@@ -923,7 +923,7 @@ class rv_frozen(object):
         return self.dist.entropy(*self.par)
 
     def pmf(self, k):
-        '''Probability mass function at k of the given RV'''
+        """Probability mass function at k of the given RV"""
         return self.dist.pmf(k, *self.par)
 
     def logpmf(self, k):
@@ -945,7 +945,7 @@ class rv_frozen(object):
 
 
 class FitDistribution(rv_frozen):
-    '''
+    """
     Return estimators to shape, location, and scale from data
 
     Starting points for the fit are given by input arguments.  For any
@@ -1037,10 +1037,10 @@ class FitDistribution(rv_frozen):
     >>> profile_logsf = phat.profile_probability(log(sf))
     >>> profile_logsf.plot()
     >>> sf_ci = profile_logsf.get_bounds(alpha=0.2)
-    '''
+    """
 
     def __init__(self, dist, data, args=(), **kwds):
-        extradoc = '''
+        extradoc = """
     plotfitsummary()
          Plot various diagnostic plots to asses quality of fit.
     plotecdf()
@@ -1069,7 +1069,7 @@ class FitDistribution(rv_frozen):
         composed of letters ['mvsk'] specifying which moments to compute where
         'm' = mean, 'v' = variance, 's' = (Fisher's) skew and
         'k' = (Fisher's) kurtosis. (default='mv')
-       '''
+       """
 #    Member variables
 #    ----------------
 #    data - data used in fitting
@@ -1087,7 +1087,7 @@ class FitDistribution(rv_frozen):
 #    par_lower - lower (1-alpha)% confidence bound for the parameters
 #    par_upper - upper (1-alpha)% confidence bound for the parameters
 #
-#        '''
+#        """
         self.__doc__ = str(rv_frozen.__doc__) + extradoc
         self.dist = dist
         self.par_fix = None
@@ -1153,9 +1153,9 @@ class FitDistribution(rv_frozen):
 
     @staticmethod
     def _hessian(nnlf, theta, data, eps=None):
-        ''' approximate hessian of nnlf where theta are the parameters
+        """ approximate hessian of nnlf where theta are the parameters
         (including loc and scale)
-        '''
+        """
         if eps is None:
             eps = (_EPS) ** 0.25
         num_par = len(theta)
@@ -1245,8 +1245,8 @@ class FitDistribution(rv_frozen):
         return par_cov
 
     def _compute_cov(self):
-        '''Compute covariance
-        '''
+        """Compute covariance
+        """
 
         H = np.asmatrix(self._hessian(self._fitfun, self.par, self.data))
         # H = -nd.Hessian(lambda par: self._fitfun(par, self.data),
@@ -1263,7 +1263,7 @@ class FitDistribution(rv_frozen):
         return self._fitfun(phat, self.data)
 
     def profile(self, **kwds):
-        '''
+        """
         Profile Log- likelihood or Log Product Spacing- function for phat[i]
 
         Examples
@@ -1281,11 +1281,11 @@ class FitDistribution(rv_frozen):
         See also
         --------
         Profile
-        '''
+        """
         return Profile(self, **kwds)
 
     def profile_quantile(self, x, **kwds):
-        '''
+        """
         Profile Log- likelihood or Product Spacing-function for quantile.
 
         Examples
@@ -1302,11 +1302,11 @@ class FitDistribution(rv_frozen):
         >>> profile_x = phat.profile_quantile(x)
         >>> profile_x.plot()
         >>> x_ci = profile_x.get_bounds(alpha=0.2)
-        '''
+        """
         return ProfileQuantile(self, x, **kwds)
 
     def profile_probability(self, log_sf, **kwds):
-        '''
+        """
         Profile Log- likelihood or Product Spacing-function for probability.
 
         Examples
@@ -1322,7 +1322,7 @@ class FitDistribution(rv_frozen):
         >>> profile_logsf = phat.profile_probability(log_sf)
         >>> profile_logsf.plot()
         >>> log_sf_ci = profile_logsf.get_bounds(alpha=0.2)
-        '''
+        """
         return ProfileProbability(self, log_sf, **kwds)
 
     def ci_sf(self, sf, alpha=0.05, i=2):
@@ -1369,7 +1369,7 @@ class FitDistribution(rv_frozen):
         return txt
 
     def plotfitsummary(self, axes=None, fig=None):
-        ''' Plot various diagnostic plots to asses the quality of the fit.
+        """ Plot various diagnostic plots to asses the quality of the fit.
 
         PLOTFITSUMMARY displays probability plot, density plot, residual
         quantile plot and residual probability plot.
@@ -1378,7 +1378,7 @@ class FitDistribution(rv_frozen):
         PDF should follow the model and the residual plots will be linear.
         Other distribution types will introduce curvature in the residual
         plots.
-        '''
+        """
         if axes is None:
             fig, axes = plt.subplots(2, 2, figsize=(11, 8))
             fig.subplots_adjust(hspace=0.4, wspace=0.4)
@@ -1398,13 +1398,13 @@ class FitDistribution(rv_frozen):
             pass
 
     def plotesf(self, symb1='r-', symb2='b.', axis=None, plot_ci=False):
-        '''  Plot Empirical and fitted Survival Function
+        """  Plot Empirical and fitted Survival Function
 
         The purpose of the plot is to graphically assess whether
         the data could come from the fitted distribution.
         If so the empirical CDF should resemble the model CDF.
         Other distribution types will introduce deviations in the plot.
-        '''
+        """
         if axis is None:
             axis = plt.gca()
         n = len(self.data)
@@ -1422,13 +1422,13 @@ class FitDistribution(rv_frozen):
         axis.set_title('Empirical SF plot')
 
     def plotecdf(self, symb1='r-', symb2='b.', axis=None):
-        '''  Plot Empirical and fitted Cumulative Distribution Function
+        """  Plot Empirical and fitted Cumulative Distribution Function
 
         The purpose of the plot is to graphically assess whether
         the data could come from the fitted distribution.
         If so the empirical CDF should resemble the model CDF.
         Other distribution types will introduce deviations in the plot.
-        '''
+        """
         if axis is None:
             axis = plt.gca()
         n = len(self.data)
@@ -1473,13 +1473,13 @@ class FitDistribution(rv_frozen):
         return self._staircase(x, pdf)
 
     def plotepdf(self, symb1='r-', symb2='b-', axis=None):
-        '''Plot Empirical and fitted Probability Density Function
+        """Plot Empirical and fitted Probability Density Function
 
         The purpose of the plot is to graphically assess whether
         the data could come from the fitted distribution.
         If so the histogram should resemble the model density.
         Other distribution types will introduce deviations in the plot.
-        '''
+        """
         if axis is None:
             axis = plt.gca()
         x, pdf = self._get_empirical_pdf()
@@ -1495,13 +1495,13 @@ class FitDistribution(rv_frozen):
         axis.set_title('Density plot')
 
     def plotresq(self, symb1='r-', symb2='b.', axis=None):
-        '''PLOTRESQ displays a residual quantile plot.
+        """PLOTRESQ displays a residual quantile plot.
 
         The purpose of the plot is to graphically assess whether
         the data could come from the fitted distribution. If so the
         plot will be linear. Other distribution types will introduce
         curvature in the plot.
-        '''
+        """
         if axis is None:
             axis = plt.gca()
         n = len(self.data)
@@ -1516,13 +1516,13 @@ class FitDistribution(rv_frozen):
         axis.axis('equal')
 
     def plotresprb(self, symb1='r-', symb2='b.', axis=None):
-        ''' PLOTRESPRB displays a residual probability plot.
+        """ PLOTRESPRB displays a residual probability plot.
 
         The purpose of the plot is to graphically assess whether
         the data could come from the fitted distribution. If so the
         plot will be linear. Other distribution types will introduce curvature
         in the plot.
-        '''
+        """
         if axis is None:
             axis = plt.gca()
         n = len(self.data)
@@ -1538,13 +1538,13 @@ class FitDistribution(rv_frozen):
         axis.axis([0, 1, 0, 1])
 
     def _pvalue(self, theta, x, unknown_numpar=None):
-        ''' Return P-value for the fit using Moran's negative log Product
+        """ Return P-value for the fit using Moran's negative log Product
         Spacings statistic
 
             where theta are the parameters (including loc and scale)
 
             Note: the data in x must be sorted
-        '''
+        """
         dx = np.diff(x, axis=0)
         tie = (dx == 0)
         if np.any(tie):
