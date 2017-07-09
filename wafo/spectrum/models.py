@@ -239,6 +239,7 @@ class Bretschneider(ModelSpectrum):
     """
 
     type = 'Bretschneider'
+
     def __init__(self, Hm0=7.0, Tp=11.0, N=5, M=4, chk_seastate=True, **kwds):
         super(Bretschneider, self).__init__(Hm0, Tp)
         self.N = N
@@ -1108,7 +1109,6 @@ class McCormick(Bretschneider):
         N = M + 1.0
         super(McCormick, self).__init__(Hm0, Tp, N, M, chk_seastate)
 
-
     def _localoptfun(self, x):
         # LOCALOPTFUN Local function to optimize.
         y = 1.0 + x
@@ -1312,7 +1312,6 @@ class Wallop(Bretschneider):
             Lp = 2. * pi / kp  # wave length at the peak frequency
             N = abs((log(2. * pi ** 2.) + 2 * log(Hm0 / 4) -
                      2.0 * log(Lp)) / log(2))
-
 
         super(Wallop, self).__init__(Hm0, Tp, N, M, chk_seastate)
 
