@@ -1522,7 +1522,7 @@ class Spreading(object):
         methods = {'n': None, 'm': 'mitsuyasu', 'd': 'donelan', 'b':'banner',
                    0: None, 1: 'mitsuyasu', 2: 'donelan', 3:'banner',
                    None: None}
-        m = method if not isinstance(self.method, str) else method[0].lower()
+        m = method if not isinstance(method, str) else method[0].lower()
         try:
             self._method = methods[m]
         except KeyError:
