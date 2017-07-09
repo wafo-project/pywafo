@@ -43,7 +43,6 @@ from numpy import (inf, atleast_1d, newaxis, any, minimum, maximum, array,
                    hstack, vstack, real, flipud, clip)
 from ..wave_theory.dispersion_relation import w2k, k2w  # @UnusedImport
 from .core import SpecData1D, SpecData2D
-from dask.dataframe.core import meth
 
 
 __all__ = ['Bretschneider', 'Jonswap', 'Torsethaugen', 'Wallop', 'McCormick',
