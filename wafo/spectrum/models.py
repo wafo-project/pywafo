@@ -1519,8 +1519,8 @@ class Spreading(object):
 
     @method.setter
     def method(self, method):
-        methods = {'n': None, 'm': 'mitsuyasu', 'd': 'donelan', 'b':'banner',
-                   0: None, 1: 'mitsuyasu', 2: 'donelan', 3:'banner',
+        methods = {'n': None, 'm': 'mitsuyasu', 'd': 'donelan', 'b': 'banner',
+                   0: None, 1: 'mitsuyasu', 2: 'donelan', 3: 'banner',
                    None: None}
         m = method if not isinstance(method, str) else method[0].lower()
         try:
@@ -1987,7 +1987,7 @@ class Spreading(object):
     @staticmethod
     def _check_theta(theta):
         L = abs(theta[-1] - theta[0])
-        if abs(L - np.pi) > _EPS:
+        if abs(L - 2 * np.pi) > _EPS:
             raise ValueError('theta must cover all angles -pi -> pi')
         nt = len(theta)
         if nt < 40:
