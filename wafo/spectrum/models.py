@@ -43,6 +43,7 @@ from numpy import (inf, atleast_1d, newaxis, any, minimum, maximum, array,
                    hstack, vstack, real, flipud, clip)
 from ..wave_theory.dispersion_relation import w2k, k2w  # @UnusedImport
 from .core import SpecData1D, SpecData2D
+from dask.dataframe.core import meth
 
 
 __all__ = ['Bretschneider', 'Jonswap', 'Torsethaugen', 'Wallop', 'McCormick',
@@ -568,6 +569,14 @@ class Jonswap(ModelSpectrum):
         Gf = self.peak_e_factor(wn)
         return Gf * _gengamspec(wn, self.N, self.M)
 
+    def _check_parametric_ag(self, N, M, gammai):
+        parameters_ok = 3 <= N <= 50 or 2 <= M <= 9.5 and 1 <= gammai <= 20
+        if not parameters_ok:
+            raise ValueError('Not knowing the normalization because N, ' +
+                             'M or peakedness parameter is out of bounds!')
+        if self.sigmaA != 0.07 or self.sigmaB != 0.09:
+            warnings.warn('Use integration to calculate Ag when ' + 'sigmaA!=0.07 or sigmaB!=0.09')
+
     def _parametric_ag(self):
         """
         Original normalization
@@ -581,23 +590,18 @@ class Jonswap(ModelSpectrum):
         N = self.N
         M = self.M
         gammai = self.gamma
-        parameters_ok = (3 <= N <= 50 or 2 <= M <= 9.5 and 1 <= gammai <= 20)
         f1NM = 4.1 * (N - 2 * M ** 0.28 + 5.3) ** (-1.45 * M ** 0.1 + 0.96)
         f2NM = ((2.2 * M ** (-3.3) + 0.57) * N ** (-0.58 * M ** 0.37 + 0.53) -
                 1.04 * M ** (-1.9) + 0.94)
         self.Ag = (1 + f1NM * log(gammai) ** f2NM) / gammai
-        if not parameters_ok:
-            raise ValueError('Not knowing the normalization because N, ' +
-                             'M or peakedness parameter is out of bounds!')
-        # elseif N == 5 && M == 4,
+        # if N == 5 && M == 4,
         #     options.Ag = (1+1.0*log(gammai).**1.16)/gammai
         #     options.Ag = (1-0.287*log(gammai))
         #     options.normalizeMethod = 'Three'
         # elseif  N == 4 && M == 4,
         #     options.Ag = (1+1.1*log(gammai).**1.19)/gammai
-        if self.sigmaA != 0.07 or self.sigmaB != 0.09:
-            warnings.warn('Use integration to calculate Ag when ' +
-                          'sigmaA!=0.07 or sigmaB!=0.09')
+
+        self._check_parametric_ag(N, M, gammai)
 
     def _custom_ag(self):
         self.method = 'custom'
@@ -1502,20 +1506,6 @@ class Spreading(object):
         self.wn_c = wn_c
         self.wn_up = wn_up
 
-        methods = dict(n=None, m='mitsuyasu', d='donelan', b='banner')
-        methodslist = (None, 'mitsuyasu', 'donelan', 'banner')
-
-        if isinstance(self.method, str):
-            if not self.method[0] in methods:
-                raise ValueError('Unknown method')
-            self.method = methods[self.method[0]]
-        elif self.method is None:
-            pass
-        else:
-            if method < 0 or 3 < method:
-                method = 2
-            self.method = methodslist[method]
-
         self._spreadfun = dict(c=self.cos2s, b=self.box, m=self.mises,
                                v=self.mises,
                                p=self.poisson, s=self.sech2, w=self.wrap_norm)
@@ -1523,6 +1513,22 @@ class Spreading(object):
                                      v=self.fourier2k,
                                      p=self.fourier2x, s=self.fourier2b,
                                      w=self.fourier2d)
+
+    @property
+    def method(self):
+        return self._method
+
+    @method.setter
+    def method(self, method):
+        methods = {'n': None, 'm': 'mitsuyasu', 'd': 'donelan', 'b':'banner',
+                   0: None, 1: 'mitsuyasu', 2: 'donelan', 3:'banner',
+                   None: None}
+        m = method if not isinstance(self.method, str) else method[0].lower()
+        try:
+            self._method = methods[m]
+        except KeyError:
+            msg = 'Unknown method. Got {}, but expected one of {}!'
+            raise ValueError(msg.format(method, str(methods.keys())))
 
     def __call__(self, theta, w=1, wc=1):
         spreadfun = self._spreadfun[self.type[0]]
@@ -1979,7 +1985,16 @@ class Spreading(object):
         return where(x < 100., xk / sinh(xk),
                      -2. * xk / (exp(xk) * expm1(-2. * xk)))
 
-    def tospecdata2d(self, specdata=None, theta=None, wc=0.52, nt=51):
+    def _check_theta(self, theta):
+        L = abs(theta[-1] - theta[0])
+        if abs(L - np.pi) > _EPS:
+            raise ValueError('theta must cover all angles -pi -> pi')
+        nt = len(theta)
+        if nt < 40:
+            warnings.warn('Number of angles is less than 40. ' +
+                          'Spreading too sparsely sampled!')
+
+    def tospecdata2d(self, specdata, theta=None, wc=0.52, nt=51):
         """
          MKDSPEC Make a directional spectrum
                  frequency spectrum times spreading function
@@ -1991,7 +2006,6 @@ class Spreading(object):
                           (default jonswap)
                D    = spreading function (special struct)
                           (default spreading([],'cos2s'))
-               plotflag = 1: plot the spectrum, else: do not plot (default 0)
 
          Creates a directional spectrum through multiplication of a frequency
          spectrum and a spreading function: S(w,theta)=S(w)*D(w,theta)
@@ -2013,21 +2027,10 @@ class Spreading(object):
 
          See also  spreading, rotspec, jonswap, torsethaugen
         """
-
-        if specdata is None:
-            specdata = Jonswap().tospecdata()
         if theta is None:
-            pi = np.pi
-            theta = np.linspace(-pi, pi, nt)
-        else:
-            L = abs(theta[-1] - theta[0])
-            if abs(L - pi) > _EPS:
-                raise ValueError('theta must cover all angles -pi -> pi')
-            nt = len(theta)
+            theta = np.linspace(-np.pi, np.pi, nt)
 
-        if nt < 40:
-            warnings.warn('Number of angles is less than 40. ' +
-                          'Spreading too sparsely sampled!')
+        self._check_theta(theta)
 
         w = specdata.args
         S = specdata.data
