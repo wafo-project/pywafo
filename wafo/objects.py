@@ -994,7 +994,6 @@ class CyclePairs(PlotData):
             F[i, j] += 1
         return F
 
-
     def _discretize_cycle_pairs(self, param, ddef=1):
         """
         Discretize a cycle pairs.

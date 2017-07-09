@@ -125,11 +125,11 @@ def _gengamspec(wn, N=5, M=4):
 
 
 class ModelSpectrum(object):
+    type = 'ModelSpectrum'
 
     def __init__(self, Hm0=7.0, Tp=11.0, **kwds):
         self.Hm0 = Hm0
         self.Tp = Tp
-        self.type = 'ModelSpectrum'
 
     def tospecdata(self, w=None, wc=None, nw=257):
         """
@@ -156,9 +156,8 @@ class ModelSpectrum(object):
             w = linspace(0, wc, nw)
         S = SpecData1D(self.__call__(w), w)
         try:
-            h = self.h
-            S.h = h
-        except:
+            S.h = self.h
+        except AttributeError:
             pass
         S.labels.title = self.type + ' ' + S.labels.title
         S.workspace = self.__dict__.copy()
@@ -239,12 +238,12 @@ class Bretschneider(ModelSpectrum):
     Torsethaugen
     """
 
+    type = 'Bretschneider'
     def __init__(self, Hm0=7.0, Tp=11.0, N=5, M=4, chk_seastate=True, **kwds):
-        self.type = 'Bretschneider'
-        self.Hm0 = Hm0
-        self.Tp = Tp
+        super(Bretschneider, self).__init__(Hm0, Tp)
         self.N = N
         self.M = M
+
         if chk_seastate:
             self.chk_seastate()
 
@@ -522,13 +521,12 @@ class Jonswap(ModelSpectrum):
      Ergansungsheft, Reihe A(8), Nr. 12, Deutschen Hydrografischen Zeitschrift.
     """
 
+    type = 'Jonswap'
+
     def __init__(self, Hm0=7.0, Tp=11.0, gamma=None, sigmaA=0.07, sigmaB=0.09,
                  Ag=None, N=5, M=4, method='integration', wnc=6.0,
                  chk_seastate=True):
-
-        self.type = 'Jonswap'
-        self.Hm0 = Hm0
-        self.Tp = Tp
+        super(Jonswap, self).__init__(Hm0, Tp)
         self.N = N
         self.M = M
         self.sigmaA = sigmaA
@@ -883,11 +881,12 @@ class Torsethaugen(ModelSpectrum):
 
     """
 
+    type = 'Torsethaugen'
+
     def __init__(self, Hm0=7, Tp=11, method='integration', wnc=6, gravity=9.81,
                  chk_seastate=True, **kwds):
-        self.type = 'Torsethaugen'
-        self.Hm0 = Hm0
-        self.Tp = Tp
+        super(Torsethaugen, self).__init__(Hm0, Tp)
+
         self.method = method
         self.wnc = wnc
         self.gravity = gravity
@@ -1040,10 +1039,9 @@ class Torsethaugen(ModelSpectrum):
             print('Tps = %g Tpw = %g' % (Tps, Tpw))
 
         # G0s=Ms/((Ns/Ms)**(-(Ns-1)/Ms)*gamma((Ns-1)/Ms )) #normalizing factor
-        # Wind part
+
         self.wind = Jonswap(Hm0=Hpw, Tp=Tpw, gamma=gammaw, N=Nw, M=Mw,
                             method=self.method, chk_seastate=False)
-        # Swell part
         self.swell = Jonswap(Hm0=Hps, Tp=Tps, gamma=gammas, N=Ns, M=Ms,
                              method=self.method, chk_seastate=False)
 
@@ -1097,22 +1095,19 @@ class McCormick(Bretschneider):
     Marine Technology Society, Vol 33, No. 3, pp 27-32
     """
 
+    type = 'McCormick'
+
     def __init__(self, Hm0=7, Tp=11, Tz=None, M=None, chk_seastate=True):
-        self.type = 'McCormick'
-        self.Hm0 = Hm0
-        self.Tp = Tp
         if Tz is None:
             Tz = 0.8143 * Tp
-
         self.Tz = Tz
-        if chk_seastate:
-            self.chk_seastate()
 
-        if M is None and self.Hm0 > 0:
+        if M is None and Hm0 > 0:
             self._TpdTz = Tp / Tz
             M = 1.0 / optimize.fminbound(self._localoptfun, 0.01, 5)
-        self.M = M
-        self.N = M + 1.0
+        N = M + 1.0
+        super(McCormick, self).__init__(Hm0, Tp, N, M, chk_seastate)
+
 
     def _localoptfun(self, x):
         # LOCALOPTFUN Local function to optimize.
@@ -1173,10 +1168,11 @@ class OchiHubble(ModelSpectrum):
 
     """
 
+    type = 'Ochi Hubble'
+
     def __init__(self, Hm0=7, par=1, chk_seastate=True):
-        self.type = 'Ochi Hubble'
-        self.Hm0 = Hm0
-        self.Tp = 1
+        super(OchiHubble, self).__init__(Hm0, Tp=1)
+
         self.par = par
         self.wind = None
         self.swell = None
@@ -1306,11 +1302,10 @@ class Wallop(Bretschneider):
     J. Fluid Mechanics, Vol.112, pp 203-224
     """
 
+    type = 'Wallop'
+
     def __init__(self, Hm0=7, Tp=11, N=None, chk_seastate=True):
-        self.type = 'Wallop'
-        self.Hm0 = Hm0
-        self.Tp = Tp
-        self.M = 4
+        M = 4
         if N is None:
             wp = 2. * pi / Tp
             kp = w2k(wp, 0, inf)[0]  # wavenumber at peak frequency
@@ -1318,10 +1313,8 @@ class Wallop(Bretschneider):
             N = abs((log(2. * pi ** 2.) + 2 * log(Hm0 / 4) -
                      2.0 * log(Lp)) / log(2))
 
-        self.N = N
 
-        if chk_seastate:
-            self.chk_seastate()
+        super(Wallop, self).__init__(Hm0, Tp, N, M, chk_seastate)
 
 
 class Spreading(object):
