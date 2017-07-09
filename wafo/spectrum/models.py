@@ -1985,7 +1985,8 @@ class Spreading(object):
         return where(x < 100., xk / sinh(xk),
                      -2. * xk / (exp(xk) * expm1(-2. * xk)))
 
-    def _check_theta(self, theta):
+    @staticmethod
+    def _check_theta(theta):
         L = abs(theta[-1] - theta[0])
         if abs(L - np.pi) > _EPS:
             raise ValueError('theta must cover all angles -pi -> pi')
