@@ -549,21 +549,23 @@ class TrOchi(TrCommon2):
         return (y2 - mean2) / sigma2
 
     def _dat2gauss(self, x, *xi):
-        if len(xi) > 0:
-            raise ValueError('Transforming derivatives is not implemented!')
-
-        xn = (atleast_1d(x) - self.mean) / self.sigma
-        shape0 = xn.shape
-        yn = np.reshape(self._forward(xn.ravel()), shape0)
-        return yn * self.ysigma + self.ymean
+        return self._transformgauss(self._forward,
+                                    self.ymean, self.ysigma,
+                                    self.mean, self.sigma, x, *xi)
 
     def _gauss2dat(self, y, *yi):
+        return self._transformgauss(self._backward,
+                                    self.mean, self.sigma,
+                                    self.ymean, self.ysigma, y, *yi)
+
+    @staticmethod
+    def _transformgauss(trfun, mean, sigma, ymean, ysigma, y, *yi):
         if len(yi) > 0:
             raise ValueError('Transforming derivatives is not implemented!')
-        yn = (atleast_1d(y) - self.ymean) / self.ysigma
+        yn = (atleast_1d(y) - ymean) / ysigma
         shape0 = yn.shape
-        xn = np.reshape(self._backward(yn.ravel()), shape0)
-        return xn * self.sigma + self.mean
+        xn = np.reshape(trfun(yn.ravel()), shape0)
+        return xn * sigma + mean
 
 
 def main():
