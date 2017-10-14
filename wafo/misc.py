@@ -2020,6 +2020,10 @@ def discretize(fun, a, b, tol=0.005, n=5, method='linear'):
     >>> import numpy as np
     >>> import pylab as plt
     >>> x,y = wm.discretize(np.cos, 0, np.pi)
+    >>> np.allclose(x[:5],
+    ... [ 0.        ,  0.19634954,  0.39269908,  0.58904862,  0.78539816])
+    True
+
     >>> xa,ya = wm.discretize(np.cos, 0, np.pi, method='adaptive')
     >>> np.allclose(xa[:5],
     ... [ 0.        ,  0.19634954,  0.39269908,  0.58904862,  0.78539816])
