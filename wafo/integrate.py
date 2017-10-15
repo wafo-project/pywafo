@@ -9,7 +9,7 @@ from scipy import special as sp
 from scipy.integrate import simps, trapz
 from wafo.plotbackend import plotbackend as plt
 from wafo.demos import humps
-from wafo.misc import dea3
+from numdifftools.extrapolation import dea3
 # from wafo.dctpack import dct
 from collections import defaultdict
 # from pychebfun import Chebfun

@@ -3,6 +3,7 @@ Misc
 '''
 from __future__ import absolute_import, division, print_function
 import sys
+import collections
 from wafo import numba_misc
 import fractions
 import numpy as np
@@ -17,9 +18,7 @@ from scipy.special import gammaln
 from scipy.integrate import trapz, simps
 import warnings
 from time import strftime, gmtime
-from numdifftools.extrapolation import dea3  # @UnusedImport
 from wafo.plotbackend import plotbackend
-from collections import Callable
 import numbers
 try:
     from wafo import c_library as clib  # @UnresolvedImport
@@ -36,11 +35,11 @@ __all__ = ['now', 'spaceline', 'narg_smallest', 'args_flat', 'is_numlike',
            'parse_kwargs', 'detrendma', 'ecross', 'findcross', 'findextrema',
            'findpeaks', 'findrfc', 'rfcfilter', 'findtp', 'findtc',
            'findoutliers', 'common_shape', 'argsreduce', 'stirlerr',
-           'getshipchar', 'dea3',
-           'betaloge', 'gravity', 'nextpow2', 'discretize', 
+           'getshipchar',
+           'betaloge', 'gravity', 'nextpow2', 'discretize',
            'polar2cart', 'cart2polar', 'pol2cart', 'cart2pol',
            'meshgrid', 'ndgrid', 'trangood', 'tranproc',
-           'plot_histgrm', 'num2pistr', 'test_docstrings', 
+           'plot_histgrm', 'num2pistr', 'test_docstrings',
            'lazywhere', 'lazyselect',
            'piecewise',
            'valarray', 'check_random_state']
@@ -2082,7 +2081,7 @@ def _discretize_adaptive(fun, a, b, tol=0.005, n=5):
     err = erri.max()
     err0 = inf
     num_tries = 0
-    reltol = abstol = tol
+    # reltol = abstol = tol
     for j in range(50):
         if num_tries < 5 and err > tol:
             err0 = err
@@ -2664,7 +2663,7 @@ def fourier(data, t=None, period=None, m=None, n=None, method='trapz'):
     >>> a, b = wm.fourier(x, t, period=T, m=5)
     >>> np.allclose(a, 0)
     True
-    >>> np.allclose(b.ravel(), 
+    >>> np.allclose(b.ravel(),
     ...             [ 0.,  4.,  0.,  0.,  0.])
     True
 
