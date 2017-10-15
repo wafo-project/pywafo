@@ -39,11 +39,11 @@ class TestSpectrumHs7(unittest.TestCase):
 
     def test_to_t_pdf(self):
         f = self.S.to_t_pdf(pdef='Tc', paramt=(0, 10, 51), speed=7, seed=100)
-        vals = ['%2.3f' % val for val in f.data[:10]]
-        truevals = ['0.000', '0.014', '0.027', '0.040',
-                    '0.050', '0.059', '0.067', '0.073', '0.077', '0.082']
-        for t, v in zip(truevals, vals):
-            assert(t == v)
+
+        truth = [0.0, 0.014068786046738972, 0.027384724577108947, 0.039538002584522454,
+                 0.050183061144017056, 0.05948762020247726, 0.0669017098497974,
+                 0.07251637759775977, 0.07729759248201125, 0.08151306823047058]
+        assert_array_almost_equal(f.data[:10], truth, decimal=1e-3)
 
         # estimated error bounds
         vals = ['%2.4f' % val for val in f.err[:10]]
