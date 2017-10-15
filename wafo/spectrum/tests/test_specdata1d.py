@@ -46,11 +46,9 @@ class TestSpectrumHs7(unittest.TestCase):
         assert_array_almost_equal(f.data[:10], truth, decimal=1e-3)
 
         # estimated error bounds
-        vals = ['%2.4f' % val for val in f.err[:10]]
-        truevals = ['0.0000', '0.0003', '0.0003', '0.0004',
-                    '0.0006', '0.0008', '0.0016', '0.0019', '0.0020', '0.0021']
-        for t, v in zip(truevals, vals):
-            assert(t == v)
+        truth = [0., 0.00028327, 0.00027281, 0.00042283, 0.00058736, 0.00083936,
+                 0.00160774, 0.00186591, 0.00196073, 0.00213102]
+        np.testing.assert_allclose(f.err[:10], truth, rtol=1e-2, atol=1e-4)
 
     @slow
     def test_sim(self):
