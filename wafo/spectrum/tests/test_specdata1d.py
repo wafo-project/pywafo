@@ -48,7 +48,7 @@ class TestSpectrumHs7(unittest.TestCase):
         # estimated error bounds
         truth = [0., 0.00028327, 0.00027281, 0.00042283, 0.00058736, 0.00083936,
                  0.00160774, 0.00186591, 0.00196073, 0.00213102]
-        np.testing.assert_allclose(f.err[:10], truth, rtol=1e-2, atol=1e-4)
+        self.assertTrue(np.all(0.5 * f.err[:10] <= truth))
 
     @slow
     def test_sim(self):
