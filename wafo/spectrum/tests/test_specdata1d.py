@@ -101,13 +101,12 @@ class TestSpectrumHs7(unittest.TestCase):
         # x1 = S0.sim(ns, dt=dt)
         S = S0.copy()
         me, _va, sk, ku = S.stats_nl(moments='mvsk')
-        S.tr = wtm.TrHermite(
-            mean=me, sigma=Hs / 4, skew=sk, kurt=ku, ysigma=Hs / 4)
+        S.tr = wtm.TrHermite(mean=me, sigma=Hs / 4, skew=sk, kurt=ku, ysigma=Hs / 4)
         ys = wo.mat2timeseries(S.sim(ns=2 ** 13))
         g0, _gemp = ys.trdata()
         t0 = g0.dist2gauss()
         t1 = S0.testgaussian(ns=2 ** 13, test0=None, cases=50)
-        assert(sum(t1 > t0) < 5)
+        assert(sum(t1 > t0) <= 5)
 
 
 class TestSpectrumHs5(unittest.TestCase):
