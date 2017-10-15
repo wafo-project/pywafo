@@ -6,7 +6,6 @@ Created on 15. des. 2016
 from __future__ import absolute_import, division, print_function
 from scipy import sparse
 import numpy as np
-from wafo.testing import test_docstrings
 from itertools import product
 
 __all__ = ['accum',  'gridcount']
@@ -358,4 +357,5 @@ def gridcount(data, X, y=1):
 
 
 if __name__ == '__main__':
+    from wafo.testing import test_docstrings
     test_docstrings(__file__)

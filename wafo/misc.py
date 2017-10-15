@@ -18,7 +18,7 @@ from scipy.special import gammaln
 from scipy.integrate import trapz, simps
 import warnings
 from time import strftime, gmtime
-from wafo.plotbackend import plotbackend
+from wafo.plotbackend import plotbackend as plt
 import numbers
 try:
     from wafo import c_library as clib  # @UnresolvedImport
@@ -798,9 +798,9 @@ def detrendma(x, L):
 
     mn = x1[:2 * L + 1].mean(axis=0)
     y = np.empty_like(x1)
-    y[:L+1] = x1[:L+1] - mn
+    y[:L + 1] = x1[:L + 1] - mn
 
-    ix = np.r_[L+1:(n - L)]
+    ix = np.r_[L + 1:(n - L)]
     trend = ((x1[ix + L] - x1[ix - L]) / (2 * L)).cumsum(axis=0) + mn
     y[ix] = x1[ix] - trend
     y[n - L::] = x1[n - L::] - trend[-1]
@@ -865,7 +865,6 @@ def _findcross(xn, method='clib'):
         ind, m = clib.findcross(xn, 0.0)
         return ind[:int(m)]
     return numba_misc.findcross(xn)
-
 
 
 def findcross(x, v=0.0, kind=None, method='clib'):
@@ -2064,7 +2063,7 @@ def _discretize_linear(fun, a, b, tol=0.005, n=5):
         y = fun(x)
         y00 = interp(x, x0, y0)
         err = 0.5 * amax(np.abs(y00 - y) / (np.abs(y00) + np.abs(y) + _TINY + tol))
-        num_tries += int(abs(err - err0) <= tol/2)
+        num_tries += int(abs(err - err0) <= tol / 2)
     return x, y
 
 
@@ -2107,7 +2106,7 @@ def _discretize_adaptive(fun, a, b, tol=0.005, n=5):
             x = x[ix]
             erri = hstack((zeros(len(fx)), erri))[ix]
             fx = hstack((fx, fy))[ix]
-            num_tries += int(abs(err - err0) <= tol/2)
+            num_tries += int(abs(err - err0) <= tol / 2)
         else:
             break
     else:
@@ -2140,6 +2139,8 @@ def polar2cart(theta, rho, z=None):
     if z is None:
         return x, y
     return x, y, z
+
+
 pol2cart = polar2cart
 
 
@@ -2168,6 +2169,8 @@ def cart2polar(x, y, z=None):
     if z is None:
         return t, r
     return t, r, z
+
+
 cart2pol = cart2polar
 
 
@@ -2568,7 +2571,7 @@ def plot_histgrm(data, bins=None, range=None,  # @ReservedAssignment
     '''
 
     xx, yy, limits = _histogram(data, bins, range, normed, weights, density)
-    return plotbackend.plot(xx, yy, lintype, limits, limits * 0)
+    return plt.plot(xx, yy, lintype, limits, limits * 0)
 
 
 def num2pistr(x, n=3, numerator_max=10, denominator_max=10):
