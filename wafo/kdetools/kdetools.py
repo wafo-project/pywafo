@@ -10,12 +10,12 @@
 # Licence:     LGPL
 # -------------------------------------------------------------------------
 
-from __future__ import absolute_import, division
+from __future__ import absolute_import, division, print_function
 # from abc import ABCMeta, abstractmethod
 import copy
 import warnings
 import numpy as np
-import scipy.stats
+import scipy.stats as st
 from scipy import interpolate, linalg, special
 from numpy import sqrt, atleast_2d, meshgrid
 from numpy.fft import fftn, ifftn
@@ -64,12 +64,15 @@ class _KDE(object):
         self.xmax = xmax
         self.kernel = kernel if kernel else Kernel('gauss')
 
+        self.args = None
+
     @property
     def inc(self):
         return self._inc
 
     @inc.setter
     def inc(self, inc):
+        # pylint: disable=attribute-defined-outside-init
         self._inc = inc
 
     @property
@@ -78,6 +81,7 @@ class _KDE(object):
 
     @dataset.setter
     def dataset(self, data):
+        # pylint: disable=attribute-defined-outside-init
         self._dataset = atleast_2d(data)
 
     @property
@@ -103,6 +107,7 @@ class _KDE(object):
     def xmin(self, xmin):
         if xmin is None:
             xmin = self.dataset.min(axis=-1) - 2 * self.sigma
+        # pylint: disable=attribute-defined-outside-init
         self._xmin = self._check_xmin(xmin*np.ones(self.d))
 
     def _check_xmin(self, xmin):
@@ -116,7 +121,7 @@ class _KDE(object):
     def xmax(self, xmax):
         if xmax is None:
             xmax = self.dataset.max(axis=-1) + 2 * self.sigma
-
+        # pylint: disable=attribute-defined-outside-init
         self._xmax = self._check_xmax(xmax * np.ones(self.d))
 
     def _check_xmax(self, xmax):
@@ -174,7 +179,7 @@ class _KDE(object):
             c_levels = qlevels(wdata.data, p=p_levels)
             wdata.clevels = c_levels
             wdata.plevels = p_levels
-        except Exception as e:
+        except ValueError as e:
             msg = "Could not calculate contour levels!. ({})".format(str(e))
             warnings.warn(msg)
 
@@ -459,7 +464,7 @@ class TKDE(_KDE):
         f = self._scale_pdf(tf, points)
         return f
 
-    def _eval_points(self, points):
+    def _eval_points(self, points, **kwds):
         """Evaluate the estimated pdf on a set of points.
 
         Parameters
@@ -633,6 +638,7 @@ class KDE(_KDE):
         if h is None:
             h = self.kernel.get_smoothing(self.dataset)
         h = self._check_hs(h)
+        # pylint: disable=attribute-defined-outside-init
         self._inv_hs, deth = self._invert_hs(h)
         self._norm_factor = deth * self.n
         self._hs = h
@@ -649,6 +655,7 @@ class KDE(_KDE):
             L1 = 10
             inc = max(48, (L1 * xyzrange / (tau * self.hs)).max())
             inc = 2 ** nextpow2(inc)
+        # pylint: disable=attribute-defined-outside-init
         self._inc = inc
 
     @property
@@ -657,6 +664,7 @@ class KDE(_KDE):
 
     @alpha.setter
     def alpha(self, alpha):
+        # pylint: disable=attribute-defined-outside-init
         self._alpha = alpha
         self._lambda = np.ones(self.n)
         if alpha > 0:
@@ -881,6 +889,8 @@ class KRegression(object):
         self.y = np.atleast_1d(y)
         self.p = p
 
+        self._grdfun = None
+
     def eval_grid_fast(self, *args, **kwds):
         self._grdfun = self.tkde.eval_grid_fast
         return self.tkde.eval_grid_fun(self._eval_gridfun, *args, **kwds)
@@ -941,6 +951,7 @@ class BKRegression(object):
             hs1 = self._get_max_smoothing('hste')[0]
             hs2 = self._get_max_smoothing('hos')[0]
             hs_e = sqrt(hs1 * hs2)
+        # pylint: disable=attribute-defined-outside-init
         self._hs_e = hs_e
 
     def _set_smoothing(self, hs):
@@ -997,7 +1008,6 @@ class BKRegression(object):
         # Jeffreys intervall a=b=0.5
         # st.beta.isf(alpha/2, y+a, n-y+b) y = n*p, n-y = n*(1-p)
         a, b = self.a, self.b
-        st = scipy.stats
         pup = np.where(p == 1, 1,
                        st.beta.isf(alpha / 2, n * p + a, n * (1 - p) + b))
         plo = np.where(p == 0, 0,

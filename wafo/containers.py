@@ -1,8 +1,8 @@
-from __future__ import absolute_import
+from __future__ import absolute_import, division, print_function
 import warnings
 from wafo.graphutil import cltext
 from wafo.plotbackend import plotbackend as plt
-from time import gmtime, strftime
+from wafo.misc import now
 import numpy as np
 from scipy.integrate.quadrature import cumtrapz  # @UnresolvedImport
 from scipy import interpolate
@@ -17,21 +17,22 @@ def empty_copy(obj):
         def __init__(self):
             pass
     newcopy = Empty()
+    # pylint: disable=attribute-defined-outside-init
     newcopy.__class__ = obj.__class__
     return newcopy
 
 
-def now():
-    '''
-    Return current date and time as a string
-    '''
-    return strftime("%a, %d %b %Y %H:%M:%S", gmtime())
+def _set_seed(iseed):
+    if iseed is not None:
+        try:
+            np.random.set_state(iseed)
+        except ValueError:
+            np.random.seed(iseed)
 
 
 class PlotData(object):
 
-    '''
-    Container class for data with interpolation and plotting methods
+    """Container class for data with interpolation and plotting methods.
 
     Member variables
     ----------------
@@ -69,7 +70,7 @@ class PlotData(object):
     >>> h = d3.plot() # plot data, CI red dotted line
     >>> h = d3.plot(plot_args_children=['b--']) # CI with blue dashed line
 
-    '''
+    """
 
     def __init__(self, data=None, args=None, **kwds):
         self.data = data
@@ -92,8 +93,7 @@ class PlotData(object):
         return newcopy
 
     def eval_points(self, *points, **kwds):
-        '''
-        Interpolate data at points
+        """Interpolate data at points.
 
         Parameters
         ----------
@@ -136,7 +136,8 @@ class PlotData(object):
         See also
         --------
         scipy.interpolate.griddata
-        '''
+
+        """
         options = dict(method='linear')
         options.update(**kwds)
         if isinstance(self.args, (list, tuple)):  # Multidimensional data

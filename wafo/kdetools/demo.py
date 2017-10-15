@@ -246,7 +246,6 @@ def kreg_demo1(hs=None, fast=True, fun='hisj'):
     plt.plot(x, y2[0], 'm', label='statsmodel')
 
     plt.legend()
-    # plt.show()
 
     # print(kreg.tkde.tkde._inv_hs)
     # print(kreg.tkde.tkde.hs)

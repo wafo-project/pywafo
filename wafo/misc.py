@@ -1,7 +1,7 @@
 '''
 Misc
 '''
-from __future__ import absolute_import, division
+from __future__ import absolute_import, division, print_function
 import sys
 from wafo import numba_misc
 import fractions
@@ -37,12 +37,20 @@ __all__ = ['now', 'spaceline', 'narg_smallest', 'args_flat', 'is_numlike',
            'findpeaks', 'findrfc', 'rfcfilter', 'findtp', 'findtc',
            'findoutliers', 'common_shape', 'argsreduce', 'stirlerr',
            'getshipchar', 'dea3',
-           'betaloge', 'gravity', 'nextpow2', 'discretize', 'polar2cart',
-           'cart2polar', 'meshgrid', 'ndgrid', 'trangood', 'tranproc',
-           'plot_histgrm', 'num2pistr', 'test_docstrings', 'lazywhere',
-           'lazyselect',
+           'betaloge', 'gravity', 'nextpow2', 'discretize', 
+           'polar2cart', 'cart2polar', 'pol2cart', 'cart2pol',
+           'meshgrid', 'ndgrid', 'trangood', 'tranproc',
+           'plot_histgrm', 'num2pistr', 'test_docstrings', 
+           'lazywhere', 'lazyselect',
            'piecewise',
            'valarray', 'check_random_state']
+
+
+def xor(a, b):
+    """
+    Return True only when inputs differ.
+    """
+    return a ^ b
 
 
 def check_random_state(seed):
@@ -87,7 +95,7 @@ def valarray(shape, value=np.NaN, typecode=None):
     return out
 
 
-def piecewise(condlist, funclist, xi=None, fill_value=0.0, args=(), **kw):
+def piecewise(condlist, funclist, xi=None, fillvalue=0.0, args=(), **kw):
     """
     Evaluate a piecewise-defined function.
 
@@ -151,7 +159,7 @@ def piecewise(condlist, funclist, xi=None, fill_value=0.0, args=(), **kw):
           |funclist[0](x0[condlist[0]],x1[condlist[0]],...,xn[condlist[0]])
     out = |funclist[1](x0[condlist[1]],x1[condlist[1]],...,xn[condlist[1]])
           |...
-          |funclist[n2](x0[condlist[n2]],x1[condlist[n2]],...,xn[condlist[n2]])
+          |funclist[n2](x0[condlist[n2]], x1[condlist[n2]],..,xn[condlist[n2]])
           |--
 
     Examples
@@ -159,8 +167,9 @@ def piecewise(condlist, funclist, xi=None, fill_value=0.0, args=(), **kw):
     Define the sigma function, which is -1 for ``x < 0`` and +1 for ``x >= 0``.
 
     >>> x = np.linspace(-2.5, 2.5, 6)
-    >>> piecewise([x < 0, x >= 0], [-1, 1])
-    array([-1., -1., -1.,  1.,  1.,  1.])
+    >>> np.allclose(piecewise([x < 0, x >= 0], [-1, 1]),
+    ...    [-1, -1, -1,  1,  1,  1])
+    True
 
     Define the absolute value, which is ``-x`` for ``x <0`` and ``x`` for
     ``x >= 0``.
@@ -185,8 +194,7 @@ def piecewise(condlist, funclist, xi=None, fill_value=0.0, args=(), **kw):
 
     def check_shapes(condlist, funclist):
         nc, nf = len(condlist), len(funclist)
-        if nc not in [nf - 1, nf]:
-            raise ValueError("function list and condition list" +
+        _assert(nc in [nf - 1, nf], "function list and condition list"
                              " must be the same length")
 
     check_shapes(condlist, funclist)
@@ -197,21 +205,20 @@ def piecewise(condlist, funclist, xi=None, fill_value=0.0, args=(), **kw):
     if xi is None:
         arrays = ()
         dtype = np.result_type(*funclist)
-        shape = condlist[0].shape
     else:
         if not isinstance(xi, tuple):
             xi = (xi,)
         arrays = np.broadcast_arrays(*xi)
         dtype = np.result_type(*arrays)
-        shape = arrays[0].shape
 
-    out = valarray(shape, fill_value, dtype)
+    out = valarray(condlist[0].shape, fillvalue, dtype)
     for cond, func in zip(condlist, funclist):
-        if isinstance(func, Callable):
-            temp = tuple(np.extract(cond, arr) for arr in arrays) + args
-            np.place(out, cond, func(*temp, **kw))
-        else:  # func is a scalar value or a list
-            np.putmask(out, cond, func)
+        if cond.any():
+            if isinstance(func, collections.Callable):
+                temp = tuple(np.extract(cond, arr) for arr in arrays) + args
+                np.place(out, cond, func(*temp, **kw))
+            else:  # func is a scalar value or a array
+                np.putmask(out, cond, func)
     return out
 
 
@@ -223,12 +230,12 @@ def lazywhere(cond, arrays, f, fillvalue=None, f2=None):
     >>> a, b = np.array([1, 2, 3, 4]), np.array([5, 6, 7, 8])
     >>> def f(a, b):
     ...     return a*b
-    >>> def f2(a, b):
-    ...     return np.ones(np.shape(a))*np.ones(np.shape(b))
     >>> lazywhere(a > 2, (a, b), f, np.nan)
     array([ nan,  nan,  21.,  32.])
+    >>> def f2(a, b):
+    ...    return (a*b)**2
     >>> lazywhere(a > 2, (a, b), f, f2=f2)
-    array([ 1.,  1.,  21.,  32.])
+    array([  25.,  144.,   21.,   32.])
 
     Notice it assumes that all `arrays` are of the same shape, or can be
     broadcasted together.
@@ -293,6 +300,10 @@ def lazyselect(condlist, choicelist, arrays, default=0):
 
 def rotation_matrix(heading, pitch, roll):
     '''
+    Parameters
+    ----------
+    heading, pitch, roll : real scalars
+        defining heading, pitch and roll in degrees.
 
     Examples
     --------
@@ -681,7 +692,7 @@ class Bunch(object):
         self.__dict__.update(kwargs)
 
 
-def printf(format_, *args):
+def printf(format_, *args):  # @ReservedAssignment
     sys.stdout.write(format_ % args)
 
 
@@ -748,6 +759,7 @@ def detrendma(x, L):
 
     Examples
     --------
+    >>> import matplotlib.pyplot as plt
     >>> import numpy as np
     >>> import wafo.misc as wm
     >>> exp = np.exp; cos = np.cos; randn = np.random.randn
@@ -767,7 +779,6 @@ def detrendma(x, L):
     >>> np.allclose(wm.detrendma(x2, L=1), [-1, 0, 0, 0, 1])
     True
 
-    import pylab as plt
     h = plt.plot(x, y, x, y0, 'r', x, exp(x), 'k', x, tr, 'm')
     plt.close('all')
 
@@ -776,7 +787,7 @@ def detrendma(x, L):
     Reconstruct
     """
     _assert(0 < L, 'L must be positive')
-    _assert(L == round(L), 'L must be an integer')
+    _assert(L == np.round(L), 'L must be an integer')
 
     x1 = np.atleast_1d(x)
     if x1.shape[0] == 1:
@@ -820,7 +831,7 @@ def ecross(t, f, ind, v=0):
 
     Example
     -------
-    >>> from matplotlib import pylab as plt
+    >>> from matplotlib import pyplot as plt
     >>> import wafo.misc as wm
     >>> ones = np.ones
     >>> t = np.linspace(0,7*np.pi,250)
@@ -857,12 +868,6 @@ def _findcross(xn, method='clib'):
     return numba_misc.findcross(xn)
 
 
-def xor(a, b):
-    """
-    Return True only when inputs differ.
-    """
-    return a ^ b
-
 
 def findcross(x, v=0.0, kind=None, method='clib'):
     '''
@@ -891,7 +896,7 @@ def findcross(x, v=0.0, kind=None, method='clib'):
 
     Example
     -------
-    >>> from matplotlib import pylab as plt
+    >>> from matplotlib import pyplot as plt
     >>> import wafo.misc as wm
     >>> ones = np.ones
     >>> np.allclose(findcross([0, 1, -1, 1], 0), [0, 1, 2])
@@ -935,19 +940,20 @@ def findcross(x, v=0.0, kind=None, method='clib'):
             t_0 = int(xn[ind[0] + 1] < 0)
             ind = ind[t_0::2]
         elif kind in ('dw', 'uw', 'tw', 'cw'):
-            # make sure the first is a level v down-crossing
+            # make sure that the first is a level v down-crossing
             #   if kind=='dw' or kind=='tw'
-            # or make sure the first is a level v up-crossing
+            # or that the first is a level v up-crossing
             #    if kind=='uw' or kind=='cw'
 
             first_is_down_crossing = int(xn[ind[0]] > xn[ind[0] + 1])
             if xor(first_is_down_crossing, kind in ('dw', 'tw')):
                 ind = ind[1::]
 
+            n_c = ind.size  # number of level v crossings
             # make sure the number of troughs and crests are according to the
-            # wavedef, i.e., make sure length(ind) is odd if kind is dw or uw
-            # and even if kind is tw or cw
-            is_odd = mod(ind.size, 2)
+            # wavedef, i.e., make sure length(ind) is odd if dw or uw
+            # and even if tw or cw
+            is_odd = mod(n_c, 2)
             if xor(is_odd, kind in ('dw', 'uw')):
                 ind = ind[:-1]
         else:
@@ -971,7 +977,7 @@ def findextrema(x):
     Examples
     --------
     >>> import numpy as np
-    >>> import pylab as plt
+    >>> import matplotlib.pyplot as plt
     >>> import wafo.misc as wm
     >>> t = np.linspace(0,7*np.pi,250)
     >>> x = np.sin(t)
@@ -1268,7 +1274,7 @@ def findtp(x, h=0.0, kind=None):
 
     Example:
     --------
-    >>> import pylab as plt
+    >>> import matplotlib.pyplot as plt
     >>> import wafo.misc as wm
     >>> t = np.linspace(0,30,500).reshape((-1,1))
     >>> x = np.hstack((t, np.cos(t) + 0.3 * np.sin(5*t)))
@@ -1370,7 +1376,7 @@ def findtc(x_in, v=None, kind=None):
 
     Example:
     --------
-    >>> import pylab as plt
+    >>> import matplotlib.pyplot as plt
     >>> import wafo.misc as wm
     >>> t = np.linspace(0,30,500).reshape((-1,1))
     >>> x = np.hstack((t, np.cos(t)))
@@ -1575,8 +1581,7 @@ def findoutliers(x, zcrit=0.0, dcrit=None, ddcrit=None, verbose=False):
 
 
 def common_shape(*args, ** kwds):
-    '''
-    Return the common shape of a sequence of arrays
+    """Return the common shape of a sequence of arrays.
 
     Parameters
     -----------
@@ -1610,7 +1615,8 @@ def common_shape(*args, ** kwds):
     See also
     --------
     broadcast, broadcast_arrays
-    '''
+
+    """
     shape = kwds.get('shape')
     x0 = 1 if shape is None else np.ones(shape)
     return tuple(np.broadcast(x0, *args).shape)
@@ -1946,9 +1952,9 @@ def gravity(phi=45):
     >>> import wafo.misc as wm
     >>> import numpy as np
     >>> phi = np.linspace(0,45,5)
-    >>> np.abs(wm.gravity(phi)-np.array([ 9.78049   ,  9.78245014,  9.78803583,
-    ...            9.79640552,  9.80629387]))<1.e-7
-    array([ True,  True,  True,  True,  True], dtype=bool)
+    >>> np.allclose(wm.gravity(phi),
+    ...            [ 9.78049   ,  9.78245014,  9.78803583, 9.79640552,  9.80629387])
+    True
 
     See also
     --------
@@ -2018,15 +2024,13 @@ def discretize(fun, a, b, tol=0.005, n=5, method='linear'):
     -------
     >>> import wafo.misc as wm
     >>> import numpy as np
-    >>> import pylab as plt
+    >>> import matplotlib.pyplot as plt
     >>> x,y = wm.discretize(np.cos, 0, np.pi)
-    >>> np.allclose(x[:5],
-    ... [ 0.        ,  0.19634954,  0.39269908,  0.58904862,  0.78539816])
+    >>> np.allclose(x[:5], [0.,  0.19634954,  0.39269908,  0.58904862,  0.78539816])
     True
 
     >>> xa,ya = wm.discretize(np.cos, 0, np.pi, method='adaptive')
-    >>> np.allclose(xa[:5],
-    ... [ 0.        ,  0.19634954,  0.39269908,  0.58904862,  0.78539816])
+    >>> np.allclose(xa[:5], [0.,  0.19634954,  0.39269908,  0.58904862,  0.78539816])
     True
 
 
@@ -2306,11 +2310,11 @@ def tranproc(x, f, x0, *xi):
     Example
     --------
     Derivative of g and the transformed Gaussian model.
-    >>> import pylab as plt
+    >>> import matplotlib.pyplot as plt
     >>> import wafo.misc as wm
     >>> import wafo.transform.models as wtm
     >>> tr = wtm.TrHermite()
-    >>> x = linspace(-5,5,501)
+    >>> x = np.linspace(-5, 5, 501)
     >>> g = tr(x)
     >>> gder = wm.tranproc(x, g, x, ones(g.shape[0]))
     >>> np.allclose(gder[1][:5],
@@ -2542,7 +2546,7 @@ def plot_histgrm(data, bins=None, range=None,  # @ReservedAssignment
 
     Example
     -------
-    >>> import pylab as plt
+    >>> import matplotlib.pyplot as plt
     >>> import wafo.misc as wm
     >>> import wafo.stats as ws
     >>> R = ws.weibull_min.rvs(2,loc=0,scale=2, size=100)
@@ -2551,10 +2555,11 @@ def plot_histgrm(data, bins=None, range=None,  # @ReservedAssignment
     >>> len(bins)
     13
 
-    h0 = wm.plot_histgrm(R, bins, normed=True)
-    x = np.linspace(-3,16,200)
+    >>> x = np.linspace(-3,16,200)
+    >>> pdf = ws.weibull_min.pdf(x,2,0,2)
 
-    h1 = plt.plot(x,ws.weibull_min.pdf(x,2,0,2),'r')
+    h0 = wm.plot_histgrm(R, 20, normed=True)
+    h1 = plt.plot(x, pdf,'r')
     plt.close('all')
 
     See also
@@ -2657,10 +2662,11 @@ def fourier(data, t=None, period=None, m=None, n=None, method='trapz'):
     >>> t = np.linspace(0,4*T)
     >>> x = np.sin(t)
     >>> a, b = wm.fourier(x, t, period=T, m=5)
-    >>> np.abs(a.ravel())<1e-12
-    array([ True,  True,  True,  True,  True], dtype=bool)
-    >>> np.abs(b.ravel()-np.array([ 0.,  4.,  0.,  0.,  0.]))<1e-12
-    array([ True,  True,  True,  True,  True], dtype=bool)
+    >>> np.allclose(a, 0)
+    True
+    >>> np.allclose(b.ravel(), 
+    ...             [ 0.,  4.,  0.,  0.,  0.])
+    True
 
     See also
     --------

@@ -3,7 +3,7 @@ Created on 15. des. 2016
 
 @author: pab
 '''
-from __future__ import division
+from __future__ import absolute_import, division, print_function
 from abc import ABCMeta, abstractmethod
 import warnings
 import numpy as np
@@ -16,6 +16,7 @@ from wafo.misc import tranproc  # , trangood
 from wafo.kdetools.gridding import gridcount
 from wafo.dctpack import dct
 from wafo.testing import test_docstrings
+from six import with_metaclass
 
 __all__ = ['Kernel', 'sphere_volume', 'qlevels', 'iqrange', 'percentile']
 
@@ -260,8 +261,7 @@ def sphere_volume(d, r=1.0):
     return (r ** d) * 2.0 * pi ** (d / 2.0) / (d * gamma(d / 2.0))
 
 
-class _Kernel(object):
-    __metaclass__ = ABCMeta
+class _Kernel(with_metaclass(ABCMeta)):
 
     def __init__(self, r=1.0, stats=None, name=''):
         self.r = r  # radius of effective support of kernel
@@ -907,14 +907,16 @@ class Kernel(object):
 
             x = np.linspace(0, 0.1, 150)
             ai = x[0]
+            bi = x[1]
             f0 = fixed_point(ai, N, I, a2)
-            for bi in x[1:]:
+            for xi in x[1:]:
+                bi = xi
                 f1 = fixed_point(bi, N, I, a2)
                 if f1 * f0 <= 0:
                     # print('ai = %g, bi = %g' % (ai,bi))
                     break
                 else:
-                    ai = bi
+                    ai = xi
 
             # use  fzero to solve the equation t=zeta*gamma^[5](t)
             try:

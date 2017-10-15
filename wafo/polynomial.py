@@ -17,7 +17,7 @@
 # Licence:     LGPL
 # ------------------------------------------------------------------------
 # !/usr/bin/env python
-from __future__ import absolute_import
+from __future__ import absolute_import, division, print_function
 import warnings  # @UnusedImport
 from functools import reduce
 from numpy.polynomial import polyutils as pu
@@ -374,14 +374,17 @@ def ortho2poly(p):
     >>> x = np.array([0.0, 1.0, 2.0, 3.0,  4.0,  5.0])
     >>> y = np.array([0.0, 0.8, 0.9, 0.1, -0.8, -1.0])
     >>> p = wp.orthofit(x, y, 3)
-    >>> p
-    array([[ 0.        , -0.30285714, -0.16071429,  0.08703704],
-           [ 0.        ,  2.5       ,  2.5       ,  2.5       ],
-           [ 0.        ,  0.        ,  2.91666667,  2.13333333]])
-    >>> wp.ortho2poly(p)
-    array([ 0.08703704, -0.81349206,  1.69312169, -0.03968254])
-    >>> wp.polyfit(x, y, 3)
-    array([ 0.08703704, -0.81349206,  1.69312169, -0.03968254])
+
+    >>> np.allclose(p,[[ 0.        , -0.30285714, -0.16071429,  0.08703704],
+    ...               [ 0.        ,  2.5       ,  2.5       ,  2.5       ],
+    ...               [ 0.        ,  0.        ,  2.91666667,  2.13333333]])
+    True
+    >>> np.allclose(wp.ortho2poly(p),
+    ...    [ 0.08703704, -0.81349206,  1.69312169, -0.03968254])
+    True
+    >>> np.allclose(np.polyfit(x, y, 3),
+    ...    [ 0.08703704, -0.81349206,  1.69312169, -0.03968254])
+    True
 
     References
     ----------

@@ -3,7 +3,7 @@ Created on 23. des. 2016
 
 @author: pab
 '''
-from __future__ import division
+from __future__ import absolute_import, division, print_function
 import unittest
 import numpy as np
 from numpy.testing import assert_allclose

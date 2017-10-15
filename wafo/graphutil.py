@@ -5,12 +5,12 @@ Created on 20. jan. 2011
 
 license BSD
 '''
-from __future__ import absolute_import, division
+from __future__ import absolute_import, division, print_function
 import warnings
 import numpy as np
 from .plotbackend import plotbackend
 from matplotlib import mlab
-__all__ = ['cltext', 'tallibing', 'test_docstrings']
+__all__ = ['cltext', 'epcolor', 'tallibing', 'test_docstrings']
 
 _TALLIBING_GID = 'TALLIBING'
 _CLTEXT_GID = 'CLTEXT'
@@ -108,9 +108,11 @@ def cltext(levels, percent=False, n=4, xs=0.036, ys=0.94, zs=0, figure=None,
     >>> import wafo.demos as wd
     >>> import pylab as plt
     >>> x,y,z  = wd.peaks();
+    >>> h = plt.contour(x,y,z)
+    >>> h = wg.cltext(h.levels)
 
-    h = plt.contour(x,y,z)
-    h = wg.cltext(h.levels)
+    >>> plt.close('all')
+
     plt.show()
     '''
     # TODO : Make it work like legend does (but without the box): include
@@ -142,7 +144,6 @@ def cltext(levels, percent=False, n=4, xs=0.036, ys=0.94, zs=0, figure=None,
         titletxt = 'Level curves enclosing:'
     else:
         titletxt = 'Level curves at:'
-
     format_ = '%0.' + ('%d' % n) + 'g\n'
 
     cltxt = ''.join([format_ % level for level in clevels.tolist()])
@@ -196,9 +197,10 @@ def tallibing(*args, **kwds):
     >>> import wafo.graphutil as wg
     >>> import wafo.demos as wd
     >>> [x,y,z] = wd.peaks(n=20)
+    >>> h = wg.pcolor(x,y,z)
+    >>> h = wg.tallibing(x,y,z)
 
-    h0 = wg.pcolor(x,y,z)
-    h1 = wg.tallibing(x,y,z)
+    pcolor(x,y,z); shading interp;
 
     See also
     --------
