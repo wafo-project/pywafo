@@ -181,10 +181,10 @@ def accum(accmap, a, func=None, shape=None, fill_value=0, dtype=None):
 
     def create_array_of_python_lists(accmap, a, shape):
         vals = np.empty(shape, dtype='O')
-        for s in product(*[np.arange(k) for k in shape]):
+        for s in product(*[list(range(k)) for k in shape]):
             vals[s] = []
 
-        for s in product(*[np.arange(k) for k in a.shape]):
+        for s in product(*[list(range(k)) for k in a.shape]):
             indx = tuple(accmap[s])
             val = a[s]
             vals[indx].append(val)

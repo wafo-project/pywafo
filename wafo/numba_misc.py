@@ -4,7 +4,7 @@ Created on 6. okt. 2016
 @author: pab
 """
 from __future__ import absolute_import, division
-from numba import guvectorize, jit, float64, int64, int32, int8, void
+from numba import jit, float64, int64, int32, int8, void
 import numpy as np
 
 

@@ -94,7 +94,7 @@ def valarray(shape, value=np.NaN, typecode=None):
     return out
 
 
-def piecewise(condlist, funclist, xi=None, fillvalue=0.0, args=(), **kw):
+def piecewise(condlist, funclist, xi=None, fill_value=0.0, args=(), **kw):
     """
     Evaluate a piecewise-defined function.
 
@@ -193,8 +193,8 @@ def piecewise(condlist, funclist, xi=None, fillvalue=0.0, args=(), **kw):
 
     def check_shapes(condlist, funclist):
         nc, nf = len(condlist), len(funclist)
-        _assert(nc in [nf - 1, nf], "function list and condition list"
-                             " must be the same length")
+        _assert(nc in [nf - 1, nf],
+                "function list and condition list must be the same length")
 
     check_shapes(condlist, funclist)
 
@@ -210,7 +210,7 @@ def piecewise(condlist, funclist, xi=None, fillvalue=0.0, args=(), **kw):
         arrays = np.broadcast_arrays(*xi)
         dtype = np.result_type(*arrays)
 
-    out = valarray(condlist[0].shape, fillvalue, dtype)
+    out = valarray(condlist[0].shape, fill_value, dtype)
     for cond, func in zip(condlist, funclist):
         if cond.any():
             if isinstance(func, collections.Callable):
