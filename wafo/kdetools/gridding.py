@@ -172,9 +172,15 @@ def accum(accmap, a, func=None, shape=None, fill_value=0, dtype=None):
            [ 7.,  9.]])
 
     # Same accmap, but create an array of lists of values.
-    >>> accum(accmap, a, func=lambda x: x, dtype='O')
-    array([[[1, 2, 4, -1], [3, 6]],
-           [[-1, 8], [9]]], dtype=object)
+    >>> t = accum(accmap, a, func=lambda x: x, dtype='O')
+    >>> np.allclose(t[0][0], [1, 2, 4, -1])
+    True
+    >>> np.allclose(t[0][1],  [3, 6])
+    True
+    >>> np.allclose(t[1][0], [-1, 8])
+    True
+    >>> np.allclose(t[1][1], [9])
+    True
 
     """
 
