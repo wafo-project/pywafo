@@ -215,7 +215,7 @@ def accum(accmap, a, func=None, shape=None, fill_value=0, dtype=None):
 
     # Create the output array.
     out = np.empty(shape, dtype=dtype)
-    for s in product(*[np.arange(k) for k in shape]):
+    for s in product(*[list(range(k)) for k in shape]):
         if vals[s] == []:
             out[s] = fill_value
         else:
@@ -249,7 +249,7 @@ def _gridcount_nd(acfun, data, x, y, w, binx):
 
     c = np.reshape(c / w, c_shape, order='F')
 
-    T = np.arange(d).tolist()
+    T = list(range(d))
     T[1], T[0] = T[0], T[1]
     # make sure c is stored in the same way as meshgrid
     c = c.transpose(*T)
