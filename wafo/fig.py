@@ -884,7 +884,7 @@ class _CycleGenerator(object):
             i += self.nfigspercycle
         elif result == wx.ID_BACKWARD:
             i -= self.nfigspercycle
-            else:
+        else:
             i = -1
         return i
 
