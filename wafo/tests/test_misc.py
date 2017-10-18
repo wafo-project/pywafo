@@ -548,7 +548,7 @@ class TestPiecewise(TestCase):
         X, Y = np.meshgrid(x, x)
         vals = piecewise([X * Y < -0.5, X * Y > 0.5],
                          [lambda x, y: -x * y, lambda x, y: x * y], (X, Y),
-                         fill_value=np.nan)
+                         fillvalue=np.nan)
         nan = np.nan
         assert_array_equal(vals, [[4., 2., nan, 2., 4.],
                                   [2., 1., nan, 1., 2.],

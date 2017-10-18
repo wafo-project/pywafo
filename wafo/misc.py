@@ -26,9 +26,9 @@ except ImportError:
     warnings.warn('c_library not found. Check its compilation.')
     clib = None
 
-floatinfo = np.finfo(float)
-_TINY = floatinfo.tiny
-_EPS = floatinfo.eps
+FLOATINFO = np.finfo(float)
+_TINY = FLOATINFO.tiny
+_EPS = FLOATINFO.eps
 
 __all__ = ['now', 'spaceline', 'narg_smallest', 'args_flat', 'is_numlike',
            'JITImport', 'DotDict', 'Bunch', 'printf', 'sub_dict_select',
@@ -94,7 +94,7 @@ def valarray(shape, value=np.NaN, typecode=None):
     return out
 
 
-def piecewise(condlist, funclist, xi=None, fill_value=0.0, args=(), **kw):
+def piecewise(condlist, funclist, xi=None, fillvalue=0.0, args=(), **kw):
     """
     Evaluate a piecewise-defined function.
 
@@ -121,8 +121,8 @@ def piecewise(condlist, funclist, xi=None, fill_value=0.0, args=(), **kw):
         assumed.
     xi : tuple
         input arguments to the functions in funclist, i.e., (x0, x1,...., xn)
-    fill_value : scalar
-        fill value for out of range values. Default 0.
+    fillvalue : scalar
+        fillvalue for out of range values. Default 0.
     args : tuple, optional
         Any further arguments given here passed to the functions
         upon execution, i.e., if called ``piecewise(..., ..., args=(1, 'a'))``,
@@ -192,8 +192,8 @@ def piecewise(condlist, funclist, xi=None, fill_value=0.0, args=(), **kw):
         return ~np.logical_or.reduce(condlist, axis=0)
 
     def check_shapes(condlist, funclist):
-        nc, nf = len(condlist), len(funclist)
-        _assert(nc in [nf - 1, nf],
+        num_cond, num_fun = len(condlist), len(funclist)
+        _assert(num_cond in [num_fun - 1, num_fun],
                 "function list and condition list must be the same length")
 
     check_shapes(condlist, funclist)
@@ -212,7 +212,7 @@ def piecewise(condlist, funclist, xi=None, fill_value=0.0, args=(), **kw):
         dtype = np.result_type(*arrays)
         shape = arrays[0].shape
 
-    out = valarray(shape, fill_value, dtype)
+    out = valarray(shape, fillvalue, dtype)
     for cond, func in zip(condlist, funclist):
         if cond.any():
             if isinstance(func, collections.Callable):
@@ -333,19 +333,19 @@ def rotation_matrix(heading, pitch, roll):
     data = np.diag(np.ones(3))  # No transform if H=P=R=0
     if heading != 0 or pitch != 0 or roll != 0:
         deg2rad = np.pi / 180
-        H = heading * deg2rad
-        P = pitch * deg2rad
-        R = roll * deg2rad  # Convert to radians
+        rheading = heading * deg2rad
+        rpitch = pitch * deg2rad
+        rroll = roll * deg2rad  # Convert to radians
 
-        data.put(0, cos(H) * cos(P))
-        data.put(1, cos(H) * sin(P) * sin(R) - sin(H) * cos(R))
-        data.put(2, cos(H) * sin(P) * cos(R) + sin(H) * sin(R))
-        data.put(3, sin(H) * cos(P))
-        data.put(4, sin(H) * sin(P) * sin(R) + cos(H) * cos(R))
-        data.put(5, sin(H) * sin(P) * cos(R) - cos(H) * sin(R))
-        data.put(6, -sin(P))
-        data.put(7, cos(P) * sin(R))
-        data.put(8, cos(P) * cos(R))
+        data.put(0, cos(rheading) * cos(rpitch))
+        data.put(1, cos(rheading) * sin(rpitch) * sin(rroll) - sin(rheading) * cos(rroll))
+        data.put(2, cos(rheading) * sin(rpitch) * cos(rroll) + sin(rheading) * sin(rroll))
+        data.put(3, sin(rheading) * cos(rpitch))
+        data.put(4, sin(rheading) * sin(rpitch) * sin(rroll) + cos(rheading) * cos(rroll))
+        data.put(5, sin(rheading) * sin(rpitch) * cos(rroll) - cos(rheading) * sin(rroll))
+        data.put(6, -sin(rpitch))
+        data.put(7, cos(rpitch) * sin(rroll))
+        data.put(8, cos(rpitch) * cos(rroll))
     return data
 
 
@@ -369,10 +369,10 @@ def rotate(x, y, z, heading=0, pitch=0, roll=0):
     True
     """
     rot_param = rotation_matrix(heading, pitch, roll).ravel()
-    X = x * rot_param[0] + y * rot_param[1] + z * rot_param[2]
-    Y = x * rot_param[3] + y * rot_param[4] + z * rot_param[5]
-    Z = x * rot_param[6] + y * rot_param[7] + z * rot_param[8]
-    return X, Y, Z
+    x_out = x * rot_param[0] + y * rot_param[1] + z * rot_param[2]
+    y_out = x * rot_param[3] + y * rot_param[4] + z * rot_param[5]
+    z_out = x * rot_param[6] + y * rot_param[7] + z * rot_param[8]
+    return x_out, y_out, z_out
 
 
 def rotate_2d(x, y, angle_deg):
@@ -391,9 +391,9 @@ def rotate_2d(x, y, angle_deg):
     True
     '''
     angle_rad = angle_deg * pi / 180
-    ch = cos(angle_rad)
-    sh = sin(angle_rad)
-    return ch * x - sh * y, sh * x + ch * y
+    cos_a = cos(angle_rad)
+    sin_a = sin(angle_rad)
+    return cos_a * x - sin_a * y, sin_a * x + cos_a * y
 
 
 def now(show_seconds=True):
@@ -446,13 +446,9 @@ def spaceline(start_point, stop_point, num=10):
            [ 3.  ,  0.  ,  0.  ]])
     '''
     num = int(num)
-    e1, e2 = np.atleast_1d(start_point, stop_point)
-    e2m1 = e2 - e1
-    length = np.sqrt((e2m1 ** 2).sum())
-    # length = sqrt((E2[0]-E1(1))^2 + (E2(2)-E1(2))^2 + (E2(3)-E1(3))^2)
-    C = e2m1 / length
-    delta = length / float(num - 1)
-    return np.array([e1 + n * delta * C for n in range(num)])
+    start, stop = np.atleast_1d(start_point, stop_point)
+    delta = (stop - start) /  float(num - 1)
+    return np.array([start + n * delta for n in range(num)])
 
 
 def narg_smallest(arr, n=1):
@@ -521,7 +517,7 @@ def args_flat(*args):
     '''
     nargin = len(args)
     _assert(nargin in [1, 3], 'Number of arguments must be 1 or 3!')
-    if (nargin == 1):  # pos
+    if nargin == 1:  # pos
         pos = np.atleast_2d(args[0])
         _assert((pos.shape[1] == 3) and (pos.ndim == 2),
                 'POS array must be of shape N x 3!')
@@ -790,22 +786,22 @@ def detrendma(x, L):
     _assert(0 < L, 'L must be positive')
     _assert(L == np.round(L), 'L must be an integer')
 
-    x1 = np.atleast_1d(x)
-    if x1.shape[0] == 1:
-        x1 = x1.ravel()
+    x_1 = np.atleast_1d(x)
+    if x_1.shape[0] == 1:
+        x_1 = x_1.ravel()
 
-    n = x1.shape[0]
+    n = x_1.shape[0]
     if n < 2 * L + 1:  # only able to remove the mean
-        return x1 - x1.mean(axis=0)
+        return x_1 - x_1.mean(axis=0)
 
-    mn = x1[:2 * L + 1].mean(axis=0)
-    y = np.empty_like(x1)
-    y[:L + 1] = x1[:L + 1] - mn
+    mean = x_1[:2 * L + 1].mean(axis=0)
+    y = np.empty_like(x_1)
+    y[:L + 1] = x_1[:L + 1] - mean
 
-    ix = np.r_[L + 1:(n - L)]
-    trend = ((x1[ix + L] - x1[ix - L]) / (2 * L)).cumsum(axis=0) + mn
-    y[ix] = x1[ix] - trend
-    y[n - L::] = x1[n - L::] - trend[-1]
+    i = np.r_[L + 1:(n - L)]
+    trend = ((x_1[i + L] - x_1[i - L]) / (2 * L)).cumsum(axis=0) + mean
+    y[i] = x_1[i] - trend
+    y[n - L::] = x_1[n - L::] - trend[-1]
     return y
 
 
@@ -860,13 +856,13 @@ def ecross(t, f, ind, v=0):
             (f[ind + 1] - f[ind]))
 
 
-def _findcross(xn, method='clib'):
+def _findcross(x, method='clib'):
     '''Return indices to zero up and downcrossings of a vector
     '''
     if clib is not None and method == 'clib':
-        ind, m = clib.findcross(xn, 0.0)
+        ind, m = clib.findcross(x, 0.0)
         return ind[:int(m)]
-    return numba_misc.findcross(xn)
+    return numba_misc.findcross(x)
 
 
 def findcross(x, v=0.0, kind=None, method='clib'):
@@ -993,8 +989,7 @@ def findextrema(x):
     findcross
     crossdef
     '''
-    xn = atleast_1d(x).ravel()
-    return findcross(diff(xn), 0.0) + 1
+    return findcross(diff(x), 0.0) + 1
 
 
 def findpeaks(data, n=2, min_h=None, min_p=0.0):
@@ -1003,14 +998,18 @@ def findpeaks(data, n=2, min_h=None, min_p=0.0):
 
     Parameters
     ----------
-    data      = matrix or vector
-    n     = The n highest peaks are found (if exist). (default 2)
-    min_h  = The threshold in the rainflowfilter (default 0.05*range(S(:))).
-                 A zero value will return all the peaks of S.
-    min_p  = 0..1, Only the peaks that are higher than
-                       min_p*max(max(S))  min_p*(the largest peak in S)
-                       are returned (default  0).
+    data : matrix or vector
+    n :
+         The n highest peaks are found (if exist). (default 2)
+    min_h :
+        The threshold in the rainflowfilter (default 0.05*range(S(:))).
+        A zero value will return all the peaks of S.
+    min_p : 0..1
+        Only the peaks that are higher than min_p*max(max(S))
+        min_p*(the largest peak in S) are returned (default  0).
+
     Returns
+    -------
     ix =
         linear index to peaks of S
 
@@ -1031,53 +1030,53 @@ def findpeaks(data, n=2, min_h=None, min_p=0.0):
     --------
     findtp
     '''
-    S = np.atleast_1d(data)
-    smax = S.max()
+    data1 = np.atleast_1d(data)
+    dmax = data1.max()
     if min_h is None:
-        smin = S.min()
-        min_h = 0.05 * (smax - smin)
-    ndim = S.ndim
-    S = np.atleast_2d(S)
-    nrows, mcols = S.shape
+        dmin = data1.min()
+        min_h = 0.05 * (dmax - dmin)
+    ndim = data1.ndim
+    data1 = np.atleast_2d(data1)
+    nrows, mcols = data1.shape
 
     # Finding turningpoints of the spectrum
     # Returning only those with rainflowcycle heights greater than h_min
-    indP = []  # indices to peaks
+    ind_p = []  # indices to peaks
     ind = []
     for iy in range(nrows):  # find all peaks
-        TuP = findtp(S[iy], min_h)
-        if len(TuP):
-            ind = TuP[1::2]  # extract indices to maxima only
+        tp = findtp(data1[iy], min_h)
+        if len(tp):
+            ind = tp[1::2]  # extract indices to maxima only
         else:  # did not find any , try maximum
-            ind = np.atleast_1d(S[iy].argmax())
+            ind = np.atleast_1d(data1[iy].argmax())
 
         if ndim > 1:
             if iy == 0:
-                ind2 = np.flatnonzero(S[iy, ind] > S[iy + 1, ind])
+                ind2 = np.flatnonzero(data1[iy, ind] > data1[iy + 1, ind])
             elif iy == nrows - 1:
-                ind2 = np.flatnonzero(S[iy, ind] > S[iy - 1, ind])
+                ind2 = np.flatnonzero(data1[iy, ind] > data1[iy - 1, ind])
             else:
-                ind2 = np.flatnonzero((S[iy, ind] > S[iy - 1, ind]) &
-                                      (S[iy, ind] > S[iy + 1, ind]))
+                ind2 = np.flatnonzero((data1[iy, ind] > data1[iy - 1, ind]) &
+                                      (data1[iy, ind] > data1[iy + 1, ind]))
 
             if len(ind2):
-                indP.append((ind[ind2] + iy * mcols))
+                ind_p.append((ind[ind2] + iy * mcols))
 
     if ndim > 1:
-        ind = np.hstack(indP) if len(indP) else []
+        ind = np.hstack(ind_p) if len(ind_p) else []
     if len(ind) == 0:
         return []
 
-    peaks = S.take(ind)
+    peaks = data1.take(ind)
     ind2 = peaks.argsort()[::-1]
 
-    # keeping only the Np most significant peak frequencies.
+    # keeping only the Np most significant peaks.
     nmax = min(n, len(ind))
     ind = ind[ind2[:nmax]]
     if (min_p > 0):
         # Keeping only peaks larger than min_p percent relative to the maximum
         # peak
-        ind = ind[(S.take(ind) > min_p * smax)]
+        ind = ind[(data1.take(ind) > min_p * dmax)]
 
     return ind
 
@@ -2252,7 +2251,7 @@ def trangood(x, f, min_n=None, min_x=None, max_x=None, max_n=inf):
     xn = xo[-1]
     x0 = xo[0]
     L = float(xn - x0)
-    if ((nf < min_n) or (max_n < nf) or np.any(np.abs(ddx) > 10 * _EPS * (L))):
+    if nf < min_n or max_n < nf or np.any(np.abs(ddx) > 10 * _EPS * L):
         # pab 07.01.2001: Always choose the stepsize df so that
         # it is an exactly representable number.
         # This is important when calculating numerical derivatives and is
@@ -2268,13 +2267,13 @@ def trangood(x, f, min_n=None, min_x=None, max_x=None, max_n=inf):
     dx = xo[1] - xo[0]
 
     # Extrapolate linearly outside the range of ff
-    if (min_x < xo[0]):
+    if min_x < xo[0]:
         x1 = dx * arange(floor((min_x - xo[0]) / dx), -2)
         f2 = fo[0] + x1 * (fo[1] - fo[0]) / (xo[1] - xo[0])
         fo = hstack((f2, fo))
         xo = hstack((x1 + xo[0], xo))
 
-    if (max_x > xo[-1]):
+    if max_x > xo[-1]:
         x1 = dx * arange(1, ceil((max_x - xo[-1]) / dx) + 1)
         f2 = f[-1] + x1 * (f[-1] - f[-2]) / (xo[-1] - xo[-2])
         fo = hstack((fo, f2))
@@ -2413,8 +2412,8 @@ def tranproc(x, f, x0, *xi):
     return y
 
 
-def good_bins(data=None, range=None, num_bins=None,  # @ReservedAssignment
-              num_data=None, odd=False, loose=True):
+# pylint: disable=redefined-builtin
+def good_bins(data=None, range=None, num_bins=None, odd=False, loose=True):  # @ReservedAssignment
     ''' Return good bins for histogram
 
     Parameters
@@ -2486,8 +2485,8 @@ def _make_bars(limits, bin_):
     return xx, yy
 
 
-def _histogram(data, bins=None, range=None, normed=False, weights=None,
-               density=None):
+# pylint: disable=redefined-builtin
+def _histogram(data, bins=None, range=None, normed=False, weights=None, density=None):  # @ReservedAssignment
     """
     Example
     -------
@@ -2619,7 +2618,7 @@ def num2pistr(x, n=3, numerator_max=10, denominator_max=10):
     return fmt.format(x)
 
 
-def fourier(data, t=None, period=None, m=None, n=None, method='trapz'):
+def fourier(data, t=None, period=None, m=None, method='trapz'):
     '''
     Returns Fourier coefficients.
 
@@ -2628,13 +2627,11 @@ def fourier(data, t=None, period=None, m=None, n=None, method='trapz'):
     data : array-like
         vector or matrix of row vectors with data points shape p x n.
     t : array-like
-        vector with n values indexed from 1 to N.
+        vector with n values indexed from 1 to n.
     period : real scalar, (default T = t[-1]-t[0])
         primitive period of signal, i.e., smallest period.
     m : scalar integer
-        defines no of harmonics desired (default M = N)
-    n : scalar integer
-        no of data points (default len(t))
+        defines no of harmonics desired (default m = n)
     method : string
         integration method used
 

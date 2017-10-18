@@ -902,7 +902,7 @@ cycle = _CycleGenerator()
 
 
 if __name__ == '__main__':
-    from utilities.testing import test_docstrings
+    from wafo.testing import test_docstrings
     import matplotlib
     matplotlib.interactive(True)
     test_docstrings(__file__)
