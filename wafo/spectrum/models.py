@@ -36,9 +36,9 @@ import scipy.integrate as integrate
 import scipy.special as sp
 from scipy.fftpack import fft
 import numpy as np
-from numpy import (inf, atleast_1d, newaxis, any, minimum, maximum, array,
+from numpy import (inf, atleast_1d, newaxis, minimum, maximum, array,
                    asarray, exp, log, sqrt, where, pi, arange, linspace, sin,
-                   cos, abs, sinh, isfinite, mod, expm1, tanh, cosh, finfo,
+                   cos, sinh, isfinite, mod, expm1, tanh, cosh, finfo,
                    ones, ones_like, isnan, zeros_like, flatnonzero, sinc,
                    hstack, vstack, real, flipud, clip)
 from ..wave_theory.dispersion_relation import w2k, k2w  # @UnusedImport
@@ -498,7 +498,7 @@ class Jonswap(ModelSpectrum):
     >>> S = wsm.Jonswap(Hm0=7, Tp=11,gamma=1)
     >>> S2 = wsm.Bretschneider(Hm0=7, Tp=11)
     >>> w = plb.linspace(0,5)
-    >>> all(abs(S(w)-S2(w))<1.e-7)
+    >>> all(np.abs(S(w)-S2(w))<1.e-7)
     True
 
     h = plb.plot(w,S(w))
@@ -1313,7 +1313,7 @@ class Wallop(Bretschneider):
             wp = 2. * pi / Tp
             kp = w2k(wp, 0, inf)[0]  # wavenumber at peak frequency
             Lp = 2. * pi / kp  # wave length at the peak frequency
-            N = abs((log(2. * pi ** 2.) + 2 * log(Hm0 / 4) -
+            N = np.abs((log(2. * pi ** 2.) + 2 * log(Hm0 / 4) -
                      2.0 * log(Lp)) / log(2))
 
         super(Wallop, self).__init__(Hm0, Tp, N, M, chk_seastate)
@@ -1796,7 +1796,7 @@ class Spreading(object):
         """ Returns the solution of r1 = x.
         """
         X = r1
-        if any(X >= 1):
+        if np.any(X >= 1):
             raise ValueError('POISSON spreading: X value must be less than 1')
         return X
 
@@ -1822,9 +1822,9 @@ class Spreading(object):
             A[ix] = Ai + 0.5 * (da[ix] - Ai) * (Ai <= 0.0)
 
             ix = flatnonzero(
-                (abs(da) > sqrt(_EPS) * abs(A)) * (abs(da) > sqrt(_EPS)))
+                (np.abs(da) > sqrt(_EPS) * np.abs(A)) * (np.abs(da) > sqrt(_EPS)))
             if ix.size == 0:
-                if any(A > pi):
+                if np.any(A > pi):
                     raise ValueError(
                         'BOX-CAR spreading: The A value must be less than pi')
                 return A.clip(min=1e-16, max=pi)
@@ -1872,7 +1872,7 @@ class Spreading(object):
         def fun(x):
             return 0.5 * pi / (sinh(.5 * pi / x)) - x * r1[ix]
         for ix in ix0:
-            B[ix] = abs(optimize.fsolve(fun, B0[ix]))
+            B[ix] = np.abs(optimize.fsolve(fun, B0[ix]))
         return B
 
     def fourier2d(self, r1):
@@ -1953,14 +1953,14 @@ class Spreading(object):
                             self._frequency_independent_spread)
         s = spread(wn)
 
-        if any(s < 0):
+        if np.any(s < 0):
             raise ValueError('The COS2S spread parameter, S(w), ' +
                              'value must be larger than 0')
         if self.type[0] == 'c':  # cos2s
             s_par = s
         else:
             # First Fourier coefficient of the directional spreading function.
-            r1 = abs(s / (s + 1))
+            r1 = np.abs(s / (s + 1))
             # Find distribution parameter from first Fourier coefficient.
             s_par = self.fourier2distpar(r1)
         if self.method is not None:
@@ -1986,8 +1986,8 @@ class Spreading(object):
 
     @staticmethod
     def _check_theta(theta):
-        L = abs(theta[-1] - theta[0])
-        if abs(L - 2 * np.pi) > _EPS:
+        L = np.abs(theta[-1] - theta[0])
+        if np.abs(L - 2 * np.pi) > _EPS:
             raise ValueError('theta must cover all angles -pi -> pi')
         nt = len(theta)
         if nt < 40:

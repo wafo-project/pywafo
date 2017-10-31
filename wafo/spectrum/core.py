@@ -14,30 +14,30 @@ from scipy.special import erf
 from scipy.linalg import toeplitz
 import scipy.interpolate as interpolate
 from scipy.interpolate.interpolate import interp1d, interp2d
-from ..objects import TimeSeries, mat2timeseries
-from ..interpolate import stineman_interp
-from ..wave_theory.dispersion_relation import w2k  # , k2w
-from ..containers import PlotData, now
-from ..misc import sub_dict_select, nextpow2, discretize, JITImport
-from ..misc import meshgrid, gravity, cart2polar, polar2cart
-from ..markov import mctp2rfc, mctp2tc
-from ..kdetools import qlevels
+from wafo.objects import TimeSeries, mat2timeseries
+from wafo.interpolate import stineman_interp
+from wafo.wave_theory.dispersion_relation import w2k  # , k2w
+from wafo.containers import PlotData, now
+from wafo.misc import (sub_dict_select, nextpow2, discretize, JITImport,
+                       meshgrid, cart2polar, polar2cart, gravity as _gravity)
+from wafo.markov import mctp2rfc, mctp2tc
+from wafo.kdetools import qlevels
 
 # from wafo.transform import TrData
-from ..transform.models import TrLinear
-from ..plotbackend import plotbackend
+from wafo.transform.models import TrLinear
+from wafo.plotbackend import plotbackend
 
 try:
-    from ..gaussian import Rind
+    from wafo.gaussian import Rind
 except ImportError:
     Rind = None
 try:
-    from .. import c_library
+    from wafo import c_library
 except ImportError:
     warnings.warn('Compile the c_library.pyd again!')
     c_library = None
 try:
-    from .. import cov2mod
+    from wafo import cov2mod
 except ImportError:
     warnings.warn('Compile the cov2mod.pyd again!')
     cov2mod = None
@@ -102,7 +102,7 @@ def qtf(w, h=inf, g=9.81):
     k1p2 = (k_1 + k_2)
     k1m2 = abs(k_1 - k_2)
 
-    if 0:  # Langley
+    if False:  # Langley
         p_1 = (-2 * w1p2 * (k12 * g ** 2. - w12 ** 2.) +
                w_1 * (w_2 ** 4. - g ** 2 * k_2 ** 2) +
                w_2 * (w_1 ** 4 - g * 2. * k_1 ** 2)) / (4. * w12)
@@ -585,7 +585,7 @@ class SpecData1D(PlotData):
         freq = self.args
         checkdt = 1.2 * min(diff(freq)) / 2. / pi
         if self.freqtype in 'f':
-                checkdt *= 2 * pi
+            checkdt *= 2 * pi
         if (checkdt < 2. ** -16 / dt):
             print('Step dt = %g in computation of the density is ' +
                   'too small.' % dt)
@@ -914,8 +914,8 @@ class SpecData1D(PlotData):
 #          ftype = 'w'
 #          S = ttspec(S,ftype)
 #        end
-        Hm0 = self.characteristic('Hm0')
-        Tm02 = self.characteristic('Tm02')
+        Hm0 = self.characteristic('Hm0')[0]
+        Tm02 = self.characteristic('Tm02')[0]
 
         if iseed is not None:
             _set_seed(iseed)  # set the the seed
@@ -937,8 +937,7 @@ class SpecData1D(PlotData):
         num_waves = 10000  # Typical number of waves in 30 hour seastate
         Amax = sqrt(2 * log(num_waves)) * Hm0 / 4
 
-        fLimitLo = sqrt(
-            gravity * tanh(kbar * water_depth) * Amax / water_depth ** 3)
+        fLimitLo = sqrt(gravity * tanh(kbar * water_depth) * Amax / water_depth ** 3)
 
         freq = S.args
         eps = finfo(float).eps
@@ -955,7 +954,7 @@ class SpecData1D(PlotData):
         # Fs = 2*freq(end)+eps  # sampling frequency
 
         for ix in range(max_sim):
-            x2, x1 = self.sim_nl(ns=np, cases=cases, dt=None, iseed=iseed,
+            x2, x1 = self.sim_nl(ns=ns, cases=cases, dt=None, iseed=iseed,
                                  method=method, fnlimit=fn_limit,
                                  output='timeseries')
             x2.data -= x1.data  # x2(:,2:end) = x2(:,2:end) -x1(:,2:end)
@@ -968,10 +967,12 @@ class SpecData1D(PlotData):
 # %[tf21,fi] = tfe(x2(:,2),x1(:,2),1024,Fs,[],512)
 # %Hw11 = interp1q(fi,tf21.*conj(tf21),freq)
             if True:
-                Hw1 = exp(interp1d(log(abs(S1.data / S2.data)), S2.args)(freq))
+                Hw1 = exp(interp1d(log(abs(S1.data / (S2.data + 1e-5))), S2.args,
+                                   fill_value=0, bounds_error=False)(freq))
             else:
                 # Geometric mean
-                fun = interp1d(log(abs(S1.data / S2.data)), S2.args)
+                fun = interp1d(log(abs(S1.data / (S2.data + 1e-5))), S2.args,
+                               fill_value=0, bounds_error=False)
                 Hw1 = exp((fun(freq) + log(Hw2)) / 2)
                 # end
             # Hw1  = (interp1q( S2.w,abs(S1.S./S2.S),freq)+Hw2)/2
@@ -1011,6 +1012,8 @@ class SpecData1D(PlotData):
                 plotbackend.figure(2)
                 plotbackend.semilogy(freq, abs(Hw12), 'b')
                 plotbackend.title('Hw-HwOld')
+                plotbackend.show('hold')
+
                 # figtile
             # end
 
@@ -3068,9 +3071,9 @@ class SpecData1D(PlotData):
 
         >>> S = S0.copy()
         >>> me, va, sk, ku = S.stats_nl(moments='mvsk')
-        >>> S.tr = wtm.TrHermite(mean=me, sigma=Hs/4, skew=sk, kurt=ku,
-        ...                        ysigma=Hs/4)
+        >>> S.tr = wtm.TrHermite(mean=me, sigma=Hs/4, skew=sk, kurt=ku, ysigma=Hs/4)
         >>> ys = wo.mat2timeseries(S.sim(ns=2**13))
+        >>> ys
         >>> g0, gemp = ys.trdata()
         >>> t0 = g0.dist2gauss()
         >>> t1 = S0.testgaussian(ns=2**13, cases=50)
@@ -3362,6 +3365,11 @@ class SpecData1D(PlotData):
                 intfun = interpolate.interp1d(w, S1, kind=method)
                 self.data = intfun(self.args)
             self.data = self.data.clip(0)  # clip negative values to 0
+
+    def interp(self, dt):
+        S = self.copy()
+        S.resample(dt)
+        return S
 
     def normalize(self, gravity=9.81):
         '''
@@ -4036,7 +4044,7 @@ class SpecData2D(PlotData):
 
         if nr > 0:
             vec = []
-            g = np.atleast_1d(S1.__dict__.get('g', gravity()))
+            g = np.atleast_1d(S1.__dict__.get('g', _gravity()))
             # maybe different normalization in x and y => diff. g
             kx = w ** 2 / g[0]
             ky = w ** 2 / g[-1]
@@ -4231,7 +4239,8 @@ def test_mm_pdf():
     S = sm.SpecData1D(Sj(w), w)  # Alternatively do it manually
     S0 = S.to_linspec()
     mm = S.to_mm_pdf()
-
+    mm.plot()
+    plotbackend.show()
 
 def test_docstrings():
     import doctest
@@ -4239,6 +4248,6 @@ def test_docstrings():
 
 
 if __name__ == '__main__':
-    test_docstrings()
-    # test_mm_pdf()
+    # test_docstrings()
+    test_mm_pdf()
     # main()
