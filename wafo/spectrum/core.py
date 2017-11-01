@@ -561,18 +561,37 @@ class SpecData1D(PlotData):
     """
 
     def __init__(self, *args, **kwds):
+        super(SpecData1D, self).__init__(*args, **kwds)
         self.name_ = kwds.pop('name', 'WAFO Spectrum Object')
         self.type = kwds.pop('type', 'freq')
-        self.freqtype = kwds.pop('freqtype', 'w')
+        self._freqtype = kwds.pop('freqtype', 'w')
         self.angletype = ''
         self.h = kwds.pop('h', inf)
         self.tr = kwds.pop('tr', None)  # TrLinear()
         self.phi = kwds.pop('phi', 0.0)
         self.v = kwds.pop('v', 0.0)
         self.norm = kwds.pop('norm', False)
-        super(SpecData1D, self).__init__(*args, **kwds)
 
         self.setlabels()
+
+    @property
+    def freqtype(self):
+        return self._freqtype
+
+    @freqtype.setter
+    def freqtype(self, freqtype):
+        if self._freqtype==freqtype:
+            return  # do nothind
+        if freqtype=='w' and self._freqtype=='f':
+            self.args *= 2*np.pi
+            self.data /= 2*np.pi
+            self._freqtype = 'w'
+            self.setlabels()
+        elif freqtype=='f' and self._freqtype=='w':
+            self.args /= 2*np.pi
+            self.data *= 2*np.pi
+            self._freqtype = 'f'
+            self.setlabels()
 
     def _get_default_dt_and_rate(self, dt):
         dt_old = self.sampling_period()
@@ -772,10 +791,7 @@ class SpecData1D(PlotData):
 
         spec = self.copy()
 
-        if self.freqtype in 'k':
-            lagtype = 'x'
-        else:
-            lagtype = 't'
+        lagtype = self.lagtype
 
         d_t = spec.sampling_period()
         # normalize spec so that sum(specn)/(n_f-1)=acf(0)=var(X)
