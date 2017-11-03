@@ -396,8 +396,8 @@ class LevelCrossings(PlotData):
         >>> alpha2 = Se.characteristic('alpha')[0]
         >>> np.round(alpha2*10)
         array([ 7.])
-        >>> np.abs(alpha-alpha2)<0.03
-        array([ True], dtype=bool)
+        >>> np.allclose(alpha, alpha2, atol=0.03)
+        True
 
         >>> lc2 = ts2.turning_points().cycle_pairs().level_crossings()
 
@@ -814,108 +814,108 @@ class CyclePairs(PlotData):
         return LevelCrossings(dcount, levels, mean=self.mean, sigma=self.sigma,
                               ylab=ylab, intensity=intensity)
 
-    def _smoothcmat(F, method=1, h=None, NOsubzero=0, alpha=0.5):
-        """
-        SMOOTHCMAT Smooth a cycle matrix using (adaptive) kernel smoothing
-
-         CALL:  Fsmooth = smoothcmat(F,method);
-                Fsmooth = smoothcmat(F,method,[],NOsubzero);
-                Fsmooth = smoothcmat(F,2,h,NOsubzero,alpha);
-
-         Input:
-                F       = Cycle matrix.           [nxn]
-                method  = 1: Kernel estimator (constant bandwidth). (Default)
-                          2: Adaptiv kernel estimator (local bandwidth).
-                h       = Bandwidth (Optional, Default='automatic choice')
-              NOsubzero = Number of subdiagonals that are zero
-                          (Optional, Default = 0, only the diagonal is zero)
-                alpha   = Parameter for method (2) (Optional, Default=0.5).
-                          A number between 0 and 1.
-                          alpha=0 implies constant bandwidth (method 1).
-                          alpha=1 implies most varying bandwidth.
-
-         Output:
-         F       = Smoothed cycle matrix.   [nxn]
-         h       = Selected bandwidth.
-
-         See also
-         cc2cmat, tp2rfc, tp2mm, dat2tp
-        """
-        aut_h = h is None
-        if method not in [1, 2]:
-            raise ValueError('Input argument "method" should be 1 or 2')
-
-        n = len(F)  # Size of matrix
-        N = np.sum(F)  # Total number of cycles
-
-        Fsmooth = np.zeros((n, n))
-
-        if method == 1 or method == 2:  # Kernel estimator
-
-            d = 2  # 2-dim
-            x = np.arange(n)
-            I, J = np.meshgrid(x, x)
-
-            # Choosing bandwidth
-            # This choice is optimal if the sample is from a normal distr.
-            # The normal bandwidth usualy oversmooths,
-            # therefore we choose a slightly smaller bandwidth
-
-            if aut_h == 1:
-                h_norm = smoothcmat_hnorm(F, NOsubzero)
-                h = 0.7 * h_norm  # Don't oversmooth
-
-            # h0 = N^(-1/(d+4));
-            # FF = F+F';
-            # mean_F = sum(sum(FF).*(1:n))/N/2;
-            # s2 = sum(sum(FF).*((1:n)-mean_F).^2)/N/2;
-            # s = sqrt(s2);       % Mean of std in each direction
-            # h_norm = s*h0;      % Optimal for Normal distr.
-            # h = h_norm;         % Test
-            # endif
-
-            # Calculating kernel estimate
-            # Kernel: 2-dim normal density function
-
-            for i in range(n - 1):
-                for j in range(i + 1, n):
-                    if F[i, j] != 0:
-                        F1 = exp(-1 / (2 * h**2) * ((I - i)**2 + (J - j)**2))  # Gaussian kernel
-                        F1 = F1 + F1.T                     # Mirror kernel in diagonal
-                        F1 = np.triu(F1, 1 + NOsubzero)       # Set to zero below and on diagonal
-                        F1 = F[i, j] * F1 / np.sum(F1)   # Normalize
-                        Fsmooth = Fsmooth + F1
-                    # endif
-                # endfor
-            # endfor
-        # endif method 1 or 2
-
-        if method == 2:
-            Fpilot = Fsmooth / N
-            Fsmooth = np.zeros(n, n)
-            [I1, I2] = find(F > 0)
-            logg = 0
-            for i in range(len(I1)):  # =1:length(I1):
-                logg = logg + F(I1[i], I2[i]) * log(Fpilot(I1[i], I2[i]))
-            # endfor
-            g = np.exp(logg / N)
-            _lamda = (Fpilot / g)**(-alpha)
-
-            for i in range(n - 1):  # = 1:n-1
-                for j in range(i + 1, n):  # = i+1:n
-                    if F[i, j] != 0:
-                        hi = h * _lamda[i, j]
-                        F1 = np.exp(-1 / (2 * hi**2) * ((I - i)**2 + (J - j)**2))  # Gaussian kernel
-                        F1 = F1 + F1.T                  # Mirror kernel in diagonal
-                        F1 = np.triu(F1, 1 + NOsubzero)  # Set to zero below and on diagonal
-                        F1 = F[i, j] * F1 / np.sum(F1)   # Normalize
-                        Fsmooth = Fsmooth + F1
-                    # endif
-                # endfor
-            # endfor
-
-        # endif method 2
-        return Fsmooth, h
+#     def _smoothcmat(self, F, method=1, h=None, NOsubzero=0, alpha=0.5):
+#         """
+#         SMOOTHCMAT Smooth a cycle matrix using (adaptive) kernel smoothing
+#
+#          CALL:  Fsmooth = smoothcmat(F,method);
+#                 Fsmooth = smoothcmat(F,method,[],NOsubzero);
+#                 Fsmooth = smoothcmat(F,2,h,NOsubzero,alpha);
+#
+#          Input:
+#                 F       = Cycle matrix.           [nxn]
+#                 method  = 1: Kernel estimator (constant bandwidth). (Default)
+#                           2: Adaptiv kernel estimator (local bandwidth).
+#                 h       = Bandwidth (Optional, Default='automatic choice')
+#               NOsubzero = Number of subdiagonals that are zero
+#                           (Optional, Default = 0, only the diagonal is zero)
+#                 alpha   = Parameter for method (2) (Optional, Default=0.5).
+#                           A number between 0 and 1.
+#                           alpha=0 implies constant bandwidth (method 1).
+#                           alpha=1 implies most varying bandwidth.
+#
+#          Output:
+#          F       = Smoothed cycle matrix.   [nxn]
+#          h       = Selected bandwidth.
+#
+#          See also
+#          cc2cmat, tp2rfc, tp2mm, dat2tp
+#         """
+#         aut_h = h is None
+#         if method not in [1, 2]:
+#             raise ValueError('Input argument "method" should be 1 or 2')
+#
+#         n = len(F)  # Size of matrix
+#         N = np.sum(F)  # Total number of cycles
+#
+#         Fsmooth = np.zeros((n, n))
+#
+#         if method == 1 or method == 2:  # Kernel estimator
+#
+#             d = 2  # 2-dim
+#             x = np.arange(n)
+#             I, J = np.meshgrid(x, x)
+#
+#             # Choosing bandwidth
+#             # This choice is optimal if the sample is from a normal distr.
+#             # The normal bandwidth usualy oversmooths,
+#             # therefore we choose a slightly smaller bandwidth
+#
+#             if aut_h == 1:
+#                 h_norm = smoothcmat_norm(F, NOsubzero)
+#                 h = 0.7 * h_norm  # Don't oversmooth
+#
+#             # h0 = N^(-1/(d+4));
+#             # FF = F+F';
+#             # mean_F = sum(sum(FF).*(1:n))/N/2;
+#             # s2 = sum(sum(FF).*((1:n)-mean_F).^2)/N/2;
+#             # s = sqrt(s2);       % Mean of std in each direction
+#             # h_norm = s*h0;      % Optimal for Normal distr.
+#             # h = h_norm;         % Test
+#             # endif
+#
+#             # Calculating kernel estimate
+#             # Kernel: 2-dim normal density function
+#
+#             for i in range(n - 1):
+#                 for j in range(i + 1, n):
+#                     if F[i, j] != 0:
+#                         F1 = exp(-1 / (2 * h**2) * ((I - i)**2 + (J - j)**2))  # Gaussian kernel
+#                         F1 = F1 + F1.T                     # Mirror kernel in diagonal
+#                         F1 = np.triu(F1, 1 + NOsubzero)       # Set to zero below and on diagonal
+#                         F1 = F[i, j] * F1 / np.sum(F1)   # Normalize
+#                         Fsmooth = Fsmooth + F1
+#                     # endif
+#                 # endfor
+#             # endfor
+#         # endif method 1 or 2
+#
+#         if method == 2:
+#             Fpilot = Fsmooth / N
+#             Fsmooth = np.zeros(n, n)
+#             [I1, I2] = find(F > 0)
+#             logg = 0
+#             for i in range(len(I1)):  # =1:length(I1):
+#                 logg = logg + F(I1[i], I2[i]) * log(Fpilot(I1[i], I2[i]))
+#             # endfor
+#             g = np.exp(logg / N)
+#             _lamda = (Fpilot / g)**(-alpha)
+#
+#             for i in range(n - 1):  # = 1:n-1
+#                 for j in range(i + 1, n):  # = i+1:n
+#                     if F[i, j] != 0:
+#                         hi = h * _lamda[i, j]
+#                         F1 = np.exp(-1 / (2 * hi**2) * ((I - i)**2 + (J - j)**2))  # Gaussian kernel
+#                         F1 = F1 + F1.T                  # Mirror kernel in diagonal
+#                         F1 = np.triu(F1, 1 + NOsubzero)  # Set to zero below and on diagonal
+#                         F1 = F[i, j] * F1 / np.sum(F1)   # Normalize
+#                         Fsmooth = Fsmooth + F1
+#                     # endif
+#                 # endfor
+#             # endfor
+#
+#         # endif method 2
+#         return Fsmooth, h
 
     def cycle_matrix(self, param=(), ddef=1, method=0, h=None, NOsubzero=0, alpha=0.5):
         """CC2CMAT Calculates the cycle count matrix from a cycle count.

@@ -989,8 +989,8 @@ def findextrema(x):
     findcross
     crossdef
     '''
-    x1 = np.atleast_1d(x)
-    return findcross(diff(x1), 0.0) + 1
+    dx = np.atleast_1d(diff(x))
+    return findcross(dx, 0.0) + 1
 
 
 def findpeaks(data, n=2, min_h=None, min_p=0.0):
