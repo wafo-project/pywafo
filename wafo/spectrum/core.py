@@ -2651,7 +2651,7 @@ class SpecData1D(PlotData):
         ...     m = res.mean()
         ...     sa = res.std()
         ...     # trueval, m, sa
-        ...     np.abs(m-trueval)<sa
+        ...     np.abs(m-trueval) < 2*sa
         True
         True
         True
@@ -3089,7 +3089,6 @@ class SpecData1D(PlotData):
         >>> me, va, sk, ku = S.stats_nl(moments='mvsk')
         >>> S.tr = wtm.TrHermite(mean=me, sigma=Hs/4, skew=sk, kurt=ku, ysigma=Hs/4)
         >>> ys = wo.mat2timeseries(S.sim(ns=2**13))
-        >>> ys
         >>> g0, gemp = ys.trdata()
         >>> t0 = g0.dist2gauss()
         >>> t1 = S0.testgaussian(ns=2**13, cases=50)
@@ -4264,6 +4263,6 @@ def test_docstrings():
 
 
 if __name__ == '__main__':
-    # test_docstrings()
-    test_mm_pdf()
+    test_docstrings()
+    # test_mm_pdf()
     # main()

@@ -856,7 +856,7 @@ def ecross(t, f, ind, v=0):
             (f[ind + 1] - f[ind]))
 
 
-def _findcross(x, method='clib'):
+def _findcross(x, method='numba'):
     '''Return indices to zero up and downcrossings of a vector
     '''
     if clib is not None and method == 'clib':
@@ -989,7 +989,7 @@ def findextrema(x):
     findcross
     crossdef
     '''
-    dx = np.atleast_1d(diff(x))
+    dx = diff(np.atleast_1d(x).ravel())
     return findcross(dx, 0.0) + 1
 
 

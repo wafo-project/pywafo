@@ -14,8 +14,8 @@
  */
 
 void findrfc(double *y1,double hmin, int *ind, int n,int *info) {
-   double xminus,xplus,Tpl,Tmi,*y,Tstart;
-   int i,j,ix=0,NC,iy;
+   double xminus, xplus, Tpl, Tmi, *y, Tstart;
+   int i, j, ix=0, NC, iy;
    info[0] = 0;
    if (*(y1+0)> *(y1+1)){
    /* if first is a max , ignore the first max*/
