@@ -370,8 +370,8 @@ def _deep_water_disufq(rvec, ivec, rA, iA, w, kw, h, g, nmin, nmax, m, n):
             jyi = jy * m
             iz1 = ixi + jyi
             iv1 = jyi - ixi
-            iz2 = (n*m-iz1)
-            iv2 = (n*m-iv1)
+            iz2 = (n * m - iz1)
+            iv2 = (n * m - iv1)
             for _i in range(m):
                 rrA = rA[ixi] * rA[jyi]  # rrA = rA[i][ix]*rA[i][jy]
                 iiA = iA[ixi] * iA[jyi]  # iiA = iA[i][ix]*iA[i][jy]
@@ -587,6 +587,7 @@ def findrfc_astm(tp, t=None):
     # reduce the sig_rfc array as done originally by a matlab mex c function
     # n = len(sig_rfc)
     return sig_rfc[:n - cnr[0]]
+
 
 if __name__ == '__main__':
     pass

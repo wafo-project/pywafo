@@ -1324,7 +1324,7 @@ def chebfit_dct(f, n=(10, ), domain=None):
     for i in range(ndim):
         ck = dct(ck[..., ::-1])
         ck[..., 0] = ck[..., 0] / 2.
-        if i < ndim-1:
+        if i < ndim - 1:
             ck = np.rollaxis(ck, axis=-1)
     return ck / np.product(n)
 
@@ -1355,7 +1355,7 @@ def idct(x, n=None):
     http://en.wikipedia.org/wiki/Discrete_cosine_transform
     http://users.ece.utexas.edu/~bevans/courses/ee381k/lectures/
     """
-    return _idct(x, n=n, norm=None)*0.5/len(x)
+    return _idct(x, n=n, norm=None) * 0.5 / len(x)
 
 
 def _chebval(x, ck, kind=1):
@@ -2223,8 +2223,8 @@ def chebfitnd(xi, f, deg, rcond=None, full=False, w=None):
         rcond = xi[0].size * np.finfo(xi[0].dtype).eps
 
     # Solve the least squares problem.
-    c, resids, rank, s = np.linalg.lstsq(lhs/scl, rhs, rcond)
-    c = (c/scl).reshape(orders)
+    c, resids, rank, s = np.linalg.lstsq(lhs / scl, rhs, rcond)
+    c = (c / scl).reshape(orders)
 
     if full:
         return c, [resids, rank, s, rcond]
@@ -2279,7 +2279,7 @@ def chebvalnd(c, *xi):
     """
     try:
         xi = np.array(xi, copy=0)
-    except:
+    except Exception:
         raise ValueError('x, y, z are incompatible')
     chebval = np.polynomial.chebyshev.chebval
     c = chebval(xi[0], c)
@@ -2354,18 +2354,18 @@ def test_chebfit1d():
     zi = np.polynomial.chebyshev.chebval(xi, c)
 
     # plt.plot(xi, zi,'.', xi, f(xi))
-    plt.semilogy(xi, np.abs(zi-f(xi)))
+    plt.semilogy(xi, np.abs(zi - f(xi)))
     plt.show('hold')
 
 
 def test_chebfit2d():
     n = 3
-    xorder, yorder = n-1, n-1
+    xorder, yorder = n - 1, n - 1
     x = chebroot(n=n, kind=1)
     xgrid, ygrid = np.meshgrid(x, x)
 
     def f(x, y):
-        return np.exp(-x**2-6*y**2)
+        return np.exp(-x**2 - 6 * y**2)
     zgrid = f(xgrid, ygrid)
 
     # v2d = np.polynomial.chebyshev.chebvander2d(xgrid, ygrid,
@@ -2373,7 +2373,7 @@ def test_chebfit2d():
     # coeff, residuals, rank, s = np.linalg.lstsq(v2d, zgrid.ravel())
     # doeff = coeff.reshape(xorder+1,yorder+1)
     _dcoeff2 = chebfitnd((xgrid, ygrid), zgrid, [xorder, yorder])
-    dcoeff = chebfit_dct(f, n=(xorder+1, yorder+1))
+    dcoeff = chebfit_dct(f, n=(xorder + 1, yorder + 1))
 
     xi = np.linspace(-1, 1, 151)
     Xi, Yi = np.meshgrid(xi, xi)

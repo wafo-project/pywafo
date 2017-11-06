@@ -133,7 +133,7 @@ class _ExampleFunctions(object):
         Maple: 0.40696958949155611906
         '''
         def _exp(x, y, loc, scale, p2=2):
-            return np.exp(- (x-loc[0])**2/scale[0] - (y-loc[1])**p2/scale[1])
+            return np.exp(- (x - loc[0])**2 / scale[0] - (y - loc[1])**p2 / scale[1])
         # exp = np.exp
         x9, y9 = 9. * x, 9. * y
         return (3. / 4 * _exp(x9, y9, [2, 2], [4, 4]) +
@@ -196,7 +196,7 @@ class _ExampleFunctions(object):
         The value of the definite integral on the square [-1,1] x [-1,1]
         is 4.
         '''
-        return np.ones(np.shape(x+y))
+        return np.ones(np.shape(x + y))
 
     @staticmethod
     def exp_xy(x, y):
@@ -284,6 +284,8 @@ class _ExampleFunctions(object):
                          s.exp_fun100, s.cos30, s.constant, s.exp_xy, s.runge,
                          s.abs_cubed, s.gauss, s.exp_inv]
         return test_function[i](x, y)
+
+
 example_functions = _ExampleFunctions()
 
 

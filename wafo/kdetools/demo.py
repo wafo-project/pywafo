@@ -221,7 +221,7 @@ def kreg_demo1(hs=None, fast=True, fun='hisj'):
 
     va_1 = 0.3 ** 2
     va_2 = 0.7 ** 2
-    y0 = np.exp(-x ** 2 / (2 * va_1)) + 1.3*np.exp(-(x - 1) ** 2 / (2 * va_2))
+    y0 = np.exp(-x ** 2 / (2 * va_1)) + 1.3 * np.exp(-(x - 1) ** 2 / (2 * va_2))
     y = y0 + ei
     kernel = Kernel('gauss', fun=fun)
     hopt = kernel.hisj(x)

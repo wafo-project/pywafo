@@ -8,7 +8,7 @@ from scipy import sparse
 import numpy as np
 from itertools import product
 
-__all__ = ['accum',  'gridcount']
+__all__ = ['accum', 'gridcount']
 
 
 def _assert(cond, msg):

@@ -613,6 +613,7 @@ class CycleMatrix(PlotData):
     """
     Container class for Cycle Matrix data objects in WAFO
     """
+
     def __init__(self, *args, **kwds):
         self.kind = kwds.pop('kind', 'min2max')
         self.sigma = kwds.pop('sigma', None)
@@ -798,15 +799,25 @@ class CyclePairs(PlotData):
 
         nx = extr[0].argmax() + 1
         levels = extr[0, 0:nx]
-        if defnr == 2:  # This are upcrossings + maxima
-            dcount = cumsum(extr[1, 0:nx]) + extr[2, 0:nx] - extr[3, 0:nx]
-        elif defnr == 4:  # This are upcrossings + minima
+
+        def _upcrossings_and_maxima(extr, nx):
+            return cumsum(extr[1, 0:nx]) + extr[2, 0:nx] - extr[3, 0:nx]
+
+        def _upcrossings_and_minima(extr, nx):
             dcount = cumsum(extr[1, 0:nx])
             dcount[nx - 1] = dcount[nx - 2]
-        elif defnr == 1:  # This are only upcrossings
-            dcount = cumsum(extr[1, 0:nx]) - extr[3, 0:nx]
-        elif defnr == 3:  # This are upcrossings + minima + maxima
-            dcount = cumsum(extr[1, 0:nx]) + extr[2, 0:nx]
+            return dcount
+
+        def _upcrossings(extr, nx):
+            return cumsum(extr[1, 0:nx]) - extr[3, 0:nx]
+
+        def _upcrossings_minima_and_maxima(extr, nx):
+            return cumsum(extr[1, 0:nx]) + extr[2, 0:nx]
+
+        dcount = {1: _upcrossings,
+                  2: _upcrossings_and_maxima,
+                  3: _upcrossings_minima_and_maxima,
+                  4: _upcrossings_and_minima}[defnr](extr, nx)
         ylab = 'Count'
         if intensity:
             dcount = dcount / self.time
@@ -1142,7 +1153,7 @@ class TurningPoints(PlotData):
         ind = findrfc(self.data, max(h, 0.0), method)
         try:
             t = self.args[ind]
-        except:
+        except Exception:
             t = ind
         mean = self.mean
         sigma = self.sigma
@@ -1386,10 +1397,11 @@ class TimeSeries(PlotData):
         '''
         if isinstance(wname, tuple):
             wname = wname[0]
-        dof = int(dict(parzen=3.71, hanning=2.67,
-                       bartlett=3).get(wname, np.nan) * n/L)
+        dof = int(dict(parzen=3.71,
+                       hanning=2.67,
+                       bartlett=3).get(wname, np.nan) * n / L)
         Be = dict(parzen=1.33, hanning=1,
-                  bartlett=1.33).get(wname, np.nan) * 2 * pi / (L*dt)
+                  bartlett=1.33).get(wname, np.nan) * 2 * pi / (L * dt)
         if ftype == 'f':
             Be = Be / (2 * pi)  # bandwidth in Hz
         return Be, dof
@@ -1680,7 +1692,7 @@ class TimeSeries(PlotData):
         ind = findtp(self.data, max(h, 0.0), wavetype)
         try:
             t = self.args[ind]
-        except:
+        except Exception:
             t = ind
         mean = self.data.mean()
         sigma = self.data.std()
@@ -1710,7 +1722,7 @@ class TimeSeries(PlotData):
         ind = findtc(self.data, v, wavetype)[0]
         try:
             t = self.args[ind]
-        except:
+        except Exception:
             t = ind
         mean = self.data.mean()
         sigma = self.data.std()
@@ -1773,7 +1785,7 @@ class TimeSeries(PlotData):
         --------
         wafo.definitions
         '''
-        dT = self.sampling_period()/np.maximum(rate, 1)
+        dT = self.sampling_period() / np.maximum(rate, 1)
         xi, ti = self._interpolate(rate)
 
         tc_ind, z_ind = findtc(xi, v=0, kind='tw')
@@ -2492,7 +2504,7 @@ class TimeSeries(PlotData):
             plt.title('Surface elevation from mean water level (MWL).')
             for ix in range(nsub):
                 if nsub > 1:
-                    subplot(nsub, 1, ix+1)
+                    subplot(nsub, 1, ix + 1)
                 h_scale = array([tn[ind[0]], tn[ind[-1]]])
                 ind2 = where((h_scale[0] <= tn2) & (tn2 <= h_scale[1]))[0]
                 plot(tn[ind] * dT, xn[ind], sym1)

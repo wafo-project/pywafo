@@ -1021,11 +1021,11 @@ class _Gaussq(object):
         # Break out of the iteration loop for three reasons:
         #  1) the last update is very small (compared to int and to releps)
         #  2) There are more than 11 iterations. This should NEVER happen.
-        dtype = np.result_type(fun((a_0+b_0)*0.5, *args))
+        dtype = np.result_type(fun((a_0 + b_0) * 0.5, *args))
         n_k = np.prod(a_shape)  # # of integrals we have to compute
         k = np.arange(n_k)
         opt = (n_k, dtype)
-        val, val_old, abserr = zeros(*opt), np.nan*ones(*opt), 1e100*ones(*opt)
+        val, val_old, abserr = zeros(*opt), np.nan * ones(*opt), 1e100 * ones(*opt)
         nodes_and_weights = self._nodes_and_weights
         for i in range(max_iter):
             x_n, weights = nodes_and_weights(num_nodes, wfun, alpha, beta)
@@ -1053,6 +1053,8 @@ class _Gaussq(object):
 
         self._plot_final_trace()
         return val, abserr
+
+
 gaussq = _Gaussq()
 
 
@@ -1190,7 +1192,7 @@ class _Quadgr(object):
         return q_val, err
 
     def _integrate(self, fun, a, b, abseps, max_iter):
-        dtype = np.result_type(fun((a+b)/2), fun((a+b)/4))
+        dtype = np.result_type(fun((a + b) / 2), fun((a + b) / 4))
 
         # Initiate vectors
         val0 = zeros(max_iter, dtype=dtype)  # Quadrature
@@ -1258,6 +1260,7 @@ class _Quadgr(object):
             q_val = -q_val
 
         return q_val, err
+
 
 quadgr = _Quadgr()
 

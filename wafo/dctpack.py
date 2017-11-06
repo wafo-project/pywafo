@@ -347,8 +347,7 @@ def shiftdim(x, n=None):
         return x.reshape(no_leading_ones(x.shape))
     elif n >= 0:
         return x.transpose(np.roll(range(x.ndim), -n))
-    else:
-        return x.reshape((1,) * -n + x.shape)
+    return x.reshape((1,) * -n + x.shape)
 
 
 def example_dct2(debug=True):
@@ -396,7 +395,7 @@ def example_dct2(debug=True):
     plt.imshow(np.log(np.abs(J)))
     # plt.show('hold')
     rgb_10 = idctn(J)
-    out['diff_rgb_rgb_10'] = np.abs(rgb-rgb_10).max()
+    out['diff_rgb_rgb_10'] = np.abs(rgb - rgb_10).max()
     plt.figure(3)
     plt.imshow(rgb)
     plt.figure(4)
@@ -404,6 +403,7 @@ def example_dct2(debug=True):
     if debug:
         print(out)
     return out
+
 
 if __name__ == '__main__':
     from wafo.testing import test_docstrings

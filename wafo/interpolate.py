@@ -227,7 +227,7 @@ def sgolay2d(z, window_size, order, derivative=None):
         zout[:size, size:-size] = band - np.abs(z[size:0:-1, :] - band)
         # bottom band
         band = z[-1, :]
-        zout[-size:, size:-size] = band + np.abs(z[-2:-size-2:-1, :] - band)
+        zout[-size:, size:-size] = band + np.abs(z[-2:-size - 2:-1, :] - band)
         # left band
         band = z[:, 0].reshape(-1, 1)
         zout[size:-size, :size] = band - np.abs(z[:, size:0:-1] - band)

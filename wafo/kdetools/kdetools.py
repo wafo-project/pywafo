@@ -108,7 +108,7 @@ class _KDE(object):
         if xmin is None:
             xmin = self.dataset.min(axis=-1) - 2 * self.sigma
         # pylint: disable=attribute-defined-outside-init
-        self._xmin = self._check_xmin(xmin*np.ones(self.d))
+        self._xmin = self._check_xmin(xmin * np.ones(self.d))
 
     def _check_xmin(self, xmin):
         return xmin

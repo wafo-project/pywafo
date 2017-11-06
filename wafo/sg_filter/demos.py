@@ -19,7 +19,7 @@ def demo_savitzky_on_noisy_chirp():
     # generate chirp signal
     tvec = np.arange(0, 6.28, .02)
     true_signal = np.sin(tvec * (2.0 + tvec))
-    true_d_signal = (2+tvec) * np.cos(tvec * (2.0 + tvec))
+    true_d_signal = (2 + tvec) * np.cos(tvec * (2.0 + tvec))
 
     # add noise to signal
     noise = np.random.normal(size=true_signal.shape)
@@ -44,7 +44,7 @@ def demo_savitzky_on_noisy_chirp():
     plt.subplot(313)
     savgol1 = SavitzkyGolay(n=8, degree=1, diff_order=1)
 
-    dt = tvec[1]-tvec[0]
+    dt = tvec[1] - tvec[0]
     d_signal = savgol1.smooth(signal) / dt
 
     plt.plot(d_signal)
@@ -150,7 +150,7 @@ def demo_kalman_sine():
     w = 1
     T = np.arange(0, 30 + dt / 2, dt)
     n = len(T)
-    X = 3*np.sin(w * T)
+    X = 3 * np.sin(w * T)
     Y = X + sd * np.random.randn(n)
 
     ''' Initialize KF to values
@@ -299,7 +299,7 @@ def demo_tide_filter():
     # import statsmodels.api as sa
     import wafo.spectrum.models as sm
     sd = 10
-    Sj = sm.Jonswap(Hm0=4.*sd)
+    Sj = sm.Jonswap(Hm0=4. * sd)
     S = Sj.tospecdata()
 
     q = (0.1 * sd) ** 2   # variance of process noise s the car operates
@@ -468,6 +468,7 @@ def demo_hodrick_on_cardioid():
     plt.plot(x0, y0, 'y',
              x, y, 'r.',
              xs, ys, 'k', linewidth=2)
+
 
 if __name__ == '__main__':
     from wafo.testing import test_docstrings

@@ -523,13 +523,13 @@ def transformdata_1d(x, f, plotflag):
     transform_id = np.mod(plotflag // 10, 10)
     transform = [lambda f, x: f,
                  lambda f, x: 1 - f,
-                 lambda f, x: cumtrapz(f, x),
+                 cumtrapz(f, x),
                  lambda f, x: 1 - cumtrapz(f, x),
                  lambda f, x: np.log(f),
                  lambda f, x: np.log1p(-f),
                  lambda f, x: np.log(cumtrapz(f, x)),
                  lambda f, x: np.log1p(-cumtrapz(f, x)),
-                 lambda f, x: 10*np.log10(f)
+                 lambda f, x: 10 * np.log10(f)
                  ][transform_id]
     return transform(f, x)
 
@@ -622,9 +622,9 @@ def plot2d(axis, wdata, plotflag, *args, **kwds):
 def test_plotdata():
     plt.ioff()
     x = np.linspace(0, np.pi, 9)
-    xi = np.linspace(0, np.pi, 4*9)
+    xi = np.linspace(0, np.pi, 4 * 9)
 
-    d = PlotData(np.sin(x)/2, x, dataCI=[], xlab='x', ylab='sin',
+    d = PlotData(np.sin(x) / 2, x, dataCI=[], xlab='x', ylab='sin',
                  title='sinus', plot_args=['r.'])
     di = PlotData(d.eval_points(xi, method='cubic'), xi)
     unused_hi = di.plot()

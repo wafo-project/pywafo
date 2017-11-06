@@ -55,6 +55,8 @@ class PolyBasis(object):
 
     def __call__(self, t, k):
         return t**k
+
+
 poly_basis = PolyBasis()
 
 
@@ -73,6 +75,8 @@ class ChebyshevBasis(PolyBasis):
     def __call__(self, t, k):
         c = self._coefficients(k)
         return self.eval(t, c)
+
+
 chebyshev_basis = ChebyshevBasis()
 
 
@@ -97,10 +101,10 @@ def evans_webster_weights(omega, g, d_g, x, basis, *args, **kwds):
 
     dbasis = basis.derivative
     lim_g = Limit(g)
-    b_1 = np.exp(j_w*lim_g(1, *args, **kwds))
+    b_1 = np.exp(j_w * lim_g(1, *args, **kwds))
     if np.isnan(b_1):
         b_1 = 0.0
-    a_1 = np.exp(j_w*lim_g(-1, *args, **kwds))
+    a_1 = np.exp(j_w * lim_g(-1, *args, **kwds))
     if np.isnan(a_1):
         a_1 = 0.0
 
@@ -159,14 +163,14 @@ class QuadOsc(_Integrator):
     @staticmethod
     def _change_interval_to_0_1(f, g, d_g, a, _b):
         def f_01(t, *args, **kwds):
-            den = 1-t
+            den = 1 - t
             return f(a + t / den, *args, **kwds) / den ** 2
 
         def g_01(t, *args, **kwds):
             return g(a + t / (1 - t), *args, **kwds)
 
         def d_g_01(t, *args, **kwds):
-            den = 1-t
+            den = 1 - t
             return d_g(a + t / den, *args, **kwds) / den ** 2
         return f_01, g_01, d_g_01, 0., 1.
 
@@ -188,7 +192,7 @@ class QuadOsc(_Integrator):
     def _change_interval_to_m1_1(f, g, d_g, _a, _b):
         def f_m11(t, *args, **kwds):
             den = (1 - t**2)
-            return f(t / den, *args, **kwds) * (1+t**2) / den ** 2
+            return f(t / den, *args, **kwds) * (1 + t**2) / den ** 2
 
         def g_m11(t, *args, **kwds):
             den = (1 - t**2)
@@ -196,7 +200,7 @@ class QuadOsc(_Integrator):
 
         def d_g_m11(t, *args, **kwds):
             den = (1 - t**2)
-            return d_g(t / den, *args, **kwds) * (1+t**2) / den ** 2
+            return d_g(t / den, *args, **kwds) * (1 + t**2) / den ** 2
         return f_m11, g_m11, d_g_m11, -1., 1.
 
     def _get_functions(self):
@@ -332,33 +336,33 @@ def adaptive_levin_points(m, delta):
 
 
 def open_levin_points(m, delta):
-    return adaptive_levin_points(m+2, delta)[1:-1]
+    return adaptive_levin_points(m + 2, delta)[1:-1]
 
 
 def chebyshev_extrema(m, delta=None):
     k = np.arange(m)
-    x = np.cos(k * np.pi / (m-1))
+    x = np.cos(k * np.pi / (m - 1))
     return x
 
 
 def tanh_sinh_nodes(m, delta=None, tol=_EPS):
-    tmax = np.arcsinh(np.arctanh(1-_EPS)*2/np.pi)
+    tmax = np.arcsinh(np.arctanh(1 - _EPS) * 2 / np.pi)
     # tmax = 3.18
-    m_1 = int(np.floor(-np.log2(tmax/max(m-1, 1)))) - 1
+    m_1 = int(np.floor(-np.log2(tmax / max(m - 1, 1)))) - 1
     h = 2.0**-m_1
-    t = np.arange((m+1)//2+1)*h
-    x = np.tanh(np.pi/2*np.sinh(t))
-    k = np.flatnonzero(np.abs(x - 1) <= 10*tol)
-    y = x[:k[0]+1] if len(k) else x
+    t = np.arange((m + 1) // 2 + 1) * h
+    x = np.tanh(np.pi / 2 * np.sinh(t))
+    k = np.flatnonzero(np.abs(x - 1) <= 10 * tol)
+    y = x[:k[0] + 1] if len(k) else x
     return np.hstack((-y[:0:-1], y))
 
 
 def tanh_sinh_open_nodes(m, delta=None, tol=_EPS):
-    return tanh_sinh_nodes(m+1, delta, tol)[1:-1]
+    return tanh_sinh_nodes(m + 1, delta, tol)[1:-1]
 
 
 def chebyshev_roots(m, delta=None):
-    k = np.arange(1, 2*m, 2) * 0.5
+    k = np.arange(1, 2 * m, 2) * 0.5
     x = np.cos(k * np.pi / m)
     return x
 
@@ -390,9 +394,9 @@ class AdaptiveLevin(_Integrator):
                 rhs[j] = dff(t, *args, **kwds)
                 d_psi.fun.n = order
                 for k in range(n):
-                    a_matrix[j, k] = (dbasis(t, k, n=order+1) +
+                    a_matrix[j, k] = (dbasis(t, k, n=order + 1) +
                                       j_w * d_psi(t, k))
-        k1 = np.flatnonzero(1-np.isfinite(rhs))
+        k1 = np.flatnonzero(1 - np.isfinite(rhs))
         if k1.size > 0:  # Remove singularities
             warnings.warn('Singularities detected! ')
             a_matrix[k1] = 0
@@ -487,8 +491,8 @@ class AdaptiveLevin(_Integrator):
             points = open_levin_points  # tanh_sinh_open_nodes
 
         m = self._get_num_points(s, prec, betam)
-        abseps = 10*10.0**-prec
-        num_collocation_point_list = m*2**np.arange(1, 5) + 1
+        abseps = 10 * 10.0**-prec
+        num_collocation_point_list = m * 2**np.arange(1, 5) + 1
         basis = self.basis
 
         q_val = 1e+300
@@ -503,7 +507,7 @@ class AdaptiveLevin(_Integrator):
                 q_val = self._a_levin(omega, ff, gg, dgg, x, s, basis, *args,
                                       **kwds)
                 num_function_evaluations += n
-                err = np.abs(q_val-q_old)
+                err = np.abs(q_val - q_old)
                 if err <= abseps:
                     break
         info = self.info(err, num_function_evaluations)
@@ -524,7 +528,7 @@ class EvansWebster(AdaptiveLevin):
         w = evans_webster_weights(omega, gg, dgg, x, basis, *args, **kwds)
 
         f = Limit(ff)(x, *args, **kwds)
-        return np.sum(f*w)
+        return np.sum(f * w)
 
     def _get_num_points(self, s, prec, betam):
         return 8 if s > 1 else int(prec / max(np.log10(betam + 1), 1) + 1)

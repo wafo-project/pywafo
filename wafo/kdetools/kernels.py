@@ -325,6 +325,7 @@ class _KernelMulti(_Kernel):
     p=3;  Multivariate Tri-weight Kernel
     p=4;  Multivariate Four-weight Kernel
     """
+
     def __init__(self, r=1.0, p=1, stats=None, name=''):
         self.p = p
         super(_KernelMulti, self).__init__(r, stats, name)
@@ -342,6 +343,7 @@ class _KernelMulti(_Kernel):
         x2 = x ** 2
         return ((1.0 - x2.sum(axis=0) / r ** 2).clip(min=0.0)) ** p
 
+
 mkernel_epanechnikov = _KernelMulti(p=1, stats=_stats_epan,
                                     name='epanechnikov')
 mkernel_biweight = _KernelMulti(p=2, stats=_stats_biwe, name='biweight')
@@ -356,6 +358,7 @@ class _KernelProduct(_KernelMulti):
     p=3;  1D product Tri-weight Kernel
     p=4;  1D product Four-weight Kernel
     """
+
     def norm_factor(self, d=1, n=None):
         r = self.r
         p = self.p
@@ -367,6 +370,7 @@ class _KernelProduct(_KernelMulti):
         r = self.r  # radius
         pdf = (1 - (x / r) ** 2).clip(min=0.0) ** self.p
         return pdf.prod(axis=0)
+
 
 mkernel_p1epanechnikov = _KernelProduct(p=1, stats=_stats_epan,
                                         name='p1epanechnikov')
@@ -383,6 +387,8 @@ class _KernelRectangular(_Kernel):
     def norm_factor(self, d=1, n=None):
         r = self.r
         return (2 * r) ** d
+
+
 mkernel_rectangular = _KernelRectangular(stats=_stats_rect)
 
 
@@ -391,6 +397,8 @@ class _KernelTriangular(_Kernel):
     def _kernel(self, x):
         pdf = (1 - np.abs(x)).clip(min=0.0)
         return pdf.prod(axis=0)
+
+
 mkernel_triangular = _KernelTriangular(stats=_stats_tria)
 
 
@@ -425,6 +433,7 @@ class _KernelGaussian(_Kernel):
                                       ) / (sqrt(pi) * (2 * sigma) ** (r + 1))
         return psi_r
 
+
 mkernel_gaussian = _KernelGaussian(r=4.0, stats=_stats_gaus)
 _GAUSS_KERNEL = mkernel_gaussian
 
@@ -437,6 +446,8 @@ class _KernelLaplace(_Kernel):
 
     def norm_factor(self, d=1, n=None):
         return 2 ** d
+
+
 mkernel_laplace = _KernelLaplace(r=7.0, stats=_stats_lapl)
 
 
@@ -445,6 +456,8 @@ class _KernelLogistic(_Kernel):
     def _kernel(self, x):
         s = exp(x)
         return np.prod(s / (s + 1) ** 2, axis=0)
+
+
 mkernel_logistic = _KernelLogistic(r=7.0, stats=_stats_logi)
 
 _MKERNEL_DICT = dict(
@@ -749,7 +762,7 @@ class Kernel(object):
 
     @staticmethod
     def _get_g(k_order_2, mu2, psi_order, n, order):
-        return (-2. * k_order_2 / (mu2 * psi_order * n)) ** (1. / (order+1))
+        return (-2. * k_order_2 / (mu2 * psi_order * n)) ** (1. / (order + 1))
 
     def hste(self, data, h0=None, inc=128, maxit=100, releps=0.01, abseps=0.0):
         '''HSTE 2-Stage Solve the Equation estimate of smoothing parameter.
@@ -1016,7 +1029,7 @@ class Kernel(object):
 
                 kw4 = self.kernel(xn / h1) / (n * h1 * self.norm_factor(d=1))
                 kw = np.r_[kw4, 0, kw4[-1:0:-1]]  # Apply 'fftshift' to kw.
-                f = np.real(ifft(fft(c, 2*inc) * fft(kw)))  # convolution.
+                f = np.real(ifft(fft(c, 2 * inc) * fft(kw)))  # convolution.
 
                 # Estimate psi4=R(f'') using simple finite differences and
                 # quadrature.
@@ -1035,10 +1048,10 @@ class Kernel(object):
     def _estimate_psi(c, xn, gi, n, order=4):
         # order = numout*2+2
         inc = len(xn)
-        kw0 = _GAUSS_KERNEL.deriv4_6_8_10(xn / gi, numout=(order-2)//2)[-1]
+        kw0 = _GAUSS_KERNEL.deriv4_6_8_10(xn / gi, numout=(order - 2) // 2)[-1]
         kw = np.r_[kw0, 0, kw0[-1:0:-1]]  # Apply fftshift to kw.
-        z = np.real(ifft(fft(c, 2*inc) * fft(kw)))     # convolution.
-        return np.sum(c * z[:inc]) / (n ** 2 * gi ** (order+1))
+        z = np.real(ifft(fft(c, 2 * inc) * fft(kw)))     # convolution.
+        return np.sum(c * z[:inc]) / (n ** 2 * gi ** (order + 1))
 
     def hscv(self, data, hvec=None, inc=128, maxit=100, fulloutput=False):
         '''
@@ -1170,9 +1183,9 @@ class Kernel(object):
         return h * sigmaA
 
     def _get_grid_limits(self, data):
-        min_a, max_a = data.min(axis=1),  data.max(axis=1)
+        min_a, max_a = data.min(axis=1), data.max(axis=1)
         offset = (max_a - min_a) / 8.0
-        return min_a - offset,  max_a + offset
+        return min_a - offset, max_a + offset
 
     def hldpi(self, data, L=2, inc=128):
         '''HLDPI L-stage Direct Plug-In estimate of smoothing parameter.
@@ -1234,8 +1247,8 @@ class Kernel(object):
 
                 # L-stage iterations to estimate PSI_4
                 for ix in range(L, 0, -1):
-                    gi = self._get_g(Kd[ix - 1], mu2, psi, n, order=2*ix + 4)
-                    psi = self._estimate_psi(c, xn, gi, n, order=2*ix+2)
+                    gi = self._get_g(Kd[ix - 1], mu2, psi, n, order=2 * ix + 4)
+                    psi = self._estimate_psi(c, xn, gi, n, order=2 * ix + 2)
             h[dim] = (ste_constant / psi) ** (1. / 5)
         return h
 

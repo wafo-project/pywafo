@@ -42,7 +42,7 @@ def _set_seed(iseed):
     if iseed is not None:
         try:
             random.set_state(iseed)
-        except:
+        except Exception:
             random.seed(iseed)
 
 
@@ -444,7 +444,7 @@ class CovData1D(PlotData):
             ephat = epsi * sqrt_spec  # [:,newaxis]
             y = fft(ephat, nfft, axis=0)
             xder[:, 1:(cases + 1)] = hstack((y[2:ns + 2, 0:cases2].imag -
-                                            y[2:ns + 2, 0:cases1].real))
+                                             y[2:ns + 2, 0:cases1].real))
             xder[:, 0] = x[:, 0]
 
         if self.tr is not None:
@@ -674,7 +674,7 @@ class CovData1D(PlotData):
                     num_restored += ns - nw  # update # points simulated so far
 
                     idx = self._update_window(idx, i_unknown, num_x, num_acf,
-                                              overlap, nw,  num_restored)
+                                              overlap, nw, num_restored)
 
                     # find new interval with missing data
                     t_unknown = flatnonzero(mask_unknown[idx])
@@ -716,8 +716,8 @@ def main():
     R.plot()
     x = R.sim(ns=1024 * 4)
     inds = np.hstack((21 + np.arange(20),
-                     1000 + np.arange(20),
-                     1024 * 4 - 21 + np.arange(20)))
+                      1000 + np.arange(20),
+                      1024 * 4 - 21 + np.arange(20)))
     sample, mu1o, mu1o_std = R.simcond(x[:, 1], method='approx',
                                        i_unknown=inds)
 
