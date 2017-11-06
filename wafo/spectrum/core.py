@@ -580,16 +580,16 @@ class SpecData1D(PlotData):
 
     @freqtype.setter
     def freqtype(self, freqtype):
-        if self._freqtype==freqtype:
+        if self._freqtype == freqtype:
             return  # do nothind
-        if freqtype=='w' and self._freqtype=='f':
-            self.args *= 2*np.pi
-            self.data /= 2*np.pi
+        if freqtype == 'w' and self._freqtype == 'f':
+            self.args *= 2 * np.pi
+            self.data /= 2 * np.pi
             self._freqtype = 'w'
             self.setlabels()
-        elif freqtype=='f' and self._freqtype=='w':
-            self.args /= 2*np.pi
-            self.data *= 2*np.pi
+        elif freqtype == 'f' and self._freqtype == 'w':
+            self.args /= 2 * np.pi
+            self.data *= 2 * np.pi
             self._freqtype = 'f'
             self.setlabels()
 
@@ -1153,7 +1153,7 @@ class SpecData1D(PlotData):
             pl = [10, 30, 50, 70, 90, 95, 99, 99.9]
             mmpdf.cl = qlevels(uvdens, pl, xi=(h, h))
             mmpdf.pl = pl
-        except:
+        except Exception:
             pass
         return mmpdf
 
@@ -1497,7 +1497,7 @@ class SpecData1D(PlotData):
                           mmtmm=1, mmlmm=1,
                           vmm=2,
                           vmmtmm=3, vmmlmm=3,
-                          mmtmd=4, vmmtmd=4,  mmlmd=4, vmmlmd=4,
+                          mmtmd=4, vmmtmd=4, mmlmd=4, vmmlmd=4,
                           mmtdm=5, vmmtdm=5, mmldm=5, vmmldm=5)
         defnr = kind2defnr.get(kind, 0)
         in_space = (ftype == 'k')  # distribution in space or time
@@ -1642,7 +1642,7 @@ class SpecData1D(PlotData):
                     ftmp = np.reshape(ftmp, shape) * der0[:, :, None] / A
                     err = np.reshape(err, shape) * der0[:, :, None] / A
 
-                    f.args[2] = t[:]*A
+                    f.args[2] = t[:] * A
                     _labz = 'wave length [m]' if in_space else 'period [sec]'
 
                 else:
@@ -1653,15 +1653,15 @@ class SpecData1D(PlotData):
                     if (defnr == -1):
                         ftmp0 = np.fliplr(mctp2rfc(np.fliplr(ftmp)))
                         err = np.abs(ftmp0 -
-                                     np.fliplr(mctp2rfc(np.fliplr(ftmp+err))))
+                                     np.fliplr(mctp2rfc(np.fliplr(ftmp + err))))
                         ftmp = ftmp0
                     elif (defnr == -2):
                         ftmp0 = np.fliplr(mctp2tc(np.fliplr(ftmp), utc,
-                                                  paramu)) * sqrt(L4*L0)/L2
+                                                  paramu)) * sqrt(L4 * L0) / L2
                         err = np.abs(ftmp0 -
-                                     np.fliplr(mctp2tc(np.fliplr(ftmp+err),
+                                     np.fliplr(mctp2tc(np.fliplr(ftmp + err),
                                                        utc, paramu)) *
-                                     sqrt(L4*L0)/L2)
+                                     sqrt(L4 * L0) / L2)
                         index1 = np.flatnonzero(f.args[0] > 0)
                         index2 = np.flatnonzero(f.args[1] < 0)
                         ftmp = np.flipud(ftmp0[index2, index1])
@@ -1673,9 +1673,9 @@ class SpecData1D(PlotData):
                 f.data = ftmp
                 f.err = err
             else:  # Only time or wave length distributions wanted
-                f.data = ftmp/A
-                f.err = err/A
-                f.args[0] = A*t
+                f.data = ftmp / A
+                f.err = err / A
+                f.args[0] = A * t
 #                 if def_[0] == 't':
 #                     f.labx{1} = 'period [sec]'
 #                 else:
@@ -1684,7 +1684,7 @@ class SpecData1D(PlotData):
                 if defnr > 3:
                     f.data = np.reshape(f.data, [Nt, Nt])
                     f.err = np.reshape(f.err, [Nt, Nt])
-                    f.args[1] = A*t
+                    f.args[1] = A * t
 #                     if def_[0] == 't':
 #                         f.labx{2} = 'period [sec]'
 #                     else:
@@ -1696,7 +1696,7 @@ class SpecData1D(PlotData):
         try:
             f.cl, f.pl = qlevels(f.f, [10, 30, 50, 70, 90, 95, 99, 99.9],
                                  f.args[0], f.args[1])
-        except:
+        except Exception:
             warnings.warn('Singularity likely in pdf')
 
         # Test of spec2mmtpdf
@@ -3723,7 +3723,7 @@ class SpecData1D(PlotData):
         S0 = r_[2. / (sqrt(m[0]) * m[1]) * (mij[0] - m[0] * mij[1] / m[1]),
                 1. / sqrt(m[2]) * (mij[0] / m[0] - mij[2] / m[2]),
                 1. / (2 * m[1]) * sqrt(m[0] / m[2]) * (mij[0] / m[0] - mij[2] /
-                m[2] - mij[1] / m[1] + m[0] * mij[3] / (m[1] * m[2]))]
+                                                       m[2] - mij[1] / m[1] + m[0] * mij[3] / (m[1] * m[2]))]
 
         R1 = ones((15, 15))
         R1[:, :] = nan
@@ -4256,6 +4256,7 @@ def test_mm_pdf():
     mm = S.to_mm_pdf()
     mm.plot()
     plotbackend.show()
+
 
 def test_docstrings():
     import doctest

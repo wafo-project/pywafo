@@ -48,7 +48,7 @@ _wafocov_estimation = JITImport('wafo.covariance.estimation')
 _wafospec = JITImport('wafo.spectrum')
 
 __all__ = ['TimeSeries', 'LevelCrossings', 'CyclePairs', 'TurningPoints',
-           'sensortypeid', 'sensortype']
+           'CycleMatrix']
 
 
 def _invchi2(q, df):
@@ -905,7 +905,8 @@ class CyclePairs(PlotData):
 #                 for j in range(i + 1, n):  # = i+1:n
 #                     if F[i, j] != 0:
 #                         hi = h * _lamda[i, j]
-#                         F1 = np.exp(-1 / (2 * hi**2) * ((I - i)**2 + (J - j)**2))  # Gaussian kernel
+#                         # Gaussian kernel
+#                         F1 = np.exp(-1 / (2 * hi**2) * ((I - i)**2 + (J - j)**2))
 #                         F1 = F1 + F1.T                  # Mirror kernel in diagonal
 #                         F1 = np.triu(F1, 1 + NOsubzero)  # Set to zero below and on diagonal
 #                         F1 = F[i, j] * F1 / np.sum(F1)   # Normalize
