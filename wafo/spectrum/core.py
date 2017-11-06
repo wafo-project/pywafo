@@ -3722,8 +3722,8 @@ class SpecData1D(PlotData):
         # Cov(Hm0,Tm01) Cov(Hm0,Tm02) Cov(Tm01,Tm02)
         S0 = r_[2. / (sqrt(m[0]) * m[1]) * (mij[0] - m[0] * mij[1] / m[1]),
                 1. / sqrt(m[2]) * (mij[0] / m[0] - mij[2] / m[2]),
-                1. / (2 * m[1]) * sqrt(m[0] / m[2]) * (mij[0] / m[0] - mij[2] /
-                                                       m[2] - mij[1] / m[1] + m[0] * mij[3] / (m[1] * m[2]))]
+                1. / (2 * m[1]) * sqrt(m[0] / m[2])
+                * (mij[0] / m[0] - mij[2] / m[2] - mij[1] / m[1] + m[0] * mij[3] / (m[1] * m[2]))]
 
         R1 = ones((15, 15))
         R1[:, :] = nan

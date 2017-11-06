@@ -447,7 +447,7 @@ def spaceline(start_point, stop_point, num=10):
     '''
     num = int(num)
     start, stop = np.atleast_1d(start_point, stop_point)
-    delta = (stop - start) /  float(num - 1)
+    delta = (stop - start) / float(num - 1)
     return np.array([start + n * delta for n in range(num)])
 
 
@@ -2487,7 +2487,8 @@ def _make_bars(limits, bin_):
 
 
 # pylint: disable=redefined-builtin
-def _histogram(data, bins=None, range=None, normed=False, weights=None, density=None):  # @ReservedAssignment
+def _histogram(data, bins=None, range=None, normed=False, weights=None,  # @ReservedAssignment
+               density=None):
     """
     Example
     -------

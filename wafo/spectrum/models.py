@@ -1313,8 +1313,7 @@ class Wallop(Bretschneider):
             wp = 2. * pi / Tp
             kp = w2k(wp, 0, inf)[0]  # wavenumber at peak frequency
             Lp = 2. * pi / kp  # wave length at the peak frequency
-            N = np.abs((log(2. * pi ** 2.) + 2 * log(Hm0 / 4) -
-                     2.0 * log(Lp)) / log(2))
+            N = np.abs((log(2. * pi ** 2.) + 2 * log(Hm0 / 4) - 2.0 * log(Lp)) / log(2))
 
         super(Wallop, self).__init__(Hm0, Tp, N, M, chk_seastate)
 
@@ -2134,6 +2133,7 @@ def main():
         _test_some_spectra()
     else:
         test_docstrings()
+
 
 if __name__ == '__main__':
     main()
