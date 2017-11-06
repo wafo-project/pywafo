@@ -523,7 +523,7 @@ def transformdata_1d(x, f, plotflag):
     transform_id = np.mod(plotflag // 10, 10)
     transform = [lambda f, x: f,
                  lambda f, x: 1 - f,
-                 cumtrapz(f, x),
+                 cumtrapz,
                  lambda f, x: 1 - cumtrapz(f, x),
                  lambda f, x: np.log(f),
                  lambda f, x: np.log1p(-f),

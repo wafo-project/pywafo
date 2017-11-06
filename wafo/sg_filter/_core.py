@@ -368,7 +368,7 @@ class _Filter(object):
         z = y
         if (1 - I).any():
             notI = ~I
-            z, L = distance_transform_edt(notI,  return_indices=True)
+            z, L = distance_transform_edt(notI, return_indices=True)
             z[notI] = y[L.flat[notI]]
 
         # coarse fast smoothing using one-tenth of the DCT coefficients
@@ -986,7 +986,7 @@ class Kalman(object):
         self._set_H(n)
         try:
             HI = np.linalg.inv(self.H)
-        except:
+        except Exception:
             HI = np.eye(n)
         self._set_P(HI)
         return HI
@@ -1112,6 +1112,7 @@ class HampelFilter(object):
     -pracma.html
 
     """
+
     def __init__(self, dx=None, t=3, adaptive=None, fulloutput=False):
         self.dx = dx
         self.t = t
