@@ -497,7 +497,7 @@ class Jonswap(ModelSpectrum):
     >>> import wafo.spectrum.models as wsm
     >>> S = wsm.Jonswap(Hm0=7, Tp=11,gamma=1)
     >>> S2 = wsm.Bretschneider(Hm0=7, Tp=11)
-    >>> w = plb.linspace(0,5)
+    >>> w = np.linspace(0,5)
     >>> all(np.abs(S(w)-S2(w))<1.e-7)
     True
 

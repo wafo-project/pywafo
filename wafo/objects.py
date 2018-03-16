@@ -762,6 +762,7 @@ class CyclePairs(PlotData):
         >>> mm = tp.cycle_pairs()
         >>> lc = mm.level_crossings()
 
+
         h = mm.plot(marker='.')
         h2 = lc.plot()
 
@@ -959,8 +960,17 @@ class CyclePairs(PlotData):
            F       = Estimated cycle matrix.
            h       = Selected bandwidth.
 
-         See also
-         dcc2cmat, cc2dcc, smoothcmat
+        Example:
+        --------
+        >>> import wafo
+        >>> ts = wafo.objects.mat2timeseries(wafo.data.sea())
+        >>> tp = ts.turning_points()
+        >>> mm = tp.cycle_pairs()
+        >>> cm = mm.cycle_matrix((-3, 3, 50))
+
+
+        See also
+        dcc2cmat, cc2dcc, smoothcmat
         """
 
         if not 0 <= method <= 2:
@@ -980,7 +990,7 @@ class CyclePairs(PlotData):
         # if method >= 1:
         #    F, h = smoothcmat(F,method, h, NOsubzero, alpha)
 
-        return CycleMatrix(F, u, u)
+        return CycleMatrix(F, (u, u))
 
     def _dcp2cmat(self, dcp, n):
         """
@@ -1065,7 +1075,7 @@ class CyclePairs(PlotData):
 
         if np.any(ix):
             cp1[ix], cp2[ix] = cp2[ix], cp1[ix]
-        return np.asarray(cp1, type=int), np.asarray(cp2, type=int)
+        return np.asarray(cp1, dtype=int), np.asarray(cp2, dtype=int)
 
 
 class TurningPoints(PlotData):
