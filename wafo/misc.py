@@ -273,18 +273,18 @@ def lazyselect(condlist, choicelist, arrays, default=0):
     Examples
     --------
     >>> x = np.arange(6)
-    >>> np.select([x <3, x > 3], [x**2, x**3], default=0)
-    array([  0,   1,   4,   0,  64, 125])
-
-    >>> lazyselect([x < 3, x > 3], [lambda x: x**2, lambda x: x**3], (x,))
-    array([   0.,    1.,    4.,    0.,   64.,  125.])
-
+    >>> np.allclose(np.select([x <3, x > 3], [x**2, x**3], default=0),
+    ...             [  0,   1,   4,   0,  64, 125])
+    True
+    >>> np.allclose(lazyselect([x < 3, x > 3], [lambda x: x**2, lambda x: x**3], (x,)),
+    ...             [   0.,    1.,    4.,    0.,   64.,  125.])
+    True
     >>> a = -np.ones_like(x)
-    >>> lazyselect([x < 3, x > 3],
-    ...             [lambda x, a: x**2, lambda x, a: a * x**3],
-    ...             (x, a))
-    array([   0.,    1.,    4.,    0.,  -64., -125.])
-
+    >>> np.allclose(lazyselect([x < 3, x > 3],
+    ...                        [lambda x, a: x**2, lambda x, a: a * x**3],
+    ...                        (x, a)),
+    ...             [   0.,    1.,    4.,    0.,  -64., -125.])
+    True
     """
     arrays = np.broadcast_arrays(*arrays)
     tcode = np.mintypecode([a.dtype.char for a in arrays])
@@ -1185,6 +1185,8 @@ def findrfc(tp, h=0.0, method='clib'):
         ind, ix = clib.findrfc(y, h)
         ix = int(ix)
     else:
+        if isinstance(method, str):
+            method = 2
         ind = numba_misc.findrfc(y, h, method)
         ix = len(ind)
 
@@ -1909,8 +1911,8 @@ def betaloge(z, w):
     Example
     -------
     >>> import wafo.misc as wm
-    >>> np.abs(wm.betaloge(3,2)+2.48490665)<1e-7
-    array([ True], dtype=bool)
+    >>> np.allclose(wm.betaloge(3,2), -2.48490665)
+    True
 
     See also
     --------

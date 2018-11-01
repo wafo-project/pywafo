@@ -453,8 +453,8 @@ def la_roots(n, alpha=0, method='newton'):
     -------
     >>> import numpy as np
     >>> [x,w] = h_roots(10)
-    >>> np.sum(x*w)
-    1.3352627380516791e-17
+    >>> np.allclose(np.sum(x*w) < 1e-16, True)
+    True
 
     See also
     --------

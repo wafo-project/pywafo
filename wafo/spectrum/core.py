@@ -1248,8 +1248,8 @@ class SpecData1D(PlotData):
 
         if paramt is None:
             # (2.5 * mean distance between extremes)
-            distanceBetweenExtremes = 5 * pi * sqrt(m[1] / m[2])
-            paramt = [0, distanceBetweenExtremes, 43]
+            distance_between_extremes = 5 * pi * sqrt(m[1] / m[2])
+            paramt = [0, distance_between_extremes, 43]
 
         if paramu is None:
             paramu = [-5 * sqrt(m[0]), 5 * sqrt(m[0]), 41]

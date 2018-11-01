@@ -95,10 +95,10 @@ def dct(x, type=2, n=None, axis=-1, norm='ortho'):  # @ReservedAssignment
     --------
     >>> import numpy as np
     >>> x = np.arange(5)
-    >>> np.abs(x-idct(dct(x)))<1e-14
-    array([ True,  True,  True,  True,  True], dtype=bool)
-    >>> np.abs(x-dct(idct(x)))<1e-14
-    array([ True,  True,  True,  True,  True], dtype=bool)
+    >>> np.allclose(x, idct(dct(x)))
+    True
+    >>> np.allclose(x, dct(idct(x)))
+    True
 
     References
     ----------
