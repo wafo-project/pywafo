@@ -28,7 +28,6 @@ def now():
 def valarray(shape, value=nan, typecode=None):
     """Return an array of all value.
     """
-    #out = reshape(repeat([value], product(shape, axis=0), axis=0), shape)
     out = ones(shape, dtype=bool) * value
     if typecode is not None:
         out = out.astype(typecode)
@@ -37,7 +36,7 @@ def valarray(shape, value=nan, typecode=None):
     return out
 
 
-def _cdff(self, x, dfn, dfd):
+def _cdff(x, dfn, dfd):
     return special.fdtr(dfn, dfd, x)
 
 
@@ -91,17 +90,15 @@ def edf(x, method=2):
     z = atleast_1d(x)
     z.sort()
 
-    N = len(z)
+    n = len(z)
     if method == 1:
-        Fz1 = arange(0.5, N) / N
+        e_cdf = arange(0.5, n) / n
     elif method == 3:
-        Fz1 = arange(1, N + 1) / N
+        e_cdf = arange(1, n + 1) / n
     else:
-        Fz1 = arange(1, N + 1) / (N + 1)
+        e_cdf = arange(1, n + 1) / (n + 1)
 
-    F = PlotData(Fz1, z, xlab='x', ylab='F(x)')
-    F.setplotter('step')
-    return F
+    return PlotData(e_cdf, z, xlab='x', ylab='F(x)', plotmethod='step')
 
 
 def edfcnd(x, c=None, method=2):
@@ -113,9 +110,9 @@ def edfcnd(x, c=None, method=2):
     x : array-like
         data vector
     method : integer scalar
-        1. Interpolation so that F(X_(k)) == (k-0.5)/n.
-        2. Interpolation so that F(X_(k)) == k/(n+1).    (default)
-        3. The empirical distribution. F(X_(k)) = k/n
+        1. Interpolation so that cdf(X_(k)) == (k-0.5)/n.
+        2. Interpolation so that cdf(X_(k)) == k/(n+1).    (default)
+        3. The empirical distribution. cdf(X_(k)) = k/n
 
     Example
     -------
@@ -124,8 +121,8 @@ def edfcnd(x, c=None, method=2):
     >>> R = ws.rayleigh.rvs(scale=2,size=100)
     >>> Fc = ws.edfcnd(R, 1)
     >>> hc = Fc.plot()
-    >>> F = ws.edf(R)
-    >>> h = F.plot()
+    >>> cdf = ws.edf(R)
+    >>> h = cdf.plot()
 
      See also edf, pdfplot, cumtrapz
     """
@@ -133,21 +130,20 @@ def edfcnd(x, c=None, method=2):
     if c is None:
         c = floor(min(z.min(), 0))
 
-    try:
-        F = edf(z[c <= z], method=method)
-    except:
-        ValueError('No data points above c=%d' % int(c))
+    cdf = edf(z[c <= z], method=method)
 
     if - inf < c:
-        F.labels.ylab = 'F(x| X>=%g)' % c
+        cdf.labels.ylab = 'F(x| X>=%g)' % c
 
-    return F
+    return cdf
+
 
 def _check_nmin(nmin, n):
     nmin = max(nmin, 1)
     if 2 * nmin > n:
         warnings.warn('nmin possibly too large!')
     return nmin
+
 
 def _check_umin_umax(data, umin, umax, nmin):
     sd = np.sort(data)
@@ -156,10 +152,12 @@ def _check_umin_umax(data, umin, umax, nmin):
     umin = sdmin if umin is None else max(umin, sdmin)
     return umin, umax
 
+
 def _check_nu(nu, nmin, n):
     if nu is None:
         nu = min(n - nmin, 100)
     return nu
+
 
 def reslife(data, u=None, umin=None, umax=None, nu=None, nmin=3, alpha=0.05,
             plotflag=False):
@@ -227,7 +225,9 @@ def reslife(data, u=None, umin=None, umax=None, nu=None, nmin=3, alpha=0.05,
     # srl = valarray(nu)
     # num = valarray(nu)
 
-    mean_and_std = lambda data1: (data1.mean(), data1.std(), data1.size)
+    def mean_and_std(data1):
+        return data1.mean(), data1.std(), data1.size
+
     dat = arr(data)
     tmp = arr([mean_and_std(dat[dat > tresh] - tresh) for tresh in u.tolist()])
 
@@ -236,20 +236,18 @@ def reslife(data, u=None, umin=None, umax=None, nu=None, nmin=3, alpha=0.05,
     alpha2 = alpha / 2
 
     # Approximate P% confidence interval
-    # Za = -invnorm(alpha2);   % known mean
-    Za = -_invt(alpha2, num - 1)  # unknown mean
-    mrlu = mrl + Za * srl / sqrt(num)
-    mrll = mrl - Za * srl / sqrt(num)
+    # z_a = -invnorm(alpha2);   % known mean
+    z_a = -_invt(alpha2, num - 1)  # unknown mean
+    mrlu = mrl + z_a * srl / sqrt(num)
+    mrll = mrl - z_a * srl / sqrt(num)
 
-    # options.CI = [mrll,mrlu];
-    # options.numdata = num;
-    titleTxt = 'Mean residual life with %d%s CI' % (100 * p, '%')
+    title_txt = 'Mean residual life with %d%s CI' % (100 * p, '%')
     res = PlotData(mrl, u, xlab='Threshold',
-                   ylab='Mean Excess', title=titleTxt)
+                   ylab='Mean Excess', title=title_txt)
     res.workspace = dict(
         numdata=num, umin=umin, umax=umax, nu=nu, nmin=nmin, alpha=alpha)
     res.children = [
-        PlotData(vstack([mrll, mrlu]).T, u, xlab='Threshold', title=titleTxt)]
+        PlotData(vstack([mrll, mrlu]).T, u, xlab='Threshold', title=title_txt)]
     res.plot_args_children = [':r']
     if plotflag:
         res.plot()
@@ -390,11 +388,11 @@ def dispersion_idx(
     b_u, ok_u = _find_appropriate_threshold(u, di, di_low, di_up)
 
     ci_txt = '{0:d}{1} CI'.format(100 * p, '%')
-    titleTxt = 'Dispersion Index plot'
+    title_txt = 'Dispersion Index plot'
 
-    res = PlotData(di, u, title=titleTxt,
+    res = PlotData(di, u, title=title_txt,
                    labx='Threshold', laby='Dispersion Index')
-        #'caption',ci_txt);
+
     res.workspace = dict(umin=umin, umax=umax, nu=nu, nmin=nmin, alpha=alpha)
     res.children = [
         PlotData(vstack([di_low * ones(nu), di_up * ones(nu)]).T, u,
@@ -446,7 +444,6 @@ def decluster(data, t=None, thresh=None, tmin=1):
         t = np.arange(len(data))
     i = findpot(data, t, thresh, tmin)
     return data[i], t[i]
-
 
 
 def _remove_index_to_data_too_close_to_each_other(ix_e, is_too_small, di_e, ti_e, tmin):
@@ -759,18 +756,18 @@ class RegLogit(object):
      See also regglm, reglm, regnonlm
     """
 
-    #% Original for MATLAB written by Gordon K Smyth <gks@maths.uq.oz.au>,
-    #% U of Queensland, Australia, on Nov 19, 1990.  Last revision Aug 3,
-    #% 1992.
+    # Original for MATLAB written by Gordon K Smyth <gks@maths.uq.oz.au>,
+    # U of Queensland, Australia, on Nov 19, 1990.  Last revision Aug 3,
+    # 1992.
     #
-    #% Author: Gordon K Smyth <gks@maths.uq.oz.au>,
-    #% Revised by: pab
-    #%  -renamed from  oridinal to reglogit
-    #%  -added predict, summary and compare
-    #% Description: Ordinal logistic regression
+    # Author: Gordon K Smyth <gks@maths.uq.oz.au>,
+    # Revised by: pab
+    #  -renamed from  oridinal to reglogit
+    #  -added predict, summary and compare
+    # Description: Ordinal logistic regression
     #
-    #% Uses the auxiliary functions logistic_regression_derivatives and
-    #% logistic_regression_likelihood.
+    # Uses the auxiliary functions logistic_regression_derivatives and
+    # logistic_regression_likelihood.
 
     def __init__(self, maxiter=500, accuracy=1e-6, alpha=0.05,
                  deletecolinear=True, verbose=False):
@@ -939,7 +936,7 @@ class RegLogit(object):
                 break
             # end %while
 
-        #% tidy up output
+        # tidy up output
 
         theta = tb[:nz, ]
         beta = tb[nz:(nz + nx)]
@@ -1204,7 +1201,7 @@ class RegLogit(object):
                 R = np.dot(U, np.dot(np.diag(sqrt(S)), V))
                 ib = np.r_[0, nz:np1]
 
-                #% Var(eta_i) = var(theta_i+Xnew*b)
+                # Var(eta_i) = var(theta_i+Xnew*b)
                 vareta = zeros((n, nz))
                 u = np.hstack((one, Xnew))
                 for i in range(nz):
@@ -1317,7 +1314,7 @@ def test_reglogit():
     x = np.arange(1, 11).reshape(-1, 1)
     b = RegLogit()
     b.fit(y, x)
-    # b.display() #% members and methods
+    # b.display() # members and methods
 
     b.summary()
     [mu, plo, pup] = b.predict(fulloutput=True)  # @UnusedVariable
@@ -1331,7 +1328,7 @@ def test_reglogit2():
     y = (np.cos(x) > 2 * np.random.rand(n, 1) - 1)
     b = RegLogit()
     b.fit(y, x)
-    # b.display() #% members and methods
+    # b.display() # members and methods
     b.summary()
     [mu, plo, pup] = b.predict(fulloutput=True)
     import matplotlib.pyplot as pl

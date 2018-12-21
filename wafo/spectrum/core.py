@@ -135,7 +135,7 @@ def qtf(w, h=inf, g=9.81, method='winterstein', rtol=1e-7, atol=0):
     >>> np.allclose(hd2, [[-2.50000000e-101,  2.54841998e-022,   2.54841998e-012, 2.54841998e-004],
     ...                   [2.54841998e-022,  -2.50000000e-101,   2.54836901e-012, 2.54841997e-004],
     ...                   [2.54841998e-012,   2.54836901e-012,  -2.50000000e-101, 2.54791032e-004],
-    ...                   [2.54841998e-004,   2.54841997e-004,   2.54791032e-004, -2.50000000e-101]],
+    ...                   [2.54841998e-004,   2.54841997e-004,   2.54791032e-004, -2.500000e-101]],
     ...             atol=0)
     True
 
@@ -175,9 +175,8 @@ def qtf(w, h=inf, g=9.81, method='winterstein', rtol=1e-7, atol=0):
         h_dii = zeros(num_w)
         return h_s, h_d, h_dii
 
-    w1 = w + _TINY **(1./10) * (np.sign(w) * np.int_(np.abs(w) < _EPS) + np.int_(w==0))
-    # dw = w1-w
-    # print(dw)
+    w1 = w + _TINY ** (1. / 10) * (np.sign(w) * np.int_(np.abs(w) < _EPS) + np.int_(w == 0))
+
     w = w1
     # k_w += _TINY ** (1./3) * (np.sign(k_w) * np.int_(np.abs(k_w) < _EPS) + np.int_(k_w==0))
     k_w = w2k(w, theta=0, h=h, g=g, rtol=rtol, atol=atol)[0]
@@ -194,10 +193,10 @@ def qtf(w, h=inf, g=9.81, method='winterstein', rtol=1e-7, atol=0):
     if method.startswith('langley'):
         p_1 = (-2 * w1p2 * (k12 * g ** 2. - w12 ** 2.) +
                w_1 * (w_2 ** 4. - g ** 2 * k_2 ** 2) +
-               w_2 * (w_1 ** 4 - g * 2. * k_1 ** 2)) / (4. * w12 +_TINY)
+               w_2 * (w_1 ** 4 - g * 2. * k_1 ** 2)) / (4. * w12 + _TINY)
 
         p_2 = w1p2 ** 2. * cosh((k1p2) * h) - g * (k1p2) * sinh((k1p2) * h)
-        p_2 += _TINY * np.int_(p_2==0)
+        p_2 += _TINY * np.int_(p_2 == 0)
 
         h_s = (-p_1 / p_2 * w1p2 * cosh((k1p2) * h) / g -
                (k12 * g ** 2 - w12 ** 2.) / (4 * g * w12 + _TINY) +
@@ -207,7 +206,7 @@ def qtf(w, h=inf, g=9.81, method='winterstein', rtol=1e-7, atol=0):
                w_1 * (w_2 ** 4 - g ** 2 * k_2 ** 2) +
                w_2 * (w_1 ** 4 - g ** 2 * k_1 ** 2)) / (4. * w12 + _TINY)
         p_4 = w1m2 ** 2. * cosh(k1m2 * h) - g * (k1m2) * sinh((k1m2) * h)
-        p_4 += _TINY * np.int_(p_4==0)
+        p_4 += _TINY * np.int_(p_4 == 0)
 
         h_d = (-p_3 / p_4 * (w1m2) * cosh((k1m2) * h) / g -
                (k12 * g ** 2 + w12 ** 2) / (4 * g * w12 + _TINY) +
@@ -218,13 +217,14 @@ def qtf(w, h=inf, g=9.81, method='winterstein', rtol=1e-7, atol=0):
         tmp2 = (w_1 ** 2. + w_2 ** 2. + w12) / g
 
         h_s = 0.25 * ((tmp1 - tmp2
-                      + g * (w_1 * k_2 ** 2. + w_2 * k_1 ** 2) / (w12 * w1p2 + 0))
-                     / (1. - g * h * k1p2 / (w1p2 ** 2. + 0) * tanh(k1p2))
-                     + tmp2 - 0.5 * tmp1)  # OK
+                       + g * (w_1 * k_2 ** 2. + w_2 * k_1 ** 2) / (w12 * w1p2 + 0))
+                      / (1. - g * h * k1p2 / (w1p2 ** 2. + 0) * tanh(k1p2))
+                      + tmp2 - 0.5 * tmp1)  # OK
 
         tiny_diag = _TINY * np.diag(np.ones(num_w))  # Avoid division by zero on diagonal
         tmp3 = (w_1 ** 2 + w_2 ** 2 - w12) / g  # OK
-        numerator = (tmp1 - tmp3 - g * (w_1 * k_2 ** 2 - w_2 * k_1 ** 2) / (w12 * w1m2 + tiny_diag))
+        numerator = (tmp1 - tmp3 - g * (w_1 * k_2 ** 2
+                                        - w_2 * k_1 ** 2) / (w12 * w1m2 + tiny_diag))
         h_d = 0.25 * (numerator / (1. - g * h * k1m2 / (w1m2 ** 2. + tiny_diag) * tanh(k1m2))
                       + tmp3 - 0.5 * tmp1)  # OK
 
@@ -825,7 +825,7 @@ class SpecData1D(PlotData):
             nt = rate * (n_f - 1)
         else:  # check if Nt is ok
             nt = minimum(nt, rate * (n_f - 1))
-        # nr, nt = int(nr), int(nt)
+
         spec = self.copy()
         spec.resample(dt)
 
@@ -990,10 +990,10 @@ class SpecData1D(PlotData):
         iseed : scalar integer
             starting seed number for the random number generator
                   (default none is set)
-        fnLimit : real scalar
+        fn_limit : real scalar
             normalized upper frequency limit of spectrum for 2'nd order
             components. The frequency is normalized with
-                   sqrt(gravity*tanh(kbar*water_depth)/Amax)/(2*pi)
+                   sqrt(gravity*tanh(kbar*water_depth)/a_max)/(2*pi)
             (default sqrt(2), i.e., Convergence criterion).
             Generally this should be the same as used in the final
                    non-linear simulation (see example below).
@@ -1066,7 +1066,7 @@ class SpecData1D(PlotData):
         max_sim = 30
         tolerance = 5e-4
 
-        L = 200  # maximum lag size of the window function used in estimate
+        max_lag = 200  # maximum lag size of the window function used in estimate
         # ftype = self.freqtype #options are 'f' and 'w' and 'k'
 #        switch ftype
 #         case 'f',
@@ -1094,9 +1094,9 @@ class SpecData1D(PlotData):
 
         # Expected maximum amplitude for 10000 waves seastate
         num_waves = 10000  # Typical number of waves in 30 hour seastate
-        Amax = sqrt(2 * log(num_waves)) * Hm0 / 4
+        a_max = sqrt(2 * log(num_waves)) * Hm0 / 4
 
-        fLimitLo = sqrt(gravity * tanh(kbar * water_depth) * Amax / water_depth ** 3)
+        f_limit_lo = sqrt(gravity * tanh(kbar * water_depth) * a_max / water_depth ** 3)
 
         freq = S.args
         eps = finfo(float).eps
@@ -1105,11 +1105,11 @@ class SpecData1D(PlotData):
 
         SL = S
 
-        indZero = nonzero(freq < fLimitLo)[0]
-        if len(indZero):
-            SL.data[indZero] = 0
+        ind_zero = nonzero(freq < f_limit_lo)[0]
+        if len(ind_zero):
+            SL.data[ind_zero] = 0
 
-        maxS = max(S.data)
+        max_spec = max(S.data)
         # Fs = 2*freq(end)+eps  # sampling frequency
 
         for ix in range(max_sim):
@@ -1117,12 +1117,12 @@ class SpecData1D(PlotData):
                                  method=method, fnlimit=fn_limit,
                                  output='timeseries')
             x2.data -= x1.data  # x2(:,2:end) = x2(:,2:end) -x1(:,2:end)
-            S2 = x2.tospecdata(L)
-            S1 = x1.tospecdata(L)
+            S2 = x2.tospecdata(max_lag)
+            S1 = x1.tospecdata(max_lag)
 
             # TODO: Finish spec.to_linspec
-#             S2 = dat2spec(x2, L)
-#             S1 = dat2spec(x1, L)
+#             S2 = dat2spec(x2, max_lag)
+#             S1 = dat2spec(x1, max_lag)
 # %[tf21,fi] = tfe(x2(:,2),x1(:,2),1024,Fs,[],512)
 # %Hw11 = interp1q(fi,tf21.*conj(tf21),freq)
             if True:
@@ -1144,8 +1144,8 @@ class SpecData1D(PlotData):
 
             SL.data = (Hw1 * S.data)
 
-            if len(indZero):
-                SL.data[indZero] = 0
+            if len(ind_zero):
+                SL.data[ind_zero] = 0
                 # end
             k = nonzero(SL.data < 0)[0]
             if len(k):  # Make sure that the current guess is larger than zero
@@ -1176,17 +1176,17 @@ class SpecData1D(PlotData):
                 # figtile
             # end
 
-            print('Iteration : %d, Hw12 : %g  Hw12/maxS : %g' %
-                  (ix, maxHw12, (maxHw12 / maxS)))
-            if (maxHw12 < maxS * tolerance) and (Hw1[-1] < Hw2[-1]):
+            print('Iteration : %d, Hw12 : %g  Hw12/max_spec : %g' %
+                  (ix, maxHw12, (maxHw12 / max_spec)))
+            if (maxHw12 < max_spec * tolerance) and (Hw1[-1] < Hw2[-1]):
                 break
             # end
             Hw2 = Hw1
         # end
 
         # Hw1(end)
-        # maxS*1e-3
-        # if Hw1[-1]*S.data>maxS*1e-3,
+        # max_spec*1e-3
+        # if Hw1[-1]*S.data>max_spec*1e-3,
         #   warning('The Nyquist frequency of the spectrum may be too low')
         # end
 
@@ -1837,7 +1837,7 @@ class SpecData1D(PlotData):
         # end
 
         try:
-            f.cl, f.pl = qlevels(f.f, [10, 30, 50, 70, 90, 95, 99, 99.9],
+            f.cl, f.pl = qlevels(f.data, [10, 30, 50, 70, 90, 95, 99, 99.9],
                                  f.args[0], f.args[1])
         except Exception:
             warnings.warn('Singularity likely in pdf')

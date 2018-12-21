@@ -346,8 +346,8 @@ def shiftdim(x, n=None):
     if n is None:
         return x.reshape(no_leading_ones(x.shape))
     elif n >= 0:
-        return x.transpose(np.roll(range(x.ndim), -n))
-    return x.reshape((1,) * -n + x.shape)
+        return x.transpose(np.roll(range(x.ndim), -1 * n))
+    return x.reshape((1,) * abs(n) + x.shape)
 
 
 def example_dct2(debug=True):
