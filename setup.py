@@ -103,6 +103,7 @@ def setup_package_pyscaffold():
     setup(setup_requires=['six', 'pyscaffold>=2.5.9,<=3.1'] + sphinx,
           tests_require=['pytest_cov', 'pytest'],
           use_pyscaffold=True,
+          packages=setuptools.find_packages(),
           **config.todict())
 
 
