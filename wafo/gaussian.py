@@ -705,8 +705,8 @@ def prbnormnd(correl, a, b, abseps=1e-4, releps=1e-3, maxpts=None, method=0):
     ...    [0.0019456719705212067, 1.0059406844578488e-05, 0])
     True
 
-    >>> np.abs(val-Et)< err0+terr0
-    array([ True], dtype=bool)
+    >>> np.allclose(np.abs(val-Et) < err0+terr0, True)
+    True
     >>> 'val = %2.5f' % val
     'val = 0.00195'
 

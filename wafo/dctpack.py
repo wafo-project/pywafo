@@ -95,10 +95,10 @@ def dct(x, type=2, n=None, axis=-1, norm='ortho'):  # @ReservedAssignment
     --------
     >>> import numpy as np
     >>> x = np.arange(5)
-    >>> np.abs(x-idct(dct(x)))<1e-14
-    array([ True,  True,  True,  True,  True], dtype=bool)
-    >>> np.abs(x-dct(idct(x)))<1e-14
-    array([ True,  True,  True,  True,  True], dtype=bool)
+    >>> np.allclose(x, idct(dct(x)))
+    True
+    >>> np.allclose(x, dct(idct(x)))
+    True
 
     References
     ----------
@@ -346,8 +346,8 @@ def shiftdim(x, n=None):
     if n is None:
         return x.reshape(no_leading_ones(x.shape))
     elif n >= 0:
-        return x.transpose(np.roll(range(x.ndim), -n))
-    return x.reshape((1,) * -n + x.shape)
+        return x.transpose(np.roll(range(x.ndim), -1 * n))
+    return x.reshape((1,) * abs(n) + x.shape)
 
 
 def example_dct2(debug=True):

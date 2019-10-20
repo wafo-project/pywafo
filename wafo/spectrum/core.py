@@ -50,6 +50,7 @@ __all__ = ['SpecData1D', 'SpecData2D', 'plotspec']
 
 
 _EPS = np.finfo(float).eps
+_TINY = np.finfo(float).tiny
 
 
 def _set_seed(iseed):
@@ -61,7 +62,7 @@ def _set_seed(iseed):
             random.seed(iseed)
 
 
-def qtf(w, h=inf, g=9.81):
+def qtf(w, h=inf, g=9.81, method='winterstein', rtol=1e-7, atol=0):
     """
     Return Quadratic Transfer Function
 
@@ -79,68 +80,211 @@ def qtf(w, h=inf, g=9.81):
     h_s   = sum frequency effects
     h_d   = difference frequency effects
     h_dii = diagonal of h_d
+
+    Example
+    -------
+
+    >>> w = np.r_[0.1, 1./3, 2./3, 1]
+    >>> hs, hd, hdi = qtf(w, h=np.inf, g=9.81)
+    >>> np.allclose(hs, [[ 0.00050968,  0.00308642,  0.01158115,  0.02573904],
+    ...                  [ 0.00308642,  0.00566316,  0.01415789,  0.02831578],
+    ...                  [ 0.01158115,  0.01415789,  0.02265262,  0.03681051],
+    ...                  [ 0.02573904,  0.02831578,  0.03681051,  0.0509684 ]])
+    True
+
+    >>> np.allclose(hd, [[-0.        , -0.00257674, -0.01107147, -0.02522936],
+    ...                  [-0.00257674, -0.        , -0.00849473, -0.02265262],
+    ...                  [-0.01107147, -0.00849473, -0.        , -0.01415789],
+    ...                  [-0.02522936, -0.02265262, -0.01415789, -0.        ]])
+    True
+
+    >>> hs2, hd2, hdi2 = qtf(w, h=1e+6, g=9.81, method='winterstein')
+    >>> np.allclose(hs2, [[0.00050968,  0.00308642,  0.01158115,  0.02573904],
+    ...                   [0.00308642,  0.00566316,  0.01415789,  0.02831578],
+    ...                   [0.01158115,  0.01415789,  0.02265262,  0.03681051],
+    ...                   [0.02573904,  0.02831578,  0.03681051,  0.0509684 ]])
+    True
+    >>> np.allclose(hd2, [[-2.50061328e-07,   1.38729557e-03,   8.18314621e-03, 2.06421189e-02],
+    ...                   [1.38729557e-03,  -2.50005518e-07,   2.83135545e-03, 1.13261230e-02],
+    ...                   [8.18314621e-03,   2.83135545e-03,  -2.50001380e-07, 2.83133750e-03],
+    ...                   [2.06421189e-02,   1.13261230e-02,   2.83133750e-03, -2.50000613e-07]])
+    True
+
+    >>> w = np.r_[0, 1e-10, 1e-5, 1e-1]
+    >>> hs, hd, hdi = qtf(w, h=np.inf, g=9.81)
+    >>> np.allclose(hs, [[0.00000000e+00,   2.54841998e-22,   2.54841998e-12, 2.54841998e-04],
+    ...                  [2.54841998e-22,   5.09683996e-22,   2.54841998e-12, 2.54841998e-04],
+    ...                  [2.54841998e-12,   2.54841998e-12,   5.09683996e-12, 2.54842001e-04],
+    ...                  [2.54841998e-04,   2.54841998e-04,   2.54842001e-04, 5.09683996e-04]])
+    True
+
+    >>> np.allclose(hd, [[-0.00000000e+00,  -2.54841998e-22,  -2.54841998e-12, -2.54841998e-04],
+    ...                  [-2.54841998e-22,  -0.00000000e+00,  -2.54841998e-12, -2.54841998e-04],
+    ...                  [-2.54841998e-12,  -2.54841998e-12,  -0.00000000e+00, -2.54841995e-04],
+    ...                  [-2.54841998e-04,  -2.54841998e-04,  -2.54841995e-04, -0.00000000e+00]])
+    True
+
+    >>> hs2, hd2, hdi2 = qtf(w, h=1e+100, g=9.81, method='winterstein')
+    >>> np.allclose(hs2, [[1.50234572e-63,   2.54841998e-22,   2.54841998e-12, 2.54841998e-04],
+    ...                   [2.54841998e-22,   5.09683996e-22,   2.54841998e-12, 2.54841998e-04],
+    ...                   [2.54841998e-12,   2.54841998e-12,   5.09683996e-12, 2.54842001e-04],
+    ...                   [2.54841998e-04,   2.54841998e-04,   2.54842001e-04, 5.09683996e-04]],
+    ...             atol=0)
+    True
+
+    >>> np.allclose(hd2, [[-2.50000000e-101,  2.54841998e-022,   2.54841998e-012, 2.54841998e-004],
+    ...                   [2.54841998e-022,  -2.50000000e-101,   2.54836901e-012, 2.54841997e-004],
+    ...                   [2.54841998e-012,   2.54836901e-012,  -2.50000000e-101, 2.54791032e-004],
+    ...                   [2.54841998e-004,   2.54841997e-004,   2.54791032e-004, -2.500000e-101]],
+    ...             atol=0)
+    True
+
+    References:
+    -----------
+    Langley, RS (1987)
+    'A statistical analysis of nonlinear random waves'
+    Ocean Engineering, Vol 14, No 5, pp 389-407
+
+    Marthinsen, T. and Winterstein, S.R (1992)
+    'On the skewness of random surface waves'
+    In proceedings of the 2nd ISOPE Conference, San Francisco, 14-19 june.
     """
+#     >>> hs3, hd3, hdi3 = qtf(w, h=200, g=9.81, method='winterstein')
+#     >>> hs3
+#
+#     >>> hd3
+#
+#     >>> np.allclose(hs3, [[ 0.        ,  0.00283158,  0.01132631,  0.0254842 ],
+#     ...                  [ 0.00283158,  0.00566316,  0.01415789,  0.02831578],
+#     ...                  [ 0.01132631,  0.01415789,  0.02265262,  0.03681051],
+#     ...                  [ 0.0254842 ,  0.02831578,  0.03681051,  0.0509684 ]])
+#
+#     >>> np.allclose(hd3, [[-0.        , -0.00283158, -0.01132631, -0.0254842 ],
+#     ...                  [-0.00283158, -0.        , -0.00849473, -0.02265262],
+#     ...                  [-0.01132631, -0.00849473, -0.        , -0.01415789],
+#     ...                  [-0.0254842 , -0.02265262, -0.01415789, -0.        ]])
+
     w = atleast_1d(w)
     num_w = w.size
 
-    k_w = w2k(w, theta=0, h=h, g=g)[0]
-
-    k_1, k_2 = meshgrid(k_w, k_w)
-
     if h == inf:  # go here for faster calculations
+        k_w = w2k(w, theta=0, h=h, g=g, rtol=rtol, atol=atol)[0]
+        k_1, k_2 = meshgrid(k_w, k_w, sparse=True)
         h_s = 0.25 * (abs(k_1) + abs(k_2))
         h_d = -0.25 * abs(abs(k_1) - abs(k_2))
         h_dii = zeros(num_w)
         return h_s, h_d, h_dii
 
-    [w_1, w_2] = meshgrid(w, w)
+    w1 = w + _TINY ** (1. / 10) * (np.sign(w) * np.int_(np.abs(w) < _EPS) + np.int_(w == 0))
 
-    w12 = (w_1 * w_2)
-    w1p2 = (w_1 + w_2)
-    w1m2 = (w_1 - w_2)
-    k12 = (k_1 * k_2)
-    k1p2 = (k_1 + k_2)
+    w = w1
+    # k_w += _TINY ** (1./3) * (np.sign(k_w) * np.int_(np.abs(k_w) < _EPS) + np.int_(k_w==0))
+    k_w = w2k(w, theta=0, h=h, g=g, rtol=rtol, atol=atol)[0]
+    k_1, k_2 = meshgrid(k_w, k_w, sparse=True)
+    w_1, w_2 = meshgrid(w, w, sparse=True)
+
+    w12 = w_1 * w_2
+    w1p2 = w_1 + w_2
+    w1m2 = w_1 - w_2
+    k12 = k_1 * k_2
+    k1p2 = k_1 + k_2
     k1m2 = abs(k_1 - k_2)
 
-    if False:  # Langley
+    if method.startswith('langley'):
         p_1 = (-2 * w1p2 * (k12 * g ** 2. - w12 ** 2.) +
                w_1 * (w_2 ** 4. - g ** 2 * k_2 ** 2) +
-               w_2 * (w_1 ** 4 - g * 2. * k_1 ** 2)) / (4. * w12)
+               w_2 * (w_1 ** 4 - g * 2. * k_1 ** 2)) / (4. * w12 + _TINY)
+
         p_2 = w1p2 ** 2. * cosh((k1p2) * h) - g * (k1p2) * sinh((k1p2) * h)
+        p_2 += _TINY * np.int_(p_2 == 0)
 
         h_s = (-p_1 / p_2 * w1p2 * cosh((k1p2) * h) / g -
-               (k12 * g ** 2 - w12 ** 2.) / (4 * g * w12) +
+               (k12 * g ** 2 - w12 ** 2.) / (4 * g * w12 + _TINY) +
                (w_1 ** 2 + w_2 ** 2) / (4 * g))
 
         p_3 = (-2 * w1m2 * (k12 * g ** 2 + w12 ** 2) -
                w_1 * (w_2 ** 4 - g ** 2 * k_2 ** 2) +
-               w_2 * (w_1 ** 4 - g ** 2 * k_1 ** 2)) / (4. * w12)
+               w_2 * (w_1 ** 4 - g ** 2 * k_1 ** 2)) / (4. * w12 + _TINY)
         p_4 = w1m2 ** 2. * cosh(k1m2 * h) - g * (k1m2) * sinh((k1m2) * h)
+        p_4 += _TINY * np.int_(p_4 == 0)
 
         h_d = (-p_3 / p_4 * (w1m2) * cosh((k1m2) * h) / g -
-               (k12 * g ** 2 + w12 ** 2) / (4 * g * w12) +
+               (k12 * g ** 2 + w12 ** 2) / (4 * g * w12 + _TINY) +
                (w_1 ** 2. + w_2 ** 2.) / (4. * g))
 
     else:  # Marthinsen & Winterstein
-        tmp1 = 0.5 * g * k12 / w12
-        tmp2 = 0.25 / g * (w_1 ** 2. + w_2 ** 2. + w12)
-        h_s = (tmp1 - tmp2 + 0.25 * g * (w_1 * k_2 ** 2. + w_2 * k_1 ** 2) /
-               (w12 * (w1p2))) / (1. - g * (k1p2) / (w1p2) ** 2. *
-                                  tanh((k1p2) * h)) + tmp2 - 0.5 * tmp1  # OK
+        tmp1 = 2.0 * g * k12 / (w12 + 0)
+        tmp2 = (w_1 ** 2. + w_2 ** 2. + w12) / g
 
-        tmp2 = 0.25 / g * (w_1 ** 2 + w_2 ** 2 - w12)  # OK
-        h_d = (tmp1 - tmp2 - 0.25 * g * (w_1 * k_2 ** 2 - w_2 * k_1 ** 2) /
-               (w12 * (w1m2))) / (1. - g * (k1m2) / (w1m2) ** 2. *
-                                  tanh((k1m2) * h)) + tmp2 - 0.5 * tmp1  # OK
+        h_s = 0.25 * ((tmp1 - tmp2
+                       + g * (w_1 * k_2 ** 2. + w_2 * k_1 ** 2) / (w12 * w1p2 + 0))
+                      / (1. - g * h * k1p2 / (w1p2 ** 2. + 0) * tanh(k1p2))
+                      + tmp2 - 0.5 * tmp1)  # OK
 
-    # tmp1 = 0.5*g*k_w./(w.*sqrt(g*h))
-    # tmp2 = 0.25*w.^2/g
+        tiny_diag = _TINY * np.diag(np.ones(num_w))  # Avoid division by zero on diagonal
+        tmp3 = (w_1 ** 2 + w_2 ** 2 - w12) / g  # OK
+        numerator = (tmp1 - tmp3 - g * (w_1 * k_2 ** 2
+                                        - w_2 * k_1 ** 2) / (w12 * w1m2 + tiny_diag))
+        h_d = 0.25 * (numerator / (1. - g * h * k1m2 / (w1m2 ** 2. + tiny_diag) * tanh(k1m2))
+                      + tmp3 - 0.5 * tmp1)  # OK
+
+#         h_d = 0.25 * ((tmp1 - tmp3
+#                        - g * (w_1 * k_2 ** 2 - w_2 * k_1 ** 2) / (w12 * w1m2 + tiny_diag))
+#                       / (1. - g * h * k1m2 / (w1m2 ** 2. + tiny_diag) * tanh(k1m2))
+#                       + tmp3 - 0.5 * tmp1)  # OK
+
+    # tmp1 = 2 * g * (k_w./w)^2
+    # tmp2 = w.^2/g
     # Wave group velocity
-    c_g = 0.5 * g * (tanh(k_w * h) + k_w * h * (1.0 - tanh(k_w * h) ** 2)) / w
-    h_dii = (0.5 * (0.5 * g * (k_w / w) ** 2. - 0.5 * w ** 2 / g +
-                    g * k_w / (w * c_g)) /
-             (1. - g * h / c_g ** 2.) - 0.5 * k_w / sinh(2 * k_w * h))  # OK
+    k_h = k_w * h
+    c_g = 0.5 * g * (tanh(k_h) + k_h / np.cosh(k_h) ** 2) / w
+    numerator2 = (g * (k_w / w) ** 2. - w ** 2 / g + 2 * g * k_w / (w * c_g + 0))
+    h_dii = 0.25 * (numerator2 / (1. - g * h / (c_g ** 2. + 0))
+                    - 2 * k_w / sinh(2 * k_h))  # OK
+#     c_g = 0.5 * g * (tanh(k_w * h) + k_w * h * (1.0 - tanh(k_w * h) ** 2)) / w
+#     h_dii = (0.5 * (0.5 * g * (k_w / w) ** 2. - 0.5 * w ** 2 / g + g * k_w / (w * c_g + 0))
+#              / (1. - g * h / (c_g ** 2. + 0))
+#              - 0.5 * k_w / sinh(2 * k_w * h))  # OK
     h_d.flat[0::num_w + 1] = h_dii
+
+    # infinite water
+    #     >>> np.allclose(hs, [[ 0.        ,  0.00283158,  0.01132631,  0.0254842 ],
+    #     ...                  [ 0.00283158,  0.00566316,  0.01415789,  0.02831578],
+    #     ...                  [ 0.01132631,  0.01415789,  0.02265262,  0.03681051],
+    #     ...                  [ 0.0254842 ,  0.02831578,  0.03681051,  0.0509684 ]])
+    #     True
+    #
+    #     >>> np.allclose(hd, [[-0.        , -0.00283158, -0.01132631, -0.0254842 ],
+    #     ...                  [-0.00283158, -0.        , -0.00849473, -0.02265262],
+    #     ...                  [-0.01132631, -0.00849473, -0.        , -0.01415789],
+    #     ...                  [-0.0254842 , -0.02265262, -0.01415789, -0.        ]])
+    #     True
+
+    # winterstein
+    #     h_s =
+    #      [[  0.00000000e+00  -1.64775418e+00  -6.95612056e-01  -4.18817231e-01 -3.15690232e-01]
+    #  [ -1.64775418e+00  -7.98574421e-01  -2.21051428e-01  -6.73808482e-02 -1.69373060e-02]
+    #  [ -6.95612056e-01  -2.21051428e-01  -1.29139936e-01  -4.11797418e-02 1.12063541e-03]
+    #  [ -4.18817231e-01  -6.73808482e-02  -4.11797418e-02  -3.51718594e-03 2.44489725e-02]
+
+    #     h_d =
+    #  [[ 0.         -1.64775418 -0.69561206 -0.41881723 -0.31569023]
+    #  [-1.6103978   0.0130494  -0.12128861 -0.05785645 -0.02806048]
+    #  [-0.65467824 -0.12128861  0.01494093 -0.04402996 -0.02595442]
+    #  [-0.35876732 -0.05785645 -0.04402996  0.01905565 -0.02218373]
+    #  [        inf -0.02806048 -0.02595442 -0.02218373  0.02705736]]
+    # langley
+    # h_d = [[  0.00000000e+00  -8.87390092e+14  -3.87924869e+14  -1.66844106e+15 inf]
+    #  [ -8.87390092e+14  -1.14566397e-02  -1.50113192e-01  -1.11791139e-01 -1.13090565e-01]
+    #  [ -3.87924869e+14  -1.50113192e-01  -8.56987798e-03  -5.10233013e-02 -4.93936523e-02]
+    #  [ -1.66844106e+15  -1.11791139e-01  -5.10233013e-02  -4.72078473e-03 -2.74040590e-02]
+    #  [             inf  -1.13090565e-01  -4.93936523e-02  -2.74040590e-02 -1.57316125e-03]]
+    #  h_s =
+    #  [[  0.00000000e+00  -8.62422934e+14  -3.76136070e+14  -1.61053099e+15 inf]
+    #  [ -8.87390092e+14   2.59936788e-01   1.22409408e-01   7.97392657e-02 6.16999831e-02]
+    #  [ -3.87924869e+14   1.46564082e-01   7.02793126e-02   4.62059958e-02 3.58607610e-02]
+    #  [ -1.66844106e+15   1.18356989e-01   5.82970744e-02   3.92688958e-02 3.13685586e-02]
+    #  [             inf   1.25606419e-01   6.35218804e-02   4.41902963e-02 3.69195895e-02]]
 
     # k    = find(w_1==w_2)
     # h_d(k) = h_dii
@@ -681,7 +825,7 @@ class SpecData1D(PlotData):
             nt = rate * (n_f - 1)
         else:  # check if Nt is ok
             nt = minimum(nt, rate * (n_f - 1))
-        # nr, nt = int(nr), int(nt)
+
         spec = self.copy()
         spec.resample(dt)
 
@@ -846,10 +990,10 @@ class SpecData1D(PlotData):
         iseed : scalar integer
             starting seed number for the random number generator
                   (default none is set)
-        fnLimit : real scalar
+        fn_limit : real scalar
             normalized upper frequency limit of spectrum for 2'nd order
             components. The frequency is normalized with
-                   sqrt(gravity*tanh(kbar*water_depth)/Amax)/(2*pi)
+                   sqrt(gravity*tanh(kbar*water_depth)/a_max)/(2*pi)
             (default sqrt(2), i.e., Convergence criterion).
             Generally this should be the same as used in the final
                    non-linear simulation (see example below).
@@ -915,7 +1059,6 @@ class SpecData1D(PlotData):
 
         # by pab 13.08.2002
 
-        # TODO % Replace inputs with options structure
         # TODO % Can be improved further.
 
         method = 'apstochastic'
@@ -923,7 +1066,7 @@ class SpecData1D(PlotData):
         max_sim = 30
         tolerance = 5e-4
 
-        L = 200  # maximum lag size of the window function used in estimate
+        max_lag = 200  # maximum lag size of the window function used in estimate
         # ftype = self.freqtype #options are 'f' and 'w' and 'k'
 #        switch ftype
 #         case 'f',
@@ -951,9 +1094,9 @@ class SpecData1D(PlotData):
 
         # Expected maximum amplitude for 10000 waves seastate
         num_waves = 10000  # Typical number of waves in 30 hour seastate
-        Amax = sqrt(2 * log(num_waves)) * Hm0 / 4
+        a_max = sqrt(2 * log(num_waves)) * Hm0 / 4
 
-        fLimitLo = sqrt(gravity * tanh(kbar * water_depth) * Amax / water_depth ** 3)
+        f_limit_lo = sqrt(gravity * tanh(kbar * water_depth) * a_max / water_depth ** 3)
 
         freq = S.args
         eps = finfo(float).eps
@@ -962,11 +1105,11 @@ class SpecData1D(PlotData):
 
         SL = S
 
-        indZero = nonzero(freq < fLimitLo)[0]
-        if len(indZero):
-            SL.data[indZero] = 0
+        ind_zero = nonzero(freq < f_limit_lo)[0]
+        if len(ind_zero):
+            SL.data[ind_zero] = 0
 
-        maxS = max(S.data)
+        max_spec = max(S.data)
         # Fs = 2*freq(end)+eps  # sampling frequency
 
         for ix in range(max_sim):
@@ -974,12 +1117,12 @@ class SpecData1D(PlotData):
                                  method=method, fnlimit=fn_limit,
                                  output='timeseries')
             x2.data -= x1.data  # x2(:,2:end) = x2(:,2:end) -x1(:,2:end)
-            S2 = x2.tospecdata(L)
-            S1 = x1.tospecdata(L)
+            S2 = x2.tospecdata(max_lag)
+            S1 = x1.tospecdata(max_lag)
 
             # TODO: Finish spec.to_linspec
-#             S2 = dat2spec(x2, L)
-#             S1 = dat2spec(x1, L)
+#             S2 = dat2spec(x2, max_lag)
+#             S1 = dat2spec(x1, max_lag)
 # %[tf21,fi] = tfe(x2(:,2),x1(:,2),1024,Fs,[],512)
 # %Hw11 = interp1q(fi,tf21.*conj(tf21),freq)
             if True:
@@ -1001,8 +1144,8 @@ class SpecData1D(PlotData):
 
             SL.data = (Hw1 * S.data)
 
-            if len(indZero):
-                SL.data[indZero] = 0
+            if len(ind_zero):
+                SL.data[ind_zero] = 0
                 # end
             k = nonzero(SL.data < 0)[0]
             if len(k):  # Make sure that the current guess is larger than zero
@@ -1033,17 +1176,17 @@ class SpecData1D(PlotData):
                 # figtile
             # end
 
-            print('Iteration : %d, Hw12 : %g  Hw12/maxS : %g' %
-                  (ix, maxHw12, (maxHw12 / maxS)))
-            if (maxHw12 < maxS * tolerance) and (Hw1[-1] < Hw2[-1]):
+            print('Iteration : %d, Hw12 : %g  Hw12/max_spec : %g' %
+                  (ix, maxHw12, (maxHw12 / max_spec)))
+            if (maxHw12 < max_spec * tolerance) and (Hw1[-1] < Hw2[-1]):
                 break
             # end
             Hw2 = Hw1
         # end
 
         # Hw1(end)
-        # maxS*1e-3
-        # if Hw1[-1]*S.data>maxS*1e-3,
+        # max_spec*1e-3
+        # if Hw1[-1]*S.data>max_spec*1e-3,
         #   warning('The Nyquist frequency of the spectrum may be too low')
         # end
 
@@ -1105,8 +1248,8 @@ class SpecData1D(PlotData):
 
         if paramt is None:
             # (2.5 * mean distance between extremes)
-            distanceBetweenExtremes = 5 * pi * sqrt(m[1] / m[2])
-            paramt = [0, distanceBetweenExtremes, 43]
+            distance_between_extremes = 5 * pi * sqrt(m[1] / m[2])
+            paramt = [0, distance_between_extremes, 43]
 
         if paramu is None:
             paramu = [-5 * sqrt(m[0]), 5 * sqrt(m[0]), 41]
@@ -1694,7 +1837,7 @@ class SpecData1D(PlotData):
         # end
 
         try:
-            f.cl, f.pl = qlevels(f.f, [10, 30, 50, 70, 90, 95, 99, 99.9],
+            f.cl, f.pl = qlevels(f.data, [10, 30, 50, 70, 90, 95, 99, 99.9],
                                  f.args[0], f.args[1])
         except Exception:
             warnings.warn('Singularity likely in pdf')
@@ -3143,12 +3286,12 @@ class SpecData1D(PlotData):
 
         Parameters
         ----------
-        nr   : int
+        nr: int
             order of moments (recomended maximum 4)
         even : bool
             False for all moments,
             True for only even orders
-        j : int
+        j: int
             0 or 1
 
         Returns

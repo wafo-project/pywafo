@@ -187,8 +187,9 @@ class PlotData(object):
         >>> y = np.sin(x)
         >>> ci = PlotData(np.vstack((y*.9, y*1.1)).T, x)
         >>> d = PlotData(y, x, children=[ci])
-        >>> d.integrate(0, np.pi/2, return_ci=True)
-        array([ 0.99940055,  0.89946049,  1.0993406 ])
+        >>> np.allclose(d.integrate(0, np.pi/2, return_ci=True),
+        ...             [ 0.99940055,  0.89946049,  1.0993406 ])
+        True
         >>> np.allclose(d.integrate(0, 5, return_ci=True),
         ...    d.integrate(return_ci=True))
         True
@@ -209,7 +210,7 @@ class PlotData(object):
         return res
 
     def _plot_children(self, axis, plotflag, kwds):
-        axis.hold('on')
+        # axis.hold('on')
         tmp = []
         child_args = kwds.pop('plot_args_children',
                               tuple(self.plot_args_children))
@@ -413,7 +414,7 @@ def plot1d(axis, args, data, dataCI, plotflag, *varargin, **kwds):
         plotfun = getattr(axis, fun)
         h.extend(plotfun(args, data, *varargin, **kwds))
         if np.any(dataCI) and plottype < 3:
-            axis.hold(True)
+            # axis.hold(True)
             h.extend(plotfun(args, dataCI, 'r--'))
     elif plottype == 4:
         h = axis.errorbar(args, data,

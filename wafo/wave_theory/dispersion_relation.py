@@ -9,7 +9,7 @@ import numpy as np
 from wafo.misc import lazywhere
 from numpy import (atleast_1d, sqrt, ones_like, zeros_like, arctan2, where,
                    tanh, sin, cos, sign, inf,
-                   flatnonzero, finfo, cosh)
+                   flatnonzero, cosh)
 
 __all__ = ['k2w', 'w2k']
 
@@ -25,8 +25,7 @@ def _assert_warn(cond, msg):
 
 
 def k2w(k1, k2=0e0, h=inf, g=9.81, u1=0e0, u2=0e0):
-    """ Translates from wave number to frequency
-        using the dispersion relation
+    """ Translates from wave number to frequency using the dispersion relation
 
     Parameters
     ----------
@@ -73,9 +72,9 @@ def k2w(k1, k2=0e0, h=inf, g=9.81, u1=0e0, u2=0e0):
     array([ 0.13914927,  1.43498213,  2.00551724])
     """
 
-    k1i, k2i, hi, gi, u1i, u2i = atleast_1d(k1, k2, h, g, u1, u2)
+    k1i, k2i, hi, gi, u1i, u2i = np.broadcast_arrays(k1, k2, h, g, u1, u2)
 
-    if k1i.size == 0:
+    if np.size(k1i) == 0:
         return zeros_like(k1i)
     ku1 = k1i * u1i
     ku2 = k2i * u2i
@@ -96,10 +95,9 @@ def k2w(k1, k2=0e0, h=inf, g=9.81, u1=0e0, u2=0e0):
     return w, theta
 
 
-def w2k(w, theta=0.0, h=inf, g=9.81, count_limit=100):
+def w2k(w, theta=0.0, h=inf, g=9.81, count_limit=100, rtol=1e-7, atol=1e-14):
     """
-    Translates from frequency to wave number
-      using the dispersion relation
+    Translates from frequency to wave number using the dispersion relation
 
     Parameters
     ----------
@@ -145,21 +143,18 @@ def w2k(w, theta=0.0, h=inf, g=9.81, count_limit=100):
     --------
     k2w
     """
-    wi, th, hi, gi = atleast_1d(w, theta, h, g)
-
+    gi = atleast_1d(g)
+    wi, th, hi = np.broadcast_arrays(w, theta, h)
     if wi.size == 0:
         return zeros_like(wi)
 
     k = 1.0 * sign(wi) * wi ** 2.0 / gi[0]  # deep water
-    if (hi > 10. ** 25).all():
+    if (hi > 1e25).all():
         k2 = k * sin(th) * gi[0] / gi[-1]  # size np x nf
         k1 = k * cos(th)
         return k1, k2
     _assert(gi.size == 1, 'Finite depth in combination with 3D normalization'
             ' (len(g)=2) is not implemented yet.')
-
-    find = flatnonzero
-    eps = finfo(float).eps
 
     oshape = k.shape
     wi, k, hi = wi.ravel(), k.ravel(), hi.ravel()
@@ -168,11 +163,11 @@ def w2k(w, theta=0.0, h=inf, g=9.81, count_limit=100):
     # Permit no more than count_limit iterations.
     hi = hi * ones_like(k)
     hn = zeros_like(k)
-    ix = find((wi < 0) | (0 < wi))
+    ix = flatnonzero(((wi < 0) | (0 < wi)) & (hi < 1e25))
 
     # Break out of the iteration loop for three reasons:
-    #  1) the last update is very small (compared to x)
-    #  2) the last update is very small (compared to sqrt(eps))
+    #  1) the last update is very small (compared to k*rtol)
+    #  2) the last update is very small (compared to atol)
     #  3) There are more than 100 iterations. This should NEVER happen.
     count = 0
     while (ix.size > 0 and count < count_limit):
@@ -180,13 +175,12 @@ def w2k(w, theta=0.0, h=inf, g=9.81, count_limit=100):
         kh = ki * hi[ix]
         coshkh2 = lazywhere(np.abs(kh) < 350, (kh, ),
                             lambda kh: cosh(kh) ** 2.0, fillvalue=np.inf)
-        hn[ix] = (ki * tanh(kh) - wi[ix] ** 2.0 / gi) / \
-                 (tanh(kh) + kh / coshkh2)
+        hn[ix] = (ki * tanh(kh) - wi[ix] ** 2.0 / gi) / (tanh(kh) + kh / coshkh2)
         knew = ki - hn[ix]
         # Make sure that the current guess is not zero.
         # When Newton's Method suggests steps that lead to zero guesses
         # take a step 9/10ths of the way to zero:
-        ksmall = find(np.abs(knew) == 0)
+        ksmall = flatnonzero((np.abs(knew) == 0) | (np.isnan(knew)) )
         if ksmall.size > 0:
             knew[ksmall] = ki[ksmall] / 10.0
             hn[ix[ksmall]] = ki[ksmall] - knew[ksmall]
@@ -195,8 +189,8 @@ def w2k(w, theta=0.0, h=inf, g=9.81, count_limit=100):
         # disp(['Iteration ',num2str(count),'  Number of points left:  '
         # num2str(length(ix)) ]),
 
-        ix = find((np.abs(hn) > sqrt(eps) * np.abs(k)) *
-                  np.abs(hn) > sqrt(eps))
+        ix = flatnonzero((np.abs(hn) > rtol * np.abs(k)) *
+                         (np.abs(hn) > atol))
         count += 1
     max_err = np.max(hn[ix]) if np.any(ix) else 0
     _assert_warn(count < count_limit, 'W2K did not converge. '

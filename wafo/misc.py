@@ -7,14 +7,13 @@ import collections
 from wafo import numba_misc
 import fractions
 import numpy as np
-from numpy import (
-    meshgrid,
-    amax, logical_and, arange, linspace, atleast_1d,
-    asarray, ceil, floor, frexp, hypot,
-    sqrt, arctan2, sin, cos, exp, log, log1p, mod, diff,
-    inf, pi, interp, isscalar, zeros, ones,
-    sign, unique, hstack, vstack, nonzero, where, extract)
-from scipy.special import gammaln
+from numpy import (amax, logical_and, arange, linspace, atleast_1d,
+                   asarray, ceil, floor, frexp, hypot,
+                   sqrt, arctan2, sin, cos, exp, log, log1p, mod, diff,
+                   inf, pi, interp, isscalar, zeros, ones,
+                   sign, unique, hstack, vstack, nonzero, where, extract,
+                   meshgrid)
+from scipy.special import gammaln  # pylint: disable=no-name-in-module
 from scipy.integrate import trapz, simps
 import warnings
 from time import strftime, gmtime
@@ -25,7 +24,6 @@ try:
 except ImportError:
     warnings.warn('c_library not found. Check its compilation.')
     clib = None
-
 FLOATINFO = np.finfo(float)
 _TINY = FLOATINFO.tiny
 _EPS = FLOATINFO.eps
@@ -41,8 +39,10 @@ __all__ = ['now', 'spaceline', 'narg_smallest', 'args_flat', 'is_numlike',
            'meshgrid', 'ndgrid', 'trangood', 'tranproc',
            'plot_histgrm', 'num2pistr', 'test_docstrings',
            'lazywhere', 'lazyselect',
+           'valarray', 'lfind',
+           'moving_average',
            'piecewise',
-           'valarray', 'check_random_state']
+           'check_random_state']
 
 
 def xor(a, b):
@@ -50,6 +50,41 @@ def xor(a, b):
     Return True only when inputs differ.
     """
     return a ^ b
+
+
+def lfind(haystack, needle, maxiter=None):
+    """Return indices to the maxiter first needles in the haystack as an iterable generator.
+
+    Parameters
+    ----------
+    haystack: list or tuple of items
+    needle: item to find
+    maxiter: scalar integer maximum number of occurences
+
+    Returns
+    -------
+    indices_gen: generator object
+
+    Example
+    ------
+    >>> haystack = (1, 3, 4, 3, 10, 3, 1, 2, 5, 7, 10)
+    >>> list(lfind(haystack, 3))
+    [1, 3, 5]
+    >>> [i for i in lfind(haystack, 3, 2)]
+    [1, 3]
+    >>> [i for i in lfind(haystack, 0, 2)]
+    []
+    """
+    maxiter = inf if maxiter is None else maxiter
+    ix = -1
+    i = 0
+    while i < maxiter:
+        i += 1
+        try:
+            ix = haystack.index(needle, ix + 1)
+            yield ix
+        except (ValueError, KeyError):
+            break
 
 
 def check_random_state(seed):
@@ -82,16 +117,10 @@ def check_random_state(seed):
     raise ValueError(msg.format(seed))
 
 
-def valarray(shape, value=np.NaN, typecode=None):
+def valarray(shape, value=np.nan, typecode=None):
     """Return an array of all value.
     """
-    if typecode is None:
-        typecode = bool
-    out = ones(shape, dtype=typecode) * value
-
-    if not isinstance(out, np.ndarray):
-        out = asarray(out)
-    return out
+    return np.full(shape, fill_value=value, dtype=typecode)
 
 
 def piecewise(condlist, funclist, xi=None, fillvalue=0.0, args=(), **kw):
@@ -173,20 +202,22 @@ def piecewise(condlist, funclist, xi=None, fillvalue=0.0, args=(), **kw):
     Define the absolute value, which is ``-x`` for ``x <0`` and ``x`` for
     ``x >= 0``.
 
-    >>> piecewise([x < 0, x >= 0], [lambda x: -x, lambda x: x], xi=(x,))
-    array([ 2.5,  1.5,  0.5,  0.5,  1.5,  2.5])
+    >>> np.allclose(piecewise([x < 0, x >= 0], [lambda x: -x, lambda x: x], xi=(x,)),
+    ...            [ 2.5,  1.5,  0.5,  0.5,  1.5,  2.5])
+    True
 
     Define the absolute value, which is ``-x*y`` for ``x*y <0`` and ``x*y`` for
     ``x*y >= 0``
     >>> X, Y = np.meshgrid(x, x)
-    >>> piecewise([X * Y < 0, ], [lambda x, y: -x * y, lambda x, y: x * y],
-    ...           xi=(X, Y))
-    array([[ 6.25,  3.75,  1.25,  1.25,  3.75,  6.25],
-           [ 3.75,  2.25,  0.75,  0.75,  2.25,  3.75],
-           [ 1.25,  0.75,  0.25,  0.25,  0.75,  1.25],
-           [ 1.25,  0.75,  0.25,  0.25,  0.75,  1.25],
-           [ 3.75,  2.25,  0.75,  0.75,  2.25,  3.75],
-           [ 6.25,  3.75,  1.25,  1.25,  3.75,  6.25]])
+    >>> np.allclose(piecewise([X * Y < 0, ], [lambda x, y: -x * y,
+    ...                                       lambda x, y: x * y], xi=(X, Y)),
+    ...        [[ 6.25,  3.75,  1.25,  1.25,  3.75,  6.25],
+    ...         [ 3.75,  2.25,  0.75,  0.75,  2.25,  3.75],
+    ...         [ 1.25,  0.75,  0.25,  0.25,  0.75,  1.25],
+    ...         [ 1.25,  0.75,  0.25,  0.25,  0.75,  1.25],
+    ...         [ 3.75,  2.25,  0.75,  0.75,  2.25,  3.75],
+    ...         [ 6.25,  3.75,  1.25,  1.25,  3.75,  6.25]])
+    True
     """
     def otherwise_condition(condlist):
         return ~np.logical_or.reduce(condlist, axis=0)
@@ -201,6 +232,7 @@ def piecewise(condlist, funclist, xi=None, fillvalue=0.0, args=(), **kw):
     condlist = np.broadcast_arrays(*condlist)
     if len(condlist) == len(funclist) - 1:
         condlist.append(otherwise_condition(condlist))
+
     if xi is None:
         arrays = ()
         dtype = np.result_type(*funclist)
@@ -212,7 +244,7 @@ def piecewise(condlist, funclist, xi=None, fillvalue=0.0, args=(), **kw):
         dtype = np.result_type(*arrays)
         shape = arrays[0].shape
 
-    out = valarray(shape, fillvalue, dtype)
+    out = np.full(shape, fillvalue, dtype)
     for cond, func in zip(condlist, funclist):
         if cond.any():
             if isinstance(func, collections.Callable):
@@ -231,12 +263,15 @@ def lazywhere(cond, arrays, f, fillvalue=None, f2=None):
     >>> a, b = np.array([1, 2, 3, 4]), np.array([5, 6, 7, 8])
     >>> def f(a, b):
     ...     return a*b
-    >>> lazywhere(a > 2, (a, b), f, np.nan)
-    array([ nan,  nan,  21.,  32.])
+    >>> r = lazywhere(a > 2, (a, b), f, np.nan)
+    >>> np.allclose(r[2:], [21.,  32.]); np.all(np.isnan(r[:2]))
+    True
+    True
     >>> def f2(a, b):
     ...    return (a*b)**2
-    >>> lazywhere(a > 2, (a, b), f, f2=f2)
-    array([  25.,  144.,   21.,   32.])
+    >>> np.allclose(lazywhere(a > 2, (a, b), f, f2=f2),
+    ...            [  25.,  144.,   21.,   32.])
+    True
 
     Notice it assumes that all `arrays` are of the same shape, or can be
     broadcasted together.
@@ -250,7 +285,7 @@ def lazywhere(cond, arrays, f, fillvalue=None, f2=None):
 
     arrays = np.broadcast_arrays(*arrays)
     temp = tuple(np.extract(cond, arr) for arr in arrays)
-    out = valarray(np.shape(arrays[0]), value=fillvalue)
+    out = np.full(np.shape(arrays[0]), fill_value=fillvalue)
     np.place(out, cond, f(*temp))
     if f2 is not None:
         temp = tuple(np.extract(~cond, arr) for arr in arrays)
@@ -273,18 +308,18 @@ def lazyselect(condlist, choicelist, arrays, default=0):
     Examples
     --------
     >>> x = np.arange(6)
-    >>> np.select([x <3, x > 3], [x**2, x**3], default=0)
-    array([  0,   1,   4,   0,  64, 125])
-
-    >>> lazyselect([x < 3, x > 3], [lambda x: x**2, lambda x: x**3], (x,))
-    array([   0.,    1.,    4.,    0.,   64.,  125.])
-
+    >>> np.allclose(np.select([x <3, x > 3], [x**2, x**3], default=0),
+    ...             [  0,   1,   4,   0,  64, 125])
+    True
+    >>> np.allclose(lazyselect([x < 3, x > 3], [lambda x: x**2, lambda x: x**3], (x,)),
+    ...             [   0.,    1.,    4.,    0.,   64.,  125.])
+    True
     >>> a = -np.ones_like(x)
-    >>> lazyselect([x < 3, x > 3],
-    ...             [lambda x, a: x**2, lambda x, a: a * x**3],
-    ...             (x, a))
-    array([   0.,    1.,    4.,    0.,  -64., -125.])
-
+    >>> np.allclose(lazyselect([x < 3, x > 3],
+    ...                        [lambda x, a: x**2, lambda x, a: a * x**3],
+    ...                        (x, a)),
+    ...             [   0.,    1.,    4.,    0.,  -64., -125.])
+    True
     """
     arrays = np.broadcast_arrays(*arrays)
     tcode = np.mintypecode([a.dtype.char for a in arrays])
@@ -309,11 +344,11 @@ def rotation_matrix(heading, pitch, roll):
     Examples
     --------
     >>> import numpy as np
-    >>> rotation_matrix(heading=0, pitch=0, roll=0)
-    array([[ 1.,  0.,  0.],
-           [ 0.,  1.,  0.],
-           [ 0.,  0.,  1.]])
-
+    >>> np.allclose(rotation_matrix(heading=0, pitch=0, roll=0),
+    ...       [[ 1.,  0.,  0.],
+    ...        [ 0.,  1.,  0.],
+    ...        [ 0.,  0.,  1.]])
+    True
     >>> np.allclose(rotation_matrix(heading=180, pitch=0, roll=0),
     ...      [[ -1.,   0.,   0.],
     ...       [  0.,  -1.,   0.],
@@ -438,12 +473,20 @@ def spaceline(start_point, stop_point, num=10):
     Example
     -------
     >>> import wafo.misc as pm
-    >>> pm.spaceline((2,0,0), (3,0,0), num=5)
-    array([[ 2.  ,  0.  ,  0.  ],
-           [ 2.25,  0.  ,  0.  ],
-           [ 2.5 ,  0.  ,  0.  ],
-           [ 2.75,  0.  ,  0.  ],
-           [ 3.  ,  0.  ,  0.  ]])
+    >>> np.allclose(pm.spaceline((2,0,0), (3,0,0), num=5),
+    ...      [[ 2.  ,  0.  ,  0.  ],
+    ...       [ 2.25,  0.  ,  0.  ],
+    ...       [ 2.5 ,  0.  ,  0.  ],
+    ...       [ 2.75,  0.  ,  0.  ],
+    ...       [ 3.  ,  0.  ,  0.  ]])
+    True
+    >>> np.allclose(pm.spaceline((2,0,0), (0,0,3), num=5),
+    ...      [[ 2.  ,  0.  ,  0.  ],
+    ...       [ 1.5 ,  0.  ,  0.75],
+    ...       [ 1.  ,  0.  ,  1.5 ],
+    ...       [ 0.5 ,  0.  ,  2.25],
+    ...       [ 0.  ,  0.  ,  3.  ]])
+    True
     '''
     num = int(num)
     start, stop = np.atleast_1d(start_point, stop_point)
@@ -615,6 +658,8 @@ def is_numlike(obj):
     True
     >>> is_numlike('1')
     False
+    >>> is_numlike([1])
+    False
     """
     try:
         obj + 1
@@ -670,13 +715,13 @@ class Bunch(object):
     Example
     -------
     >>> d = Bunch(test1=1,test2=3)
-    >>> d.test1
-    1
+    >>> (d.test1, d.test2)
+    (1, 3)
     >>> sorted(d.keys()) ==  ['test1', 'test2']
     True
-    >>> d.update(test1=2)
-    >>> d.test1
-    2
+    >>> d.update(test1=5)
+    >>> (d.test1, d.test2)
+    (5, 3)
     '''
 
     def __init__(self, **kwargs):
@@ -703,7 +748,7 @@ def sub_dict_select(somedict, somekeys):
     # the keyword exists in options
     >>> opt = dict(arg1=2, arg2=3)
     >>> kwds = dict(arg2=100,arg3=1000)
-    >>> sub_dict = sub_dict_select(kwds,opt.keys())
+    >>> sub_dict = sub_dict_select(kwds, opt)
     >>> opt.update(sub_dict)
     >>> opt == {'arg1': 2, 'arg2': 100}
     True
@@ -713,7 +758,7 @@ def sub_dict_select(somedict, somekeys):
     dict_intersection
     '''
     # slower: validKeys = set(somedict).intersection(somekeys)
-    return dict((k, somedict[k]) for k in somekeys if k in somedict)
+    return type(somedict)((k, somedict[k]) for k in somekeys if k in somedict)
 
 
 def parse_kwargs(options, **kwargs):
@@ -731,13 +776,91 @@ def parse_kwargs(options, **kwargs):
     See also sub_dict_select
     '''
 
-    newopts = sub_dict_select(kwargs, options.keys())
+    newopts = sub_dict_select(kwargs, options)
     if len(newopts) > 0:
         options.update(newopts)
     return options
 
 
-def detrendma(x, L):
+def moving_average(x, L, axis=0):
+    """
+    Return moving average from data using a window of size 2*L+1.
+    If 2*L+1 > len(x) then the mean is returned
+
+    Parameters
+    ----------
+    x : vector or matrix of column vectors
+        of data
+    L : scalar, integer
+        defines the size of the moving average window
+    axis: scalar integer
+        axis along which the moving average is computed. Default axis=0.
+
+    Returns
+    -------
+    y : ndarray
+        moving average
+
+    Examples
+    --------
+    >>> import matplotlib.pyplot as plt
+    >>> import numpy as np
+    >>> exp = np.exp; cos = np.cos; randn = np.random.randn
+
+    >>> x = np.linspace(0,1,200)
+    >>> y = exp(x)+cos(5*2*pi*x)+1e-1*randn(x.size)
+    >>> y0 = moving_average(y, 20)
+    >>> np.allclose(y0[:4], [ 1.1189971,  1.1189971,  1.1189971,  1.1189971], atol=1e-1)
+    True
+
+    >>> x2 = np.linspace(1, 5, 5)
+    >>> np.allclose(moving_average(x2, L=1), [2.,  2.,  3.,  4.,  4.])
+    True
+    >>> np.allclose(moving_average(x2, L=10), [3.,  3.,  3.,  3.,  3.])
+    True
+    >>> x3 = np.vstack((x2, x2+5))
+    >>> np.allclose(moving_average(x3, L=1, axis=1), [[2.,  2.,  3.,  4.,  4.],
+    ...                                               [7.,  7.,  8.,  9.,  9.]])
+    True
+    >>> np.allclose(moving_average(x3, L=10, axis=1), [[3.,  3.,  3.,  3.,  3.],
+    ...                                                [8.,  8.,  8.,  8.,  8.]])
+    True
+
+    h = plt.plot(x, y, x, y0, 'r', x, exp(x), 'k', x, tr, 'm')
+    plt.close('all')
+
+    See also
+    --------
+    Reconstruct
+    """
+    _assert(0 < L, 'L must be positive')
+    _assert(L == np.round(L), 'L must be an integer')
+
+    x1 = np.atleast_1d(x)
+    axes = np.arange(x.ndim)
+
+    axes[0] = axis
+    axes[axis] = 0
+
+    x1 = np.transpose(x1, axes)
+    y = np.empty_like(x1)
+
+    n = x1.shape[0]
+    if n < 2 * L + 1:  # only able to remove the mean
+        y[:] = x1.mean(axis=0)
+        return np.transpose(y, axes)
+
+    mn = x1[0:2 * L + 1].mean(axis=0)
+    y[0:L + 1] = mn
+
+    ix = np.r_[L + 1:(n - L)]
+    y[ix] = ((x1[ix + L] - x1[ix - L]) / (2 * L)).cumsum(axis=0) + mn
+    y[n - L::] = y[n - L - 1]
+
+    return np.transpose(y, axes)
+
+
+def detrendma(x, L, axis=0):
     """
     Removes a trend from data using a moving average
            of size 2*L+1.  If 2*L+1 > len(x) then the mean is removed
@@ -748,6 +871,8 @@ def detrendma(x, L):
         of data
     L : scalar, integer
         defines the size of the moving average window
+    axis: scalar integer
+        axis along which the moving average is computed. Default axis=0.
 
     Returns
     -------
@@ -760,11 +885,12 @@ def detrendma(x, L):
     >>> import numpy as np
     >>> import wafo.misc as wm
     >>> exp = np.exp; cos = np.cos; randn = np.random.randn
+
     >>> x = np.linspace(0,1,200)
     >>> noise = 0.1*randn(x.size)
     >>> noise = 0.1*np.sin(100*x)
     >>> y = exp(x)+cos(5*2*pi*x) + noise
-    >>> y0 = wm.detrendma(y,20)
+    >>> y0 = wm.detrendma(y, 20)
     >>> tr = y-y0
     >>> np.allclose(tr[:5],
     ...    [ 1.14134814,  1.14134814,  1.14134814,  1.14134814,  1.14134814])
@@ -781,28 +907,11 @@ def detrendma(x, L):
 
     See also
     --------
-    Reconstruct
+    Reconstruct, moving_average
     """
-    _assert(0 < L, 'L must be positive')
-    _assert(L == np.round(L), 'L must be an integer')
-
-    x_1 = np.atleast_1d(x)
-    if x_1.shape[0] == 1:
-        x_1 = x_1.ravel()
-
-    n = x_1.shape[0]
-    if n < 2 * L + 1:  # only able to remove the mean
-        return x_1 - x_1.mean(axis=0)
-
-    mean = x_1[:2 * L + 1].mean(axis=0)
-    y = np.empty_like(x_1)
-    y[:L + 1] = x_1[:L + 1] - mean
-
-    i = np.r_[L + 1:(n - L)]
-    trend = ((x_1[i + L] - x_1[i - L]) / (2 * L)).cumsum(axis=0) + mean
-    y[i] = x_1[i] - trend
-    y[n - L::] = x_1[n - L::] - trend[-1]
-    return y
+    x1 = np.atleast_1d(x)
+    trend = moving_average(x1, L, axis)
+    return x1 - trend
 
 
 def ecross(t, f, ind, v=0):
@@ -860,7 +969,7 @@ def _findcross(x, method='numba'):
     '''Return indices to zero up and downcrossings of a vector
     '''
     if clib is not None and method == 'clib':
-        ind, m = clib.findcross(x, 0.0)
+        ind, m = clib.findcross(x, 0.0)  # pylint: disable=no-member
         return ind[:int(m)]
     return numba_misc.findcross(x)
 
@@ -903,6 +1012,7 @@ def findcross(x, v=0.0, kind=None, method='clib'):
     >>> ind = wm.findcross(x,v) # all crossings
     >>> np.allclose(ind, [  9,  25,  80,  97, 151, 168, 223, 239])
     True
+
     >>> ind2 = wm.findcross(x,v,'u')
     >>> np.allclose(ind2, [  9,  80, 151, 223])
     True
@@ -940,7 +1050,6 @@ def findcross(x, v=0.0, kind=None, method='clib'):
             #   if kind=='dw' or kind=='tw'
             # or that the first is a level v up-crossing
             #    if kind=='uw' or kind=='cw'
-
             first_is_down_crossing = int(xn[ind[0]] > xn[ind[0] + 1])
             if xor(first_is_down_crossing, kind in ('dw', 'tw')):
                 ind = ind[1::]
@@ -1171,7 +1280,7 @@ def findrfc(tp, h=0.0, method='clib'):
     t_start = int(y[0] > y[1])  # first is a max, ignore it
     y = y[t_start::]
     n = len(y)
-    NC = np.floor(n / 2) - 1
+    NC = np.floor(n // 2) - 1
 
     if (NC < 1):
         return zeros(0, dtype=np.int)  # No RFC cycles*/
@@ -1182,9 +1291,11 @@ def findrfc(tp, h=0.0, method='clib'):
         return zeros(0, dtype=np.int)
 
     if clib is not None and method == 'clib':
-        ind, ix = clib.findrfc(y, h)
+        ind, ix = clib.findrfc(y, h)  # pylint: disable=no-member
         ix = int(ix)
     else:
+        if isinstance(method, str):
+            method = 2
         ind = numba_misc.findrfc(y, h, method)
         ix = len(ind)
 
@@ -1216,25 +1327,23 @@ def rfcfilter(x, h, method=0):
     >>> import wafo.misc as wm
     >>> x = data.sea()
     >>> y = wm.rfcfilter(x[:,1], h=0, method=1)
-    >>> np.all(np.abs(y[0:5]-np.array([-1.2004945 , 0.83950546, -0.09049454,
-    ...        -0.02049454, -0.09049454]))<1e-7)
+    >>> np.allclose(y[0:5], [-1.2004945 , 0.83950546, -0.09049454, -0.02049454, -0.09049454])
     True
-    >>> y.shape
-    (2172,)
+    >>> np.allclose(y.shape, (2172,))
+    True
 
     # 2. This removes all rainflow cycles with range less than 0.5.
     >>> y1 = wm.rfcfilter(x[:,1], h=0.5)
-    >>> y1.shape
-    (863,)
-    >>> np.all(np.abs(y1[0:5]-np.array([-1.2004945 , 0.83950546, -0.43049454,
-    ...        0.34950546, -0.51049454]))<1e-7)
+    >>> np.allclose(y1.shape, (863,))
+    True
+    >>> np.allclose(y1[0:5], [-1.2004945 , 0.83950546, -0.43049454, 0.34950546, -0.51049454])
     True
     >>> ind = wm.findtp(x[:,1], h=0.5)
     >>> y2 = x[ind,1]
-    >>> y2[0:5]
-    array([-1.2004945 ,  0.83950546, -0.43049454,  0.34950546, -0.51049454])
-    >>> y2[-5::]
-    array([ 0.83950546, -0.64049454,  0.65950546, -1.0004945 ,  0.91950546])
+    >>> np.allclose(y2[0:5], [-1.2004945 ,  0.83950546, -0.43049454,  0.34950546, -0.51049454])
+    True
+    >>> np.allclose(y2[-5::], [ 0.83950546, -0.64049454,  0.65950546, -1.0004945 ,  0.91950546])
+    True
 
     See also
     --------
@@ -1607,10 +1716,10 @@ def common_shape(*args, ** kwds):
     >>> A = np.ones((4,1))
     >>> B = 2
     >>> C = np.ones((1,5))*5
-    >>> wm.common_shape(A,B,C)
-    (4, 5)
-    >>> wm.common_shape(A,B,C,shape=(3,4,1))
-    (3, 4, 5)
+    >>> np.allclose(wm.common_shape(A,B,C), (4, 5))
+    True
+    >>> np.allclose(wm.common_shape(A,B,C,shape=(3,4,1)), (3, 4, 5))
+    True
 
     See also
     --------
@@ -1650,12 +1759,12 @@ def argsreduce(condition, * args):
     >>> C = rand((1,5))
     >>> cond = np.ones(A.shape)
     >>> [A1,B1,C1] = wm.argsreduce(cond,A,B,C)
-    >>> B1.shape
-    (20,)
+    >>> np.allclose(B1.shape, (20,))
+    True
     >>> cond[2,:] = 0
     >>> [A2,B2,C2] = wm.argsreduce(cond,A,B,C)
-    >>> B2.shape
-    (15,)
+    >>> np.allclose(B2.shape, (15,))
+    True
 
     See also
     --------
@@ -1792,7 +1901,7 @@ def getshipchar(**ship_property):
     ...        'lengthSTD': 2.0113098831942762,
     ...        'draught': 9.5999999999999996,
     ...        'propeller_diameterSTD': 0.20267047566705432,
-    ...        'max_deadweightSTD': 3096.9000000000001,
+    ...        'max_deadweight_std': 3096.9000000000001,
     ...        'beam': 29.0, 'length': 216.0,
     ...        'beamSTD': 2.9000000000000004,
     ...        'service_speed': 10.0,
@@ -1816,7 +1925,7 @@ def getshipchar(**ship_property):
     '''
 
     max_deadweight, prop = _get_max_deadweight(**ship_property)
-    propertySTD = prop + 'STD'
+    property_std = prop + 'STD'
 
     length = np.round(3.45 * max_deadweight ** 0.40)
     length_err = length ** 0.13
@@ -1835,18 +1944,16 @@ def getshipchar(**ship_property):
     p_diam_err = 0.12 * length_err ** (3.0 / 4.0)
 
     max_deadweight = np.round(max_deadweight)
-    max_deadweightSTD = 0.1 * max_deadweight
+    max_deadweight_std = 0.1 * max_deadweight
 
     shipchar = dict(beam=beam, beamSTD=beam_err,
                     draught=draught, draughtSTD=draught_err,
                     length=length, lengthSTD=length_err,
-                    max_deadweight=max_deadweight,
-                    max_deadweightSTD=max_deadweightSTD,
-                    propeller_diameter=p_diam,
-                    propeller_diameterSTD=p_diam_err,
+                    max_deadweight=max_deadweight, max_deadweightSTD=max_deadweight_std,
+                    propeller_diameter=p_diam, propeller_diameterSTD=p_diam_err,
                     service_speed=speed, service_speedSTD=speed_err)
 
-    shipchar[propertySTD] = 0
+    shipchar[property_std] = 0
     return shipchar
 
 
@@ -1872,8 +1979,8 @@ def binomln(z, w):
     Example
     -------
 
-    >>> np.abs(binomln(3,2)- 1.09861229)<1e-7
-    array([ True], dtype=bool)
+    >>> np.allclose(binomln(3,2), 1.09861229)
+    True
 
     See also
     --------
@@ -1909,19 +2016,18 @@ def betaloge(z, w):
     Example
     -------
     >>> import wafo.misc as wm
-    >>> np.abs(wm.betaloge(3,2)+2.48490665)<1e-7
-    array([ True], dtype=bool)
+    >>> np.allclose(wm.betaloge(3,2), -2.48490665)
+    True
 
     See also
     --------
     betaln, beta
     '''
-    # y = gammaln(z)+gammaln(w)-gammaln(z+w)
     zpw = z + w
-    return (stirlerr(z) + stirlerr(w) + 0.5 * log(2 * pi) +
-            (w - 0.5) * log(w) + (z - 0.5) * log(z) - stirlerr(zpw) -
-            (zpw - 0.5) * log(zpw))
+    return (stirlerr(z) + stirlerr(w) + 0.5 * log(2 * pi) + (w - 0.5) * log(w)
+            + (z - 0.5) * log(z) - stirlerr(zpw) - (zpw - 0.5) * log(zpw))
 
+    # y = gammaln(z)+gammaln(w)-gammaln(z+w)
     # stirlings approximation:
     #  (-(zpw-0.5).*log(zpw) +(w-0.5).*log(w)+(z-0.5).*log(z) +0.5*log(2*pi))
     # return y
@@ -1971,8 +2077,8 @@ def gravity(phi=45):
     '''
 
     phir = phi * pi / 180.  # change from degrees to radians
-    return 9.78049 * (1. + 0.0052884 * sin(phir) ** 2. -
-                      0.0000059 * sin(2 * phir) ** 2.)
+    return 9.78049 * (1. + 0.0052884 * sin(phir) ** 2.
+                      - 0.0000059 * sin(2 * phir) ** 2.)
 
 
 def nextpow2(x):
@@ -2032,7 +2138,6 @@ def discretize(fun, a, b, tol=0.005, n=5, method='linear'):
     >>> xa,ya = wm.discretize(np.cos, 0, np.pi, method='adaptive')
     >>> np.allclose(xa[:5], [0.,  0.19634954,  0.39269908,  0.58904862,  0.78539816])
     True
-
 
     t = plt.plot(x, y, xa, ya, 'r.')
     plt.show()
@@ -2097,7 +2202,6 @@ def _discretize_adaptive(fun, a, b, tol=0.005, n=5):
 
             abserr = np.abs(fy0 - fy)
             erri = 0.5 * (abserr / (np.abs(fy0) + np.abs(fy) + _TINY + tol))
-            # abserr = np.abs(fy0 - fy)
             # converged = abserr <= np.maximum(abseps, releps * abs(fy))
             # converged = abserr <= np.maximum(tol, tol * abs(fy))
             err = erri.max()
@@ -2293,7 +2397,7 @@ def tranproc(x, f, x0, *xi):
     x,f : array-like
         [x,f(x)], transform function, y = f(x).
     x0, x1,...,xn : vectors
-        where xi is the i'th time derivative of x0. 0<=N<=4.
+        where xi is the i'th time derivative of x0. 0<=n<=4.
 
     Returns
     -------
@@ -2335,21 +2439,21 @@ def tranproc(x, f, x0, *xi):
     --------
     trangood.
     """
-    def _default_step(xo, N):
+    def _default_step(xo, num_derivatives):
         hn = xo[1] - xo[0]
-        if hn ** N < sqrt(_EPS):
+        if hn ** num_derivatives < sqrt(_EPS):
             msg = ('Numerical problems may occur for the derivatives in ' +
                    'tranproc.\n' +
                    'The sampling of the transformation may be too small.')
             warnings.warn(msg)
         return hn
 
-    def _diff(xo, fo, x0, N):
-        hn = _default_step(xo, N)
+    def _diff(xo, fo, x0, num_derivatives):
+        hn = _default_step(xo, num_derivatives)
         # Transform X with the derivatives of  f.
         fder = vstack((xo, fo))
-        fxder = zeros((N, x0.size))
-        for k in range(N):  # Derivation of f(x) using a difference method.
+        fxder = zeros((num_derivatives, x0.size))
+        for k in range(num_derivatives):  # Derivation of f(x) using a difference method.
             n = fder.shape[-1]
             fder = vstack([(fder[0, 0:n - 1] + fder[0, 1:n]) / 2,
                            diff(fder[1, :]) / hn])
@@ -2384,8 +2488,8 @@ def tranproc(x, f, x0, *xi):
     xi = atleast_1d(*xi)
     if not isinstance(xi, list):
         xi = [xi, ]
-    N = len(xi)  # N = number of derivatives
-    nmax = ceil((xo.ptp()) * 10 ** (7. / max(N, 1)))
+    num_derivatives = len(xi)  # num_derivatives = number of derivatives
+    nmax = ceil((xo.ptp()) * 10 ** (7. / max(num_derivatives, 1)))
     xo, fo = trangood(xo, fo, min_x=min(x0), max_x=max(x0), max_n=nmax)
 
     n = f.shape[0]
@@ -2398,16 +2502,16 @@ def tranproc(x, f, x0, *xi):
     y0 = fo[fi] + (fo[fi + 1] - fo[fi]) * xu
 
     y = y0
-    if N > 4:
+    if num_derivatives > 4:
         warnings.warn('Transformation of derivatives of order>4 is ' +
                       'not supported.')
-        N = 4
-    if N > 0:
+        num_derivatives = 4
+    if num_derivatives > 0:
         y = [y0]
-        fxder = _diff(xo, fo, x0, N)
+        fxder = _diff(xo, fo, x0, num_derivatives)
         # Calculate the transforms of the derivatives of X.
         dfuns = [_der_1, _der_2, _der_3, _der_4]
-        for dfun in dfuns[:N]:
+        for dfun in dfuns[:num_derivatives]:
             y.append(dfun(fxder, xi))
 
     return y
@@ -2435,14 +2539,18 @@ def good_bins(data=None, range=None, num_bins=None, odd=False, loose=True):  # @
     Example
     -------
     >>> import wafo.misc as wm
-    >>> wm.good_bins(range=(0,5), num_bins=6)
-    array([-1.,  0.,  1.,  2.,  3.,  4.,  5.,  6.])
-    >>> wm.good_bins(range=(0,5), num_bins=6, loose=False)
-    array([ 0.,  1.,  2.,  3.,  4.,  5.])
-    >>> wm.good_bins(range=(0,5), num_bins=6, odd=True)
-    array([-1.5, -0.5,  0.5,  1.5,  2.5,  3.5,  4.5,  5.5,  6.5])
-    >>> wm.good_bins(range=(0,5), num_bins=6, odd=True, loose=False)
-    array([-0.5,  0.5,  1.5,  2.5,  3.5,  4.5,  5.5])
+    >>> np.allclose(wm.good_bins(range=(0,5), num_bins=6),
+    ...             [-1.,  0.,  1.,  2.,  3.,  4.,  5.,  6.])
+    True
+    >>> np.allclose(wm.good_bins(range=(0,5), num_bins=6, loose=False),
+    ...             [ 0.,  1.,  2.,  3.,  4.,  5.])
+    True
+    >>> np.allclose(wm.good_bins(range=(0,5), num_bins=6, odd=True),
+    ...            [-1.5, -0.5,  0.5,  1.5,  2.5,  3.5,  4.5,  5.5,  6.5])
+    True
+    >>> np.allclose(wm.good_bins(range=(0,5), num_bins=6, odd=True, loose=False),
+    ...             [-0.5,  0.5,  1.5,  2.5,  3.5,  4.5,  5.5])
+    True
     '''
     def _default_range(range_, x):
         return range_ if range_ else (x.min(), x.max())
