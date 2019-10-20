@@ -10,7 +10,7 @@ python:
   - 3.6
 notifications:
   email: false
- 
+dist: trusty
 # Setup anaconda
 before_install:
   - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
