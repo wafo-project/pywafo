@@ -26,7 +26,10 @@ import numpy as np
 from numpy import (newaxis, arange, pi)
 from scipy.fftpack import dct, idct as _idct
 from numpy.lib.polynomial import *  # @UnusedWildImport
-from scipy.misc import pade  # @UnresolvedImport
+try:
+    from scipy.interpolate import pade
+except ImportError:
+    from scipy.misc import pade  # @UnresolvedImport
 __all__ = np.lib.polynomial.__all__
 __all__ = __all__ + ['pade', 'padefit', 'polyreloc', 'polyrescl', 'polytrim',
                      'poly2hstr', 'poly2str', 'polyshift', 'polyishift',
