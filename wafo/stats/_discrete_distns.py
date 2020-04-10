@@ -6,7 +6,10 @@ from __future__ import division, print_function, absolute_import
 
 from scipy import special
 from scipy.special import entr, gammaln as gamln
-from scipy.misc import logsumexp
+try:
+    from scipy.special import logsumexp
+except ImportError:
+    from scipy.misc import logsumexp
 
 from numpy import floor, ceil, log, exp, sqrt, log1p, expm1, tanh, cosh, sinh
 
