@@ -1,0 +1,12 @@
+graft docs
+graft src/wafo
+include requirements.txt
+include README.rst
+include LICENSE.txt
+include THANKS.txt
+exclude build_package.py
+exclude source
+global-exclude *.py[cod]
+global-exclude *.so
+global-exclude .svn*
+global-exclude Makefile

@@ -1,0 +1,157 @@
+!    -*- f90 -*-
+! Note: the context of this file is case sensitive.
+
+python module dqk21__user__routines 
+    interface dqk21_user_interface 
+        function f(centr) result (fc) ! in :adaptivegausskronrod:AdaptiveGaussKronrod.f90:adaptivegausskronrod:dqk21:unknown_interface
+            double precision :: centr
+            double precision :: fc
+        end function f
+    end interface dqk21_user_interface
+end python module dqk21__user__routines
+python module dqk15__user__routines 
+    interface dqk15_user_interface 
+        function f(centr) result (fc) ! in :adaptivegausskronrod:AdaptiveGaussKronrod.f90:adaptivegausskronrod:dqk15:unknown_interface
+            double precision :: centr
+            double precision :: fc
+        end function f
+    end interface dqk15_user_interface
+end python module dqk15__user__routines
+python module dqk9__user__routines 
+    interface dqk9_user_interface 
+        function f(centr) result (fc) ! in :adaptivegausskronrod:AdaptiveGaussKronrod.f90:adaptivegausskronrod:dqk9:unknown_interface
+            double precision :: centr
+            double precision :: fc
+        end function f
+    end interface dqk9_user_interface
+end python module dqk9__user__routines
+python module dqkl9__user__routines 
+    interface dqkl9_user_interface 
+        function f(centr) result (fc) ! in :adaptivegausskronrod:AdaptiveGaussKronrod.f90:adaptivegausskronrod:dqkl9:unknown_interface
+            double precision :: centr
+            double precision :: fc
+        end function f
+    end interface dqkl9_user_interface
+end python module dqkl9__user__routines
+python module adaptivegausskronrod ! in 
+    interface  ! in :adaptivegausskronrod
+        module functioninterface ! in :adaptivegausskronrod:AdaptiveGaussKronrod.f90
+            interface  ! in :adaptivegausskronrod:AdaptiveGaussKronrod.f90:functioninterface
+                function f(z) result (val) ! in :adaptivegausskronrod:AdaptiveGaussKronrod.f90:functioninterface:unknown_interface
+                    double precision intent(in) :: z
+                    double precision :: val
+                end function f
+            end interface 
+        end module functioninterface
+        module adaptivegausskronrod ! in :adaptivegausskronrod:AdaptiveGaussKronrod.f90
+            subroutine dea3(e0,e1,e2,abserr,result1) ! in :adaptivegausskronrod:AdaptiveGaussKronrod.f90:adaptivegausskronrod
+                double precision intent(in) :: e0
+                double precision intent(in) :: e1
+                double precision intent(in) :: e2
+                double precision intent(out) :: abserr
+                double precision intent(out) :: result1
+            end subroutine dea3
+            subroutine dqagp(f,a,b,npts,points,epsabs,epsrel,limit,result1,abserr,neval,ier) ! in :adaptivegausskronrod:AdaptiveGaussKronrod.f90:adaptivegausskronrod
+                external f
+                double precision intent(in) :: a
+                double precision intent(in) :: b
+                integer optional,intent(in),check(len(points)>=npts),depend(points) :: npts=len(points)
+                double precision dimension(npts),intent(in) :: points
+                double precision intent(in) :: epsabs
+                double precision intent(in) :: epsrel
+                integer intent(in) :: limit
+                double precision intent(out) :: result1
+                double precision intent(out) :: abserr
+                integer intent(out) :: neval
+                integer intent(out) :: ier
+            end subroutine dqagp
+            subroutine dqagpe(f,a,b,npts,points,epsabs,epsrel,limit,result1,abserr,neval,ier,alist,blist,rlist,elist,pts,iord,level,ndin,last) ! in :adaptivegausskronrod:AdaptiveGaussKronrod.f90:adaptivegausskronrod
+                external f
+                double precision intent(in) :: a
+                double precision intent(in) :: b
+                integer optional,intent(in),check(len(points)>=npts),depend(points) :: npts=len(points)
+                double precision dimension(npts),intent(in) :: points
+                double precision intent(in) :: epsabs
+                double precision intent(in) :: epsrel
+                integer intent(in) :: limit
+                double precision intent(out) :: result1
+                double precision intent(out) :: abserr
+                integer intent(out) :: neval
+                integer intent(out) :: ier
+                double precision dimension(limit),intent(out),depend(limit) :: alist
+                double precision dimension(limit),intent(out),depend(limit) :: blist
+                double precision dimension(limit),intent(out),depend(limit) :: rlist
+                double precision dimension(limit),intent(out),depend(limit) :: elist
+                double precision dimension(npts + 2),intent(out),depend(npts) :: pts
+                integer dimension(limit),intent(out),depend(limit) :: iord
+                integer dimension(limit),intent(out),depend(limit) :: level
+                integer dimension(npts + 2),intent(out),depend(npts) :: ndin
+                integer :: last
+            end subroutine dqagpe
+            subroutine dqk21(f,a,b,result1,abserr,resabs,resasc) ! in :adaptivegausskronrod:AdaptiveGaussKronrod.f90:adaptivegausskronrod
+                use dqk21__user__routines
+                external f
+                double precision intent(in) :: a
+                double precision intent(in) :: b
+                double precision intent(out) :: result1
+                double precision intent(out) :: abserr
+                double precision intent(out) :: resabs
+                double precision intent(out) :: resasc
+            end subroutine dqk21
+            subroutine dqk15(f,a,b,result1,abserr,resabs,resasc) ! in :adaptivegausskronrod:AdaptiveGaussKronrod.f90:adaptivegausskronrod
+                use dqk15__user__routines
+                external f
+                double precision intent(in) :: a
+                double precision intent(in) :: b
+                double precision intent(out) :: result1
+                double precision intent(out) :: abserr
+                double precision intent(out) :: resabs
+                double precision intent(out) :: resasc
+            end subroutine dqk15
+            subroutine dqk9(f,a,b,result1,abserr,resabs,resasc) ! in :adaptivegausskronrod:AdaptiveGaussKronrod.f90:adaptivegausskronrod
+                use dqk9__user__routines
+                external f
+                double precision intent(in) :: a
+                double precision intent(in) :: b
+                double precision intent(out) :: result1
+                double precision intent(out) :: abserr
+                double precision intent(out) :: resabs
+                double precision intent(out) :: resasc
+            end subroutine dqk9
+            subroutine dqkl9(f,a,b,result1,abserr,resabs,resasc) ! in :adaptivegausskronrod:AdaptiveGaussKronrod.f90:adaptivegausskronrod
+                use dqkl9__user__routines
+                external f
+                double precision intent(in) :: a
+                double precision intent(in) :: b
+                double precision intent(out) :: result1
+                double precision intent(out) :: abserr
+                double precision intent(out) :: resabs
+                double precision intent(out) :: resasc
+            end subroutine dqkl9
+            subroutine dqpsrt(limit,last,maxerr,ermax,elist,iord,nrmax) ! in :adaptivegausskronrod:AdaptiveGaussKronrod.f90:adaptivegausskronrod
+                integer :: limit
+                integer optional,check(len(elist)>=last),depend(elist) :: last=len(elist)
+                integer :: maxerr
+                double precision :: ermax
+                double precision dimension(last) :: elist
+                integer dimension(last),depend(last) :: iord
+                integer :: nrmax
+            end subroutine dqpsrt
+            subroutine dqelg(n,epstab,result1,abserr,res3la,nres) ! in :adaptivegausskronrod:AdaptiveGaussKronrod.f90:adaptivegausskronrod
+                integer :: n
+                double precision dimension(52) :: epstab
+                double precision :: result1
+                double precision :: abserr
+                double precision dimension(3) :: res3la
+                integer :: nres
+            end subroutine dqelg
+            function d1mach(i) ! in :adaptivegausskronrod:AdaptiveGaussKronrod.f90:adaptivegausskronrod
+                integer intent(in) :: i
+                double precision :: d1mach
+            end function d1mach
+        end module adaptivegausskronrod
+    end interface 
+end python module adaptivegausskronrod
+
+! This file was auto-generated with f2py (version:2_5972).
+! See http://cens.ioc.ee/projects/f2py2e/
