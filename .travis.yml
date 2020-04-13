@@ -2,41 +2,44 @@
 # Read more under http://docs.travis-ci.com/user/build-configuration/
 # THIS SCRIPT IS SUPPOSED TO BE AN EXAMPLE. MODIFY IT ACCORDING TO YOUR NEEDS!
 sudo: true
+dist: xenial
 language: python
 python:
-  - 2.7
+#  - 2.7  # Drop support for python 2.7
 #  - 3.4  # Drop support for python 3.4
   - 3.5
   - 3.6
+matrix:
+  include:
+    - python: 3.7
+      sudo: true
+
+services:
+    - xvfb
 notifications:
   email: false
  
 # Setup anaconda
 before_install:
-  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
-      wget https://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh;
-    else
-      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
-    fi
-  - chmod +x miniconda.sh
-  - ./miniconda.sh -b
-  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
-      export PATH=/home/travis/miniconda2/bin:$PATH;
-    else
-      export PATH=/home/travis/miniconda3/bin:$PATH;
-    fi
-  - conda update --yes conda
-  - conda install --yes conda-build
-  - conda create --yes -n condaenv python=$TRAVIS_PYTHON_VERSION
-  - conda install --yes -n condaenv pip
-  - conda config --add channels https://conda.anaconda.org/omnia
+  - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+  - bash miniconda.sh -b -p $HOME/miniconda
+  - export PATH="$HOME/miniconda/bin:$PATH"
+  - hash -r
+  - conda config --set always_yes yes --set changeps1 no
+  - conda update -q conda
+  # Useful for debugging any issues with conda
+  - conda info -a
+#  - conda install conda-build
+  - conda create -q -n condaenv python=$TRAVIS_PYTHON_VERSION
+  - conda install -n condaenv pip
+  - conda config --add channels conda-forge
   - conda config --add channels https://conda.anaconda.org/pbrod
   - source activate condaenv
   - sudo apt-get update
   - sudo apt-get install gfortran
 # Install packages
 install:
-  - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy nose pytest matplotlib pytest-pep8 pytest-cov mpmath pillow numba statsmodels
+  - conda install python=$TRAVIS_PYTHON_VERSION numpy scipy nose pytest matplotlib pytest-pep8 pytest-cov mpmath pillow numba statsmodels
   - pip install funcsigs
   - pip install numdifftools
   - pip install coveralls
@@ -46,14 +49,18 @@ install:
 #  - conda build conda_recipe
 #  - conda install wafo --use-local
 before_script:
-  - "export DISPLAY=:99.0"
-  - "sh -e /etc/init.d/xvfb start"
-  - sleep 3 # give xvfb some time to start
+#  - "export DISPLAY=:99.0"
+#  - "sh -e /etc/init.d/xvfb start"
+#  - sleep 3 # give xvfb some time to start
+  - git fetch --unshallow --quiet
   - git config --global user.email "per.andreas.brodtkorb@gmail.com"
   - git config --global user.name "pbrod"
 script:
-   - coverage run --source=wafo setup.py test
+   # - coverage run --source=wafo setup.py test
+   - coverage run --source=wafo -m py.test build/
 #   - py.test wafo --cov --pep8 --doctest-modules
+# see http://www.camillescott.org/2016/07/15/travis-pytest-scipyconf/
+   - coverage xml -o coverage.xml
 after_success:
   - coveralls
   - codecov

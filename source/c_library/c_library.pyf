@@ -1,0 +1,86 @@
+! File c_code.pyf
+python module c_library
+interface
+  subroutine findrfc(y1, hmin, ind, n, info) 
+    intent(c) findrfc              ! findrfc is a C function
+    intent(c)                     ! all findrfc arguments are considered as C based                                  
+    integer intent(hide), depend(y1) :: n=len(y1)
+	double precision dimension(n), intent(in) :: y1    ! input array 
+	double precision intent(in) :: hmin    
+    integer dimension(n), intent(out) :: ind         ! output array,
+	integer dimension(1), intent(out) :: info
+  end subroutine findrfc
+  subroutine findcross(y, v, ind, n, info)
+    intent(c) findcross           ! findcross is a C function
+    intent(c)                     ! all findcross arguments are considered as C based                                  
+    integer intent(hide), depend(y) :: n=len(y)
+	double precision dimension(n), intent(in) :: y    ! input array 
+	double precision intent(in) :: v    
+    integer dimension(n), intent(out) :: ind         ! output array,
+	integer dimension(1),intent(out) :: info
+  end subroutine findcross
+  subroutine disufq(rvec, ivec, rA, iA, w, kw, h, g,nmin,nmax, m, n)
+    intent(c) disufq              ! disufq is a C function
+    intent(c)                     ! all disufq arguments are considered as C based                                  
+    !integer intent(hide), depend(rA),check(n*m==len(iA)) :: n=len(rA)/m
+	!integer intent(hide), depend(rA), check(m==shape(iA,1)) :: m=shape(rA,1)
+    double precision dimension(n*m), intent(in) :: rA, iA    ! input array 
+	double precision dimension(n/2+1), intent(in) :: w, kw    ! input array 
+	double precision intent(in) :: h, g    
+	integer intent(in) :: nmin, nmax
+    double precision dimension(n*m), intent(out) :: rvec, ivec         ! output array,                              
+  end subroutine disufq
+  subroutine disufq2(rsvec, isvec,rdvec, idvec, rA, iA, w, kw, h, g,nmin,nmax, m, n)
+    intent(c) disufq2              ! disufq2 is a C function
+    intent(c)                     ! all disufq2 arguments are considered as C based                                  
+    !integer intent(hide), depend(rA),check(n*m==len(iA)) :: n=len(rA)/m
+	!integer intent(hide), depend(rA), check(m==shape(iA,1)) :: m=shape(rA,1)
+    double precision dimension(n*m), intent(in) :: rA, iA    ! input array 
+	double precision dimension(n/2+1), intent(in) :: w, kw    ! input array 
+	double precision intent(in) :: h, g    
+	integer intent(in) :: nmin, nmax
+    double precision dimension(n*m), intent(out) :: rsvec, isvec, rdvec, idvec         ! output array,                                                  
+  end subroutine disufq2
+
+    ! ===== START NIESLONY RAINFLOW FUNCTIONS
+    !  RAINFLOW Revision: 1.1
+    !  by Adam Nieslony, 2009     
+    subroutine findrfc3_astm(array_ext, array_out, n, nout)
+        intent(c) findrfc3_astm       ! rf3 is a C function
+        intent(c)                     ! all rf3 arguments are 
+                                      ! considered as C based
+        
+        ! n is the length of the input array array_ext
+        integer intent(hide), depend(array_ext) :: n=len(array_ext)
+        
+        ! of input array x
+        double precision intent(in) :: array_ext(n)
+        
+        ! the output array
+        double precision intent(out) :: array_out(n,3)
+        
+        ! nout array, to output additional ints
+        integer dimension(2), intent(out) :: nout        
+    end subroutine findrfc3_astm
+
+    subroutine findrfc5_astm(array_ext, array_t, array_out, n, nout)
+        intent(c) findrfc5_astm       ! rf5 is a C function
+        intent(c)                     ! all rf5 arguments are 
+                                      ! considered as C based
+        
+        ! n is the length of the input array array_ext
+        integer intent(hide), depend(array_ext) :: n=len(array_ext)
+        
+        ! of input array x
+        double precision intent(in) :: array_ext(n), array_t(n)
+        
+        ! the output array
+        double precision intent(out) :: array_out(n,5)
+        
+        ! nout array, to output additional ints
+        integer dimension(2), intent(out) :: nout        
+    end subroutine findrfc5_astm
+    ! ===== END NIESLONY RAINFLOW FUNCTIONS
+
+end interface
+end python module c_library

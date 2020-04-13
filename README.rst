@@ -1,9 +1,10 @@
+
 |wafo_logo|
 ==========================================
 Wave Analysis for Fatigue and Oceanography
 ==========================================
 
-|pkg_img| |tests_img| |docs_img| |health_img| |coverage_img| |versions_img| |depsy_img|
+|pkg_img| |tests_img| |docs_img| |health_img| |coverage_img| |versions_img| |downloads_img|
 
 
 Description
@@ -35,6 +36,8 @@ Statistics
 
 Classes
 -------
+A short description of the main classes found in WAFO:
+
 
 * TimeSeries:
     Data analysis of time series. Example: extraction of turning points,
@@ -60,6 +63,7 @@ Classes
 
 Subpackages
 -----------
+A short descriptions the subpackages of WAFO:
 
 * TRANSFORM
     Modelling with linear or transformed Gaussian waves.
@@ -134,12 +138,6 @@ python session::
    wf.test(coverage=True, doctests=True)
 
 
-Note
-====
-
-This project has been set up using PyScaffold 2.4.2. For details and usage
-information on PyScaffold see http://pyscaffold.readthedocs.org/.
-
 .. |wafo_logo| image:: https://github.com/wafo-project/pywafo/blob/master/wafo/data/wafoLogoNewWithoutBorder.png
     :target: https://github.com/wafo-project/pywafo
 
@@ -164,5 +162,6 @@ information on PyScaffold see http://pyscaffold.readthedocs.org/.
    :target: https://github.com/wafo-project/pywafo
 
 
-.. |depsy_img| image:: http://depsy.org/api/package/pypi/wafo/badge.svg
-   :target: http://depsy.org/package/python/wafo
+.. |downloads_img| image:: https://img.shields.io/pypi/dm/wafo.svg
+   :alt: PyPI - Downloads
+

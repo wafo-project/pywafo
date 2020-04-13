@@ -1,45 +1,65 @@
-======
-pywafo
-======
+Welcome to the WAFO' documentation!
+===========================================
 
-This is the documentation of **pywafo**.
+|pkg_img| |tests_img| |docs_img| |health_img| |coverage_img| |versions_img| |downloads_img|
 
-.. note::
 
-    This is the main page of your project's `Sphinx <http://sphinx-doc.org/>`_
-    documentation. It is formatted in `reStructuredText
-    <http://sphinx-doc.org/rest.html>`__. Add additional pages by creating
-    rst-files in ``docs`` and adding them to the `toctree
-    <http://sphinx-doc.org/markup/toctree.html>`_ below. Use then
-    `references <http://sphinx-doc.org/markup/inline.html>`__ in order to link
-    them from this page, e.g. :ref:`authors <authors>` and :ref:`changes`.
-    It is also possible to refer to the documentation of other Python packages
-    with the `Python domain syntax
-    <http://sphinx-doc.org/domains.html#the-python-domain>`__. By default you
-    can reference the documentation of `Sphinx <http://sphinx.pocoo.org>`__,
-    `Python <http://docs.python.org/>`__, `matplotlib
-    <http://matplotlib.sourceforge.net>`__, `NumPy
-    <http://docs.scipy.org/doc/numpy>`__, `Scikit-Learn
-    <http://scikit-learn.org/stable>`__, `Pandas
-    <http://pandas.pydata.org/pandas-docs/stable>`__, `SciPy
-    <http://docs.scipy.org/doc/scipy/reference/>`__. You can add more by
-    extending the ``intersphinx_mapping`` in your Sphinx's ``conf.py``.
+This is the documentation of **WAFO** for Python version |version| released |today|.
 
-Contents
-========
+Bleeding edge available at: https://github.com/wafo-project/pywafo.
+
+Official releases are available at: http://pypi.python.org/pypi/wafo.
+
 
 .. toctree::
-   :maxdepth: 2
-
-   License <license>
-   Authors <authors>
-   Changelog <changes>
-   Module Reference <api/modules>
+   :maxdepth: 3
+   :numbered:
+   :includehidden:
+   :caption: Contents:
 
 
-Indices and tables
-==================
+   intro/index.rst
+   tutorials/index.rst
+   how-to/index.rst
+   topics/index.rst
+   reference/index.rst
+   
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+.. toctree::
+    :maxdepth: 3
+
+    appendix/changelog.rst
+    appendix/authors.rst
+    appendix/license.rst
+    appendix/acknowledgement.rst
+    appendix/index.rst
+    appendix/bibliography.rst
+
+
+.. |wafo_logo| image:: https://github.com/wafo-project/pywafo/blob/master/wafo/data/wafoLogoNewWithoutBorder.png
+    :target: https://github.com/wafo-project/pywafo
+
+
+.. |pkg_img| image:: https://badge.fury.io/py/wafo.png
+    :target: https://pypi.python.org/pypi/wafo/
+
+.. |tests_img| image:: https://travis-ci.org/wafo-project/pywafo.svg?branch=master
+    :target: https://travis-ci.org/wafo-project/pywafo
+
+.. |docs_img| image:: https://readthedocs.org/projects/pip/badge/?version=latest
+    :target: http://wafo.readthedocs.org/en/latest/
+
+.. |health_img| image:: https://codeclimate.com/github/wafo-project/pywafo/badges/gpa.svg
+   :target: https://codeclimate.com/github/wafo-project/pywafo
+   :alt: Code Climate
+
+.. |coverage_img| image:: https://coveralls.io/repos/wafo-project/pywafo/badge.svg?branch=master
+   :target: https://coveralls.io/github/wafo-project/pywafo?branch=master
+
+.. |versions_img| image:: https://img.shields.io/pypi/pyversions/wafo.svg
+   :target: https://github.com/wafo-project/pywafo
+
+
+.. |downloads_img| image:: https://img.shields.io/pypi/dm/wafo.svg
+   :alt: PyPI - Downloads
+
