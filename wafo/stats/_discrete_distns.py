@@ -7,7 +7,7 @@ from __future__ import division, print_function, absolute_import
 from scipy import special
 from scipy.special import entr, gammaln as gamln
 try:
-    from scipy.special import logsumexp
+    from scipy.special import logsumexp  # logsumexp has moved to scipy.special in scipy 1.0.0
 except ImportError:
     from scipy.misc import logsumexp
 
