@@ -27,7 +27,7 @@ from numpy import (newaxis, arange, pi)
 from scipy.fftpack import dct, idct as _idct
 from numpy.lib.polynomial import *  # @UnusedWildImport
 try:
-    from scipy.interpolate import pade
+    from scipy.interpolate import pade  # pade has moved to scipy.interpolate in scipy 1.0.0
 except ImportError:
     from scipy.misc import pade  # @UnresolvedImport
 __all__ = np.lib.polynomial.__all__
