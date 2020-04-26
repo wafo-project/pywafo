@@ -138,7 +138,7 @@ python session::
    wf.test(coverage=True, doctests=True)
 
 
-.. |wafo_logo| image:: https://github.com/wafo-project/pywafo/tree/master/src/wafo/data/wafoLogoNewWithoutBorder.png
+.. |wafo_logo| image:: https://github.com/wafo-project/pywafo/blob/master/src/wafo/data/wafoLogoNewWithoutBorder.png
     :target: https://github.com/wafo-project/pywafo
 
 
