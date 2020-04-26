@@ -3,7 +3,7 @@ checks:
   argument-count:
     enabled: true
     config:
-      threshold: 4
+      threshold: 7
   complex-logic:
     enabled: true
     config:
@@ -11,11 +11,11 @@ checks:
   file-lines:
     enabled: true
     config:
-      threshold: 250
+      threshold: 1000
   method-complexity:
     enabled: true
     config:
-      threshold: 5
+      threshold: 15
   method-count:
     enabled: true
     config:
@@ -35,7 +35,7 @@ checks:
   similar-code:
     enabled: true
     config:
-      threshold: 40 #language-specific defaults. overrides affect all languages.
+      threshold: 10 #language-specific defaults. overrides affect all languages.
   identical-code:
     enabled: true
     config:
