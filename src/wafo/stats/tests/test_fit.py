@@ -10,7 +10,7 @@ from scipy.stats.tests.test_continuous_basic import distcont
 
 # this is not a proper statistical test for convergence, but only
 # verifies that the estimate and true values don't differ by too much
-DISTCONT = distcont + ["truncrayleigh"]
+DISTCONT = distcont + [['truncrayleigh', (3.5704770516650459,)]]
 FIT_SIZES = [1000, 5000]  # sample sizes to try
 
 THRESH_PERCENT = 0.25  # percent of true parameters for fail cut-off

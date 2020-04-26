@@ -45,7 +45,9 @@ class truncrayleigh_gen(rv_continuous):
 
     def _fitstart(self, data, args=None):
         if args is None:
-            args = (0.0,) * self.numargs
+            n = len(data)
+            args = (np.sqrt(np.sum(data**2)/n/2),) # Initial guess (MLE with c=0)
+
         return args + self.fit_loc_scale(data, *args)
 
     def _pdf(self, r, c):
