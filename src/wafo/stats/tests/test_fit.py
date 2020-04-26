@@ -16,26 +16,24 @@ FIT_SIZES = [1000, 5000]  # sample sizes to try
 THRESH_PERCENT = 0.25  # percent of true parameters for fail cut-off
 THRESH_MIN = 0.75  # minimum difference estimate - true to fail test
 
-FAILING_FITS = [
-        'burr',
-        'chi2',
+FAILING_FITS_MLE = [
         'gausshyper',
         'genexpon',
-        'gengamma',
         'kappa4',
         'ksone',
-        'kstwo',
-        'mielke',
-        'ncf',
-        'ncx2',
-        'pearson3',
-        'powerlognorm',
+        'levy_stable',  # extremely slow
+        'trapz',
         'truncexpon',
-        'tukeylambda',
-        'vonmises',
-        'wrapcauchy',
-        'levy_stable',
-        'trapz'
+        'wrapcauchy'
+]
+
+FAILING_FITS_MPS = [
+        'gausshyper',  # extremely slow
+        'kappa4',
+        'ksone',
+        'levy_stable',  # extremely slow
+        'trapz',
+        'wrapcauchy'
 ]
 
 # Don't run the fit test on these:
@@ -46,9 +44,7 @@ SKIP_FIT = [
 SKIP_FIT_MPS = {"geninvgauss",
                 "norminvgauss",
                 "skewnorm",
-                "chi",
-                "f",
-                "nct"}
+                }
 
 def cases_test_cont_fit():
     # this tests the closeness of the estimated parameters to the true
@@ -67,7 +63,8 @@ def cases_test_cont_fit():
 @pytest.mark.parametrize('distname,arg,method', cases_test_cont_fit())
 def test_cont_fit(distname, arg, method):
     options = dict(method=method)
-    if distname in FAILING_FITS:
+    failing_fits = dict(mps=FAILING_FITS_MPS, ml=FAILING_FITS_MLE)[method]
+    if distname in failing_fits:
         # Skip failing fits unless overridden
         try:
             xfail = not int(os.environ['SCIPY_XFAIL'])
@@ -99,7 +96,7 @@ def test_cont_fit(distname, arg, method):
             phat = distfn.fit2(rvs, **opt)
 
             est = phat.par
-            #est = distfn.fit(rvs)  # start with default values
+            # est = distfn.fit(rvs)  # start with default values
 
         diff = est - truearg
 
@@ -109,12 +106,13 @@ def test_cont_fit(distname, arg, method):
         if np.any(np.isnan(est)):
             raise AssertionError('nan returned in fit')
         else:
-            if np.all(np.abs(diff) <= diffthreshold):
+            if np.all(np.abs(diff) <= diffthreshold) or phat.pvalue > 0.05:
                 break
     else:
         txt = 'parameter: %s\n' % str(truearg)
         txt += 'estimated: %s\n' % str(est)
         txt += 'diff     : %s\n' % str(diff)
+        txt += 'pvalue   : %s\n' % str(phat.pvalue)
         raise AssertionError('fit not very good in %s\n' % distfn.name + txt)
 
 
