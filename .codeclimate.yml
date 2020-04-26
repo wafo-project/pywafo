@@ -41,7 +41,10 @@ checks:
     config:
       threshold: 10 #language-specific defaults. overrides affect all languages.
 plugins:
-  
+  sonar-python:
+    enabled: true
+  bandit:
+    enabled: true
   fixme:
     enabled: true
   radon:
