@@ -1,19 +1,52 @@
 version: "2"
-plugins:
-  duplication:
+checks:
+  argument-count:
     enabled: true
-      - mass = 50
     config:
-      languages:
-         python:
-           mass_threshold: 40
+      threshold: 4
+  complex-logic:
+    enabled: true
+    config:
+      threshold: 4
+  file-lines:
+    enabled: true
+    config:
+      threshold: 250
+  method-complexity:
+    enabled: true
+    config:
+      threshold: 5
+  method-count:
+    enabled: true
+    config:
+      threshold: 20
+  method-lines:
+    enabled: true
+    config:
+      threshold: 25
+  nested-control-flow:
+    enabled: true
+    config:
+      threshold: 4
+  return-statements:
+    enabled: true
+    config:
+      threshold: 4
+  similar-code:
+    enabled: true
+    config:
+      threshold: 40 #language-specific defaults. overrides affect all languages.
+  identical-code:
+    enabled: true
+    config:
+      threshold: 10 #language-specific defaults. overrides affect all languages.
+plugins:
+  
   fixme:
     enabled: true
   radon:
     enabled: true
-ratings:
-  paths:
-  - "**.py"
+
 exclude_patterns: 
 - "wafo/tests/"
 - "wafo/MSPPT.py"
