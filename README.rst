@@ -102,7 +102,7 @@ And install the wheel package with::
 Getting started
 ===============
 
-A quick introduction to some of the many features of wafo can be found in the Tutorial IPython notebooks in the 
+A quick introduction to some of the many features of wafo can be found in the Tutorial IPython notebooks in the
 `tutorial scripts folder`_:
 
 * Chapter 1 - `Some applications of WAFO`_
@@ -138,7 +138,7 @@ python session::
    wf.test(coverage=True, doctests=True)
 
 
-.. |wafo_logo| image:: https://github.com/wafo-project/pywafo/blob/master/wafo/data/wafoLogoNewWithoutBorder.png
+.. |wafo_logo| image:: https://github.com/wafo-project/pywafo/tree/master/src/wafo/data/wafoLogoNewWithoutBorder.png
     :target: https://github.com/wafo-project/pywafo
 
 
