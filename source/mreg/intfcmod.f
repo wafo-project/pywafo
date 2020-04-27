@@ -12,7 +12,7 @@ C      DIMENSION ULEVELS(1),Vlevels(1),T(1),HT(1),TG(1),XG(1),HH(101)
       REAL*8, DIMENSION(:), intent(in) :: T
       REAL*8, DIMENSION(:), intent(out) :: HT
 C      INTEGER, intent(in) :: NG
-      REAL*8 :: UMIN,UMAX,VMIN,VMAX, HU,HV
+C      REAL*8 :: UMIN,UMAX,VMIN,VMAX, HU,HV
       integer :: N, I, NU, NV
 C     REAL*8, DIMENSION(NMAX) :: HH
 C      COMMON/TBR/HH

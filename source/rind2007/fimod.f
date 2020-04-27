@@ -1211,6 +1211,7 @@
       ERR = ONE
       IP = 1
       IM = 1
+      FIN = ZERO
       DO WHILE ( (ERR .GT. TOL) .AND. (IM  <  NL) )
          IM = IM + 1
          BI(IM) = BI(IP)

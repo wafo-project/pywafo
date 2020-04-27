@@ -48,6 +48,7 @@ import setuptools
 from setuptools import Command
 from numpy.distutils.core import setup
 from numpy.distutils.misc_util import Configuration
+from distutils.command.sdist import sdist
 
 
 HERE = os.path.abspath(os.path.dirname(__file__))
@@ -162,7 +163,8 @@ def setup_package():
               'sphinx_rtd_theme>=0.1.7'] + sphinx_requires if needs_sphinx else []
     setup(setup_requires=["pytest-runner"] + sphinx,
           version=version,
-          cmdclass={'doctest': Doctest},
+          cmdclass={'doctest': Doctest,
+                    'sdist': sdist},
           include_package_data=True,
           package_data={# If any package contains *.txt or *.rst files, include them:
                         "": ["*.dat"],},

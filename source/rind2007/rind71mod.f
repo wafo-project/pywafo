@@ -1831,7 +1831,7 @@
       USE QUAD, ONLY: sizNint,Nint1,minQnr,Le2Qnr
       IMPLICIT NONE
       DOUBLE PRECISION , INTENT(in) :: scale, dEPSS,dREPS
-	DOUBLE PRECISION , INTENT(in) :: dEPS2,dXc, dXSPLT
+      DOUBLE PRECISION , INTENT(in) :: dEPS2,dXc, dXSPLT
       !INTEGER, DIMENSION(:), INTENT(in) :: dNINT
       INTEGER, INTENT(in) :: method,dNINT,dNIT
       INTEGER :: N=1

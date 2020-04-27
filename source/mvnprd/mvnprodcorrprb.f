@@ -741,12 +741,12 @@ c***end prologue  dqagpe
      *  a2,b1,b2,correc,abseps,defabs,defab1,defab2,
      *  dres,epmach,erlarg,erlast,errbnd,
      *  errmax,error1,erro12,error2,errsum,ertest,oflow,
-     *  resa,resabs,reseps,sign,temp,uflow, hSplit
+     *  resa,resabs,reseps,sign,uflow, hSplit
       double precision, dimension(3)  :: res3la(3)
       double precision, dimension(52) :: rlist2(52)
-      integer :: i,id,ierro,ind1,ind2,ip1,iroff1,iroff2,iroff3,j,
+      integer :: i,id,ierro,ind1,ind2,iroff1,iroff2,iroff3,j,
      *  jlow,jupbnd,k,ksgn,ktmin,levcur,levmax,maxerr,
-     *  nint,nintp1,npts2,nres,nrmax,numrl2
+     *  nint,npts2,nres,nrmax,numrl2
       logical :: extrap,noext
       external f
 !
@@ -809,6 +809,7 @@ c***first executable statement  dqagpe
       epmach = d1mach(4)
       uflow  = d1mach(1)
       oflow  = d1mach(2)
+      correc = 0.D0
 !
 !            test on validity of parameters
 !            -----------------------------
@@ -894,6 +895,7 @@ c***first executable statement  dqagpe
       errbnd = dmax1(epsabs,epsrel*dres)
       if(abserr.le.0.1d+03*epmach*resabs.and.abserr.gt.errbnd) ier = 2
       if(nint.eq.1) go to 80
+      k=1
       do 70 i = 1,npts
         jlow = i+1
         ind1 = iord(i)
@@ -2659,7 +2661,7 @@ C
         RES3LA(2)=RES3LA(3)
         RES3LA(3)=RESULT
       ENDIF
-   90 ABSERR=MAX(ABSERR,DEPRN*ABS(RESULT))
+      ABSERR=MAX(ABSERR,DEPRN*ABS(RESULT))
       NRES=NRES+1
   100 N=N+1
       EPSTAB(LIMEXP+3)=DBLE(N)
@@ -2931,19 +2933,20 @@ c
       double precision, parameter :: eight    = 8.0D0
       double precision, parameter :: ten      = 10.0D0
       double precision, dimension(4) :: x, fx, Sn
-      double precision, dimension(5) :: d4fx
-      double precision, dimension(55) :: EPSTAB
+!      double precision, dimension(5) :: d4fx
+!      double precision, dimension(55) :: EPSTAB
       double precision :: small
-      double precision :: delta, h, h8, localError, correction
+      double precision :: delta, h, localError, correction
       double precision :: Sn1, Sn2, Sn4, Sn1e, Sn2e, Sn4e
       double precision :: Sn12, Sn24, Sn124, Sn12e, Sn24e
       double precision :: hmax, hmin, dhmin, val0
       double precision :: Lepsi,Ltol, excess, deltaK, errorEstimate
-      integer :: k, kp1, i, j,ix, numExtrap, IERR
+      integer :: k, kp1, i, numExtrap
+!     integer :: IERR, ix, j
       integer, parameter :: LIMEXP = 5
       logical :: acceptError, lastInStack
       logical :: stepSizeTooSmall, stepSizeOK
-      logical :: NEWFLG !, useDEA
+!      logical :: NEWFLG !, useDEA
       small = spacing(one)
 !      useDEA      = .TRUE.
       Lepsi = max(epsi,small/ten)
@@ -3160,7 +3163,7 @@ c
       double precision, dimension(8) ::  fx, Sn
       double precision, dimension(55) :: EPSTAB
       double precision :: small, x, a0
-      double precision :: delta, h, h8, localError, correction
+      double precision :: delta, h, localError, correction
       double precision :: Sn1, Sn2, Sn4, Sn8, Sn1e, Sn2e, Sn4e
       double precision :: Sn12, Sn24,Sn48,Sn124, Sn12e, Sn24e
       double precision :: hmax, hmin, dhmin, val0
@@ -3609,8 +3612,8 @@ c
       double precision, dimension(decdigs) ::  rom1,rom2,fp
       double precision, dimension(decdigs + 7) :: EPSTAB
       integer :: LIMEXP
-      double precision :: h, fourk, Un5, T1n, T2n, T4n, T12n, T24n
-      double precision :: correction
+      double precision :: h, Un5, T1n, T2n, T4n
+!      double precision :: correction, T12n, T24n
       integer :: ipower, k, i, IERR
       logical :: stepSizeTooSmall, NEWFLG
       double precision, parameter :: four = 4.0D0
@@ -3739,7 +3742,7 @@ c
         ! if the below is commented out then assume indices are already initialized
 !         forall(i=1,n) indices(i) = i
 !      endif
-100   continue
+      continue
       if (n.le.1) goto 800
       m=1
 200   continue
@@ -3929,7 +3932,7 @@ c
       double precision, dimension(4*n) :: brkPtsVal
       double precision, parameter :: zero = 0.0D0, brkSplit = 2.5D0
       double precision, parameter :: stepSize = 0.24
-      double precision            :: brk,brk1,hMin,distance, xLow, dx
+      double precision            :: brk,hMin,distance, dx  ! , xLow
       double precision :: z1, z2, val1,val2
       integer :: j,k, kL,kU , Nprev, Nk
       hMin = 1.0D-5

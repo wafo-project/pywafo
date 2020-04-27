@@ -162,18 +162,18 @@
       IMPLICIT NONE
       PRIVATE
       PUBLIC :: RINDD, SetConstants
-	PUBLIC :: mCovEps, mAbsEps,mRelEps, mXcutOff, mXcScale
+      PUBLIC :: mCovEps, mAbsEps,mRelEps, mXcutOff, mXcScale
       PUBLIC :: mNc1c2, mNIT, mMaxPts,mMinPts, mMethod, mSmall
       private :: preInit
       private :: initIntegrand
       private :: initfun,mvnfun,cvsrtxc,covsrt1,covsrt,rcscale,rcswap
       private :: cleanUp
 
-	INTERFACE RINDD
+      INTERFACE RINDD
       MODULE PROCEDURE RINDD
       END INTERFACE
 
-	INTERFACE SetConstants
+      INTERFACE SetConstants
       MODULE PROCEDURE SetConstants
       END INTERFACE
 

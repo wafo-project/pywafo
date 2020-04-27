@@ -48,8 +48,11 @@ def build_main(version):
     set_package(version)
     update_readme()
 
-    for cmd in ['build', 'egg_info' 'sdist', 'bdist_wheel', ]:  # 'docs', 
+    for cmd in ['build', 'egg_info', 'bdist_wheel', 'sdist']:  # 'docs',
         try:
+            print("\n\n***********************************************")
+            print("Running python setup.py {}".format(cmd))
+            print("***********************************************\n")
             subprocess.call(["python", "setup.py", cmd])
         except Exception as error:  # subprocess.CalledProcessError:
             print('{}: {}'.format(cmd, str(error)))

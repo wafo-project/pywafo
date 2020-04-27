@@ -730,7 +730,7 @@ c      IF (N.eq.15) then
 c      print *,'der,dbun,db1n,sder1',der,dbun,db1n,sder1
 c      write(11,*) der,dbun,db1n,sder1
 c      end if
-10    CONTINUE
+      CONTINUE
       enddo
 c      IF (N.eq.15) then
 c      do 999 iii=1,N
@@ -868,7 +868,7 @@ c      IF(XR1.LT.0.0d0) CALL ERROR(I,N,-1)
 3     CONTINUE
       ENDDO
       DO I=1,N
-5     B1(I)=B1(I)/SQ0
+      B1(I)=B1(I)/SQ0
       ENDDO
 99    CONTINUE
 C
@@ -888,13 +888,13 @@ c         print *, 'Leaving R2: Exit 4', XIND,XIND1,VDER1
       CALL GAUSS1(N1,H1,XX1,XMI,XMA,EPS0)
       DO J=1,N1
         DO  I=1,N
-20       BU1(I)=BU(I)+XX1(J)*B1(I)
+         BU1(I)=BU(I)+XX1(J)*B1(I)
         ENDDO
       DER=DBUN+XX1(J)*DB1N
 c      print *,'R2: before calling R1: (SQ1):',sq1(1),sq1(2),sq1(3)
       CALL RIND1(XIND1,R1,BU1,DER,DB1,SQ1,VDER1,N)
       III11=III11+1
-10    XIND=XIND+XIND1*H1(J)
+      XIND=XIND+XIND1*H1(J)
       ENDDO
 c      print *, 'Leaving R2: Exit 5', XIND,XIND1,VDER1
       RETURN
@@ -1004,7 +1004,7 @@ c      PRINT *,'Topp of 3:',sq(1),sq(2),sq(3)
 3     CONTINUE
       ENDDO
       DO I=1,N
- 5    B1(I)=B1(I)/SQ0
+      B1(I)=B1(I)/SQ0
       ENDDO
 99    CONTINUE
 c      PRINT *,'3:**  ',XMI,XMA
@@ -1014,13 +1014,13 @@ c      PRINT *,'3:****',XMI,XMA,EPSS
       CALL GAUSS1(N1,H1,XX1,XMI,XMA,EPS0)
       DO J=1,N1
          DO I=1,N
-20        BU1(I)=BU(I)+XX1(J)*B1(I)
+          BU1(I)=BU(I)+XX1(J)*B1(I)
          ENDDO
       DER=DBUN+XX1(J)*DB1N
 c      print *,'R3: before calling R2: (SQ1):',sq1(1),sq1(2),sq1(3)
       CALL RIND2(XIND1,R1,BU1,DER,DB1,SQ1,VDER1,N)
       III21=III21+1
-10    XIND=XIND+XIND1*H1(J)
+      XIND=XIND+XIND1*H1(J)
       ENDDO
       RETURN
       END SUBROUTINE RIND3
@@ -1129,7 +1129,7 @@ c      PRINT *,'Topp of 4:',SQ(1),SQ(2),SQ(3)
 3     CONTINUE
       ENDDO
       DO I=1,N
-5     B1(I)=B1(I)/SQ0
+      B1(I)=B1(I)/SQ0
       ENDDO
 99    CONTINUE
 C      PRINT *,'**',XMI,XMA
@@ -1139,12 +1139,12 @@ C      PRINT *,INF(4),XMI,XMA
       CALL GAUSS1(N1,H1,XX1,XMI,XMA,EPS0)
       DO  J=1,N1
       DO  I=1,N
-20    BU1(I)=BU(I)+XX1(J)*B1(I)
+      BU1(I)=BU(I)+XX1(J)*B1(I)
       ENDDO
       DER=DBUN+XX1(J)*DB1N
       CALL RIND3(XIND1,R1,BU1,DER,DB1,SQ1,VDER1,N)
       III31=III31+1
-10    XIND=XIND+XIND1*H1(J)
+      XIND=XIND+XIND1*H1(J)
       ENDDO
       RETURN
       END SUBROUTINE RIND4
@@ -1253,7 +1253,7 @@ C     *,III61,III71,III81,III91,III101
 3     CONTINUE
       ENDDO
       DO I=1,N
-5     B1(I)=B1(I)/SQ0
+      B1(I)=B1(I)/SQ0
       ENDDO
 99    CONTINUE
       CALL C1_C2(XMI,XMA,BU,B1,DBUN,DB1N,SDER1,SQ1,N)
@@ -1396,7 +1396,7 @@ c      IF(XR1.LT.0.0d0) CALL ERROR(I,N,-1)
 3     CONTINUE
       ENDDO
       DO I=1,N
-5     B1(I)=B1(I)/SQ0
+      B1(I)=B1(I)/SQ0
       ENDDO
 99    CONTINUE
 C
@@ -1413,12 +1413,12 @@ C
       CALL GAUSS1(N1,H1,XX1,XMI,XMA,EPS0)
       DO J=1,N1
        DO I=1,N
-20       BU1(I)=BU(I)+XX1(J)*B1(I)
+         BU1(I)=BU(I)+XX1(J)*B1(I)
        ENDDO
       DER=DBUN+XX1(J)*DB1N
       CALL RIND5(XIND1,R1,BU1,DER,DB1,SQ1,VDER1,N)
       III51=III51+1
-10    XIND=XIND+XIND1*H1(J)
+      XIND=XIND+XIND1*H1(J)
       ENDDO
       RETURN
       END SUBROUTINE RIND6
@@ -2364,7 +2364,7 @@ C
      4  +0.005353579108d0)*Y-0.002141268741d0)*Y+0.000535310849d0)*Y
      5  +0.9999366575d0
       endif
-100   IF(X.GT.0.0d0) FI=0.5d0*(Z+1.0d0)
+      IF(X.GT.0.0d0) FI=0.5d0*(Z+1.0d0)
       IF(X.LT.0.0d0) FI=0.5d0*(1.0d0-Z)
       RETURN
       END FUNCTION FI
@@ -2461,7 +2461,7 @@ C     - fixed some bugs
       REAL*8, DIMENSION(2)  :: D0
       REAL*8, save :: QD, DB1N,VDER1,SQD, SDER1,DET1
       REAL*8  XIND, DB0N,FR1, XR1,XMI,XMA
-      REAL*8  CC, PC, PD, P, X
+      REAL*8  CC, PC, PD, X
       INTEGER INF1, I, I1, J, N1,I2,infoID
       INTEGER, save :: IDET, NNIT         
 C     DIMENSION AA1(6,6),V1(6,6)
@@ -2887,7 +2887,7 @@ C   Double division to avoid posible underflow.
         V(I,I)=1.0d0
         G=RV1(I)
         L=I
-32    ENDDO
+      ENDDO
 c        print *,'32'
 
 C  Accumulation of the left-hang transformation
@@ -2915,14 +2915,14 @@ C  Accumulation of the left-hang transformation
           ENDIF
           DO J=I,M
             A(J,I)=A(J,I)*G
-37        ENDDO
+          ENDDO
         ELSE
           DO J=I,M
             A(J,I)=0.0d0
-38        ENDDO
+          ENDDO
         ENDIF
         A(I,I)=A(I,I)+1.0d0
-39    ENDDO
+      ENDDO
 c        print *,'39'
 
 C      Diagonalization of the bidiagonal form
