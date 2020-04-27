@@ -2003,7 +2003,7 @@ class TimeSeries(PlotData):
 
     def _interpolate(self, rate):
         if rate > 1:  # interpolate with spline
-            n = ceil(self.data.size * rate)
+            n = int(ceil(self.data.size * rate))
             ti = linspace(self.args[0], self.args[-1], n)
             x = stineman_interp(ti, self.args, self.data.ravel())
             # xi = interp1d(self.args, self.data.ravel(), kind='cubic')(ti)

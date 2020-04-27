@@ -39,8 +39,8 @@ from numpy import (inf, atleast_1d, newaxis, minimum, maximum, array,
                    cos, sinh, isfinite, mod, expm1, tanh, cosh, finfo,
                    ones, ones_like, isnan, zeros_like, flatnonzero, sinc,
                    hstack, vstack, real, flipud, clip)
-from ..wave_theory.dispersion_relation import w2k, k2w  # @UnusedImport
-from .core import SpecData1D, SpecData2D
+from wafo.wave_theory.dispersion_relation import w2k, k2w  # @UnusedImport
+from wafo.spectrum.core import SpecData1D, SpecData2D
 
 
 __all__ = ['Bretschneider', 'Jonswap', 'Torsethaugen', 'Wallop', 'McCormick',
@@ -117,7 +117,7 @@ def _gengamspec(wn, N=5, M=4):
         # A = B**C*M/gamma(C)
         # S[k] = A*wn[k]**(-N)*exp(-B*wn[k]**(-M))
         logwn = log(w.take(k))
-        logA = (C * log(B) + log(M) - sp.gammaln(C))
+        logA = (C * log(B) + log(M) - sp.gammaln(C))  #pylint: disable=no-member
         S.put(k, exp(logA - N * logwn - B * exp(-M * logwn)))
     return S
 
@@ -125,7 +125,7 @@ def _gengamspec(wn, N=5, M=4):
 class ModelSpectrum(object):
     type = 'ModelSpectrum'
 
-    def __init__(self, Hm0=7.0, Tp=11.0, **kwds):
+    def __init__(self, Hm0=7.0, Tp=11.0, **kwds):  # @UnusedVariable
         self.Hm0 = Hm0
         self.Tp = Tp
 
@@ -178,6 +178,9 @@ class ModelSpectrum(object):
 
     def _chk_extra_param(self):
         pass
+
+    def __call__(self, w):
+        raise NotImplementedError
 
 
 class Bretschneider(ModelSpectrum):
@@ -286,27 +289,28 @@ def jonswap_peakfact(Hm0, Tp):
     Examples
     --------
     >>> import wafo.spectrum.models as wsm
-    >>> import pylab as plb
-    >>> Tp,Hs = plb.meshgrid(range(4,8),range(2,6))
+    >>> import numpy as np
+    >>> Tp,Hs = np.meshgrid(range(4,8),range(2,6))
     >>> gam = wsm.jonswap_peakfact(Hs,Tp)
 
-    >>> Hm0 = plb.linspace(1,20)
+    >>> Hm0 = np.linspace(1,20)
     >>> Tp = Hm0
-    >>> [T,H] = plb.meshgrid(Tp,Hm0)
+    >>> [T,H] = np.meshgrid(Tp,Hm0)
     >>> gam = wsm.jonswap_peakfact(H,T)
-    >>> v = plb.arange(0,8)
+    >>> v = np.arange(0,8)
 
-    >>> Hm0 = plb.arange(1,11)
-    >>> Tp  = plb.linspace(2,16)
-    >>> T,H = plb.meshgrid(Tp,Hm0)
+    >>> Hm0 = np.arange(1,11)
+    >>> Tp  = np.linspace(2,16)
+    >>> T,H = np.meshgrid(Tp,Hm0)
     >>> gam = wsm.jonswap_peakfact(H,T)
 
-    h = plb.contourf(Tp,Hm0,gam,v);h=plb.colorbar()
-    h = plb.plot(Tp,gam.T)
-    h = plb.xlabel('Tp [s]')
-    h = plb.ylabel('Peakedness parameter')
+    import matplotlib.pyplot as plt
+    h = plt.contourf(Tp,Hm0,gam,v);h=plb.colorbar()
+    h = plt.plot(Tp,gam.T)
+    h = plt.xlabel('Tp [s]')
+    h = plt.ylabel('Peakedness parameter')
 
-    plb.close('all')
+    plt.close('all')
 
     See also
     --------
@@ -356,7 +360,7 @@ def jonswap_seastate(u10, fetch=150000., method='lewis', g=9.81,
             sigmaB : jonswap spectral width parameters.
             Ag     : jonswap alpha, normalization factor.
 
-    Example
+    Examples
     --------
     >>> import wafo.spectrum.models as wsm
     >>> fetch = 10000; u10 = 10
@@ -490,8 +494,8 @@ class Jonswap(ModelSpectrum):
              Tz = Tp/(1.30301-0.01698*gamma+0.12102/gamma)
 
     Examples
-    ---------
-    >>> import pylab as plb
+    --------
+    >>> import matplotlib.pyplot as plt
     >>> import wafo.spectrum.models as wsm
     >>> S = wsm.Jonswap(Hm0=7, Tp=11,gamma=1)
     >>> S2 = wsm.Bretschneider(Hm0=7, Tp=11)
@@ -499,8 +503,8 @@ class Jonswap(ModelSpectrum):
     >>> all(np.abs(S(w)-S2(w))<1.e-7)
     True
 
-    h = plb.plot(w,S(w))
-    plb.close('all')
+    h = plt.plot(w,S(w))
+    plt.close('all')
 
     See also
     --------
@@ -753,15 +757,16 @@ class Tmaspec(Jonswap):
     Example
     --------
     >>> import wafo.spectrum.models as wsm
-    >>> import pylab as plb
-    >>> w = plb.linspace(0,2.5)
+    >>> import numpy as np
+    >>> w = np.linspace(0,2.5)
     >>> S = wsm.Tmaspec(h=10,gamma=1) # Bretschneider spectrum Hm0=7, Tp=11
 
-    o=plb.plot(w,S(w))
-    o=plb.plot(w,S(w,h=21))
-    o=plb.plot(w,S(w,h=42))
-    plb.show()
-    plb.close('all')
+    import matplotlib.pyplot as plt
+    o=plt.plot(w,S(w))
+    o=plt.plot(w,S(w,h=21))
+    o=plt.plot(w,S(w,h=42))
+    plt.show()
+    plt.close('all')
 
     See also
     ---------
@@ -849,11 +854,12 @@ class Torsethaugen(ModelSpectrum):
     Example
     -------
     >>> import wafo.spectrum.models as wsm
-    >>> import pylab as plb
-    >>> w = plb.linspace(0,4)
+    >>> import numpy as np
+    >>> w = np.linspace(0,4)
     >>> S = wsm.Torsethaugen(Hm0=6, Tp=8)
 
-    h=plb.plot(w,S(w),w,S.wind(w),w,S.swell(w))
+    import matplotlib.pyplot as plt
+    h=plt.plot(w,S(w),w,S.wind(w),w,S.swell(w))
 
     See also
     --------
@@ -1418,32 +1424,33 @@ class Spreading(object):
     Examples
     --------
     >>> import wafo.spectrum.models as wsm
-    >>> import pylab as plb
+    >>> import numpy as np
     >>> D = wsm.Spreading('cos2s',s_a=10.0)
 
     # Make directionale spectrum
     >>> S = wsm.Jonswap().tospecdata()
     >>> SD = D.tospecdata2d(S)
 
-    >>> w = plb.linspace(0,3,257)
-    >>> theta = plb.linspace(-pi,pi,129)
+    >>> w = np.linspace(0,3,257)
+    >>> theta = np.linspace(-np.pi,np.pi,129)
 
     # Make frequency dependent direction spreading
-    >>> theta0 = lambda w: w*plb.pi/6.0
+    >>> theta0 = lambda w: w*np.pi/6.0
     >>> D2 = wsm.Spreading('cos2s',theta0=theta0)
 
+    import matplotlib.pyplot as plt
     h = SD.plot()
-    t = plb.contour(D(theta,w)[0].squeeze())
-    t = plb.contour(D2(theta,w)[0])
+    t = plt.contour(D(theta,w)[0].squeeze())
+    t = plt.contour(D2(theta,w)[0])
 
     # Plot all spreading functions
     alltypes = ('cos2s','box','mises','poisson','sech2','wrap_norm')
     for ix in range(len(alltypes)):
     ...     D3 = wsm.Spreading(alltypes[ix])
-    ...     t = plb.figure(ix)
-    ...     t = plb.contour(D3(theta,w)[0])
-    ...     t = plb.title(alltypes[ix])
-    plb.close('all')
+    ...     t = plt.figure(ix)
+    ...     t = plt.contour(D3(theta,w)[0])
+    ...     t = plt.title(alltypes[ix])
+    plt.close('all')
 
 
     See also
@@ -1516,9 +1523,9 @@ class Spreading(object):
 
     @method.setter
     def method(self, method):
-        methods = {'n': None, 'm': 'mitsuyasu', 'd': 'donelan', 'b': 'banner',
-                   0: None, 1: 'mitsuyasu', 2: 'donelan', 3: 'banner',
-                   None: None}
+        methods = {'n': 'frequency_independent', 'm': 'mitsuyasu', 'd': 'donelan', 'b': 'banner',
+                   0: 'frequency_independent', 1: 'mitsuyasu', 2: 'donelan', 3: 'banner',
+                   None: 'frequency_independent'}
         m = method if not isinstance(method, str) else method[0].lower()
         try:
             self._method = methods[m]
@@ -1596,7 +1603,7 @@ class Spreading(object):
         """
         S, TH, phi0 = self.chk_input(theta, w, wc)[:3]
 
-        gammaln = sp.gammaln
+        gammaln = sp.gammaln  #pylint: disable=no-member
 
         D = (exp(gammaln(S + 1) - gammaln(S + 1.0 / 2.0)) / (2 * sqrt(pi))) * \
             cos(TH / 2.0) ** (2.0 * S)
@@ -2049,75 +2056,98 @@ class Spreading(object):
 def _test_some_spectra():
     S = Jonswap()
 
-    w = arange(3.0)
+    w = np.linspace(0, 3.0)
     S(w) * phi1(w, 30.0)
     S1 = S.tospecdata(w)
     S1.plot()
 
-    import pylab as plb
-    w = plb.linspace(0, 2.5)
+    import matplotlib.pyplot as plt
+    w = np.linspace(0, 2.5)
     S = Tmaspec(h=10, gamma=1)  # Bretschneider spectrum Hm0=7, Tp=11
-    plb.plot(w, S(w))
-    plb.plot(w, S(w, h=21))
-    plb.plot(w, S(w, h=42))
-    plb.show()
-    plb.close('all')
+    plt.plot(w, S(w))
+    plt.plot(w, S(w, h=21))
+    plt.plot(w, S(w, h=42))
+    plt.show('hold')
+    plt.close('all')
 
-    w, th = plb.ogrid[0:4, 0:6]
+    w, th = np.ogrid[0:4, 0:6]
     k, k2 = w2k(w, th)
 
-    plb.plot(w, k, w, k2)
+    plt.plot(w, k, w, k2)
+    plt.title('w2k')
+    plt.xlabel('w')
 
-    plb.show()
+    plt.show('hold')
 
-    plb.close('all')
-    w = plb.linspace(0, 2, 100)
+    plt.close('all')
+    w = np.linspace(0, 2, 100)
     S = Torsethaugen(Hm0=6, Tp=8)
-    plb.plot(w, S(w), w, S.wind(w), w, S.swell(w))
+    plt.plot(w, S(w), w, S.wind(w), w, S.swell(w))
 
     S1 = Jonswap(Hm0=7, Tp=11, gamma=1)
-    w = plb.linspace(0, 2, 100)
-    plb.plot(w, S1(w))
-    plb.show()
-    plb.close('all')
+    w = np.linspace(0, 2, 100)
+    plt.plot(w, S1(w))
+    plt.show('hold')
+    plt.close('all')
 
-    Hm0 = plb.arange(1, 11)
-    Tp = plb.linspace(2, 16)
-    T, H = plb.meshgrid(Tp, Hm0)
+    Hm0 = np.arange(1, 11)
+    Tp = np.linspace(2, 16)
+    T, H = np.meshgrid(Tp, Hm0)
     gam = jonswap_peakfact(H, T)
-    plb.plot(Tp, gam.T)
-    plb.xlabel('Tp [s]')
-    plb.ylabel('Peakedness parameter')
+    plt.plot(Tp, gam.T)
+    plt.xlabel('Tp [s]')
+    plt.ylabel('Peakedness parameter')
+    plt.show('hold')
 
-    Hm0 = plb.linspace(1, 20)
+    Hm0 = np.linspace(1, 20)
     Tp = Hm0
-    [T, H] = plb.meshgrid(Tp, Hm0)
+    [T, H] = np.meshgrid(Tp, Hm0)
     gam = jonswap_peakfact(H, T)
-    v = plb.arange(0, 8)
-    plb.contourf(Tp, Hm0, gam, v)
-    plb.colorbar()
-    plb.show()
-    plb.close('all')
+    v = np.arange(0, 8)
+    plt.contourf(Tp, Hm0, gam, v)
+    plt.colorbar()
+    plt.show('hold')
+    plt.close('all')
 
+def _test_directional_spectra():
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    S = Torsethaugen(Hm0=6, Tp=8)
+    S1 = S.tospecdata()
+
+    plotflag = 1
+    Nt = 101;   # number of angles
+    th0 = np.pi / 2; # primary direction of waves
+    Sp = 15;   # spreading parameter
+
+    D1 = Spreading(type='cos', theta0=th0, method=None) # frequency independent
+    D12 = Spreading(type='cos', theta0=0, method='mitsuyasu') # frequency dependent
+
+    SD1 = D1.tospecdata2d(S1)
+    SD12 = D12.tospecdata2d(S1)
+    SD1.plot()
+    SD12.plot()#linestyle='dashdot')
+    plt.show('hold')
 
 def _test_spreading():
-    import pylab as plb
-    pi = plb.pi
-    w = plb.linspace(0, 3, 257)
-    theta = plb.linspace(-pi, pi, 129)
+    import matplotlib.pyplot as plt
+    pi = np.pi
+    w = np.linspace(0, 3, 257)
+    theta = np.linspace(-pi, pi, 129)
 
-    D2 = Spreading('cos2s', theta0=lambda w: w * plb.pi / 6.0)
+    D2 = Spreading('cos2s', theta0=lambda w: w * np.pi / 6.0)
     d1 = D2(theta, w)[0]
-    plb.contour(d1.squeeze())
+    plt.contour(d1.squeeze())
 
-    pi = plb.pi
+    pi = np.pi
     D = Spreading('wrap_norm', s_a=10.0)
 
-    w = plb.linspace(0, 3, 257)
-    theta = plb.linspace(-pi, pi, 129)
+    w = np.linspace(0, 3, 257)
+    theta = np.linspace(-pi, pi, 129)
     d1 = D(theta, w)
-    plb.contour(d1[0])
-    plb.show()
+    plt.contour(d1[0])
+    plt.show('hold')
 
 
 def test_docstrings():
@@ -2127,8 +2157,10 @@ def test_docstrings():
 
 
 def main():
-    if False:  # True: #
-        _test_some_spectra()
+    if True: #False:  #
+        # _test_some_spectra()
+        #_test_spreading()
+        _test_directional_spectra()
     else:
         test_docstrings()
 

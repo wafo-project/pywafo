@@ -115,17 +115,17 @@ A quick introduction to some of the many features of wafo can be found in the Tu
 
 * Chapter 5 - `Extreme value analysis`_
 
--- _tutorial scripts folder: http://nbviewer.jupyter.org/github/wafo-project/pywafo/tree/master/wafo/doc/tutorial_scripts/
+-- _tutorial scripts folder: http://nbviewer.jupyter.org/github/wafo-project/pywafo/tree/master/src/wafo/doc/tutorial_scripts/
 
-.. _Some applications of WAFO: http://nbviewer.jupyter.org/github/wafo-project/pywafo/blob/master/wafo/doc/tutorial_scripts/WAFO%20Chapter%201.ipynb
+.. _Some applications of WAFO: http://nbviewer.jupyter.org/github/wafo-project/pywafo/blob/master/src/wafo/doc/tutorial_scripts/WAFO%20Chapter%201.ipynb
 
-.. _Modelling random loads and stochastic waves: http://nbviewer.jupyter.org/github/wafo-project/pywafo/blob/master/wafo/doc/tutorial_scripts/WAFO%20Chapter%202.ipynb
+.. _Modelling random loads and stochastic waves: http://nbviewer.jupyter.org/github/wafo-project/pywafo/blob/master/src/wafo/doc/tutorial_scripts/WAFO%20Chapter%202.ipynb
 
-.. _Demonstrates distributions of wave characteristics: http://nbviewer.jupyter.org/github/wafo-project/pywafo/blob/master/wafo/doc/tutorial_scripts/WAFO%20Chapter%203.ipynb
+.. _Demonstrates distributions of wave characteristics: http://nbviewer.jupyter.org/github/wafo-project/pywafo/blob/master/src/wafo/doc/tutorial_scripts/WAFO%20Chapter%203.ipynb
 
-.. _Fatigue load analysis and rain-flow cycles: http://nbviewer.jupyter.org/github/wafo-project/pywafo/blob/master/wafo/doc/tutorial_scripts/WAFO%20Chapter%204.ipynb
+.. _Fatigue load analysis and rain-flow cycles: http://nbviewer.jupyter.org/github/wafo-project/pywafo/blob/master/src/wafo/doc/tutorial_scripts/WAFO%20Chapter%204.ipynb
 
-.. _Extreme value analysis: http://nbviewer.jupyter.org/github/wafo-project/pywafo/blob/master/wafo/doc/tutorial_scripts/WAFO%20Chapter%205.ipynb
+.. _Extreme value analysis: http://nbviewer.jupyter.org/github/wafo-project/pywafo/blob/master/src/wafo/doc/tutorial_scripts/WAFO%20Chapter%205.ipynb
 
 
 Unit tests

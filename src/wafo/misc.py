@@ -2595,7 +2595,7 @@ def _make_bars(limits, bin_):
 
 # pylint: disable=redefined-builtin
 def _histogram(data, bins=None, range=None, normed=False, weights=None,  # @ReservedAssignment
-               density=None):
+               density=False):
     """
     Example
     -------

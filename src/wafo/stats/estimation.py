@@ -1429,7 +1429,7 @@ class FitDistribution(rv_frozen):
 
     def _get_empirical_pdf(self):
         limits = self._get_grid()
-        pdf, x = np.histogram(self.data, bins=limits, normed=True)
+        pdf, x = np.histogram(self.data, bins=limits, density=True)
         return self._staircase(x, pdf)
 
     def plotepdf(self, symb1='r-', symb2='b-', axis=None, plotter=None):
