@@ -3,8 +3,7 @@ from wafo.containers import PlotData
 from wafo.misc import findextrema
 from scipy import special
 import numpy as np
-from numpy import inf
-from numpy import atleast_1d, nan, ndarray, sqrt, vstack, ones, where, zeros
+from numpy import inf, atleast_1d, nan, sqrt, vstack, ones, where, zeros
 # , reshape, repeat, product
 from numpy import arange, floor, linspace, asarray
 from time import gmtime, strftime
@@ -12,9 +11,11 @@ from time import gmtime, strftime
 
 __all__ = [
     'edf', 'edfcnd', 'reslife', 'dispersion_idx', 'decluster', 'findpot',
-           'declustering_time', 'interexceedance_times', 'extremal_idx']
+           'declustering_time', 'interexceedance_times', 'extremal_idx',
+           'returnperiod2sf', 'sf2returnperiod']
 
-arr = asarray
+
+_EPS = np.finfo(float).eps
 
 
 def now():
@@ -27,40 +28,35 @@ def now():
 def valarray(shape, value=nan, typecode=None):
     """Return an array of all value.
     """
-    out = ones(shape, dtype=bool) * value
-    if typecode is not None:
-        out = out.astype(typecode)
-    if not isinstance(out, ndarray):
-        out = arr(out)
-    return out
+    return np.full(shape, value, dtype=typecode)
 
 
 def _cdff(x, dfn, dfd):
-    return special.fdtr(dfn, dfd, x)
+    return special.fdtr(dfn, dfd, x)  # pylint: disable=no-member
 
 
 def _cdft(x, df):
-    return special.stdtr(df, x)
+    return special.stdtr(df, x)  # pylint: disable=no-member
 
 
 def _invt(q, df):
-    return special.stdtrit(df, q)
+    return special.stdtrit(df, q)  # pylint: disable=no-member
 
 
 def _cdfchi2(x, df):
-    return special.chdtr(df, x)
+    return special.chdtr(df, x)  # pylint: disable=no-member
 
 
 def _invchi2(q, df):
-    return special.chdtri(df, q)
+    return special.chdtri(df, q)  # pylint: disable=no-member
 
 
 def _cdfnorm(x):
-    return special.ndtr(x)
+    return special.ndtr(x)  # pylint: disable=no-member
 
 
 def _invnorm(q):
-    return special.ndtri(q)
+    return special.ndtri(q)  # pylint: disable=no-member
 
 
 def edf(x, method=2):
@@ -227,8 +223,8 @@ def reslife(data, u=None, umin=None, umax=None, nu=None, nmin=3, alpha=0.05,
     def mean_and_std(data1):
         return data1.mean(), data1.std(), data1.size
 
-    dat = arr(data)
-    tmp = arr([mean_and_std(dat[dat > tresh] - tresh) for tresh in u.tolist()])
+    dat = asarray(data)
+    tmp = asarray([mean_and_std(dat[dat > tresh] - tresh) for tresh in u.tolist()])
 
     mrl, srl, num = tmp.T
     p = 1 - alpha
@@ -313,7 +309,7 @@ def dispersion_idx(
     >>> di, u, ok_u = dispersion_idx(data[Ie],t[Ie],tb=100)
     >>> h = di.plot() # a threshold around 1 seems appropriate.
     >>> round(u*100)/100
-    1.03
+    0.62
 
     vline(u)
 
@@ -349,7 +345,7 @@ def dispersion_idx(
     if t is None:
         ti = arange(n)
     else:
-        ti = arr(t) - min(t)
+        ti = asarray(t) - min(t)
 
     t1 = np.empty(ti.shape, dtype=int)
     t1[:] = np.floor(ti / tb)
@@ -364,7 +360,7 @@ def dispersion_idx(
 
     di = np.zeros(nu)
 
-    d = arr(data)
+    d = asarray(data)
 
     mint = int(min(t1))  # should be 0.
     maxt = int(max(t1))
@@ -386,7 +382,7 @@ def dispersion_idx(
 
     b_u, ok_u = _find_appropriate_threshold(u, di, di_low, di_up)
 
-    ci_txt = '{0:d}{1} CI'.format(100 * p, '%')
+    ci_txt = '{0:d}{1} CI'.format(int(100 * p), '%')
     title_txt = 'Dispersion Index plot'
 
     res = PlotData(di, u, title=title_txt,
@@ -423,7 +419,7 @@ def decluster(data, t=None, thresh=None, tmin=1):
 
     Example
     -------
-    >>> import pylab
+    >>> import plt
     >>> import wafo.data
     >>> from wafo.misc import findtc
     >>> x  = wafo.data.sea()
@@ -433,7 +429,7 @@ def decluster(data, t=None, thresh=None, tmin=1):
     >>> ymin = 2*data.std()
     >>> tmin = 10 # sec
     >>> [ye, te] = decluster(ytc,ttc, ymin,tmin);
-    >>> h = pylab.plot(t,data,ttc,ytc,'ro',t,zeros(len(t)),':',te,ye,'k.')
+    >>> h = plt.plot(t,data,ttc,ytc,'ro',t,zeros(len(t)),':',te,ye,'k.')
 
     See also
     --------
@@ -465,6 +461,83 @@ def _remove_index_to_data_too_close_to_each_other(ix_e, is_too_small, di_e, ti_e
     return ix_e
 
 
+def returnperiod2sf(period, numevents_per_unit=1):
+    """Returns probability of exceedance from return period.
+
+    Parameters
+    ----------
+    period:  array-like
+        The return period, also known as a recurrence interval or repeat interval, is an
+        average time or an estimated average time between events such as earthquakes, floods.
+    numevents_per_unit: array-like
+        the mean number of events per unit time (eg Year)
+
+    Returns
+    ------
+    q: array-like
+        upper tail probability i.e., probability of exceeding level
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> prb = [0.1, 0.01, 0.001]
+    >>> numeventsperunit=1/100
+    >>> t = sf2returnperiod(prb, numeventsperunit)
+    >>> np.allclose(t, [  1000.,  10000., 100000.])
+    True
+    >>> np.allclose(prb, returnperiod2sf(t, numeventsperunit))
+    True
+
+    See also
+    --------
+    returnperiod2sf
+    """
+    t, npu = np.broadcast_arrays(period, numevents_per_unit)
+    invprb = t*npu
+    nan_mask = (npu <= 0) | (invprb < 1)
+    invprb[nan_mask] = np.nan
+    return 1./invprb
+
+
+def sf2returnperiod(q, numevents_per_unit=1):
+    """Returns return-period from Probability of exceedance.
+
+    Parameters
+    ----------
+    q: array-like
+        upper tail probability i.e., probability of exceeding level
+    numevents_per_unit: array-like
+        the mean number of events per unit time (eg Year)
+
+    Returns
+    ------
+    period:  array-like
+        The return period, also known as a recurrence interval or repeat interval, is an
+        average time or an estimated average time between events such as earthquakes, floods.
+
+    Examples
+    --------
+    >>> import numpy as np
+    >>> q = [0.1, 0.01, 0.001]
+    >>> numeventsperunit=1/100
+    >>> t = sf2returnperiod(q, numeventsperunit)
+    >>> np.allclose(t, [  1000.,  10000., 100000.])
+    True
+    >>> np.allclose(q, returnperiod2sf(t, numeventsperunit))
+    True
+
+    See also
+    --------
+    returnperiod2sf
+    """
+
+    prbi, npu = np.broadcast_arrays(q, numevents_per_unit)
+    inv_period = npu * prbi
+    nan_mask = (npu < 0) | (prbi < 0) | (1 <= prbi)
+    inv_period[nan_mask] = np.nan
+    return 1./inv_period
+
+
 def findpot(data, t=None, thresh=None, tmin=1):
     """
     Retrun indices to Peaks over threshold values
@@ -486,7 +559,7 @@ def findpot(data, t=None, thresh=None, tmin=1):
 
     Example
     -------
-    >>> import pylab
+    >>> import plt
     >>> import wafo.data
     >>> from wafo.misc import findtc
     >>> x  = wafo.data.sea()
@@ -499,7 +572,7 @@ def findpot(data, t=None, thresh=None, tmin=1):
     >>> yp, tp = data[i], t[i]
     >>> ix_e = findpot(yp, tp, ymin,tmin)
     >>> ye, te = yp[ix_e], tp[ix_e]
-    >>> h = pylab.plot(t,data,ttc,ytc,'ro',
+    >>> h = plt.plot(t,data,ttc,ytc,'ro',
     ...                t,zeros(len(t)),':',
     ...                te, ye,'k.',tp,yp,'+')
 
@@ -507,11 +580,11 @@ def findpot(data, t=None, thresh=None, tmin=1):
     --------
     fitgenpar, decluster, extremalidx
     """
-    data = arr(data)
+    data = asarray(data)
     if t is None:
         t = np.arange(len(data))
     else:
-        t = arr(t)
+        t = asarray(t)
 
     ix_e, = where(data > thresh)
     di_e = data[ix_e]
@@ -587,10 +660,10 @@ def declustering_time(t):
     >>> tc
     21
     """
-    t0 = arr(t)
+    t0 = asarray(t)
     nt = len(t0)
     if nt < 2:
-        return arr([])
+        return asarray([])
     ti = interexceedance_times(t0)
     ei = extremal_idx(ti)
     if ei == 1:
@@ -669,7 +742,7 @@ def extremal_idx(ti):
     (Statistical Methodology) 54 (2), 545-556
     doi:10.1111/1467-9868.00401
     """
-    t = arr(ti)
+    t = asarray(ti)
     tmax = t.max()
     if tmax <= 1:
         ei = 0
@@ -1048,7 +1121,7 @@ class RegLogit(object):
                 As = self.X
             # end
 
-            if (((As - np.dot(Al * np.linalg.lstsq(Al, As))) > 500 * np.finfo(float).eps).any() or
+            if (((As - np.dot(Al, np.linalg.lstsq(Al, As))) > 500 * _EPS).any() or
                     object2.family != self.family or object2.link != self.link):
                 warnings.warn('Small model not included in large model,' +
                     ' result is rubbish!')
@@ -1282,7 +1355,7 @@ def _test_dispersion_idx():
 
 
 def _test_findpot():
-    import pylab
+    import matplotlib.pyplot as plt
     import wafo.data
     from wafo.misc import findtc
     x = wafo.data.sea()
@@ -1295,10 +1368,9 @@ def _test_findpot():
     yp, tp = data[I], t[I]
     Ie = findpot(yp, tp, ymin, tmin)
     ye, te = yp[Ie], tp[Ie]
-    pylab.plot(t, data, ttc, ytc, 'ro', t,
+    plt.plot(t, data, ttc, ytc, 'ro', t,
                zeros(len(t)), ':', te, ye, 'kx', tp, yp, '+')
-    pylab.show()
-    pass
+    plt.show()
 
 
 def _test_reslife():
@@ -1330,9 +1402,9 @@ def test_reglogit2():
     # b.display() # members and methods
     b.summary()
     [mu, plo, pup] = b.predict(fulloutput=True)
-    import matplotlib.pyplot as pl
-    pl.plot(x, mu, 'g', x, plo, 'r:', x, pup, 'r:')
-    pl.show()
+    import matplotlib.pyplot as plt
+    plt.plot(x, mu, 'g', x, plo, 'r:', x, pup, 'r:')
+    plt.show()
 
 
 def test_sklearn0():
@@ -1365,9 +1437,9 @@ def test_sklearn():
 
     #
     # look at the results
-    import pylab as pl
-    pl.scatter(X, .5 * np.cos(X) + 0.5, c='k', label='True model')
-    pl.hold('on')
+    import matplotlib.pyplot as plt
+    plt.scatter(X, .5 * np.cos(X) + 0.5, c='k', label='True model')
+
     cvals = np.logspace(-1, 3, 20)
     score = []
     for c in cvals:
@@ -1375,12 +1447,12 @@ def test_sklearn():
         svrf = svr_rbf.fit(X, y)
         y_rbf = svrf.predict(X)
         score.append(svrf.score(X, y))
-        pl.plot(X, y_rbf, label='RBF model c=%g' % c)
-    pl.xlabel('data')
-    pl.ylabel('target')
-    pl.title('Support Vector Regression')
-    pl.legend()
-    pl.show()
+        plt.plot(X, y_rbf, label='RBF model c=%g' % c)
+    plt.xlabel('data')
+    plt.ylabel('target')
+    plt.title('Support Vector Regression')
+    plt.legend()
+    plt.show()
 
 
 def test_sklearn1():
@@ -1398,17 +1470,17 @@ def test_sklearn1():
 
     #
     # look at the results
-    import pylab as pl
-    pl.scatter(X, .5 * np.cos(X) + 0.5, c='k', label='True model')
-    pl.hold('on')
-    pl.plot(X, y_rbf, c='g', label='RBF model')
-    pl.plot(X, y_lin, c='r', label='Linear model')
-    pl.plot(X, y_poly, c='b', label='Polynomial model')
-    pl.xlabel('data')
-    pl.ylabel('target')
-    pl.title('Support Vector Regression')
-    pl.legend()
-    pl.show()
+    import matplotlib.pyplot as plt
+    plt.scatter(X, .5 * np.cos(X) + 0.5, c='k', label='True model')
+
+    plt.plot(X, y_rbf, c='g', label='RBF model')
+    plt.plot(X, y_lin, c='r', label='Linear model')
+    plt.plot(X, y_poly, c='b', label='Polynomial model')
+    plt.xlabel('data')
+    plt.ylabel('target')
+    plt.title('Support Vector Regression')
+    plt.legend()
+    plt.show()
 
 
 def test_doctstrings():

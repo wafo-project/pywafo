@@ -907,7 +907,7 @@ def _set_rv_frozen_docstrings(klass):
             try:
                 doc = getattr(ss.binom, name).__doc__
                 rmtxt = _get_text2remove(doc)
-                docstrings[name] = doc.replace(rmtxt,'')
+                docstrings[name] = doc.replace(rmtxt, '')
             except AttributeError as error:
                 warnings.warn(str(error))
 

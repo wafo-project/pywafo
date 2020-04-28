@@ -35,7 +35,7 @@ ax = fig.add_subplot(111)
 Hs = wd.atlantic()
 wei = ws.weibull_min.fit(Hs)
 tmp = ws.probplot(Hs, wei, ws.weibull_min, plot=ax)
-plt.show()
+plt.show('hold')
 #wafostamp([],'(ER)')
 #disp('Block = 1'),pause(pstate)
 
@@ -46,7 +46,7 @@ ax = fig.add_subplot(111)
 gum = ws.gumbel_r.fit(Hs)
 tmp1 = ws.probplot(Hs, gum, ws.gumbel_r, plot=ax)
 #wafostamp([],'(ER)')
-plt.show()
+plt.show(block=True)
 #disp('Block = 2'),pause(pstate)
 
 ##
@@ -58,7 +58,7 @@ phat.plotresq()
 #tmp2 = ws.probplot(np.log(Hs), phat, ws.norm, plot=ax)
 
 #wafostamp([],'(ER)')
-plt.show()
+plt.show(block=True)
 #disp('Block = 3'),pause(pstate)
 
 ##
@@ -77,7 +77,7 @@ plt.title('Return values in the Gumbel model')
 plt.xlabel('Return period')
 plt.ylabel('Return value')
 #wafostamp([],'(ER)')
-plt.show()
+plt.show(block=True)
 #disp('Block = 4'),pause(pstate)
 
 ## Section 5.2 Generalized Pareto and Extreme Value distributions
@@ -95,7 +95,7 @@ gev.plotesf(plot_ci=True)
 plt.clf()
 x = np.linspace(0,14,200)
 kde = wk.TKDE(Hs, L2=0.5)(x, output='plot')
-kde.plot()
+kde.plot('hold')
 
 plt.plot(x, gev.pdf(x),'--')
 # disp('Block = 5b'),pause(pstate)
@@ -115,9 +115,11 @@ YI = YI.reshape(4*60*5, N//(4*60*5))  # Each column holds 5 minutes of
 Y5 = (YI - YI.mean(axis=0)) / YI.std(axis=0)
 Y5M = Y5.maximum(axis=0)
 Y5gev = ws.genextreme.fit2(Y5M,method='mps')
+plt.figure()
 Y5gev.plotfitsummary()
 #wafostamp([],'(ER)')
 #disp('Block = 6'),pause(pstate)
+plt.show(block=True)
 
 ## Section 5.2.2 Generalized Pareto distribution
 
@@ -171,6 +173,7 @@ plt.plot(x, gml.cdf(x))
 
 #wafostamp([],'(ER)')
 #disp('Block = 8'),pause(pstate)
+plt.show(block=True)
 
 ##
 # Return values for the GEV distribution
@@ -182,16 +185,17 @@ T = np.logspace(1, 5, 10);
 #sT1 = invgev(1./T,Y5gev,'lowertail',false);
 #sT=mu + sigma/k*(1-(-log(1-1./T)).^k);
 plt.clf()
-#plt.semilogx(T,sT,T,sTlo,'r',T,sTup,'r')
-#plt.hold(True)
-#N = np.r_[1:len(Y5M)]
-#Nmax = max(N);
-#plot(Nmax./N, sorted(Y5M,reverse=True), '.')
-#plt.title('Return values in the GEV model')
-#plt.xlabel('Return priod')
-#plt.ylabel('Return value')
-#plt.grid(True)
+plt.semilogx(T,sT,T,sTlo,'r',T,sTup,'r')
+
+N = np.r_[1:len(Y5M)]
+Nmax = max(N);
+plt.plot(Nmax/N, sorted(Y5M,reverse=True), '.')
+plt.title('Return values in the GEV model')
+plt.xlabel('Return priod')
+plt.ylabel('Return value')
+plt.grid(True)
 #disp('Block = 9'),pause(pstate)
+plt.show(block=True)
 
 ## Section 5.3 POT-analysis
 
@@ -230,11 +234,9 @@ for i in range(41):
 
 gev = ws.genextreme.fit2(mm)
 
-
-plt.hold(True)
 gev.plotecdf()
 
-plt.hold(False)
+plt.Show('hold')
 #wafostamp([],'(ER)')
 #disp('Block = 12, Last block'),pause(pstate)
 
