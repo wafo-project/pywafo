@@ -64,10 +64,10 @@ plt.show()
 ##
 # Return values in the Gumbel distribution
 plt.clf()
-T = np.r_[1:100000]
+T = np.r_[2:100000]
 sT = gum[0] - gum[1] * np.log(-np.log1p(-1./T))
 plt.semilogx(T, sT)
-plt.hold(True)
+
 # ws.edf(Hs).plot()
 Nmax = len(Hs)
 N = np.r_[1:Nmax + 1]
@@ -86,7 +86,9 @@ plt.show()
 # Empirical distribution of significant wave-height with estimated
 # Generalized Extreme Value distribution,
 gev = ws.genextreme.fit2(Hs)
-gev.plotfitsummary()
+# gev.plotfitsummary()
+
+gev.plotesf(plot_ci=True)
 # wafostamp([],'(ER)')
 # disp('Block = 5a'),pause(pstate)
 
@@ -94,7 +96,7 @@ plt.clf()
 x = np.linspace(0,14,200)
 kde = wk.TKDE(Hs, L2=0.5)(x, output='plot')
 kde.plot()
-plt.hold(True)
+
 plt.plot(x, gev.pdf(x),'--')
 # disp('Block = 5b'),pause(pstate)
 
@@ -108,7 +110,7 @@ N = len(XI)
 N = N - np.mod(N, 4*60*5)
 
 YI = si.interp1d(xn[:, 0], xn[:, 1], kind='linear')(XI)
-YI = YI.reshape(4*60*5, N/(4*60*5))  # Each column holds 5 minutes of
+YI = YI.reshape(4*60*5, N//(4*60*5))  # Each column holds 5 minutes of
                                      # interpolated data.
 Y5 = (YI - YI.mean(axis=0)) / YI.std(axis=0)
 Y5M = Y5.maximum(axis=0)
@@ -142,9 +144,9 @@ gm = ws.genextreme.fit2(Rgev, *gp.par.tolist(), method='ml')
 gm.plotfitsummary()
 
 gp.plotecdf()
-plt.hold(True)
+
 plt.plot(x, gm.cdf(x), '--')
-plt.hold(False)
+
 #wafostamp([],'(ER)')
 #disp('Block =7'),pause(pstate)
 
@@ -156,7 +158,7 @@ gml = ws.genpareto.fit2(Rgpd, method='ml')
 
 gp.plotecdf()
 x = sorted(Rgpd)
-plt.hold(True)
+
 plt.plot(x, gml.cdf(x))
 # gm = fitgenpar(Rgpd,'method','mom','plotflag',0);
 # plot(x,cdfgenpar(x,gm),'g--')
@@ -166,7 +168,7 @@ plt.plot(x, gml.cdf(x))
 #plot(x,cdfgenpar(x,gml),'--')
 #gmps = fitgenpar(Rgpd,'method','mps','plotflag',0);
 #plot(x,cdfgenpar(x,gmps),'r-.')
-plt.hold(False)
+
 #wafostamp([],'(ER)')
 #disp('Block = 8'),pause(pstate)
 

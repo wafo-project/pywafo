@@ -20,8 +20,8 @@ from scipy.linalg import pinv2
 from scipy import optimize
 
 import numpy as np
-from scipy.special import expm1, log1p  # pylint: disable=no-name-in-module
-from numpy import (arange, zeros, log, sqrt, exp,
+from scipy.special import expm1, log1p as _log1p  # pylint: disable=no-name-in-module
+from numpy import (arange, zeros, sqrt, exp,
                    asarray, nan, pi, isfinite, flatnonzero)
 
 
@@ -31,10 +31,20 @@ __all__ = ['Profile', 'FitDistribution']
 floatinfo = np.finfo(float)
 # The smallest representable positive number such that 1.0 + _EPS != 1.0.
 _EPS = floatinfo.eps
+_TINY = floatinfo.tiny
 _XMAX = floatinfo.max
 
 
-# all = alltrue  # @ReservedAssignment
+def log(x):
+    """Log that silence log of zero warnings"""
+    with np.errstate(divide='ignore', invalid='ignore'):
+        return np.log(x)
+
+
+def log1p(x):
+    """Log that silence log of zero warnings"""
+    with np.errstate(divide='ignore', invalid='ignore'):
+        return _log1p(x)
 
 
 def _assert_warn(cond, msg):
@@ -81,7 +91,21 @@ def _expon_link(x, logsf, phat, ix):
 
 
 def _weibull_min_link(x, logsf, phat, ix):
+    """Returns the parameter ix given x, logsf and all distribution parameters except ix
+
+    Parameters
+    ----------
+    x : real scalar
+        quantile of the distribution
+    logsf: real scalar
+        log survival probability
+    phat: list of real scalars
+        distribution parameters, [c, loc, scale]
+    ix: scalar integer
+        index to the distribution parameter to return. I.e. 0 means c, 1 is loc and 2 is scale
+    """
     c, loc, scale = phat
+
     if ix == 0:
         return log(-logsf) / log((x - loc) / scale)
     if ix == 1:
@@ -142,7 +166,9 @@ def _genextreme_link(x, logsf, phat, ix):
     c, loc, scale = phat
     if c == 0:
         return _gumbel_r_link(x, logsf, phat[1:], ix - 1)
-    loglog_cdf = log(-log(-expm1(logsf)))
+    cdf = -expm1(logsf)
+
+    loglog_cdf = log(-log(cdf))
     return _genpareto_link(x, loglog_cdf, (-c, loc, scale), ix)
 
 
@@ -223,6 +249,9 @@ class Profile(object):
         Max number of points used in Lp (default 100)
     alpha : real scalar
         confidence coefficent (default 0.05)
+    lmaxdiff: real scalar
+        If Lmax_new-Lmax>lmaxdiff it will change the optimum parameters
+        of the fitted distribution.
 
     Returns
     -------
@@ -262,15 +291,14 @@ class Profile(object):
     >>> phat_ci = profile_phat_i.get_bounds(alpha=0.1)
 
     """
-    def __init__(self, fit_dist, i=None, pmin=None, pmax=None, n=100,
-                 alpha=0.05):
+    def __init__(self, fit_dist, i=None, pmin=None, pmax=None, n=100, alpha=0.05, lmaxdiff=1e-5):
 
         self.fit_dist = fit_dist
         self.pmin = pmin
         self.pmax = pmax
         self.n = n
         self.alpha = alpha
-
+        self.lmaxdiff = lmaxdiff
         self.data = None
         self.args = None
 
@@ -299,13 +327,10 @@ class Profile(object):
     @staticmethod
     def _loglike_max(fit_dist, method):
         if method.startswith('ml'):
-            Lmax = fit_dist.LLmax
-        elif method.startswith('mps'):
-            Lmax = fit_dist.LPSmax
-        else:
-            raise ValueError(
-                "PROFILE is only valid for ML- or MPS- estimators")
-        return Lmax
+            return fit_dist.LLmax
+        if method.startswith('mps'):
+            return fit_dist.LPSmax
+        raise ValueError("PROFILE is only valid for ML- or MPS- estimators")
 
     @staticmethod
     def _default_i_fixed(fit_dist):
@@ -339,16 +364,25 @@ class Profile(object):
         isfree[self.i_fixed] = False
         self.i_free = flatnonzero(isfree)
 
-    @staticmethod
-    def _local_link(fix_par, par):
+    def _local_link(self, fix_par, par):
         """
         Return fixed distribution parameter
         """
-        return fix_par
+        penalty = 0
+        num_par = len(par)
+        if num_par-1 not in self.i_fixed:
+            n = len(self.fit_dist.data)
+            log_xmax = log(_XMAX) + 100
+            scale = par[-1]
+            scale_min =  _TINY/10
+            penalty += 0 if scale > scale_min else n*log_xmax * np.exp(-scale)
+            par[-1] = np.maximum(scale, scale_min)
+
+        return fix_par, penalty
 
     def _correct_Lmax(self, Lmax, free_par, fix_par):
 
-        if Lmax > self.Lmax:  # foundNewphat = True
+        if Lmax > self.Lmax + self.lmaxdiff:  # foundNewphat = True
             par_old = str(self._par)
             dL = Lmax - self.Lmax
             self.alpha_cross_level += dL
@@ -362,15 +396,17 @@ class Profile(object):
             warnings.warn(
                 'The fitted parameters does not provide the optimum fit. ' +
                 'Something wrong with fit ' +
-                '(par = {}, par_old= {}, dl = {})'.format(str(par), par_old,
-                                                          dL))
+                '(par = {}, par_old= {}, dl = {})'.format(str(par), par_old, dL))
 
     def _profile_optimum(self, phatfree0, p_opt):
-        phatfree = optimize.fmin(self._profile_fun, phatfree0, args=(p_opt,),
-                                 disp=0)
-        Lmax = -self._profile_fun(phatfree, p_opt)
-        self._correct_Lmax(Lmax, phatfree, p_opt)
-        return Lmax, phatfree
+        # (fun, x0, args, method, jac, hess, hessp, bounds, constraints, tol, callback, options)
+        with np.errstate(divide='ignore', invalid='ignore'):
+            phatfree = optimize.minimize(self._profile_fun, phatfree0, args=(p_opt,),
+                                         method='Nelder-Mead',
+                                         options=dict(disp=0))
+        Lmax = -self._profile_fun(phatfree.x, p_opt)
+        self._correct_Lmax(Lmax, phatfree.x, p_opt)
+        return Lmax, phatfree.x
 
     def _get_p_opt(self):
         return self._par[self.i_fixed]
@@ -385,15 +421,15 @@ class Profile(object):
 
         pvec = self._get_pvec(phatfree, p_opt)
 
-        self.data = np.ones_like(pvec) * nan
-        k1 = (pvec >= p_opt).argmax()
+        self.data = np.full(pvec.shape, nan)
+        start = (pvec >= p_opt).argmax()  # start index at optimum
 
-        for size, step in ((-1, -1), (np.size(pvec), 1)):
+        for stop, step in ((-1, -1), (len(pvec), 1)):
             phatfree = self._par[self.i_free].copy()
-            for ix in range(k1, size, step):
+            for ix in range(start, stop, step):
                 Lmax, phatfree = self._profile_optimum(phatfree, pvec[ix])
                 self.data[ix] = Lmax
-                if ix != k1 and Lmax < self.alpha_cross_level:
+                if ix != start and Lmax < self.alpha_cross_level:
                     break
         np.putmask(pvec, np.isnan(self.data), nan)
         self.args = pvec
@@ -455,9 +491,9 @@ class Profile(object):
         n = int(self.n)
         n4 = n // 4
         a, b = p_opt - p_crit_low, p_opt + p_crit_up
-        pvec1 = np.linspace(pmin, a, n4 + 1)
-        pvec2 = np.linspace(a, b, n - 2 * n4)
-        pvec3 = np.linspace(b, pmax, n4 + 1)
+        pvec1 = np.linspace(pmin, a, n4 + 1).ravel()
+        pvec2 = np.linspace(a, b, n - 2 * n4).ravel()
+        pvec3 = np.linspace(b, pmax, n4 + 1).ravel()
         pvec = np.unique(np.hstack((pvec1, p_opt, pvec2, pvec3)))
         return pvec
 
@@ -517,8 +553,8 @@ class Profile(object):
         par = self._par.copy()
         par[self.i_free] = free_par
 
-        par[self.i_fixed] = self._local_link(fix_par, par)
-        return self.fit_dist.fitfun(par)
+        par[self.i_fixed], penalty = self._local_link(fix_par, par)
+        return self.fit_dist.fitfun(par) + penalty
 
     def _check_bounds(self, cross_level, ind, n):
         if n == 0:
@@ -696,12 +732,24 @@ class ProfileQuantile(Profile):
     def _get_p_opt(self):
         return self.x
 
+    def _approx_p_min_max(self, p_opt):
+        pmin, pmax = super()._approx_p_min_max(p_opt)
+        a, b = self.fit_dist.support()
+        return np.maximum(pmin, a), np.minimum(pmax, b)  # Make sure a < x < b
+
+    def _p_min_max(self, phatfree0, p_opt):
+        pmin, pmax = super()._p_min_max(phatfree0, p_opt)
+        a, b = self.fit_dist.support()
+        return np.maximum(pmin, a), np.minimum(pmax, b)  # Make sure a < x < b
+
     def _local_link(self, fixed_x, par):
         """
         Return fixed distribution parameter from fixed quantile
         """
+        # Check if quantile outside of valid boundaries.
+        fixed_x, penalty = super()._local_link(fixed_x, par)
         fix_par = self.link(fixed_x, self.log_sf, par, self.i_fixed)
-        return fix_par
+        return fix_par, penalty
 
     def _myinvfun(self, phatnotfixed):
         mphat = self._par.copy()
@@ -716,7 +764,7 @@ class ProfileQuantile(Profile):
 
 
 class ProfileProbability(Profile):
-    """ Profile Log- likelihood or Product Spacing-function probability.
+    """Profile Log- likelihood or Product Spacing-function probability.
 
     Parameters
     ----------
@@ -793,12 +841,21 @@ class ProfileProbability(Profile):
     def _get_p_opt(self):
         return self.log_sf
 
+    def _approx_p_min_max(self, p_opt):
+        pmin, pmax = super()._approx_p_min_max(p_opt)
+        return pmin, np.minimum(pmax, -_TINY)  # Make sure logsf < 0
+
+    def _p_min_max(self, phatfree0, p_opt):
+        pmin, pmax = super()._p_min_max(phatfree0, p_opt)
+        return pmin, np.minimum(pmax, -_TINY)  # Make sure logsf<0
+
     def _local_link(self, fixed_log_sf, par):
         """
         Return fixed distribution parameter from fixed log_sf
         """
+        fixed_log_sf, penalty = super()._local_link(fixed_log_sf, par)
         fix_par = self.link(self.x, fixed_log_sf, par, self.i_fixed)
-        return fix_par
+        return fix_par, penalty
 
     def _myinvfun(self, phatnotfixed):
         """_myprbfun"""
@@ -1185,9 +1242,9 @@ class FitDistribution(rv_frozen):
         return self.dist._penalized_nlogps(theta, x)
 
     def _invert_hessian(self, H):
+        # pylint: disable=invalid-unary-operand-type
         par_cov = zeros(H.shape)
-        somefixed = ((self.par_fix is not None) and
-                     np.any(isfinite(self.par_fix)))
+        somefixed = ((self.par_fix is not None) and np.any(isfinite(self.par_fix)))
         if somefixed:
             allfixed = np.all(isfinite(self.par_fix))
             if not allfixed:
@@ -1366,14 +1423,14 @@ class FitDistribution(rv_frozen):
         if axis is None:
             axis = plotter.gca()
         n = len(self.data)
-        sf = (arange(n, 0, -1)) / n
+        sf = arange(n, 0, -1) / (n+1)
         axis.semilogy(self.data, sf, symb2,
                       self.data, self.sf(self.data), symb1)
 
         if plot_ci:
             low = int(np.log10(1.0/n)-0.7) - 1
             sf1 = np.logspace(low, -0.5, 7)[::-1]
-            ci1 = self.ci_sf(sf, alpha=0.05, i=2)
+            ci1 = self.ci_sf(sf1, alpha=0.05, i=2)
             axis.semilogy(self.isf(sf1), ci1, 'r--')
         axis.set_xlabel('x')
         axis.set_ylabel('F(x) (%s)' % self.dist.name)
@@ -1392,8 +1449,8 @@ class FitDistribution(rv_frozen):
         if axis is None:
             axis = plotter.gca()
         n = len(self.data)
-        F = (arange(1, n + 1)) / n
-        axis.plot(self.data, F, symb2,
+        ecdf = arange(1, n + 1) / (n+1)
+        axis.plot(self.data, ecdf, symb2,
                   self.data, self.cdf(self.data), symb1)
         axis.set_xlabel('x')
         axis.set_ylabel('F(x) ({})'.format(self.dist.name))
@@ -1469,7 +1526,7 @@ class FitDistribution(rv_frozen):
         if axis is None:
             axis = plotter.gca()
         n = len(self.data)
-        eprob = (arange(1, n + 1) - 0.5) / n
+        eprob = arange(1, n + 1) / (n + 1)
         y = self.ppf(eprob)
         y1 = self.data[[0, -1]]
         axis.plot(self.data, y, symb2, y1, y1, symb1)
@@ -1492,7 +1549,7 @@ class FitDistribution(rv_frozen):
         if axis is None:
             axis = plotter.gca()
         n = len(self.data)
-        # ecdf = (0.5:n-0.5)/n;
+
         ecdf = arange(1, n + 1) / (n + 1)
         mcdf = self.cdf(self.data)
         p1 = [0, 1]
