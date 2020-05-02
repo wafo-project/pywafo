@@ -293,16 +293,21 @@ def _warn_if_no_success(warnflag):
 
 def _fitstart(self, data, args, kwds):
     narg = len(args)
-    if narg > self.numargs:
+    if narg > self.numargs+2:
         raise TypeError("Too many input arguments.")
     start = [None] * 2
-    if (narg < self.numargs) or not ('loc' in kwds and 'scale' in kwds):
+    if ((narg < self.numargs)
+            or (narg < self.numargs + 1 and not 'loc' in kwds)
+            or (narg < self.numargs + 2 and not 'scale' in kwds)):
         # get distribution specific starting locations
         start = self._fitstart(data)
         args += start[narg:-2]
-    loc = kwds.pop('loc', start[-2])
-    scale = kwds.pop('scale', start[-1])
-    args += loc, scale
+    if narg < self.numargs + 1:
+        loc = kwds.pop('loc', start[-2])
+        args += (loc, )
+    if narg < self.numargs + 2:
+        scale = kwds.pop('scale', start[-1])
+        args += (scale, )
     return args, kwds
 
 
