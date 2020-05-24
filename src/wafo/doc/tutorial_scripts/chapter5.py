@@ -229,7 +229,7 @@ gpd7 = ws.genpareto.fit2(Hs[Hs > 7], method='mps', floc=7)
 # ahat = 7 - (bhat - sigmahat) / khat
 # x = np.linspace(5, 15, 200)
 # plt.plot(x, ws.genextreme.cdf(x, khat, bhat, ahat))
-gpd7.plotecdf()
+gpd7.plotesf(plot_ci=True)
 # disp('Block = 11'),pause(pstate)
 ##
 # Since we have data to compute the monthly maxima mm over
@@ -242,7 +242,7 @@ for i in range(41):
 
 gev = ws.genextreme.fit2(mm)
 
-gev.plotecdf()
+gev.plotesf('g', 'g.', plot_ci=True)
 plt.show(block=True)
 
 # wafostamp([],'(ER)')

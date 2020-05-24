@@ -230,67 +230,7 @@ def norm_ppf(q):
     return special.ndtri(q)
 
 
-class Profile:
-    """
-    Profile Log- likelihood or Product Spacing-function for phat[i].
-
-    Parameters
-    ----------
-    fit_dist : FitDistribution object
-        with ML or MPS estimated distribution parameters.
-    i : scalar integer
-        defining which distribution parameter to keep fixed in the
-        profiling process (default first non-fixed parameter)
-    pmin, pmax : real scalars
-        Interval for the parameter, phat[i] used in the optimization of the
-        profile function (default is based on the 100*(1-alpha)% confidence
-        interval computed with the delta method.)
-    n : scalar integer
-        Max number of points used in Lp (default 100)
-    alpha : real scalar
-        confidence coefficent (default 0.05)
-    lmaxdiff: real scalar
-        If profile_max_new-profile_max>lmaxdiff it will change the optimum parameters
-        of the fitted distribution.
-
-    Returns
-    -------
-    Lp : Profile log-likelihood function with parameters phat given
-        the data and phat[i],  i.e.,
-            Lp = max(log(f(phat| data, phat[i])))
-
-    Member methods
-    -------------
-    plot() : Plot profile function with 100(1-alpha)% confidence interval
-    get_bounds() : Return 100(1-alpha)% confidence interval
-
-    Member variables
-    ----------------
-    fit_dist : FitDistribution data object.
-    data : profile function values
-    args : profile function arguments
-    alpha : confidence coefficient
-    profile_max : Maximum value of profile function
-    alpha_cross_level :
-
-    PROFILE is a utility function for making inferences on a particular
-    component of the vector phat.
-    This is usually more accurate than using the delta method assuming
-    asymptotic normality of the ML estimator or the MPS estimator.
-
-    Examples
-    --------
-    # MLE
-    >>> import wafo.stats as ws
-    >>> R = ws.weibull_min.rvs(1,size=100);
-    >>> phat = FitDistribution(ws.weibull_min, R, 1, scale=1, floc=0.0)
-
-    # Better 90% CI for phat.par[i=0]
-    >>> profile_phat_i = Profile(phat, i=0)
-    >>> profile_phat_i.plot()
-    >>> phat_ci = profile_phat_i.get_bounds(alpha=0.1)
-
-    """
+class _CommonProfile:
     def __init__(self, fit_dist, i=None, pmin=None, pmax=None, n=100, alpha=0.05, lmaxdiff=1e-5):
 
         self.fit_dist = fit_dist
@@ -423,12 +363,17 @@ class Profile:
         data = np.full(pvec.shape, np.nan)
         start = (pvec >= p_opt).argmax()  # start index at optimum
 
+        # alpha_cross_level = self.alpha_cross_level
+        profile_max, phatfree = self._profile_optimum(phatfree, pvec[start])
+        alpha_cross_level = profile_max - self.alpha_range
+        data[start] = profile_max
+
         for stop, step in ((-1, -1), (len(pvec), 1)):
             phatfree = self._par[self.i_free].copy()
-            for i in range(start, stop, step):
+            for i in range(start+step, stop, step):
                 profile_max, phatfree = self._profile_optimum(phatfree, pvec[i])
                 data[i] = profile_max
-                if i != start and profile_max < self.alpha_cross_level:
+                if profile_max < alpha_cross_level:
                     break
         np.putmask(pvec, np.isnan(data), np.nan)
 
@@ -454,17 +399,16 @@ class Profile:
         return data, args
 
     def _get_variance(self):
-        invfun = getattr(self, '_myinvfun', None)
-        if invfun is not None:
-            i_notfixed = self.i_notfixed
-            pcov = self.fit_dist.par_cov[i_notfixed, :][:, i_notfixed]
-            gradfun = nd.Gradient(invfun)
-            phatv = self._par
-            drl = gradfun(phatv[i_notfixed])
-            pvar = np.sum(np.dot(drl, pcov) * drl)
-            return pvar
-        pvar = self.fit_dist.par_cov[self.i_fixed, :][:, self.i_fixed]
+        i_notfixed = self.i_notfixed
+        pcov = self.fit_dist.par_cov[i_notfixed, :][:, i_notfixed]
+        gradfun = nd.Gradient(self._myinvfun)
+        phatv = self._par
+        drl = gradfun(phatv[i_notfixed])
+        pvar = np.sum(np.dot(drl, pcov) * drl)
         return pvar
+
+    def _myinvfun(self):
+        raise NotImplementedError
 
     def _approx_p_min_max(self, p_opt):
         pvar = self._get_variance()
@@ -477,16 +421,12 @@ class Profile:
     def _p_min_max(self, phatfree0, p_opt):
         p_low, p_up = self._approx_p_min_max(p_opt)
         pmin, pmax = self.pmin, self.pmax
+        converged_pmin = converged_pmax = None
         if pmin is None:
-            pmin, converged = self._search_p_min_max(phatfree0, p_low, p_opt, 'min')
-            if converged:
-                self.pmin = pmin
+            pmin, converged_pmin = self._search_p_min_max(phatfree0, p_low, p_opt, 'min')
         if pmax is None:
-            pmax, converged = self._search_p_min_max(phatfree0, p_up, p_opt, 'max')
-            if converged:
-                self.pmax = pmax
-
-        return pmin, pmax
+            pmax, converged_pmax = self._search_p_min_max(phatfree0, p_up, p_opt, 'max')
+        return pmin, pmax, converged_pmin, converged_pmax
 
     def _adaptive_pvec(self, p_opt, pmin, pmax):
         p_crit_low = (p_opt - pmin) / 5
@@ -504,7 +444,7 @@ class Profile:
         """ return proper interval for the variable to profile
         """
         if self.pmin is None or self.pmax is None:
-            pmin, pmax = self._p_min_max(phatfree0, p_opt)
+            pmin, pmax, converged_pmin, converged_pmax = self._p_min_max(phatfree0, p_opt)
             return self._adaptive_pvec(p_opt, pmin, pmax)
         return np.linspace(self.pmin, self.pmax, self.n)
 
@@ -520,6 +460,8 @@ class Profile:
             p_minmax_opt = p_minmax
             converged = True
         else:
+            if profile_max <  self.alpha_cross_level + self.alpha_range:
+                p_minmax_opt = p_minmax
             delta_p *= 1.67
         return p_minmax_opt, delta_p, converged
 
@@ -544,7 +486,7 @@ class Profile:
                                                              p_minmax_opt,
                                                              p_opt))
         # print('search_pmin iterations={}'.format(j))
-        return p_minmax_opt, converged
+        return float(p_minmax_opt), converged
 
     def _profile_fun(self, free_par, fix_par):
         """ Return negative of loglike or logps function
@@ -568,10 +510,10 @@ class Profile:
             crossing = ecross(self.args, self.data, ind, cross_level)
             is_upcrossing = self.data[ind] < self.data[ind + 1]
             if is_upcrossing:
-                bounds = crossing, self.pmax
+                bounds = crossing[0], float(self.pmax)
                 warnings.warn('Upper bound is larger')
             else:
-                bounds = self.pmin, crossing
+                bounds = float(self.pmin), crossing[0]
                 warnings.warn('Lower bound is smaller')
         else:
             warnings.warn('Number of crossings too large! Something is wrong!')
@@ -655,7 +597,82 @@ def plot_all_profiles(phats, plotter=None):
     return phats
 
 
-class ProfileQuantile(Profile):
+class Profile(_CommonProfile):
+    """
+    Profile Log- likelihood or Product Spacing-function for phat[i].
+
+    Parameters
+    ----------
+    fit_dist : FitDistribution object
+        with ML or MPS estimated distribution parameters.
+    i : scalar integer
+        defining which distribution parameter to keep fixed in the
+        profiling process (default first non-fixed parameter)
+    pmin, pmax : real scalars
+        Interval for the parameter, phat[i] used in the optimization of the
+        profile function (default is based on the 100*(1-alpha)% confidence
+        interval computed with the delta method.)
+    n : scalar integer
+        Max number of points used in Lp (default 100)
+    alpha : real scalar
+        confidence coefficent (default 0.05)
+    lmaxdiff: real scalar
+        If profile_max_new-profile_max>lmaxdiff it will change the optimum parameters
+        of the fitted distribution.
+
+    Returns
+    -------
+    Lp : Profile log-likelihood function with parameters phat given
+        the data and phat[i],  i.e.,
+            Lp = max(log(f(phat| data, phat[i])))
+
+    Member methods
+    -------------
+    plot() : Plot profile function with 100(1-alpha)% confidence interval
+    get_bounds() : Return 100(1-alpha)% confidence interval
+
+    Member variables
+    ----------------
+    fit_dist : FitDistribution data object.
+    data : profile function values
+    args : profile function arguments
+    alpha : confidence coefficient
+    profile_max : Maximum value of profile function
+    alpha_cross_level :
+
+    PROFILE is a utility function for making inferences on a particular
+    component of the vector phat.
+    This is usually more accurate than using the delta method assuming
+    asymptotic normality of the ML estimator or the MPS estimator.
+
+    Examples
+    --------
+    # MLE
+    >>> import wafo.stats as ws
+    >>> R = ws.weibull_min.rvs(1,size=100);
+    >>> phat = FitDistribution(ws.weibull_min, R, 1, scale=1, floc=0.0)
+
+    # Better 90% CI for phat.par[i=0]
+    >>> profile_phat_i = Profile(phat, i=0)
+    >>> profile_phat_i.plot()
+    >>> phat_ci = profile_phat_i.get_bounds(alpha=0.1)
+
+    """
+
+    def _get_variance(self):
+        pvar = self.fit_dist.par_cov[self.i_fixed, :][:, self.i_fixed]
+        return pvar
+
+    def _p_min_max(self, phatfree0, p_opt):
+        pmin, pmax, converged_pmin, converged_pmax = super()._p_min_max(phatfree0, p_opt)
+        #if not converged_pmin is True:
+        self.pmin = pmin
+        #if not converged_pmax is True:
+        self.pmax = pmax
+        return pmin, pmax, converged_pmin, converged_pmax
+
+
+class ProfileQuantile(_CommonProfile):
     """
     Profile Log- likelihood or Product Spacing-function for quantile.
 
@@ -740,9 +757,15 @@ class ProfileQuantile(Profile):
         return np.maximum(pmin, a), np.minimum(pmax, b)  # Make sure a < x < b
 
     def _p_min_max(self, phatfree0, p_opt):
-        pmin, pmax = super()._p_min_max(phatfree0, p_opt)
-        a, b = self.fit_dist.support()
-        return np.maximum(pmin, a), np.minimum(pmax, b)  # Make sure a < x < b
+        pmin, pmax, converged_pmin, converged_pmax = super()._p_min_max(phatfree0, p_opt)
+        a, b = self.fit_dist.support()  # not always true
+        if not converged_pmin is True:
+            pmin = np.maximum(pmin, a)
+        if not converged_pmax is True:
+            pmax = np.minimum(pmax, b)
+        self.pmin = pmin
+        self.pmax = pmax
+        return pmin, pmax, converged_pmin, converged_pmax
 
     def _local_link(self, fix_par, par):
         """
@@ -766,7 +789,7 @@ class ProfileQuantile(Profile):
         return super()._get_plot_labels(fit_dist, title, xlabel)
 
 
-class ProfileProbability(Profile):
+class ProfileProbability(_CommonProfile):
     """Profile Log- likelihood or Product Spacing-function probability.
 
     Parameters
@@ -846,11 +869,17 @@ class ProfileProbability(Profile):
 
     def _approx_p_min_max(self, p_opt):
         pmin, pmax = super()._approx_p_min_max(p_opt)
-        return pmin, np.minimum(pmax, -_TINY)  # Make sure logsf < 0
+
+        return np.maximum(pmin, np.log(_EPS)), np.minimum(pmax, -_TINY)  # Make sure logsf < 0
 
     def _p_min_max(self, phatfree0, p_opt):
-        pmin, pmax = super()._p_min_max(phatfree0, p_opt)
-        return pmin, np.minimum(pmax, -_TINY)  # Make sure logsf<0
+        pmin, pmax, converged_pmin, converged_pmax = super()._p_min_max(phatfree0, p_opt)
+        logsf_min = np.log(_EPS)
+        pmin = np.maximum(pmin, logsf_min)
+        pmax = np.minimum(pmax, -_TINY)  # Make sure -15 < logsf < 0
+        self.pmin = pmin
+        self.pmax = pmax
+        return pmin, pmax, converged_pmin, converged_pmax
 
     def _local_link(self, fix_par, par):
         """
@@ -1143,8 +1172,8 @@ class FitDistribution(rv_frozen):
 
     def _get_confidence_interval(self, par, par_cov):
         pvar = np.diag(par_cov)
-        zcrit = -norm_ppf(self.alpha / 2.0)
-        return par - zcrit * np.sqrt(pvar), par + zcrit * np.sqrt(pvar)
+        zcrit = -norm_ppf(self.alpha / 2.0) * np.sqrt(pvar)
+        return par - zcrit , par + zcrit
 
     def _get_scores(self, par, fixedn):
         return (-self._nnlf(par, self.data),
@@ -1349,7 +1378,8 @@ class FitDistribution(rv_frozen):
 
     def ci_sf(self, q, alpha=0.05, i=2):
         """Returns confidence interval for upper tail probability q"""
-        return np.exp(self.ci_logsf(np.log(q), alpha, i))
+        logsf_ci = self.ci_logsf(np.log(q), alpha, i)
+        return np.exp(logsf_ci)
 
     def ci_logsf(self, logsf, alpha=0.05, i=2):
         """Returns confidence interval for log(sf)"""
