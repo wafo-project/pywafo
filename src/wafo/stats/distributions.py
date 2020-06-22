@@ -230,23 +230,24 @@ _patch_fit_start_dict = dict(betaprime=_betaprime_fitstart,
                              bradford=_bradford_fitstart,
                              chi=_chi_fitstart,
                              f=_f_fitstart,
-                             reciprocal=_reciprocal_fitstart,
-                             genextreme=_genextreme_fitstart,
+                             weibull_min=_weibull_min_fitstart,
                              genpareto=_genpareto_fitstart,
-                             gilbrat=_gilbrat_fitstart,
+                             genextreme=_genextreme_fitstart,
                              lognorm=_lognorm_fitstart,
-                             nct=_nct_fitstart,
+                             gilbrat=_gilbrat_fitstart,
                              ncx2=_ncx2_fitstart,
+                             nct=_nct_fitstart,
+                             reciprocal=_reciprocal_fitstart,
                              )
 
 
-for distname in _continuous_distns._distn_names + ["rv_histogram"]:  #pylint: disable=protected-access
+for distname in _continuous_distns._distn_names + ["rv_histogram"]:  # pylint: disable=protected-access
     _loc[distname] = dist = copy(getattr(_continuous_distns, distname))
     dist.__doc__ = dist.__doc__.replace("scipy.stats", "wafo.stats")
     if distname in _patch_fit_start_dict:
         dist._fitstart = partial(_patch_fit_start_dict[distname], dist, fitstart=dist._fitstart)
 
-for distname in _discrete_distns._distn_names:  #pylint: disable=protected-access
+for distname in _discrete_distns._distn_names:  # pylint: disable=protected-access
     _loc[distname] = dist = copy(getattr(_discrete_distns, distname))
 
     dist.__doc__ = dist.__doc__.replace("scipy.stats", "wafo.stats")
