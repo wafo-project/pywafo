@@ -1712,7 +1712,7 @@ class TimeSeries(PlotData):
         Return trough and crest turning points
 
         Parameters
-        -----------
+        ----------
         v : scalar
             reference level (default  v = mean of x).
 
@@ -1724,7 +1724,7 @@ class TimeSeries(PlotData):
             according to the wavedefinition.
 
         Returns
-        --------
+        -------
         tc : TurningPoints object
             with trough and crest turningpoints
         """

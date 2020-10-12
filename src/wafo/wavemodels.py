@@ -13,7 +13,6 @@ from wafo.misc import tranproc
 import warnings
 
 
-
 def _set_default_t_h_g(t, h, g, m0, m2):
     if g is None:
         y = np.linspace(-5, 5)
@@ -27,6 +26,7 @@ def _set_default_t_h_g(t, h, g, m0, m2):
         px = abs(px[1] - px[0])
         h = np.linspace(0, 1.3 * px, 41)
     return h, t, g
+
 
 def lh83pdf(t=None, h=None, mom=None, g=None):
     """
@@ -110,7 +110,7 @@ def lh83pdf(t=None, h=None, mom=None, g=None):
     # Without any transformation
 
     t_lh = t / (L0 / L1)
-    #h_lh = h_lh/sqrt(2*L0)
+    # h_lh = h_lh/sqrt(2*L0)
     h_lh = h_lh / sqrt(2)
     t_lh = 2 * t_lh
 
@@ -227,6 +227,7 @@ def cav76pdf(t=None, h=None, mom=None, g=None):
                  plot_kwds=dict(plotflag=1))
     return _add_contour_levels(f)
 
+
 def _add_contour_levels(f):
     p_levels = np.r_[10:90:20, 95, 99, 99.9]
     try:
@@ -238,24 +239,23 @@ def _add_contour_levels(f):
         warnings.warn(msg)
     return f
 
-    # Let U,Z be the height and second derivative (curvature) at a local maximum in a Gaussian proces
-    # with spectral moments m0,m2,m4. The conditional density ($U>0$) has the following form
-    #$$
-    # f(z,u)=c \frac{1}{\sqrt{2\pi}}\frac{1}{\sqrt{m0(1-\alpha^2)}}\exp(-0.5\left(\frac{u-z(m2/m4)}
-    # {\sqrt{m0(1-\alpha^2)}}\right)^2)\frac{|z|}{m4}\exp(-0.5z^2/m4), \quad z<0,
-    #$$
-    # where $c=2/(1+\alpha)$, $\alpha=m2/\sqrt{m0\cdot m4}$.
-    #
-    # The cavanie approximation is based on the model $X(t)=U \cos(\pi t/T)$, consequently
-    # we have $U=H$ and by twice differentiation $Z=-U(\pi^2/T)^2\cos(0)$. The variable change has Jacobian
-    # $2\pi^2 H/T^3$ giving the final formula for the density of $T,H$
-    #$$
-    # f(t,h)=c \frac{2\pi^4}{\sqrt{2\pi}}\frac{1}{m4\sqrt{m0(1-\alpha^2)}}\frac{h^2}{t^5}
-    #       \exp(-0.5\frac{h^2}{t^4}\left(\left(\frac{t^2-\pi^2(m2/m4)}
-    # {\sqrt{m0(1-\alpha^2)}}\right)^2+\frac{\pi^4}{m4}\right)).
-    #$$
-    #
-    #
+# Let U,Z be the height and second derivative (curvature) at a local maximum in a Gaussian proces
+# with spectral moments m0,m2,m4. The conditional density ($U>0$) has the following form
+# $$
+# f(z,u)=c \frac{1}{\sqrt{2\pi}}\frac{1}{\sqrt{m0(1-\alpha^2)}}\exp(-0.5\left(\frac{u-z(m2/m4)}
+# {\sqrt{m0(1-\alpha^2)}}\right)^2)\frac{|z|}{m4}\exp(-0.5z^2/m4), \quad z<0,
+# $$
+# where $c=2/(1+\alpha)$, $\alpha=m2/\sqrt{m0\cdot m4}$.
+#
+# The cavanie approximation is based on the model $X(t)=U \cos(\pi t/T)$, consequently
+# we have $U=H$ and by twice differentiation $Z=-U(\pi^2/T)^2\cos(0)$. The variable change has
+# Jacobian $2\pi^2 H/T^3$ giving the final formula for the density of $T,H$
+# $$
+# f(t,h)=c \frac{2\pi^4}{\sqrt{2\pi}}\frac{1}{m4\sqrt{m0(1-\alpha^2)}}\frac{h^2}{t^5}
+#       \exp(-0.5\frac{h^2}{t^4}\left(\left(\frac{t^2-\pi^2(m2/m4)}
+# {\sqrt{m0(1-\alpha^2)}}\right)^2+\frac{\pi^4}{m4}\right)).
+# $$
+#
 
 
 def test_docstrings():

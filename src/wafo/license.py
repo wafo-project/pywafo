@@ -1,5 +1,8 @@
+from datetime import datetime
+CURRENT_YEAR = datetime.now().year
 
-Copyright (c) 2007-2020, WAFO-group 
+__doc__="""
+Copyright (c) 2007-{}, WAFO-group 
 
 WAFO is free software; you can redistribute it and/or modify it under the terms
 of the GNU General Public License (GPL, http://www.gnu.org/copyleft/gpl.html)
@@ -18,3 +21,4 @@ See the GNU General Public License for more details http://www.gnu.org/licenses/
 
 
 
+""".format(CURRENT_YEAR)
