@@ -198,8 +198,8 @@ def setup_package():
         install_requires=read(os.path.join(ROOT, 'requirements.txt'), lines=True),
         extras_require={'build_sphinx': sphinx_requires},
         setup_requires=["pytest-runner"] + sphinx,
-        package_data={# If any package contains *.txt or *.rst files, include them:
-                        "": ["*.dat"],},
+        package_data={  # If any package contains *.txt or *.rst files, include them:
+                      "": ["*.dat"],},
         cmdclass={'doctest': Doctest,
                   'latex': Latex,
                   'sdist': sdist},

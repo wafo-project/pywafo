@@ -2,8 +2,8 @@
 Changelog
 =========
 
-Version 1.0.0
-=============
+Version 0.4.0 13 October 2020
+=============================
 
 Mattias Josefsson (5):
       * Update _discrete_distns.py
@@ -12,7 +12,42 @@ Mattias Josefsson (5):
       * Fix import pade for scipy>=1.0.0
       * Include all files under wafo/data in installation
 
-Per A Brodtkorb (128):
+Per A Brodtkorb (144):
+      * Updated CHANGELOG.rst and prepare for relase v0.4.0
+      * Updated import of cumtrapz from scipy.integrate
+      * Re-added included package_data=... in setup.py
+      * Set scipy>=1.1 in requirements.txt
+      * Removed THANKS.txt from MANIFEST.in Streamlined setup.cfg and setup.py
+      * Updated coverage call in .travis.yml
+      * Updated .travis.yml: added test for python 3.8 Added COPYRIGHTS
+      * Added license.py Fixed a bug in build_package.py pep8
+      * Updated build_package.py
+      * Updated weibull_min._fitstart with a better start function.
+      * Ongoing work to make Profile, ProfileProbability and ProfileQuantile
+         more robust.
+      * Made chapter5.py work again. Fixed a bug in _fitstart in
+         _distn_infrastructure.py that did not allow loc, scale given as part of
+         *args. Made FitDistribution and the ProfileXXX classes more robust.
+      * Added returnperiod2sf and sf2returnperiod Simplied valarray with a call
+         to numpy.full Updated the chapter5 tutorials.
+      * Improved profiling methods in wafo.stats.estimation.py:  * Silenced all
+         divide by zero and invalid value warnings.  * Replace
+         scipy.optimize.fmin with scipy.optimize.minimize  * Fixed a bug due to
+         changed behaviour of numpy.linspace:   - Previously the call
+         np.linspace([0],[1], n)  returned a vector of length n, but now returns
+         a n x 2  array.  * Added _approx_p_min_max and _p_min_max methods to
+         ProfileProbability and ProfileQuantile to better optimize the profile
+         loglikelihood.  * Updated tutorial scripts and made all the esitmation
+         methods work again.
+      * Updated the tutorial scripts as well as the path given to them in the
+         info.py file. Replaced import of pylab with import of numpy and
+         matplotlib in wafo.spectrum/models.py Replaced deprecated call
+         "np.histogram(self.data, bins=limits, normed=True)" with
+         "np.histogram(self.data, bins=limits, density=True)"
+      * Fixed some issues with fortran source code:   * Removed unused labels
+         and variables.   * Replaced tabs with spaces. Fix for the issue that
+         Setuptools sdist doesn't include all the files in the extension sources
+         list.
       * Added sonar-python and bandit plugins to .codeclimate.yml
       * Updated thresholds in .codeclimate.yml
       * Another attempt to get .codeclimate.yml right.
@@ -29,18 +64,18 @@ Per A Brodtkorb (128):
       * Simplified the wafo.stats.tests Updated path to the WAFO-logo in
          README.rst Replaced wafo.test function with a call to pytest.main
       * Removed dependence on pyscaffold and changed the layout of WAFO:   
-	    - Moved files from ./wafo to ./src/wafo in order to insulate the package
-         from the setup.py folder.   
+        - Moved files from ./wafo to ./src/wafo in order to insulate the package
+          from the setup.py folder.   
       * Updated setup.cfg and setup.py to support the /src layout.   
-	  * Moved sources from ./src/wafo to ./ and updated setup.py accordingly.   
-	  * Removed dependence on pyscaffold in setup.py
+      * Moved sources from ./src/wafo to ./ and updated setup.py accordingly.   
+      * Removed dependence on pyscaffold in setup.py
       * Added lfind to misc.py 
-	  * Replaced call to valarray with np.full 
-	  * Refactored code from detrendma into a new function moving_average. 
+      * Replaced call to valarray with np.full 
+      * Refactored code from detrendma into a new function moving_average. 
       * Made doctests more robust.
       * Added wavemodels.py
       * Added extra tests for dispersion_relation.py and qtf in spectrum/core.py.  
-	  * Deleted powerpoint.py
+      * Deleted powerpoint.py
       * Fixed a bug in findextrema
       * Added possibility to change freqtype after creation of SpecData1D object
       * Made testgaussian test less strict.
@@ -70,11 +105,11 @@ Per A Brodtkorb (128):
       * Refactored magic
       * Updated doctests
       * Added import of statsmodels to .travis.yml
-      * Added doctest for kdetools/demo.py. Removed obsolete options from
-         wafo.containers.py
-		 
-Version 0.3.2 
-=============
+      * Added doctest for kdetools/demo.py. 
+      * Removed obsolete options from wafo.containers.py
+
+Version 0.3.1 16 January 2017 
+=============================
 Bo Zhang @NAOC (1):
       * turn nd into int
 
@@ -86,15 +121,12 @@ Per A Brodtkorb (109):
       * Refactored franke function + added test error_estimate from padua_fit
       * Moved common data into data.py
       * Altered demo
-      * Updated testdata
-      
+      * Updated testdata      
       * Replaced instance methods with static methods + lower case method names.
-      
       * Moved test_kdetools.py to wafo.kdetools.tests
       * Removed obsolete code
       * Simplified TKDE._eval_grid_fast
       * Simplified _eval_grid_fast
-      
       * Refactored duplicated code into a _estimate_psi function in kdetools.py
       * Simplified fixed_point
       * Simplified Kernel
@@ -105,7 +137,6 @@ Per A Brodtkorb (109):
       * Fixed failing doctests
       * Refactored kdetools.py into a subpackage. 
       * Added dst, idst, dstn and idstn
-      
       * Fixed a bug in detrendma and mctp2tc
       * Simplified out of bound check in mctp2tc
       * Reduced cyclomatic complexity in mctp2tc
@@ -167,122 +198,124 @@ Version 0.2.1 May 22 2016
 =========================
 
 Per A Brodtkorb (47):                                                                                                         
-      * Removed tabs from c_functions.c refaactored quadgr
-	  * added test_sg_filter.py                                                                                               * pep8                                                                                                                  * pep8                                                                                                                  * Simplified delete_text_object                                                                                         * updated SmoothNd                                                                                                      * Refactored smoothn into SmoothNd and _Filter classes                                                                  * updated Kalman and HampelFilter                                                                                       * Simplified HampelFilter
-      * Removed unused code and added test for shiftdim
-      * Removed duplicated dea3 from integrate and misc.py import from
+     * Removed tabs from c_functions.c refaactored quadgr
+     * added test_sg_filter.py                                                                                               
+     * pep8
+     * Simplified delete_text_object
+     * updated SmoothNd
+     * Refactored smoothn into SmoothNd and _Filter classes
+     * updated Kalman and HampelFilter
+     * Simplified HampelFilter
+     * Removed unused code and added test for shiftdim
+     * Removed duplicated dea3 from integrate and misc.py import from
          numdifftools.extrapolate.dea3 instead pepified
-      * Simplified common_shape
-      * refactored findrfc
-      * Deleted misc.hypgf function 
-	  * Refactored:  misc.findoutliers objects.TimeSeries.wave_periods
-      * Added files: .codeclimate.yml test_bitwise.py test_dct_pack.py
-      * Added wafo-logo to README.rst
-      * Made test_integrate.py more robust
-      * Replaced iteritems with a python 3 compatible iterable dict items.
-      * Made sure arrays used as indices is of integer type
-      * Made code python 3 compatible: Replaced round with numpy.round
-      * made code python 3 compatible: Replaced xrange with range and map with list comprehension
-      * Added from __future__ absolute_import
-	  * Deleted obsolete magic.py
-	  * Deleted wafodata.py
-      * Made print statements python 3 compatible
-      * Restored c_functions.c
-      * removed test_numpy_utils.py + pepified test_trdata + disabled plot in test_specdata1d.py
-      * Deleted obsolete test folder, numpy_utils.py + tests more robust
-      * Updated tox.ini
-      * Small refactoring FitDistribution
-      * Added _util.py + fixed a bug in test_fit.py
-      * Added numpy_utils.py
-      * Added padua.py
-      * Replaced sub2index and index2sub with calls to np.ravel_multi_index and np.unravel_index, respectively.
-      * Added chebfit_dct chebvandernd chebfitnd chebvalnd chebgridnd
-      * Replaced dct with call to scipy.fftpack.dct
-      * build extensions for windows
-      * Deleted c_library.pyd
-      * Renamed c_codes -> c_library
-      * Made doctests more robust
-      * compiled fortran/c-code for windows pep8 
-	  * Moved smoothn from kdetools to sg_filter.py 
-	  * Simplified sg_filter.py, dctpack.py and added autumn.gif
-      * Simplified interpolations and made dea3 more robust
-      * Deleted statsmodels
-      * Added fix for genpareto.logpdf
-      * added test_estimation.py and test_continuous_extra.py
-      * Fixed more bugs in distributions.py
-      * Updated from wafo.stats from scipy.stats
-      * Updated tutorial ipython notebook scripts
-      * Fixed a bug in dispersion_idx
-      * Compiled on win7 64 bit
-      * Refactored Profile
-      * fix ticket 1131
-      * Improved beta distribution
-      * moved test/test_dispersion_relation.py to the wave_theory/test
-      * Added magic.py
-      * Renamed test_all.py to nose_all.py
-      * Updated to most recent scipy.stats.distributions
-      * vectorizing depth as well in w2k
-      * Generalized magic
-      * Added magic square
-      * Added pychip.py
-      * Updated kreg_demo3
-      * refactored parts of kreg_demo2 into kreg_demo3 and _get_data
-      * Added SavitzkyGolay class to sg_filter.py Refined confidence intervals
+     * Simplified common_shape
+     * refactored findrfc
+     * Deleted misc.hypgf function 
+     * Refactored:  misc.findoutliers objects.TimeSeries.wave_periods
+     * Added files: .codeclimate.yml test_bitwise.py test_dct_pack.py
+     * Added wafo-logo to README.rst
+     * Made test_integrate.py more robust
+     * Replaced iteritems with a python 3 compatible iterable dict items.
+     * Made sure arrays used as indices is of integer type
+     * Made code python 3 compatible: Replaced round with numpy.round
+     * made code python 3 compatible: Replaced xrange with range and map with list comprehension
+     * Added from __future__ absolute_import
+     * Deleted obsolete magic.py
+     * Deleted wafodata.py
+     * Made print statements python 3 compatible
+     * Restored c_functions.c
+     * removed test_numpy_utils.py + pepified test_trdata + disabled plot in test_specdata1d.py
+     * Deleted obsolete test folder, numpy_utils.py + tests more robust
+     * Updated tox.ini
+     * Small refactoring FitDistribution
+     * Added _util.py + fixed a bug in test_fit.py
+     * Added numpy_utils.py
+     * Added padua.py
+     * Replaced sub2index and index2sub with calls to np.ravel_multi_index and np.unravel_index, respectively.
+     * Added chebfit_dct chebvandernd chebfitnd chebvalnd chebgridnd
+     * Replaced dct with call to scipy.fftpack.dct
+     * build extensions for windows
+     * Deleted c_library.pyd
+     * Renamed c_codes -> c_library
+     * Made doctests more robust
+     * compiled fortran/c-code for windows pep8 
+     * Moved smoothn from kdetools to sg_filter.py 
+     * Simplified sg_filter.py, dctpack.py and added autumn.gif
+     * Simplified interpolations and made dea3 more robust
+     * Deleted statsmodels
+     * Added fix for genpareto.logpdf
+     * added test_estimation.py and test_continuous_extra.py
+     * Fixed more bugs in distributions.py
+     * Updated from wafo.stats from scipy.stats
+     * Updated tutorial ipython notebook scripts
+     * Fixed a bug in dispersion_idx
+     * Compiled on win7 64 bit
+     * Refactored Profile
+     * fix ticket 1131
+     * Improved beta distribution
+     * moved test/test_dispersion_relation.py to the wave_theory/test
+     * Added magic.py
+     * Renamed test_all.py to nose_all.py
+     * Updated to most recent scipy.stats.distributions
+     * vectorizing depth as well in w2k
+     * Generalized magic
+     * Added magic square
+     * Added pychip.py
+     * Updated kreg_demo3
+     * refactored parts of kreg_demo2 into kreg_demo3 and _get_data
+     * Added SavitzkyGolay class to sg_filter.py Refined confidence intervals
          in kreg_demo2 in kdetools.py
-      * Better confidence interval in kreg_demo2
-      * Added savitzky_golay savitzky_golay_piecewise sgolay2d Added evar Added
+     * Better confidence interval in kreg_demo2
+     * Added savitzky_golay savitzky_golay_piecewise sgolay2d Added evar Added
          some work in progress
-      * Fixed a bug in KRegression
-      * Small updates
-      * Added fig.py Fixed a bug in RegLogit Added epcolor and tallibing to graphutil.py
-      * Fixed some bugs in RegLogit (still bugs left)
-      * Added improved Sheater-Jones plugin estimate of the smoothing parameter
-      * Replaced dct and idct with a call to the ones in scipy.fftpack. 
-	  * Added n-dimensional  version dctn and idctn to dctpack.py
-      * Added dctn and idctn
-      * Added kernel regression
-      * Made interpolation more general and faster in TKDE._eval_grid_fast
-      * Fixed some bugs
-      * Fixed some bugs in kdetools.py + added more tests in
-         test/test_kdetools.py
-      * Added alternative version of  scikits statsmodels
-      * Updated distributions.py according to the latest updates in
-         scipy.stats.distributions.py
-      * Small extension to plot2d
-      * Added mctp2rfc to misc.py Fixed a bug in qlevels and cltext
-      * Started work on SpecData1D.to_mmt_pdf
-      * Fixed bugs in cov2mmpdfreg_intfc.f
-      * Successfully made an interface to mregmodule. It still remains to check
-         that it is correct.
-      * Translated matlab tran function into a TransferFunction class
-      * added import of k2w from dispersion_relation.py
-      * Updated help header
-      * Added qlevels2 + possibility to calculate weighted percentile
-      * Added percentile
-      * Added more work to LevelCrossings.extrapolate (not finished yet)
-      * Copied stineman_interp from pylab to interpolate.py and fixed the
-         annoying dividing by zero warnings.
-      * misc fixes
-      * added fourier (not finished) added TurningPoints.rainflow_filter
+     * Fixed a bug in KRegression
+     * Small updates
+     * Added fig.py Fixed a bug in RegLogit Added epcolor and tallibing to graphutil.py
+     * Fixed some bugs in RegLogit (still bugs left)
+     * Added improved Sheater-Jones plugin estimate of the smoothing parameter
+     * Replaced dct and idct with a call to the ones in scipy.fftpack. 
+     * Added n-dimensional  version dctn and idctn to dctpack.py
+     * Added dctn and idctn
+     * Added kernel regression
+     * Made interpolation more general and faster in TKDE._eval_grid_fast
+     * Fixed some bugs
+     * Fixed some bugs in kdetools.py + added more tests in test/test_kdetools.py
+     * Added alternative version of  scikits statsmodels
+     * Updated distributions.py according to the latest updates in scipy.stats.distributions.py
+     * Small extension to plot2d
+     * Added mctp2rfc to misc.py Fixed a bug in qlevels and cltext
+     * Started work on SpecData1D.to_mmt_pdf
+     * Fixed bugs in cov2mmpdfreg_intfc.f
+     * Successfully made an interface to mregmodule. It still remains to check that it is correct.
+     * Translated matlab tran function into a TransferFunction class
+     * added import of k2w from dispersion_relation.py
+     * Updated help header
+     * Added qlevels2 + possibility to calculate weighted percentile
+     * Added percentile
+     * Added more work to LevelCrossings.extrapolate (not finished yet)
+     * Copied stineman_interp from pylab to interpolate.py and fixed the
+        annoying dividing by zero warnings.
+     * misc fixes
+     * added fourier (not finished) added TurningPoints.rainflow_filter
          +translated some parts of chapter4.py
-      * updated __all__ attributes in modules
-      * Made a baseclass _KDE for KDE  and TKDE + updated tests
-      * Added bitwise operators
-      * Fixed a bug in kde.eval_grid_fast + updated tests
-      * Added test_distributions.py updated test_estimation.py
-      * Fixed Scipy-ticket #1131:  ppf for Lognormal fails on array-like 'loc'
-         or 'scale'
+     * updated __all__ attributes in modules
+     * Made a baseclass _KDE for KDE  and TKDE + updated tests
+     * Added bitwise operators
+     * Fixed a bug in kde.eval_grid_fast + updated tests
+     * Added test_distributions.py updated test_estimation.py
+     * Fixed Scipy-ticket #1131:  ppf for Lognormal fails on array-like 'loc' or 'scale'
 
 david.verelst (7):
-      * ignore import error for fig.py: depends on windows only libraries
-      * updated builds for Linux 64bit
-      * build commands Linux: use python or python2
-      * References and BSD license for Nieslony's rainflow algorithm
-      * Nieslony's ASTM rainflow counting algorithm. Partially integrated, no
-         support for the CyclePairs object yet.
-      * More robust way to determine f2py call in /sources/c_codes/build_all.py,
-         etc scripts
-      * build_all.py scripts in source now call to f2py2.6 on posix systems
+     * ignore import error for fig.py: depends on windows only libraries
+     * updated builds for Linux 64bit
+     * build commands Linux: use python or python2
+     * References and BSD license for Nieslony's rainflow algorithm
+     * Nieslony's ASTM rainflow counting algorithm. Partially integrated, no
+        support for the CyclePairs object yet.
+     * More robust way to determine f2py call in /sources/c_codes/build_all.py,
+        etc scripts
+     * build_all.py scripts in source now call to f2py2.6 on posix systems
          (this might give issues on other installation, for instance when it is
          f2py, f2yp2.7, etc). On nt (windows) it remains f2py.py. The general
          setup.py and build_all.py scripts now copies the .so compiled libraries

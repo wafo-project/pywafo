@@ -5,7 +5,7 @@ from wafo.misc import now
 import numpy as np
 from scipy import interpolate
 from scipy import integrate
-from scipy.integrate import cumtrapz  # @UnresolvedImport
+from scipy.integrate import cumtrapz
 
 __all__ = ['PlotData', 'AxisLabels']
 
@@ -608,7 +608,7 @@ def plot2d(axis, wdata, plotflag, *args, **kwds):
 
             isPL = PL is not None
             clvals = PL[:ncl] if isPL else clvec[:ncl]
-            unused_axcl = cltext(clvals, percent=isPL)
+            _unused_axcl = cltext(clvals, percent=isPL)
         else:
             axis.clabel(h)
     else:
@@ -627,8 +627,8 @@ def test_plotdata():
     d = PlotData(np.sin(x) / 2, x, dataCI=[], xlab='x', ylab='sin',
                  title='sinus', plot_args=['r.'])
     di = PlotData(d.eval_points(xi, method='cubic'), xi)
-    unused_hi = di.plot()
-    unused_h = d.plot()
+    _unused_hi = di.plot()
+    _unused_h = d.plot()
     f = di.to_cdf()
 
     for i in range(4):
