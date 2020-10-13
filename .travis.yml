@@ -60,7 +60,7 @@ before_script:
   - git config --global user.name "pbrod"
 script:
    # - coverage run --source=wafo setup.py test
-   - coverage run --source=wafo -m py.test build/lib
+   - coverage run --source=wafo -m py.test build/lib.linux-x86_64-$TRAVIS_PYTHON_VERSION
 #   - py.test wafo --cov --pep8 --doctest-modules
 # see http://www.camillescott.org/2016/07/15/travis-pytest-scipyconf/
    - coverage xml -o coverage.xml
