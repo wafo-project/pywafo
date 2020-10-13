@@ -1,47 +1,61 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-    Setup file for wafo.
-
+Setup file for wafo.
 
 Usage:
 Run all tests:
   python setup.py test
-
-  python setup.py doctests
+  python setup.py doctest
 
 Build documentation
-
   python setup.py docs
+  python setup.py latex
 
 Install
   python setup.py install [, --prefix=$PREFIX]
 
 Build
-
   python setup.py bdist_wininst
-
-  python setup.py bdist_wheel --universal
-
+  python setup.py bdist_wheel
   python setup.py sdist
 
-PyPi upload:
+Recommended build
   git pull origin
-git shortlog v0.9.20..HEAD -w80 --format="* %s" --reverse > log.txt  # update Changes.rst
+  git shortlog v0.9.20..HEAD -w80 --format="* %s" --reverse > log.txt
 # update CHANGELOG.rst with info from log.txt
 
   python build_package.py 0.10.0rc0
   git commit
   git tag v0.10.0rc0 master
   git push --tags
+
+PyPi upload:
   twine check dist/*   # check
   twine upload dist/*  # wait until the travis report is OK before doing this step.
+
+Notes
+-----
+Don't use package_data and/or data_files, use include_package_data=True and MANIFEST.in instead!
+Don't hard-code the list of packages, use setuptools.find_packages() instead!
+
+
+See also
+--------
+https://docs.pytest.org/en/latest/goodpractices.html
+https://python-packaging.readthedocs.io/en/latest/
+https://packaging.python.org/en/latest/distributing.html
+https://github.com/pypa/sampleproject
+https://chriswarrick.com/blog/2014/09/15/python-apps-the-right-way-entry_points-and-scripts/
+https://blog.ionelmc.ro/2014/05/25/python-packaging/#the-structure
+https://ep2015.europython.eu/media/conference/slides/less-known-packaging-features-and-tricks.pdf
+https://realpython.com/documenting-python-code/#public-and-open-source-projects
 
 """
 import os
 import re
 import sys
-
+import pkg_resources
 # numpy.distutils will figure out if setuptools is available when imported
 # this allows us to combine setuptools and f2py extensions
 import setuptools
@@ -50,18 +64,22 @@ from numpy.distutils.core import setup
 from numpy.distutils.misc_util import Configuration
 from distutils.command.sdist import sdist
 
-
-HERE = os.path.abspath(os.path.dirname(__file__))
+pkg_resources.require('setuptools>=39.2') # setuptools >=38.3.0     # version with most `setup.cfg` bugfixes
+ROOT = os.path.abspath(os.path.dirname(__file__))
 PACKAGE_NAME = 'wafo'
 
 
-def read(*parts):
-    with open(os.path.join(*parts), 'r') as fp:
+def read(file_path, lines=False):
+    """Returns contents of file either as a string or list of lines."""
+    with open(file_path, 'r') as fp:
+        if lines:
+            return fp.readlines()
         return fp.read()
 
 
-def find_version(*file_paths):
-    version_file = read(HERE, *file_paths)
+def find_version(file_path):
+    """Returns version given in the __version__ variable of a module file"""
+    version_file = read(file_path)
     version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]",
                               version_file, re.M)  # @UndefinedVariable
     if version_match:
@@ -86,6 +104,26 @@ class Doctest(Command):
                      './docs/_build',  # output directory
                      './docs/_build/doctrees',  # doctree directory
                      'doctest')  # finally, specify the doctest builder
+        sph.build()
+
+
+class Latex(Command):
+    description = 'Run latex with Sphinx'
+    user_options = []
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        from sphinx.application import Sphinx
+        sph = Sphinx('./docs',  # source directory
+                     './docs',  # directory containing conf.py
+                     './docs/_build/latex',  # output directory
+                     './docs/_build/doctrees',  # doctree directory
+                     'latex')  # finally, specify the latex builder
         sph.build()
 
 
@@ -147,13 +185,7 @@ def setup_package():
 
     config.add_data_dir(('data', 'src/wafo/data'))
 
-#     needs_sphinx = {'build_sphinx', 'upload_docs'}.intersection(sys.argv)
-#     sphinx = ['sphinx'] if needs_sphinx else []
-#     setup(setup_requires=['six', 'pyscaffold>=2.4rc1,<2.5a0'] + sphinx,
-#           tests_require=['pytest_cov', 'pytest'],
-#           use_pyscaffold=True,
-#           **config.todict())
-    version = find_version('src', PACKAGE_NAME, "__init__.py")
+    version = find_version(os.path.join(ROOT, 'src', PACKAGE_NAME, "__init__.py"))
     print("Version: {}".format(version))
 
     sphinx_requires = ['sphinx>=1.3.1']
@@ -161,16 +193,16 @@ def setup_package():
     sphinx = ['numpydoc',
               'imgmath',
               'sphinx_rtd_theme>=0.1.7'] + sphinx_requires if needs_sphinx else []
-    setup(setup_requires=["pytest-runner"] + sphinx,
-          version=version,
-          cmdclass={'doctest': Doctest,
-                    'sdist': sdist},
-          include_package_data=True,
-          package_data={# If any package contains *.txt or *.rst files, include them:
-                        "": ["*.dat"],},
-          extras_require={'build_sphinx': sphinx_requires,},
+    setup(
+        version=version,
+        install_requires=read(os.path.join(ROOT, 'requirements.txt'), lines=True),
+        extras_require={'build_sphinx': sphinx_requires},
+        setup_requires=["pytest-runner"] + sphinx,
+        cmdclass={'doctest': Doctest,
+                  'latex': Latex,
+                  'sdist': sdist},
           **config.todict()
-          )
+    )
 
 
 if __name__ == "__main__":
