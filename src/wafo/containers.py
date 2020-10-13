@@ -3,9 +3,9 @@ from wafo.graphutil import cltext
 from wafo.plotbackend import plotbackend as plt
 from wafo.misc import now
 import numpy as np
-from scipy.integrate.quadrature import cumtrapz  # @UnresolvedImport
 from scipy import interpolate
 from scipy import integrate
+from scipy.integrate import cumtrapz  # @UnresolvedImport
 
 __all__ = ['PlotData', 'AxisLabels']
 
