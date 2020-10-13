@@ -1,21 +1,24 @@
 # Travis configuration file using the build matrix feature
 # Read more under http://docs.travis-ci.com/user/build-configuration/
+# and https://conda.io/docs/user-guide/tasks/use-conda-with-travis-ci.html
 # THIS SCRIPT IS SUPPOSED TO BE AN EXAMPLE. MODIFY IT ACCORDING TO YOUR NEEDS!
-sudo: true
 dist: xenial
+sudo: false
 language: python
 python:
-#  - 2.7  # Drop support for python 2.7
-#  - 3.4  # Drop support for python 3.4
+  # We don't actually use the Travis Python, but this keeps it organized.
   - 3.5
   - 3.6
+  - 3.7
+
 matrix:
   include:
-    - python: 3.7
+    - python: 3.8
       sudo: true
 
 services:
     - xvfb
+
 notifications:
   email: false
  
@@ -57,7 +60,7 @@ before_script:
   - git config --global user.name "pbrod"
 script:
    # - coverage run --source=wafo setup.py test
-   - coverage run --source=wafo -m py.test build/
+   - coverage run --source=wafo -m py.test build/lib
 #   - py.test wafo --cov --pep8 --doctest-modules
 # see http://www.camillescott.org/2016/07/15/travis-pytest-scipyconf/
    - coverage xml -o coverage.xml
