@@ -70,8 +70,8 @@ def setbits(bitlist):
     """
     Set bits of val to values in bitlist
 
-    Example
-    -------
+    Examples
+    --------
     >>> setbits([1,1])
     3
     >>> setbits([1,0])

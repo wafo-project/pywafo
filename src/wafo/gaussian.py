@@ -426,8 +426,8 @@ def cdflomax(x, alpha, m0):
     Note that all local maxima of the process are considered, not
     only crests of waves.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import pylab
     >>> import wafo.gaussian as wg
     >>> import wafo.spectrum.models as wsm
@@ -494,7 +494,7 @@ def prbnormtndpc(rho, a, b, d=None, df=0, abseps=1e-4, ierc=0, hnc=0.24):
      with product correlation structure for rectangular regions.
      The accuracy is as best around single precision, i.e., about 1e-7.
 
-    Example:
+    Examples
     --------
     >>> import wafo.gaussian as wg
     >>> rho2 = np.random.rand(2)
@@ -523,8 +523,8 @@ def prbnormtndpc(rho, a, b, d=None, df=0, abseps=1e-4, ierc=0, hnc=0.24):
     --------
     prbnormndpc, prbnormnd, Rind
 
-    Reference
-    ---------
+    References
+    ----------
     Charles Dunnett (1989)
     "Multivariate normal probability integrals with product correlation
     structure", Applied statistics, Vol 38,No3, (Algorithm AS 251)
@@ -562,8 +562,8 @@ def prbnormndpc(rho, a, b, abserr=1e-4, relerr=1e-4, usesimpson=True,
     with product correlation structure for rectangular regions.
     The accuracy is up to almost double precision, i.e., about 1e-14.
 
-    Example:
-    -------
+    Examples
+    --------
     >>> import wafo.gaussian as wg
     >>> rho2 = np.random.rand(2)
     >>> a2   = np.zeros(2)
@@ -589,8 +589,8 @@ def prbnormndpc(rho, a, b, abserr=1e-4, relerr=1e-4, usesimpson=True,
     --------
     prbnormtndpc, prbnormnd, Rind
 
-    Reference
-    ---------
+    References
+    ----------
     P. A. Brodtkorb (2004),
     "Evaluating multinormal probabilites with product correlation structure."
     In Lund university report series
@@ -681,8 +681,8 @@ def prbnormnd(correl, a, b, abseps=1e-4, releps=1e-3, maxpts=None, method=0):
                                decrease ERROR;
                 if INFORM = 2, N > NMAX or N < 1. where NMAX depends on the
                                integration method
-    Example
-    -------
+    Examples
+    --------
     Compute the probability that X1<0,X2<0,X3<0,X4<0,X5<0,
     Xi are zero-mean Gaussian variables with variances one
     and correlations Cov(X(i),X(j))=0.3:
@@ -811,8 +811,8 @@ def cdfnorm2d(b1, b2, r):
     G.O. Wesolowsky, (1989), with major modifications for double precision,
     and for |r| close to 1.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import wafo.gaussian as wg
     >>> x = np.linspace(-5,5,20)
     >>> [B1,B2] = np.meshgrid(x, x)
@@ -821,12 +821,14 @@ def cdfnorm2d(b1, b2, r):
 
     surf(x,x,F)
 
+
     See also
     --------
     cdfnorm
 
-    Reference
-    ---------
+
+    References
+    ----------
     Drezner, z and g.o. Wesolowsky, (1989),
     "On the computation of the bivariate normal integral",
     Journal of statist. comput. simul. 35, pp. 101-107,
@@ -971,8 +973,8 @@ def prbnorm2d(a, b, r):
         computed probability Prob(A[0] <= X1 <= B[0] and A[1] <= X2 <= B[1])
         with an absolute error less than 1e-15.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import wafo.gaussian as wg
     >>> a = [-1, -2]
     >>> b = [1, 1]

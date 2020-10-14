@@ -62,8 +62,8 @@ def k2w(k1, k2=0e0, h=inf, g=9.81, u1=0e0, u2=0e0):
     --------
     w2k
 
-    Example
-    -------
+    Examples
+    --------
     >>> from numpy import arange
     >>> import wafo.wave_theory.dispersion_relation as wsd
     >>> wsd.k2w(arange(0.01,.5,0.2))[0]
@@ -126,8 +126,8 @@ def w2k(w, theta=0.0, h=inf, g=9.81, count_limit=100, rtol=1e-7, atol=1e-14):
     broadcasting rules. If w or theta is scalar it functions as a constant
     matrix of the same shape as the other.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import pylab as plb
     >>> import wafo.wave_theory.dispersion_relation as wsd
     >>> w = plb.linspace(0,3);

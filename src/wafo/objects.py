@@ -178,8 +178,8 @@ class LevelCrossings(PlotData):
         The method 'ray' uses Ray, and should be used if the load is a
         Gaussian process.
 
-        Example
-        -------
+        Examples
+        --------
         >>> import wafo.data as wd
         >>> import wafo.objects as wo
         >>> x = wd.sea()
@@ -215,6 +215,7 @@ class LevelCrossings(PlotData):
         See also
         --------
         cmat2extralc, rfmextrapolate, lc2rfmextreme, extralc, fitgenpar
+
 
         References
         ----------
@@ -374,8 +375,8 @@ class LevelCrossings(PlotData):
         ts : timeseries object
             with times and values of the simulated process.
 
-        Example
-        -------
+        Examples
+        --------
         >>> import wafo.spectrum.models as sm
         >>> from wafo.objects import mat2timeseries
         >>> Sj = sm.Jonswap(Hm0=7)
@@ -560,8 +561,8 @@ class LevelCrossings(PlotData):
         unlikely to cross a level of 7 standard deviations one can use
         param = [-7 7 513].
 
-        Example
-        -------
+        Examples
+        --------
         >>> import wafo.spectrum.models as sm
         >>> import wafo.transform.models as tm
         >>> from wafo.objects import mat2timeseries
@@ -596,8 +597,8 @@ class LevelCrossings(PlotData):
 
         NB! the transformated data will be N(0,1)
 
-        Reference
-        ---------
+        References
+        ----------
         Rychlik , I., Johannesson, P., and Leadbetter, M.R. (1997)
         "Modelling and statistical analysis of ocean wavedata
         using a transformed Gaussian process",
@@ -753,7 +754,7 @@ class CyclePairs(PlotData):
         Calculates the number of upcrossings from a cycle pairs, e.g.
         min2Max cycles or rainflow cycles.
 
-        Example:
+        Examples
         --------
         >>> import wafo
         >>> ts = wafo.objects.mat2timeseries(wafo.data.sea())
@@ -959,7 +960,7 @@ class CyclePairs(PlotData):
            F       = Estimated cycle matrix.
            h       = Selected bandwidth.
 
-        Example:
+        Examples
         --------
         >>> import wafo
         >>> ts = wafo.objects.mat2timeseries(wafo.data.sea())
@@ -1032,7 +1033,8 @@ class CyclePairs(PlotData):
         -------
         dcc   = a two column matrix with discrete classes.
 
-        Example:
+        Examples
+        --------
           x = load('sea.dat');
           tp = dat2tp(x);
           rfc = tp2rfc(tp);
@@ -1044,7 +1046,9 @@ class CyclePairs(PlotData):
 
           close all;
 
-         See also  cc2cmat, dcc2cmat, dcc2cc
+        See also
+        --------
+        cc2cmat, dcc2cmat, dcc2cc
         """
         cp1, cp2 = np.copy(self.args), np.copy(self.data)
 
@@ -1135,7 +1139,8 @@ class TurningPoints(PlotData):
         tp : TurningPoints object
             with times and turning points.
 
-        Example:
+        Examples
+        --------
         >>> import wafo.data
         >>> x = wafo.data.sea()
         >>> x1 = x[:200,:]
@@ -1185,8 +1190,8 @@ class TurningPoints(PlotData):
         mm : cycles object
             with min2Max or Max2min cycle pairs.
 
-        Example
-        -------
+        Examples
+        --------
         >>> import wafo
         >>> x = wafo.data.sea()
         >>> ts = wafo.objects.mat2timeseries(x)
@@ -1260,8 +1265,8 @@ class TurningPoints(PlotData):
         Copyright (c) 1999-2002 by Adam Nieslony
         Ported to Python by David Verelst
 
-        Example
-        -------
+        Examples
+        --------
         >>> import wafo
         >>> x = wafo.data.sea()
         >>> sig_ts = wafo.objects.mat2timeseries(x)
@@ -1383,7 +1388,7 @@ class TimeSeries(PlotData):
             norm : bool
                 If false indicating that R is not normalized
 
-         Example:
+         Examples
          --------
          >>> import wafo.data
          >>> import wafo.objects as wo
@@ -1453,8 +1458,8 @@ class TimeSeries(PlotData):
         ---------
         spec : SpecData1D  object
 
-        Example
-        -------
+        Examples
+        --------
         >>> import wafo.data as wd
         >>> import wafo.objects as wo
         >>> x = wd.sea()
@@ -1604,8 +1609,8 @@ class TimeSeries(PlotData):
         unlikely to cross a level of 7 standard deviations one can use
         PARAM=[-7 7 513].
 
-        Example
-        -------
+        Examples
+        --------
         >>> import wafo.spectrum.models as sm
         >>> import wafo.transform.models as tm
         >>> from wafo.objects import mat2timeseries
@@ -1678,7 +1683,8 @@ class TimeSeries(PlotData):
         tp : TurningPoints object
             with times and turning points.
 
-        Example:
+        Examples
+        -------- 
         >>> import wafo.data
         >>> x = wafo.data.sea()
         >>> x1 = x[:200,:]
@@ -1758,8 +1764,8 @@ class TimeSeries(PlotData):
         The definition of g, Ac,At, Tcf, etc. are given in gravity and
         wafo.definitions.
 
-        Example
-        -------
+        Examples
+        --------
         >>> import wafo.data as wd
         >>> import wafo.objects as wo
         >>> x = wd.sea()
@@ -1849,8 +1855,8 @@ class TimeSeries(PlotData):
         The definition of g, Ac,At, Tcf, etc. are given in gravity and
         wafo.definitions.
 
-        Example
-        -------
+        Examples
+        --------
         >>> import wafo.data as wd
         >>> import wafo.objects as wo
         >>> x = wd.sea()
@@ -2067,7 +2073,7 @@ class TimeSeries(PlotData):
             of indices
 
 
-        Example:
+        Examples
         --------
         Histogram of crest2crest waveperiods
         >>> import wafo.data as wd
@@ -2179,8 +2185,8 @@ class TimeSeries(PlotData):
          --------
          troptset, findoutliers, cov2csdat, dat2cov, dat2tr, detrendma
 
-         Reference
-         ---------
+         References
+         ----------
          Brodtkorb, P, Myrhaug, D, and Rue, H (2001)
          "Joint distribution of wave height and wave crest velocity from
          reconstructed data with application to ringing"
@@ -2447,8 +2453,8 @@ class TimeSeries(PlotData):
             how large in stdev the vertical scale should be (default 3)
 
 
-        Example
-        -------
+        Examples
+        --------
         Plot x1 with red lines and mark troughs and crests with blue circles.
         >>> import wafo
         >>> x = wafo.data.sea()

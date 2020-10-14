@@ -24,8 +24,8 @@ def kde_demo1():
     observations (solid) and their individual kernels (dashed) for 3
     different values of the smoothing parameter, hs.
 
-    Example
-    -------
+    Examples
+    --------
     >>> kde_demo1()
     """
     x = np.linspace(-4, 4, 101)

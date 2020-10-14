@@ -69,7 +69,7 @@ def atlantic():
     approximately 14 times a month in December-February during 7 years and
     at 2 locations in the Atlantic Ocean
 
-    Example
+    Examples
     --------
     >>> import pylab
     >>> import wafo
@@ -79,7 +79,7 @@ def atlantic():
 
     h = pylab.plot(Hs)
 
-    Acknowledgement:
+    Acknowledgement
     ---------------
     This dataset were made available by Dr. David Carter
     and Dr. David Cotton, Satellite Observing Systems, UK.
@@ -120,8 +120,8 @@ def gfaks89():
 
     Hm0 = 6.8m, Tm02 = 8s, Tp = 10.5
 
-    Example
-    -------
+    Examples
+    --------
     >>> import pylab
     >>> import wafo
     >>> x = wafo.data.gfaks89()
@@ -183,8 +183,8 @@ def gfaksr89():
     Hm0 = 6.8m, Tm02 = 8s, Tp = 10.5
 
 
-    Example
-    -------
+    Examples
+    --------
     >>> import pylab
     >>> import wafo
     >>> x = wafo.data.gfaksr89()
@@ -216,8 +216,8 @@ def japansea():
     JAPANSEA.DAT contains data for plotting a map of The Japan Sea.
     The data is obtained from USGS coastline extractor.
 
-    Example:
-    -------
+    Examples
+    --------
     #the map is seen by
 
     >>> import pylab
@@ -266,8 +266,8 @@ def northsea():
     NORTHSEA.DAT contains data for plotting a map of The Northsea.
     The data is obtained from USGS coastline extractor.
 
-    Example
-    -------
+    Examples
+    --------
     # the map is seen by
 
     >>> import pylab
@@ -332,8 +332,8 @@ def sea():
     Analysis Toolbox version 1.1 (WAT)
     Hm0 = 1.9m, Tm02 = 4.0s, Tp2 = 11.5s Tp1=5.6s
 
-    Example
-    -------
+    Examples
+    --------
     >>> import pylab
     >>> import wafo
     >>> x = wafo.data.sea()
@@ -373,8 +373,8 @@ def sfa89():
     0 degrees = wind approaching from North, 90 degrees = wind from East, etc.
     This dataset is for non-commercial use only.
 
-     Example
-    -------
+    Examples
+    --------
     >>> import pylab
     >>> import wafo
     >>> x = wafo.data.sfa89()
@@ -411,18 +411,15 @@ def sn():
 
     The origin of the data is unknown.
 
-     Example
-    -------
+    Examples
+    --------
     >>> import pylab
     >>> import wafo
     >>> x = wafo.data.sn()
 
     h = pylab.plot(x[:,0],x[:,1])
 
-    See also
-    --------
-    The same data appear in the directory wdemos/itmkurs/
-    as SN.mat.
+    
 
     """
     return _load('sn.dat')
@@ -460,8 +457,9 @@ def yura87():
         This dataset is for non-commercial use only.
 
         Hm0 = 5.1m, Tm02 = 7.7s, Tp = 12.8s
-    Example
-    -------
+
+    Examples
+    --------
     >>> import pylab
     >>> import wafo
     >>> x = wafo.data.yura87()

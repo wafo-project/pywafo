@@ -64,8 +64,8 @@ def rndnormnd(mean, cov, cases=1):
     The covariance must be a symmetric, semi-positive definite matrix with
     shape equal to the size of the mean.
 
-    Example
-    -------
+    Examples
+    --------
     >>> mu = [0, 5]
     >>> S = [[1, 0.45], [0.45, 0.25]]
     >>> r = rndnormnd(mu, S, 1)
@@ -190,7 +190,8 @@ class CovData1D(PlotData):
          NB! This routine requires that the covariance is evenly spaced
              starting from zero lag. Currently only capable of 1D matrices.
 
-        Example:
+        Examples
+        --------
         >>> import wafo.spectrum.models as sm
         >>> import numpy as np
         >>> import scipy.signal as st
@@ -332,7 +333,8 @@ class CovData1D(PlotData):
         Note: The simulation may give high frequency ripple when used with a
                 small dt.
 
-        Example:
+        Examples
+        --------
         >>> import wafo.spectrum.models as sm
         >>> Sj = sm.Jonswap()
         >>> spec = Sj.tospecdata()   #Make spec
@@ -343,8 +345,9 @@ class CovData1D(PlotData):
         --------
         spec2sdat, gaus2dat
 
-        Reference
-        -----------
+
+        References
+        ----------
         C.R Dietrich and G. N. Newsam (1997)
         "Fast and exact simulation of stationary
         Gaussian process through circulant embedding
@@ -554,8 +557,8 @@ class CovData1D(PlotData):
         TimeSeries.reconstruct,
         rndnormnd
 
-        Reference
-        ---------
+        References
+        ----------
         Brodtkorb, P, Myrhaug, D, and Rue, H (2001)
         "Joint distribution of wave height and wave crest velocity from
         reconstructed data with application to ringing"

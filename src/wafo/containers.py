@@ -50,8 +50,8 @@ class PlotData(object):
     eval_points : interpolate data at given points and return the result
     plot : plot data on given axis and the object handles
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
     >>> x = np.linspace(0, np.pi, 9)
 

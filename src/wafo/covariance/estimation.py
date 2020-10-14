@@ -103,7 +103,7 @@ class CovarianceEstimator(object):
             norm : bool
                 If false indicating that auto_cov is not normalized
 
-         Example:
+         Examples
          --------
          >>> import wafo.data
          >>> import wafo.objects as wo

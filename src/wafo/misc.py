@@ -64,8 +64,8 @@ def lfind(haystack, needle, maxiter=None):
     -------
     indices_gen: generator object
 
-    Example
-    ------
+    Examples
+    --------
     >>> haystack = (1, 3, 4, 3, 10, 3, 1, 2, 5, 7, 10)
     >>> list(lfind(haystack, 3))
     [1, 3, 5]
@@ -95,8 +95,8 @@ def check_random_state(seed):
     If seed is already a RandomState instance, return it.
     Otherwise raise ValueError.
 
-    Example
-    -------
+    Examples
+    --------
     >>> check_random_state(seed=None)
     <mtrand.RandomState object at ...
     >>> check_random_state(seed=1)
@@ -385,8 +385,8 @@ def rotation_matrix(heading, pitch, roll):
 
 def rotate(x, y, z, heading=0, pitch=0, roll=0):
     """
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
     >>> x, y, z = 1, 1, 1
     >>> np.allclose(rotate(x, y, z, heading=0, pitch=0, roll=0),
@@ -469,8 +469,8 @@ def spaceline(start_point, stop_point, num=10):
              number of samples).
     logspace : Samples uniformly distributed in log space.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import wafo.misc as pm
     >>> np.allclose(pm.spaceline((2,0,0), (3,0,0), num=5),
     ...      [[ 2.  ,  0.  ,  0.  ],
@@ -589,8 +589,8 @@ def index2sub(shape, index, order='C'):
     This function is used to determine the equivalent subscript values
     corresponding to a given single index into an array.
 
-    Example
-    -------
+    Examples
+    --------
     >>> shape = (3,3,4)
     >>> a = np.arange(np.prod(shape)).reshape(shape)
     >>> order = 'C'
@@ -628,8 +628,8 @@ def sub2index(shape, *subscripts, **kwds):
     This function is used to determine the equivalent single index
     corresponding to a given set of subscript values into an array.
 
-    Example
-    -------
+    Examples
+    --------
     >>> shape = (3,3,4)
     >>> a = np.arange(np.prod(shape)).reshape(shape)
     >>> order = 'C'
@@ -672,8 +672,8 @@ class JITImport(object):
     '''
     Just In Time Import of module
 
-    Example
-    -------
+    Examples
+    --------
     >>> np = JITImport('numpy')
     >>> np.exp(0)==1.0
     True
@@ -698,8 +698,8 @@ class DotDict(dict):
 
     ''' Implement dot access to dict values
 
-      Example
-      -------
+      Examples
+      --------
        >>> d = DotDict(test1=1,test2=3)
        >>> d.test1
        1
@@ -711,8 +711,8 @@ class Bunch(object):
 
     ''' Implement keyword argument initialization of class
 
-    Example
-    -------
+    Examples
+    --------
     >>> d = Bunch(test1=1,test2=3)
     >>> (d.test1, d.test2)
     (1, 3)
@@ -741,7 +741,7 @@ def sub_dict_select(somedict, somekeys):
     '''
     Extracting a Subset from Dictionary
 
-    Example
+    Examples
     --------
     # Update options dict from keyword arguments if
     # the keyword exists in options
@@ -764,7 +764,8 @@ def parse_kwargs(options, **kwargs):
     '''
     Update options dict from keyword arguments if the keyword exists in options
 
-    Example
+    Examples
+    --------
     >>> opt = dict(arg1=2, arg2=3)
     >>> opt = parse_kwargs(opt,arg2=100)
     >>> opt == {'arg1': 2, 'arg2': 100}
@@ -934,7 +935,8 @@ def ecross(t, f, ind, v=0):
     t0 : vector
         of  exact level v crossings.
 
-    Example
+    Examples
+    --------
     -------
     >>> from matplotlib import pyplot as plt
     >>> import wafo.misc as wm
@@ -998,7 +1000,8 @@ def findcross(x, v=0.0, kind=None, method='clib'):
     ind : array-like
         indices to the crossings in the original sequence x.
 
-    Example
+    Examples
+    --------
     -------
     >>> from matplotlib import pyplot as plt
     >>> import wafo.misc as wm
@@ -1122,8 +1125,9 @@ def findpeaks(data, n=2, min_h=None, min_p=0.0):
     ix =
         linear index to peaks of S
 
-    Example:
 
+    Examples
+	 --------	
     Find highest 8 peaks that are not
     less that 0.3*"global max" and have
     rainflow amplitude larger than 5.
@@ -1242,7 +1246,7 @@ def findrfc(tp, h=0.0, method='clib'):
     ind : ndarray of int
         indices to the rainflow cycles of the original sequence TP.
 
-    Example:
+    Examples
     --------
     >>> import matplotlib.pyplot as plt
     >>> import wafo.misc as wm
@@ -1380,7 +1384,7 @@ def findtp(x, h=0.0, kind=None):
     ind : arraylike
         indices to the turning points in the original sequence.
 
-    Example:
+    Examples
     --------
     >>> import matplotlib.pyplot as plt
     >>> import wafo.misc as wm
@@ -1482,7 +1486,7 @@ def findtc(x_in, v=None, kind=None):
         indices to the level v crossings of the original
         sequence x. (d,u)
 
-    Example:
+    Examples
     --------
     >>> import matplotlib.pyplot as plt
     >>> import wafo.misc as wm
@@ -1748,8 +1752,8 @@ def argsreduce(condition, * args):
         sequence of extracted copies of the input arrays converted to the same
         size as the nonzero values of condition.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import wafo.misc as wm
     >>> import numpy as np
     >>> rand = np.random.random_sample
@@ -1781,8 +1785,8 @@ def stirlerr(n):
     Return error of Stirling approximation,
         i.e., log(n!) - log( sqrt(2*pi*n)*(n/exp(1))**n )
 
-    Example
-    -------
+    Examples
+    --------
     >>> import wafo.misc as wm
     >>> np.allclose(wm.stirlerr(2),  0.0413407)
     True
@@ -1801,12 +1805,12 @@ def stirlerr(n):
 
 
     See also
-    ---------
+    --------
     binom
 
 
-    Reference
-    -----------
+    References
+    ----------
     Catherine Loader (2000).
     Fast and Accurate Computation of Binomial Probabilities
     <http://lists.gnu.org/archive/html/octave-maintainers/2011-09/pdfK0uKOST642.pdf>
@@ -1893,8 +1897,8 @@ def getshipchar(**ship_property):
             service_speed      [m/s]
             propeller_diameter [m]
 
-    Example
-    ---------
+    Examples
+    --------
     >>> import wafo.misc as wm
     >>> true_sc = {'service_speedSTD': 0,
     ...        'lengthSTD': 2.0113098831942762,
@@ -1916,8 +1920,8 @@ def getshipchar(**ship_property):
     Other units: 1 ft = 0.3048 m and 1 knot = 0.5144 m/s
 
 
-    Reference
-    ---------
+    References
+    ----------
     .. [1] Gray and Greeley, (1978),
     "Source level model for propeller blade rate radiation for the world's
     merchant fleet", Bolt Beranek and Newman Technical Memorandum No. 458.
@@ -1975,8 +1979,8 @@ def binomln(z, w):
     This implementation is more accurate than the log(BINOM(Z,W) implementation
     for large arguments
 
-    Example
-    -------
+    Examples
+    --------
 
     >>> np.allclose(binomln(3,2), 1.09861229)
     True
@@ -2012,8 +2016,8 @@ def betaloge(z, w):
     This implementation is more accurate than the BETALN implementation
     for large arguments
 
-    Example
-    -------
+    Examples
+    --------
     >>> import wafo.misc as wm
     >>> np.allclose(wm.betaloge(3,2), -2.48490665)
     True
@@ -2084,8 +2088,8 @@ def nextpow2(x):
     '''
     Return next higher power of 2
 
-    Example
-    -------
+    Examples
+    --------
     >>> import wafo.misc as wm
     >>> wm.nextpow2(10)
     4
@@ -2125,8 +2129,8 @@ def discretize(fun, a, b, tol=0.005, n=5, method='linear'):
     x : discretized values
     y : fun(x)
 
-    Example
-    -------
+    Examples
+    --------
     >>> import wafo.misc as wm
     >>> import numpy as np
     >>> import matplotlib.pyplot as plt
@@ -2284,8 +2288,8 @@ def ndgrid(*args, **kwargs):
     Same as calling meshgrid with indexing='ij' (see meshgrid for
     documentation).
 
-    Example
-    -------
+    Examples
+    --------
     >>> x, y = ndgrid([1,2,3],[4,5,6])
     >>> np.allclose(x, [[1, 1, 1],
     ...                 [2, 2, 2],
@@ -2414,7 +2418,7 @@ def tranproc(x, f, x0, *xi):
     method with linear extrapolation towards the beginning and end of f,
     respectively.
 
-    Example
+    Examples
     --------
     Derivative of g and the transformed Gaussian model.
     >>> import matplotlib.pyplot as plt
@@ -2535,8 +2539,8 @@ def good_bins(data=None, range=None, num_bins=None, odd=False, loose=True):  # @
         if True add extra space to min and max
         if False the bins are made tight to the min and max
 
-    Example
-    -------
+    Examples
+    --------
     >>> import wafo.misc as wm
     >>> np.allclose(wm.good_bins(range=(0,5), num_bins=6),
     ...             [-1.,  0.,  1.,  2.,  3.,  4.,  5.,  6.])
@@ -2597,8 +2601,8 @@ def _make_bars(limits, bin_):
 def _histogram(data, bins=None, range=None, normed=False, weights=None,  # @ReservedAssignment
                density=False):
     """
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
     >>> data = np.linspace(0, 10)
     >>> xx, yy, limits = _histogram(data)
@@ -2656,8 +2660,8 @@ def plot_histgrm(data, bins=None, range=None,  # @ReservedAssignment
     h : list
         of plot-objects
 
-    Example
-    -------
+    Examples
+    --------
     >>> import matplotlib.pyplot as plt
     >>> import wafo.misc as wm
     >>> import wafo.stats as ws
@@ -2699,8 +2703,8 @@ def num2pistr(x, n=3, numerator_max=10, denominator_max=10):
     -------
     xtxt = a text string in fractions of pi
 
-    Example
-    -------
+    Examples
+    --------
     >>> import wafo.misc as wm
     >>> wm.num2pistr(np.pi*3/4)=='3\\pi/4'
     True
@@ -2764,8 +2768,8 @@ def fourier(data, t=None, period=None, m=None, method='trapz'):
     Note that a[0] is the "dc value".
     Remaining values are a[1], a[2], ... , a[M-1].
 
-    Example
-    -------
+    Examples
+    --------
     >>> import wafo.misc as wm
     >>> import numpy as np
     >>> T = 2*np.pi

@@ -1,70 +1,94 @@
-.. _numdifftools.tests:
+wafo.tests package
+==================
 
+Submodules
+----------
 
-numdifftools.tests package
-==========================
+wafo.tests.conftest module
+--------------------------
 
-numdifftools.tests.conftest module
+.. automodule:: wafo.tests.conftest
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+wafo.tests.test\_bitwise module
+-------------------------------
+
+.. automodule:: wafo.tests.test_bitwise
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+wafo.tests.test\_containers module
 ----------------------------------
 
-.. automodule:: numdifftools.tests.conftest
-    :members:
-    :undoc-members:
-    :show-inheritance:
+.. automodule:: wafo.tests.test_containers
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
-numdifftools.tests.test_extrapolation module
---------------------------------------------
+wafo.tests.test\_dct\_pack module
+---------------------------------
 
-.. automodule:: numdifftools.tests.test_extrapolation
-    :members:
-    :undoc-members:
-    :show-inheritance:
+.. automodule:: wafo.tests.test_dct_pack
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
-numdifftools.tests.test_hessian module
---------------------------------------
+wafo.tests.test\_gaussian module
+--------------------------------
 
-.. automodule:: numdifftools.tests.test_hessian
-    :members:
-    :undoc-members:
-    :show-inheritance:
+.. automodule:: wafo.tests.test_gaussian
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
-numdifftools.tests.test_limits module
--------------------------------------
+wafo.tests.test\_integrate module
+---------------------------------
 
-.. automodule:: numdifftools.tests.test_limits
-    :members:
-    :undoc-members:
-    :show-inheritance:
+.. automodule:: wafo.tests.test_integrate
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
-numdifftools.tests.test_multicomplex module
--------------------------------------------
+wafo.tests.test\_integrate\_oscillating module
+----------------------------------------------
 
-.. automodule:: numdifftools.tests.test_multicomplex
-    :members:
-    :undoc-members:
-    :show-inheritance:
+.. automodule:: wafo.tests.test_integrate_oscillating
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
-numdifftools.tests.test_nd_algopy module
-----------------------------------------
+wafo.tests.test\_misc module
+----------------------------
 
-.. automodule:: numdifftools.tests.test_nd_algopy
-    :members:
-    :undoc-members:
-    :show-inheritance:
+.. automodule:: wafo.tests.test_misc
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
-numdifftools.tests.test_numdifftools module
--------------------------------------------
+wafo.tests.test\_objects module
+-------------------------------
 
-.. automodule:: numdifftools.tests.test_numdifftools
-    :members:
-    :undoc-members:
-    :show-inheritance:
+.. automodule:: wafo.tests.test_objects
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
-numdifftools.tests.test_numdifftools_docstrings module
-------------------------------------------------------
+wafo.tests.test\_padua module
+-----------------------------
 
-.. automodule:: numdifftools.tests.test_numdifftools_docstrings
-    :members:
-    :undoc-members:
-    :show-inheritance:
+.. automodule:: wafo.tests.test_padua
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
+
+Module contents
+---------------
+
+.. automodule:: wafo.tests
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -107,7 +107,8 @@ def sensor_typeid(*sensortypes):
         16, 'Y_p'  : Water particle displacement in y-direction from mean pos.
         17, 'Z_p'  : Water particle displacement in z-direction from mean pos.
 
-    Example:
+    Examples
+    --------
     >>> sensor_typeid('W','v')
     [11, 10]
     >>> sensor_typeid('rubbish')
@@ -158,7 +159,8 @@ def sensor_type(*sensorids):
         16, 'Y_p'  : Water particle displacement in y-direction from mean pos.
         17, 'Z_p'  : Water particle displacement in z-direction from mean pos.
 
-    Example:
+    Examples
+    --------
     >>> sensor_type(range(3))
     ('n', 'n_t', 'n_tt')
 
@@ -235,8 +237,8 @@ class TransferFunction(object):
         angle in degrees clockwise from true north to positive x-axis and
         positive y-axis, respectively. (default theatx=90, thetay=0)
 
-    Example
-    -------
+    Examples
+    --------
     >>> import pylab as plt
     >>> N=50; f0=0.1; th0=0; h=50; w0 = 2*pi*f0
     >>> t = np.linspace(0,15,N)
@@ -539,8 +541,8 @@ def wave_pressure(z, Hm0, h=10000, g=9.81, rho=1028):
     PRESSURE calculate pressure amplitude due to water waves according to
     linear theory.
 
-    Example
-    -----
+    Examples
+    --------
     >>> import pylab as plt
     >>> z = -np.linspace(10,20)
     >>> p = wave_pressure(z, Hm0=1, h=20)

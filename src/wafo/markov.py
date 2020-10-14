@@ -179,7 +179,7 @@ def nt2cmat(nt, kind=1):
     -------
     cmat = Cycle matrix. [nxn]
 
-    Example
+    Examples
     --------
     >>> import numpy as np
     >>> cmat0 = np.round(np.triu(np.random.rand(4, 4), 1)*10)
@@ -241,8 +241,8 @@ def cmat2nt(cmat, kind=1):
     NT: n x n array
         Counting distribution.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
     >>> cmat0 = np.round(np.triu(np.random.rand(4, 4), 1)*10)
     >>> cmat0 = np.array([[ 0.,  5.,  6.,  9.],
@@ -303,8 +303,8 @@ def mctp2tc(f_Mm, utc, param, f_mM=None):
     -------
     f_tc  = the matrix with frequences of upcrossing troughs and crests,
 
-    Example
-    -------
+    Examples
+    --------
     >>> fmM = np.array([[ 0.0183,    0.0160,    0.0002,    0.0000,         0],
     ...            [0.0178,    0.5405,    0.0952,         0,         0],
     ...            [0.0002,    0.0813,         0,         0,         0],
@@ -461,8 +461,8 @@ def mctp2rfc(fmM, fMm=None):
     -------
     f_rfc = the rainflow matrix,
 
-    Example:
-    -------
+    Examples
+    --------
     >>> fmM = np.array([[ 0.0183,    0.0160,    0.0002,    0.0000,         0],
     ...            [0.0178,    0.5405,    0.0952,         0,         0],
     ...            [0.0002,    0.0813,         0,         0,         0],
@@ -755,8 +755,8 @@ def mktestmat(param=(-1, 1, 32), x0=None, s=None, lam=1, numsubzero=0):
      The matrix Fh is obtained by assuming a time-reversible process.
      These matrices can be used for testing.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
     >>> param = [-1, 1, 32]
     >>> F, Fh = mktestmat(param, x0=[-0.2, 0.2], s=0.25, lam=0.5)

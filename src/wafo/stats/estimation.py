@@ -128,10 +128,13 @@ def _exponweib_link(x, logsf, phat, i):
 
 
 def _genpareto_link(x, logsf, phat, i):
-    # Reference
-    # Stuart Coles (2004)
-    # "An introduction to statistical modelling of extreme values".
-    # Springer series in statistics
+    """
+    References
+    ----------
+    Stuart Coles (2004)
+    "An introduction to statistical modelling of extreme values".
+    Springer series in statistics
+    """
     _assert_not_implemented(i != 0, 'link(x,logsf,phat,i) where i=0 is '
                             'not implemented!')
     c, loc, scale = phat
@@ -1261,7 +1264,7 @@ class FitDistribution(rv_frozen):
             Note the data in x must be sorted
 
         References
-        -----------
+        ----------
 
         R. C. H. Cheng; N. A. K. Amin (1983)
         "Estimating Parameters in Continuous Univariate Distributions with a

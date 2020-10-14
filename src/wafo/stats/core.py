@@ -72,8 +72,8 @@ def edf(x, method=2):
         2. Interpolation so that F(X_(k)) == k/(n+1).    (default)
         3. The empirical distribution. F(X_(k)) = k/n
 
-    Example
-    -------
+    Examples
+    --------
     >>> import wafo.stats as ws
     >>> x = np.linspace(0,6,200)
     >>> R = ws.rayleigh.rvs(scale=2,size=100)
@@ -109,8 +109,8 @@ def edfcnd(x, c=None, method=2):
         2. Interpolation so that cdf(X_(k)) == k/(n+1).    (default)
         3. The empirical distribution. cdf(X_(k)) = k/n
 
-    Example
-    -------
+    Examples
+    --------
     >>> import wafo.stats as ws
     >>> x = np.linspace(0,6,200)
     >>> R = ws.rayleigh.rvs(scale=2,size=100)
@@ -195,8 +195,8 @@ def reslife(data, u=None, umin=None, umax=None, nu=None, nmin=3, alpha=0.05,
     where k,s is the shape and scale parameter, respectively.
     s0 = scale parameter for threshold u0<u.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import wafo
     >>> R = wafo.stats.genpareto.rvs(0.1,2,2,size=100)
     >>> mrl = reslife(R,nu=20)
@@ -300,8 +300,8 @@ def dispersion_idx(
     where M is the total number of fixed periods/blocks -generally
     the total number of years in the sample.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import wafo.data
     >>> xn = wafo.data.sea()
     >>> t, data = xn.T
@@ -417,8 +417,8 @@ def decluster(data, t=None, thresh=None, tmin=1):
         extreme values and its corresponding sampling times, respectively,
         i.e., all data > thresh which are at least tmin distance apart.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import plt
     >>> import wafo.data
     >>> from wafo.misc import findtc
@@ -557,8 +557,8 @@ def findpot(data, t=None, thresh=None, tmin=1):
         indices to extreme values, i.e., all data > tresh which are at least
         tmin distance apart.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import plt
     >>> import wafo.data
     >>> from wafo.misc import findtc
@@ -650,8 +650,8 @@ def declustering_time(t):
     tc : real scalar
         minimum distance between clusters.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import wafo.data
     >>> x  = wafo.data.sea()
     >>> t, data = x[:400,:].T
@@ -688,8 +688,8 @@ def interexceedance_times(t):
     ti : ndarray
         interexceedance times
 
-    Example
-    -------
+    Examples
+    --------
     >>> t = [1,2,5,10]
     >>> interexceedance_times(t)
     array([1, 3, 5])
@@ -718,8 +718,8 @@ def extremal_idx(ti):
     one if there are some dependence. The extremal index can also be intepreted
     as the reciprocal of the mean cluster size.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import wafo.data
     >>> x  = wafo.data.sea()
     >>> t, data = x[:400,:].T
@@ -734,8 +734,8 @@ def extremal_idx(ti):
     reslife, fitgenparrange, disprsnidx, findpot, decluster
 
 
-    Reference
-    ---------
+    References
+    ----------
     Christopher A. T. Ferro, Johan Segers (2003)
     Inference for clusters of extreme values
     Journal of the Royal Statistical society: Series B
@@ -806,7 +806,8 @@ class RegLogit(object):
      Given Y only, theta = REGLOGIT(Y) fits the model with baseline logit odds
      only.
 
-     Example
+     Examples
+     --------
       y=[1 1 2 1 3 2 3 2 3 3]'
       x = (1:10)'
       b = reglogit(y,x)
@@ -825,7 +826,9 @@ class RegLogit(object):
       b21 = reglogit(y2,X(:,1));
       b21.compare(b2)
 
-     See also regglm, reglm, regnonlm
+     See also
+     --------
+     regglm, reglm, regnonlm
     """
 
     # Original for MATLAB written by Gordon K Smyth <gks@maths.uq.oz.au>,

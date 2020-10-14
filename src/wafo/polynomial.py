@@ -254,8 +254,8 @@ def polydeg(x, y):
     ORTHOFIT is more appropriate than POLYFIT for polynomial fitting with
     relatively high degrees.
 
-    Example:
-    -------
+    Examples
+    --------
     >>> import wafo.polynomial as wp
     >>> x = np.linspace(0,10,300)
     >>> noise = 0.05 * np.random.randn(x.size)
@@ -389,8 +389,7 @@ def ortho2poly(p):
     ...    [ 0.08703704, -0.81349206,  1.69312169, -0.03968254])
     True
 
-    References
-    ----------
+    
     """
     p = np.atleast_2d(p)
     n = p.shape[1] - 1
@@ -435,8 +434,8 @@ def orthofit(x, y, n):
     POLYDEG choose it for you. POLYDEG finds an optimal polynomial degree
     according to the Akaike's information criterion.
 
-    Example:
-    -------
+    Examples
+    --------
     >>> import wafo.polynomial as wp
     >>> x = np.linspace(0,10,300);
     >>> y = np.sin(x**3/100)**2 + 0.05*np.random.randn(x.size)
@@ -449,8 +448,8 @@ def orthofit(x, y, n):
     --------
     polydeg, polyfit, polyval
 
-    Reference:
-    ---------
+    References
+    ----------
     Methodes de calcul numerique 2. JP Nougier. Hermes Science
     Publications, 2001. Section 4.7 pp 116-121
     '''
@@ -506,8 +505,8 @@ def polyreloc(p, x, y=0.0):
     --------
     polyrescl
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
     >>> import wafo.polynomial as wp
     >>> p = np.arange(6); p.shape = (2,-1)
@@ -565,8 +564,8 @@ def polyrescl(p, x, y=1.0):
     --------
     polyreloc
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
     >>> import wafo.polynomial as wp
     >>> p = np.arange(6); p.shape = (2,-1)
@@ -610,8 +609,8 @@ def polytrim(p):
     r : ndarray, poly1d
         vector/matrix/poly1d of trimmed polynomial coefficients.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import wafo.polynomial as wp
     >>> p = [0,1,2]
     >>> wp.polytrim(p)
@@ -837,8 +836,8 @@ def polyshift(py, a=-1, b=1):
     --------
     polyishift
 
-    Example
-    -------
+    Examples
+    --------
     >>> import wafo.polynomial as wp
     >>> py = [1, 0]
     >>> px = wp.polyshift(py,0,5)
@@ -881,8 +880,8 @@ def polyishift(px, a=-1, b=1):
     --------
     polyishift
 
-    Example
-    -------
+    Examples
+    --------
     >>> import wafo.polynomial as wp
     >>> px = [1, 0]
     >>> py = wp.polyishift(px,0,5);
@@ -952,8 +951,8 @@ def poly2cheb(p, a=-1, b=1):
     >>> wp.cheb2poly(ck)
     array([ 1.,  2.,  3.,  4.])
 
-    Reference
-    ---------
+    References
+    ----------
     William H. Press, Saul Teukolsky,
     William T. Wetterling and Brian P. Flannery (1997)
     "Numerical recipes in Fortran 77", Vol. 1, pp 184-194
@@ -1051,8 +1050,8 @@ def chebextr(n):
     array([ 1., -1.,  1., -1.,  1.])
 
 
-    Reference
-    ---------
+    References
+    ----------
     http://en.wikipedia.org/wiki/Chebyshev_nodes
     http://en.wikipedia.org/wiki/Chebyshev_polynomials
     """
@@ -1090,8 +1089,8 @@ def chebroot(n, kind=1):
     array([ 16.,   0., -12.,   0.,   1.])
 
 
-    Reference
-    ---------
+    References
+    ----------
     http://en.wikipedia.org/wiki/Chebyshev_nodes
     http://en.wikipedia.org/wiki/Chebyshev_polynomials
     """
@@ -1142,8 +1141,8 @@ def chebpoly(n, x=None, kind=1):
     >>> wp.chebpoly(0,kind=2)
     array([ 1.])
 
-    Reference
-    ---------
+    References
+    ----------
     http://en.wikipedia.org/wiki/Chebyshev_polynomials
     """
     if x is None:  # Calculate coefficients.
@@ -1205,8 +1204,8 @@ def chebfit(fun, n=10, a=-1, b=1, trace=False):
     --------
     chebval
 
-    Reference
-    ---------
+    References
+    ----------
     http://en.wikipedia.org/wiki/Chebyshev_nodes
     http://mathworld.wolfram.com/ChebyshevApproximationFormula.html
 
@@ -1292,8 +1291,8 @@ def chebfit_dct(f, n=(10, ), domain=None):
     --------
     chebval, chebvalnd
 
-    Reference
-    ---------
+    References
+    ----------
     http://en.wikipedia.org/wiki/Chebyshev_nodes
     http://mathworld.wolfram.com/ChebyshevApproximationFormula.html
 
@@ -1353,8 +1352,8 @@ def idct(x, n=None):
     >>> np.allclose(dct(idct(x)), x)
     True
 
-    Reference
-    ---------
+    References
+    ----------
     http://en.wikipedia.org/wiki/Discrete_cosine_transform
     http://users.ece.utexas.edu/~bevans/courses/ee381k/lectures/
     """
@@ -1499,8 +1498,8 @@ def chebder(ck, a=-1, b=1):
     chebint
     chebfit
 
-    Reference
-    ---------
+    References
+    ----------
     http://en.wikipedia.org/wiki/Chebyshev_polynomials
 
     W. Fraser (1965)
@@ -1553,8 +1552,8 @@ def chebint(ck, a=-1, b=1):
     chebder
     chebfit
 
-    Reference
-    ---------
+    References
+    ----------
     http://en.wikipedia.org/wiki/Chebyshev_polynomials
 
     W. Fraser (1965)
@@ -1761,8 +1760,8 @@ def padefit(c, m=None):
 
     Note: c must be ordered for direct use with polyval
 
-    Example
-    -------
+    Examples
+    --------
     Pade approximation to exp(x)
     >>> import scipy.special as sp
     >>> import matplotlib.pyplot as plt
@@ -1834,8 +1833,9 @@ def padefitlsq(fun, m, k, a=-1, b=1, trace=False, x=None, end_points=True):
 
     Note: c1 and c2 are ordered for direct use with polyval
 
-    Example
-    -------
+    Examples
+    --------
+
 
     Pade approximation to exp(x) between 0 and 2
     >>> import matplotlib.pyplot as plt
@@ -1853,8 +1853,8 @@ def padefitlsq(fun, m, k, a=-1, b=1, trace=False, x=None, end_points=True):
     --------
     padefit
 
-    Reference
-    ---------
+    References
+    ----------
     William H. Press, Saul Teukolsky,
     William T. Wetterling and Brian P. Flannery (1997)
     "Numerical recipes in Fortran 77", Vol. 1, pp 197-20

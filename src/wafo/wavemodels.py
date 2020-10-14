@@ -48,8 +48,8 @@ def lh83pdf(t=None, h=None, mom=None, g=None):
                    The transformation, g, can be estimated using lc2tr
                    or dat2tr or given apriori by ochi.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import wafo.spectrum.models as sm
     >>> Sj = sm.Jonswap()
     >>> w = np.linspace(0,4,256)
@@ -150,8 +150,8 @@ def cav76pdf(t=None, h=None, mom=None, g=None):
                    or dat2tr or given a priori by ochi.
            []    = default values are used.
 
-     Example
-     -------
+     Examples
+     --------
     >>> import wafo.spectrum.models as sm
     >>> Sj = sm.Jonswap()
     >>> w = np.linspace(0,4,256)

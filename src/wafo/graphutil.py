@@ -191,8 +191,8 @@ def tallibing(*args, **kwds):
     When plotting binned results, the number of datapoints in each
     bin can be written on the bins in the plot.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import wafo.graphutil as wg
     >>> import wafo.demos as wd
     >>> [x,y,z] = wd.peaks(n=20)

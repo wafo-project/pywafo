@@ -316,8 +316,8 @@ class TKDE(_KDE):
     kde(x0, x1,..., xd) : array
         same as kde.eval_grid(x0, x1,..., xd)
 
-    Example
-    -------
+    Examples
+    --------
     N = 20
     data = np.random.rayleigh(1, size=(N,))
     >>> data = np.array([
@@ -544,8 +544,8 @@ class KDE(_KDE):
     kde(x0, x1,..., xd) : array
         same as kde.eval_grid(x0, x1,..., xd)
 
-    Example
-    -------
+    Examples
+    --------
     N = 20
     data = np.random.rayleigh(1, size=(N,))
     >>> data = np.array([

@@ -31,8 +31,8 @@ University of Padua, Italy
 E-mail: demarchi@math.unipd.it, alvise@math.unipd.it,
         marcov@math.unipd.it
 
-Reference
----------
+References
+----------
 Padua2DM: fast interpolation and cubature at the Padua points in Matlab/Octave
 NUMERICAL ALGORITHMS, 56 (2011), PP. 45-60
 
@@ -362,8 +362,8 @@ def padua_fit(Pad, fun, *args):
     coefficents: coefficient matrix
     abs_err   : interpolation error estimate
 
-    Example
-    ------
+    Examples
+    --------
     >>> import numpy as np
     >>> import wafo.padua as wp
     >>> domain = [0, 1, 0, 1]

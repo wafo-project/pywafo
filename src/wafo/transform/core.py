@@ -147,8 +147,8 @@ class TrData(PlotData, TrCommon):
         mean = self.gauss2dat(ymean),
         sigma = (self.gauss2dat(ysigma)-self.gauss2dat(-ysigma))/2
 
-    Example
-    -------
+    Examples
+    --------
     Construct a linear transformation model
     >>> import numpy as np
     >>> import wafo.transform as wt

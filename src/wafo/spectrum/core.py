@@ -80,9 +80,8 @@ def qtf(w, h=inf, g=9.81, method='winterstein', rtol=1e-7, atol=0):
     h_d   = difference frequency effects
     h_dii = diagonal of h_d
 
-    Example
-    -------
-
+    Examples
+    --------
     >>> w = np.r_[0.1, 1./3, 2./3, 1]
     >>> hs, hd, hdi = qtf(w, h=np.inf, g=9.81)
     >>> np.allclose(hs, [[ 0.00050968,  0.00308642,  0.01158115,  0.02573904],
@@ -138,8 +137,8 @@ def qtf(w, h=inf, g=9.81, method='winterstein', rtol=1e-7, atol=0):
     ...             atol=0)
     True
 
-    References:
-    -----------
+    References
+    ----------
     Langley, RS (1987)
     'A statistical analysis of nonlinear random waves'
     Ocean Engineering, Vol 14, No 5, pp 389-407
@@ -328,8 +327,8 @@ def plotspec(specdata, linetype='b-', flag=1):
             1 contour plot of S (default)
             2 filled contour plot of S
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
     >>> import wafo.spectrum as ws
     >>> Sj = ws.models.Jonswap(Hm0=3, Tp=7)
@@ -798,8 +797,8 @@ class SpecData1D(PlotData):
         NB! This routine requires that the spectrum grid is equidistant
            starting from zero frequency.
 
-        Example
-        -------
+        Examples
+        --------
         >>> import wafo.spectrum.models as sm
         >>> Sj = sm.Jonswap()
         >>> S = Sj.tospecdata()
@@ -876,7 +875,8 @@ class SpecData1D(PlotData):
          to calculate covariances then you should probably round off the sharp
          edges like this:
 
-        Example:
+        Examples
+        --------
         >>> import wafo.spectrum.models as sm
         >>> Sj = sm.Jonswap()
         >>> S = Sj.tospecdata()
@@ -1008,7 +1008,7 @@ class SpecData1D(PlotData):
         wave components, i.e., in the calculation of sum and difference
         frequency effects.
 
-        Example:
+        Examples
         --------
         np = 10000
           iseed = 1
@@ -1328,9 +1328,9 @@ class SpecData1D(PlotData):
         The transformation, g, can be estimated using LC2TR,
         DAT2TR, HERMITETR or OCHITR.
 
-        Example
-        -------
-        The density of Tc is computed by:
+        Examples
+        --------
+        # The density of Tc is computed by:
         >>> import pylab as plb
         >>> from wafo.spectrum import models as sm
         >>> w = np.linspace(0,3,100)
@@ -1604,12 +1604,14 @@ class SpecData1D(PlotData):
         Snorm=S; Snorm.S=S.S/L0; Snorm.tr=g
         ftg=spec2mmtpdf(Snorm,0,'AcAt',[],paramu); pdfplot(ftg)    % c)
 
+
         See also
         --------
         rindoptset, dat2tr, datastructures, wavedef, perioddef
 
+
         References
-        ---------
+        ----------
         Podgorski et al. (2000)
         "Exact distributions for apparent waves in irregular seas"
         Ocean Engineering,  Vol 27, no 1, pp979-1016.
@@ -1622,11 +1624,12 @@ class SpecData1D(PlotData):
         Dr.Ing thesis, Norwegian University of Science and Technolgy, NTNU,
         Trondheim, Norway.
 
-        Per A. Brodtkorb (2006)
+        P. A. Brodtkorb (2006)
         "Evaluating Nearly Singular Multinormal Expectations with Application
         to Wave Distributions",
         Methodology And Computing In Applied Probability, Volume 8, Number 1,
         pp. 65-91(27)
+
         '''
 
         opts = dict(speed=4, nit=2, method=0)
@@ -2559,7 +2562,8 @@ class SpecData1D(PlotData):
         Note: The method 'exact' simulation may give high frequency ripple when
         used with a small dt. In this case the method 'random' works better.
 
-        Example:
+        Examples
+        --------
         >>> import wafo.spectrum.models as sm
         >>> Sj = sm.Jonswap();S = Sj.tospecdata()
         >>> ns =100; dt = .2
@@ -2772,7 +2776,7 @@ class SpecData1D(PlotData):
         extract the linear components from the spectrum. One way to do this is
         to use SPEC2LINSPEC.
 
-        Example
+        Examples
         --------
         >>> import wafo.spectrum.models as sm
         >>> Sj = sm.Jonswap();S = Sj.tospecdata()
@@ -3047,7 +3051,7 @@ class SpecData1D(PlotData):
         2'order transfer matrix.
         S is the spectrum and dw is the frequency spacing of S.
 
-        Example:
+        Examples
         --------
         # Simulate a Transformed Gaussian process:
         >>> import wafo.spectrum.models as sm
@@ -3216,8 +3220,8 @@ class SpecData1D(PlotData):
          Gaussian. If 95% of TEST1 is less than TEST0 then X(t) is not Gaussian
          at a 5% level.
 
-        Example:
-        -------
+        Examples
+        --------
         >>> import wafo.spectrum.models as sm
         >>> import wafo.transform.models as wtm
         >>> import wafo.objects as wo
@@ -3318,7 +3322,8 @@ class SpecData1D(PlotData):
                              etc.
         For the calculation of moments see Baxevani et al.
 
-        Example:
+        Examples
+        --------
         >>> import numpy as np
         >>> import wafo.spectrum.models as sm
         >>> Sj = sm.Jonswap(Hm0=3, Tp=7)
@@ -3364,8 +3369,8 @@ class SpecData1D(PlotData):
         """
         Return Nyquist frequency
 
-        Example
-        -------
+        Examples
+        --------
         >>> import wafo.spectrum.models as sm
         >>> Sj = sm.Jonswap(Hm0=5)
         >>> S = Sj.tospecdata() #Make spectrum ob
@@ -3390,8 +3395,8 @@ class SpecData1D(PlotData):
             dT=1/(2*wm)
         if natural frequency (Hz)
 
-        Example
-        -------
+        Examples
+        --------
         >>> import wafo.spectrum.models as sm
         >>> Sj = sm.Jonswap(Hm0=5)
         >>> S = Sj.tospecdata() #Make spectrum ob
@@ -3552,8 +3557,8 @@ class SpecData1D(PlotData):
         If S is complex-valued cross spectral density which has to be
         normalized, then m0, m2 (suitable spectral moments) should be given.
 
-        Example
-        -------
+        Examples
+        --------
         >>> import wafo.spectrum.models as sm
         >>> Sj = sm.Jonswap(Hm0=5)
         >>> S = Sj.tospecdata() #Make spectrum ob
@@ -3608,7 +3613,8 @@ class SpecData1D(PlotData):
             vector of bandwidth factors
             Order of output is the same as order in 'factors'
 
-        Example:
+        Examples
+        --------
         >>> import numpy as np
         >>> import wafo.spectrum.models as sm
         >>> Sj = sm.Jonswap(Hm0=3, Tp=7)
@@ -4036,8 +4042,8 @@ class SpecData2D(PlotData):
         NB! The routine does not change the type of spectrum, use spec2spec
             for this.
 
-        Example
-        -------
+        Examples
+        --------
           S=demospec('dir');
           plotspec(S), hold on
           plotspec(rotspec(S,pi/2),'r'), hold off
@@ -4152,7 +4158,8 @@ class SpecData2D(PlotData):
                              etc.
         For the calculation of moments see Baxevani et al.
 
-        Example:
+        Examples
+        --------
         >>> import wafo.spectrum.models as sm
         >>> D = sm.Spreading()
         >>> SD = D.tospecdata2d(sm.Jonswap().tospecdata(),nt=101)

@@ -508,15 +508,16 @@ class Jonswap(ModelSpectrum):
 
     See also
     --------
-     Bretschneider
-     Tmaspec
-     Torsethaugen
+    Bretschneider
+    Tmaspec
+    Torsethaugen
+
 
     References
     -----------
-     Torsethaugen et al. (1984)
-     Characteristica for extreme Sea States on the Norwegian continental shelf.
-     Report No. STF60 A84123. Norwegian Hydrodyn. Lab., Trondheim
+    Torsethaugen et al. (1984)
+    "Characteristica for extreme Sea States on the Norwegian continental shelf."
+    Report No. STF60 A84123. Norwegian Hydrodyn. Lab., Trondheim
 
      Hasselmann et al. (1973)
      Measurements of Wind-Wave Growth and Swell Decay during the Joint
@@ -679,8 +680,8 @@ def phi1(wi, h, g=9.81):
         tr : arraylike
             transformation factors
 
-    Example:
-    -------
+    Examples
+    --------
     Transform a JONSWAP spectrum to a spectrum for waterdepth = 30 m
     >>> import wafo.spectrum.models as wsm
     >>> S = wsm.Jonswap()
@@ -689,8 +690,8 @@ def phi1(wi, h, g=9.81):
     array([ 0.        ,  1.0358056 ,  0.03796281])
 
 
-    Reference
-    ---------
+    References
+    ----------
     Buows, E., Gunther, H., Rosenthal, W. and Vincent, C.L. (1985)
      'Similarity of the wind wave spectrum in finite depth water:
      1 spectral form.'
@@ -754,7 +755,7 @@ class Tmaspec(Jonswap):
     Sea) and ARSLOE project (Duck, North Carolina, USA). The data include
     observations at water depths ranging from 6 m to 42 m.
 
-    Example
+    Examples
     --------
     >>> import wafo.spectrum.models as wsm
     >>> import numpy as np
@@ -851,8 +852,8 @@ class Torsethaugen(ModelSpectrum):
     North Sea and sea states outside the area where measured data
     are available.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import wafo.spectrum.models as wsm
     >>> import numpy as np
     >>> w = np.linspace(0,4)
@@ -1081,7 +1082,7 @@ class McCormick(Bretschneider):
         Tp/Tz=(1+1/M)^(1/M)/gamma(1+1/M)
 
 
-    Example:
+    Examples
     --------
     >>> import wafo.spectrum.models as wsm
     >>> S = wsm.McCormick(Hm0=6.5,Tp=10)
@@ -1167,7 +1168,8 @@ class OchiHubble(ModelSpectrum):
     Jonswap,
     Torsethaugen
 
-    References:
+
+    References
     ----------
     Ochi, M.K. and Hubble, E.N. (1976)
     'On six-parameter wave spectra.'
@@ -1288,7 +1290,7 @@ class Wallop(Bretschneider):
     peak enhancement factor gamma=1 or the Bretschneider
     (Pierson-Moskowitz) spectrum.
 
-    Example:
+    Examples
     --------
     >>> import wafo.spectrum.models as wsm
     >>> S = wsm.Wallop(Hm0=6.5, Tp=10)
@@ -1302,8 +1304,9 @@ class Wallop(Bretschneider):
     Jonswap,
     Torsethaugen
 
-    References:
-    -----------
+
+    References
+    ----------
     Huang, N.E., Long, S.R., Tung, C.C, Yuen, Y. and Bilven, L.F. (1981)
     "A unified two parameter wave spectral model for a generous sea state"
     J. Fluid Mechanics, Vol.112, pp 203-224
@@ -1453,12 +1456,8 @@ class Spreading(object):
     plt.close('all')
 
 
-    See also
-    --------
-    mkdspec, plotspec, spec2spec
-
     References
-    ---------
+    ----------
     Krogstad, H.E. and Barstow, S.F. (1999)
     "Directional Distributions in Ocean Wave Spectra"
     Proceedings of the 9th ISOPE Conference, Vol III, pp. 79-86
@@ -1487,6 +1486,11 @@ class Spreading(object):
     NB! The generally strong frequency dependence in directional spread
     makes it questionable to run load tests of ships and structures with a
     directional spread independent of frequency (Krogstad and Barstow, 1999).
+
+
+    See also
+    --------
+    mkdspec, plotspec, spec2spec
     """
 # Parameterization of B
 #    def = 2 Donelan et al freq. parametrization for 'sech2'
@@ -2020,8 +2024,8 @@ class Spreading(object):
 
          NB! S.w and D.w (if any) must be identical.
 
-         Example
-         -------
+         Examples
+         --------
          >>> import wafo.spectrum.models as wsm
          >>> S = wsm.Jonswap().tospecdata()
          >>> D = wsm.Spreading('cos2s')

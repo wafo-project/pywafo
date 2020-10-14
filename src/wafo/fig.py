@@ -18,8 +18,8 @@ TVTK scene 2
 TVTK scene 3
 ...
 
-Example
--------
+Examples
+--------
 >>> import pylab as p
 >>> import wafo.fig as fig
 >>> for ix in range(6):
@@ -192,8 +192,8 @@ def find_figure_handles(*figure_numbers):
 def find_all_figure_numbers():
     """Return list of all figure numbers.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import fig
     >>> import pylab as p
     >>> for ix in range(5):
@@ -364,7 +364,7 @@ def keep(*figure_numbers):
     ----------
     figure_numbers : list of integers specifying which figures to keep.
 
-    Example:
+    Examples
     --------
     # keep only figures 1,2,3,5 and 7
     >>> import pylab as p
@@ -591,7 +591,7 @@ def pile(*figure_numbers, **kwds):
        with complete overlap. PILE(FIGS) can be used to specify which
        figures that should be piled. Figures are not sorted when specified.
 
-     Example:
+     Examples
      --------
      >>> import pylab as p
      >>> import wafo.fig as fig
@@ -638,7 +638,7 @@ def set_size(*figure_numbers, **kwds):
     can be used to specify which figures that should be resized.
     Figures are not sorted when specified.
 
-     Example:
+     Examples
      --------
      >>> import pylab as p
      >>> import fig
@@ -686,7 +686,7 @@ def stack(*figure_numbers, **kwds):
        with maximum overlap. STACK(FIGS) can be used to specify which
        figures that should be stacked. Figures are not sorted when specified.
 
-     Example:
+     Examples
      --------
      >>> import pylab as p
      >>> import wafo.fig as fig
@@ -739,7 +739,7 @@ def tile(*figure_numbers, **kwds):
        overlap. TILE(FIGS) can be used to specify which figures that
        should be tiled. Figures are not sorted when specified.
 
-     Example:
+     Examples
      --------
      >>> import pylab as p
      >>> import wafo.fig as fig

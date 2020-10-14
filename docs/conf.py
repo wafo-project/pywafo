@@ -33,11 +33,11 @@ sys.path.insert(0, SOURCE_PATH)
 # setup.py install" in the RTD Advanced Settings.
 # Additionally it helps us to avoid running apidoc manually
 
-#
+
 #from sphinx import apidoc
-#
+
 #output_dir = os.path.join(__location__, "api")
-#module_dir = os.path.join(__location__, "../src/numdifftools")
+#module_dir = os.path.join(__location__, "../src/wafo")
 #try:
 #    shutil.rmtree(output_dir)
 #except FileNotFoundError:

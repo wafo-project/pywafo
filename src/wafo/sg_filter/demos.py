@@ -8,8 +8,8 @@ from wafo.sg_filter._core import (SavitzkyGolay, smoothn, Kalman,
 
 def demo_savitzky_on_noisy_chirp():
     """
-    Example
-    -------
+    Examples
+    --------
     >>> demo_savitzky_on_noisy_chirp()
 
     >>> plt.close()
@@ -54,8 +54,8 @@ def demo_savitzky_on_noisy_chirp():
 
 def demo_kalman_voltimeter():
     """
-    Example
-    -------
+    Examples
+    --------
     >>> demo_kalman_voltimeter()
 
     >>> plt.close()
@@ -139,8 +139,8 @@ def lti_disc(F, L=None, Q=None, dt=1):
 def demo_kalman_sine():
     """Kalman Filter demonstration with sine signal.
 
-    Example
-    -------
+    Examples
+    --------
     >>> demo_kalman_sine()
 
     >>> plt.close()
@@ -253,8 +253,8 @@ def demo_kalman_sine():
 
 def demo_hampel():
     """
-    Example
-    -------
+    Examples
+    --------
     >>> demo_hampel()
 
     >>> plt.close()
@@ -290,8 +290,8 @@ def plot_hampel(Y, YY, res):
 
 def demo_tide_filter():
     """
-    Example
-    -------
+    Examples
+    --------
     >>> demo_tide_filter()
 
     >>> plt.close()
@@ -372,8 +372,8 @@ def demo_tide_filter():
 
 def demo_savitzky_on_exponential():
     """
-    Example
-    -------
+    Examples
+    --------
     >>> demo_savitzky_on_exponential()
 
     >>> plt.close()
@@ -387,8 +387,8 @@ def demo_savitzky_on_exponential():
 
 def demo_smoothn_on_1d_cos():
     """
-    Example
-    -------
+    Examples
+    --------
     >>> demo_smoothn_on_1d_cos()
 
     >>> plt.close()
@@ -408,8 +408,8 @@ def demo_smoothn_on_1d_cos():
 
 def demo_smoothn_on_2d_exp_sin():
     """
-    Example
-    -------
+    Examples
+    --------
     >>> demo_smoothn_on_2d_exp_sin()
 
     >>> plt.close()
@@ -439,8 +439,8 @@ def _cardioid(n=1000):
 
 def demo_smoothn_on_cardioid():
     """
-    Example
-    -------
+    Examples
+    --------
     >>> demo_smoothn_on_cardioid()
 
     >>> plt.close()
@@ -454,8 +454,8 @@ def demo_smoothn_on_cardioid():
 
 def demo_hodrick_on_cardioid():
     """
-    Example
-    -------
+    Examples
+    --------
     >>> demo_hodrick_on_cardioid()
 
     >>> plt.close()

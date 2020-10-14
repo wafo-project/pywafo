@@ -18,8 +18,8 @@ def _assert(cond, msg):
 def bitget(int_type, offset):
     """Returns the value of the bit at the offset position in int_type.
 
-    Example
-    -------
+    Examples
+    --------
     >>> bitget(5, np.r_[0:4])
     array([1, 0, 1, 0])
 
@@ -29,8 +29,8 @@ def bitget(int_type, offset):
 
 def accumsum_sparse(accmap, a, shape=None, dtype=None):
     """
-    Example
-    -------
+    Examples
+    --------
     >>> from numpy import array
     >>> a = array([[1,2,3],[4,-1,6],[-1,8,9]])
     >>> a
@@ -72,8 +72,8 @@ def accumsum_sparse(accmap, a, shape=None, dtype=None):
 def accumsum(accmap, a, shape=None):
     """
 
-    Example
-    -------
+    Examples
+    --------
     >>> from numpy import array
     >>> a = array([[1,2,3],[4,-1,6],[-1,8,9]])
     >>> a

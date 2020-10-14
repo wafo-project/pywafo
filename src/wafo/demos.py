@@ -98,8 +98,8 @@ def peaks(x=None, y=None, n=51):
     Return the "well" known MatLab (R) peaks function
     evaluated in the [-3,3] x,y range
 
-    Example
-    -------
+    Examples
+    --------
     >>> import matplotlib.pyplot as plt
     >>> x,y,z = peaks()
 
@@ -124,8 +124,8 @@ def humps(x=None):
     """
     Computes a function that has three roots, and some humps.
 
-     Example
-    -------
+    Examples
+    --------
     >>> import matplotlib.pyplot as plt
     >>> x = np.linspace(0,1)
     >>> y = humps(x)

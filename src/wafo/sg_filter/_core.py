@@ -880,8 +880,9 @@ class Kalman(object):
     This is mathematically equivalent to setting the initial state estimate
     covariance to infinity.
 
-    Example (Automobile Voltimeter):
-    -------
+    Examples 
+    --------
+    # Automobile Voltimeter:
     >>> import wafo.sg_filter as ws
     >>> V0 = 12    # Define the system as a constant of 12 volts
     >>> h = 1      # voltimeter measure the voltage itself

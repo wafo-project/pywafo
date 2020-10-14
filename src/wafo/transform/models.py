@@ -114,7 +114,7 @@ class TrHermite(TrCommon2):
             c4 = [sqrt(1+1.5*(kurt-3))-1]/18
 
 
-    Example:
+    Examples
     --------
     """ + _example.replace('<generic>', 'TrHermite') + """
     >>> np.allclose(g.dist2gauss(), 0.88230868748851499)
@@ -367,7 +367,7 @@ class TrLinear(TrCommon2):
     such that the first 2 moments of the transformed model G(y)=g^-1(y) match
     the moments of the true process.
 
-    Example:
+    Examples
     --------
     """ + _example.replace('<generic>', 'TrLinear') + """
     >>> np.allclose(g.dist2gauss(), 0)
@@ -436,8 +436,8 @@ class TrOchi(TrCommon2):
     Transformation, g, does not have continous derivatives of 2'nd order or
     higher.
 
-    Example
-    -------
+    Examples
+    --------
     """ + _example.replace('<generic>', 'TrOchi') + """
     >>> np.allclose(g.dist2gauss(), 1.410698801056657)
     True

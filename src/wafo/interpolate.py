@@ -134,8 +134,8 @@ def savitzky_golay_piecewise(xvals, data, kernel=11, order=4):
     In this case, Savitzky-Golay smoothing should be
     done piecewise, ie. separately on pieces monotonic in x
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
     >>> import matplotlib.pyplot as plt
     >>> n = 1e3
@@ -190,8 +190,8 @@ def sgolay2d(z, window_size, order, derivative=None):
     can happen smoothly.
     Here is the code for two dimensional filtering.
 
-    Example
-    -------
+    Examples
+    --------
     # create some sample twoD data
     >>> x = np.linspace(-3,3,100)
     >>> y = np.linspace(-3,3,100)
@@ -303,8 +303,8 @@ class PPform(object):
     S_i = sum(coefs[m,i]*(x-breaks[i])^(k-m), m=0..k)
     where k is the degree of the polynomial.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import matplotlib.pyplot as plt
     >>> coef = np.array([[1,1]]) # unit step function
     >>> coef = np.array([[1,1],[0,1]]) # linear from 0 to 2
@@ -491,8 +491,8 @@ class SmoothSpline(PPform):
       p * sum (Y(i) - f(X(i)))^2/d2(i)  +  (1-p) * int (f'')^2
 
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
     >>> import matplotlib.pyplot as plt
     >>> x = np.linspace(0, 1, 21)
@@ -1056,8 +1056,8 @@ class Pchip(BPoly):
 
     Assumes x is sorted in monotonic order (e.g. x[1] > x[0])
 
-    Example
-    -------
+    Examples
+    --------
     >>> import wafo.interpolate as wi
 
     # Create a step function (will demonstrate monotonicity)

@@ -71,8 +71,8 @@ def qlevels(pdf, p=(10, 30, 50, 70, 90, 95, 99, 99.9), xi=(), indexing='xy'):
     NB! QLEVELS normalizes the integral of PDF to n/(n+0.001) before
     calculating 'levels' in order to reflect the sampling of PDF is finite.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import wafo.stats as ws
     >>> x = np.linspace(-8,8,2001);
     >>> PL = np.r_[10:90:20, 90, 95, 99, 99.9]
@@ -218,8 +218,8 @@ def iqrange(data, axis=None):
     IQRANGE is a robust measure of spread. The use of interquartile range
     guards against outliers if the distribution have heavy tails.
 
-    Example
-    -------
+    Examples
+    --------
     >>> a = np.arange(101)
     >>> iqrange(a)
     50.0
@@ -244,15 +244,15 @@ def sphere_volume(d, r=1.0):
     r : scalar or array_like
         radius of sphere (default 1)
 
-    Example
-    -------
+    Examples
+    --------
     >>> sphere_volume(2., r=2.)
     12.566370614359172
     >>> sphere_volume(2., r=1.)
     3.1415926535897931
 
-    Reference
-    ---------
+    References
+    ----------
     Wand,M.P. and Jones, M.C. (1995)
     'Kernel smoothing'
     Chapman and Hall, pp 105
@@ -575,8 +575,8 @@ class Kernel(object):
             integral of squared double derivative of kernel,
             i.e., int( (kernel''(x))^2 ).
 
-        Reference
-        ---------
+        References
+        ----------
         Wand,M.P. and Jones, M.C. (1995)
         'Kernel smoothing'
         Chapman and Hall, pp 176.
@@ -612,8 +612,8 @@ class Kernel(object):
         factor, e.g., 0.85. Another is to try different values for H and make a
         visual check by eye.
 
-        Example:
-        -------
+        Examples
+        --------
         >>> import numpy as np
         >>> import wafo.kdetools as wk
         >>> import wafo.stats as ws
@@ -625,8 +625,8 @@ class Kernel(object):
         ---------
         hste, hbcv, hboot, hos, hldpi, hlscv, hscv, hstt, kde
 
-        Reference:
-        ---------
+        References
+        ----------
         B. W. Silverman (1986)
         'Density estimation for statistics and data analysis'
         Chapman and Hall, pp 43-48
@@ -673,15 +673,15 @@ class Kernel(object):
 
                 HOS = HNS/0.93
 
-        Example:
+        Examples
         --------
         data = rndnorm(0, 1,20,1)
         h = hos(data,'epan');
 
         See also  hste, hbcv, hboot, hldpi, hlscv, hscv, hstt, kde, kdefun
 
-        Reference
-        ---------
+        References
+        ----------
         B. W. Silverman (1986)
         'Density estimation for statistics and data analysis'
         Chapman and Hall, pp 43-48
@@ -711,7 +711,7 @@ class Kernel(object):
     def hmns(self, data):
         """Returns Multivariate Normal Scale Estimate of Smoothing Parameter.
 
-         CALL:  h = hmns(data,kernel)
+        CALL:  h = hmns(data,kernel)
 
            h      = M dimensional optimal value for smoothing parameter
                     given the data and kernel.  size D x D
@@ -722,31 +722,32 @@ class Kernel(object):
                     'gaussian'      - Gaussian kernel
 
 
-         HMNS  only gives  a optimal value with respect to mean integrated
-         square error, when the true underlying distribution is Multivariate
-         Gaussian. This works reasonably well if the data resembles a
-         Multivariate Gaussian distribution. However if the distribution is
-         asymmetric, multimodal or have long tails then HNS is maybe more
-         appropriate.
+        HMNS  only gives  a optimal value with respect to mean integrated
+        square error, when the true underlying distribution is Multivariate
+        Gaussian. This works reasonably well if the data resembles a
+        Multivariate Gaussian distribution. However if the distribution is
+        asymmetric, multimodal or have long tails then HNS is maybe more
+        appropriate.
 
-          Example:
-            data = rndnorm(0, 1,20,2)
-            h = hmns(data,'epan')
+        Examples
+        --------
+        data = rndnorm(0, 1,20,2)
+        h = hmns(data,'epan')
 
-         See also
-         --------
-
+        See also
+        --------
         hns, hste, hbcv, hboot, hos, hldpi, hlscv, hscv, hstt
 
-         Reference
-         ----------
-          B. W. Silverman (1986)
-         'Density estimation for statistics and data analysis'
-          Chapman and Hall, pp 43-48, 87
 
-          Wand,M.P. and Jones, M.C. (1995)
-         'Kernel smoothing'
-          Chapman and Hall, pp 60--63, 86--88
+        References
+        ----------
+        B. W. Silverman (1986)
+        'Density estimation for statistics and data analysis'
+        Chapman and Hall, pp 43-48, 87
+
+        Wand,M.P. and Jones, M.C. (1995)
+        'Kernel smoothing'
+        Chapman and Hall, pp 60--63, 86--88
 
         """
 
@@ -763,7 +764,7 @@ class Kernel(object):
     def hste(self, data, h0=None, inc=128, maxit=100, releps=0.01, abseps=0.0):
         '''HSTE 2-Stage Solve the Equation estimate of smoothing parameter.
 
-         CALL:  hs = hste(data,kernel,h0)
+        CALL:  hs = hste(data,kernel,h0)
 
                hs = one dimensional value for smoothing parameter
                     given the data and kernel.  size 1 x D
@@ -772,21 +773,26 @@ class Kernel(object):
                      ( currently the only supported kernel)
                h0 = initial starting guess for hs (default h0=hns(A,kernel))
 
-          Example:
-           x  = rndnorm(0,1,50,1);
-           hs = hste(x,'gauss');
+        Examples
+        --------
+        x  = rndnorm(0,1,50,1);
+        hs = hste(x,'gauss');
 
-         See also  hbcv, hboot, hos, hldpi, hlscv, hscv, hstt, kde, kdefun
 
-         Reference
-         ---------
-          B. W. Silverman (1986)
-         'Density estimation for statistics and data analysis'
-          Chapman and Hall, pp 57--61
+        See also
+        --------
+        hbcv, hboot, hos, hldpi, hlscv, hscv, hstt, kde, kdefun
 
-          Wand,M.P. and Jones, M.C. (1986)
-         'Kernel smoothing'
-          Chapman and Hall, pp 74--75
+
+        References
+        ----------
+        B. W. Silverman (1986)
+        'Density estimation for statistics and data analysis'
+        Chapman and Hall, pp 57--61
+
+        Wand,M.P. and Jones, M.C. (1986)
+        'Kernel smoothing'
+        Chapman and Hall, pp 74--75
         '''
 
         A = np.atleast_2d(data)
@@ -869,10 +875,10 @@ class Kernel(object):
         -------
         bandwidth - the optimal bandwidth
 
-        Reference
-        ---------
-        Kernel density estimation via diffusion
+        References
+        ----------
         Z. I. Botev, J. F. Grotowski, and D. P. Kroese (2010)
+        "Kernel density estimation via diffusion"
         Annals of Statistics, Volume 38, Number 5, pages 2916-2957.
         '''
         A = np.atleast_2d(data)
@@ -974,8 +980,8 @@ class Kernel(object):
          better for short tailed densities.
          However, STT method in contrast to LCV is insensitive to outliers.
 
-        Example
-        -------
+        Examples
+        --------
            x  = rndnorm(0,1,50,1);
            hs = hstt(x,'gauss');
 
@@ -983,11 +989,11 @@ class Kernel(object):
         --------
         hste, hbcv, hboot, hos, hldpi, hlscv, hscv, kde, kdebin
 
-        Reference
-        ---------
+        References
+        ----------
         B. W. Silverman (1986)
-         'Density estimation for statistics and data analysis'
-          Chapman and Hall, pp 57--61
+        'Density estimation for statistics and data analysis'
+        Chapman and Hall, pp 57--61
         '''
         A = np.atleast_2d(data)
         d, n = A.shape
@@ -1069,8 +1075,8 @@ class Kernel(object):
         hvec   = vector defining possible values of hs
         score  = score vector
 
-          Example
-          ------
+        Examples
+        --------
           >>> import wafo.kdetools as wk
           >>> import wafo.stats as ws
           >>> data = ws.norm.rvs(0,1, size=(1,20))
@@ -1086,8 +1092,8 @@ class Kernel(object):
          See also:
          hste, hbcv, hboot, hos, hldpi, hlscv, hstt, kde, kdefun
 
-        Reference
-        ---------
+        References
+        ----------
         Wand,M.P. and Jones, M.C. (1986)
         'Kernel smoothing'
         Chapman and Hall, pp 75--79
@@ -1203,15 +1209,22 @@ class Kernel(object):
 
           Note that only the first 4 letters of the kernel name is needed.
 
-          Example:
+          Examples
+          --------
            x  = rndnorm(0,1,50,1);
            hs = hldpi(x,'gauss',1);
 
-         See also  hste, hbcv, hboot, hos, hlscv, hscv, hstt, kde, kdefun
 
-          Wand,M.P. and Jones, M.C. (1995)
+         See also
+         --------  
+         hste, hbcv, hboot, hos, hlscv, hscv, hstt, kde, kdefun
+
+
+         References
+         ----------
+         Wand,M.P. and Jones, M.C. (1995)
          'Kernel smoothing'
-          Chapman and Hall, pp 67--74
+         Chapman and Hall, pp 67--74
         '''
         A = np.atleast_2d(data)
         d, n = A.shape

@@ -181,8 +181,11 @@ class TransformEstimator(object):
         unlikely to cross a level of 7 standard deviations one can use
         param = [-7 7 513].
 
-        Example
-        -------
+        NB! the transformated data will be N(0,1)
+
+
+        Examples
+        --------
         >>> import wafo.spectrum.models as sm
         >>> import wafo.transform.models as tm
         >>> from wafo.objects import mat2timeseries
@@ -212,14 +215,14 @@ class TransformEstimator(object):
 
         g0.plot() # Check the fit.
 
+
         See also
         --------
-          troptset, dat2tr, trplot, findcross, smooth
+        troptset, dat2tr, trplot, findcross, smooth
 
-        NB! the transformated data will be N(0,1)
 
-        Reference
-        ---------
+        References
+        ----------
         Rychlik , I., Johannesson, P., and Leadbetter, M.R. (1997)
         "Modelling and statistical analysis of ocean wavedata
         using a transformed Gaussian process",
@@ -378,8 +381,8 @@ class TransformEstimator(object):
         recomended to also plot g and g2 in the same plot or plot the smoothed
         g against an interpolated version of g (when CSM=GSM=1).
 
-        Example
-        -------
+        Examples
+        --------
         >>> import wafo.spectrum.models as sm
         >>> import wafo.transform.models as tm
         >>> from wafo.objects import mat2timeseries

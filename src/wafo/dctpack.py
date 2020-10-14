@@ -238,13 +238,13 @@ def dctn(x, type=2, shape=None, axes=None,  # @ReservedAssignment
     Input array can be numeric or logical. The returned array is of class
     double.
 
-    Reference
-    ---------
+    References
+    ----------
     Narasimha M. et al, On the computation of the discrete cosine
     transform, IEEE Trans Comm, 26, 6, 1978, pp 934-936.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import os
     >>> import numpy as np
     >>> from PIL import Image

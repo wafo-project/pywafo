@@ -56,8 +56,8 @@ def clencurt(fun, a, b, n=5, trace=False):
     approximation error.
     The integral is exact for polynomials of degree 2*n or less.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
     >>> val, err = clencurt(np.exp, 0, 2)
     >>> np.allclose(val, np.expm1(2)), err[0] < 1e-10
@@ -158,8 +158,8 @@ def romberg(fun, a, b, releps=1e-3, abseps=1e-3):
     must return a vector of output values if a vector of input values is given.
 
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
     >>> [q,err] = romberg(np.sqrt,0,10,0,1e-4)
     >>> np.allclose(q, 21.08185107)
@@ -295,8 +295,8 @@ def h_roots(n, method='newton'):
     w : ndarray
         weights
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
     >>> x, w = h_roots(10)
     >>> np.allclose(np.sum(x*w), -5.2516042729766621e-19)
@@ -399,7 +399,7 @@ def j_roots(n, alpha, beta, method='newton'):
         weights
 
 
-    Example
+    Examples
     --------
     >>> [x,w]= j_roots(10,0,0)
     >>> sum(x*w)
@@ -410,8 +410,8 @@ def j_roots(n, alpha, beta, method='newton'):
     qrule, gaussq
 
 
-    Reference
-    ---------
+    References
+    ----------
     [1]  Golub, G. H. and Welsch, J. H. (1969)
      'Calculation of Gaussian Quadrature Rules'
       Mathematics of Computation, vol 23,page 221-230,
@@ -448,8 +448,8 @@ def la_roots(n, alpha=0, method='newton'):
     w : ndarray
         weights
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
     >>> [x,w] = h_roots(10)
     >>> np.allclose(np.sum(x*w) < 1e-16, True)
@@ -664,8 +664,8 @@ def p_roots(n, method='newton', a=-1, b=1):
         weights
 
 
-    Example
-    -------
+    Examples
+    --------
     Integral of exp(x) from a = 0 to b = 3 is: exp(3)-exp(0)=
     >>> import numpy as np
     >>> nodes, weights = p_roots(11, a=0, b=3)
@@ -680,7 +680,7 @@ def p_roots(n, method='newton', a=-1, b=1):
 
     See also
     --------
-    quadg.
+    quadg
 
 
     References
@@ -823,8 +823,8 @@ def qrule(n, wfun=1, alpha=0, beta=0):
     --------
     gaussq
 
-    Reference
-    ---------
+    References
+    ----------
     Abromowitz and Stegun (1954)
     (for method 5 to 9)
     """
@@ -1358,8 +1358,8 @@ def qdemo(f, a, b, kmax=9, plot_error=False):
     In a case like qdemo(sqrt,0,3), the convergence rate is limited
     not by the method, but by the singularity of the integrand.
 
-    Example
-    -------
+    Examples
+    --------
     >>> import numpy as np
     >>> qdemo(np.exp,0,3, plot_error=True)
     true value =  19.08553692

@@ -1,109 +1,15 @@
-.. _numdifftools_summary:
+.. _wafo_summary:
 
-Numdifftools summary
-####################
+WAFO summary
+############
 
-.. currentmodule:: numdifftools.core
+.. currentmodule:: wafo.objects
 
-numdifftools.core module
-------------------------
+wafo.objects module
+-------------------
 .. autosummary::
     :toctree: generated/
 	
-    Derivative
-    Gradient
-    Jacobian
-    Hessdiag
-    Hessian
-    directionaldiff
-
-
-.. currentmodule:: numdifftools.step_generators
-
-Step generators
-----------------
-.. autosummary::
-    :toctree: generated/
-
-	 BasicMaxStepGenerator
-    BasicMinStepGenerator
-	 MinStepGenerator
-	 MaxStepGenerator
-
-
-.. currentmodule:: numdifftools.extrapolation
-
-numdifftools.extrapolation module
----------------------------------
-.. autosummary::
-    :toctree: generated/
-
-    convolve
-    Dea
-    dea3
-    Richardson
-
-
-.. currentmodule:: numdifftools.limits
-
-numdifftools.limits module
---------------------------
-.. autosummary::
-    :toctree: generated/
-
-    CStepGenerator
-    Limit
-    Residue
-
-
-.. currentmodule:: numdifftools.multicomplex
-
-numdifftools.multicomplex module
---------------------------------
-
-.. autosummary::
-    :toctree: generated/
-
-    Bicomplex
-
-
-.. currentmodule:: numdifftools.nd_algopy
-
-numdifftools.nd_algopy module
------------------------------
-.. autosummary::
-    :toctree: generated/
-
-    Derivative
-    Gradient
-    Jacobian
-    Hessdiag
-    Hessian
-    directionaldiff
-   
-
-
-.. currentmodule:: numdifftools.nd_scipy
-
-numdifftools.nd_scipy module
------------------------------
-.. autosummary::
-    :toctree: generated/
-
-    Gradient
-    Jacobian
-   
-
-.. currentmodule:: numdifftools.nd_statsmodels
-
-numdifftools.nd_statsmodels module
------------------------------
-.. autosummary::
-    :toctree: generated/
-
-    Hessian
-    Jacobian
-   
    
 
 
