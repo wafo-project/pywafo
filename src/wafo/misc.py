@@ -97,12 +97,9 @@ def check_random_state(seed):
 
     Examples
     --------
-    >>> check_random_state(seed=None)
-    <mtrand.RandomState object at ...
-    >>> check_random_state(seed=1)
-    <mtrand.RandomState object at ...
-    >>> check_random_state(seed=np.random.RandomState(1))
-    <mtrand.RandomState object at ...
+    >>> rs0 = check_random_state(seed=None)
+    >>> rs1 = check_random_state(seed=1)
+    >>> rs2 = check_random_state(seed=np.random.RandomState(1))
 
     check_random_state(seed=2.5)
     """
@@ -216,6 +213,10 @@ def piecewise(condlist, funclist, xi=None, fillvalue=0.0, args=(), **kw):
     ...         [ 1.25,  0.75,  0.25,  0.25,  0.75,  1.25],
     ...         [ 3.75,  2.25,  0.75,  0.75,  2.25,  3.75],
     ...         [ 6.25,  3.75,  1.25,  1.25,  3.75,  6.25]])
+    True
+
+    >>> x = np.arange(5)
+    >>> np.allclose(piecewise([x > 1, x > 3], [1, 3], xi=(x,)), [0, 0, 1, 1, 3])
     True
     """
     def otherwise_condition(condlist):
@@ -1127,7 +1128,7 @@ def findpeaks(data, n=2, min_h=None, min_p=0.0):
 
 
     Examples
-	 --------	
+    --------
     Find highest 8 peaks that are not
     less that 0.3*"global max" and have
     rainflow amplitude larger than 5.
@@ -1900,17 +1901,12 @@ def getshipchar(**ship_property):
     Examples
     --------
     >>> import wafo.misc as wm
-    >>> true_sc = {'service_speedSTD': 0,
-    ...        'lengthSTD': 2.0113098831942762,
-    ...        'draught': 9.5999999999999996,
-    ...        'propeller_diameterSTD': 0.20267047566705432,
-    ...        'max_deadweight_std': 3096.9000000000001,
-    ...        'beam': 29.0, 'length': 216.0,
-    ...        'beamSTD': 2.9000000000000004,
-    ...        'service_speed': 10.0,
-    ...        'draughtSTD': 2.1120000000000001,
-    ...        'max_deadweight': 30969.0,
-    ...        'propeller_diameter': 6.761165385916601}
+    >>> true_sc = {'beam': 29.0, 'beamSTD': 2.9000000000000004,
+    ...    'draught': 9.6,  'draughtSTD': 2.112,
+    ...    'length': 216.0, 'lengthSTD': 2.011309883194276,
+    ...    'max_deadweight': 30969.0, 'max_deadweightSTD': 3096.9,
+    ...    'propeller_diameter': 6.761165385916601, 'propeller_diameterSTD': 0.20267047566705432,
+    ...    'service_speed': 10.0, 'service_speedSTD': 0}
     >>> wm.getshipchar(service_speed=10) == true_sc
     True
     >>> sc = wm.getshipchar(service_speed=10)
