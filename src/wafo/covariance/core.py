@@ -160,8 +160,7 @@ class CovData1D(PlotData):
         self.labels.ylab = labels[1]
         self.labels.zlab = labels[2]
 
-    def tospecdata(self, rate=None, method='fft', nugget=0.0, trunc=1e-5,
-                   fast=True):
+    def tospecdata(self, rate=None, method='fft', nugget=0.0, trunc=1e-5, fast=True):
         '''
         Computes spectral density from the auto covariance function
 

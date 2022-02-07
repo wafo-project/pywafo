@@ -6,14 +6,14 @@ Created on 5. aug. 2010
 """
 
 import unittest
-from numpy.testing import TestCase, assert_allclose
+from numpy.testing.utils import assert_allclose
 import wafo.data
 import wafo.objects as wo
 import wafo.spectrum.models as sm
 import wafo.transform.models as tm
 
 
-class TestTimeSeries(TestCase):
+class TestTimeSeries(unittest.TestCase):
     def setUp(self):
         x = wafo.data.sea()
         self.ts = wo.mat2timeseries(x)
@@ -26,11 +26,11 @@ class TestTimeSeries(TestCase):
         S = self.ts.tospecdata(L=150)
         # print(S.data[:10].tolist())
         assert_allclose(S.data[:10],
-                                  [0.0050789888306202345, 0.0049411187454784225,
-                                   0.004553923924951667, 0.003990722577978725,
-                                   0.00335482379127744, 0.002755110296973988,
-                                   0.002281782794825119, 0.0019941282234629933,
-                                   0.0019329154962902488, 0.002164040256079313])
+                        [0.005078988830620193, 0.005044096781228353,
+                         0.004941118745478379, 0.004775054475703672,
+                         0.004553923924951622, 0.004288307109774135,
+                         0.003990722577978689, 0.003674875425082334,
+                         0.003354823791277387, 0.0030441334409088603])
 
     def test_tocovdata(self):
         rf = self.ts.tocovdata(lag=150)
@@ -110,7 +110,7 @@ class TestTimeSeries(TestCase):
             assert_allclose(T[:3], truth)
 
 
-class TestObjects(TestCase):
+class TestObjects(unittest.TestCase):
     def setUp(self):
         x = wafo.data.sea()
         self.ts = wo.mat2timeseries(x)
@@ -127,7 +127,6 @@ class TestObjects(TestCase):
 
         mm_truth = [0.83950546, -0.02049454, -0.04049454, 0.25950546, -0.08049454,
                     -0.08049454, 0.34950546, 0.85950546, 0.0095054599, 0.31950546]
-
 
         assert_allclose(mm.data[:10], mm_truth)
         true_lcs = (([0., 1., 2., 2., 3., 4., 5., 6., 7., 9.],
@@ -170,11 +169,11 @@ class TestObjects(TestCase):
         lc_gpd = lc.extrapolate(-2 * s, 2 * s, dist='genpareto')
 
         assert_allclose(lc_exp.data[ix],
-                                  [6.51864195e-12, 1.13025876e-08,
-                                   1.95974080e-05, 3.39796881e-02,
-                                   5.89169345e+01, 5.24000000e+02,
-                                   6.43476951e+01, 1.13478843e+00,
-                                   2.00122906e-02, 3.52921977e-04])
+                        [6.51864195e-12, 1.13025876e-08,
+                         1.95974080e-05, 3.39796881e-02,
+                         5.89169345e+01, 5.24000000e+02,
+                         6.43476951e+01, 1.13478843e+00,
+                         2.00122906e-02, 3.52921977e-04])
 
         truth = [0.0, 0.0, 0.0, 0.0,
                  58.91693446677314, 524.0,
@@ -183,7 +182,6 @@ class TestObjects(TestCase):
 
         # print(lc_gpd.data[ix].tolist())
         assert_allclose(lc_gpd.data[ix], truth)
-
 
 
 if __name__ == "__main__":
