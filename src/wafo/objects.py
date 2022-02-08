@@ -18,7 +18,7 @@ import numpy as np
 from numpy import inf, pi, sqrt, log, exp, cos, sin, arcsin
 from numpy.fft import fft  # @UnusedImport
 from numpy.random import randn
-from matplotlib.mlab import detrend_mean  # , psd
+from matplotlib.mlab import detrend_mean
 from scipy.integrate import trapz
 from scipy.signal import welch, lfilter
 from scipy.signal.windows import get_window  # @UnusedImport
@@ -1521,9 +1521,7 @@ class TimeSeries(PlotData):
             f, S = welch(yy, fs=1.0 / dt, window=window, nperseg=nperseg,
                          noverlap=noverlap, nfft=nfft, detrend=detrend,
                          return_onesided=True, scaling='density', axis=-1)
-#             S, f = psd(yy, Fs=1. / dt, NFFT=nfft, detrend=detrend,
-#                        window=win, noverlap=noverlap, pad_to=pad_to,
-#                        scale_by_freq=True)
+
             fact = 2.0 * pi
             w = fact * f
             spec = _wafospec.SpecData1D(S / fact, w)
