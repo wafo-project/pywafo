@@ -17,7 +17,7 @@
 # Licence:     LGPL
 # ------------------------------------------------------------------------
 # !/usr/bin/env python
-
+from __future__ import absolute_import, division, print_function
 import warnings  # @UnusedImport
 from functools import reduce
 from numpy.polynomial import polyutils as pu
@@ -26,6 +26,7 @@ import numpy as np
 from numpy import (newaxis, arange, pi)
 from scipy.fftpack import dct, idct as _idct
 from numpy.lib.polynomial import *  # @UnusedWildImport
+from numpy.polynomial.chebyshev import chebpts1
 try:
     from scipy.interpolate import pade  # pade has moved to scipy.interpolate in scipy 1.0.0
 except ImportError:
@@ -35,7 +36,8 @@ __all__ = __all__ + ['pade', 'padefit', 'polyreloc', 'polyrescl', 'polytrim',
                      'poly2hstr', 'poly2str', 'polyshift', 'polyishift',
                      'map_from_intervall', 'map_to_intervall', 'cheb2poly',
                      'chebextr', 'chebroot', 'chebpoly', 'chebfit', 'chebval',
-                     'chebder', 'chebint', 'Cheb1d', 'dct', 'idct']
+                     'chebder', 'chebint', 'Cheb1d', 'dct', 'idct',
+                     'chebfitnd', 'chebvalnd']
 
 
 def polyint(p, m=1, k=None):
@@ -76,8 +78,8 @@ def polyint(p, m=1, k=None):
     >>> import wafo.polynomial as wp
     >>> p = wp.poly1d([1,1,1])
     >>> P = wp.polyint(p)
-    >>> P
-    poly1d([ 0.33333333,  0.5       ,  1.        ,  0.        ])
+    >>> np.allclose(P, [ 0.33333333,  0.5       ,  1.        ,  0.        ])
+    True
     >>> wp.polyder(P) == p
     True
 
@@ -91,8 +93,8 @@ def polyint(p, m=1, k=None):
     >>> wp.polyder(P, 2)(0)
     0.0
     >>> P = wp.polyint(p, 3, k=[6, 5, 3])
-    >>> P
-    poly1d([ 0.01666667,  0.04166667,  0.16666667,  3. ,  5. , 3. ])
+    >>> np.allclose(P, [ 0.01666667,  0.04166667,  0.16666667,  3. ,  5. , 3. ])
+    True
 
     Note that 3 = 6 / 2!, and that the constants are given in the order of
     integrations. Constant of the highest-order polynomial term comes first:
@@ -197,10 +199,10 @@ def polyder(p, m=1):
 
     >>> wp.polyder(p, 2)
     poly1d([6, 2])
-    >>> wp.polyder(p, 3)
-    poly1d([6])
-    >>> wp.polyder(p, 4)
-    poly1d([ 0.])
+    >>> np.allclose(wp.polyder(p, 3), [6])
+    True
+    >>> np.allclose(wp.polyder(p, 4), [ 0.])
+    True
 
     """
     def _polydernd(p, m):
@@ -377,7 +379,6 @@ def ortho2poly(p):
     >>> x = np.array([0.0, 1.0, 2.0, 3.0,  4.0,  5.0])
     >>> y = np.array([0.0, 0.8, 0.9, 0.1, -0.8, -1.0])
     >>> p = wp.orthofit(x, y, 3)
-
     >>> np.allclose(p,[[ 0.        , -0.30285714, -0.16071429,  0.08703704],
     ...               [ 0.        ,  2.5       ,  2.5       ,  2.5       ],
     ...               [ 0.        ,  0.        ,  2.91666667,  2.13333333]])
@@ -389,7 +390,6 @@ def ortho2poly(p):
     ...    [ 0.08703704, -0.81349206,  1.69312169, -0.03968254])
     True
 
-    
     """
     p = np.atleast_2d(p)
     n = p.shape[1] - 1
@@ -569,15 +569,16 @@ def polyrescl(p, x, y=1.0):
     >>> import numpy as np
     >>> import wafo.polynomial as wp
     >>> p = np.arange(6); p.shape = (2,-1)
-    >>> wp.polyval(p,0)
-    array([3, 4, 5])
-    >>> wp.polyval(p,1)
-    array([3, 5, 7])
+    >>> np.allclose(wp.polyval(p,0), [3, 4, 5])
+    True
+    >>> np.allclose(wp.polyval(p,1), [3, 5, 7])
+    True
+
     >>> r = wp.polyrescl(p,2)  # scale by 2 along x-axis
-    >>> wp.polyval(r,0)     # = polyval(p,0)
-    array([ 3.,  4.,  5.])
-    >>> wp.polyval(r,2)     # = polyval(p,1)
-    array([ 3.,  5.,  7.])
+    >>> np.allclose(wp.polyval(r,0), [ 3.,  4.,  5.])
+    True
+    >>> np.allclose(wp.polyval(r,2), [ 3.,  5.,  7.])
+    True
     """
 
     truepoly = isinstance(p, poly1d)
@@ -885,10 +886,11 @@ def polyishift(px, a=-1, b=1):
     >>> import wafo.polynomial as wp
     >>> px = [1, 0]
     >>> py = wp.polyishift(px,0,5);
-    >>> wp.polyval(px,[0, 2.5, 5])  #% This is the same as the line below
-    array([ 0. ,  2.5,  5. ])
-    >>> wp.polyval(py,[-1, 0, 1])
-    array([ 0. ,  2.5,  5. ])
+    >>> np.allclose(wp.polyval(px,[0, 2.5, 5]), [ 0. ,  2.5,  5. ])
+    True
+
+    >>> np.allclose(wp.polyval(py,[-1, 0, 1]), [ 0. ,  2.5,  5. ])
+    True
     """
     if (a == -1) & (b == 1):
         return px
@@ -948,8 +950,8 @@ def poly2cheb(p, a=-1, b=1):
     >>> import wafo.polynomial as wp
     >>> p = np.arange(5)
     >>> ck = wp.poly2cheb(p)
-    >>> wp.cheb2poly(ck)
-    array([ 1.,  2.,  3.,  4.])
+    >>> np.allclose(wp.cheb2poly(ck), [ 1.,  2.,  3.,  4.])
+    True
 
     References
     ----------
@@ -991,8 +993,8 @@ def cheb2poly(ck, a=-1, b=1):
     >>> import wafo.polynomial as wp
     >>> p = np.arange(5)
     >>> ck = wp.poly2cheb(p)
-    >>> wp.cheb2poly(ck)
-    array([ 1.,  2.,  3.,  4.])
+    >>> np.allclose(wp.cheb2poly(ck), [ 1.,  2.,  3.,  4.])
+    True
 
     References
     ----------
@@ -1078,12 +1080,12 @@ def chebroot(n, kind=1):
     >>> import numpy as np
     >>> import wafo.polynomial as wp
     >>> x = wp.chebroot(3)
-    >>> np.allclose(wp.chebpoly(3,x), [0, 0, 0])
+    >>> np.allclose(wp.chebpoly(3, x), [0, 0, 0])
     True
-    >>> wp.chebpoly(3)
-    array([ 4.,  0., -3.,  0.])
+    >>> np.allclose(wp.chebpoly(3), [ 4.,  0., -3.,  0.])
+    True
     >>> x2 = wp.chebroot(4, kind=2)
-    >>> np.allclose(wp.chebpoly(4,x2,kind=2), [0, 0, 0, 0])
+    >>> np.allclose(wp.chebpoly(4, x2, kind=2), [0, 0, 0, 0])
     True
     >>> wp.chebpoly(4,kind=2)
     array([ 16.,   0., -12.,   0.,   1.])
@@ -1129,17 +1131,17 @@ def chebpoly(n, x=None, kind=1):
     >>> import numpy as np
     >>> import wafo.polynomial as wp
     >>> x = wp.chebroot(3)
-    >>> np.allclose(wp.chebpoly(3,x), [0, 0, 0])
+    >>> np.allclose(wp.chebpoly(3, x), [0, 0, 0])
     True
     >>> wp.chebpoly(3)
     array([ 4.,  0., -3.,  0.])
-    >>> x2 = wp.chebroot(4,kind=2)
-    >>> np.allclose(wp.chebpoly(4,x2,kind=2), [0, 0, 0, 0])
+    >>> x2 = wp.chebroot(4, kind=2)
+    >>> np.allclose(wp.chebpoly(4, x2, kind=2), [0, 0, 0, 0])
     True
-    >>> wp.chebpoly(4,kind=2)
-    array([ 16.,   0., -12.,   0.,   1.])
-    >>> wp.chebpoly(0,kind=2)
-    array([ 1.])
+    >>> np.allclose(wp.chebpoly(4,kind=2), [ 16.,   0., -12.,   0.,   1.])
+    True
+    >>> np.allclose(wp.chebpoly(0,kind=2), [ 1.])
+    True
 
     References
     ----------
@@ -1188,17 +1190,29 @@ def chebfit(fun, n=10, a=-1, b=1, trace=False):
     --------
     Fit exp(x)
 
-    >>> import matplotlib.pyplot as plt
     >>> import wafo.polynomial as wp
     >>> a = 0; b = 2
-    >>> ck = wp.chebfit(np.exp,7,a,b);
-    >>> x = np.linspace(0,4);
+    >>> x = np.linspace(0, 4)
     >>> x1 = wp.chebroot(9)*(b-a)/2+(b+a)/2
-    >>> ck1 = wp.chebfit(np.exp(x1))
 
-    h=plt.plot(x, np.exp(x), 'r', x, wp.chebval(x,ck,a,b), 'g.')
-    h = plt.plot(x,np.exp(x), 'r', x, wp.chebval(x,ck1,a,b),'g.')
-    plt.close()
+    >>> ck7 = wp.chebfit(np.exp, 7, a, b)
+    >>> np.allclose(ck7, [0.00012171952401348765, 0.0014757967268125758, 0.014880526821701792,
+    ...       0.1205200532068387, 0.7380008479639747, 3.072523445141827, 3.4415238691253314])
+    True
+
+    >>> ck9 = wp.chebfit(np.exp(x1))
+    >>> np.allclose(ck9, [5.400190090654178e-07, 8.694183814168039e-06, 0.00012226103685491422,
+    ...                   0.0014758267277595204, 0.01488052831835558, 0.12052005327474004,
+    ...                   0.7380008479667991, 3.072523445141935, 3.4415238691253354])
+    True
+
+    >>> import matplotlib.pyplot as plt
+    >>> h = plt.plot(x, np.exp(x), 'r', label='exp')
+    >>> h1 = plt.plot(x, wp.chebval(x, ck7, a, b), 'g.', label='ck7')
+    >>> h2 = plt.plot(x, wp.chebval(x, ck9, a, b), 'b.', label='ck9')
+    >>> h3 = plt.legend()
+
+    >>> plt.close()
 
     See also
     --------
@@ -1233,11 +1247,11 @@ def chebfit(fun, n=10, a=-1, b=1, trace=False):
     # w[0] = 0.5, w[n]=1 for n>0
 
     ck = dct(f[::-1]) / n
-    ck[0] = ck[0] / 2.
+    ck[0] /= 2.
     return ck[::-1]
 
 
-def chebfit_dct(f, n=(10, ), domain=None):
+def chebfit_dct(f, n=(10, ), domain=None, args=()):
     """
     Fit Chebyshev series to N-dimensional function
     so that f(x1, x2,..., xn) can be approximated by:
@@ -1267,25 +1281,44 @@ def chebfit_dct(f, n=(10, ), domain=None):
     --------
     Fit exponential function
 
-    >>> import matplotlib.pyplot as plt
     >>> import wafo.polynomial as wp
+
+    >>> x = wp.chebroot(9)
+    >>> c9 = wp.chebfit_dct(lambda x: np.tanh(x) + 0.5, 9)
+    >>> np.allclose(c9, [5.00000000e-01,   8.11675684e-01,  -9.86864911e-17,
+    ...                 -5.42457905e-02,  -2.71387850e-16,   4.51658839e-03,
+    ...                  2.46716228e-17,  -3.79694221e-04,  -3.26899002e-16])
+    True
+    >>> np.allclose(wp.chebvalnd(c9, x), np.tanh(x)+0.5)
+    True
+
+    >>> x1,x2 = np.meshgrid(x,x)
+    >>> c99 = chebfit_dct(lambda x,y: np.tanh(x+y) + 0.5, n=(9, 9))
+    >>> np.allclose(wp.chebvalnd(c99, x1, x2), np.tanh(x1+x2)+0.5)
+    True
+
     >>> domain = (0, 2)
-    >>> ck = wp.chebfit_dct(np.exp, 7, domain)
-    >>> np.allclose(ck, [3.44152387e+00,   3.07252345e+00,   7.38000848e-01,
-    ...                  1.20520053e-01,   1.48805268e-02,   1.47579673e-03,
-    ...                  1.21719524e-04])
+    >>> ck7 = wp.chebfit_dct(np.exp, 7, domain)
+    >>> np.allclose(ck7, [3.44152387e+00,   3.07252345e+00,   7.38000848e-01,
+    ...                   1.20520053e-01,   1.48805268e-02,   1.47579673e-03,
+    ...                   1.21719524e-04])
     True
     >>> x1 = wp.map_to_interval(wp.chebroot(9), *domain)
-    >>> ck1 = wp.chebfit(np.exp(x1))
-    >>> np.allclose(ck1, [5.40019009e-07,   8.69418381e-06,   1.22261037e-04,
+    >>> ck9 = wp.chebfit(np.exp(x1))  # Note
+    >>> np.allclose(ck9, [5.40019009e-07,   8.69418381e-06,   1.22261037e-04,
     ...                   1.47582673e-03,   1.48805283e-02,   1.20520053e-01,
     ...                   7.38000848e-01,   3.07252345e+00,   3.44152387e+00])
     True
 
-    x = np.linspace(0,4)
-    h = plt.plot(x, np.exp(x), 'r', x, wp.chebvalnd(ck, x,ck,a,b), 'g.')
-    h = plt.plot(x, np.exp(x), 'r', x, wp.chebvalnd(ck1, x,ck1,a,b),'b.')
-    plt.close()
+    >>> import matplotlib.pyplot as plt
+    >>> x = np.linspace(0, 4)
+    >>> xn = wp.map_from_interval(x, *domain)
+    >>> h0 = plt.plot(x, np.exp(x), 'r', label='exp')
+    >>> h1 = plt.plot(x, wp.chebvalnd(ck7, xn), 'g.', label='ck7')
+    >>> h2 = plt.plot(x, wp.chebval(xn, ck9),'b.', label='ck9')
+    >>> h3 = plt.legend()
+    >>> plt.show()
+    >>> plt.close()
 
     See also
     --------
@@ -1294,7 +1327,9 @@ def chebfit_dct(f, n=(10, ), domain=None):
     References
     ----------
     http://en.wikipedia.org/wiki/Chebyshev_nodes
-    http://mathworld.wolfram.com/ChebyshevApproximationFormula.html
+
+    Weisstein, Eric W. "Chebyshev Approximation Formula."
+    From MathWorld--A Wolfram Web Resource. https://mathworld.wolfram.com/ChebyshevApproximationFormula.html
 
     W. Fraser (1965)
     "A Survey of Methods of Computing Minimax and Near-Minimax Polynomial
@@ -1317,18 +1352,94 @@ def chebfit_dct(f, n=(10, ), domain=None):
             xi = [map_to_interval(chebroot(ni), d[0], d[1])
                   for ni, d in _zip(n, domain)]
             Xi = np.meshgrid(*xi)
-            return f(*Xi), n
-        return f, f.shape
+            return f(*Xi) / np.product(n), len(n)
+        return f / np.product(f.shape), f.ndim
 
-    ck, n = _init_ck(f, n, domain)
-
-    ndim = len(n)
+    ck, ndim = _init_ck(f, n, domain)
     for i in range(ndim):
         ck = dct(ck[..., ::-1])
-        ck[..., 0] = ck[..., 0] / 2.
+        ck[..., 0] /= 2.
         if i < ndim - 1:
             ck = np.rollaxis(ck, axis=-1)
-    return ck / np.product(n)
+    return ck
+
+
+def chebinterpolate(func, deg, args=(), domain=None):
+    """Interpolate a function at the Chebyshev points of the first kind.
+
+    Returns the Chebyshev series that interpolates `func` at the Chebyshev
+    points of the first kind in the interval [-1, 1]. The interpolating
+    series tends to a minmax approximation to `func` with increasing `deg`
+    if the function is continuous in the interval.
+
+    .. versionadded:: 1.14.0
+
+    Parameters
+    ----------
+    func : function
+        The function to be approximated. It must be a function of a single
+        variable of the form ``f(x, a, b, c...)``, where ``a, b, c...`` are
+        extra arguments passed in the `args` parameter.
+    deg : int
+        Degree of the interpolating polynomial
+    args : tuple, optional
+        Extra arguments to be used in the function call. Default is no extra
+        arguments.
+
+    Returns
+    -------
+    coef : ndarray, shape (deg + 1,)
+        Chebyshev coefficients of the interpolating series ordered from low to
+        high.
+
+    Examples
+    --------
+    >>> import numpy.polynomial.chebyshev as C
+    >>> np.allclose(C.chebinterpolate(lambda x: np.tanh(x) + 0.5, 8),
+    ...    [  5.00000000e-01,   8.11675684e-01,  -9.86864911e-17,
+    ...        -5.42457905e-02,  -2.71387850e-16,   4.51658839e-03,
+    ...         2.46716228e-17,  -3.79694221e-04,  -3.26899002e-16])
+    True
+
+
+    Notes
+    -----
+
+    The Chebyshev polynomials used in the interpolation are orthogonal when
+    sampled at the Chebyshev points of the first kind. If it is desired to
+    constrain some of the coefficients they can simply be set to the desired
+    value after the interpolation, no new interpolation or fit is needed. This
+    is especially useful if it is known apriori that some of coefficients are
+    zero. For instance, if the function is even then the coefficients of the
+    terms of odd degree in the result can be set to zero.
+
+    """
+    deg = np.asarray(deg)
+
+    # check arguments.
+    if deg.ndim > 0 or deg.dtype.kind not in 'iu' or deg.size == 0:
+        raise TypeError("deg must be an int")
+    if np.any(deg < 0):
+        raise ValueError("expected deg >= 0")
+    chebvander = np.polynomial.chebyshev.chebvander
+
+#     if domain is None:
+#         domain = (-1, 1) * deg.size
+#     domain = np.atleast_2d(domain).reshape((-1, 2))
+
+    order = deg + 1
+
+#     xi = [map_to_interval(chebpts1(o), d[0], d[1]) for o, d in zip(order, domain)]
+#     Xi = np.meshgrid(*xi)
+
+    xcheb = chebpts1(order)
+    yfunc = func(xcheb, *args)
+    m = chebvander(xcheb, deg)
+    c = np.dot(m.T, yfunc)
+    c[0] /= order
+    c[1:] /= 0.5*order
+
+    return c
 
 
 def idct(x, n=None):
@@ -1347,9 +1458,9 @@ def idct(x, n=None):
     >>> import numpy as np
     >>> import wafo.polynomial as wp
     >>> x = np.arange(5)*1.0
-    >>> np.allclose(idct(dct(x)), x)
+    >>> np.allclose(x, wp.idct(wp.dct(x)))
     True
-    >>> np.allclose(dct(idct(x)), x)
+    >>> np.allclose(x, wp.dct(wp.idct(x)))
     True
 
     References
@@ -1423,23 +1534,22 @@ def chebval(x, ck, a=-1, b=1, kind=1, fill=None):
     Examples
     --------
     Plot Chebychev polynomial of the first kind and order 4:
-    >>> import matplotlib.pyplot as plt
     >>> import wafo.polynomial as wp
     >>> x = np.linspace(-1,1)
     >>> ck = np.zeros(5); ck[-1]=1
-    >>> y = wp.chebval(x,ck)
+    >>> y = wp.chebval(x, ck)
 
-    h = plt.plot(x, y, x, wp.chebpoly(4,x),'.')
-    plt.close()
+    >>> import matplotlib.pyplot as plt
+    >>> h = plt.plot(x, y, x, wp.chebpoly(4, x),'.')
+    >>> plt.close()
 
     Fit exponential function:
-    >>> import matplotlib.pyplot as plt
     >>> ck = wp.chebfit(np.exp,7,0,2)
     >>> x = np.linspace(0,4);
     >>> y2 = wp.chebval(x,ck,0,2)
 
-    h=plt.plot(x, y2, 'g', x, np.exp(x))
-    plt.close()
+    >>> h = plt.plot(x, y2, 'g', x, np.exp(x))
+    >>> plt.close()
 
     See also
     --------
@@ -1601,7 +1711,7 @@ class Cheb1d(object):
 
     def __init__(self, ck, a=-1, b=1, kind=1):
         if isinstance(ck, Cheb1d):
-            for key in ck.__dict__.keys():
+            for key in ck.__dict__:
                 self.__dict__[key] = ck.__dict__[key]
             return
         cki = trim_zeros(np.atleast_1d(ck), 'b')
@@ -1764,21 +1874,22 @@ def padefit(c, m=None):
     --------
     Pade approximation to exp(x)
     >>> import scipy.special as sp
-    >>> import matplotlib.pyplot as plt
     >>> import wafo.polynomial as wp
     >>> c = wp.poly1d(1./sp.gamma(np.r_[6+1:0:-1]))
     >>> [p, q] = wp.padefit(c)
-    >>> p; q
-    poly1d([ 0.00277778,  0.03333333,  0.2       ,  0.66666667,  1.        ])
-    poly1d([ 0.03333333, -0.33333333,  1.        ])
+    >>> np.allclose(p, [ 0.00277778,  0.03333333,  0.2       ,  0.66666667,  1.        ])
+    True
+    >>> np.allclose(q, [ 0.03333333, -0.33333333,  1.        ])
+    True
 
-    x = np.linspace(0,4)
-    h = plt.plot(x, c(x), x, p(x)/q(x), 'g-', x,np.exp(x), 'r.')
-    plt.close()
+    >>> import matplotlib.pyplot as plt
+    >>> x = np.linspace(0,4)
+    >>> h = plt.plot(x, c(x), x, p(x)/q(x), 'g-', x,np.exp(x), 'r.')
+    >>> plt.close()
 
     See also
     --------
-    scipy.misc.pade
+    scipy.interpolate.pade
 
     """
     if not m:
@@ -1836,18 +1947,18 @@ def padefitlsq(fun, m, k, a=-1, b=1, trace=False, x=None, end_points=True):
     Examples
     --------
 
-
     Pade approximation to exp(x) between 0 and 2
-    >>> import matplotlib.pyplot as plt
     >>> import wafo.polynomial as wp
     >>> [c1, c2] = wp.padefitlsq(np.exp,3,3,0,2)
-    >>> c1; c2
-    poly1d([ 0.01443847,  0.128842  ,  0.55284547,  0.99999962])
-    poly1d([-0.0049658 ,  0.07610473, -0.44716929,  1.        ])
+    >>> np.allclose(c1, [ 0.01443847,  0.128842  ,  0.55284547,  0.99999962])
+    True
+    >>> np.allclose(c2, [-0.0049658 ,  0.07610473, -0.44716929,  1.        ])
+    True
 
-    x = np.linspace(0,4)
-    h = plt.plot(x, wp.polyval(c1,x)/wp.polyval(c2,x),'g')
-    h = plt.plot(x, np.exp(x), 'r')
+    >>> import matplotlib.pyplot as plt
+    >>> x = np.linspace(0,4)
+    >>> h = plt.plot(x, wp.polyval(c1,x)/wp.polyval(c2,x),'g')
+    >>> h = plt.plot(x, np.exp(x), 'r')
 
     See also
     --------
@@ -1943,80 +2054,6 @@ def padefitlsq(fun, m, k, a=-1, b=1, trace=False, x=None, end_points=True):
             c2 = cof[ncof:m:-1].tolist() + [1, ]
         _cond_plot2(x, fs, ee + fs, ix, devmax)
     return poly1d(c1), poly1d(c2)
-
-
-def main():
-    exp = np.exp
-    [c1, c2] = padefitlsq(exp, 3, 3, 0, 2)
-
-    x = np.linspace(0, 4)
-    plt.plot(x, polyval(c1, x) / polyval(c2, x), 'g')
-    plt.plot(x, exp(x), 'r')
-
-    import scipy.special as sp
-
-    p = [[1, 1, 1], [2, 2, 2]]
-    pi = polyint(p, 1)
-    _pr = polyreloc(p, 2)
-    _pd = polyder(p)
-    _st = poly2str(p)
-    # polynomial coeff exponential function:
-    c = poly1d(1. / sp.gamma(np.r_[6 + 1:0:-1]))
-    [p, q] = padefit(c)
-    x = np.linspace(0, 4)
-    plt.plot(x, c(x), x, p(x) / q(x), 'g-', x, exp(x), 'r.')
-    plt.close()
-    x = arange(4)
-    dx = dct(x)
-    _idx = idct(dx)
-
-    a = 0
-    b = 2
-    ck = chebfit(exp, 6, a, b)
-    _t = chebval(0, ck, a, b)
-    x = np.linspace(0, 2, 6)
-    plt.plot(x, exp(x), 'r', x, chebval(x, ck, a, b), 'g.')
-    # x1 = chebroot(9).'*(b-a)/2+(b+a)/2 ;
-    # ck1 =chebfit([x1 exp(x1)],9,a,b);
-    # plot(x,exp(x),'r'), hold on
-    # plot(x,chebval(x,ck1,a,b),'g'), hold off
-
-    _t = poly2hstr([1, 1, 2])
-    py = [1, 0]
-    px = polyshift(py, 0, 5)
-    _t1 = polyval(px, [0, 2.5, 5])  # % This is the same as the line below
-    _t2 = polyval(py, [-1, 0, 1])
-
-    px = [1, 0]
-    py = polyishift(px, 0, 5)
-    t1 = polyval(px, [0, 2.5, 5])  # % This is the same as the line below
-    t2 = polyval(py, [-1, 0, 1])
-    print(t1, t2)
-
-
-def test_polydeg():
-    x = np.linspace(0, 10, 300)
-    y = np.sin(x ** 3 / 100) ** 2 + 0.05 * np.random.randn(x.size)
-    n = polydeg(x, y)
-    # n = 2
-    p = orthofit(x, y, n)
-    xi = np.linspace(x.min(), x.max())
-    ys0 = orthoval(p, x)
-    ys = orthoval(p, xi)
-
-    ys2 = orthoval(p, xi)
-    plt.plot(x, y, '.', x, ys0, 'k', xi, ys, 'r', xi, ys2, 'r.')
-    p0 = ortho2poly(p)
-    p1 = polyfit(x, ys0, n)
-    plt.plot(xi, polyval(p0, xi), 'g-.', xi, polyval(p1, xi), 'go')
-    plt.show('hold')
-
-
-def test_docstrings():
-    import doctest
-    print('Testing docstrings in %s' % __file__)
-    options = doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS
-    doctest.testmod(optionflags=options, verbose=False)
 
 
 def chebvandernd(deg, *xi):
@@ -2350,19 +2387,38 @@ def test_chebfit1d():
 
     # x = chebroot(n=64, kind=1)
     # z = f(x)
+    n = 32
+    from timeit import default_timer
 
-    c = chebfit(f, n=64)[::-1]
+    t0 = default_timer()
+    # c = chebfit(f, n=n)[::-1]
+    c = chebfit_dct(f, n=n)
+    t1 = default_timer()
+    c1 = np.polynomial.chebyshev.chebinterpolate(f, deg=n-1)
+    t2 = default_timer()
+
+    time_dct = t1-t0
+    time_interp = t2-t1
+    print('chebfit', time_dct)
+    print('chebinterp', time_interp)
 
     xi = np.linspace(-1, 1, 151)
     zi = np.polynomial.chebyshev.chebval(xi, c)
+    zi1 = np.polynomial.chebyshev.chebval(xi, c1)
 
     # plt.plot(xi, zi,'.', xi, f(xi))
-    plt.semilogy(xi, np.abs(zi - f(xi)))
-    plt.show('hold')
+    plt.semilogy(xi, np.abs(zi - f(xi)), label=f'dct T={time_dct:.5f} sec')
+    plt.semilogy(xi, np.abs(zi1 - f(xi)), label=f'vander T={time_interp:.5f} sec')
+    plt.grid(True, which='both')
+    plt.xlabel('x')
+    plt.ylabel('Interpolation error')
+    plt.title(f'chebinterpolate deg={n-1}')
+    plt.legend()
+    plt.show()
 
 
 def test_chebfit2d():
-    n = 3
+    n = 30
     xorder, yorder = n - 1, n - 1
     x = chebroot(n=n, kind=1)
     xgrid, ygrid = np.meshgrid(x, x)
@@ -2392,13 +2448,102 @@ def test_chebfit2d():
     # plt.contourf(Xi, Yi, np.abs(devi))
     plt.colorbar()
     # plt.semilogy(np.abs(devi.ravel()))
+    plt.show()
+
+
+def test_interpolate():
+    def powxy(x, y, p):
+            return (x+y)**p
+
+    cheb = np.polynomial.chebyshev
+    x = np.linspace(-1, 1, 10)
+    x1, x2 = np.meshgrid(x, x)
+    for deg in range(0, 10):
+        for p in range(0, deg + 1):
+            c = chebfit_dct(powxy, n=(deg+1, deg+1), args=(p,))
+            print(f'Error deg={deg}, p={p}', np.abs(cheb.chebval2d(x1, x2, c)-powxy(x1, x2, p)).max())
+
+
+def main():
+    exp = np.exp
+    [c1, c2] = padefitlsq(exp, 3, 3, 0, 2)
+
+    x = np.linspace(0, 4)
+    plt.plot(x, polyval(c1, x) / polyval(c2, x), 'g')
+    plt.plot(x, exp(x), 'r')
+
+    import scipy.special as sp
+
+    p = [[1, 1, 1], [2, 2, 2]]
+    pi = polyint(p, 1)
+    _pr = polyreloc(p, 2)
+    _pd = polyder(p)
+    _st = poly2str(p)
+    # polynomial coeff exponential function:
+    c = poly1d(1. / sp.gamma(np.r_[6 + 1:0:-1]))
+    [p, q] = padefit(c)
+    x = np.linspace(0, 4)
+    plt.plot(x, c(x), x, p(x) / q(x), 'g-', x, exp(x), 'r.')
+    plt.close()
+    x = arange(4)
+    dx = dct(x)
+    _idx = idct(dx)
+
+    a = 0
+    b = 2
+    ck = chebfit(exp, 6, a, b)
+    _t = chebval(0, ck, a, b)
+    x = np.linspace(0, 2, 6)
+    plt.plot(x, exp(x), 'r', x, chebval(x, ck, a, b), 'g.')
+    # x1 = chebroot(9).'*(b-a)/2+(b+a)/2 ;
+    # ck1 =chebfit([x1 exp(x1)],9,a,b);
+    # plot(x,exp(x),'r'), hold on
+    # plot(x,chebval(x,ck1,a,b),'g'), hold off
+
+    _t = poly2hstr([1, 1, 2])
+    py = [1, 0]
+    px = polyshift(py, 0, 5)
+    _t1 = polyval(px, [0, 2.5, 5])  # % This is the same as the line below
+    _t2 = polyval(py, [-1, 0, 1])
+
+    px = [1, 0]
+    py = polyishift(px, 0, 5)
+    t1 = polyval(px, [0, 2.5, 5])  # % This is the same as the line below
+    t2 = polyval(py, [-1, 0, 1])
+    print(t1, t2)
+
+
+def test_polydeg():
+    x = np.linspace(0, 10, 300)
+    y = np.sin(x ** 3 / 100) ** 2 + 0.05 * np.random.randn(x.size)
+    n = polydeg(x, y)
+    # n = 2
+    p = orthofit(x, y, n)
+    xi = np.linspace(x.min(), x.max())
+    ys0 = orthoval(p, x)
+    ys = orthoval(p, xi)
+
+    ys2 = orthoval(p, xi)
+    plt.plot(x, y, '.', x, ys0, 'k', xi, ys, 'r', xi, ys2, 'r.')
+    p0 = ortho2poly(p)
+    p1 = polyfit(x, ys0, n)
+    plt.plot(xi, polyval(p0, xi), 'g-.', xi, polyval(p1, xi), 'go')
     plt.show('hold')
+
+
+def test_docstrings():
+    import doctest
+    print('Testing docstrings in %s' % __file__)
+    options = doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS
+    doctest.testmod(optionflags=options, verbose=False)
 
 
 if __name__ == '__main__':
     if False:  # True: #
         main()
     else:
-        # test_chebfit2d()
         test_docstrings()
+        # test_interpolate()
+        # test_chebfit1d()
+        # test_chebfit2d()
         # test_polydeg()
