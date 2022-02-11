@@ -1,20 +1,26 @@
-from six import iteritems
-from numpy.testing import (run_module_suite, assert_allclose, TestCase, assert_raises,)
+
+import pytest
+from numpy.testing import assert_allclose, assert_raises
 
 import numpy as np
-from numpy import cos, exp, linspace, pi, sin, diff, arange, ones
+from numpy import cos, exp, pi, sin
 from wafo.data import sea
 import wafo
 from wafo.misc import (JITImport, Bunch, detrendma, DotDict, findcross, ecross,
                        findextrema, findrfc, rfcfilter, findtp, findtc,
                        findrfc_astm,
                        findoutliers, common_shape, argsreduce, stirlerr,
-                       getshipchar, betaloge,
+                       getshipchar, betaloge, binomln,
                        gravity, nextpow2, discretize, polar2cart,
                        cart2polar, tranproc,
                        rotation_matrix, rotate_2d, spaceline,
                        args_flat, sub2index, index2sub, piecewise,
                        parse_kwargs)
+
+try:
+    from wafo import c_library
+except ImportError:
+    c_library = None
 
 
 def test_disufq():
@@ -56,33 +62,38 @@ def test_disufq():
     cases = 1
     ns = n
     w = 2.0 * pi * f
-    from wafo import c_library
 
     d_truth = [d_10, d_inf]
     for i, water_depth in enumerate([10.0, 10000000]):
         kw = wafo.wave_theory.dispersion_relation.w2k(w, 0., water_depth, g)[0]
         data2 = wafo.numba_misc.disufq(amp.real, amp.imag, w, kw, water_depth,
                                        g, nmin, nmax, cases, ns)
-        data = c_library.disufq(amp.real, amp.imag, w, kw, water_depth, g,
-                                nmin, nmax, cases, ns)
+        assert_allclose(data2, d_truth[i])
+        if c_library is not None:
+            data = c_library.disufq(amp.real, amp.imag, w, kw, water_depth, g,
+                                    nmin, nmax, cases, ns)
 
-        # print(data[0])
-        # print(data[1])
-        # deep water
-        assert_allclose(data, data2)
-        assert_allclose(data, d_truth[i])
+            # print(data[0])
+            # print(data[1])
+            # deep water
+            assert_allclose(data, data2)
     # assert(False)
 
 
-def test_JITImport():
+def test_jit_import():
     jnp = JITImport('numpy')
     assert_allclose(1.0, jnp.exp(0))
 
 
 def test_bunch():
     d = Bunch(test1=1, test2=3)
-    assert 1 == getattr(d, 'test1')
-    assert 3 == getattr(d, 'test2')
+    # pylint: disable=no-member
+    assert d.test1 == 1
+    assert d.test2 == 3
+
+    assert d.keys() == ['test1', 'test2']
+    d.update(test1=5)
+    assert d.test1 == 5
 
 
 def test_dotdict():
@@ -92,15 +103,15 @@ def test_dotdict():
 
 
 def test_detrendma():
-    x = linspace(0, 1, 200)
+    x = np.linspace(0, 1, 200)
     y = exp(x) + 0.1 * cos(20 * 2 * pi * x)
     y0 = detrendma(y, 20)
     tr = y - y0
     # print(y0[::40].tolist())
     # print(tr[::40].tolist())
 
-    true_y0 =[-0.010581518644884, 0.09386986278126, 0.09038009599066,
-              0.08510005719242, 0.07803486510444]
+    true_y0 = [-0.010581518644884, 0.09386986278126, 0.09038009599066,
+               0.08510005719242, 0.07803486510444]
     true_tr = [1.1105815186448, 1.2279645887599, 1.5012730905301, 1.8354286024587, 2.2439796716788]
 
     assert_allclose(y0[::40], true_y0)
@@ -111,7 +122,7 @@ def test_findcross_and_ecross():
     assert_allclose(findcross([0, 0, 1, -1, 1], 0), [1, 2, 3])
     assert_allclose(findcross([0, 1, -1, 1], 0), [0, 1, 2])
 
-    t = linspace(0, 7 * pi, 250)
+    t = np.linspace(0, 7 * pi, 250)
     x = sin(t)
     ind = findcross(x, 0.75)
     assert_allclose(ind, [9, 25, 80, 97, 151, 168, 223, 239])
@@ -122,14 +133,14 @@ def test_findcross_and_ecross():
 
 
 def test_findextrema():
-    t = linspace(0, 7 * pi, 250)
+    t = np.linspace(0, 7 * pi, 250)
     x = sin(t)
     ind = findextrema(x)
     assert_allclose(ind, [18, 53, 89, 125, 160, 196, 231])
 
 
 def test_findrfc():
-    t = linspace(0, 7 * pi, 250)
+    t = np.linspace(0, 7 * pi, 250)
     x = sin(t) + 0.1 * sin(50 * t)
     ind = findextrema(x)
     assert_allclose(ind,
@@ -152,9 +163,9 @@ def test_findrfc():
             ind1 = ind1[:-1]
         assert_allclose(ind1, [0, 9, 32, 53, 74, 95, 116, 137])
         # print(tp[ind1].tolist())
-        truth =  [-0.007433524853697526, 1.0875397175924215, -1.0720654490829054,
-                1.0955083650755328, -1.0794045843842426, 1.0784939627613357,
-                -1.0995005995649583, 1.0809445217915996]
+        truth = [-0.007433524853697526, 1.0875397175924215, -1.0720654490829054,
+                 1.0955083650755328, -1.0794045843842426, 1.0784939627613357,
+                 -1.0995005995649583, 1.0809445217915996]
         assert_allclose(tp[ind1], truth)
 
 
@@ -169,7 +180,7 @@ def test_rfcfilter():
     y1 = rfcfilter(x[:, 1], h=0.5, method=0)
     assert_allclose(y1[0:5], [-1.2004945, 0.83950546, -0.43049454, 0.34950546, -0.51049454])
     # return
-    t = linspace(0, 7 * pi, 250)
+    t = np.linspace(0, 7 * pi, 250)
     x = sin(t) + 0.1 * sin(50 * t)
     ind = findextrema(x)
     assert_allclose(ind, [1, 3, 4, 6, 7, 9, 11, 13, 14, 16, 18, 19, 21,
@@ -216,6 +227,14 @@ def test_findtp():
     x1 = x[0:200, :]
     itp = findtp(x1[:, 1], 0, 'Mw')
     itph = findtp(x1[:, 1], 0.3, 'Mw')
+#     import matplotlib.pyplot as plt
+#     tp = x1[itp, :]
+#     tph = x1[itph, :]
+#     plt.plot(x1[:,0], x1[:,1])
+#     plt.plot(tp[:,0], tp[:,1], '.')
+#     plt.plot(tph[:,0], tph[:,1], 'ro', fillstyle='none')
+#     plt.show()
+
     assert_allclose(itp, [11, 21, 22, 24, 26, 28, 31, 39, 43, 45, 47, 51, 56,
                           64, 70, 78, 82, 84, 89, 94, 101, 108, 119, 131, 141, 148,
                           149, 150, 159, 173, 184, 190, 199])
@@ -235,7 +254,7 @@ def test_findtc():
 
 def test_findoutliers():
     xx = sea()
-    dt = diff(xx[:2, 0])
+    dt = np.diff(xx[:2, 0])
     dcrit = 5 * dt
     ddcrit = 9.81 / 2 * dt * dt
     zcrit = 0
@@ -258,7 +277,7 @@ def test_common_shape():
 
 
 def test_argsreduce():
-    A = np.reshape(linspace(0, 19, 20), (4, 5))
+    A = np.reshape(np.linspace(0, 19, 20), (4, 5))
     B = 2
     C = range(5)
     cond = np.ones(A.shape)
@@ -277,7 +296,6 @@ def test_stirlerr():
     # print(values.tolist())
     truth = [np.inf, 0.081061466795327, 0.0413406959554092, 0.0276779256849983, 0.0207906721037653]
     assert_allclose(values, truth)
-
 
 
 def test_parse_kwargs():
@@ -306,16 +324,62 @@ def test_getshipchar():
                    service_speed=10,
                    service_speedSTD=0)
 
-    for name, val in iteritems(true_sc):
+    for name, val in true_sc.items():
         assert_allclose(val, sc[name])
 
 
-def test_betaloge():
-    assert_allclose(betaloge(3, arange(4)), [np.inf, -1.09861229, -2.48490665, -3.40119738])
+@pytest.mark.parametrize(
+    'a, b, desired', [(1000, 3000, -2251.7315862675187),
+                      (2000, 3000, -3367.6843821531884),
+                      (1e5, 1e30, -5856467.57000848),
+                      (1e10, 1e30, -470517018609.40307617),
+                      (1e29, 1e30, -3.3509970708416194e+29),
+                      (1e100, 1e300, -4.615170185988092e+102),
+                      (1e307, 1e308, -3.3509970708416194e+307),
+                      (1, 3000, -8.0063675676502467),
+                      (20, 3000, -120.85066372086642),
+                      (20, 1e300, -13776.170673777076),
+                      (20, 1e308, -14144.584288656122),
+                      (20, 1e350, -np.inf),
+                      (20, np.inf, -np.inf),
+                      (1, 8, -2.0794415416798357),
+                      (-0.1, 8, np.nan),
+                      (0, 8, np.inf),
+                      (1e-307, 8, 706.893623549172),
+                      (1e-306, 8, 704.591038456178),
+                      (1e-305, 8, 702.288453363184),
+                      (1e-304, 8, 699.9858682701899),
+                      (1e-100, 8, 230.25850929940458),
+                      (3, np.arange(4), [np.inf, -1.09861229, -2.48490665, -3.40119738])
+                      ])
+def test_betaloge(a, b, desired):
+    value = betaloge(a, b)
+    # print(value)
+    assert_allclose(value, desired, equal_nan=True)
+
+
+@pytest.mark.parametrize(
+    'z, w, desired', [(10**6, 10**6-2, 26.937872935327604),
+                      (10**6, 10**6-1, 13.815510557964274),
+                      (2*10**6, 10**6, 1.386286880999543e+6),
+                      (2*10**12, 10**5, 1781117.60524975244),
+                      (2*10**15, 10**5, 2471893.13564544),
+                      (2*10**150, 10**1, 3445.7046987235925),
+                      (2*10**15, 10**3, 29319.7953969),  # 29312.
+                      (2*10**10, 10**3, 17806.86990703),  # 17806.8699
+                      (2*10**10, 10**2, 2008.160435246),  # 2008.1604
+                      (2*10**10, 10**1, 222.0855685296785),  # 222.0855
+                      (2*10**10, 10**0, 23.7189981105004),  # 23.719
+                      (3, np.arange(4), [0, 1.09861229, 1.09861229, 0]) ]
+    )
+def test_binomln(z, w, desired):
+    value = binomln(z, w)
+    print(value)
+    assert_allclose(value, desired)
 
 
 def test_gravity():
-    phi = linspace(0, 45, 5)
+    phi = np.linspace(0, 45, 5)
     assert_allclose(gravity(phi), [9.78049, 9.78245014, 9.78803583, 9.79640552, 9.80629387])
 
 
@@ -354,7 +418,7 @@ def test_discretize_adaptive():
 
 def test_polar2cart_n_cart2polar():
     r = 5
-    t = linspace(0, pi, 20)
+    t = np.linspace(0, pi, 20)
     x, y = polar2cart(t, r)
     assert_allclose(x, [5., 4.93180652, 4.72908621, 4.39736876, 3.94570255,
                         3.38640786, 2.73474079, 2.00847712, 1.22742744, 0.41289673,
@@ -379,14 +443,14 @@ def test_polar2cart_n_cart2polar():
 def test_tranproc():
     import wafo.transform.models as wtm
     tr = wtm.TrHermite()
-    x = linspace(-5, 5, 501)
+    x = np.linspace(-5, 5, 501)
     g = tr(x)
-    y0, y1 = tranproc(x, g, range(5), ones(5))
+    y0, y1 = tranproc(x, g, np.arange(5), np.ones(5))
     assert_allclose(y0, [0.02659612, 1.00115284, 1.92872532, 2.81453257, 3.66292878])
     assert_allclose(y1, [1.00005295, 0.9501118, 0.90589954, 0.86643821, 0.83096482])
 
 
-class TestPiecewise(TestCase):
+class TestPiecewise(object):
 
     def test_condition_is_single_bool_list(self):
         assert_raises(ValueError, piecewise, [True, False], [1], [0, 0])
@@ -505,7 +569,7 @@ class TestPiecewise(TestCase):
                                [4., 2., nan, 2., 4.]])
 
 
-class TestRotationMatrix(TestCase):
+class TestRotationMatrix(object):
 
     def test_h0_p0_r0(self):
         vals = rotation_matrix(heading=0, pitch=0, roll=0)
@@ -536,7 +600,7 @@ class TestRotationMatrix(TestCase):
         assert_allclose(vals, truevals)
 
 
-class TestRotate2d(TestCase):
+class TestRotate2d(object):
 
     def test_rotate_0deg(self):
         vals = rotate_2d(x=1, y=0, angle_deg=0)
@@ -559,7 +623,7 @@ class TestRotate2d(TestCase):
         assert_allclose(vals, truevals)
 
 
-class TestSpaceLine(TestCase):
+class TestSpaceLine(object):
 
     def test_space_line(self):
         vals = spaceline((2, 0, 0), (3, 0, 0), num=5).tolist()
@@ -571,7 +635,7 @@ class TestSpaceLine(TestCase):
         assert_allclose(vals, truevals)
 
 
-class TestArgsFlat(TestCase):
+class TestArgsFlat(object):
 
     def test_1_vector_and_2_scalar_args(self):
         x = [1, 2, 3]
@@ -605,7 +669,7 @@ class TestArgsFlat(TestCase):
         assert c_shape1 == truec_shape1
 
 
-class TestSub2index2Sub(TestCase):
+class TestSub2index2Sub(object):
 
     def test_sub2index_and_index2sub(self):
         shape = (3, 3, 4)
@@ -621,6 +685,3 @@ class TestSub2index2Sub(TestCase):
         sub = index2sub(shape, i, order=order)
         for j, true_sub_j in enumerate([1, 2, 3]):
             assert sub[j] == true_sub_j
-
-if __name__ == '__main__':
-    run_module_suite()

@@ -1317,7 +1317,7 @@ def chebfit_dct(f, n=(10, ), domain=None, args=()):
     >>> h1 = plt.plot(x, wp.chebvalnd(ck7, xn), 'g.', label='ck7')
     >>> h2 = plt.plot(x, wp.chebval(xn, ck9),'b.', label='ck9')
     >>> h3 = plt.legend()
-    >>> plt.show()
+
     >>> plt.close()
 
     See also
@@ -2531,18 +2531,12 @@ def test_polydeg():
     plt.show('hold')
 
 
-def test_docstrings():
-    import doctest
-    print('Testing docstrings in %s' % __file__)
-    options = doctest.NORMALIZE_WHITESPACE | doctest.ELLIPSIS
-    doctest.testmod(optionflags=options, verbose=False)
-
-
 if __name__ == '__main__':
     if False:  # True: #
         main()
     else:
-        test_docstrings()
+        from wafo.testing import test_docstrings
+        test_docstrings(__file__)
         # test_interpolate()
         # test_chebfit1d()
         # test_chebfit2d()

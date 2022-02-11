@@ -33,6 +33,12 @@ import numpy as np
 
 @jit(int64(int64[:], int8[:]))
 def _findcross(ind, y):
+    """Returns indices to zero level crossings of y vector
+
+    Notes
+    -----
+    Same implementation as findcross function found in c_functions.c.
+    """
     ix, dcross, start, v = 0, 0, 0, 0
     n = len(y)
     if y[0] < v:
@@ -55,8 +61,8 @@ def _findcross(ind, y):
                 break
 
     for i in range(start, n - 1):
-        if ((dcross == -1 and y[i] <= v and v < y[i + 1]) or
-                (dcross == 1 and v <= y[i] and y[i + 1] < v)):
+        if ((dcross == -1 and y[i] <= v and v < y[i + 1])
+                or (dcross == 1 and v <= y[i] and y[i + 1] < v)):
 
             ind[ix] = i
             ix += 1
@@ -65,8 +71,7 @@ def _findcross(ind, y):
 
 
 def findcross(xn):
-    """Return indices to zero up and downcrossings of a vector
-    """
+    """Returns indices to zero up- and down-crossings of a vector"""
     ind = np.empty(len(xn), dtype=np.int64)
     m = _findcross(ind, xn)
     return ind[:m]
@@ -76,6 +81,12 @@ def _make_findrfc(cmp1, cmp2):
 
     @jit(int64(int64[:], float64[:], float64), nopython=True)
     def local_findrfc(t, y, h):
+        """Returns indices, t, to RFC turningpoints of a vector y of turningpoints
+
+        Notes
+        -----
+        Same implementation as rfcfilter function found in rfcfilter.m in matlab.
+        """
         # cmp1, cmp2 = (a_le_b, a_lt_b) if method==0 else (a_lt_b, a_le_b)
 
         n = len(y)
@@ -96,8 +107,8 @@ def _make_findrfc(cmp1, cmp2):
                     z1 = 0
                 t1, y1 = (t0, y0) if z1 == 0 else (ti, yi)
             else:
-                if (((z0 == +1) and cmp1(yi, fmi)) or
-                        ((z0 == -1) and cmp2(yi, fpi))):
+                if (((z0 == +1) and cmp1(yi, fmi))
+                        or ((z0 == -1) and cmp2(yi, fpi))):
                     z1 = -1
                 elif (((z0 == +1) and cmp2(fmi, yi)) or
                         ((z0 == -1) and cmp1(fpi, yi))):
@@ -147,9 +158,15 @@ _findrfc_lt = _make_findrfc(a_lt_b, a_le_b)
 
 @jit(int64(int64[:], float64[:], float64), nopython=True)
 def _findrfc(ind, y, h):
+    """Returns indices to RFC turningpoints of a vector y of turningpoints
+
+    Notes
+    -----
+    Same implementation as findrfc function found in c_functions.c.
+    """
     n = len(y)
     t_start = 0
-    nc = n // 2 - 1
+    nc = n // 2
     ix = 0
     for i in range(nc):
         Tmi = t_start + 2 * i
@@ -210,6 +227,9 @@ def _findrfc(ind, y, h):
 
 
 def findrfc(y, h, method=0):
+    """Returns indices to RFC turningpoints of a vector y of turningpoints
+
+    """
     n = len(y)
     t = np.zeros(n, dtype=np.int64)
     findrfc_ = [_findrfc_le, _findrfc_lt, _findrfc][method]

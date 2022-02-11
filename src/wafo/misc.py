@@ -1,23 +1,23 @@
 '''
 Misc
 '''
-import sys
+
 import collections
-from wafo import numba_misc
 import fractions
-import numpy as np
-from numpy import (amax, logical_and, arange, linspace, atleast_1d,
-                   asarray, ceil, floor, frexp, hypot,
-                   sqrt, arctan2, sin, cos, exp, log, log1p, mod, diff,
-                   inf, pi, interp, isscalar, zeros, ones,
-                   sign, unique, hstack, vstack, nonzero, where, extract,
-                   meshgrid)
-from scipy.special import gammaln  # pylint: disable=no-name-in-module
-from scipy.integrate import trapz, simps
+import numbers
+import sys
 import warnings
 from time import strftime, gmtime
+
+import numpy as np
+from numpy import (sqrt, arctan2, sin, cos, exp, log, log1p,
+                   inf, pi, zeros, ones, meshgrid)
+from scipy.special import gammaln, betaln  # pylint: disable=no-name-in-module
+from scipy.integrate import trapz, simps
+
+from wafo import numba_misc
 from wafo.plotbackend import plotbackend as plt
-import numbers
+
 try:
     from wafo import c_library as clib  # @UnresolvedImport
 except ImportError:
@@ -45,9 +45,7 @@ __all__ = ['now', 'spaceline', 'narg_smallest', 'args_flat', 'is_numlike',
 
 
 def xor(a, b):
-    """
-    Return True only when inputs differ.
-    """
+    """ Returns True only when inputs differ."""
     return a ^ b
 
 
@@ -114,8 +112,7 @@ def check_random_state(seed):
 
 
 def valarray(shape, value=np.nan, typecode=None):
-    """Return an array of all value.
-    """
+    """Return an array of all value."""
     return np.full(shape, fill_value=value, dtype=typecode)
 
 
@@ -180,8 +177,8 @@ def piecewise(condlist, funclist, xi=None, fillvalue=0.0, args=(), **kw):
     The result is::
 
           |--
-          |funclist[0](x0[condlist[0]],x1[condlist[0]],...,xn[condlist[0]])
-    out = |funclist[1](x0[condlist[1]],x1[condlist[1]],...,xn[condlist[1]])
+          |funclist[0](x0[condlist[0]], x1[condlist[0]],..., xn[condlist[0]])
+    out = |funclist[1](x0[condlist[1]], x1[condlist[1]],..., xn[condlist[1]])
           |...
           |funclist[n2](x0[condlist[n2]], x1[condlist[n2]],..,xn[condlist[n2]])
           |--
@@ -199,7 +196,7 @@ def piecewise(condlist, funclist, xi=None, fillvalue=0.0, args=(), **kw):
     ``x >= 0``.
 
     >>> np.allclose(piecewise([x < 0, x >= 0], [lambda x: -x, lambda x: x], xi=(x,)),
-    ...            [ 2.5,  1.5,  0.5,  0.5,  1.5,  2.5])
+    ...             [ 2.5,  1.5,  0.5,  0.5,  1.5,  2.5])
     True
 
     Define the absolute value, which is ``-x*y`` for ``x*y <0`` and ``x*y`` for
@@ -263,14 +260,12 @@ def lazywhere(cond, arrays, f, fillvalue=None, f2=None):
     >>> a, b = np.array([1, 2, 3, 4]), np.array([5, 6, 7, 8])
     >>> def f(a, b):
     ...     return a*b
-    >>> r = lazywhere(a > 2, (a, b), f, np.nan)
-    >>> np.allclose(r[2:], [21.,  32.]); np.all(np.isnan(r[:2]))
-    True
+    >>> np.allclose(lazywhere(a > 2, (a, b), f, np.nan),
+    ...            [np.nan,  np.nan,  21.,  32.], equal_nan=True)
     True
     >>> def f2(a, b):
-    ...    return (a*b)**2
-    >>> np.allclose(lazywhere(a > 2, (a, b), f, f2=f2),
-    ...            [  25.,  144.,   21.,   32.])
+    ...     return (a*b)**2
+    >>> np.allclose(lazywhere(a > 2, (a, b), f, f2=f2), [  25.,  144.,   21.,   32.])
     True
 
     Notice it assumes that all `arrays` are of the same shape, or can be
@@ -487,11 +482,17 @@ def spaceline(start_point, stop_point, num=10):
     ...       [ 0.5 ,  0.  ,  2.25],
     ...       [ 0.  ,  0.  ,  3.  ]])
     True
+    >>> np.allclose(pm.spaceline((2,0,0), (0,0,3), num=1),
+    ...      [[ 1.  ,  0.  ,  1.5 ]])
+    True
     '''
     num = int(num)
     start, stop = np.atleast_1d(start_point, stop_point)
-    delta = (stop - start) / float(num - 1)
-    return np.array([start + n * delta for n in range(num)])
+    if num > 1:
+        delta = (stop - start) / float(num - 1)
+        return np.array([start + n * delta for n in range(num)])
+    delta = (stop - start) / 2.0
+    return np.array([start + delta])
 
 
 def narg_smallest(arr, n=1):
@@ -534,28 +535,28 @@ def args_flat(*args):
     Examples
     --------
     >>> x = [1,2,3]
-    >>> pos, c_shape =args_flat(x,2,3)
-    >>> pos
-    array([[1, 2, 3],
-           [2, 2, 3],
-           [3, 2, 3]])
-    >>> c_shape
-    (3,)
+    >>> pos, c_shape = args_flat(x,2,3)
+    >>> np.allclose(pos, [[1, 2, 3],
+    ...                   [2, 2, 3],
+    ...                   [3, 2, 3]])
+    True
+    >>> c_shape == (3,)
+    True
     >>> pos1, c_shape1 = args_flat([1,2,3])
-    >>> pos1
-    array([[1, 2, 3]])
+    >>> np.allclose(pos1, [[1, 2, 3]])
+    True
     >>> c_shape1 is None
     True
     >>> pos1, c_shape1 = args_flat(1,2,3)
-    >>> pos1
-    array([[1, 2, 3]])
+    >>> np.allclose(pos1, [[1, 2, 3]])
+    True
     >>> c_shape1
     ()
     >>> pos1, c_shape1 = args_flat([1],2,3)
-    >>> pos1
-    array([[1, 2, 3]])
-    >>> c_shape1
-    (1,)
+    >>> np.allclose(pos1, [[1, 2, 3]])
+    True
+    >>> c_shape1 == (1,)
+    True
 
     '''
     nargin = len(args)
@@ -809,10 +810,11 @@ def moving_average(x, L, axis=0):
     >>> exp = np.exp; cos = np.cos; randn = np.random.randn
 
     >>> x = np.linspace(0,1,200)
-    >>> y = exp(x)+cos(5*2*pi*x)+1e-1*randn(x.size)
-    >>> y0 = moving_average(y, 20)
-    >>> np.allclose(y0[:4], [ 1.1189971,  1.1189971,  1.1189971,  1.1189971], atol=1e-1)
+    >>> y = exp(x) + cos(5*2*pi*x) + 1e-1*randn(x.size)
+    >>> trend = moving_average(y, 20)
+    >>> np.allclose(trend[:4], [ 1.1189971,  1.1189971,  1.1189971,  1.1189971], atol=1e-1)
     True
+    >>> periodic = y - trend
 
     >>> x2 = np.linspace(1, 5, 5)
     >>> np.allclose(moving_average(x2, L=1), [2.,  2.,  3.,  4.,  4.])
@@ -827,8 +829,15 @@ def moving_average(x, L, axis=0):
     ...                                                [8.,  8.,  8.,  8.,  8.]])
     True
 
-    h = plt.plot(x, y, x, y0, 'r', x, exp(x), 'k', x, tr, 'm')
-    plt.close('all')
+    >>> import matplotlib.pyplot as plt
+    >>> h0 = plt.plot(x, y, label='data')
+    >>> h1 = plt.plot(x, trend, 'r', label='trend')
+    >>> h2 = plt.plot(x, exp(x), 'r--', label='true trend')
+    >>> h3 = plt.plot(x, periodic, 'm', label='periodic')
+    >>> h4 = plt.plot(x, cos(5*2*pi*x), 'm--', label='true periodic')
+    >>> h5 = plt.legend()
+
+    >>> plt.close('all')
 
     See also
     --------
@@ -882,7 +891,6 @@ def detrendma(x, L, axis=0):
 
     Examples
     --------
-    >>> import matplotlib.pyplot as plt
     >>> import numpy as np
     >>> import wafo.misc as wm
     >>> exp = np.exp; cos = np.cos; randn = np.random.randn
@@ -890,10 +898,10 @@ def detrendma(x, L, axis=0):
     >>> x = np.linspace(0,1,200)
     >>> noise = 0.1*randn(x.size)
     >>> noise = 0.1*np.sin(100*x)
-    >>> y = exp(x)+cos(5*2*pi*x) + noise
-    >>> y0 = wm.detrendma(y, 20)
-    >>> tr = y-y0
-    >>> np.allclose(tr[:5],
+    >>> y = exp(x) + cos(5*2*pi*x) + noise
+    >>> periodic = wm.detrendma(y, 20)
+    >>> trend = y - periodic
+    >>> np.allclose(trend[:5],
     ...    [ 1.14134814,  1.14134814,  1.14134814,  1.14134814,  1.14134814])
     True
     >>> y1 = wm.detrendma(y, 200)
@@ -903,8 +911,15 @@ def detrendma(x, L, axis=0):
     >>> np.allclose(wm.detrendma(x2, L=1), [-1, 0, 0, 0, 1])
     True
 
-    h = plt.plot(x, y, x, y0, 'r', x, exp(x), 'k', x, tr, 'm')
-    plt.close('all')
+    >>> import matplotlib.pyplot as plt
+    >>> h0 = plt.plot(x, y, label='data')
+    >>> h1 = plt.plot(x, trend, 'r', label='trend')
+    >>> h2 = plt.plot(x, exp(x), 'r--', label='true trend')
+    >>> h3 = plt.plot(x, periodic, 'm', label='periodic')
+    >>> h4 = plt.plot(x, cos(5*2*pi*x), 'm--', label='true periodic')
+    >>> h5 = plt.legend()
+
+    >>> plt.close('all')
 
     See also
     --------
@@ -938,8 +953,6 @@ def ecross(t, f, ind, v=0):
 
     Examples
     --------
-    -------
-    >>> from matplotlib import pyplot as plt
     >>> import wafo.misc as wm
     >>> ones = np.ones
     >>> t = np.linspace(0,7*np.pi,250)
@@ -947,14 +960,19 @@ def ecross(t, f, ind, v=0):
     >>> ind = wm.findcross(x,0.75)
     >>> np.allclose(ind, [  9,  25,  80,  97, 151, 168, 223, 239])
     True
-    >>> t0 = wm.ecross(t,x,ind,0.75)
+    >>> t0 = wm.ecross(t, x, ind, 0.75)
     >>> np.allclose(t0, [0.84910514, 2.2933879 , 7.13205663, 8.57630119,
     ...        13.41484739, 14.85909194, 19.69776067, 21.14204343])
     True
 
-    a = plt.plot(t, x, '.', t[ind], x[ind], 'r.', t, ones(t.shape)*0.75,
-                  t0, ones(t0.shape)*0.75, 'g.')
-    plt.close('all')
+    >>> from matplotlib import pyplot as plt
+    >>> h0 = plt.plot(t, x, '.', label='data')
+    >>> h1 = plt.plot(t[ind], x[ind], 'r.', label='approximate crossings')
+    >>> h2 = plt.plot(t, ones(t.shape)*0.75, label='0.75 level')
+    >>> h3 = plt.plot(t0, ones(t0.shape)*0.75, 'g.', label='exact crossings')
+    >>> h4 = plt.legend()
+
+    >>> plt.close('all')
 
     See also
     --------
@@ -1003,16 +1021,14 @@ def findcross(x, v=0.0, kind=None, method='clib'):
 
     Examples
     --------
-    -------
-    >>> from matplotlib import pyplot as plt
     >>> import wafo.misc as wm
     >>> ones = np.ones
-    >>> np.allclose(findcross([0, 1, -1, 1], 0), [0, 1, 2])
+    >>> np.allclose(wm.findcross([0, 1, -1, 1], 0), [0, 1, 2])
     True
     >>> v = 0.75
     >>> t = np.linspace(0,7*np.pi,250)
     >>> x = np.sin(t)
-    >>> ind = wm.findcross(x,v) # all crossings
+    >>> ind = wm.findcross(x, v) # all crossings
     >>> np.allclose(ind, [  9,  25,  80,  97, 151, 168, 223, 239])
     True
 
@@ -1026,16 +1042,21 @@ def findcross(x, v=0.0, kind=None, method='clib'):
     >>> np.allclose(ind4, [  25,  97, 168, 239])
     True
 
-    t0 = plt.plot(t,x,'.',t[ind],x[ind],'r.', t, ones(t.shape)*v)
-    t0 = plt.plot(t[ind2],x[ind2],'o')
-    plt.close('all')
+    >>> from matplotlib import pyplot as plt
+    >>> h0 = plt.plot(t, x, '.', label='data')
+    >>> h1 = plt.plot(t[ind], x[ind], 'r.', label='all crossings')
+    >>> h2 = plt.plot(t, ones(t.shape)*v, label='{} level'.format(v))
+    >>> h3 = plt.plot(t[ind2],x[ind2],'o', label='upcrossings', fillstyle='none')
+    >>> h4 = plt.legend()
+
+    >>> plt.close('all')
 
     See also
     --------
     crossdef
     wavedef
     '''
-    xn = np.int8(sign(atleast_1d(x).ravel() - v))  # @UndefinedVariable
+    xn = np.int8(np.sign(np.atleast_1d(x).ravel() - v))  # @UndefinedVariable
     ind = _findcross(xn, method)
     if ind.size == 0:
         warnings.warn('No level v = %0.5g crossings found in x' % v)
@@ -1061,7 +1082,7 @@ def findcross(x, v=0.0, kind=None, method='clib'):
             # make sure the number of troughs and crests are according to the
             # wavedef, i.e., make sure length(ind) is odd if dw or uw
             # and even if tw or cw
-            is_odd = mod(n_c, 2)
+            is_odd = np.mod(n_c, 2)
             if xor(is_odd, kind in ('dw', 'uw')):
                 ind = ind[:-1]
         else:
@@ -1085,23 +1106,26 @@ def findextrema(x):
     Examples
     --------
     >>> import numpy as np
-    >>> import matplotlib.pyplot as plt
     >>> import wafo.misc as wm
     >>> t = np.linspace(0,7*np.pi,250)
     >>> x = np.sin(t)
     >>> ind = wm.findextrema(x)
-    >>> np.allclose(ind, [ 18,  53,  89, 125, 160, 196, 231])
+    >>> np.allclose(ind, [18, 53, 89, 125, 160, 196, 231])
     True
 
-    a = plt.plot(t,x,'.',t[ind],x[ind],'r.')
-    plt.close('all')
+    >>> import matplotlib.pyplot as plt
+    >>> h0 = plt.plot(t, x, '.', label='data')
+    >>> h1 = plt.plot(t[ind], x[ind], 'r.', label='extrema')
+    >>> h2 = plt.legend()
+
+    >>> plt.close('all')
 
     See also
     --------
     findcross
     crossdef
     '''
-    dx = diff(np.atleast_1d(x).ravel())
+    dx = np.diff(np.atleast_1d(x).ravel())
     return findcross(dx, 0.0) + 1
 
 
@@ -1112,20 +1136,19 @@ def findpeaks(data, n=2, min_h=None, min_p=0.0):
     Parameters
     ----------
     data : matrix or vector
-    n :
+    n : scalar integer
          The n highest peaks are found (if exist). (default 2)
-    min_h :
-        The threshold in the rainflowfilter (default 0.05*range(S(:))).
-        A zero value will return all the peaks of S.
+    min_h : real scalar
+        The threshold in the rainflowfilter (default 0.05*range(data.ravel())).
+        A zero value will return all the peaks of data.
     min_p : 0..1
-        Only the peaks that are higher than min_p*max(max(S))
-        min_p*(the largest peak in S) are returned (default  0).
+        Only the peaks that are higher than min_p*max(max(data))
+        min_p*(the largest peak in data) are returned (default  0).
 
     Returns
     -------
-    ix =
-        linear index to peaks of S
-
+    ix : array-like
+        linear index to peaks of data
 
     Examples
     --------
@@ -1135,10 +1158,17 @@ def findpeaks(data, n=2, min_h=None, min_p=0.0):
     >>> import numpy as np
     >>> import wafo.misc as wm
     >>> x = np.arange(0,10,0.01)
-    >>> data = x**2+10*np.sin(3*x)+0.5*np.sin(50*x)
-    >>> np.allclose(wm.findpeaks(data, n=8, min_h=5, min_p=0.3),
-    ...            [908, 694, 481])
+    >>> data = x**2 + 10*np.sin(3*x) + 0.5*np.sin(50*x)
+    >>> ind = wm.findpeaks(data, n=8, min_h=5, min_p=0.3)
+    >>> np.allclose(ind, [908, 694, 481])
     True
+
+    >>> import matplotlib.pyplot as plt
+    >>> h0 = plt.plot(x, data, label='data')
+    >>> h1 = plt.plot(x[ind], data[ind], 'r.', label='peaks')
+    >>> h2 = plt.legend()
+
+    >>> plt.close('all')
 
     See also
     --------
@@ -1187,7 +1217,7 @@ def findpeaks(data, n=2, min_h=None, min_p=0.0):
     # keeping only the Np most significant peaks.
     nmax = min(n, len(ind))
     ind = ind[ind2[:nmax]]
-    if (min_p > 0):
+    if min_p > 0:
         # Keeping only peaks larger than min_p percent relative to the maximum
         # peak
         ind = ind[(data1.take(ind) > min_p * dmax)]
@@ -1216,7 +1246,7 @@ def findrfc_astm(tp):
         sig_rfc[:,2] Cycle type, half (=0.5) or full (=1.0)
     """
     return numba_misc.findrfc_astm(tp)
-#     y1 = atleast_1d(tp).ravel()
+#     y1 = np.atleast_1d(tp).ravel()
 #     sig_rfc, cnr = clib.findrfc3_astm(y1)
 #     # the sig_rfc was constructed too big in rainflow.rf3, so
 #     # reduce the sig_rfc array as done originally by a matlab mex c function
@@ -1249,15 +1279,14 @@ def findrfc(tp, h=0.0, method='clib'):
 
     Examples
     --------
-    >>> import matplotlib.pyplot as plt
     >>> import wafo.misc as wm
     >>> t = np.linspace(0,7*np.pi,250)
-    >>> x = np.sin(t)+0.1*np.sin(50*t)
+    >>> x = np.sin(t) + 0.1*np.sin(50*t)
     >>> ind = wm.findextrema(x)
     >>> ti, tp = t[ind], x[ind]
 
     >>> ind1 = wm.findrfc(tp, 0.3)
-    >>> np.allclose(ind1, [  0,   9,  32,  53,  74,  95, 116, 137])
+    >>> np.allclose(ind1, [0, 9, 32, 53, 74, 95,116, 137])
     True
     >>> ind2 = wm.findrfc(tp, 0.3, method=0)
     >>> np.allclose(ind2, [  0,   9,  32,  53,  74,  95, 116, 137, 146])
@@ -1269,24 +1298,27 @@ def findrfc(tp, h=0.0, method='clib'):
     >>> np.allclose(ind3, [  0,   9,  32,  53,  74,  95, 116, 137])
     True
 
+    >>> import matplotlib.pyplot as plt
+    >>> h0 = plt.plot(t, x,'-', label='data')
+    >>> h1 = plt.plot(ti, tp,'r.', label='turning points')
+    >>> h2 = plt.plot(ti[ind1], tp[ind1], 'ko', label='filtered turning points')
+    >>> h3 = plt.legend()
 
-    a = plt.plot(t,x,'.',ti,tp,'r.')
-    a = plt.plot(ti[ind1],tp[ind1])
-    plt.close('all')
+    >>> plt.close('all')
 
     See also
     --------
     rfcfilter,
     findtp.
     '''
-    y = atleast_1d(tp).ravel()
+    y = np.atleast_1d(tp).ravel()
 
     t_start = int(y[0] > y[1])  # first is a max, ignore it
     y = y[t_start::]
     n = len(y)
-    NC = np.floor(n // 2) - 1
+    nc = n // 2
 
-    if (NC < 1):
+    if nc < 1:
         return zeros(0, dtype=np.int)  # No RFC cycles*/
 
     if (y[0] > y[1] and y[1] > y[2] or
@@ -1353,14 +1385,14 @@ def rfcfilter(x, h, method=0):
     --------
     findrfc
     """
-    y = atleast_1d(x).ravel()
+    y = np.atleast_1d(x).ravel()
     ix = numba_misc.findrfc(y, h, method)
     return y[ix]
 
 
-def findtp(x, h=0.0, kind=None):
+def findtp(x, h=0.0, kind=None, method='clib'):
     '''
-    Return indices to turning points (tp) of data, optionally rainflowfiltered.
+    Return indices to turning points (tp) of data, optionally rainflow filtered.
 
     Parameters
     ----------
@@ -1379,32 +1411,38 @@ def findtp(x, h=0.0, kind=None):
         will be returned, otherwise only the rainflow filtered
         min and max, which define a wave according to the
         wave definition, will be returned.
+    method : string, optional
+        'clib' 'None'
+        Specify 'clib' for calling the c_functions, otherwise fallback to
+        the Python implementation.
 
     Returns
     -------
-    ind : arraylike
+    ind : array-like
         indices to the turning points in the original sequence.
 
     Examples
     --------
-    >>> import matplotlib.pyplot as plt
     >>> import wafo.misc as wm
-    >>> t = np.linspace(0,30,500).reshape((-1,1))
+    >>> t = np.linspace(0, 30, 500).reshape((-1, 1))
     >>> x = np.hstack((t, np.cos(t) + 0.3 * np.sin(5*t)))
-    >>> x1 = x[0:100,:]
-    >>> itp = wm.findtp(x1[:,1],0,'Mw')
-    >>> itph = wm.findtp(x1[:,1],0.3,'Mw')
-    >>> tp = x1[itp,:]
-    >>> tph = x1[itph,:]
-    >>> np.allclose(itp, [ 5, 18, 24, 38, 46, 57, 70, 76, 91, 98, 99])
+
+    >>> itp = wm.findtp(x[:,1], 0, 'mw')
+    >>> itph = wm.findtp(x[:,1], 0.3, 'mw')
+    >>> tp = x[itp, :]
+    >>> tph = x[itph, :]
+    >>> np.allclose(itp[:10], [0, 5, 18, 24, 38, 46, 57, 70, 76, 91])
     True
-    >>> np.allclose(itph, 91)
+    >>> np.allclose(itph, [57, 109, 161, 214, 266, 318, 370, 423, 475])
     True
 
-    a = plt.plot(x1[:,0],x1[:,1],
-                 tp[:,0],tp[:,1],'ro',
-                 tph[:,0],tph[:,1],'k.')
-    plt.close('all')
+    >>> import matplotlib.pyplot as plt
+    >>> h0 = plt.plot(x[:, 0], x[:, 1], label='data')
+    >>> h1 = plt.plot(tp[:, 0], tp[:, 1], 'ro', label='turning points')
+    >>> h2 = plt.plot(tph[:, 0], tph[:, 1], 'k.', label='filtered turning points')
+    >>> h3 = plt.legend()
+
+    >>> plt.close('all')
 
     See also
     ---------
@@ -1415,7 +1453,7 @@ def findtp(x, h=0.0, kind=None):
     '''
     n = len(x)
     if h < 0.0:
-        return arange(n)
+        return np.arange(n)
 
     ind = findextrema(x)
 
@@ -1423,9 +1461,9 @@ def findtp(x, h=0.0, kind=None):
         return None
 
     # In order to get the exact up-crossing intensity from rfc by
-    # mm2lc(tp2mm(rfc))  we have to add the indices to the last value
-    # (and also the first if the sequence of turning points does not start
-    # with a minimum).
+    # mm2lc(tp2mm(rfc))  we have to add the indices
+    # to the last value (and also the first if the
+    # sequence of turning points does not start with a minimum).
 
     if kind == 'astm':
         # the Nieslony approach always put the first loading point as the first
@@ -1442,7 +1480,7 @@ def findtp(x, h=0.0, kind=None):
             ind = np.r_[ind, n - 1]
 
     if h > 0.0:
-        ind1 = findrfc(x[ind], h)
+        ind1 = findrfc(x[ind], h, method)
         ind = ind[ind1]
 
     if kind in ('mw', 'Mw'):
@@ -1456,7 +1494,7 @@ def findtp(x, h=0.0, kind=None):
 
         # make sure the number of minima and Maxima are according to the
         # wavedef. i.e., make sure Nm=length(ind) is odd
-        if (mod(ind.size, 2)) != 1:
+        if np.mod(ind.size, 2) != 1:
             ind = ind[:-1]
     return ind
 
@@ -1489,21 +1527,32 @@ def findtc(x_in, v=None, kind=None):
 
     Examples
     --------
-    >>> import matplotlib.pyplot as plt
     >>> import wafo.misc as wm
     >>> t = np.linspace(0,30,500).reshape((-1,1))
     >>> x = np.hstack((t, np.cos(t)))
-    >>> x1 = x[0:200,:]
-    >>> itc, iv = wm.findtc(x1[:,1],0,'dw')
-    >>> tc = x1[itc,:]
-    >>> np.allclose(itc, [ 52, 105])
-    True
-    >>> itc, iv = wm.findtc(x1[:,1],0,'uw')
-    >>> np.allclose(itc, [ 105, 157])
+
+    >>> idtc, idv = wm.findtc(x[:, 1], 0, 'dw')
+    >>> tc = x[idtc,:]
+    >>> udc = x[idv, :]
+    >>> np.allclose(idtc, [52, 105, 157, 209, 261, 314, 366, 418])
     True
 
-    a = plt.plot(x1[:,0],x1[:,1],tc[:,0],tc[:,1],'ro')
-    plt.close('all')
+    >>> np.allclose(idv, [26,  78, 130, 182, 235, 287, 339, 391, 444])
+    True
+
+    >>> iutc, iuv = wm.findtc(x[:, 1], 0, 'uw')
+    >>> np.allclose(iutc, [105, 157, 209, 261, 314, 366, 418, 470])
+    True
+    >>> np.allclose(iuv, [78, 130, 182, 235, 287, 339, 391, 444, 496])
+    True
+
+    >>> import matplotlib.pyplot as plt
+    >>> h0 = plt.plot(tc[:,0], tc[:,1],'ro', label='trough or crest')
+    >>> h1 = plt.plot(udc[:,0], udc[:,1],'go', label='up or down crossing')
+    >>> h2 = plt.plot(x[:,0], x[:,1], 'k.', label='data')
+    >>> h3 = plt.legend()
+
+    >>> plt.close('all')
 
     See also
     --------
@@ -1512,7 +1561,7 @@ def findtc(x_in, v=None, kind=None):
     wavedef
     """
 
-    x = atleast_1d(x_in)
+    x = np.atleast_1d(x_in)
     if v is None:
         v = x.mean()
 
@@ -1523,7 +1572,7 @@ def findtc(x_in, v=None, kind=None):
         return zeros(0, dtype=np.int), zeros(0, dtype=np.int)
 
     # determine the number of trough2crest (or crest2trough) cycles
-    is_even = mod(n_c + 1, 2)
+    is_even = np.mod(n_c + 1, 2)
     n_tc = int((n_c - 1 - is_even) / 2)
 
     # allocate variables before the loop increases the speed
@@ -1634,7 +1683,7 @@ def findoutliers(x, zcrit=0.0, dcrit=None, ddcrit=None, verbose=False):
             print('Found {0:d} spurious negative jumps of {1}'.format(i_n.size,
                                                                       name))
         if i_n.size > 0:
-            return hstack((i_p, i_n))
+            return np.hstack((i_p, i_n))
         return i_p
 
     def _find_consecutive_equal_values(dxn, zcrit):
@@ -1650,14 +1699,14 @@ def findoutliers(x, zcrit=0.0, dcrit=None, ddcrit=None, verbose=False):
         if i_small.size > 0:
             i_small += 1
             # finding the beginning and end of consecutive equal values
-            i_step = np.flatnonzero((diff(mask_small))) + 1
+            i_step = np.flatnonzero((np.diff(mask_small))) + 1
             # indices to consecutive equal points
             # removing the point before + all equal points + the point after
 
-            return hstack((i_step - 1, i_small, i_step, i_step + 1))
+            return np.hstack((i_step - 1, i_small, i_step, i_step + 1))
         return i_small
 
-    xn = asarray(x).flatten()
+    xn = np.asarray(x).flatten()
 
     _assert(2 < xn.size, 'The vector must have more than 2 elements!')
 
@@ -1674,8 +1723,8 @@ def findoutliers(x, zcrit=0.0, dcrit=None, ddcrit=None, verbose=False):
         if verbose:
             print('ddcrit is set to %g' % ddcrit)
 
-    dxn = diff(xn)
-    ddxn = diff(dxn)
+    dxn = np.diff(xn)
+    ddxn = np.diff(dxn)
 
     ind = np.hstack((_find_spurious_jumps(dxn, dcrit, name='Dx'),
                      _find_spurious_jumps(ddxn, ddcrit, name='D^2x'),
@@ -1683,9 +1732,9 @@ def findoutliers(x, zcrit=0.0, dcrit=None, ddcrit=None, verbose=False):
 
     indg = ones(xn.size, dtype=bool)
     if ind.size > 1:
-        ind = unique(ind)
+        ind = np.unique(ind)
         indg[ind] = 0
-    indg, = nonzero(indg)
+    indg, = np.nonzero(indg)
 
     if verbose:
         print('Found the total of %d spurious points' % np.size(ind))
@@ -1720,9 +1769,9 @@ def common_shape(*args, ** kwds):
     >>> A = np.ones((4,1))
     >>> B = 2
     >>> C = np.ones((1,5))*5
-    >>> np.allclose(wm.common_shape(A,B,C), (4, 5))
+    >>> wm.common_shape(A,B,C) == (4, 5)
     True
-    >>> np.allclose(wm.common_shape(A,B,C,shape=(3,4,1)), (3, 4, 5))
+    >>> wm.common_shape(A,B,C, shape=(3,4,1))  == (3, 4, 5)
     True
 
     See also
@@ -1763,22 +1812,22 @@ def argsreduce(condition, * args):
     >>> C = rand((1,5))
     >>> cond = np.ones(A.shape)
     >>> [A1,B1,C1] = wm.argsreduce(cond,A,B,C)
-    >>> np.allclose(B1.shape, (20,))
+    >>> B1.shape == (20,)
     True
     >>> cond[2,:] = 0
     >>> [A2,B2,C2] = wm.argsreduce(cond,A,B,C)
-    >>> np.allclose(B2.shape, (15,))
+    >>> B2.shape == (15,)
     True
 
     See also
     --------
     numpy.extract
     """
-    newargs = atleast_1d(*args)
+    newargs = np.atleast_1d(*args)
     if not isinstance(newargs, list):
         newargs = [newargs, ]
     expand_arr = (condition == condition)
-    return [extract(condition, arr1 * expand_arr) for arr1 in newargs]
+    return [np.extract(condition, arr1 * expand_arr) for arr1 in newargs]
 
 
 def stirlerr(n):
@@ -1823,23 +1872,24 @@ def stirlerr(n):
     S3 = 0.000595238095238095238095238  # /* 1/1680 */
     S4 = 0.0008417508417508417508417508  # /* 1/1188 */
 
-    n1 = atleast_1d(n)
-
-    y = gammaln(n1 + 1) - log(sqrt(2 * pi * n1) * (n1 / exp(1)) ** n1)
+    n1 = np.atleast_1d(n)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        y = gammaln(n1 + 1) - log(sqrt(2 * pi * n1) * (n1 / exp(1)) ** n1)
 
     nn = n1 * n1
 
     n500 = 500 < n1
     y[n500] = (S0 - S1 / nn[n500]) / n1[n500]
-    n80 = logical_and(80 < n1, n1 <= 500)
+    n80 = np.logical_and(80 < n1, n1 <= 500)
     if np.any(n80):
         y[n80] = (S0 - (S1 - S2 / nn[n80]) / nn[n80]) / n1[n80]
-    n35 = logical_and(35 < n1, n1 <= 80)
+    n35 = np.logical_and(35 < n1, n1 <= 80)
     if np.any(n35):
         nn35 = nn[n35]
         y[n35] = (S0 - (S1 - (S2 - S3 / nn35) / nn35) / nn35) / n1[n35]
 
-    n15 = logical_and(15 < n1, n1 <= 35)
+    n15 = np.logical_and(15 < n1, n1 <= 35)
     if np.any(n15):
         nn15 = nn[n15]
         y[n15] = (
@@ -1965,7 +2015,7 @@ def binomln(z, w):
     BINOMLN computes the natural logarithm of the binomial
     function for corresponding elements of Z and W.   The arrays Z and
     W must be real and nonnegative. Both arrays must be the same size,
-    or either can be scalar.  BETALOGE is defined as:
+    or either can be scalar.  BINOMLN is defined as:
 
     y = LOG(binom(Z,W)) = gammaln(Z)-gammaln(W)-gammaln(Z-W)
 
@@ -1985,12 +2035,36 @@ def binomln(z, w):
     --------
     binom
     '''
-    # log(n!) = stirlerr(n)  + log( sqrt(2*pi*n)*(n/exp(1))**n )
-    # y = gammaln(z+1)-gammaln(w+1)-gammaln(z-w+1)
-    zpw = z - w
-    return (stirlerr(z + 1) - stirlerr(w + 1) - 0.5 * log(2 * pi) -
-            (w + 0.5) * log1p(w) + (z + 0.5) * log1p(z) - stirlerr(zpw + 1) -
-            (zpw + 0.5) * log1p(zpw) + 1)
+
+    # return gammaln(z+1.) - gammaln(w+1.) - gammaln(z-w+1.)
+    zmw = z-w
+    k = np.where(zmw < 2, zmw, w)
+    out = -log(z + 1.) - betaloge(z - k + 1., k + 1.)
+    if np.isscalar(zmw):
+        if k < 2:
+            if k < 0:
+                return -np.inf
+            if k == 0:
+                return 0.0
+            if k == 1:
+                return log(z)
+    else:
+        n = np.broadcast_to(z, np.shape(k))
+        out[k < 0] = -np.inf
+        out[k == 0] = 0.0
+        out[k == 1] = log(n[k == 1])
+    return out
+
+
+def _betaln3(a, b):
+    """ Returns betaln valid for huge arguments: 10 <= a  and b < huge
+
+    More accurate than special.betaln
+    """
+    apb = a + b
+    corr = stirlerr(a) + stirlerr(b) - stirlerr(apb)
+    return (- 0.5 * log(b) + 0.5 * log(2 * pi) + corr
+            + (a - 0.5) * log(a/apb) + b * log1p(-a/apb))
 
 
 def betaloge(z, w):
@@ -2022,14 +2096,21 @@ def betaloge(z, w):
     --------
     betaln, beta
     '''
-    zpw = z + w
-    return (stirlerr(z) + stirlerr(w) + 0.5 * log(2 * pi) + (w - 0.5) * log(w)
-            + (z - 0.5) * log(z) - stirlerr(zpw) - (zpw - 0.5) * log(zpw))
-
-    # y = gammaln(z)+gammaln(w)-gammaln(z+w)
-    # stirlings approximation:
-    #  (-(zpw-0.5).*log(zpw) +(w-0.5).*log(w)+(z-0.5).*log(z) +0.5*log(2*pi))
-    # return y
+    huge = FLOATINFO.max
+    a = np.minimum(z, w)
+    b = np.maximum(z, w)
+    out = np.full(b.shape, np.nan, dtype=float)
+    r00 = (a == 0)
+    out[r00] = np.inf
+    r01 = (0 < a) & (huge <= b)
+    out[r01] = -np.inf
+    r_3 = (10 <= a) & (b < huge)
+    if np.any(r_3):
+        out[r_3] = _betaln3(a[r_3], b[r_3])
+    r12 = (0 < a) & (a < 10) & (b < huge)
+    if np.any(r12):
+        out[r12] = betaln(a[r12], b[r12])
+    return out
 
 
 def gravity(phi=45):
@@ -2092,13 +2173,13 @@ def nextpow2(x):
     >>> wm.nextpow2(np.arange(5))
     3
     '''
-    t = isscalar(x) or len(x)
-    if (t > 1):
-        f, n = frexp(t)
+    t = np.isscalar(x) or len(x)
+    if t > 1:
+        f, n = np.frexp(t)
     else:
-        f, n = frexp(np.abs(x))
+        f, n = np.frexp(np.abs(x))
 
-    if (f == 0.5):
+    if f == 0.5:
         n = n - 1
     return n
 
@@ -2111,7 +2192,7 @@ def discretize(fun, a, b, tol=0.005, n=5, method='linear'):
     ----------
     fun : callable
         function to discretize
-    a,b : real scalars
+    a, b : real scalars
         evaluation limits
     tol : real, scalar
         absoute error tolerance
@@ -2129,46 +2210,53 @@ def discretize(fun, a, b, tol=0.005, n=5, method='linear'):
     --------
     >>> import wafo.misc as wm
     >>> import numpy as np
+    >>> fun = lambda x: 1./x
+    >>> a, b = 0.1, 1.0
+    >>> x, y = wm.discretize(fun, a, b)
+    >>> np.allclose(x[-5:], [0.94375, 0.9578125, 0.971875, 0.9859375, 1.0])
+    True
+    >>> len(x)
+    65
+
+    >>> xa, ya = wm.discretize(fun, a, b, method='adaptive')
+    >>> np.allclose(xa[-5:], [0.6625, 0.71875, 0.775, 0.8875, 1.0])
+    True
+    >>> len(xa)
+    25
+
     >>> import matplotlib.pyplot as plt
-    >>> x,y = wm.discretize(np.cos, 0, np.pi)
-    >>> np.allclose(x[:5], [0.,  0.19634954,  0.39269908,  0.58904862,  0.78539816])
-    True
+    >>> h0 = plt.plot(x, y, '.', label='linear')
+    >>> h1 = plt.plot(xa, ya, 'ro', label='adaptive', fillstyle='none')
+    >>> h2 = plt.legend()
 
-    >>> xa,ya = wm.discretize(np.cos, 0, np.pi, method='adaptive')
-    >>> np.allclose(xa[:5], [0.,  0.19634954,  0.39269908,  0.58904862,  0.78539816])
-    True
-
-    t = plt.plot(x, y, xa, ya, 'r.')
-    plt.show()
-    plt.close('all')
+    >>> plt.close('all')
 
     '''
     if method.startswith('a'):
         return _discretize_adaptive(fun, a, b, tol, n)
-    else:
-        return _discretize_linear(fun, a, b, tol, n)
+    return _discretize_linear(fun, a, b, tol, n)
 
 
 def _discretize_linear(fun, a, b, tol=0.005, n=5):
     '''
     Automatic discretization of function, linear gridding
     '''
-    x = linspace(a, b, n)
+    x = np.linspace(a, b, n)
     y = fun(x)
 
     err0 = inf
     err = 10000
     nmax = 2 ** 20
     num_tries = 0
-    while (num_tries < 5 and err > tol and n < nmax):
+    while num_tries < 5 and err > tol and n < nmax:
         err0 = err
         x0 = x
         y0 = y
         n = 2 * (n - 1) + 1
-        x = linspace(a, b, n)
+        x = np.linspace(a, b, n)
         y = fun(x)
-        y00 = interp(x, x0, y0)
-        err = 0.5 * amax(np.abs(y00 - y) / (np.abs(y00) + np.abs(y) + _TINY + tol))
+        y00 = np.interp(x, x0, y0)
+        err = 0.5 * np.amax(np.abs(y00 - y) / (np.abs(y00) + np.abs(y) + _TINY + tol))
         num_tries += int(abs(err - err0) <= tol / 2)
     return x, y
 
@@ -2177,12 +2265,12 @@ def _discretize_adaptive(fun, a, b, tol=0.005, n=5):
     '''
     Automatic discretization of function, adaptive gridding.
     '''
-    n += (mod(n, 2) == 0)  # make sure n is odd
-    x = linspace(a, b, n)
+    n += (np.mod(n, 2) == 0)  # make sure n is odd
+    x = np.linspace(a, b, n)
     fx = fun(x)
 
     n2 = (n - 1) // 2
-    erri = hstack((zeros((n2, 1)), ones((n2, 1)))).ravel()
+    erri = np.hstack((zeros((n2, 1)), ones((n2, 1)))).ravel()
     err = erri.max()
     err0 = inf
     num_tries = 0
@@ -2192,12 +2280,12 @@ def _discretize_adaptive(fun, a, b, tol=0.005, n=5):
             err0 = err
             # find top errors
 
-            ix, = where(erri > tol)
+            ix, = np.where(erri > tol)
             # double the sample rate in intervals with the most error
-            y = (vstack(((x[ix] + x[ix - 1]) / 2,
-                         (x[ix + 1] + x[ix]) / 2)).T).ravel()
+            y = (np.vstack(((x[ix] + x[ix - 1]) / 2,
+                            (x[ix + 1] + x[ix]) / 2)).T).ravel()
             fy = fun(y)
-            fy0 = interp(y, x, fx)
+            fy0 = np.interp(y, x, fx)
 
             abserr = np.abs(fy0 - fy)
             erri = 0.5 * (abserr / (np.abs(fy0) + np.abs(fy) + _TINY + tol))
@@ -2205,12 +2293,12 @@ def _discretize_adaptive(fun, a, b, tol=0.005, n=5):
             # converged = abserr <= np.maximum(tol, tol * abs(fy))
             err = erri.max()
 
-            x = hstack((x, y))
+            x = np.hstack((x, y))
 
             ix = x.argsort()
             x = x[ix]
-            erri = hstack((zeros(len(fx)), erri))[ix]
-            fx = hstack((fx, fy))[ix]
+            erri = np.hstack((zeros(len(fx)), erri))[ix]
+            fx = np.hstack((fx, fy))[ix]
             num_tries += int(abs(err - err0) <= tol / 2)
         else:
             break
@@ -2270,7 +2358,7 @@ def cart2polar(x, y, z=None):
     --------
     polar2cart
     '''
-    t, r = arctan2(y, x), hypot(x, y)
+    t, r = arctan2(y, x), np.hypot(x, y)
     if z is None:
         return t, r
     return t, r, z
@@ -2297,7 +2385,7 @@ def ndgrid(*args, **kwargs):
     True
     """
     kwargs['indexing'] = 'ij'
-    return meshgrid(*args, ** kwargs)
+    return meshgrid(*args, **kwargs)
 
 
 def trangood(x, f, min_n=None, min_x=None, max_x=None, max_n=inf):
@@ -2323,6 +2411,8 @@ def trangood(x, f, min_n=None, min_x=None, max_x=None, max_n=inf):
     x, f : array_like
         the good transform function.
 
+    Notes
+    -----
     TRANGOOD interpolates f linearly  and optionally
     extrapolate it linearly outside the range of x
     with X uniformly spaced.
@@ -2332,7 +2422,7 @@ def trangood(x, f, min_n=None, min_x=None, max_x=None, max_n=inf):
     tranproc,
     numpy.interp
     """
-    xo, fo = atleast_1d(x, f)
+    xo, fo = np.atleast_1d(x, f)
 
     _assert(xo.ndim == 1, 'x must be a vector.')
     _assert(fo.ndim == 1, 'f  must be a vector.')
@@ -2340,7 +2430,7 @@ def trangood(x, f, min_n=None, min_x=None, max_x=None, max_n=inf):
     i = xo.argsort()
     xo, fo = xo[i], fo[i]
     del i
-    dx = diff(xo)
+    dx = np.diff(xo)
     _assert(all(dx > 0), 'Duplicate x-values not allowed.')
 
     nf = fo.shape[0]
@@ -2351,7 +2441,7 @@ def trangood(x, f, min_n=None, min_x=None, max_x=None, max_n=inf):
     min_n = max(min_n, 2)
     max_n = max(max_n, 2)
 
-    ddx = diff(dx)
+    ddx = np.diff(dx)
     xn = xo[-1]
     x0 = xo[0]
     L = float(xn - x0)
@@ -2362,9 +2452,9 @@ def trangood(x, f, min_n=None, min_x=None, max_x=None, max_n=inf):
         # accomplished by the following.
         dx = L / (min(min_n, max_n) - 1)
         dx = (dx + 2.) - 2.
-        xi = arange(x0, xn + dx / 2., dx)
+        xi = np.arange(x0, xn + dx / 2., dx)
         # New call pab 11.11.2000: This is much quicker
-        fo = interp(xi, xo, fo)
+        fo = np.interp(xi, xo, fo)
         xo = xi
 
     # x is now uniformly spaced
@@ -2372,24 +2462,23 @@ def trangood(x, f, min_n=None, min_x=None, max_x=None, max_n=inf):
 
     # Extrapolate linearly outside the range of ff
     if min_x < xo[0]:
-        x1 = dx * arange(floor((min_x - xo[0]) / dx), -2)
+        x1 = dx * np.arange(np.floor((min_x - xo[0]) / dx), -2)
         f2 = fo[0] + x1 * (fo[1] - fo[0]) / (xo[1] - xo[0])
-        fo = hstack((f2, fo))
-        xo = hstack((x1 + xo[0], xo))
+        fo = np.hstack((f2, fo))
+        xo = np.hstack((x1 + xo[0], xo))
 
     if max_x > xo[-1]:
-        x1 = dx * arange(1, ceil((max_x - xo[-1]) / dx) + 1)
+        x1 = dx * np.arange(1, np.ceil((max_x - xo[-1]) / dx) + 1)
         f2 = f[-1] + x1 * (f[-1] - f[-2]) / (xo[-1] - xo[-2])
-        fo = hstack((fo, f2))
-        xo = hstack((xo, x1 + xo[-1]))
+        fo = np.hstack((fo, f2))
+        xo = np.hstack((xo, x1 + xo[-1]))
 
     return xo, fo
 
 
 def tranproc(x, f, x0, *xi):
     """
-    Transforms process X and up to four derivatives
-          using the transformation f.
+    Transforms process X and up to four derivatives using the transformation f.
 
     Parameters
     ----------
@@ -2417,7 +2506,6 @@ def tranproc(x, f, x0, *xi):
     Examples
     --------
     Derivative of g and the transformed Gaussian model.
-    >>> import matplotlib.pyplot as plt
     >>> import wafo.misc as wm
     >>> import wafo.transform.models as wtm
     >>> tr = wtm.TrHermite()
@@ -2428,11 +2516,18 @@ def tranproc(x, f, x0, *xi):
     ... [ 1.09938766,  1.39779849,  1.39538745,  1.39298656,  1.39059575])
     True
 
-    h = plt.plot(x, g, x, gder[1])
-    plt.plot(x,pdfnorm(g)*gder[1],x,pdfnorm(x))
-    plt.legend('Transformed model','Gaussian model')
+    >>> import matplotlib.pyplot as plt
+    >>> import wafo.stats as ws
 
-    plt.close('all')
+    >>> h0 = plt.plot(x, g, label='Hermite transform')
+    >>> h1 = plt.plot(x, x, label='Linear transform')
+    >>> h2 = plt.legend()
+    >>> plt.close('all')
+
+    >>> h3 = plt.plot(x, ws.norm.pdf(g) * gder[1], label='Transformed model')
+    >>> h4 = plt.plot(x, ws.norm.pdf(x), label='Gaussian model')
+    >>> h5 = plt.legend()
+    >>> plt.close('all')
 
     See also
     --------
@@ -2450,12 +2545,12 @@ def tranproc(x, f, x0, *xi):
     def _diff(xo, fo, x0, num_derivatives):
         hn = _default_step(xo, num_derivatives)
         # Transform X with the derivatives of  f.
-        fder = vstack((xo, fo))
-        fxder = zeros((num_derivatives, x0.size))
+        fder = np.vstack((xo, fo))
+        fxder = np.zeros((num_derivatives, x0.size))
         for k in range(num_derivatives):  # Derivation of f(x) using a difference method.
             n = fder.shape[-1]
-            fder = vstack([(fder[0, 0:n - 1] + fder[0, 1:n]) / 2,
-                           diff(fder[1, :]) / hn])
+            fder = np.vstack([(fder[0, 0:n - 1] + fder[0, 1:n]) / 2,
+                              np.diff(fder[1, :]) / hn])
             fxder[k] = tranproc(fder[0], fder[1], x0)
         return fxder
 
@@ -2483,19 +2578,19 @@ def tranproc(x, f, x0, *xi):
                 6. * fxder[2] * xi[0] ** 2. * xi[1] +
                 fxder[1] * (3. * xi[1] ** 2. + 4. * xi[0] * xi[1]))
 
-    xo, fo, x0 = atleast_1d(x, f, x0)
-    xi = atleast_1d(*xi)
+    xo, fo, x0 = np.atleast_1d(x, f, x0)
+    xi = np.atleast_1d(*xi)
     if not isinstance(xi, list):
         xi = [xi, ]
     num_derivatives = len(xi)  # num_derivatives = number of derivatives
-    nmax = ceil((xo.ptp()) * 10 ** (7. / max(num_derivatives, 1)))
+    nmax = np.ceil((xo.ptp()) * 10 ** (7. / max(num_derivatives, 1)))
     xo, fo = trangood(xo, fo, min_x=min(x0), max_x=max(x0), max_n=nmax)
 
     n = f.shape[0]
     xu = (n - 1) * (x0 - xo[0]) / (xo[-1] - xo[0])
 
-    fi = asarray(floor(xu), dtype=int)
-    fi = where(fi == n - 1, fi - 1, fi)
+    fi = np.asarray(np.floor(xu), dtype=int)
+    fi = np.where(fi == n - 1, fi - 1, fi)
 
     xu = xu - fi
     y0 = fo[fi] + (fo[fi + 1] - fo[fi]) * xu
@@ -2556,7 +2651,7 @@ def good_bins(data=None, range=None, num_bins=None, odd=False, loose=True):  # @
 
     def _default_bins(num_bins, x):
         if num_bins is None:
-            num_bins = np.ceil(4 * np.sqrt(np.sqrt(len(x))))
+            num_bins = int(np.ceil(4 * np.sqrt(np.sqrt(len(x)))))
         return num_bins
 
     def _default_step(mn, mx, num_bins):
@@ -2594,8 +2689,8 @@ def _make_bars(limits, bin_):
 
 
 # pylint: disable=redefined-builtin
-def _histogram(data, bins=None, range=None, normed=False, weights=None,  # @ReservedAssignment
-               density=False):
+def _histogram(data, bins=None, range=None, density=False, weights=None):  # @ReservedAssignment
+
     """
     Examples
     --------
@@ -2616,14 +2711,17 @@ def _histogram(data, bins=None, range=None, normed=False, weights=None,  # @Rese
     x = np.atleast_1d(data)
     if bins is None:
         bins = int(np.ceil(4 * np.sqrt(np.sqrt(len(x)))))
-    bin_, limits = np.histogram(data, bins=bins, range=range, normed=normed,
-                                weights=weights, density=density)
+    bin_, limits = np.histogram(data,
+                                bins=bins,
+                                range=range,
+                                weights=weights,
+                                density=density)
     xx, yy = _make_bars(limits, bin_)
     return xx, yy, limits
 
 
 def plot_histgrm(data, bins=None, range=None,  # @ReservedAssignment
-                 normed=False, weights=None, density=None, lintype='b-'):
+                 density=False, weights=None, lintype='b-'):
     '''
     Plot histogram
 
@@ -2640,7 +2738,7 @@ def plot_histgrm(data, bins=None, range=None,  # @ReservedAssignment
         The lower and upper range of the bins.  If not provided, range
         is simply ``(data.min(), data.max())``.  Values outside the range are
         ignored.
-    normed : bool, optional
+    density : bool, optional
         If False, the result will contain the number of samples in each bin.
         If True, the result is the value of the probability *density* function
         at the bin, normalized such that the *integral* over the range is 1.
@@ -2653,26 +2751,24 @@ def plot_histgrm(data, bins=None, range=None,  # @ReservedAssignment
 
     Returns
     -------
-    h : list
-        of plot-objects
+    h : list of plot-objects
+
 
     Examples
     --------
-    >>> import matplotlib.pyplot as plt
     >>> import wafo.misc as wm
     >>> import wafo.stats as ws
     >>> R = ws.weibull_min.rvs(2,loc=0,scale=2, size=100)
-    >>> R = np.linspace(0,10)
-    >>> bins = good_bins(R)
-    >>> len(bins)
-    13
+    >>> bins = wm.good_bins(R)
 
     >>> x = np.linspace(-3,16,200)
-    >>> pdf = ws.weibull_min.pdf(x,2,0,2)
+    >>> pdf = ws.weibull_min.pdf(x, 2, 0, 2)
 
-    h0 = wm.plot_histgrm(R, 20, normed=True)
-    h1 = plt.plot(x, pdf,'r')
-    plt.close('all')
+    >>> import matplotlib.pyplot as plt
+    >>> h0 = wm.plot_histgrm(R, bins, density=True)
+    >>> h1 = plt.plot(x, pdf,'r')
+
+    >>> plt.close('all')
 
     See also
     --------
@@ -2680,7 +2776,7 @@ def plot_histgrm(data, bins=None, range=None,  # @ReservedAssignment
     numpy.histogram
     '''
 
-    xx, yy, limits = _histogram(data, bins, range, normed, weights, density)
+    xx, yy, limits = _histogram(data, bins, range, density, weights)
     return plt.plot(xx, yy, lintype, limits, limits * 0)
 
 
@@ -2737,10 +2833,10 @@ def fourier(data, t=None, period=None, m=None, method='trapz'):
         vector or matrix of row vectors with data points shape p x n.
     t : array-like
         vector with n values indexed from 1 to n.
-    period : real scalar, (default T = t[-1]-t[0])
+    period : real scalar, (default t[-1]-t[0])
         primitive period of signal, i.e., smallest period.
     m : scalar integer
-        defines no of harmonics desired (default m = n)
+        defines number of harmonics desired (default m = n)
     method : string
         integration method used
 
@@ -2769,13 +2865,12 @@ def fourier(data, t=None, period=None, m=None, method='trapz'):
     >>> import wafo.misc as wm
     >>> import numpy as np
     >>> T = 2*np.pi
-    >>> t = np.linspace(0,4*T)
+    >>> t = np.linspace(0, 4*T)
     >>> x = np.sin(t)
     >>> a, b = wm.fourier(x, t, period=T, m=5)
-    >>> np.allclose(a, 0)
+    >>> np.allclose(a, [ 0.,  0.,  0.,  0.,  0.])
     True
-    >>> np.allclose(b.ravel(),
-    ...             [ 0.,  4.,  0.,  0.,  0.])
+    >>> np.allclose(b.ravel(), [ 0.,  4.,  0.,  0.,  0.])
     True
 
     See also
@@ -2807,7 +2902,7 @@ def fourier(data, t=None, period=None, m=None, method='trapz'):
     b = b / pi
 
     # Alternative:  faster for large M, but gives different results than above.
-#    nper = diff(t([1 end]))/T; %No of periods given
+#    nper = np.diff(t([1 end]))/period; # Number of periods given
 #    if nper == round(nper):
 #        N1 = n/nper
 #    else:
