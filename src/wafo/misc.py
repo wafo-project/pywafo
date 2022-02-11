@@ -15,7 +15,7 @@ from numpy import (sqrt, arctan2, sin, cos, exp, log, log1p,
 from scipy.special import gammaln, betaln  # pylint: disable=no-name-in-module
 from scipy.integrate import trapz, simps
 
-from wafo import numba_misc
+from wafo import _misc_numba
 from wafo.plotbackend import plotbackend as plt
 
 try:
@@ -991,7 +991,7 @@ def _findcross(x, method='numba'):
     if clib is not None and method == 'clib':
         ind, m = clib.findcross(x, 0.0)  # pylint: disable=no-member
         return ind[:int(m)]
-    return numba_misc.findcross(x)
+    return _misc_numba.findcross(x)
 
 
 def findcross(x, v=0.0, kind=None, method='clib'):
@@ -1245,7 +1245,7 @@ def findrfc_astm(tp):
         sig_rfc[:,1] Cycles mean value
         sig_rfc[:,2] Cycle type, half (=0.5) or full (=1.0)
     """
-    return numba_misc.findrfc_astm(tp)
+    return _misc_numba.findrfc_astm(tp)
 #     y1 = np.atleast_1d(tp).ravel()
 #     sig_rfc, cnr = clib.findrfc3_astm(y1)
 #     # the sig_rfc was constructed too big in rainflow.rf3, so
@@ -1332,7 +1332,7 @@ def findrfc(tp, h=0.0, method='clib'):
     else:
         if isinstance(method, str):
             method = 2
-        ind = numba_misc.findrfc(y, h, method)
+        ind = _misc_numba.findrfc(y, h, method)
         ix = len(ind)
 
     return np.sort(ind[:ix]) + t_start
@@ -1386,7 +1386,7 @@ def rfcfilter(x, h, method=0):
     findrfc
     """
     y = np.atleast_1d(x).ravel()
-    ix = numba_misc.findrfc(y, h, method)
+    ix = _misc_numba.findrfc(y, h, method)
     return y[ix]
 
 

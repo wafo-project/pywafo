@@ -6,16 +6,18 @@ import numpy as np
 from numpy import cos, exp, pi, sin
 from wafo.data import sea
 import wafo
-from wafo.misc import (JITImport, Bunch, detrendma, DotDict, findcross, ecross,
-                       findextrema, findrfc, rfcfilter, findtp, findtc,
-                       findrfc_astm,
-                       findoutliers, common_shape, argsreduce, stirlerr,
-                       getshipchar, betaloge, binomln,
-                       gravity, nextpow2, discretize, polar2cart,
-                       cart2polar, tranproc,
-                       rotation_matrix, rotate_2d, spaceline,
-                       args_flat, sub2index, index2sub, piecewise,
-                       parse_kwargs)
+from wafo import _misc_numba
+from wafo.misc import (
+    JITImport, Bunch, detrendma, DotDict, findcross, ecross,
+    findextrema, findrfc, rfcfilter, findtp, findtc,
+    findrfc_astm,
+    findoutliers, common_shape, argsreduce, stirlerr,
+    getshipchar, betaloge, binomln,
+    gravity, nextpow2, discretize, polar2cart,
+    cart2polar, tranproc,
+    rotation_matrix, rotate_2d, spaceline,
+    args_flat, sub2index, index2sub, piecewise,
+    parse_kwargs)
 
 try:
     from wafo import c_library
@@ -66,7 +68,7 @@ def test_disufq():
     d_truth = [d_10, d_inf]
     for i, water_depth in enumerate([10.0, 10000000]):
         kw = wafo.wave_theory.dispersion_relation.w2k(w, 0., water_depth, g)[0]
-        data2 = wafo.numba_misc.disufq(amp.real, amp.imag, w, kw, water_depth,
+        data2 = _misc_numba.disufq(amp.real, amp.imag, w, kw, water_depth,
                                        g, nmin, nmax, cases, ns)
         assert_allclose(data2, d_truth[i])
         if c_library is not None:
@@ -456,6 +458,9 @@ class TestPiecewise(object):
     def test_condition_is_single_bool_list(self):
         assert_raises(ValueError, piecewise, [True, False], [1], [0, 0])
 
+    def test_condition_is_single_int_array(self):
+        assert_raises(ValueError, piecewise, np.array([1, 0]), [1], [0, 0])
+
     def test_condition_is_list_of_single_bool_list(self):
         x = piecewise([[True, False]], [1], [0, 0])
         assert_allclose(x, [1, 0])
@@ -463,9 +468,6 @@ class TestPiecewise(object):
     def test_conditions_is_list_of_single_bool_array(self):
         x = piecewise([np.array([True, False])], [1], [0, 0])
         assert_allclose(x, [1, 0])
-
-    def test_condition_is_single_int_array(self):
-        assert_raises(ValueError, piecewise, np.array([1, 0]), [1], [0, 0])
 
     def test_condition_is_list_of_single_int_array(self):
         x = piecewise([np.array([1, 0])], [1], [0, 0])
@@ -480,7 +482,7 @@ class TestPiecewise(object):
 
     def test_default(self):
         # No value specified for x[1], should be 0
-        x = piecewise([[True, False]], [2], [1, 2],)
+        x = piecewise([[True, False]], [2], [1, 2])
         assert_allclose(x, [2, 0])
 
         # Should set x[1] to 3
