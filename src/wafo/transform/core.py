@@ -155,18 +155,19 @@ class TrData(PlotData, TrCommon):
     >>> sigma = 5; mean = 1
     >>> u = np.linspace(-5,5); x = sigma*u+mean; y = u
     >>> g = wt.TrData(y,x)
-    >>> g.mean
-    array([ 1.])
-    >>> g.sigma
-    array([ 5.])
+    >>> np.allclose(g.mean, [ 1.])
+    True
+    >>> np.allclose(g.sigma, [ 5.])
+    True
 
     >>> g = wt.TrData(y,x,mean=1,sigma=5)
     >>> g.mean
     1
     >>> g.sigma
     5
-    >>> g.dat2gauss(1,2,3)
-    [array([ 0.]), array([ 0.4]), array([ 0.6])]
+    >>> x0, x1, x2 = g.dat2gauss(1,2,3)
+    >>> np.allclose(x0, [ 0.]), np.allclose(x1, [ 0.4]), np.allclose(x2, [ 0.6])
+    (True, True, True)
 
     Check that the departure from a Gaussian model is zero
     >>> g.dist2gauss() < 1e-16
@@ -210,12 +211,6 @@ class EstimateTransform(object):
     pass
 
 
-def main():
-    pass
-
 if __name__ == '__main__':
-    if True:  # False : #
-        import doctest
-        doctest.testmod()
-    else:
-        main()
+    from wafo.testing import test_docstrings
+    test_docstrings(__file__)

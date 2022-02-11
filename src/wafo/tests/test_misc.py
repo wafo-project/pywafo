@@ -4,7 +4,6 @@ from numpy.testing import assert_allclose, assert_raises
 
 import numpy as np
 from numpy import cos, exp, pi, sin
-from wafo.data import sea
 import wafo
 from wafo import _misc_numba
 from wafo.misc import (
@@ -23,6 +22,11 @@ try:
     from wafo import c_library
 except ImportError:
     c_library = None
+
+
+@pytest.fixture
+def sea1():
+    return wafo.data.sea()
 
 
 def test_disufq():
@@ -172,10 +176,10 @@ def test_findrfc():
         assert_allclose(tp[ind1], truth)
 
 
-def test_rfcfilter():
+def test_rfcfilter(sea1):
 
     # 1. Filtered signal y is the turning points of x.
-    x = sea()
+    x = sea1
     y = rfcfilter(x[:, 1], h=0.0, method=1)
     assert_allclose(y[0:5], [-1.2004945, 0.83950546, -0.09049454, -0.02049454, -0.09049454])
 
@@ -225,8 +229,8 @@ def test_rfcfilter():
                               [0.07759005562881188, 0.9962873791766909, 1.0]])
 
 
-def test_findtp():
-    x = sea()
+def test_findtp(sea1):
+    x = sea1
     x1 = x[0:200, :]
     itp = findtp(x1[:, 1], 0, 'Mw')
     itph = findtp(x1[:, 1], 0.3, 'Mw')
@@ -245,8 +249,8 @@ def test_findtp():
                            108, 119, 131, 141, 148, 159, 173, 184, 190, 199])
 
 
-def test_findtc():
-    x = sea()
+def test_findtc(sea1):
+    x = sea1
     x1 = x[0:200, :]
     itc, iv = findtc(x1[:, 1], 0, 'dw')
     assert_allclose(itc, [28, 31, 39, 56, 64, 69, 78, 82, 83, 89, 94, 101, 108,
@@ -255,8 +259,8 @@ def test_findtc():
                          112, 127, 137, 143, 154, 166, 180, 185])
 
 
-def test_findoutliers():
-    xx = sea()
+def test_findoutliers(sea1):
+    xx = sea1
     dt = np.diff(xx[:2, 0])
     dcrit = 5 * dt
     ddcrit = 9.81 / 2 * dt * dt
@@ -444,13 +448,15 @@ def test_polar2cart_n_cart2polar():
 
 
 def test_tranproc():
-    import wafo.transform.models as wtm
-    tr = wtm.TrHermite()
-    x = np.linspace(-5, 5, 501)
-    g = tr(x)
+    p = np.poly1d([2.53309567e-04, 2.65759139e-02, 9.98533350e-01, -2.65759139e-02])
+    g = np.linspace(-6, 4.5, 501)
+    x = p(g)
     y0, y1 = tranproc(x, g, np.arange(5), np.ones(5))
-    assert_allclose(y0, [0.02659612, 1.00115284, 1.92872532, 2.81453257, 3.66292878])
-    assert_allclose(y1, [1.00005295, 0.9501118, 0.90589954, 0.86643821, 0.83096482])
+
+    assert_allclose(y0,
+                    [0.0265929056674, 1.00114978495, 1.92872202911, 2.8145300482, 3.6629257237])
+    assert_allclose(y1,
+                    [1.00004046620, 0.95007409636, 0.90585612024, 0.86640213535, 0.83091299820])
 
 
 class TestPiecewise(object):
