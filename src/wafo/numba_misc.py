@@ -85,7 +85,7 @@ def _make_findrfc(cmp1, cmp2):
 
         Notes
         -----
-        Same implementation as rfcfilter function found in rfcfilter.m in matlab.
+        Same implementation as rfcfilter function found in rfcfilter.m in wafo matlab.
         """
         # cmp1, cmp2 = (a_le_b, a_lt_b) if method==0 else (a_lt_b, a_le_b)
 
@@ -229,6 +229,17 @@ def _findrfc(ind, y, h):
 def findrfc(y, h, method=0):
     """Returns indices to RFC turningpoints of a vector y of turningpoints
 
+    Parameters
+    ----------
+    method : scalar integer
+         0: removes cycles with range < h. (default)
+         1: removes cycles with range <= h.
+         2: removes cycles with range < h alternative version
+
+    Notes
+    -----
+    Method 0 and 1 is the same implementation as found in rfcfilter.m in matlab.
+    Method 2 is the same implementation as found in findrfc function found in c_functions.c.
     """
     n = len(y)
     t = np.zeros(n, dtype=np.int64)

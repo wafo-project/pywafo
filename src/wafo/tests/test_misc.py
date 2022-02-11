@@ -160,6 +160,7 @@ def test_findrfc():
     for method in ['clib', 2, 1, 0]:
         ind1 = findrfc(tp, 0.3, method=method)
         if method in [1, 0]:
+            assert ind1[-1] == 146
             ind1 = ind1[:-1]
         assert_allclose(ind1, [0, 9, 32, 53, 74, 95, 116, 137])
         # print(tp[ind1].tolist())
