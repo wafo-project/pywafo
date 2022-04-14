@@ -7,9 +7,9 @@
 #
 from copy import copy
 from functools import partial
-from ._distn_infrastructure import entropy, rv_discrete, rv_continuous, rv_frozen
+from ._distn_infrastructure import rv_discrete, rv_continuous, rv_frozen
 
-from scipy.stats import _continuous_distns
+from scipy.stats import _continuous_distns, entropy
 from scipy.stats import _discrete_distns
 from scipy.stats._constants import _EULER
 # from scipy.stats._continuous_distns import *
