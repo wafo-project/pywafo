@@ -4,7 +4,6 @@ name: Tests
 on:
   pull_request:
   push:
-    # branches: [main]
 
 jobs:
   run:
@@ -12,8 +11,7 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.7", "3.8", "3.9", "3.10"]
-        os: [ubuntu-latest]
-        # os: [windows-latest, ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest]
       fail-fast: false
 
     steps:
@@ -24,13 +22,18 @@ jobs:
       with:
         environment-file: false
 
+    - name: Install GFortran macOS
+      if: contains(matrix.os, 'macos')
+      # available gfotran are: 8, 9, and 10 (latest)
+      run: |
+        ln -s /usr/local/bin/gfortran-10 /usr/local/bin/gfortran
+        which gfortran
+
     - name: Python ${{ matrix.python-version }}
       shell: bash -l {0}
       run: >
-        micromamba create --name TEST python=${{ matrix.python-version }} compilers python-build --file requirements.txt --file requirements-dev.txt --channel conda-forge
+        micromamba create --name TEST python=${{ matrix.python-version }} --file requirements.txt --file requirements-dev.txt --channel conda-forge
         && micromamba activate TEST
-        && python setup.py build
-        && python -m build --wheel . --outdir dist
         && pip install -e . --no-deps --force-reinstall
 
     - name: Tests
