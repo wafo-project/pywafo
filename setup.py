@@ -64,7 +64,6 @@ from numpy.distutils.core import setup
 from numpy.distutils.misc_util import Configuration
 from distutils.command.sdist import sdist
 
-pkg_resources.require('setuptools>=39.2') # setuptools >=38.3.0     # version with most `setup.cfg` bugfixes
 ROOT = os.path.abspath(os.path.dirname(__file__))
 PACKAGE_NAME = 'wafo'
 

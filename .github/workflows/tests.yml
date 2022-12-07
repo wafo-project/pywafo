@@ -4,15 +4,16 @@ name: Tests
 on:
   pull_request:
   push:
-    branches: [main]
+    # branches: [main]
 
 jobs:
   run:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
+        os: [ubuntu-latest]
+        # os: [windows-latest, ubuntu-latest, macos-latest]
       fail-fast: false
 
     steps:
@@ -26,8 +27,10 @@ jobs:
     - name: Python ${{ matrix.python-version }}
       shell: bash -l {0}
       run: >
-        micromamba create --name TEST python=${{ matrix.python-version }} compilers --file requirements.txt --file requirements-dev.txt --channel conda-forge
+        micromamba create --name TEST python=${{ matrix.python-version }} compilers python-build --file requirements.txt --file requirements-dev.txt --channel conda-forge
         && micromamba activate TEST
+        && python setup.py build
+        && python -m build --wheel . --outdir dist
         && pip install -e . --no-deps --force-reinstall
 
     - name: Tests
