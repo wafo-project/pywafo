@@ -1,0 +1,43 @@
+
+name: Tests
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  run:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
+        os: [ubuntu-latest, macos-latest]
+      fail-fast: false
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup Micromamba
+      uses: mamba-org/provision-with-micromamba@v14
+      with:
+        environment-file: false
+
+    - name: Install GFortran macOS
+      if: contains(matrix.os, 'macos')
+      # available gfotran are: 8, 9, and 10 (latest)
+      run: |
+        ln -s /usr/local/bin/gfortran-10 /usr/local/bin/gfortran
+        which gfortran
+
+    - name: Python ${{ matrix.python-version }}
+      shell: bash -l {0}
+      run: >
+        micromamba create --name TEST python=${{ matrix.python-version }} --file requirements.txt --file requirements-dev.txt --channel conda-forge
+        && micromamba activate TEST
+        && pip install -e . --no-deps --force-reinstall
+
+    - name: Tests
+      shell: bash -l {0}
+      run: |
+        micromamba activate TEST
+        pytest -s -rxs -v src

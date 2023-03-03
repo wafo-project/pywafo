@@ -11,7 +11,7 @@ import warnings
 import scipy.stats as ss
 from scipy.stats._distn_infrastructure import rv_frozen as _rv_frozen
 from scipy import special
-from scipy.linalg import pinv2
+from scipy.linalg import pinv
 from scipy import optimize
 from scipy.special import expm1  # pylint: disable=no-name-in-module
 import numpy as np
@@ -1290,11 +1290,11 @@ class FitDistribution(rv_frozen):
         if somefixed:
             allfixed = np.all(np.isfinite(self.par_fix))
             if not allfixed:
-                pcov = -pinv2(hessian[self.i_notfixed, :][..., self.i_notfixed])
+                pcov = -pinv(hessian[self.i_notfixed, :][..., self.i_notfixed])
                 for row, i in enumerate(list(self.i_notfixed)):
                     par_cov[i, self.i_notfixed] = pcov[row, :]
         else:
-            par_cov = -pinv2(hessian)
+            par_cov = -pinv(hessian)
         return par_cov
 
     def _compute_cov(self, par):

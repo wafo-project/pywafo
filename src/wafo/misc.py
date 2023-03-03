@@ -2,7 +2,11 @@
 Misc
 '''
 
-import collections
+try:
+    from collections.abc import Callable
+except ImportError:
+    from collections import Callable
+    
 import fractions
 import numbers
 import sys
@@ -244,7 +248,7 @@ def piecewise(condlist, funclist, xi=None, fillvalue=0.0, args=(), **kw):
     out = np.full(shape, fillvalue, dtype)
     for cond, func in zip(condlist, funclist):
         if cond.any():
-            if isinstance(func, collections.Callable):
+            if isinstance(func, Callable):
                 temp = tuple(np.extract(cond, arr) for arr in arrays) + args
                 np.place(out, cond, func(*temp, **kw))
             else:  # func is a scalar value or a array
