@@ -106,7 +106,7 @@ class LevinQuadrature(unittest.TestCase):
             quad = quadfun(f, g, dg,  a=a, b=b, full_output=True)
             val, info = quad(omega)
             assert_allclose(val, true_val)
-            self.assert_(info.error_estimate < 1e-11)
+            self.assertTrue(info.error_estimate < 1e-11)
             # assert_allclose(info.n, 9)
 
     def test_exp_jw_t(self):
@@ -130,7 +130,7 @@ class LevinQuadrature(unittest.TestCase):
             val, info = quad(omega)
 
             assert_allclose(val, true_val)
-            self.assert_(info.error_estimate < 1e-12)
+            self.assertTrue(info.error_estimate < 1e-12)
             # assert_allclose(info.n, 21)
 
     def test_I1_1_p_ln_x_exp_jw_xlnx(self):
@@ -153,7 +153,7 @@ class LevinQuadrature(unittest.TestCase):
             val, info = quad(omega)
 
             assert_allclose(val, true_val)
-            self.assert_(info.error_estimate < 1e-10)
+            self.assertTrue(info.error_estimate < 1e-10)
             # assert_allclose(info.n, 11)
 
     def test_I4_ln_x_exp_jw_30x(self):
@@ -183,7 +183,7 @@ class LevinQuadrature(unittest.TestCase):
             quad = quadfun(f, g, dg, a, b, full_output=True)
             val, info = quad(omega)
             assert_allclose(val, true_val)
-            self.assert_(info.error_estimate < 1e-5)
+            self.assertTrue(info.error_estimate < 1e-5)
 
     def test_I5_coscost_sint_exp_jw_sint(self):
         a = 0
@@ -213,7 +213,7 @@ class LevinQuadrature(unittest.TestCase):
             val, info = quad(omega)
 
             assert_allclose(val, true_val)
-            self.assert_(info.error_estimate < 1e-9)
+            self.assertTrue(info.error_estimate < 1e-9)
 
     def test_I6_exp_jw_td_1_m_t(self):
         a = 0
@@ -240,7 +240,7 @@ class LevinQuadrature(unittest.TestCase):
             val, info = quad(omega)
 
             assert_allclose(val, true_val)
-            self.assert_(info.error_estimate < 1e-10)
+            self.assertTrue(info.error_estimate < 1e-10)
 
     def test_I8_cos_47pix2d4_exp_jw_x(self):
         def f(t):
@@ -264,7 +264,7 @@ class LevinQuadrature(unittest.TestCase):
             val, _info = quad(omega)
             assert_allclose(val.real, true_val)
             s = 1 if s <= 2 else s // 2
-            # self.assert_(info.error_estimate < 1e-10)
+            # self.assertTrue(info.error_estimate < 1e-10)
             # assert_allclose(info.n, 11)
 
     def test_I9_exp_tant_sec2t_exp_jw_tant(self):
@@ -289,7 +289,7 @@ class LevinQuadrature(unittest.TestCase):
             val, info = quad(omega)
 
             assert_allclose(val, true_val)
-            self.assert_(info.error_estimate < 1e-8)
+            self.assertTrue(info.error_estimate < 1e-8)
 
     def test_exp_zdcos2t_dcos2t_exp_jw_cos_t_b_dcos2t(self):
         x1 = 20

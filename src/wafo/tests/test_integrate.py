@@ -14,13 +14,13 @@ class TestIntegrators(unittest.TestCase):
     def test_clencurt(self):
         val, err = clencurt(np.exp, 0, 2)
         assert_array_almost_equal(val, np.expm1(2))
-        self.assert_(err < 1e-10)
+        self.assertTrue(err < 1e-10)
 
     def test_romberg(self):
         tol = 1e-7
         q, err = romberg(np.sqrt, 0, 10, 0, abseps=tol)
         assert_array_almost_equal(q, 2.0/3 * 10**(3./2))
-        self.assert_(err < tol)
+        self.assertTrue(err < tol)
 
 
 class TestGaussq(unittest.TestCase):
@@ -78,30 +78,30 @@ class TestQuadgr(unittest.TestCase):
     def test_log(self):
         Q, err = quadgr(np.log, 0, 1)
         assert_array_almost_equal(Q, -1)
-        self.assert_(err < 1e-5)
+        self.assertTrue(err < 1e-5)
 
     def test_exp(self):
         Q, err = quadgr(np.exp, 0, 9999*1j*np.pi)
         assert_array_almost_equal(Q, -2.0000000000122662)
-        self.assert_(err < 1.0e-8)
+        self.assertTrue(err < 1.0e-8)
 
     def test_integral3(self):
         tol = 1e-12
         Q, err = quadgr(lambda x: np.sqrt(4-x**2), 0, 2, tol)
         assert_array_almost_equal(Q, np.pi)
-        self.assert_(err < tol)
+        self.assertTrue(err < tol)
         # (3.1415926535897811, 1.5809575870662229e-13)
 
     def test_integral4(self):
         Q, err = quadgr(lambda x: 1./x**0.75, 0, 1)
         assert_array_almost_equal(Q, 4)
-        self.assert_(err < 1.0e-12)
+        self.assertTrue(err < 1.0e-12)
 
     def test_integrand4(self):
         tol = 1e-10
         Q, err = quadgr(lambda x: 1./np.sqrt(1-x**2), -1, 1, tol)
         assert_array_almost_equal(Q, np.pi)
-        self.assert_(err < tol)
+        self.assertTrue(err < tol)
         # (3.141596056985029, 6.2146261559092864e-06)
 
     def test_integrand5(self):
@@ -109,14 +109,14 @@ class TestQuadgr(unittest.TestCase):
         Q, err = quadgr(lambda x: np.exp(-x**2), -np.inf, np.inf, tol)
 
         assert_array_almost_equal(Q, np.sqrt(np.pi))
-        self.assert_(err < tol)
+        self.assertTrue(err < tol)
         # (1.7724538509055152, 1.9722334876348668e-11)
 
     def test_integrand6(self):
         tol = 1e-9
         Q, err = quadgr(lambda x: np.cos(x) * np.exp(-x), 0, np.inf, tol)
         assert_array_almost_equal(Q, 0.5)
-        self.assert_(err < tol)
+        self.assertTrue(err < tol)
         # (0.50000000000000044, 7.3296813063450372e-11)
 
 if __name__ == "__main__":

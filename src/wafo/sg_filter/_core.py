@@ -5,7 +5,7 @@ from scipy.sparse.linalg import spsolve
 import scipy.optimize as optimize
 from scipy.signal import _savitzky_golay
 from scipy.ndimage import convolve1d
-from scipy.ndimage.morphology import distance_transform_edt
+from scipy.ndimage import distance_transform_edt
 import warnings
 from wafo.dctpack import dctn, idctn
 
@@ -167,7 +167,7 @@ class SavitzkyGolay(object):
         return self.smooth(signal)
 
     def smooth(self, signal):
-        dtype = np.result_type(signal, np.float)
+        dtype = np.result_type(signal, float)
         x = np.asarray(signal, dtype=dtype)
 
         coeffs = self._coeff

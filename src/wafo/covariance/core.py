@@ -30,7 +30,7 @@ from ..containers import PlotData
 from ..misc import sub_dict_select, nextpow2  # , JITImport
 from .. import spectrum as _wafospec
 from scipy.sparse.linalg import spsolve
-from scipy.sparse.base import issparse
+from scipy.sparse import issparse
 from scipy.signal.windows import parzen
 # _wafospec = JITImport('wafo.spectrum')
 

@@ -112,7 +112,7 @@ def evans_webster_weights(omega, g, d_g, x, basis, *args, **kwds):
         rhs[k] = basis(1, k) * b_1 - basis(-1, k) * a_1
         a_matrix[k] = (dbasis(x, k, n=1) + j_w * lim_psi(x, k))
 
-    solution = linalg.lstsq(a_matrix, rhs, rcond=None)
+    solution = linalg.lstsq(a_matrix, rhs, rcond=-1)
     return solution[0]
 
 
@@ -400,7 +400,7 @@ class AdaptiveLevin(_Integrator):
             warnings.warn('Singularities detected! ')
             a_matrix[k1] = 0
             rhs[k1] = 0
-        solution = linalg.lstsq(a_matrix, rhs)
+        solution = linalg.lstsq(a_matrix, rhs, rcond=-1)
         v = basis.eval([-1, 1], solution[0])
 
         lim_g = Limit(g)

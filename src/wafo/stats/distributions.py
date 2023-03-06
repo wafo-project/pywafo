@@ -17,7 +17,7 @@ from scipy.stats._constants import _EULER
 import scipy.special as sc
 import numpy as np
 from scipy import optimize
-from scipy.stats.mstats_basic import mode
+from scipy.stats import mode
 
 
 def _betaprime_fitstart(self, data, fitstart):  # pab

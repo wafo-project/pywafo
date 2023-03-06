@@ -59,10 +59,10 @@ class Test(unittest.TestCase):
         # print(', '.join(['{0:d}'.format(yj) for yj in y]))
         # print(', '.join(['{0:d}'.format(int(yj)) for yj in yy2]))
 
-        self.assert_(sum(res['outliers'] == True) == 76)
+        self.assertTrue(sum(res['outliers'] == True) == 76)
         valid_names = set(('Y0', 'outliers', 'LB', 'ADX', 'UB'))
         for name in res:
-            self.assert_(name in valid_names)
+            self.assertTrue(name in valid_names)
         assert_array_almost_equal(yy[outliers], [5002, 5000, 5003, 5008, 5000,
                                                  4997, 4998, 4999, 5009, 4997])
 
