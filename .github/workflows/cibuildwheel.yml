@@ -30,7 +30,7 @@ jobs:
         CIBW_ARCHS: ${{ matrix.arch }}
         CIBW_BUILD_FRONTEND: build
         CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
-        CIBW_TEST_REQUIRES: pytest
+        CIBW_TEST_REQUIRES: pytest mpmath
         CIBW_TEST_COMMAND: >
           python -c "import wafo; print(f'wafo v{wafo.__version__}')" &&
           python -m pytest --pyargs wafo
