@@ -192,7 +192,7 @@ def setup_package():
                          sources=['source/rind2007/rind_interface.f'],
                          libraries=['_rindmod_a', '_rindmod_b'],
                          include_dirs=['source/mreg/'],
-                         depends=(lib_rindmod_src_a+lib_rindmod_src_b),
+                         depends=lib_rindmod_src_a+lib_rindmod_src_b,
                          extra_link_args=extra_link_args)
 
     config.add_data_dir(('data', 'src/wafo/data'))
