@@ -150,36 +150,49 @@ def setup_package():
     config.add_extension('mvnprdmod',
                          sources=['source/mvnprd/mvnprd_interface.f'],
                          libraries=['_mvnprdmod'],
-                         depends=(lib_mvnprdmod_src),
+                         depends=lib_mvnprdmod_src,
                          extra_link_args=extra_link_args)
 
     # -------------------------------------------------------------------------
-    # cov2mod
-    lib_cov2mod_src = ['source/mreg/dsvdc.f',
-                       'source/mreg/mregmodule.f',
-                       'source/mreg/intfcmod.f']
-    config.add_library('_cov2mod', sources=lib_cov2mod_src)
+    # cov2mod_a
+    lib_cov2mod_src_a = [
+      'source/mreg/dsvdc.f',
+      'source/mreg/mregmodule.f',
+      ]
+    config.add_library('_cov2mod_a', sources=lib_cov2mod_src_a)
+    # cov2mod_b
+    lib_cov2mod_src_b = [
+      'source/mreg/intfcmod.f'
+      ]
+    config.add_library('_cov2mod_b', sources=lib_cov2mod_src_b)
     config.add_extension('cov2mod',
                          sources=['source/mreg/cov2mmpdfreg_intfc.f'],
-                         libraries=['_cov2mod'],
+                         libraries=['_cov2mod_a', '_cov2mod_b'],
                          include_dirs=['source/mreg/'],
-                         depends=(lib_cov2mod_src),
+                         depends=lib_cov2mod_src_a+lib_cov2mod_src_b,
                          extra_link_args=extra_link_args)
 
     # -------------------------------------------------------------------------
-    # rindmod
-    lib_rindmod_src = ['source/rind2007/intmodule.f',
-                       'source/rind2007/jacobmod.f',
-                       'source/rind2007/swapmod.f',
-                       'source/rind2007/fimod.f',
-                       'source/rind2007/rindmod.f',
-                       'source/rind2007/rind71mod.f']
-    config.add_library('_rindmod', sources=lib_rindmod_src)
+    # rindmod_a
+    lib_rindmod_src_a = [
+      'source/rind2007/intmodule.f',
+      'source/rind2007/jacobmod.f',
+      'source/rind2007/swapmod.f',
+      'source/rind2007/fimod.f',
+      ]
+    config.add_library('_rindmod_a', sources=lib_rindmod_src_a)
+
+    # rindmod_b
+    lib_rindmod_src_b = [
+      'source/rind2007/rindmod.f',
+      'source/rind2007/rind71mod.f',
+      ]
+    config.add_library('_rindmod_b', sources=lib_rindmod_src_b)
     config.add_extension('rindmod',
                          sources=['source/rind2007/rind_interface.f'],
-                         libraries=['_rindmod'],
+                         libraries=['_rindmod_a', '_rindmod_b'],
                          include_dirs=['source/mreg/'],
-                         depends=(lib_rindmod_src),
+                         depends=(lib_rindmod_src_a+lib_rindmod_src_b),
                          extra_link_args=extra_link_args)
 
     config.add_data_dir(('data', 'src/wafo/data'))
