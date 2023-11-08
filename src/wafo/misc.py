@@ -1580,7 +1580,7 @@ def findtc(x_in, v=None, kind=None):
     n_tc = int((n_c - 1 - is_even) / 2)
 
     # allocate variables before the loop increases the speed
-    ind = zeros(n_c - 1, dtype=np.int)
+    ind = zeros(n_c - 1, dtype=int)
 
     first_is_down_crossing = (x[v_ind[0]] > x[v_ind[0] + 1])
     if first_is_down_crossing:

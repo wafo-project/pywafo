@@ -15,7 +15,6 @@ from wafo.misc import tranproc  # , trangood
 from wafo.kdetools.gridding import gridcount
 from wafo.dctpack import dct
 from wafo.testing import test_docstrings
-from six import with_metaclass
 
 __all__ = ['Kernel', 'sphere_volume', 'qlevels', 'iqrange', 'percentile']
 
@@ -260,7 +259,8 @@ def sphere_volume(d, r=1.0):
     return (r ** d) * 2.0 * pi ** (d / 2.0) / (d * gamma(d / 2.0))
 
 
-class _Kernel(with_metaclass(ABCMeta)):
+class _Kernel(object):
+    __metaclass__ = ABCMeta
 
     def __init__(self, r=1.0, stats=None, name=''):
         self.r = r  # radius of effective support of kernel

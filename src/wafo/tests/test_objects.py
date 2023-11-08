@@ -6,7 +6,7 @@ Created on 5. aug. 2010
 """
 
 import unittest
-from numpy.testing.utils import assert_allclose
+from numpy.testing import assert_allclose
 import wafo.data
 import wafo.objects as wo
 import wafo.spectrum.models as sm

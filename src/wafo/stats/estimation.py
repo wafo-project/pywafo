@@ -18,7 +18,6 @@ import numpy as np
 
 from wafo.plotbackend import plotbackend
 from wafo.misc import ecross, findcross
-# from scipy._lib.six import string_types
 import numdifftools as nd  # @UnresolvedImport
 
 
@@ -1301,7 +1300,7 @@ class FitDistribution(rv_frozen):
         """Compute covariance
         """
 
-        hessian = np.asmatrix(self._hessian(self._fitfun, par, self.data))
+        hessian = self._hessian(self._fitfun, par, self.data)
         # hessian = -nd.Hessian(lambda par: self._fitfun(par, self.data),
         #                 method='forward')(self.par)
         self.hessian = hessian

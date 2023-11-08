@@ -27,9 +27,9 @@ from wafo.kdetools.gridding import gridcount
 
 __all__ = ['TKDE', 'KDE', 'test_docstrings', 'KRegression', 'BKRegression']
 
-_TINY = np.finfo(float).machar.tiny
-# _REALMIN = np.finfo(float).machar.xmin
-_REALMAX = np.finfo(float).machar.xmax
+_TINY = np.finfo(float).tiny
+# _REALMIN = np.finfo(float).machar.min
+_REALMAX = np.finfo(float).max
 _EPS = np.finfo(float).eps
 
 

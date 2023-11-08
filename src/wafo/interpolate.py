@@ -617,7 +617,7 @@ class SmoothSpline(PPform):
 
         szy = y.shape
 
-        nd = np.int(prod(szy[:-1]))
+        nd = np.int64(prod(szy[:-1]))
         ny = szy[-1]
 
         self._check(dx, n, ny)

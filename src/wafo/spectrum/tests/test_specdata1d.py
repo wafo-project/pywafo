@@ -152,7 +152,7 @@ class TestSpectrumHs5(unittest.TestCase):
         ch, R, txt = S.characteristic(1)
         assert_array_almost_equal(ch, 8.59007646)
         assert_array_almost_equal(R,  0.03040216)
-        self.assert_(txt == ['Tm01'])
+        self.assertTrue(txt == ['Tm01'])
 
         ch, R, txt = S.characteristic([1, 2, 3])  # fact a vector of integers
         assert_array_almost_equal(ch, [8.59007646,  8.03139757,  5.62484314])

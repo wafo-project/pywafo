@@ -12,7 +12,7 @@ from scipy.integrate import simps, trapz
 from scipy.special import erf
 from scipy.linalg import toeplitz
 import scipy.interpolate as interpolate
-from scipy.interpolate.interpolate import interp1d, interp2d
+from scipy.interpolate import interp1d, interp2d
 from wafo.objects import TimeSeries, mat2timeseries
 from wafo.interpolate import stineman_interp
 from wafo.wave_theory.dispersion_relation import w2k  # , k2w
@@ -1904,7 +1904,7 @@ class SpecData1D(PlotData):
          There are 3 (NI=4) regions with constant barriers:
          (indI[0]=0);   for i in (indI[0],indI[1]]    Y[i]<0.
          (indI[1]=Nt);  for i in (indI[1]+1,indI[2]], Y[i]<0 (deriv. X''(t1))
-         (indI[2]=Nt+1);  for i\in (indI[2]+1,indI[3]], Y[i]>0 (deriv. X''(tn))
+         (indI[2]=Nt+1);  for i in (indI[2]+1,indI[3]], Y[i]>0 (deriv. X''(tn))
 
          For DEF = 4,5 (Level v separated Maxima and Minima and
                         period/wavelength from Max to crossing)
@@ -1926,10 +1926,10 @@ class SpecData1D(PlotData):
          Xc =    "     Nc    variables to condition on
 
          There are 4 (NI=5) regions with constant barriers:
-         (indI(1)=0);     for i\in (indI(1),indI(2)]    Y(i)<0.
-         (indI(2)=Nt)  ;  for i\in (indI(2)+1,indI(3)], Y(i)<0 (deriv. X''(t1))
-         (indI(3)=Nt+1);  for i\in (indI(3)+1,indI(4)], Y(i)>0 (deriv. X''(tn))
-         (indI(4)=Nt+2);  for i\in (indI(4)+1,indI(5)], Y(i)<0 (deriv. X'(ts))
+         (indI(1)=0);     for i in (indI(1),indI(2)]    Y(i)<0.
+         (indI(2)=Nt)  ;  for i in (indI(2)+1,indI(3)], Y(i)<0 (deriv. X''(t1))
+         (indI(3)=Nt+1);  for i in (indI(3)+1,indI(4)], Y(i)>0 (deriv. X''(tn))
+         (indI(4)=Nt+2);  for i in (indI(4)+1,indI(5)], Y(i)<0 (deriv. X'(ts))
         '''
         R0, R2, R4 = R[:, :5:2].T
         covinput = self._covinput_mmt_pdf
