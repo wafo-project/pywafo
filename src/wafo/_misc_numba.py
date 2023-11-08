@@ -31,7 +31,7 @@ import numpy as np
 #                 break
 
 
-@jit(int64(int64[:], int8[:]))
+@jit(int64(int64[:], int8[:]), nopython=True)
 def _findcross(ind, y):
     """Returns indices to zero level crossings of y vector
 
@@ -471,7 +471,7 @@ def disufq(rA, iA, w, kw, h, g, nmin, nmax, m, n):
     return rvec, ivec
 
 
-@jit(int64(float64[:], float64[:], float64[:, :]))
+@jit(int64(float64[:], float64[:], float64[:, :]), nopython=True)
 def _findrfc3_astm(array_ext, a, array_out):
     """
     Rain flow without time analysis
@@ -519,7 +519,8 @@ def _findrfc3_astm(array_ext, a, array_out):
     return c_nr1  #, c_nr2]
 
 
-@jit(int64(float64[:], float64[:], float64[:], float64[:], float64[:, :]))
+@jit(int64(float64[:], float64[:], float64[:], float64[:], float64[:, :]),
+     nopython=True)
 def _findrfc5_astm(array_ext, array_t, a, t, array_out):
     """
     Rain flow with time analysis
