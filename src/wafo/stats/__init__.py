@@ -26,5 +26,10 @@ you must use the Profile-, ProfileProbability- or ProfileQuantile-class, respect
 # remove vonmises_cython from __all__, I don't know why it is included
 __all__ = [s for s in dir() if not (s.startswith('_') or s.endswith('cython'))]
 
-from numpy.testing import Tester
-test = Tester().test
+# numpy.testing.Tester was removed in numpy 1.25
+# https://github.com/numpy/numpy/pull/23041
+# https://github.com/numpy/numpy/releases/tag/v1.25.0
+
+# why is this here??
+#from numpy.testing import Tester
+#test = Tester().test
