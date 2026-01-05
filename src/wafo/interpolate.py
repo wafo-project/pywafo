@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import numpy as np
-# import scipy.sparse.linalg  # @UnusedImport
 import scipy.sparse as sparse
 from numpy import ones, zeros, prod, sin, diff, pi, inf, vstack, linspace
 from scipy.interpolate import BPoly, interp1d
@@ -10,7 +9,7 @@ from wafo import polynomial as pl
 
 __all__ = [
     'PPform', 'savitzky_golay', 'savitzky_golay_piecewise', 'sgolay2d',
-    'SmoothSpline', 'pchip_slopes', 'slopes', 'stineman_interp', 'Pchip',
+    'SmoothSpline', 'slopes', 'stineman_interp', 'Pchip',
     'StinemanInterp', 'CubicHermiteSpline']
 
 
@@ -70,12 +69,14 @@ def savitzky_golay(y, window_size, order, deriv=0):
     ...  -0.01675704, -0.03140276,  0.00010455,  0.02099063, -0.00380031])
     True
 
-    import matplotlib.pyplot as plt
-    h=plt.plot(t, y, label='Noisy signal')
-    h=plt.plot(t, np.exp(-t**2), 'k', lw=1.5, label='Original signal')
-    h=plt.plot(t, ysg, 'r', label='Filtered signal')
-    h=plt.legend()
-    plt.show()
+    >>> import matplotlib.pyplot as plt
+    >>> plt.interactive(False) # Do not delete. Needed for test server.
+    >>> h=plt.plot(t, y, label='Noisy signal')
+    >>> h=plt.plot(t, np.exp(-t**2), 'k', lw=1.5, label='Original signal')
+    >>> h=plt.plot(t, ysg, 'r', label='Filtered signal')
+    >>> h=plt.legend()
+
+    >>> plt.close('all')
 
     References
     ----------
@@ -87,8 +88,8 @@ def savitzky_golay(y, window_size, order, deriv=0):
        Cambridge University Press ISBN-13: 9780521880688
     """
 
-    window_size = np.abs(np.int(window_size))
-    order = np.abs(np.int(order))
+    window_size = np.abs(int(window_size))
+    order = np.abs(int(order))
 
     _check_window_size(window_size, min_size=order + 2)
     order_range = range(order + 1)
@@ -137,11 +138,9 @@ def savitzky_golay_piecewise(xvals, data, kernel=11, order=4):
     Examples
     --------
     >>> import numpy as np
-    >>> import matplotlib.pyplot as plt
-    >>> n = 1e3
+    >>> n = 1000
     >>> x = np.linspace(0, 25, n)
     >>> y = np.round(sin(x))
-    >>> sig2 = linspace(0,0.5,50)
 
     # As an example, this figure shows the effect of an additive noise with a
     # variance of 0.2 (original signal (black), noisy signal (red) and filtered
@@ -155,7 +154,11 @@ def savitzky_golay_piecewise(xvals, data, kernel=11, order=4):
     ...     -0.22938387, -0.26932722, -0.30614865, -0.33942134, -0.3687596 ])
     True
 
-    h=plt.plot(x, yn, 'r', x, y, 'k', x, yr, 'b.')
+    >>> import matplotlib.pyplot as plt
+    >>> plt.interactive(False) # Do not delete. Needed for test server.
+    >>> h=plt.plot(x, yn, 'r', x, y, 'k', x, yr, 'b.')
+
+    >>> plt.close('all')
     '''
     turnpoint = _get_turnpoint(xvals)
 
@@ -212,10 +215,13 @@ def sgolay2d(z, window_size, order, derivative=None):
     True
 
     # do some plotting
-    import matplotlib.pyplot as plt
-    h=plt.matshow(Z)
-    h=plt.matshow(Zn)
-    h=plt.matshow(Zf)
+    >>> import matplotlib.pyplot as plt
+    >>> plt.interactive(False) # Do not delete. Needed for test server.
+    >>> h=plt.matshow(Z)
+    >>> h=plt.matshow(Zn)
+    >>> h=plt.matshow(Zf)
+
+    >>> plt.close('all')
     """
     def _pad_z(z, size):
         # pad input array with appropriate values at the four borders
@@ -264,7 +270,7 @@ def sgolay2d(z, window_size, order, derivative=None):
         exps = [(k - n, n) for k in range(order + 1) for n in range(k + 1)]
 
         # coordinates of points
-        ind = np.arange(-size, size + 1, dtype=np.float)
+        ind = np.arange(-size, size + 1, dtype=float)
         dx = np.repeat(ind, window_size)
         dy = np.tile(ind, [window_size, 1]).reshape(window_size ** 2,)
 
@@ -305,7 +311,6 @@ class PPform(object):
 
     Examples
     --------
-    >>> import matplotlib.pyplot as plt
     >>> coef = np.array([[1,1]]) # unit step function
     >>> coef = np.array([[1,1],[0,1]]) # linear from 0 to 2
     >>> coef = np.array([[1,1],[1,1],[0,2]]) # linear from 0 to 2
@@ -318,7 +323,11 @@ class PPform(object):
     ...     0.  ,  0.  ,  0.  ])
     True
 
-    h=plt.plot(x, y)
+    >>> import matplotlib.pyplot as plt
+    >>> plt.interactive(False) # Do not delete. Needed for test server.
+    >>> h=plt.plot(x, y)
+
+    >>> plt.close('all')
     """
 
     def __init__(self, coeffs, breaks, fill=0.0, sort=False, a=None, b=None):
@@ -494,7 +503,6 @@ class SmoothSpline(PPform):
     Examples
     --------
     >>> import numpy as np
-    >>> import matplotlib.pyplot as plt
     >>> x = np.linspace(0, 1, 21)
     >>> noise = 1e-1*np.random.randn(x.size)
     >>> noise = np.array(
@@ -525,7 +533,11 @@ class SmoothSpline(PPform):
     True
 
 
-    h=plt.plot(x,y, x,pp99(x),'g', x,pp9(x),'k', x,np.exp(x),'r')
+    >>> import matplotlib.pyplot as plt
+    >>> plt.interactive(False) # Do not delete. Needed for test server.
+    >>> h=plt.plot(x,y, x,pp99(x),'g', x,pp9(x),'k', x,np.exp(x),'r')
+
+    >>> plt.close('all')
 
     See also
     --------
@@ -617,7 +629,7 @@ class SmoothSpline(PPform):
 
         szy = y.shape
 
-        nd = np.int64(prod(szy[:-1]))
+        nd = int(prod(szy[:-1]))
         ny = szy[-1]
 
         self._check(dx, n, ny)
@@ -663,12 +675,56 @@ class SmoothSpline(PPform):
         return np.reshape(u, (n - 2, -1))
 
 
-def _edge_case(m0, d1):
-    return np.where((d1 == 0) | (m0 == 0), 0.0, 1.0 / (1.0 / m0 + 1.0 / d1))
+def _edge_case(h0, h1, m0, m1):
+    # From SciPy:
+    # one-sided three-point estimate for the derivative
+    d = ((2*h0 + h1)*m0 - h0*m1) / (h0 + h1)
+
+    # try to preserve shape
+    mask = np.sign(d) != np.sign(m0)
+    mask2 = (np.sign(m0) != np.sign(m1)) & (np.abs(d) > 3.*np.abs(m0))
+    mmm = (~mask) & mask2
+
+    d[mask] = 0.
+    d[mmm] = 3.*m0[mmm]
+
+    return d
 
 
-def pchip_slopes(x, y):
-    # Determine the derivatives at the points y_k, d_k, by using
+def _akima_slope(x, y, dx, dydx, *args):
+    # From SciPy:
+
+    # determine slopes between breakpoints
+    m = np.empty((x.size + 3, ) + y.shape[1:])
+
+    m[2:-2] = dydx
+
+    # add two additional points on the left ...
+    m[1] = 2. * m[2] - m[3]
+    m[0] = 2. * m[1] - m[2]
+    # ... and on the right
+    m[-2] = 2. * m[-3] - m[-4]
+    m[-1] = 2. * m[-2] - m[-3]
+
+    # if m1 == m2 != m3 == m4, the slope at the breakpoint is not
+    # defined. This is the fill value:
+    t = .5 * (m[3:] + m[:-3])
+    # get the denominator of the slope t
+    dm = np.abs(np.diff(m, axis=0))
+    f1 = dm[2:]
+    f2 = dm[:-2]
+    f12 = f1 + f2
+    # These are the mask of where the slope at breakpoint is defined:
+    ind = np.nonzero(f12 > 1e-9 * np.max(f12, initial=-np.inf))
+    x_ind, y_ind = ind[0], ind[1:]
+    # Set the slope at breakpoint
+    t[ind] = (f1[ind] * m[(x_ind + 1,) + y_ind] +
+              f2[ind] * m[(x_ind + 2,) + y_ind]) / f12[ind]
+    return t
+
+
+def _pchip_slope(x, y, dx, dydx, *args):
+    # From SciPy:
     #  PCHIP algorithm is:
     # We choose the derivatives at the point x_k by
     # Let m_k be the slope of the kth segment (between k and k+1)
@@ -677,29 +733,52 @@ def pchip_slopes(x, y):
     #   w_1 = 2h_k + h_{k-1}, w_2 = h_k + 2h_{k-1}
     #   1/d_k = 1/(w_1 + w_2)*(w_1 / m_k + w_2 / m_{k-1})
     #   where h_k is the spacing between x_k and x_{k+1}
+    y_shape = y.shape
+    if y.ndim == 1:
+        # So that _edge_case doesn't end up assigning to scalars
+        x = x[:, None]
+        y = y[:, None]
+        dx = dx[:, None]
+        dydx = dydx[:, None]
 
-    hk = x[1:] - x[:-1]
-    mk = (y[1:] - y[:-1]) / hk
+    hk = dx
+    mk = dydx
+
+    if y.shape[0] == 2:
+        # edge case: only have two points, use linear interpolation
+        dk = np.zeros_like(y)
+        dk[0] = mk
+        dk[1] = mk
+        return dk.reshape(y_shape)
+
     smk = np.sign(mk)
-    condition = ((smk[1:] != smk[:-1]) | (mk[1:] == 0) | (mk[:-1] == 0))
+    condition = (smk[1:] != smk[:-1]) | (mk[1:] == 0) | (mk[:-1] == 0)
 
-    w1 = 2 * hk[1:] + hk[:-1]
-    w2 = hk[1:] + 2 * hk[:-1]
-    whmean = 1.0 / (w1 + w2) * (w1 / mk[1:] + w2 / mk[:-1])
+    w1 = 2*hk[1:] + hk[:-1]
+    w2 = hk[1:] + 2*hk[:-1]
+
+    # values where division by zero occurs will be excluded
+    # by 'condition' afterwards
+    with np.errstate(divide='ignore', invalid='ignore'):
+        whmean = (w1/mk[:-1] + w2/mk[1:]) / (w1 + w2)
 
     dk = np.zeros_like(y)
-    dk[1:-1][condition] = 0.0
+    # dk[1:-1][condition] = 0.0
     dk[1:-1][~condition] = 1.0 / whmean[~condition]
+    if True:
+        # Original
+        # special case endpoints, as suggested in
+        # Cleve Moler, Numerical Computing with MATLAB, Chap 3.6 (pchiptx.m)
+        dk[0] = _edge_case(hk[0], hk[1], mk[0], mk[1])
+        dk[-1] = _edge_case(hk[-1], hk[-2], mk[-1], mk[-2])
+    else: # same as _fritsch_carlson_slope(x, y, dx, dydx)
+        dk[0] = 2.0 * mk[0] - dk[1]
+        dk[-1] = 2.0 * mk[-1] - dk[-2]
 
-    # For end-points choose d_0 so that 1/d_0 = 1/m_0 + 1/d_1 unless
-    #  one of d_1 or m_0 is 0, then choose d_0 = 0
-
-    dk[0] = _edge_case(mk[0], dk[1])
-    dk[-1] = _edge_case(mk[-1], dk[-2])
-    return dk
+    return dk.reshape(y_shape)
 
 
-def _parabola_slope(x, y, dx, dydx, *args):
+def _parabola_slope(x, y, dx, dydx, *args):  # pylint: disable=unused-argument
     yp = np.zeros(y.shape, np.float_)
     yp[1:-1] = (dydx[:-1] * dx[1:] + dydx[1:] * dx[:-1]) / (dx[1:] + dx[:-1])
     yp[0] = 2.0 * dydx[0] - yp[1]
@@ -707,22 +786,106 @@ def _parabola_slope(x, y, dx, dydx, *args):
     return yp
 
 
-def _secant_slope(x, y, dx, dydx, *args):
+def _stineman_slope(x, y, dx, dydx, *args):  # pylint: disable=unused-argument
+    """
+    References
+    ----------
+    Stineman, R. W. A Consistently Well Behaved Method of Interpolation.
+    Creative Computing (1980), volume 6, number 7, p. 54-57.
+    """
     yp = np.zeros(y.shape, np.float_)
-    # At the endpoints - use one-sided differences
-    yp[0] = dydx[0]
-    yp[-1] = dydx[-1]
-    # In the middle - use the average of the secants
-    yp[1:-1] = (dydx[:-1] + dydx[1:]) / 2.0
+
+    yp[1:-1] = ((dx[:-1] * dydx[:-1] * dx[1:]**2 * (1 + dydx[1:]**2)
+                 + dx[1:] * dydx[1:] * dx[:-1]**2 * (1 + dydx[:-1]**2))
+                / (dx[:-1] * dx[1:]**2 * (1 + dydx[1:]**2)
+                   + dx[1:] * dx[:-1]**2 * (1 + dydx[:-1]**2)))
+    yp[0] = 2.0 * dydx[0] - yp[1]
+    yp[-1] = 2.0 * dydx[-1] - yp[-2]
+    # Original
+    s0 = np.sign(dydx[0])
+    dyp0 = dydx[0] - yp[1]
+    s1 = np.sign(dydx[-1])
+    dyp1 = dydx[-1] - yp[-2]
+
+    with np.errstate(divide='ignore', invalid='ignore'):
+        yp[0] = np.where(s0 * dyp0 >= 0,
+                         yp[0],
+                         dydx[0] + (np.abs(dydx[0]) * dyp0) / (np.abs(dydx[0]) + np.abs(dyp0)))
+        yp[-1] = np.where(s1 * dyp1 >= 0,
+                          yp[-1],
+                          dydx[-1] + (np.abs(dydx[-1]) * dyp1) / (np.abs(dydx[-1]) + np.abs(dyp1)))
+
     return yp
 
 
-def _catmull_rom_slope(x, y, dx, dydx, *args):
+
+def _steffen_slope(x, y, dx, dydx, *args):
+    """
+    References
+    -----------
+    Steffen, M. 1990
+    A Simple Method for Monotonic Interpolation in One Dimension.
+    Astronomy and Astrophysics, Vol. 239, NO. NOV(II), p. 443-450
+    """
     yp = np.zeros(y.shape, np.float_)
+    s0 = np.sign(dydx[:-1])+np.sign(dydx[1:])
+    di = np.minimum(np.abs(dydx[:-1]), np.abs(dydx[1:]))
+    yp[1:-1] = s0*np.minimum(di, 0.5*np.abs(dydx[:-1] * dx[1:]
+                                            + dydx[1:] * dx[:-1]) / (dx[1:] + dx[:-1]))
+    if True:
+        # Original
+        w0 = dx[0] / (dx[0] + dx[1])
+        p0 = dydx[0] * (1 + w0) - dydx[1] * w0
+
+        w1 = dx[-1] / (dx[-1] + dx[-2])
+        p1 = dydx[-1] * (1 + w1) - dydx[-2] * w1
+        s0 = np.sign(p0) + np.sign(dydx[0])
+        s1 = np.sign(p1) + np.sign(dydx[-1])
+        yp[0] = s0 * np.minimum(np.abs(dydx[0]), 0.5 * p0)
+        yp[-1] = s1 * np.minimum(np.abs(dydx[-1]), 0.5 * p1)
+    else:
+        yp[0] = 2.0 * dydx[0] - yp[1]
+        yp[-1] = 2.0 * dydx[-1] - yp[-2]
+    return yp
+
+
+def _fritsch_carlson_slope(x, y, dx, dydx, *args):
+    """
+    References
+    -----------
+    F. N. Fritsch and R. E. Carlson. 1980
+    Monotone Piecewise Cubic Interpolation.
+    SIAM Journal on Numerical Analysis , Apr., 1980, Vol. 17, No. 2, pp. 238-246
+    """
+
+    yp = _pchip_slope(x, y, dx, dydx)
+    yp[0] = 2.0 * dydx[0] - yp[1]
+    yp[-1] = 2.0 * dydx[-1] - yp[-2]
+
+    return yp
+
+
+def _secant_slope(x, y, dx, dydx, *args):  # pylint: disable=unused-argument
+    yp = np.zeros(y.shape, np.float_)
+    # In the middle - use the average of the secants
+    yp[1:-1] = (dydx[:-1] + dydx[1:]) / 2.0
     # At the endpoints - use one-sided differences
     yp[0] = dydx[0]
     yp[-1] = dydx[-1]
+    return yp
+
+
+def _catmull_rom_slope(x, y, dx, dydx, *args):  # pylint: disable=unused-argument
+    yp = np.zeros(y.shape, np.float_)
     yp[1:-1] = (y[2:] - y[:-2]) / (x[2:] - x[:-2])
+    if True:
+        # original
+        # At the endpoints - use one-sided differences
+        yp[0] = dydx[0]
+        yp[-1] = dydx[-1]
+    else:
+        yp[0] = 2.0 * dydx[0] - yp[1]
+        yp[-1] = 2.0 * dydx[-1] - yp[-2]
     return yp
 
 
@@ -731,7 +894,7 @@ def _cardinal_slope(x, y, dx, dydx, tension):
     return yp
 
 
-def slopes(x, y, method='parabola', tension=0, monotone=False):
+def slopes(x, y, method='stineman', tension=0, monotone=False, scale=False):
     '''
     Return estimated slopes y'(x)
 
@@ -742,16 +905,23 @@ def slopes(x, y, method='parabola', tension=0, monotone=False):
         x must be sorted low to high... (no repeats) while
         y can have repeated values.
     method : string
-        defining method of estimation for yp. Valid options are:
+        defining method of estimation for yp=y'(x). Valid options are:
         'Catmull-Rom'  yp = (y[k+1]-y[k-1])/(x[k+1]-x[k-1])
         'Cardinal'     yp = (1-tension) * (y[k+1]-y[k-1])/(x[k+1]-x[k-1])
-        'parabola'
+        'parabola'     yp = (dydx[k-1] * dx[k] + dydx[k] * dx[k-1]) / (dx[k] + dx[k-1])
+        yp = (dydx[k-1] * dx[k] + dydx[k] * dx[k-1]) / (dx[k] + dx[k-1])
         'secant' average secants
-           yp = 0.5*((y[k+1]-y[k])/(x[k+1]-x[k]) + (y[k]-y[k-1])/(x[k]-x[k-1]))
+                 yp = 0.5*((y[k+1]-y[k])/(x[k+1]-x[k]) + (y[k]-y[k-1])/(x[k]-x[k-1]))
+        'akima'
+        'pchip'
+        'stineman'
+        'steffen'
     tension : real scalar between 0 and 1.
         tension parameter used in Cardinal method
     monotone : bool
         If True modifies yp to preserve monoticity
+    scale : bool
+        If True the x- and y-values are scaled by their respective ranges.
 
     Returns
     -------
@@ -766,14 +936,32 @@ def slopes(x, y, method='parabola', tension=0, monotone=False):
     '''
     x = np.asarray(x, np.float_)
     y = np.asarray(y, np.float_)
+    if scale:
+        sx = np.max(x) - np.min(x)
+        sy = np.max(y) - np.min(y)
+        if sy <= 0:
+            sy = 1.0
+        x = x/sx
+        y = y/sy
 
     dx = x[1:] - x[:-1]
+    if np.any(dx <= 0):
+        raise ValueError("`x` must be strictly increasing sequence.")
+
+    dx = dx[(slice(None), ) + (None, ) * (y.ndim - 1)]
     # Compute the slopes of the secant lines between successive points
     dydx = (y[1:] - y[:-1]) / dx
 
     method = method.lower()
-    slope_fun = dict(par=_parabola_slope, sec=_secant_slope, car=_cardinal_slope,
-                     cat=_catmull_rom_slope)[method[:3]]
+    slope_fun = dict(par=_parabola_slope,
+                     sec=_secant_slope,
+                     car=_cardinal_slope,
+                     cat=_catmull_rom_slope,
+                     aki=_akima_slope,
+                     pch=_pchip_slope,
+                     sti=_stineman_slope,
+                     ste=_steffen_slope,
+                     fri=_fritsch_carlson_slope)[method[:3]]
     yp = slope_fun(x, y, dx, dydx, tension)
 
     if monotone:
@@ -784,10 +972,12 @@ def slopes(x, y, method='parabola', tension=0, monotone=False):
         yp[ii] = 0.0
         yp[ii + 1] = 0.0
 
-        alpha = yp[:-1] / dydx
-        beta = yp[1:] / dydx
-        dist = alpha ** 2 + beta ** 2
-        tau = 3.0 / np.sqrt(dist)
+        with np.errstate(divide='ignore', invalid='ignore'):
+            # ignore division by zero and NaN
+            alpha = yp[:-1] / dydx
+            beta = yp[1:] / dydx
+            dist = alpha ** 2 + beta ** 2
+            tau = 3.0 / np.sqrt(dist)
 
         # To prevent overshoot or undershoot, restrict the position vector
         # (alpha, beta) to a circle of radius 3.  If (alpha**2 +  beta**2)>9,
@@ -800,24 +990,33 @@ def slopes(x, y, method='parabola', tension=0, monotone=False):
         for ii in indices_to_fix:
             yp[ii] = tau[ii] * alpha[ii] * dydx[ii]
             yp[ii + 1] = tau[ii] * beta[ii] * dydx[ii]
-
+    if scale:
+        return yp * sy/sx
     return yp
 
 
 def stineman_interp(xi, x, y, yp=None):
     """
     Given data vectors *x* and *y*, the slope vector *yp* and a new
-    abscissa vector *xi*, the function :func:`stineman_interp` uses
+    abscissa vector *xi*, the function `stineman_interp` uses
     Stineman interpolation to calculate a vector *yi* corresponding to
     *xi*.
 
     Here's an example that generates a coarse sine curve, then
     interpolates over a finer abscissa::
 
-      x = linspace(0,2*pi,20);  y = sin(x); yp = cos(x)
-      xi = linspace(0,2*pi,40);
-      yi = stineman_interp(xi,x,y,yp);
-      plot(x,y,'o',xi,yi)
+    >>> import numpy as np
+    >>> x = np.linspace(0, 2*np.pi, 20)
+    >>> y = np.sin(x)
+    >>> np.yp = np.cos(x)
+    >>> xi = np.linspace(0, 2*np.pi, 40)
+    >>> yi = stineman_interp(xi, x, y, yp)
+
+    >>> import matplotlib.pyplot as plt
+    >>> plt.interactive(False) # Do not delete. Needed for test server.
+    >>> plot(x,y,'o',xi,yi)
+
+    >>> plt.close('all')
 
     The interpolation method is described in the article A
     CONSISTENTLY WELL BEHAVED METHOD OF INTERPOLATION by Russell
@@ -892,15 +1091,15 @@ def stineman_interp(xi, x, y, yp=None):
     # in Python
     dy1mdy2 = np.where(dy1dy2, dy1 - dy2, np.inf)
     dy1pdy2 = np.where(dy1dy2, dy1 + dy2, np.inf)
-    yi = yo + dy1dy2 * np.choose(
-        np.array(np.sign(dy1dy2), np.int32) + 1,
-        ((2 * xi - xidx - xidxp1) / ((dy1mdy2) * (xidxp1 - xidx)), 0.0,
-         1 / (dy1pdy2)))
+    with np.errstate(divide='ignore', invalid='ignore'):
+        yi = yo + dy1dy2 * np.choose(
+            np.array(np.sign(dy1dy2), np.int32) + 1,
+            ((2 * xi - xidx - xidxp1) / ((dy1mdy2) * (xidxp1 - xidx)), 0.0,
+             1 / (dy1pdy2)))
     return yi
 
 
 class StinemanInterp(object):
-
     '''
     Returns an interpolating function
         that runs through a set of points according to the algorithm of
@@ -947,7 +1146,7 @@ class StinemanInterp(object):
     better approximation to smooth functions, but it results in in higher
     slopes near abrupt steps or spikes and can lead to some overshooting where
     Stineman's method does not. Both methods lead to much less tendency for
-    `spurious' oscillations than traditional interplation methods based on
+    `spurious' oscillations than traditional interpolation methods based on
     polynomials, such as splines
     (see the examples section).
 
@@ -961,24 +1160,29 @@ class StinemanInterp(object):
     --------
     >>> import wafo.interpolate as wi
     >>> import numpy as np
-    >>> import matplotlib.pyplot as plt
+
     >>> x = np.linspace(0,2*pi,20)
     >>> y = np.sin(x); yp = np.cos(x)
     >>> xi = np.linspace(0,2*pi,40);
     >>> yi = wi.StinemanInterp(x,y)(xi)
     >>> np.allclose(yi[:10],
-    ...    [ 0.,  0.16258231,  0.31681338,  0.46390886,  0.60091421,
-    ...      0.7206556 ,  0.82314953,  0.90304148,  0.96059538,  0.99241945])
+    ...    [0.0, 0.16281515, 0.31683666, 0.46384825, 0.60103959,
+    ...      0.7203705, 0.82342206, 0.90243989, 0.96081150, 0.9917391998])
     True
     >>> yi1 = wi.CubicHermiteSpline(x,y, yp)(xi)
     >>> yi2 = wi.Pchip(x,y, method='parabola')(xi)
 
-    h=plt.subplot(211)
-    h=plt.plot(x,y,'o',xi,yi,'r', xi,yi1, 'g', xi,yi1, 'b')
-    h=plt.subplot(212)
-    h=plt.plot(xi,np.abs(sin(xi)-yi), 'r',
-               xi,  np.abs(sin(xi)-yi1), 'g',
-               xi, np.abs(sin(xi)-yi2), 'b')
+    >>> import matplotlib.pyplot as plt
+    >>> plt.interactive(False) # Do not delete. Needed for test server.
+    >>> h=plt.subplot(211)
+    >>> h=plt.plot(x,y,'o',xi,yi,'r', xi,yi1, 'g', xi,yi1, 'b')
+    >>> h=plt.subplot(212)
+    >>> h=plt.plot(xi,np.abs(sin(xi)-yi), 'r',
+    ...           xi,  np.abs(sin(xi)-yi1), 'g',
+    ...           xi, np.abs(sin(xi)-yi2), 'b')
+
+
+    >>> plt.close('all')
 
     References
     ----------
@@ -990,25 +1194,15 @@ class StinemanInterp(object):
     slopes, Pchip
     '''
 
-    def __init__(self, x, y, yp=None, method='parabola', monotone=False):
+    def __init__(self, x, y, yp=None, method='stineman', monotone=False, scale=False):
         if yp is None:
-            yp = slopes(x, y, method, monotone=monotone)
+            yp = slopes(x, y, method, monotone=monotone, scale=scale)
         self.x = np.asarray(x, np.float_)
         self.y = np.asarray(y, np.float_)
         self.yp = np.asarray(yp, np.float_)
 
     def __call__(self, xi):
         return stineman_interp(xi, self.x, self.y, self.yp)
-
-
-class StinemanInterp2(BPoly):
-
-    def __init__(self, x, y, yp=None, method='parabola', monotone=False):
-        if yp is None:
-            yp = slopes(x, y, method, monotone=monotone)
-        yyp = [z for z in zip(y, yp)]
-        bpoly = BPoly.from_derivatives(x, yyp)
-        super(StinemanInterp2, self).__init__(bpoly.c, x)
 
 
 class CubicHermiteSpline(BPoly):
@@ -1058,6 +1252,8 @@ class Pchip(BPoly):
 
     Examples
     --------
+    >>> import matplotlib.pyplot as plt
+    >>> plt.interactive(False) # Do not delete. Needed for test server.
     >>> import wafo.interpolate as wi
 
     # Create a step function (will demonstrate monotonicity)
@@ -1074,8 +1270,8 @@ class Pchip(BPoly):
     True
 
     # Call the Scipy cubic spline interpolator
-    >>> from scipy.interpolate import interpolate
-    >>> function = interpolate.interp1d(x, y, kind='cubic')
+    >>> from scipy.interpolate import interp1d
+    >>> function = interp1d(x, y, kind='cubic')
     >>> yvec1 = function(xvec)
     >>> np.allclose(yvec1, [-1.00000000e+00, -9.41911765e-01, -8.70588235e-01,
     ...        -7.87500000e-01,  -6.94117647e-01,  -5.91911765e-01,
@@ -1087,10 +1283,11 @@ class Pchip(BPoly):
     True
 
 
-    # Non-montonic cubic Hermite spline interpolator using
+    # Non-monotonic cubic Hermite spline interpolator using
     # Catmul-Rom method for computing slopes...
     >>> yvec2 = wi.CubicHermiteSpline(x,y)(xvec)
     >>> yvec3 = wi.StinemanInterp(x, y)(xvec)
+    >>> yvec4 = wi.Pchip(x, y, method='akima')(xvec)
 
     >>> np.allclose(yvec2, [-1., -0.9405, -0.864 , -0.7735, -0.672 , -0.5625,
     ...    -0.448 , -0.3315, -0.216 , -0.1045,  0.    ,  0.1045,  0.216 ,
@@ -1102,27 +1299,28 @@ class Pchip(BPoly):
     True
 
     # Plot the results
-    import matplotlib.pyplot as plt
-    h=plt.plot(x,    y,     'ro')
-    h=plt.plot(xvec, yvec,  'b')
-    h=plt.plot(xvec, yvec1, 'k')
-    h=plt.plot(xvec, yvec2, 'g')
-    h=plt.plot(xvec, yvec3, 'm')
-    h=plt.title("pchip() step function test")
+    >>> h=plt.plot(x,    y,     'ro')
+    >>> h=plt.plot(xvec, yvec,  'b')
+    >>> h=plt.plot(xvec, yvec1, 'k')
+    >>> h=plt.plot(xvec, yvec2, 'g')
+    >>> h=plt.plot(xvec, yvec3, 'm')
+    >>> h=plt.plot(xvec, yvec4)
+    >>> h=plt.title("pchip() step function test")
 
-    h=plt.xlabel("X")
-    h=plt.ylabel("Y")
-    txt = "Comparing pypchip() vs. Scipy interp1d() vs. non-monotonic CHS"
-    h=plt.title(txt)
-    legends = ["Data", "pypchip()", "interp1d","CHS", 'SI']
-    h=plt.legend(legends, loc="upper left")
-    plt.show()
+    >>> h=plt.xlabel("X")
+    >>> h=plt.ylabel("Y")
+    >>> txt = "Comparing Pchip() vs. Scipy interp1d() vs. non-monotonic CHS"
+    >>> h=plt.title(txt)
+    >>> legends = ["Data", "pchip()", "interp1d","CHS", 'Stineman', 'Akima']
+    >>> h=plt.legend(legends, loc="upper left")
+
+    >>> plt.close('all')
 
     """
 
-    def __init__(self, x, y, yp=None, method='secant'):
+    def __init__(self, x, y, yp=None, method='pchip'):
         if yp is None:
-            yp = slopes(x, y, method=method, monotone=True)
+            yp = slopes(x, y, method=method, monotone=False)
         yyp = [z for z in zip(y, yp)]
         bpoly = BPoly.from_derivatives(x, yyp, orders=3)
         super(Pchip, self).__init__(bpoly.c, x)
@@ -1190,8 +1388,62 @@ def test_smoothing_spline():
 def compare_methods():
     #
     # Sine wave test
+    # Errors sin:
+    #                  Average,    Max
+    # 6 parbola_monoton: 0.0047,  0.0002407
+    # 3 parabola       : 0.0018,  6.373e-05
+    # 1 catmul         : 0.0015,  1.602e-05
+    # 8 pchip          : 0.0159,  0.0008063
+    # 2 secant         : 0.0015,  1.602e-05
+    # 4 Akima          : 0.0031,  4.886e-05
+    # 5 Stineman       : 0.0032,  6.433e-05
+    # 5 Stineman, scale: 0.0033,  6.433e-05
+    # 7 Steffen        : 0.0113,  0.0007298
+    # 8 Fritsch        : 0.0159,  0.0008063
+
+    # Errors  1./(1+np.exp(-40*x)):
+    #                  Average,    Max
+    # 4 parbola_monoton: 0.3537,  0.06459
+    # 5 parabola       : 0.6703,  0.08349
+    # 6 catmul         : 0.8619,  0.1169
+    # 3 pchip          : 0.3529,  0.06277
+    # 6 secant         : 0.8619,  0.1169
+    # 3 Akima          : 0.3529,  0.0628
+    # 2 Stineman       : 0.1908,  0.03231
+    # 2 Stineman, scale: 0.1872,  0.03231
+    # 3 Steffen        : 0.3529,  0.06289
+    # 1 Fritsch        : 0.1763,  0.0317
+
+    # Errors  np.exp(2*np.cos(3*x):
+    #                  Average,    Max
+    # 3 parbola_monoton: 1.1911,  0.03717
+    # 2 parabola       : 1.1555,  0.03717
+    # 4 catmul         : 1.5333,  0.1031
+    # 6 pchip          : 1.9455,  0.06173
+    # 4 secant         : 1.5333,  0.1031
+    # 5 Akima          : 1.7214,  0.04124
+    # 8 Stineman       : 3.0285,  0.1212
+    # 8 Stineman, scale: 3.4823,  0.1215
+    # 1 Steffen        : 1.0668,  0.02434
+    # 7 Fritsch        : 2.1043,  0.08527
+
+    # Best interpolation average score:
     #
+    # parabola         3 + 5 + 2 = 10
+    # catmul           1 + 6 + 4 = 11
+    # Steffen          7 + 3 + 1 = 11
+    # secant           2 + 6 + 4 = 12
+    # Akima            5 + 3 + 4 = 12
+    # parbola_monoton  6 + 4 + 3 = 13
+    # Stineman, scale  5 + 2 + 8 = 15
+    # Stineman         5 + 2 + 8 = 15
+    # Fritsch          8 + 1 + 7 = 16
+    # pchip            8 + 3 + 6 = 17
+
+    fun = lambda x: np.where(np.abs(x-1.5)<0.5, x-1, x>1.5)
     fun = np.sin
+    fun = lambda x: 1./(1+np.exp(-40*x))
+    fun = lambda x: np.exp(2*np.cos(3*x))
     # Create a example vector containing a sine wave.
     x = np.arange(30.0) / 10.
     y = fun(x)
@@ -1204,24 +1456,56 @@ def compare_methods():
     m = slopes(x, y, method='parabola', monotone=True)
     m1 = slopes(x, y, method='parabola', monotone=False)
     m2 = slopes(x, y, method='catmul', monotone=False)
-    m3 = pchip_slopes(x, y)
+    m30 = slopes(x, y, method='secant', monotone=False)
+    m3 = slopes(x, y, method='pchip', monotone=False)
+    m4 = slopes(x, y, method='akima', monotone=False)
+    m5 = slopes(x, y, method='stineman', monotone=False, scale=True)
+    m6 = slopes(x, y, method='steffen', monotone=False)
+    m7 = slopes(x, y, method='fritsch', monotone=False)
+
 
     # Call the monotonic piece-wise Hermite cubic interpolator
-    yvec = Pchip(x, y, m)(xvec)
-    yvec1 = Pchip(x, y, m1)(xvec)
-    yvec2 = Pchip(x, y, m2)(xvec)
-    yvec3 = Pchip(x, y, m3)(xvec)
+    ifun = Pchip
+    ifun = StinemanInterp
+    yvec = ifun(x, y, m)(xvec)
+    yvec1 = ifun(x, y, m1)(xvec)
+    yvec2 = ifun(x, y, m2)(xvec)
+    yvec3 = ifun(x, y, m3)(xvec)
+    yvec30 = ifun(x, y, m30)(xvec)
+    yvec4 = ifun(x, y, m4)(xvec)
+    #yvec5 = ifun(x, y, m5)(xvec)
+    yvec5 = ifun(x, y)(xvec)
+    yvec6 = ifun(x, y, m6)(xvec)
+    yvec7 = ifun(x, y, m7)(xvec)
+    # yvec40 = Akima1DInterpolator(x, y, axis=0)(xvec)
+
+    true_y = fun(xvec)
+    err = np.abs(yvec-true_y)
+    err1 = np.abs(yvec1-true_y)
+    err2 = np.abs(yvec2-true_y)
+    err3 = np.abs(yvec3-true_y)
+    err30 = np.abs(yvec30-true_y)
+    err4 = np.abs(yvec4-true_y)
+    err5 = np.abs(yvec5-true_y)
+    err6 = np.abs(yvec6-true_y)
+    err7 = np.abs(yvec7-true_y)
+    names = ['parbola_monoton', 'parabola', 'catmul', 'pchip', 'secant', 'Akima', 'Stineman', 'Steffen', 'Fritsch']
+    errors = [err, err1, err2, err3, err30, err4, err5, err6, err7]
+    print('Errors:   Average,    Max')
+    for name, errr in zip(names, errors):
+        print(f'{name:15s}: {errr.sum():.4f},  {errr.max():.4g}')
 
     import matplotlib.pyplot as plt
 
     plt.figure()
-    plt.plot(x, y, 'ro', xvec, fun(xvec), 'r')
+    plt.plot(x, y, 'ro', xvec, true_y, 'r')
     plt.title("pchip() Sin test code")
 
     # Plot the interpolated points
-    plt.plot(xvec, yvec, xvec, yvec1, xvec, yvec2, 'g.', xvec, yvec3)
+    plt.plot(xvec, yvec,'m', xvec, yvec1, 'bo', xvec, yvec2, 'g.',
+             xvec, yvec3, 'k.', xvec, yvec30, 'k-', xvec, yvec4, 'y.', xvec, yvec5,xvec, yvec6,xvec, yvec7,)
     plt.legend(
-        ['true', 'true', 'parbola_monoton', 'parabola', 'catmul', 'pchip'],
+        ['true', 'true', 'parbola_monoton', 'parabola', 'catmul', 'pchip', 'secant', 'Akima', 'Stineman', 'Steffen', 'Fritsch'],
         frameon=False, loc=0)
     plt.ioff()
     plt.show()
@@ -1243,12 +1527,13 @@ def demo_monoticity():
     m = slopes(x, y, monotone=True)
 #    m1 = slopes(x, y, monotone=False)
 #    m2  = slopes(x,y,method='catmul',monotone=False)
-    m3 = pchip_slopes(x, y)
+    method = 'parabola'
+    m3 = slopes(x, y, method=method, monotone=True)
     # Interpolate...
     yvec = Pchip(x, y, m)(xvec)
 
     # Call the Scipy cubic spline interpolator
-    from scipy.interpolate import interpolate as ip
+    from scipy import interpolate as ip
     function = ip.interp1d(x, y, kind='cubic')
     yvec2 = function(xvec)
 
@@ -1264,7 +1549,7 @@ def demo_monoticity():
     plt.plot(xvec, yvec2, 'k', label='interp1d')
     plt.plot(xvec, yvec3, 'g', label='CHS')
     plt.plot(xvec, yvec4, 'm', label='Stineman')
-    # plt.plot(xvec, yvec5, 'yo', label='Pchip2')
+    plt.plot(xvec, yvec5, 'yo', label=method)
     plt.xlabel("X")
     plt.ylabel("Y")
     plt.title("Comparing Pchip() vs. Scipy interp1d() vs. non-monotonic CHS")
@@ -1340,8 +1625,8 @@ def test_docstrings():
 
 if __name__ == '__main__':
     # test_func()
-    test_docstrings()
     # test_smoothing_spline()
     # compare_methods()
     # demo_monoticity()
     # test_interp3()
+    test_docstrings()
