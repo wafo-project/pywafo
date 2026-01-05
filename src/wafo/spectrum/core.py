@@ -48,8 +48,10 @@ _WAFOCOV = JITImport('wafo.covariance')
 __all__ = ['SpecData1D', 'SpecData2D', 'plotspec']
 
 
-_EPS = np.finfo(float).eps
-_TINY = np.finfo(float).tiny
+_FINFO = np.finfo(float)
+_EPS = _FINFO.eps
+_tiny_name = 'tiny' if np.__version__ < '1.22' else 'smallest_normal'
+_TINY = getattr(_FINFO, _tiny_name)
 
 
 def _set_seed(iseed):

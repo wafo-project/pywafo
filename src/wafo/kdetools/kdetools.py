@@ -27,10 +27,12 @@ from wafo.kdetools.gridding import gridcount
 
 __all__ = ['TKDE', 'KDE', 'test_docstrings', 'KRegression', 'BKRegression']
 
-_TINY = np.finfo(float).tiny
-# _REALMIN = np.finfo(float).min
-_REALMAX = np.finfo(float).max
-_EPS = np.finfo(float).eps
+_FINFO = np.finfo(float)
+_EPS = _FINFO.eps
+_tiny_name = 'tiny' if np.__version__ < '1.22' else 'smallest_normal'
+_TINY = getattr(_FINFO, _tiny_name)
+# _REALMIN = _FINFO.min
+_REALMAX = _FINFO.max
 
 
 def _assert(cond, msg):

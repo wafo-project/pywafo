@@ -2,16 +2,16 @@
 Misc
 '''
 
-try:
-    from collections.abc import Callable
-except ImportError:
-    from collections import Callable
-    
+
 import fractions
 import numbers
 import sys
 import warnings
 from time import strftime, gmtime
+try:
+    from typing import Callable
+except ImportError:
+    from collections import Callable
 
 import numpy as np
 from numpy import (sqrt, arctan2, sin, cos, exp, log, log1p,
@@ -27,8 +27,10 @@ try:
 except ImportError:
     warnings.warn('c_library not found. Check its compilation.')
     clib = None
+
 FLOATINFO = np.finfo(float)
-_TINY = FLOATINFO.tiny
+_tiny_name = 'tiny' if np.__version__ < '1.22' else 'smallest_normal'
+_TINY = getattr(FLOATINFO, _tiny_name)
 _EPS = FLOATINFO.eps
 
 __all__ = ['now', 'spaceline', 'narg_smallest', 'args_flat', 'is_numlike',
@@ -1323,12 +1325,12 @@ def findrfc(tp, h=0.0, method='clib'):
     nc = n // 2
 
     if nc < 1:
-        return zeros(0, dtype=np.int)  # No RFC cycles*/
+        return zeros(0, dtype=int)  # No RFC cycles*/
 
     if (y[0] > y[1] and y[1] > y[2] or
             y[0] < y[1] and y[1] < y[2]):
         warnings.warn('This is not a sequence of turningpoints, exit')
-        return zeros(0, dtype=np.int)
+        return zeros(0, dtype=int)
 
     if clib is not None and method == 'clib':
         ind, ix = clib.findrfc(y, h)  # pylint: disable=no-member
@@ -1573,7 +1575,7 @@ def findtc(x_in, v=None, kind=None):
     n_c = v_ind.size
     if n_c <= 2:
         warnings.warn('There are no waves!')
-        return zeros(0, dtype=np.int), zeros(0, dtype=np.int)
+        return zeros(0, dtype=int), zeros(0, dtype=int)
 
     # determine the number of trough2crest (or crest2trough) cycles
     is_even = np.mod(n_c + 1, 2)

@@ -5,7 +5,7 @@ from wafo.misc import now
 import numpy as np
 from scipy import interpolate
 from scipy import integrate
-from scipy.integrate import cumtrapz
+from scipy.integrate import cumulative_trapezoid as cumtrapz
 
 __all__ = ['PlotData', 'AxisLabels']
 

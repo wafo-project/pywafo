@@ -27,7 +27,8 @@ __all__ = ['Profile', 'FitDistribution']
 _FLOATINFO = np.finfo(float)
 # The smallest representable positive number such that 1.0 + _EPS != 1.0.
 _EPS = _FLOATINFO.eps
-_TINY = _FLOATINFO.tiny
+_tiny_name = 'tiny' if np.__version__ < '1.22' else 'smallest_normal'
+_TINY = getattr(_FLOATINFO, _tiny_name)
 _XMAX = _FLOATINFO.max
 
 
@@ -976,6 +977,13 @@ class rv_frozen(_rv_frozen):
         distribution.
     """
 
+    def pdf(self, x):
+        return self.dist.pdf(x, *self.args, **self.kwds)
+
+    def logpdf(self, x):
+        return self.dist.logpdf(x, *self.args, **self.kwds)
+
+
 
 _set_rv_frozen_docstrings(rv_frozen)
 
@@ -1646,7 +1654,9 @@ def test_doctstrings():
 
 def test1():
     """Test fitting weibull_min distribution"""
+    import matplotlib
     import wafo.stats as ws
+    matplotlib.interactive(False)
     dist = ws.weibull_min
     plt = plotbackend
     # dist = ws.bradford
@@ -1687,9 +1697,10 @@ def test1():
     profile_logsf = ProfileProbability(phat, np.log(upper_tail_prb))
     profile_logsf.plot()
     # logsf_ci = profile_logsf.get_bounds(alpha=0.2)
-    plt.show('hold')
+    plt.show()
 
 
 if __name__ == '__main__':
+
     # test1()
     test_doctstrings()

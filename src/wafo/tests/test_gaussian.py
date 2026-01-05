@@ -22,7 +22,7 @@ def test_rind():
     rho = 0.3
     Sc = (np.ones((n, n)) - np.eye(n)) * rho + np.eye(n)
     rind = Rind()
-    
+
     E0, err0, terr0 = rind(Sc, m, Blo, Bup, indI)
 
     assert(np.abs(E0 - Et) < 2*(err0 + terr0))
@@ -142,8 +142,10 @@ def test_prbnormnd():
     Sc = (np.ones((n, n)) - np.eye(n)) * rho + np.eye(n)
     A = np.repeat(Blo, n)
     B = np.repeat(Bup, n) - m
-    [val, err, _inform] = prbnormnd(Sc, A, B)
-    assert(np.abs(val - Et) < err)
+    #[val, err, _inform] = prbnormnd(Sc, A, B)
+    abseps = 1e-5
+    val = prbnormnd(Sc, A, B, abseps=abseps)
+    assert(np.abs(val - Et) < abseps)
 
     t = 'val = %2.5f' % val
     assert(t == 'val = 0.00195')

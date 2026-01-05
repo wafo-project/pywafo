@@ -436,8 +436,7 @@ def jonswap_seastate(u10, fetch=150000., method='lewis', g=9.81,
     Hm0 = 4 * sqrt(epsilon1) * u10 ** 2. / g            # Table 1
     if output[0] == 'l':
         return Hm0, Tp, gam, sa, sb, A
-    else:
-        return dict(Hm0=Hm0, Tp=Tp, gamma=gam, sigmaA=sa, sigmaB=sb, Ag=A)
+    return dict(Hm0=Hm0, Tp=Tp, gamma=gam, sigmaA=sa, sigmaB=sb, Ag=A)
 
 
 class Jonswap(ModelSpectrum):
