@@ -8,8 +8,13 @@
 from copy import copy
 from functools import partial
 from ._distn_infrastructure import rv_discrete, rv_continuous, rv_frozen
+from builtins import ImportError
+try:
+    from ._distn_infrastructure import entropy
+except ImportError:
+    from scipy.stats import entropy
 
-from scipy.stats import _continuous_distns, entropy
+from scipy.stats import _continuous_distns
 from scipy.stats import _discrete_distns
 from scipy.stats._constants import _EULER
 # from scipy.stats._continuous_distns import *
@@ -17,7 +22,7 @@ from scipy.stats._constants import _EULER
 import scipy.special as sc
 import numpy as np
 from scipy import optimize
-from scipy.stats import mode
+from scipy.stats.mstats_basic import mode
 
 
 def _betaprime_fitstart(self, data, fitstart):  # pab
@@ -224,6 +229,133 @@ class truncrayleigh_gen(rv_continuous):
 truncrayleigh = truncrayleigh_gen(a=0.0, name="truncrayleigh", shapes='c')
 truncrayleigh.__doc__ = truncrayleigh.__doc__.replace("scipy.stats", "wafo.stats")
 
+
+class pbinom(rv_discrete):
+    """A  Poisson binomial discrete random variable.
+
+    %(before_notes)s
+
+    Notes
+    -----
+    Probability distribution of a series of independent Bernoulli
+    random variables that are not necessarily identically distributed.
+
+    For details see [Hong2013]_ and [pbinom]_.
+
+    `pbinom` takes ``probabilities``, an array of probabilities for the Bernoulli
+    variables as parameters.
+
+    %(after_notes)s
+
+    %(example)s
+
+    References
+    ----------
+    .. [Hong2013] Yili Hong, On computing the distribution function for the Poisson
+        binomial distribution,
+        Computational Statistics & Data Analysis, Volume 59, March 2013,
+        Pages 41-51, ISSN 0167-9473,
+        http://dx.doi.org/10.1016/j.csda.2012.10.006.
+
+    .. [pbinom] http://en.wikipedia.org/wiki/Poisson_binomial_distribution
+    """
+    def __init__(self, probabilities, seed=None):
+        self.probabilities = prob = np.asarray(probabilities)
+        if not ((self.probabilities <= 1).all() and (self.probabilities >= 0).all()):
+            raise ValueError("All probabilities must be between 0 and 1")
+        n = len(prob)
+        super(pbinom, self).__init__(seed=seed, a=0, b=n, name="pbinom")
+        # self._pmf_values = self._local_pmf(np.arange(n+1))
+        self._pmf_values = self._fft_pmf(n)
+        self._cdf_values = self._pmf_values.cumsum()
+        self._sf_values = self._pmf_values[::-1].cumsum()[::-1]
+        pass
+
+
+    def _rvs(self):
+        n = self._size
+        return sum((self._random_state.binomial(1, p) for p in self.probabilities))
+
+    def _pmf(self, x):
+        return self._pmf_values[x]
+
+    def _sf(self, x):
+        # val = super(pbinom, self)._sf(x)
+        return self._sf_values[x+1]
+
+    def _cdf(self, x):
+        return self._cdf_values[x]
+        # x = int(np.floor(x))
+        # return sum((self._pmf(i) for i in range(0, x+1)))
+
+    def _stats(self):
+        p = self.probabilities
+        mean = sum(self.probabilities)
+        var = sum(p * (1 - p))
+        sigma = np.sqrt(var)
+        g1 = sum(((1 - 2 * p) * (1 - p) * p)) / (sigma**3)
+        g2 = sum(((1 - 6 * (1 - p) * p) * (1 - p) * p)) / (sigma**4)
+        return mean, var, g1, g2
+
+    def _local_pmf(self, x):
+        """Brute force pmf"""
+        n = len(self.probabilities)
+        C = np.exp(2j*np.pi/(n+1))
+        s = 0
+        for l in range(0, n+1):
+            product = 1
+            for p in self.probabilities:
+                product *= 1 + (C**l - 1) * p
+            s += C**(-l*x) * product
+        return 1/(n+1) * s.real
+
+
+    def _fft_pmf(self, n):
+        """Return the values of the variable ``xi``.
+
+        The components ``xi`` make up the probability mass function, i.e.
+        :math:`\\xi(k) = pmf(k) = Pr(X = k)`.
+        """
+
+        chi = np.empty(n + 1, dtype=complex)
+        chi[0] = 1
+        half_number_trials = int(n // 2 + n % 2)
+        # set first half of chis:
+        chi[1:half_number_trials + 1] = self._chi(np.arange(1, half_number_trials + 1), n)
+        # set second half of chis:
+        chi[half_number_trials + 1:n + 1] = np.conjugate(
+            chi[1:n - half_number_trials + 1] [::-1])
+        chi /= n + 1
+        xi = np.fft.fft(chi).real
+        #         if self.check_xi_are_real(xi):
+        #             xi = xi.real
+        #         else:
+        #             raise TypeError("pmf / xi values have to be real.")
+        xi += np.finfo(type(xi[0])).eps
+        return xi
+
+    def _chi(self, idx_array, n):
+        """Return the values of ``chi`` for the specified indices.
+
+        :param idx_array: array of indices for which the ``chi`` values should
+            be calculated
+        :type idx_array: numpy.array
+        """
+        omega = 2 * np.pi / (n + 1)
+        # get_z:
+        exp_value = np.exp(omega * idx_array * 1j)
+        xy = 1 - self.probabilities + \
+            self.probabilities * exp_value[:, np.newaxis]
+        # sum over the principal values of the arguments of z:
+        argz_sum = np.arctan2(xy.imag, xy.real).sum(axis=1)
+        # get d value:
+        exparg = np.log(np.abs(xy)).sum(axis=1)
+        d_value = np.exp(exparg)
+        # get chi values:
+        chi = d_value * np.exp(argz_sum * 1j)
+        return chi
+
+
 _loc = locals()
 
 _patch_fit_start_dict = dict(betaprime=_betaprime_fitstart,
@@ -253,7 +385,7 @@ for distname in _discrete_distns._distn_names:  # pylint: disable=protected-acce
     dist.__doc__ = dist.__doc__.replace("scipy.stats", "wafo.stats")
 
 # For backwards compatibility e.g. pymc expects distributions.__all__.
-__all__ = ['entropy', 'rv_discrete', 'rv_continuous', 'rv_histogram', "truncrayleigh"]
+__all__ = ['entropy', 'rv_discrete', 'rv_continuous', 'rv_histogram', "truncrayleigh", "pbinom"]
 
 # Add only the distribution names, not the *_gen names.
 __all__ += _continuous_distns._distn_names + _discrete_distns._distn_names  #pylint: disable=protected-access
