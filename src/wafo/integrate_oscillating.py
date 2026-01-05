@@ -5,20 +5,23 @@ Created on 20. aug. 2015
 """
 from collections import namedtuple
 import warnings
-import numdifftools as nd
-import numdifftools.nd_algopy as nda
-from numdifftools.extrapolation import dea3
-from numdifftools.limits import Limit
+
 import numpy as np
 from numpy import linalg
 from numpy.polynomial.chebyshev import chebval, Chebyshev
 from numpy.polynomial import polynomial
+
+import numdifftools as nd
+import numdifftools.nd_algopy as nda
+from numdifftools.extrapolation import dea3
+from numdifftools.limits import Limit
 from wafo.misc import piecewise, findcross, ecross
 
 _FINFO = np.finfo(float)
-EPS = _FINFO.eps
-_EPS = EPS
-_TINY = _FINFO.tiny
+_EPS = EPS = _FINFO.eps
+_tiny_name = 'tiny' if np.__version__ < '1.22' else 'smallest_normal'
+_TINY = getattr(_FINFO, _tiny_name)
+
 _HUGE = _FINFO.max
 
 
