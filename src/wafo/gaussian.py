@@ -4,14 +4,15 @@ from numpy import (r_, minimum, maximum, atleast_1d, atleast_2d, mod, ones,
 from numpy import triu
 from scipy.special import ndtr as cdfnorm, ndtri as invnorm
 from scipy.special import erfc
+from scipy.stats import multivariate_normal as mvn
 import warnings
 import numpy as np
 
-try:
-    from wafo import mvn  # @UnresolvedImport
-except ImportError:
-    warnings.warn('mvn not found. Check its compilation.')
-    mvn = None
+# try:
+#     from wafo import mvn  # @UnresolvedImport
+# except ImportError:
+#     warnings.warn('mvn not found. Check its compilation.')
+#     mvn = None
 try:
     from wafo import mvnprdmod  # @UnresolvedImport
 except ImportError:
@@ -646,41 +647,28 @@ _ERRORMESSAGE[6] = """the input is invalid because:
         4) limit < npts2."""
 
 
-def prbnormnd(correl, a, b, abseps=1e-4, releps=1e-3, maxpts=None, method=0):
+def prbnormnd(correl, a, b, abseps=1e-4, releps=1e-3, maxpts=None, allow_singular=False):
     """
     Multivariate Normal probability by Genz' algorithm.
 
 
     Parameters
-    CORREL = Positive semidefinite correlation matrix
-    A      = vector of lower integration limits.
-    B      = vector of upper integration limits.
-    ABSEPS = absolute error tolerance.
-    RELEPS = relative error tolerance.
-    MAXPTS = maximum number of function values allowed. This
+    ----------
+    correl = Positive (semi)definite correlation matrix
+    a      = vector of lower integration limits.
+    b      = vector of upper integration limits.
+    abseps = absolute error tolerance.
+    releps = relative error tolerance.
+    maxpts = maximum number of function values allowed. This
         parameter can be used to limit the time. A sensible strategy is to
         start with MAXPTS = 1000*N, and then increase MAXPTS if ERROR is too
         large.
-    METHOD = integer defining the integration method
-        -1 KRBVRC randomized Korobov rules for the first 20 variables,
-            randomized Richtmeyer rules for the rest, NMAX = 500
-         0 KRBVRC, NMAX = 100 (default)
-         1 SADAPT Subregion Adaptive integration method, NMAX = 20
-         2 KROBOV Randomized KOROBOV rules,              NMAX = 100
-         3 RCRUDE Crude Monte-Carlo Algorithm with simple
-           antithetic variates and weighted results on restart
-      4 SPHMVN Monte-Carlo algorithm by Deak (1980),  NMAX = 100
+    allow_singular = False
+
     Returns
     -------
     VALUE  REAL estimated value for the integral
-    ERROR  REAL estimated absolute error, with 99% confidence level.
-    INFORM INTEGER, termination status parameter:
-                if INFORM = 0, normal completion with ERROR < EPS;
-                if INFORM = 1, completion with ERROR > EPS and MAXPTS
-                               function vaules used; increase MAXPTS to
-                               decrease ERROR;
-                if INFORM = 2, N > NMAX or N < 1. where NMAX depends on the
-                               integration method
+
     Examples
     --------
     Compute the probability that X1<0,X2<0,X3<0,X4<0,X5<0,
@@ -699,7 +687,7 @@ def prbnormnd(correl, a, b, abseps=1e-4, releps=1e-3, maxpts=None, method=0):
 
     >>> A = np.repeat(Blo,n)
     >>> B = np.repeat(Bup,n)-m
-    >>> val, err, inform = prbnormnd(Sc,A,B)
+    >>> val = prbnormnd(Sc,A,B)
     >>> np.allclose([val, err, inform],
     ...    [0.0019456719705212067, 1.0059406844578488e-05, 0])
     True
@@ -720,46 +708,23 @@ def prbnormnd(correl, a, b, abseps=1e-4, releps=1e-3, maxpts=None, method=0):
     if (m != n or m != Na or m != Nb):
         raise ValueError('Size of input is inconsistent!')
 
-    if maxpts is None:
-        maxpts = 1000 * n
 
-    maxpts = max(round(maxpts), 10 * n)
-
-#    %            array of correlation coefficients; the correlation
-#    %            coefficient in row I column J of the correlation matrix
-#    %            should be stored in CORREL( J + ((I-2)*(I-1))/2 ), for J < I.
-#    %            The correlation matrix must be positive semidefinite.
+#    array of correlation coefficients; the correlation
+#    coefficient in row I column J of the correlation matrix
+#    should be stored in CORREL( J + ((I-2)*(I-1))/2 ), for J < I.
+#    The correlation matrix must be positive semidefinite.
 
     D = np.diag(correl)
     if (any(D != 1)):
         raise ValueError('This is not a correlation matrix')
 
-    # Make sure integration limits are finite
-    A = np.clip(a, -100, 100)
-    B = np.clip(b, -100, 100)
-    ix = np.where(np.triu(np.ones((m, m)), 1) != 0)
-    L = correl[ix].ravel()  # % return only off diagonal elements
+    return mvn.cdf(b, cov=correl,
+                   allow_singular=False,
+                   maxpts=maxpts,
+                   abseps=abseps,
+                   releps=releps,
+                   lower_limit=a)
 
-    infinity = 37
-    infin = np.repeat(2, n) - (B > infinity) - 2 * (A < -infinity)
-
-    err, val, inform = mvn.mvndst(A, B, infin, L, maxpts, abseps, releps)
-
-    return val, err, inform
-
-    # CALL the mexroutine
-#    t0 = clock;
-#    if ((method==0) && (n<=100)),
-#      %NMAX = 100
-#      [value, err,inform] = mexmvnprb(L,A,B,abseps,releps,maxpts);
-#    elseif ( (method<0) || ((method<=0) && (n>100)) ),
-#      % NMAX = 500
-#      [value, err,inform] = mexmvnprb2(L,A,B,abseps,releps,maxpts);
-#    else
-#      [value, err,inform] = mexGenzMvnPrb(L,A,B,abseps,releps,maxpts,method);
-#    end
-#    exTime = etime(clock,t0);
-#  '
 
 #     gauss legendre points and weights, n = 6
 _W6 = [0.1713244923791705e+00, 0.3607615730481384e+00, 0.4679139345726904e+00]
