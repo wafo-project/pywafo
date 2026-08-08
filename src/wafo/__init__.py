@@ -1,3 +1,12 @@
+import os
+_dll_dir = os.path.join(os.path.dirname(__file__), '.libs')
+if os.path.isdir(_dll_dir):
+    try:
+        os.add_dll_directory(_dll_dir)
+    except AttributeError:
+        pass
+    os.environ['PATH'] += os.pathsep + _dll_dir
+
 from .info import __doc__
 
 from . import misc
